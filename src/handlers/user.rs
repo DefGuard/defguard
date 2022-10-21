@@ -118,13 +118,13 @@ pub async fn modify_user(
     let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     let user_info = data.into_inner();
     if session.is_admin {
-        user_info.into_user(&appstate.pool, &mut user).await?;
+        user_info
+            .into_user_all_fields(&appstate.pool, &mut user)
+            .await?;
     } else {
-        user.phone = user_info.phone;
-        user.ssh_key = user_info.ssh_key;
-        user.pgp_key = user_info.pgp_key;
-        user.pgp_cert_id = user_info.pgp_cert_id;
-        user.mfa_method = user_info.mfa_method;
+        user_info
+            .into_user_safe_fields(&appstate.pool, &mut user)
+            .await?;
     }
     user.save(&appstate.pool).await?;
 

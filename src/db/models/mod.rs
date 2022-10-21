@@ -83,28 +83,23 @@ impl UserInfo {
         })
     }
 
-    pub async fn into_user(self, pool: &DbPool, user: &mut User) -> Result<(), SqlxError> {
-        user.username = self.username;
-        user.last_name = self.last_name;
-        user.first_name = self.first_name;
-        user.email = self.email;
-        user.phone = self.phone;
-        user.ssh_key = self.ssh_key;
-        user.pgp_key = self.pgp_key;
-        user.pgp_cert_id = self.pgp_cert_id;
-        user.mfa_method = self.mfa_method;
-
+    /// Copy groups to [`User`]. This function should be used by administrators.
+    async fn handle_user_groups(
+        &mut self,
+        pool: &DbPool,
+        user: &mut User,
+    ) -> Result<(), SqlxError> {
         // handle groups
         let mut present_groups = user.member_of(pool).await?;
 
         // add to groups if not already a member
-        for groupname in self.groups {
-            match present_groups.iter().position(|name| name == &groupname) {
+        for groupname in &self.groups {
+            match present_groups.iter().position(|name| name == groupname) {
                 Some(index) => {
                     present_groups.swap_remove(index);
                 }
                 None => {
-                    if let Some(group) = Group::find_by_name(pool, &groupname).await? {
+                    if let Some(group) = Group::find_by_name(pool, groupname).await? {
                         user.add_to_group(pool, &group).await?;
                     }
                 }
@@ -118,35 +113,83 @@ impl UserInfo {
             }
         }
 
-        // handle applications
-        #[cfg(feature = "openid")]
-        {
-            let mut present_apps = AuthorizedApp::all_for_user(pool, user).await?;
+        Ok(())
+    }
 
-            // create applications that don't already exist
-            for mut auth_app in self.authorized_apps {
-                match present_apps
-                    .iter()
-                    .position(|app| app.client_id == auth_app.client_id)
-                {
-                    Some(index) => {
-                        present_apps.swap_remove(index);
-                    }
-                    None => {
-                        if let Some(id) = user.id {
-                            auth_app.id = None;
-                            auth_app.user_id = id;
-                            auth_app.save(pool).await?;
-                        }
+    /// Copy authorized apps to [`User`]. This function is safe to call by a non-admin user.
+    #[cfg(feature = "openid")]
+    async fn handle_user_authorized_apps(
+        &mut self,
+        pool: &DbPool,
+        user: &mut User,
+    ) -> Result<(), SqlxError> {
+        let mut present_apps = AuthorizedApp::all_for_user(pool, user).await?;
+
+        // create applications that don't already exist
+        for mut auth_app in &mut self.authorized_apps {
+            match present_apps
+                .iter()
+                .position(|app| app.client_id == auth_app.client_id)
+            {
+                Some(index) => {
+                    present_apps.swap_remove(index);
+                }
+                None => {
+                    if let Some(id) = user.id {
+                        auth_app.id = None;
+                        auth_app.user_id = id;
+                        auth_app.save(pool).await?;
                     }
                 }
             }
-
-            // remove from remaining applications
-            for app in present_apps {
-                app.delete(pool).await?;
-            }
         }
+
+        // remove from remaining applications
+        for app in present_apps {
+            app.delete(pool).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
+    pub async fn into_user_safe_fields(
+        mut self,
+        pool: &DbPool,
+        user: &mut User,
+    ) -> Result<(), SqlxError> {
+        #[cfg(feature = "openid")]
+        self.handle_user_authorized_apps(pool, user).await?;
+
+        user.phone = self.phone;
+        user.ssh_key = self.ssh_key;
+        user.pgp_key = self.pgp_key;
+        user.pgp_cert_id = self.pgp_cert_id;
+        user.mfa_method = self.mfa_method;
+
+        Ok(())
+    }
+
+    /// Copy fields to [`User`]. This function should be used by administrators.
+    pub async fn into_user_all_fields(
+        mut self,
+        pool: &DbPool,
+        user: &mut User,
+    ) -> Result<(), SqlxError> {
+        self.handle_user_groups(pool, user).await?;
+        #[cfg(feature = "openid")]
+        self.handle_user_authorized_apps(pool, user).await?;
+
+        user.phone = self.phone;
+        user.ssh_key = self.ssh_key;
+        user.pgp_key = self.pgp_key;
+        user.pgp_cert_id = self.pgp_cert_id;
+        user.mfa_method = self.mfa_method;
+
+        user.username = self.username;
+        user.last_name = self.last_name;
+        user.first_name = self.first_name;
+        user.email = self.email;
 
         Ok(())
     }
@@ -188,7 +231,10 @@ mod test {
             .await
             .unwrap()
             .unwrap();
-        user_info.into_user(&pool, &mut user).await.unwrap();
+        user_info
+            .into_user_all_fields(&pool, &mut user)
+            .await
+            .unwrap();
 
         assert_eq!(group1.member_usernames(&pool).await.unwrap(), ["hpotter"]);
         assert_eq!(group3.member_usernames(&pool).await.unwrap(), ["hpotter"]);
