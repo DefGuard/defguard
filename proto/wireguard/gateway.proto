@@ -1,0 +1,48 @@
+syntax = "proto3";
+package gateway;
+
+import "google/protobuf/empty.proto";
+
+message Configuration {
+  string name = 1;
+  string prvkey = 2;
+  string address = 3;
+  uint32 port = 4;
+  repeated Peer peers = 5;
+}
+
+enum UpdateType {
+  CREATE = 0;
+  MODIFY = 1;
+  DELETE = 2;
+}
+
+message Peer {
+  string pubkey = 1;
+  repeated string allowed_ips = 2;
+}
+
+message Update {
+  UpdateType update_type = 1;
+  oneof update {
+    Peer peer = 2;
+    Configuration network = 3;
+  }
+}
+
+message PeerStats {
+  string public_key = 1;
+  string endpoint = 2;
+  int64 upload = 3;
+  int64 download = 4;
+  int64 keepalive_interval = 5;
+  int64 latest_handshake = 6;
+  string allowed_ips = 7;
+}
+
+service GatewayService {
+  rpc Config (google.protobuf.Empty) returns (Configuration);
+  rpc Updates (google.protobuf.Empty) returns (stream Update);
+  rpc Stats (stream PeerStats) returns (google.protobuf.Empty);
+}
+

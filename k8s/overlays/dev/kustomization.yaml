@@ -1,0 +1,5 @@
+resources:
+  - ../../base/
+  - ldap-service.yaml
+  - ldap-deployment.yaml
+  - ldap-storage.yaml

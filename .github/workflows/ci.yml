@@ -1,0 +1,62 @@
+name: Continuous integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: rust:latest
+
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_DB: defguard
+          POSTGRES_USER: defguard
+          POSTGRES_PASSWORD: defguard
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Debug
+        run: echo ${{ github.ref_name }}
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Set database URL
+        run: sed -i -e 's,localhost,postgres,' .env
+      - name: Install protoc
+        run: apt-get update && apt-get -y install protobuf-compiler
+      - name: Run tests
+        env:
+          DEFGUARD_DB_HOST: postgres
+          DEFGUARD_DB_PORT: 5432
+          DEFGUARD_DB_NAME: defguard
+          DEFGUARD_DB_USER: defguard
+          DEFGUARD_DB_PASSWORD: defguard
+          DEFGUARD_LICENSE: BwAAAAAAAAB0ZW9uaXRlCgAAAAAAAAAyMDUwLTEwLTEwAAAAAAFiayfBptq8pZXjPo4FV3VnmmwR/ipZHLriVPTW3AFyRq4c2wR+DzWC4BUACu3YMS27kX116JVKWB3/edYKNELFSiqYc6vsfoOrXnnQQJDI8RoyAQB6MpLv/EcgRZh47iI4L+tp44jKFQZ+EqqvMNt3G41u13P72HdkUv8yzQ7dmm3BrYQGJSCh/xiLna+mtQ9IQdqXOmYVInPXiWtIvi157Utfnow3gS0Ak45jci0DhtH+RWmFfiMOQCc4Qx0kEF9PsHl6Hn9Ay4oRTAnSYEPdWfQlVh5Rp276bLqnHDdyJ3/o2RSNK+QUXR7V2iuN1M3sWyW1rCGXtV5miHGI97CS
+          SQLX_OFFLINE: true
+        run: cargo test --locked --no-fail-fast --features mock-license-key

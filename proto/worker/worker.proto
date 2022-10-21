@@ -1,0 +1,30 @@
+syntax = "proto3";
+package worker;
+import "google/protobuf/empty.proto";
+
+message Worker {
+  string id = 1;
+}
+
+message JobStatus {
+  string id = 1;
+  uint32 job_id = 2;
+  bool success = 3;
+  string public_key = 4;
+  string ssh_key = 5;
+  string fingerprint = 6;
+  string error = 7;
+}
+
+message GetJobResponse {
+  string first_name = 1;
+  string last_name = 2;
+  string email = 3;
+  uint32 job_id = 4;
+}
+
+service WorkerService {
+  rpc RegisterWorker (Worker) returns (google.protobuf.Empty) {}
+  rpc GetJob (Worker) returns (GetJobResponse) {}
+  rpc SetJobDone (JobStatus) returns (google.protobuf.Empty) {}
+}

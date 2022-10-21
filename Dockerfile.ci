@@ -1,0 +1,7 @@
+FROM debian:bullseye-slim
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+COPY build/bin/defguard .
+USER 1000
+ENTRYPOINT ["./defguard"]

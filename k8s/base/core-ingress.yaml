@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/protocol: h2c
+  name: orion-grpc-ingress
+spec:
+  rules:
+    - host: defguard-grpc.tnt
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: core-grpc
+                port:
+                  name: grpc

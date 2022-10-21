@@ -1,0 +1,65 @@
+version: "3"
+
+services:
+  core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DEFGUARD_JWT_SECRET: orion-secret
+      DEFGUARD_LDAP_URL: ldap://openldap:1389
+      DEFGUARD_LDAP_SERVICE_PASSWORD: adminpassword
+      DEFGUARD_LDAP_USER_SEARCH_BASE: "ou=users,dc=example,dc=org"
+      DEFGUARD_LDAP_GROUP_SEARCH_BASE: "ou=groups,dc=example,dc=org"
+      DEFGUARD_DB_HOST: db
+      DEFGUARD_DB_PORT: 5432
+      DEFGUARD_DB_USER: defguard
+      DEFGUARD_DB_PASSWORD: defguard
+      DEFGUARD_DB_NAME: defguard
+    ports:
+      # rest api
+      - "8000:8000"
+      # grpc
+      - "50055:50055"
+
+  gateway:
+    image: registry.teonite.net/defguard/wireguard:latest
+    environment:
+      DEFGUARD_GRPC_URL: https://core:50055
+      DEFGUARD_STATS_PERIOD: 60
+      DEFGUARD_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEZWZHdWFyZCIsInN1YiI6Im1vZGlmaWVkIiwiY2xpZW50X2lkIjoiIiwiZXhwIjo1OTQ5MDM0NTcxLCJuYmYiOjE2NTQwNjcyNzYsInJvbGVzIjpbXX0.Z8re0LmnE3xeL4z30CvFsCD2ETAkXIOpCfq1Q4axl3w
+      RUST_LOG: debug
+    ports:
+      # wireguard endpoint
+      - "50051:50051/udp"
+    depends_on:
+      - core
+    cap_add:
+      - NET_ADMIN
+
+  openldap:
+    image: bitnami/openldap:2.6
+    environment:
+      LDAP_EXTRA_SCHEMAS: "cosine,inetorgperson,nis,openssh-lpk_openldap,samba,gnupg-ldap-schema,orion"
+    ports:
+      - "389:1389"
+    volumes:
+      - ./ldap-initdb.d:/docker-entrypoint-initdb.d:ro
+      - ./ldif/gnupg-ldap-schema.ldif:/opt/bitnami/openldap/etc/schema/gnupg-ldap-schema.ldif:ro
+      - ./ldif/openssh-lpk_openldap.ldif:/opt/bitnami/openldap/etc/schema/openssh-lpk_openldap.ldif:ro
+      - ./ldif/orion.ldif:/opt/bitnami/openldap/etc/schema/orion.ldif:ro
+      - ./ldif/samba.ldif:/opt/bitnami/openldap/etc/schema/samba.ldif:ro
+      - ./ldif/init.ldif:/ldifs/init.ldif:ro
+      - ./ldif/custom.ldif:/schema/custom.ldif:ro
+      - ./data:/bitnami/openldap
+
+  db:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: defguard
+      POSTGRES_USER: defguard
+      POSTGRES_PASSWORD: defguard
+    volumes:
+      - ./.volumes/db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"

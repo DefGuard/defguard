@@ -1,0 +1,56 @@
+version: "3"
+
+services:
+  core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DEFGUARD_JWT_SECRET: orion-secret
+      DEFGUARD_DB_HOST: db
+      DEFGUARD_DB_PORT: 5432
+      DEFGUARD_DB_USER: defguard
+      DEFGUARD_DB_PASSWORD: defguard
+      DEFGUARD_DB_NAME: defguard
+      RUST_BACKTRACE: 1
+    ports:
+      # rest api
+      - "8000:8000"
+      # grpc
+      - "50055:50055"
+    depends_on:
+      - db
+
+  gateway:
+    image: registry.teonite.net/defguard/wireguard:latest
+    environment:
+      DEFGUARD_GRPC_URL: http://core:50055
+      DEFGUARD_STATS_PERIOD: 60
+      DEFGUARD_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEZWZHdWFyZCIsInN1YiI6IlRlc3ROZXQiLCJjbGllbnRfaWQiOiIiLCJleHAiOjU5NjA1MzQ1NjgsIm5iZiI6MTY2NTU2NzI3Mywicm9sZXMiOltdfQ.NjZ0L5jvrkLuCgjuMU3vUQi1tR1GTAfj5ZN9IfRgUPI
+      RUST_LOG: debug
+    ports:
+      # wireguard endpoint
+      - "50051:50051/udp"
+    depends_on:
+      - core
+    cap_add:
+      - NET_ADMIN
+
+  db:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: defguard
+      POSTGRES_USER: defguard
+      POSTGRES_PASSWORD: defguard
+    volumes:
+      - ./.volumes/db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  device:
+    build:
+      dockerfile: Dockerfile.device
+    depends_on:
+      - gateway
+    cap_add:
+      - NET_ADMIN

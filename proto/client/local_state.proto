@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package client;
+
+message LocalState {
+  // The unique identifier of this device.
+  string device_id = 1;
+  // Wireguard private key of this device.
+  string wg_private_key = 2;
+  // JWT token used for authenticating to the central server.
+  string jwt_token = 3;
+}

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: orion
+    service: db
+  name: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orion
+      service: db
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: orion
+        service: db
+    spec:
+      containers:
+        - name: db
+          image: postgres:14-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: web
+                  key: DEFGUARD_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: web
+                  key: DEFGUARD_DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-password
+                  key: DEFGUARD_DB_PASSWORD
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: db-claim
+              subPath: postgres
+      restartPolicy: Always
+      volumes:
+        - name: db-claim
+          persistentVolumeClaim:
+            claimName: db-claim
