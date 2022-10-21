@@ -57,6 +57,5 @@ jobs:
           DEFGUARD_DB_NAME: defguard
           DEFGUARD_DB_USER: defguard
           DEFGUARD_DB_PASSWORD: defguard
-          DEFGUARD_LICENSE: BwAAAAAAAAB0ZW9uaXRlCgAAAAAAAAAyMDUwLTEwLTEwAAAAAAFiayfBptq8pZXjPo4FV3VnmmwR/ipZHLriVPTW3AFyRq4c2wR+DzWC4BUACu3YMS27kX116JVKWB3/edYKNELFSiqYc6vsfoOrXnnQQJDI8RoyAQB6MpLv/EcgRZh47iI4L+tp44jKFQZ+EqqvMNt3G41u13P72HdkUv8yzQ7dmm3BrYQGJSCh/xiLna+mtQ9IQdqXOmYVInPXiWtIvi157Utfnow3gS0Ak45jci0DhtH+RWmFfiMOQCc4Qx0kEF9PsHl6Hn9Ay4oRTAnSYEPdWfQlVh5Rp276bLqnHDdyJ3/o2RSNK+QUXR7V2iuN1M3sWyW1rCGXtV5miHGI97CS
           SQLX_OFFLINE: true
         run: cargo test --locked --no-fail-fast --features mock-license-key

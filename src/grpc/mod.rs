@@ -9,6 +9,7 @@ use crate::{
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
 #[cfg(feature = "wireguard")]
 use gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
+#[cfg(any(feature = "wireguard", feature = "worker"))]
 use interceptor::jwt_auth_interceptor;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -19,6 +20,7 @@ use tonic::transport::{Identity, Server, ServerTlsConfig};
 mod auth;
 #[cfg(feature = "wireguard")]
 mod gateway;
+#[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 
 /// Runs gRPC server with core services.

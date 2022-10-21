@@ -10,6 +10,7 @@ pub mod webhook;
 pub mod wireguard;
 
 use super::{DbPool, Group};
+#[cfg(feature = "openid")]
 use crate::enterprise::db::openid::AuthorizedApp;
 use device::Device;
 use sqlx::Error as SqlxError;
@@ -43,6 +44,7 @@ pub struct UserInfo {
     pub groups: Vec<String>,
     #[serde(default)]
     pub devices: Vec<Device>,
+    #[cfg(feature = "openid")]
     #[serde(default)]
     pub authorized_apps: Vec<AuthorizedApp>,
     #[serde(default)]
@@ -56,9 +58,12 @@ impl UserInfo {
     pub async fn from_user(pool: &DbPool, user: User) -> Result<Self, SqlxError> {
         let groups = user.member_of(pool).await?;
         let devices = user.devices(pool).await?;
-        let authorized_apps = AuthorizedApp::all_for_user(pool, &user).await?;
         let wallets = user.wallets(pool).await?;
         let security_keys = user.security_keys(pool).await?;
+
+        #[cfg(feature = "openid")]
+        let authorized_apps = AuthorizedApp::all_for_user(pool, &user).await?;
+
         Ok(Self {
             username: user.username,
             last_name: user.last_name,
@@ -70,6 +75,7 @@ impl UserInfo {
             pgp_cert_id: user.pgp_cert_id,
             groups,
             devices,
+            #[cfg(feature = "openid")]
             authorized_apps,
             wallets,
             security_keys,
@@ -88,6 +94,7 @@ impl UserInfo {
         user.pgp_cert_id = self.pgp_cert_id;
         user.mfa_method = self.mfa_method;
 
+        // handle groups
         let mut present_groups = user.member_of(pool).await?;
 
         // add to groups if not already a member
@@ -108,6 +115,36 @@ impl UserInfo {
         for groupname in present_groups {
             if let Some(group) = Group::find_by_name(pool, &groupname).await? {
                 user.remove_from_group(pool, &group).await?;
+            }
+        }
+
+        // handle applications
+        #[cfg(feature = "openid")]
+        {
+            let mut present_apps = AuthorizedApp::all_for_user(pool, user).await?;
+
+            // create applications that don't already exist
+            for mut auth_app in self.authorized_apps {
+                match present_apps
+                    .iter()
+                    .position(|app| app.client_id == auth_app.client_id)
+                {
+                    Some(index) => {
+                        present_apps.swap_remove(index);
+                    }
+                    None => {
+                        if let Some(id) = user.id {
+                            auth_app.id = None;
+                            auth_app.user_id = id;
+                            auth_app.save(pool).await?;
+                        }
+                    }
+                }
+            }
+
+            // remove from remaining applications
+            for app in present_apps {
+                app.delete(pool).await?;
             }
         }
 

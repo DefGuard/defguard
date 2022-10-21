@@ -115,7 +115,7 @@ impl OpenIDClientAuth {
     }
 }
 
-#[derive(Deserialize, Model, Serialize)]
+#[derive(Deserialize, Model, PartialEq, Serialize)]
 #[table(authorizedapps)]
 pub struct AuthorizedApp {
     #[serde(default)]
