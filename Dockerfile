@@ -38,7 +38,7 @@ COPY web/pnpm-lock.yaml .
 COPY web/.npmrc .
 RUN npm i -g pnpm
 RUN pnpm install --ignore-scripts
-COPY . .
+COPY web/ .
 RUN pnpm build
 
 # run
