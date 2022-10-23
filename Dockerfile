@@ -30,6 +30,17 @@ COPY migrations migrations
 ENV SQLX_OFFLINE true
 RUN cargo install --locked --path . --root /build
 
+FROM node:19-alpine3.15 as web
+
+WORKDIR /app
+COPY web/package.json .
+COPY web/pnpm-lock.yaml .
+COPY web/.npmrc .
+RUN npm i -g pnpm
+RUN pnpm install --ignore-scripts
+COPY . .
+RUN pnpm build
+
 # run
 FROM debian:bullseye-slim as runtime
 RUN apt-get update -y && \
@@ -37,4 +48,5 @@ RUN apt-get update -y && \
     rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
+COPY --from=web /app/dist ./web
 ENTRYPOINT ["./defguard"]
