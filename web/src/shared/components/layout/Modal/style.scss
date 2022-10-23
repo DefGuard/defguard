@@ -1,0 +1,75 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+@use '@shared/scss/helpers/bootstrap' as bs;
+
+.modal-root {
+  display: block;
+
+  .modal-wrap {
+    position: fixed;
+    inset: 0;
+    overflow: auto;
+    outline: 0;
+    z-index: 110000;
+
+    .modal {
+      box-sizing: border-box;
+      margin: 0 auto;
+      display: grid;
+      width: 100%;
+      z-index: 110002;
+      @include bs.media-breakpoint-up(xl) {
+        padding: 0 0 4rem;
+      }
+
+      .modal-content {
+        background-color: v.$white;
+        box-shadow: 5px 5px 15px #00000005;
+      }
+
+      &.middle {
+        align-items: center;
+        justify-items: center;
+        @include bs.media-breakpoint-up(xl) {
+          .modal-content {
+            border-radius: 1.5rem;
+          }
+        }
+      }
+
+      &.right {
+        justify-items: right;
+        align-items: center;
+      }
+
+      &.left {
+        justify-items: left;
+        align-items: center;
+      }
+
+      &.right,
+      &.left {
+        height: 100%;
+
+        .modal-content {
+          @include bs.media-breakpoint-down(xl) {
+            width: 100%;
+            min-height: 100%;
+          }
+        }
+      }
+    }
+  }
+
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: block;
+    height: 100%;
+    width: 100%;
+    background-color: v.$text-main;
+    opacity: 0.5;
+    content: ' ';
+  }
+}

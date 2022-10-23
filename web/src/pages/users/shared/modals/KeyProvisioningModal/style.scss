@@ -1,0 +1,117 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@shared/scss/helpers/_mixins' as mix;
+
+.modal {
+  &.key-provisioning {
+    @include bs.media-breakpoint-down(xl) {
+      min-height: 100%;
+      padding: 0;
+    }
+    @include bs.media-breakpoint-up(xl) {
+      transform: translateY(137px);
+    }
+
+    .modal-content {
+      @include bs.media-breakpoint-down(xl) {
+        min-height: 100%;
+        min-width: 100%;
+      }
+      @include bs.media-breakpoint-up(xl) {
+        width: 635px;
+        padding: 4rem 3rem;
+      }
+
+      .provisioning-top {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        align-content: center;
+        justify-content: center;
+        width: 100%;
+        @include bs.media-breakpoint-up(xl) {
+          row-gap: 2rem;
+          margin-bottom: 4rem;
+        }
+
+        header {
+          width: 100%;
+          display: flex;
+          flex-direction: row;
+          align-content: center;
+          align-items: center;
+          justify-content: flex-start;
+          @include bs.media-breakpoint-down(xl) {
+            margin-bottom: 3rem;
+            height: 70px;
+            box-sizing: border-box;
+            border-bottom: 1px solid v.$gray-border;
+            padding: 0 2rem;
+
+            & > button {
+              margin-left: auto;
+            }
+          }
+
+          button {
+            margin-left: auto;
+            border: none;
+            background-color: transparent;
+            width: 22px;
+            height: 22px;
+            border-radius: 0;
+
+            &:hover {
+              box-shadow: none;
+            }
+          }
+
+          p {
+            font-size: 20px;
+            color: v.$text-main;
+            font-weight: map-get($map: v.$text-weights, $key: 'semiBold');
+            @include v.poppins;
+
+            line-height: 28px;
+
+            span {
+              color: v.$primary;
+            }
+          }
+        }
+
+        .message-box {
+          @include bs.media-breakpoint-down(xl) {
+            height: 54px;
+            width: calc(100% - 4rem);
+            margin-bottom: 2rem;
+          }
+        }
+      }
+
+      .loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        align-content: center;
+        justify-content: center;
+        margin-top: auto;
+        margin-bottom: auto;
+
+        p {
+          margin-top: 4rem;
+          margin-bottom: 2rem;
+          color: v.$gray-dark;
+          font-size: 14px;
+          @include mix.text-weight(semiBold);
+        }
+      }
+    }
+  }
+
+  &.submitted {
+    @include bs.media-breakpoint-up(xl) {
+      transform: translateY(207px);
+    }
+  }
+}

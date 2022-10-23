@@ -1,0 +1,36 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+
+.icon-with-label {
+  display: flex;
+  flex-direction: row;
+  align-content: center;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1rem;
+}
+
+.icon {
+  &.disconnected {
+    content: '';
+    display: block;
+    width: 5px;
+    height: 5px;
+    background-color: v.$gray-light;
+    border-radius: 50%;
+    margin-right: 1.1rem;
+  }
+
+  &.connected {
+    position: relative;
+    content: '';
+    width: 7px;
+    height: 7px;
+    background-color: v.$white;
+    margin-right: 1rem;
+    display: block;
+    border-radius: 50%;
+    border: 2px solid v.$success;
+    box-sizing: border-box;
+  }
+}

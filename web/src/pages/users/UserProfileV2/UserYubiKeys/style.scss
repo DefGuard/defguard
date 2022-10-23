@@ -1,0 +1,22 @@
+@use '../../../../shared/scss/helpers' as *;
+
+#user-yubikeys {
+  & > header {
+    margin-bottom: 2rem;
+
+    & > h2 {
+      @include card-header;
+    }
+  }
+
+  & > .keys {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-flow: column nowrap;
+    row-gap: 1.5rem;
+  }
+
+  & > .add-component {
+    height: 80px;
+  }
+}

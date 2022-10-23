@@ -1,0 +1,173 @@
+@use '../../../../shared/scss/base/variables/' as v;
+@use '../../../../shared/scss/helpers/mixins' as mix;
+
+.user-connection-list-item {
+  background-color: v.$white;
+  display: flex;
+  flex-direction: column;
+  border-radius: 15px;
+  box-sizing: border-box;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  position: relative;
+
+  & > .user-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-start;
+    width: 100%;
+
+    & > .user-name {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+      column-gap: 1rem;
+      padding-left: 52px;
+
+      & > .full-name {
+        @include mix.typography(15px, 18px, medium);
+      }
+    }
+
+    & > .active-time {
+      & > .time {
+        @include mix.typography(15px, 18px, medium, v.$text-main);
+      }
+    }
+  }
+
+  & > .device-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-start;
+    width: 100%;
+    box-sizing: border-box;
+    padding-top: 14px;
+    border-top: 1px solid #f7f7f7;
+
+    &:not(:last-of-type) {
+      padding-bottom: 15px;
+    }
+
+    &:last-of-type {
+      padding-bottom: 0.5rem;
+    }
+
+    & > .device-name {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+      column-gap: 1rem;
+      padding-left: 52px;
+
+      & > svg {
+        margin-left: 1.2rem;
+      }
+
+      & > .name {
+        @include mix.typography(12px, 14px, medium, v.$text-main);
+      }
+    }
+
+    & > .active-time {
+      & > .time {
+        @include mix.typography(12px, 14px, medium, v.$text-main);
+      }
+    }
+  }
+
+  & > .expand-devices {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    left: 15px;
+    top: 19px;
+  }
+
+  .active-devices {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: 0.8rem;
+
+    & > .count-box {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      flex-direction: column;
+      align-content: center;
+      align-items: center;
+      justify-content: center;
+
+      span {
+        @include mix.typography(12px, 14px, medium, v.$gray-light);
+      }
+    }
+  }
+
+  .device-ips {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-start;
+    column-gap: 0.7rem;
+  }
+
+  .connections {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: 0.8rem;
+  }
+
+  .network-usage {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: 1rem;
+
+    .network-usage-summary {
+      display: flex;
+      flex-direction: column;
+
+      .transfer {
+        display: flex;
+        flex-direction: row;
+        gap: 0.4rem;
+        align-items: center;
+      }
+    }
+  }
+
+  .active-time {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: 0.6rem;
+  }
+
+  &.expanded {
+    @include mix.elevate;
+
+    & > .user-row {
+      padding-bottom: 1rem;
+    }
+  }
+}

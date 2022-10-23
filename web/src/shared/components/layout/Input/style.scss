@@ -1,0 +1,130 @@
+@use '../../../scss/base/variables' as v;
+@use '../../../scss/helpers/mixins' as mix;
+@use '../../../scss/helpers/bootstrap' as bs;
+
+.input-container {
+  position: relative;
+  display: inline-flex;
+  width: inherit;
+  min-height: 50px;
+  height: auto;
+  margin-bottom: 2.5rem;
+  border-radius: 1rem;
+  z-index: 1;
+
+  &.disabled {
+    cursor: not-allowed;
+  }
+
+  & > .icon-container {
+    position: absolute;
+    right: 1.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: block;
+    width: auto;
+    height: auto;
+    z-index: 3;
+  }
+
+  & > .error-message {
+    user-select: none;
+    position: absolute;
+    font-size: 1.2rem;
+    line-height: 1.4rem;
+    font-family: Roboto;
+    @include mix.text-weight(medium);
+
+    color: v.$error;
+    z-index: -1;
+  }
+
+  .placeholder-label {
+    display: block;
+    position: absolute;
+    font-family: Roboto;
+    user-select: none;
+    z-index: 1;
+  }
+
+  & > input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    margin: 0;
+    display: flex;
+    flex: 1 0 auto;
+    padding: 0 4rem 0 2rem;
+    z-index: 2;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    border-radius: 1rem;
+    @include mix.typography(15px, 18px, regular);
+
+    &::placeholder {
+      opacity: 0;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+
+  & > svg {
+    position: absolute;
+    right: 1.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    pointer-events: none;
+  }
+
+  .dispose {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+    top: 0;
+    right: 0;
+    height: auto;
+    position: absolute;
+    cursor: pointer;
+    padding: 1rem;
+    border: 0 solid transparent;
+    border-radius: 0;
+    z-index: 1000;
+    opacity: 1;
+
+    & > div {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      align-content: center;
+      justify-content: center;
+      height: 30px;
+      width: 30px;
+      background-color: v.$bg-light;
+      border-radius: 1rem;
+      border: 0 solid transparent;
+
+      & > svg {
+        opacity: 1;
+
+        path,
+        rect {
+          fill: v.$gray-dark;
+          opacity: 1;
+        }
+      }
+    }
+  }
+}
+
+label {
+  &.input-outer-label {
+    @include mix.outer-label;
+  }
+}

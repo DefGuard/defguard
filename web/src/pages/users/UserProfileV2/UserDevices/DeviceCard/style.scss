@@ -1,0 +1,45 @@
+@use '../../../../../shared/scss/helpers' as *;
+
+.card {
+  &.device-card {
+    display: block;
+    box-sizing: border-box;
+    padding: 2rem 0 2rem 1.7rem;
+    position: relative;
+
+    & > header {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: 1rem;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: 2rem;
+      align-content: center;
+
+      h3 {
+        @include small-header;
+      }
+    }
+
+    & > .content {
+      display: grid;
+      grid-auto-flow: column;
+
+      & > .info {
+        & > label {
+          margin-bottom: 1rem;
+        }
+
+        & > p {
+          @include regular-text;
+        }
+      }
+    }
+
+    & > .edit-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+    }
+  }
+}

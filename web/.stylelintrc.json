@@ -1,0 +1,12 @@
+{
+  "extends": [
+    "stylelint-config-standard-scss",
+    "stylelint-config-prettier-scss"
+  ],
+  "rules": {
+    "no-descending-specificity": null,
+    "font-family-no-missing-generic-family-keyword": null,
+    "selector-class-pattern": null
+  },
+  "defaultSeverity": "warning"
+}

@@ -1,0 +1,96 @@
+@use '@shared/scss/base/variables' as v;
+
+.icon-button {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  box-sizing: border-box;
+  flex-direction: row;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  border: 1px solid v.$gray-border-dark;
+  background-color: v.$bg-light;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  border-radius: 1rem;
+
+  &:hover {
+    box-shadow: 0 6px 10px #0000001a;
+  }
+
+  &.nav,
+  &.primary {
+    border-radius: 1rem;
+    border: 1px solid v.$gray-border;
+    background-color: v.$bg-light;
+
+    &:hover,
+    &.active {
+      background-color: v.$primary;
+      box-shadow: 0 6px 10px #0c8ce066;
+      border: 1px solid transparent;
+
+      svg {
+        g {
+          path,
+          rect {
+            fill: v.$white;
+          }
+        }
+      }
+    }
+
+    &.active {
+      box-shadow: none;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    &.nav,
+    &.primary {
+      border-radius: 1rem;
+      border: 1px solid v.$gray-border;
+      background-color: v.$bg-light;
+
+      svg {
+        g {
+          path,
+          rect {
+            fill: rgb(137 156 168);
+          }
+        }
+      }
+
+      &:hover {
+        border: 1px solid v.$gray-border;
+        background-color: v.$bg-light;
+        box-shadow: none;
+
+        svg {
+          g {
+            path,
+            rect {
+              fill: rgb(137 156 168);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  &.blank {
+    border-radius: 0;
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+
+    &:hover {
+      box-shadow: none;
+    }
+  }
+}

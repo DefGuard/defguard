@@ -1,0 +1,180 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@shared/scss/helpers/mixins' as mix;
+
+#client-profile {
+  height: auto;
+  min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  @include bs.media-breakpoint-down(md) {
+    padding-top: 3rem;
+    height: inherit;
+    max-height: inherit;
+  }
+  @include bs.media-breakpoint-up(md) {
+    padding: 3.9rem 6rem 6rem;
+  }
+
+  & > header {
+    @include bs.media-breakpoint-down(md) {
+      padding-bottom: 3rem;
+    }
+    @include bs.media-breakpoint-up(md) {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+      margin-bottom: 4rem;
+      flex-wrap: wrap;
+    }
+
+    .mobile-controls {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+      box-sizing: border-box;
+      padding: 0 2rem;
+      height: 40px;
+
+      .edit-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 100%;
+        width: 100%;
+        column-gap: 1rem;
+
+        & > button {
+          width: 100%;
+        }
+
+        .admin-button {
+          margin-left: auto;
+          width: 40px;
+
+          &.active {
+            svg {
+              rect,
+              path {
+                fill: v.$primary;
+              }
+            }
+          }
+        }
+      }
+
+      .edit-button {
+        margin-left: auto;
+      }
+
+      &.admin {
+        .edit-controls {
+          grid-template-columns: 1fr 1fr 40px;
+        }
+      }
+    }
+
+    h1 {
+      font-size: 4.1rem;
+      line-height: 6.1rem;
+      font-family: Poppins;
+      color: v.$text-main;
+      @include mix.text-weight(semiBold);
+
+      margin-right: 3rem;
+      text-transform: capitalize;
+    }
+
+    .edit-button-container {
+      display: flex;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: row;
+      flex-grow: 1;
+      justify-content: space-between;
+
+      .edit-controls {
+        display: flex;
+        flex-direction: row;
+        column-gap: 1rem;
+      }
+
+      .admin-controls {
+        display: flex;
+        flex-direction: row;
+        column-gap: 1rem;
+      }
+    }
+  }
+
+  & > .activity-status {
+    margin-bottom: 2.4rem;
+  }
+
+  & > .content {
+    display: flex;
+    @include bs.media-breakpoint-down(md) {
+      flex-direction: column;
+      row-gap: 3rem;
+      box-sizing: border-box;
+      padding: 0 1.4rem 3rem 2rem;
+      max-height: calc(100% - 70px);
+      width: calc(100% - 6px);
+      margin-right: 6px;
+      overflow-y: auto;
+    }
+    @include bs.media-breakpoint-up(md) {
+      flex-direction: row;
+      justify-content: flex-start;
+      gap: 3rem;
+      flex-wrap: wrap;
+
+      .devices {
+        width: 369px;
+      }
+    }
+
+    h2 {
+      &.title {
+        @include bs.media-breakpoint-down(md) {
+          font-size: 1.5rem;
+          line-height: 2.1rem;
+          color: v.$text-main;
+          @include mix.text-weight(semiBold);
+
+          text-transform: uppercase;
+          width: auto;
+        }
+      }
+    }
+
+    .edit-client-data {
+      @include bs.media-breakpoint-down(md) {
+        width: 100%;
+      }
+      @include bs.media-breakpoint-up(md) {
+        width: clamp(400px, 768px, 100%);
+      }
+
+      & > .container-basic {
+        box-sizing: border-box;
+        padding: 3rem 3rem 4rem;
+        width: inherit;
+      }
+    }
+
+    .tabs-container {
+      height: auto;
+      width: clamp(400px, 768px, 100%);
+    }
+  }
+}

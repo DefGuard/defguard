@@ -1,0 +1,32 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/bootstrap' as bs;
+
+#auth-container {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  align-content: center;
+  justify-content: flex-start;
+  width: auto;
+  height: inherit;
+  min-width: 100%;
+  overflow: auto;
+  background-color: v.$bg-light;
+  position: relative;
+  flex-wrap: nowrap;
+
+  .logo-container {
+    display: none;
+    flex-direction: column;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    background-color: v.$primary;
+    flex-grow: 1;
+    flex-shrink: 0;
+    width: 50%;
+    @include bs.media-breakpoint-up(lg) {
+      display: flex;
+    }
+  }
+}

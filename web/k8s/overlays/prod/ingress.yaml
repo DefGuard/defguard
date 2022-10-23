@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: orion-frontend-ingress
+  namespace: orion
+spec:
+  rules:
+  - host: defguard.teonite.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              name: http
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: core
+            port:
+              name: http

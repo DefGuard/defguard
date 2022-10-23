@@ -1,0 +1,11 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+
+.no-data {
+  font-size: 1.2rem;
+  color: v.$gray-dark;
+  @include mix.poppins;
+
+  width: 100%;
+  text-align: center;
+}

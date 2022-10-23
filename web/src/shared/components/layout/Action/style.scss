@@ -1,0 +1,11 @@
+@use '../../../scss/base/variables/' as v;
+@use '../../../scss/helpers/mixins' as mix;
+
+span {
+  &.action {
+    @include mix.typography(12px, 14px, medium, v.$gray-light);
+
+    cursor: pointer;
+    text-decoration: none;
+  }
+}

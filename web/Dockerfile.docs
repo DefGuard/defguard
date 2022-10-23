@@ -1,0 +1,16 @@
+FROM node:19-alpine3.15 as build
+
+WORKDIR /app
+COPY package.json .
+COPY pnpm-lock.yaml .
+COPY .npmrc .
+RUN npm i -g pnpm
+RUN pnpm install --ignore-scripts
+COPY . .
+RUN mkdir -p /app/docs/
+COPY README.md /app/docs/README.md
+RUN pnpm build-doc-ci
+
+FROM nginx:1.21.5
+COPY --from=build /app/docs /web
+COPY nginx.conf /etc/nginx/nginx.conf

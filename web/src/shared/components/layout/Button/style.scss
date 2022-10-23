@@ -1,0 +1,101 @@
+@use '../../../../shared/scss/base/variables/' as v;
+@use '../../../../shared/scss/helpers/mixins' as mix;
+
+.btn {
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  width: auto;
+  height: auto;
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  padding: 0 2rem;
+
+  .content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    align-content: center;
+    text-align: center;
+
+    span {
+      a {
+        text-decoration: none;
+        font-size: 1.2rem;
+        @include mix.text-weight(medium);
+      }
+    }
+  }
+
+  &.icon {
+    padding: 0 2rem 0 1.5rem;
+  }
+
+  &.big {
+    min-height: 50px;
+    min-width: 200px;
+
+    .content {
+      span,
+      p,
+      a {
+        @include mix.typography(15px, 21px, semiBold, v.$white, 'Poppins');
+      }
+    }
+
+    &.primary {
+      .loader-spinner {
+        &::before {
+          border-top-color: v.$white;
+        }
+      }
+    }
+  }
+
+  &.small {
+    min-height: 40px;
+
+    .content {
+      span {
+        @include mix.typography(12px, 14px, medium);
+      }
+    }
+
+    &.primary {
+      .content {
+        svg {
+          .a,
+          .c {
+            fill: #fff;
+            stroke: none;
+          }
+
+          .a {
+            opacity: 0;
+          }
+        }
+      }
+    }
+
+    &.confirm,
+    &.primary {
+      .content {
+        span {
+          @include mix.text-weight(medium);
+
+          font-size: 1.2rem;
+        }
+      }
+    }
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}

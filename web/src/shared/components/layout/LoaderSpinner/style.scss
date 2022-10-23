@@ -1,0 +1,48 @@
+@use '../../../scss/base/variables/' as v;
+
+.loader-spinner {
+  content: '';
+  box-sizing: border-box;
+  border-radius: 50%;
+  position: relative;
+  background-color: transparent;
+  user-select: none;
+
+  &::before {
+    content: '';
+    user-select: none;
+    box-sizing: border-box;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    height: inherit;
+    width: inherit;
+    margin-top: -50%;
+    margin-left: -50%;
+
+    // Framer
+    // border-top: 3px solid v.$primary;
+    // border-right: 3px solid transparent;
+    border-radius: 50%;
+  }
+}
+
+.loader-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+
+  & > div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+  }
+}

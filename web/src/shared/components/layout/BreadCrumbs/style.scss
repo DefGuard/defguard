@@ -1,0 +1,42 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+
+.breadcrumbs {
+  position: absolute;
+  top: 17px;
+  left: 60px;
+
+  ul {
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-start;
+    column-gap: 0.5rem;
+    height: 22px;
+
+    li {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+      column-gap: 0.5rem;
+
+      a {
+        text-decoration: none;
+        font-size: 1.2rem;
+        line-height: 1.4rem;
+
+        span {
+          @include mix.text-weight(medium);
+
+          color: v.$gray-light;
+          font-size: 1.2rem;
+          line-height: 1.4rem;
+        }
+      }
+    }
+  }
+}

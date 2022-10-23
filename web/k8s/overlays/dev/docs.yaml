@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docs
+  labels:
+    app: orion
+    service: docs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orion
+      service: docs
+  template:
+    metadata:
+      labels:
+        app: orion
+        service: docs
+    spec:
+      containers:
+        - name: docs
+          image: registry.teonite.net/orion/frontend-docs:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: orion
+    service: docs
+  name: docs
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  selector:
+    app: orion
+    service: docs
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: orion-frontend-docs-ingress
+  namespace: orion-dev
+spec:
+  rules:
+  - host: docs.defguard.tnt
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: docs
+            port:
+              name: http

@@ -1,0 +1,81 @@
+@use '../../../../shared/scss/helpers' as *;
+
+#user-auth-info {
+  & > h2 {
+    margin-bottom: 1.2rem;
+
+    @include card-header;
+  }
+
+  & > .card {
+    padding: 3rem;
+
+    @include media-breakpoint-up(lg) {
+      padding: 3.5rem 5.3rem 3rem 3rem;
+    }
+
+    h3 {
+      @include small-header;
+    }
+
+    & > section {
+      & > header {
+        margin-bottom: 1.5rem;
+
+        @include media-breakpoint-up(md) {
+          margin-bottom: 2rem;
+        }
+      }
+    }
+
+    .divider {
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    & > .password {
+      & > header {
+        width: 100%;
+        text-align: left;
+      }
+    }
+
+    & > .two-factor {
+      & > .row {
+        width: 100%;
+        display: flex;
+        flex-flow: row nowrap;
+        align-content: center;
+        align-items: center;
+
+        & > p {
+          @include regular-text;
+        }
+
+        & > .info {
+          @include label-text;
+
+          margin-left: auto;
+        }
+      }
+    }
+
+    & > .recovery {
+      & > .row {
+        width: 100%;
+        display: flex;
+        flex-flow: row nowrap;
+
+        & > p {
+          @include regular-text;
+
+          &.info {
+            @include label-text;
+
+            margin-left: auto;
+          }
+        }
+      }
+    }
+  }
+}

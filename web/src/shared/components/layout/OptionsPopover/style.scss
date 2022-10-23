@@ -1,0 +1,94 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+@use '@shared/scss/helpers/bootstrap' as bs;
+
+.popover-basic {
+  background-color: v.$white;
+  box-shadow: 0 6px 20px #0000001a;
+  padding: 1rem 0;
+  border-radius: 1rem;
+  border: 1px solid v.$gray-lighter;
+  z-index: 9000;
+  position: relative;
+  min-width: 111px;
+  width: auto;
+  height: auto;
+
+  .arrow {
+    z-index: 9001;
+    content: ' ';
+    position: absolute;
+    right: -8px;
+    width: 0;
+    height: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    border-style: solid;
+    border-width: 7px 0 7px 8px;
+    border-color: transparent transparent transparent v.$gray-lighter;
+  }
+
+  ul {
+    list-style: none;
+    min-width: 100%;
+
+    li {
+      min-height: 30px;
+      width: auto;
+
+      button {
+        cursor: pointer;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        align-content: center;
+        justify-content: flex-start;
+        padding-left: 1.2rem;
+        height: 30px;
+        width: 100%;
+        border: 0 solid transparent;
+        background-color: v.$white;
+        @include mix.text-weight(medium);
+
+        font-size: 1.2rem;
+        line-height: 3rem;
+        color: v.$gray-light;
+        font-family: Roboto;
+        box-sizing: border-box;
+        padding: 0 1.5rem;
+        @include bs.media-breakpoint-down(md) {
+          color: v.$gray-dark;
+        }
+
+        &:hover {
+          color: v.$text-main;
+          background-color: v.$bg-light;
+        }
+
+        &.warning {
+          color: v.$error;
+
+          &:hover {
+            color: v.$error;
+          }
+        }
+
+        &:disabled {
+          opacity: 0.5;
+
+          &:hover {
+            background-color: v.$white;
+          }
+        }
+      }
+    }
+  }
+
+  &[data-popper-placement^='right'] {
+    .arrow {
+      left: -8px;
+      border-width: 7px 8px 7px 0;
+      border-color: transparent v.$gray-lighter transparent transparent;
+    }
+  }
+}

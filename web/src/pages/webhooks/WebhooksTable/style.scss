@@ -1,0 +1,217 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@shared/scss/helpers/mixins' as mix;
+
+@mixin tableSpacing($span: 0, $body: false) {
+  &:nth-of-type(#{1 + $span}) {
+    width: 25%;
+  }
+  &:nth-of-type(#{2 + $span}) {
+    width: 25%;
+  }
+  &:nth-of-type(#{3 + $span}) {
+    width: 25%;
+  }
+  &:nth-of-type(#{4 + $span}) {
+    width: 25%;
+  }
+}
+
+.webhooks-page {
+  .table-container {
+    width: calc(100% - 2.4rem);
+    margin-right: 2.4rem;
+    max-height: calc(100% - 271px);
+    max-width: calc(100% - 2.4rem);
+    overflow: auto;
+
+    .webhooks-table {
+      width: 100%;
+
+      thead {
+        tr {
+          display: flex;
+          flex-direction: row;
+          align-content: center;
+          align-items: center;
+          justify-content: flex-start;
+          position: relative;
+          box-sizing: border-box;
+          margin-bottom: 1rem;
+          padding-left: calc(6rem + 2rem);
+          padding-right: calc(3rem + 4rem);
+
+          th {
+            display: flex;
+            flex-direction: row;
+            align-content: center;
+            align-items: center;
+            justify-content: flex-start;
+            font-size: 1.2rem;
+            line-height: 1.4rem;
+            color: v.$gray-light;
+            @include mix.text-weight(medium);
+            @include tableSpacing;
+
+            & > span {
+              font-size: 1.2rem;
+              line-height: 1.4rem;
+              color: v.$gray-light;
+              @include mix.text-weight(medium);
+            }
+
+            &:first-of-type {
+              color: v.$text-main;
+            }
+
+            &:last-of-type {
+              justify-content: flex-end;
+            }
+          }
+        }
+      }
+
+      tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding-bottom: 2rem;
+        padding-left: 6rem;
+        padding-right: 3rem;
+        box-sizing: border-box;
+
+        tr {
+          position: relative;
+          display: flex;
+          flex-direction: row;
+          flex-wrap: nowrap;
+          align-content: center;
+          justify-content: flex-start;
+          align-items: center;
+          padding: 0 4rem 0 2rem;
+          height: 60px;
+          background-color: v.$white;
+          border-radius: 1.5rem;
+          box-shadow: 5px 5px 15px #00000005;
+
+          td {
+            height: inherit;
+            display: flex;
+            flex-direction: row;
+            align-content: center;
+            align-items: center;
+            justify-content: flex-start;
+            @include tableSpacing(0, true);
+
+            &.edit {
+              .icon-button {
+                width: 22px;
+                height: 22px;
+              }
+            }
+
+            .webhook-url {
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              align-content: center;
+              justify-content: flex-start;
+              column-gap: 1rem;
+
+              .avatar-icon {
+                width: 40px;
+                height: 40px;
+                background-color: v.$light-gray-bg;
+                border-radius: 10px;
+
+                &.active {
+                  background-color: v.$primary;
+
+                  svg {
+                    rect {
+                      fill: v.$white;
+                    }
+
+                    path {
+                      fill: v.$white;
+                    }
+                  }
+                }
+              }
+
+              & > span {
+                font-size: 1.5rem;
+                line-height: 1.8rem;
+                color: v.$text-main;
+                @include mix.text-weight(medium);
+              }
+            }
+
+            .connection-status {
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              align-content: center;
+              justify-content: flex-start;
+              column-gap: 0.8rem;
+
+              span {
+                font-size: 1.5rem;
+                line-height: 1.8rem;
+                color: v.$gray-light;
+                @include mix.text-weight(medium);
+
+                &.active {
+                  color: v.$text-main;
+                }
+              }
+            }
+
+            .webhook-description {
+              font-size: 1.3rem;
+              line-height: 1.8rem;
+              color: v.$gray-light;
+              @include bs.media-breakpoint-down(md) {
+                font-size: 1rem;
+              }
+              @include mix.text-weight(medium);
+
+              &.active {
+                color: v.$text-main;
+              }
+            }
+
+            &:last-of-type {
+              justify-content: flex-end;
+            }
+          }
+
+          .row-overlay {
+            display: flex;
+            flex-direction: row;
+            align-content: center;
+            align-items: center;
+            justify-content: flex-end;
+            background-color: v.$white;
+            top: 0;
+            right: 4rem;
+            position: absolute;
+            width: calc(75% - 4rem);
+            height: 100%;
+            z-index: 100;
+            column-gap: 1rem;
+
+            button {
+              width: 128px;
+              height: 40px;
+            }
+          }
+
+          &:hover {
+            box-shadow: 5px 10px 20px #0000001a;
+          }
+        }
+      }
+    }
+  }
+}

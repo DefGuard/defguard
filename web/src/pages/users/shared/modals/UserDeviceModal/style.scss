@@ -1,0 +1,17 @@
+@use '../../../../../shared/scss/helpers' as *;
+
+.modal {
+  &.user-device-modal {
+    .content {
+      .message-box {
+        margin: 0 2rem 2rem;
+        width: calc(100% - 4rem);
+
+        @include media-breakpoint-up(md) {
+          margin: 0 3rem 2rem;
+          width: calc(100% - 6rem);
+        }
+      }
+    }
+  }
+}

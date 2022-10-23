@@ -1,0 +1,109 @@
+@use '../base/variables' as v;
+@use './bootstrap' as *;
+@use 'sass:map';
+
+@mixin text-weight($key, $map: v.$text-weights) {
+  font-weight: map.get($map, $key);
+}
+
+@mixin bg-opacity($color, $opacity) {
+  background-color: $color; /* The Fallback */
+  background-color: rgba($color, $opacity);
+}
+
+@mixin poppins {
+  font-family: Poppins;
+}
+
+@mixin header {
+  @include text-weight(semiBold);
+  @include poppins;
+}
+
+@mixin icon-container {
+  // container with centered icon within it.
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin typography(
+  $font-size: 12px,
+  $line-height: 14px,
+  $text-weight-key: medium,
+  $color: v.$text-main,
+  $font-family: 'Roboto'
+) {
+  font-family: $font-family;
+  color: $color;
+  font-size: $font-size;
+  line-height: $line-height;
+  @include text-weight($text-weight-key);
+}
+
+@mixin elevate() {
+  box-shadow: 3px 3px 6px #00000005;
+}
+
+// Hides element but does not remove it.
+@mixin visually-hidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  white-space: nowrap;
+  outline: 0;
+  pointer-events: none;
+  inset: 0;
+  appearance: none;
+}
+
+@mixin page-header() {
+  @include typography(41px, 57px, semiBold, var(--text-main), 'Poppins');
+}
+
+@mixin card-header() {
+  @include typography(20px, 28px, semiBold, var(--text-main), 'Poppins');
+}
+
+@mixin small-header() {
+  @include typography(15px, 23px, medium, var(--text-main), 'Poppins');
+}
+
+@mixin modal-header() {
+  @include typography(20px, 30px, semiBold, var(--text-main), 'Poppins');
+}
+
+@mixin regular-text($color: text-main) {
+  @include typography(15px, 18px, regular, var(--text-main), 'Roboto');
+
+  color: var(--#{$color});
+}
+
+@mixin small-text($color: text-main) {
+  @include typography(12px, 18px, medium);
+
+  color: var(--#{$color});
+}
+
+@mixin label-text() {
+  @include typography(12px, 14px, medium);
+
+  color: var(--gray-light);
+}
+
+@mixin outer-label() {
+  display: block;
+  margin-bottom: 0.8rem;
+
+  @include typography(12px, 14px, medium, var(--gray-light), 'Roboto');
+  @include media-breakpoint-up(md) {
+    margin-bottom: 1.2rem;
+  }
+}

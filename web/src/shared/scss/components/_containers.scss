@@ -1,0 +1,70 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+
+.container-with-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-content: center;
+  justify-content: flex-start;
+  gap: 2rem;
+
+  .title {
+    @include mix.text-weight(semiBold);
+
+    font-size: 2rem;
+    line-height: 3rem;
+    color: v.$text-main;
+    text-align: left;
+    font-family: Poppins;
+
+    span {
+      font-size: 2rem;
+      line-height: 3rem;
+      font-family: Poppins;
+      color: v.$gray-light;
+    }
+  }
+}
+
+.container-basic {
+  display: flex;
+  flex-direction: row;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  background-color: v.$white;
+  border-radius: 1.5rem;
+  box-shadow: 5px 5px 15px #00000005;
+}
+
+.container-label-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-content: flex-start;
+  justify-content: center;
+  height: auto;
+  width: auto;
+  gap: 1rem;
+
+  label {
+    font-size: 1.2rem;
+    line-height: 1.4rem;
+    color: v.$gray-light;
+    font-family: Roboto;
+    display: block;
+    height: auto;
+    width: auto;
+    @include mix.text-weight(medium);
+  }
+
+  span {
+    display: block;
+    color: v.$text-main;
+    font-size: 1.5rem;
+    font-family: Roboto;
+    line-height: 1.8rem;
+    @include mix.text-weight(regular);
+  }
+}
