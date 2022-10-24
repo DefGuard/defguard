@@ -17,7 +17,9 @@ use crate::enterprise::handlers::{
 };
 #[cfg(feature = "oauth")]
 use crate::enterprise::oauth_state::OAuthState;
-use crate::license::{Features, License};
+#[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
+use crate::license::Features;
+use crate::license::License;
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
@@ -224,9 +226,8 @@ pub async fn run_web_server(
     pool: DbPool,
 ) -> Result<Rocket<Ignite>, RocketError> {
     let webapp = build_webapp(config.clone(), webhook_tx, webhook_rx, wireguard_tx, pool).await;
-    let license_decoded = License::decode(&config.license);
     #[cfg(feature = "worker")]
-    let webapp = if license_decoded.validate(&Features::Worker) {
+    let webapp = if License::decode(&config.license).validate(&Features::Worker) {
         info!("Worker feature is enabled");
         webapp.manage(worker_state).mount(
             "/api/v1/worker",

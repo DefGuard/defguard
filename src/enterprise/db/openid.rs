@@ -1,4 +1,4 @@
-use crate::DbPool;
+use crate::db::{DbPool, User};
 use model_derive::Model;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sqlx::{query_as, Error as SqlxError};
@@ -115,7 +115,7 @@ impl OpenIDClientAuth {
     }
 }
 
-#[derive(Deserialize, Model, Serialize)]
+#[derive(Deserialize, Model, PartialEq, Serialize)]
 #[table(authorizedapps)]
 pub struct AuthorizedApp {
     #[serde(default)]
@@ -163,14 +163,18 @@ impl AuthorizedApp {
         .await
     }
 
-    pub async fn all_for_user(pool: &DbPool, user_id: i64) -> Result<Vec<Self>, SqlxError> {
-        query_as!(
-            Self,
-            "SELECT id \"id?\", user_id, client_id, home_url, date, name \
-            FROM authorizedapps WHERE user_id = $1",
-            user_id
-        )
-        .fetch_all(pool)
-        .await
+    pub async fn all_for_user(pool: &DbPool, user: &User) -> Result<Vec<Self>, SqlxError> {
+        if let Some(id) = user.id {
+            query_as!(
+                Self,
+                "SELECT id \"id?\", user_id, client_id, home_url, date, name \
+                FROM authorizedapps WHERE user_id = $1",
+                id
+            )
+            .fetch_all(pool)
+            .await
+        } else {
+            Ok(Vec::new())
+        }
     }
 }

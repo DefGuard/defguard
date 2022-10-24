@@ -125,7 +125,7 @@ pub async fn get_user_apps(
     username: &str,
 ) -> ApiResult {
     debug!("Listing apps authorized by user: {}", username);
-    let apps = AuthorizedApp::all_for_user(&appstate.pool, session_info.user.id.unwrap()).await?;
+    let apps = AuthorizedApp::all_for_user(&appstate.pool, &session_info.user).await?;
     Ok(ApiResponse {
         json: json!(apps),
         status: Status::Ok,
