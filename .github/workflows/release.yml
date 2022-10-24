@@ -26,8 +26,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            DefGuard/core
-            ghcr.io/DefGuard/core
+            ghcr.io/DefGuard/defguard
           tags: |
             type=ref,event=branch
             type=ref,event=pr
