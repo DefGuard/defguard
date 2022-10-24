@@ -28,18 +28,20 @@ const AuthPage: React.FC = () => {
   }, []);
 
   return (
-    <section id="auth-container">
-      <section className="logo-container">
+    <div id="auth-container">
+      <div className="logo-container">
         <SvgDefguardLogoLogin />
-      </section>
+      </div>
       <Routes>
         <Route index element={<Navigate to="login" />} />
         <Route path="/" element={<Navigate to="login" />} />
         <Route path="login" element={<Login />} />
-        {/* <Route path="register" element={<Register />} /> */}
+        <Route path="mfa/code" element={} />
+        <Route path="mfa/code" element={} />
+        <Route path="mfa/code" element={} />
         <Route path="*" element={<Navigate to="login" />} />
       </Routes>
-    </section>
+    </div>
   );
 };
 

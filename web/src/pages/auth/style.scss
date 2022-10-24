@@ -1,32 +1,39 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/bootstrap' as bs;
+@use '../../shared/scss/helpers' as *;
 
 #auth-container {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  align-content: center;
-  justify-content: flex-start;
-  width: auto;
-  height: inherit;
+  background-color: var(--bg-light);
+  min-height: 100vh;
   min-width: 100%;
-  overflow: auto;
-  background-color: v.$bg-light;
-  position: relative;
-  flex-wrap: nowrap;
+  display: inline-grid;
+  grid-auto-flow: row dense;
+  grid-template-rows: 1fr;
+  grid-auto-columns: 1fr;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  justify-items: center;
 
   .logo-container {
+    grid-row: 1;
     display: none;
     flex-direction: column;
     align-content: center;
     align-items: center;
     justify-content: center;
-    background-color: v.$primary;
+    background-color: var(--primary);
     flex-grow: 1;
     flex-shrink: 0;
-    width: 50%;
-    @include bs.media-breakpoint-up(lg) {
+    width: 100%;
+    height: 100%;
+
+    @include media-breakpoint-up(md) {
       display: flex;
     }
+  }
+
+  & > section {
+    display: flex;
+    width: 100%;
+    grid-row: 1;
   }
 }
