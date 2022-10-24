@@ -7,6 +7,7 @@ import shallow from 'zustand/shallow';
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import Login from './Login/Login';
+import { MFARoute } from './MFARoute/MFARoute';
 
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,9 +37,7 @@ const AuthPage: React.FC = () => {
         <Route index element={<Navigate to="login" />} />
         <Route path="/" element={<Navigate to="login" />} />
         <Route path="login" element={<Login />} />
-        <Route path="mfa/code" element={} />
-        <Route path="mfa/code" element={} />
-        <Route path="mfa/code" element={} />
+        <Route path="mfa/*" element={<MFARoute />} />
         <Route path="*" element={<Navigate to="login" />} />
       </Routes>
     </div>
