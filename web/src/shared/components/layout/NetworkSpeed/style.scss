@@ -1,0 +1,42 @@
+@use '../../../scss/base/variables/' as v;
+@use '../../../scss/helpers/mixins' as mix;
+
+.network-speed {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  align-content: flex-start;
+  justify-content: flex-start;
+
+  & > .speed-value {
+    @include mix.typography(15px, 18px, medium);
+
+    & > .measurement {
+      @include mix.typography(15px, 18px, medium);
+
+      vertical-align: super;
+      margin-left: 0.3rem;
+      font-size: 75%;
+    }
+  }
+
+  &.upload {
+    & > .speed-value {
+      color: v.$error;
+
+      & > .measurement {
+        color: v.$error;
+      }
+    }
+  }
+
+  &.download {
+    & > .speed-value {
+      color: v.$primary;
+
+      & > .measurement {
+        color: v.$primary;
+      }
+    }
+  }
+}

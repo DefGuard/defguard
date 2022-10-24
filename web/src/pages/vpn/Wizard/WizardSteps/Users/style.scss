@@ -1,0 +1,206 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@shared/scss/helpers/mixins' as mix;
+@use '@shared/scss/base/variables/colors' as c;
+
+#wizard {
+  & > .content {
+    & > .steps-container {
+      & > .users {
+        display: flex;
+        flex-direction: row;
+        align-content: center;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 3rem;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        gap: 3rem;
+        box-sizing: border-box;
+
+        h2 {
+          font-size: 2rem;
+          line-height: 3rem;
+          color: v.$text-main;
+          opacity: 1;
+          @include mix.text-weight(semiBold);
+
+          font-family: Poppins;
+          margin-bottom: 2rem;
+        }
+
+        & > .users-table {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          align-content: center;
+          justify-content: flex-start;
+          width: calc(50% - 1.5rem);
+          height: auto;
+          align-self: stretch;
+
+          & > .message-box {
+            width: 100%;
+            height: auto;
+            flex-grow: 0;
+          }
+
+          ul {
+            gap: 2rem;
+            width: 100%;
+            height: auto;
+            background-color: v.$bg-light;
+            border-radius: 1rem;
+            box-sizing: border-box;
+            padding: 2rem;
+
+            li {
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              align-content: center;
+              justify-content: flex-start;
+              height: 40px;
+              width: 100%;
+              position: relative;
+
+              .initials {
+                background: c.$primary;
+                border-radius: 1rem;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+
+                span {
+                  align-items: center;
+                  font-size: 1.5rem;
+                  color: v.$white;
+                  @include mix.text-weight(bold);
+
+                  font-family: Roboto;
+                }
+              }
+
+              .user-name-wrapper {
+                padding-left: 1.1rem;
+                max-width: calc(100% - 85px);
+
+                .primary {
+                  font-size: 1.5rem;
+                  @include mix.text-weight(bold);
+
+                  font-family: Roboto;
+                  color: c.$text-main;
+                }
+
+                .secondary {
+                  font-size: 1.2rem;
+                  font-family: Roboto;
+                  color: c.$gray-light;
+                  line-height: 1.4rem;
+                  max-width: 100%;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+
+                  span {
+                    margin-left: 5px;
+                    font-size: 1.2rem;
+                    line-height: 1.4rem;
+                    text-align: left;
+                    color: v.$primary;
+                  }
+                }
+              }
+
+              .icon-button {
+                display: none;
+                margin-left: auto;
+                border-radius: 1rem;
+                width: 30px;
+                height: 30px;
+
+                svg {
+                  width: 22px;
+                  height: 22px;
+
+                  path,
+                  rect {
+                    fill: v.$gray-light;
+                  }
+                }
+              }
+
+              &:hover {
+                .icon-button {
+                  display: flex;
+                }
+              }
+
+              &:not(:last-of-type) {
+                margin-bottom: 2rem;
+              }
+            }
+          }
+        }
+
+        & > .user-form {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          align-content: center;
+          justify-content: flex-start;
+          width: calc(50% - 1.5rem);
+          height: auto;
+          align-self: stretch;
+          position: relative;
+
+          form {
+            display: flex;
+            flex-direction: column;
+            align-content: center;
+            align-items: flex-start;
+            justify-content: flex-start;
+            width: 100%;
+            height: 100%;
+            gap: 0;
+
+            .inputs-field-info {
+              font-size: 1.2rem;
+              color: v.$text-main;
+              @include mix.text-weight(medium);
+
+              line-height: 1.4rem;
+              margin-top: 2rem;
+              margin-bottom: 2rem;
+            }
+
+            .inputs-container {
+              max-height: 400px;
+              overflow-y: auto;
+              box-sizing: border-box;
+              scroll-margin-right: 2rem;
+              width: 100%;
+            }
+
+            .input-container {
+              width: 100%;
+
+              &:not(:last-of-type) {
+                margin-bottom: 2rem;
+              }
+            }
+
+            button {
+              margin-top: 2rem;
+              width: 100%;
+            }
+          }
+        }
+      }
+    }
+  }
+}

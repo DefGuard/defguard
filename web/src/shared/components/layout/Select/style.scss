@@ -1,0 +1,113 @@
+@use '../../../scss/helpers' as *;
+
+.select {
+  height: 50px;
+  background-color: var(--white);
+  border-radius: 10px;
+  position: relative;
+  border: 1px solid var(--gray-border);
+  cursor: pointer;
+
+  & .disabled {
+    cursor: not-allowed;
+  }
+
+  & > .inner-frame {
+    &.multi {
+      height: 49px;
+      display: inline-grid;
+      grid-template-columns: 1fr 38px;
+      max-width: 100%;
+      width: 100%;
+
+      & > .content-frame {
+        display: flex;
+        flex-flow: row wrap;
+        row-gap: 10px;
+        column-gap: 10px;
+        height: 49px;
+        grid-area: 1/1;
+        align-items: center;
+        align-content: center;
+        justify-content: flex-start;
+        box-sizing: border-box;
+        padding-left: 1rem;
+
+        & > .multi-select-search-frame {
+          display: inline-grid;
+          width: auto;
+          position: relative;
+          padding-left: 1rem;
+
+          & > .input-push {
+            visibility: hidden;
+            white-space: pre-wrap;
+            grid-area: 1/2;
+            height: 30px;
+            min-width: 2px;
+
+            @include small-text;
+          }
+
+          & > .multi-select-search {
+            position: absolute;
+            left: 0;
+            top: 0;
+            grid-area: 1/2;
+            height: 30px;
+            border: 0 solid transparent;
+            padding: 0;
+            margin: 0;
+            outline: none;
+            box-sizing: content-box;
+            background-color: var(--transparent);
+            max-width: 100%;
+            @include small-text;
+          }
+        }
+      }
+
+      & > svg {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+      }
+    }
+  }
+}
+
+.select-floating-ui {
+  box-sizing: border-box;
+  border-radius: 10px;
+  background-color: var(--white);
+  border: 1px solid var(--gray-lighter);
+  padding: 1rem 0;
+  position: absolute;
+  box-shadow: 0 6px 20px #0000001a;
+
+  & > .options-container {
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: calc(50px * 6);
+    display: flex;
+    flex-flow: column nowrap;
+
+    & > .select-option {
+      @include regular-text;
+
+      height: 50px;
+      text-align: left;
+      padding: 8px 12px;
+      display: block;
+      border: 0 solid transparent;
+      background-color: var(--white);
+      cursor: pointer;
+    }
+  }
+}
+
+label {
+  &.select-outer-label {
+    @include outer-label;
+  }
+}

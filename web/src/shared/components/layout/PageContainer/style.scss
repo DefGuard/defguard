@@ -1,0 +1,53 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+@use '@shared/scss/helpers/bootstrap' as bs;
+
+.page-container {
+  @include bs.media-breakpoint-down(xl) {
+    height: 100%;
+    max-height: inherit;
+    box-sizing: border-box;
+    position: relative;
+
+    .page-content {
+      overflow-y: auto;
+      box-sizing: border-box;
+      margin-top: 7rem;
+      height: calc(100% - 7rem);
+      max-height: 100%;
+
+      // hide scroll
+      &::-webkit-scrollbar {
+        display: none;
+      }
+
+      -ms-overflow-style: none;
+      scrollbar-width: none; /* Firefox */
+    }
+  }
+  @include bs.media-breakpoint-up(xl) {
+    transition-duration: v.$nav-collapse-duration;
+    transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition-property: transform, margin-left, margin-right;
+    margin-left: 0;
+    width: 100%;
+    height: inherit;
+    max-height: inherit;
+
+    .page-content {
+      transition-duration: v.$nav-collapse-duration;
+      transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition-property: transform, margin-left, margin-right, width;
+      width: calc(100% - 104px);
+      margin-left: 104px;
+      height: inherit;
+      max-height: inherit;
+      position: relative;
+
+      &.nav-open {
+        margin-left: 234px;
+        width: calc(100% - 234px);
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+@use '../../../../../shared/scss/helpers' as *;
+
+.card {
+  &.wallet-card {
+    box-sizing: border-box;
+    padding: 2rem 2rem 2rem 1.7rem;
+    position: relative;
+
+    & > .top {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: 1rem;
+      margin-bottom: 2rem;
+
+      & > h3 {
+        @include small-header;
+      }
+    }
+
+    & > .bottom {
+      label {
+        margin-bottom: 1rem;
+      }
+
+      p {
+        @include typography(14px, 17px, medium, var(--text-main));
+
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+}

@@ -1,0 +1,97 @@
+@use '../../../shared/scss/helpers' as *;
+
+#user-profile-v2 {
+  box-sizing: border-box;
+  min-height: 100%;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  @include media-breakpoint-up(lg) {
+    padding: 39px 60px;
+  }
+
+  & > header {
+    display: inline-grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: auto 1fr;
+    grid-column-gap: 14px;
+    width: 100%;
+    margin-bottom: 40px;
+
+    & > h1 {
+      grid-row: 1;
+      grid-column: 1;
+      @include page-header;
+    }
+
+    & > .controls {
+      grid-row: 1;
+      grid-column: 2;
+      width: 100%;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      align-content: flex-start;
+      justify-content: flex-start;
+
+      .btn {
+        height: 40px;
+      }
+
+      & > .left,
+      & > .right {
+        display: flex;
+        flex-flow: row nowrap;
+        column-gap: 1rem;
+      }
+
+      & > .right {
+        margin-left: auto;
+      }
+    }
+  }
+
+  & > .content {
+    display: grid;
+    grid-template-rows: repeat(3, auto);
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'wide-cards'
+      'cards-1'
+      'cards-2';
+
+    @include media-breakpoint-up(lg) {
+      grid-template-rows: repeat(2, 1fr);
+      grid-template-columns: 1fr 369px;
+      grid-template-areas:
+        'wide-cards cards-1'
+        'wide-cards cards-2';
+      column-gap: 35px;
+    }
+
+    @include media-breakpoint-up(xxl) {
+      grid-template-rows: 1fr;
+      grid-template-columns: 1fr repeat(2, 369px);
+      grid-template-areas: 'wide-cards cards-1 cards-2';
+    }
+
+    & > .wide-cards {
+      grid-area: wide-cards;
+      display: flex;
+      flex-flow: column nowrap;
+      row-gap: 3.5rem;
+    }
+
+    & > .cards-1 {
+      grid-area: cards-1;
+      display: flex;
+      flex-flow: column nowrap;
+      row-gap: 3.5rem;
+    }
+
+    & > .cards-2 {
+      grid-area: cards-2;
+    }
+  }
+}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" viewBox="0 0 16 16">
+  <defs>
+    <clipPath id="clip-path">
+      <rect id="Rectangle_2114" data-name="Rectangle 2114" width="16" height="16" fill="#cbd3d8"/>
+    </clipPath>
+  </defs>
+  <g id="icon-activity-removed" clip-path="url(#clip-path)">
+    <rect id="Rectangle_2113" data-name="Rectangle 2113" width="10" height="2" rx="1" transform="translate(12.243 5.172) rotate(135)" fill="#cbd3d8"/>
+    <rect id="Rectangle_2156" data-name="Rectangle 2156" width="10" height="2" rx="1" transform="translate(10.828 12.243) rotate(-135)" fill="#cbd3d8"/>
+  </g>
+</svg>

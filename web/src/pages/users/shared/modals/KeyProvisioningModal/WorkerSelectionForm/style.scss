@@ -1,0 +1,159 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@shared/scss/helpers/_mixins' as mix;
+
+.modal {
+  &.key-provisioning {
+    .modal-content {
+      form {
+        width: 100%;
+        align-items: flex-start;
+        row-gap: 0;
+        @include bs.media-breakpoint-down(xl) {
+          box-sizing: border-box;
+          padding: 0 2rem;
+        }
+
+        & > label {
+          display: block;
+          line-height: 18px;
+          font-size: 15px;
+          font-weight: map-get($map: v.$text-weights, $key: 'medium');
+          color: v.$gray-darker;
+          margin-bottom: 2rem;
+        }
+
+        ul {
+          list-style: none;
+          box-sizing: border-box;
+          width: 100%;
+          @include bs.media-breakpoint-down(xl) {
+            margin-bottom: 2rem;
+          }
+          @include bs.media-breakpoint-up(xl) {
+            margin-bottom: 4rem;
+            max-height: 340px;
+            overflow: auto;
+            overflow-x: none;
+            padding-right: 1rem;
+          }
+
+          li {
+            width: 100%;
+            height: auto;
+
+            .worker-select {
+              display: flex;
+              flex-direction: row;
+              align-content: center;
+              align-items: center;
+              justify-content: flex-start;
+              width: 100%;
+              height: 60px;
+              box-sizing: border-box;
+              padding: 1rem;
+              user-select: none;
+              border-radius: 15px;
+              border: 1px solid v.$gray-border;
+              cursor: pointer;
+
+              input {
+                display: none;
+              }
+
+              .avatar-box {
+                width: 40px;
+                height: 40px;
+                border-radius: 1rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                align-content: center;
+                justify-content: center;
+                position: relative;
+
+                span {
+                  max-height: auto;
+                  position: absolute;
+                  height: 30px;
+                  width: 30px;
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  align-content: center;
+                  justify-content: center;
+
+                  svg {
+                    path {
+                      fill: v.$white;
+                    }
+
+                    g {
+                      rect {
+                        fill: v.$white;
+                      }
+                    }
+                  }
+                }
+              }
+
+              .name {
+                font-size: 15px;
+                font-weight: map-get($map: v.$text-weights, $key: 'medium');
+                color: v.$text-main;
+                margin-left: 1.1rem;
+              }
+
+              .status {
+                display: flex;
+                margin-left: auto;
+                flex-direction: row;
+                align-content: center;
+                align-items: center;
+                column-gap: 0.3rem;
+
+                span {
+                  font-size: 12px;
+                  font-weight: map-get($map: v.$text-weights, $key: 'medium');
+                  line-height: 14px;
+                }
+              }
+            }
+
+            &:not(:last-of-type) {
+              margin-bottom: 1rem;
+            }
+          }
+        }
+
+        .controls {
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+
+          button {
+            &.primary {
+              color: v.$white;
+            }
+          }
+          @include bs.media-breakpoint-down(xl) {
+            flex-wrap: wrap-reverse;
+            width: 100%;
+            row-gap: 1rem;
+
+            button {
+              width: 100%;
+            }
+          }
+          @include bs.media-breakpoint-up(xl) {
+            column-gap: 2rem;
+
+            button {
+              width: calc(100% - 1rem);
+            }
+          }
+        }
+      }
+    }
+  }
+}

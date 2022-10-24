@@ -1,0 +1,58 @@
+@use '../../../scss/base/variables' as v;
+@use '../../../scss/helpers/mixins' as mix;
+@use '../../../scss/helpers/bootstrap' as bs;
+
+.custom-checkbox {
+  display: flex;
+  height: 18px;
+  flex-direction: row;
+  width: auto;
+  align-items: center;
+  align-content: center;
+  justify-content: flex-start;
+  gap: 0.8rem;
+
+  label {
+    font-size: 1rem;
+    color: v.$gray-dark;
+    line-height: 1.3;
+    @include mix.text-weight(medium);
+  }
+
+  .box {
+    content: ' ';
+    height: 18px;
+    width: 18px;
+    display: block;
+    box-sizing: border-box;
+    border: 1px solid v.$gray-border;
+    border-radius: 0.6rem;
+    position: relative;
+    cursor: pointer;
+  }
+
+  input {
+    display: none;
+  }
+
+  &.checked {
+    .box {
+      border: 0 solid transparent;
+      background-color: v.$primary;
+
+      &::after {
+        content: '';
+        display: block;
+        width: 8px;
+        height: 8px;
+        left: 50%;
+        top: 50%;
+        background-color: v.$white;
+        text-align: center;
+        transform: translate(-50%, -50%);
+        position: absolute;
+        border-radius: 2px;
+      }
+    }
+  }
+}

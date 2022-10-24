@@ -1,0 +1,128 @@
+@use '../../shared/scss/base/variables/' as v;
+@use '../../shared/scss/helpers/mixins' as mix;
+@use '../../shared/scss/helpers/bootstrap/' as bs;
+
+#network-overview-page {
+  .page-content {
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    @include bs.media-breakpoint-down(xl) {
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+      overflow: auto;
+    }
+
+    & > .mobile-options {
+      display: grid;
+      grid-auto-columns: 1fr;
+      grid-template-rows: 38px;
+      column-gap: 1.5rem;
+      box-sizing: border-box;
+      padding: 0 2rem;
+      padding-bottom: 1.5rem;
+
+      & > .custom-select {
+        height: 100%;
+        width: 100%;
+        grid-row: 1;
+      }
+    }
+
+    & > header {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+      margin-bottom: 2rem;
+      box-sizing: border-box;
+      @include bs.media-breakpoint-up(md) {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+      }
+      @include bs.media-breakpoint-up(xl) {
+        padding-top: 4rem;
+        padding-left: 6rem;
+        padding-right: 6rem;
+      }
+
+      h1 {
+        @include mix.typography(41px, 57px, semiBold, v.$text-main, 'Poppins');
+      }
+
+      & > .custom-select {
+        max-width: 140px;
+        margin-left: 3rem;
+      }
+
+      & > .docker-command {
+        margin-left: auto;
+        margin-right: 3rem;
+      }
+    }
+
+    & > .overview-network-stats {
+      @include bs.media-breakpoint-down(xl) {
+        margin-bottom: 1.5rem;
+      }
+      @include bs.media-breakpoint-up(xl) {
+        margin-bottom: 5rem;
+      }
+    }
+
+    .bottom-row {
+      @include bs.media-breakpoint-down(xl) {
+        display: block;
+      }
+      @include bs.media-breakpoint-up(xl) {
+        display: grid;
+        flex-grow: 1;
+        grid-template-columns: 1fr 369px;
+        column-gap: 4rem;
+        max-width: 100%;
+        overflow: hidden;
+        padding-right: 6rem;
+      }
+
+      & > .overview-connected-users {
+        @include bs.media-breakpoint-down(xl) {
+          & > header,
+          .connected-users {
+            padding-left: 2rem;
+            padding-right: 2rem;
+            margin: auto;
+          }
+        }
+        @include bs.media-breakpoint-up(xl) {
+          grid-column: 1;
+
+          & > header,
+          .connected-users {
+            padding-left: 6rem;
+          }
+        }
+      }
+
+      & > .activity-stream {
+        @include bs.media-breakpoint-down(xl) {
+          padding-left: 2rem;
+          padding-right: 2rem;
+        }
+        @include bs.media-breakpoint-up(xl) {
+          grid-column: 2;
+        }
+      }
+    }
+
+    h1 {
+      @include mix.typography(41px, 57px, semiBold, v.$text-main, 'Poppins');
+    }
+
+    h2 {
+      @include mix.typography(20px, 28px, semiBold, v.$text-main, 'Poppins');
+    }
+  }
+}

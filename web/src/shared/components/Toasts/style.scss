@@ -1,0 +1,84 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+@use '@shared/scss/helpers/bootstrap' as bs;
+
+.toast {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-content: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: auto;
+  height: auto;
+  min-height: 58px;
+  min-width: 216px;
+  padding: 1.8rem 1rem 1.8rem 1.8rem;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  @include bs.media-breakpoint-down(md) {
+    width: 334px;
+  }
+
+  .icon-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+
+    &.warning {
+      height: 18px !important;
+      width: 18px !important;
+    }
+  }
+
+  p {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-size: 1.2rem;
+    line-height: 1.4rem;
+    font-family: Roboto;
+    @include mix.text-weight(medium);
+
+    color: v.$text-main;
+    text-align: left;
+
+    span {
+      color: v.$gray-dark;
+      display: block;
+    }
+  }
+
+  .popup-close {
+    margin-left: auto;
+    border: 0 solid transparent;
+    background-color: transparent;
+    cursor: pointer;
+    height: 22px;
+    width: 22px;
+    padding: 0;
+  }
+
+  &.progress {
+    padding-bottom: 2.8rem;
+    padding-top: 1.6rem;
+
+    .popup-close {
+      align-self: flex-start;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 2rem;
+      bottom: 1.6rem;
+      right: 4rem;
+      width: calc(100% - 4rem - 2rem);
+      height: 0.2rem;
+      background-color: v.$gray-border;
+      z-index: 9998;
+    }
+  }
+}

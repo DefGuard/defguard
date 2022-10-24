@@ -1,0 +1,175 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@shared/scss/helpers/mixins' as mix;
+
+#wizard {
+  & > .content {
+    & > .steps-container {
+      & > .network-types {
+        @include bs.media-breakpoint-down(xl) {
+          display: block;
+          box-sizing: border-box;
+          padding: 0 2rem;
+          width: 100%;
+        }
+        @include bs.media-breakpoint-up(xl) {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          align-content: center;
+          justify-content: center;
+          gap: 3rem;
+          width: auto;
+          max-width: 100%;
+          height: auto;
+          padding: 3rem;
+          position: relative;
+        }
+
+        form {
+          display: flex;
+          flex-direction: column;
+          align-content: center;
+          align-items: center;
+          justify-content: center;
+          flex-wrap: nowrap;
+          width: 100%;
+          height: auto;
+
+          .input-container {
+            width: 100%;
+          }
+
+          .select-container {
+            @include bs.media-breakpoint-down(xl) {
+              max-width: 100%;
+              width: 100%;
+            }
+            @include bs.media-breakpoint-up(xl) {
+              display: flex;
+              flex-direction: row;
+              flex-wrap: nowrap;
+              align-items: center;
+              align-content: center;
+              justify-content: center;
+              gap: 3rem;
+            }
+
+            & > div {
+              @include bs.media-breakpoint-down(xl) {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                align-content: center;
+                justify-content: flex-start;
+                height: 90px;
+                background-color: v.$bg-light;
+                border-radius: 15px;
+                box-sizing: border-box;
+                padding: 0 2rem;
+
+                & > svg {
+                  margin-right: 1rem;
+                }
+
+                & > button {
+                  margin-left: auto;
+                }
+
+                &:first-of-type {
+                  margin-bottom: 2rem;
+                }
+              }
+              @include bs.media-breakpoint-up(xl) {
+                width: calc(50% - 1.5rem);
+                height: auto;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                align-content: center;
+                justify-content: center;
+                padding: 4rem 3rem 3rem;
+                background-color: v.$bg-light;
+                border-radius: 1.5rem;
+              }
+
+              & > h3 {
+                @include bs.media-breakpoint-down(xl) {
+                  @include mix.typography(16px, 18px, semiBold);
+                  @include mix.poppins;
+                }
+                @include bs.media-breakpoint-up(xl) {
+                  font-family: Poppins;
+                  font-size: 2rem;
+                  color: v.$text-main;
+                  line-height: 3rem;
+                  text-align: center;
+                  @include mix.text-weight(semiBold);
+
+                  margin-bottom: 2rem;
+                }
+              }
+
+              & > p {
+                font-size: 1.2rem;
+                line-height: 2rem;
+                @include mix.text-weight(regular);
+
+                text-align: center;
+                width: 100%;
+                color: v.$gray-dark;
+                font-family: Roboto;
+                margin-bottom: 3.5rem;
+              }
+
+              button {
+                @include bs.media-breakpoint-down(xl) {
+                  width: 94px;
+                  min-width: 94px;
+                  border-radius: 10px;
+                  height: 50px;
+                  min-height: 50px;
+                }
+                @include bs.media-breakpoint-up(xl) {
+                  width: 100%;
+                }
+              }
+            }
+            @include bs.media-breakpoint-up(xl) {
+              .mesh-network {
+                & > svg {
+                  margin-bottom: 3.5rem;
+                }
+              }
+
+              .regular-network {
+                & > svg {
+                  margin-bottom: 4.5rem;
+                }
+              }
+            }
+
+            .mesh-network,
+            .regular-network {
+              input[type='radio'] {
+                display: none;
+              }
+
+              &.active {
+                opacity: 1;
+                @include bs.media-breakpoint-up(xl) {
+                  box-shadow: 5px 10px 30px #0000001a;
+                  background-color: v.$white;
+                }
+              }
+
+              &.not-active {
+                opacity: 0.5;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

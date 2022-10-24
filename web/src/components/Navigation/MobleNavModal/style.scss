@@ -1,0 +1,130 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+
+.modal-root {
+  & > .modal-wrap {
+    & > .modal {
+      &.mobile-nav {
+        height: 100%;
+        padding: 0;
+
+        .modal-content {
+          width: 293px;
+          position: relative;
+          border-radius: 0;
+          display: flex;
+          flex-direction: column;
+
+          .close-mobile-nav {
+            position: fixed;
+            left: 314px;
+            top: 15px;
+            height: 40px;
+            width: 40px;
+            border-radius: 1rem;
+            box-shadow: none;
+            border: 0 solid transparent;
+            background-color: v.$white;
+            display: flex;
+            flex-direction: column;
+            align-content: center;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+          }
+
+          .logo-container {
+            width: 100%;
+            box-sizing: border-box;
+            height: 70px;
+            border-bottom: 1px solid v.$gray-border;
+            display: flex;
+            align-items: center;
+            align-content: center;
+            padding-left: 2rem;
+          }
+
+          .links {
+            display: flex;
+            flex-direction: column;
+            align-content: flex-start;
+            align-items: flex-start;
+            justify-content: flex-start;
+            box-sizing: border-box;
+            width: inherit;
+            row-gap: 1rem;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+
+            a {
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              align-content: center;
+              justify-content: flex-start;
+              column-gap: 1.5rem;
+              padding: 1.3rem 2rem;
+              text-decoration: none;
+              width: inherit;
+              box-sizing: border-box;
+              height: 50px;
+
+              span {
+                display: block;
+                font-size: 1.5rem;
+                @include mix.text-weight(medium);
+                @include mix.poppins;
+
+                color: v.$gray-light;
+              }
+
+              &.active {
+                background-color: v.$bg-light;
+
+                svg {
+                  path {
+                    fill: v.$primary;
+                  }
+
+                  rect {
+                    fill: v.$primary;
+                  }
+                }
+
+                span {
+                  color: v.$text-main;
+                }
+              }
+            }
+          }
+
+          .log-out {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            align-content: center;
+            justify-content: flex-start;
+            column-gap: 1.5rem;
+            padding: 1.3rem 2rem;
+            text-decoration: none;
+            width: inherit;
+            box-sizing: border-box;
+            height: 50px;
+            border: 0 solid transparent;
+            background-color: transparent;
+            margin-top: auto;
+
+            span {
+              display: block;
+              font-size: 1.5rem;
+              @include mix.text-weight(medium);
+              @include mix.poppins;
+
+              color: v.$gray-light;
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,88 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+
+.message-box {
+  display: flex;
+  min-height: 58px;
+  box-sizing: border-box;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  padding: 1rem 2rem;
+  height: auto;
+  width: 100%;
+  flex-grow: 1;
+  border: 0 solid transparent;
+  border-radius: 1rem;
+  font-size: 1.2rem;
+  line-height: 1.4;
+  text-align: left;
+  @include mix.text-weight(medium);
+
+  align-content: center;
+  align-items: center;
+  justify-content: flex-start;
+
+  b {
+    @include mix.text-weight(bold);
+  }
+
+  svg {
+    margin-right: 0.8rem;
+    width: 20px;
+  }
+
+  p {
+    max-width: calc(100% - 28px);
+
+    & > span {
+      display: block;
+    }
+  }
+
+  &.success {
+    background-color: v.$light-green-bg;
+    color: v.$success;
+
+    span,
+    p {
+      color: v.$success;
+    }
+  }
+
+  &.warning {
+    background-color: v.$light-orange-bg;
+    color: v.$warning;
+
+    span,
+    p {
+      color: v.$warning;
+    }
+  }
+
+  &.error {
+    background-color: v.$light-red-bg;
+    color: v.$error;
+
+    span,
+    p {
+      color: v.$error;
+    }
+  }
+
+  &.info,
+  &.deactivated {
+    background-color: v.$bg-light;
+    color: v.$gray-dark;
+
+    span,
+    p {
+      color: v.$gray-dark;
+
+      & > a {
+        color: var(--gray-dark);
+        text-decoration: underline;
+        text-decoration-color: var(--gray-dark);
+      }
+    }
+  }
+}

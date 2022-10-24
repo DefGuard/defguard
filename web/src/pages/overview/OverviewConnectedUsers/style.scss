@@ -1,0 +1,156 @@
+@use '../../../shared/scss/base/variables/' as v;
+@use '../../../shared/scss/helpers/mixins' as mix;
+@use '../../../shared/scss/helpers/bootstrap' as bs;
+@use 'sass:list';
+
+$column-widths: 250px, 167px, 136px, 168px, 200px;
+
+@mixin set-list-column-widths() {
+  @for $i from 1 through length($column-widths) {
+    & > :nth-child(#{$i}) {
+      width: nth($column-widths, $i);
+    }
+  }
+}
+
+.overview-connected-users {
+  & > header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: 40px;
+    box-sizing: border-box;
+  }
+
+  & > .connected-users {
+    min-height: calc(100% - 94px);
+    max-height: calc(100% - 94px);
+
+    &.list {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      align-content: flex-start;
+      justify-content: flex-start;
+      box-sizing: border-box;
+      padding-left: 0 !important;
+      @include bs.media-breakpoint-down(xl) {
+        overflow: auto;
+      }
+      @include bs.media-breakpoint-up(xl) {
+        overflow: hidden;
+        padding-right: 1rem;
+      }
+
+      & > .headers {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        align-content: center;
+        justify-content: flex-start;
+        box-sizing: border-box;
+        height: 22px;
+        @include bs.media-breakpoint-down(xl) {
+          padding-left: calc(52px + 1.5rem);
+          padding-right: 1.5rem;
+        }
+        @include bs.media-breakpoint-up(xl) {
+          padding-left: calc(52px + 6rem);
+          padding-right: 34px;
+          width: 100%;
+        }
+
+        & > .header {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          align-content: center;
+          justify-content: flex-start;
+          column-gap: 0.6rem;
+
+          & > span {
+            @include mix.typography(12px, 14px, medium, v.$gray-light);
+          }
+
+          &.active {
+            & > span {
+              color: v.$text-main;
+            }
+          }
+        }
+        @include set-list-column-widths;
+      }
+
+      & > .users-list {
+        box-sizing: border-box;
+        overflow: auto;
+        padding-right: 1.5rem;
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+        @include bs.media-breakpoint-down(xl) {
+          max-height: calc(50vh);
+          padding-left: 1.5rem;
+        }
+        @include bs.media-breakpoint-up(xl) {
+          min-height: calc(100% - 28px);
+          max-height: calc(100% - 28px);
+          padding-left: 6rem;
+          width: 100%;
+        }
+
+        & > .user-connection-list-item {
+          & > .user-row,
+          .device-row {
+            @include set-list-column-widths;
+          }
+
+          &:not(:last-of-type) {
+            margin-bottom: 1rem;
+          }
+        }
+      }
+    }
+
+    &.grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, 370px);
+      grid-auto-rows: 150px;
+      width: 100%;
+      gap: 1.5rem;
+      overflow: auto;
+      box-sizing: border-box;
+      position: relative;
+      padding-top: 1rem;
+      padding-bottom: 4rem;
+      @include bs.media-breakpoint-down(md) {
+        justify-content: center;
+      }
+      @include bs.media-breakpoint-down(xl) {
+        padding-top: 1rem;
+        padding-bottom: 1.5rem;
+        margin-right: 1.4rem;
+        width: calc(100% - 1.6rem);
+        overflow: auto;
+        max-height: 100vh;
+        grid-template-columns: 1fr;
+      }
+      @include bs.media-breakpoint-up(xl) {
+        padding-top: 1rem;
+        padding-bottom: 4rem;
+      }
+    }
+  }
+}
+
+.no-data-text {
+  margin-left: 6rem;
+  margin-top: 1rem;
+
+  @include bs.media-breakpoint-down(md) {
+    margin-left: 0;
+    text-align: center;
+  }
+}

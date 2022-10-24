@@ -1,0 +1,55 @@
+@use '../../../scss/helpers' as *;
+
+button {
+  &.edit-button {
+    height: 40px;
+    width: 40px;
+    background-color: transparent;
+    border: 0 solid transparent;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+}
+
+.edit-button-floating-ui {
+  border-radius: 10px;
+  padding: 10px 0;
+  border: 1px solid var(--gray-lighter);
+  box-shadow: 0 6px 20px #0000001a;
+  background-color: var(--white);
+  display: flex;
+  flex-flow: column nowrap;
+
+  & > button {
+    height: 30px;
+    box-sizing: border-box;
+    border: 0 solid transparent;
+    background-color: transparent;
+    padding: 0 1.2rem;
+    cursor: pointer;
+    text-align: left;
+
+    @include small-text;
+  }
+
+  & > .arrow {
+    content: ' ';
+    position: absolute;
+    width: 0;
+    height: 0;
+
+    &[data-placement^='left'] {
+      border-style: solid;
+      border-width: 7px 0 7px 8px;
+      border-color: transparent transparent transparent var(--gray-lighter);
+    }
+
+    &[data-placement^='right'] {
+      border-width: 7px 8px 7px 0;
+      border-color: transparent var(--gray-lighter) transparent transparent;
+    }
+  }
+}

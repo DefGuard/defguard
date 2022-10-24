@@ -1,0 +1,8 @@
+@use './helpers';
+@use './base/_base';
+@use './base/fonts';
+@use './base/variables/_root_colors';
+
+html {
+  font-size: 62.5%;
+}

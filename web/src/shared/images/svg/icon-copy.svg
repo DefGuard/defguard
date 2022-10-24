@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="22" height="22" viewBox="0 0 22 22">
+  <defs>
+    <clipPath id="clip-path">
+      <rect id="Rectangle_2627" data-name="Rectangle 2627" width="22" height="22" fill="#899ca8" opacity="0"/>
+    </clipPath>
+  </defs>
+  <g id="icon-copy" transform="translate(22) rotate(90)" clip-path="url(#clip-path)">
+    <path id="Path_5562" data-name="Path 5562" d="M0,0" transform="translate(11 12)" fill="#899ca8"/>
+    <g id="Group_4639" data-name="Group 4639" transform="translate(-227 334) rotate(-90)">
+      <rect id="Rectangle_2621" data-name="Rectangle 2621" width="10" height="2" rx="1" transform="translate(318 235) rotate(90)" fill="#899ca8"/>
+      <rect id="Rectangle_2628" data-name="Rectangle 2628" width="10" height="2" rx="1" transform="translate(326 235) rotate(90)" fill="#899ca8"/>
+      <rect id="Rectangle_2633" data-name="Rectangle 2633" width="8" height="2" rx="1" transform="translate(330 231) rotate(90)" fill="#899ca8"/>
+      <rect id="Rectangle_2629" data-name="Rectangle 2629" width="10" height="2" rx="1" transform="translate(326 237) rotate(180)" fill="#899ca8"/>
+      <rect id="Rectangle_2634" data-name="Rectangle 2634" width="8" height="2" rx="1" transform="translate(330 233) rotate(180)" fill="#899ca8"/>
+      <rect id="Rectangle_2630" data-name="Rectangle 2630" width="10" height="2" rx="1" transform="translate(326 245) rotate(180)" fill="#899ca8"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,160 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+@use '@shared/scss/helpers/bootstrap' as bs;
+
+.triggers-container {
+  margin-bottom: 20px;
+
+  & > label {
+    margin-bottom: 20px;
+  }
+
+  & > .custom-checkbox {
+    font-size: 20px;
+  }
+
+  label {
+    font-family: Poppins;
+    font-size: 1.5rem;
+    line-height: 2.3rem;
+    @include mix.text-weight(medium);
+
+    display: block;
+    color: v.$text-main;
+  }
+
+  .custom-checkbox {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-start;
+    gap: 1rem;
+    margin-bottom: 10px;
+
+    & > label {
+      font-size: 1.3rem;
+      line-height: 1.5;
+      color: v.$text-main;
+    }
+  }
+
+  & > .errors-container {
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+}
+
+.modal {
+  &.add-webhook {
+    padding: 0;
+
+    .modal-content {
+      @include bs.media-breakpoint-up(md) {
+        padding: 4rem 3rem;
+        border-radius: 0;
+        width: 430px;
+      }
+
+      & > header {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        align-content: center;
+        justify-content: flex-start;
+        @include bs.media-breakpoint-down(md) {
+          height: 70px;
+          box-sizing: border-box;
+          border-bottom: 1px solid v.$gray-border;
+          padding: 0 2rem;
+
+          & > button {
+            margin-left: auto;
+          }
+        }
+        @include bs.media-breakpoint-up(md) {
+          margin-bottom: 4rem;
+        }
+
+        h3 {
+          @include mix.header;
+
+          font-size: 2rem;
+          line-height: 3rem;
+          color: v.$text-main;
+        }
+      }
+
+      form {
+        max-width: 100%;
+        align-items: flex-start;
+        width: 100%;
+        @include bs.media-breakpoint-down(md) {
+          row-gap: 0.5rem;
+          margin-bottom: 3rem;
+          box-sizing: border-box;
+          padding: 0 2.1rem 0 2rem;
+        }
+        @include bs.media-breakpoint-up(md) {
+          gap: 1.5rem;
+          margin-bottom: 4rem;
+        }
+
+        & > div {
+          width: 100%;
+        }
+
+        label {
+          font-family: Poppins;
+          font-size: 1.5rem;
+          line-height: 2.3rem;
+          @include mix.text-weight(medium);
+
+          margin-bottom: 1.5rem;
+          display: block;
+          color: v.$text-main;
+        }
+
+        .custom-checkbox {
+          display: flex;
+          height: 18px;
+          flex-direction: row;
+          width: auto;
+          align-items: center;
+          align-content: center;
+          justify-content: flex-start;
+          gap: 1rem;
+          margin-bottom: 10px;
+
+          & > label {
+            margin-bottom: 0;
+            font-size: 1.4rem;
+            line-height: 1.5;
+            font-weight: 500;
+            color: v.$text-main;
+            @include mix.text-weight(medium);
+          }
+        }
+
+        .input-container {
+          width: 100%;
+
+          input {
+            width: 100%;
+          }
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+
+      .close {
+        margin-top: auto;
+        width: 100%;
+        height: 50px;
+      }
+    }
+  }
+}

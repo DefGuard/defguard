@@ -1,0 +1,71 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/mixins' as mix;
+
+.activity-status {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-content: center;
+  justify-content: flex-start;
+  width: auto;
+  height: auto;
+
+  svg {
+    margin-right: 0.5rem;
+  }
+
+  span {
+    font-size: 1.2rem;
+    line-height: 1.4rem;
+    font-family: Roboto;
+    @include mix.text-weight(medium);
+  }
+
+  &.connected {
+    .icon {
+      position: relative;
+      content: '';
+      width: 7px;
+      height: 7px;
+      background-color: v.$white;
+      margin-right: 1rem;
+      display: block;
+      border-radius: 50%;
+      border: 2px solid v.$success;
+      box-sizing: border-box;
+    }
+
+    span {
+      color: v.$success;
+    }
+  }
+
+  &.disconnected {
+    .icon {
+      content: '';
+      display: block;
+      width: 5px;
+      height: 5px;
+      background-color: v.$gray-light;
+      border-radius: 50%;
+      margin-right: 1.1rem;
+    }
+
+    span {
+      color: v.$gray-light;
+    }
+  }
+
+  &.added {
+    span {
+      color: v.$primary;
+    }
+  }
+
+  &.removed,
+  &.alert {
+    span {
+      color: v.$error;
+    }
+  }
+}

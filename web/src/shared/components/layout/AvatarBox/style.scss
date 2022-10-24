@@ -1,0 +1,16 @@
+.avatar-box {
+  display: flex;
+  flex-flow: row no-wrap;
+  box-sizing: border-box;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  max-width: 40px;
+  max-height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 10px;
+  background-color: var(--bg-light);
+}

@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  web:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+  ladle:
+    build:
+      context: ./
+      dockerfile: Dockerfile.ladle
+    ports:
+      - "4201:80"
+  docs:
+    build:
+      context: ./
+      dockerfile: Dockerfile.docs
+    ports:
+      - "4202:80"
