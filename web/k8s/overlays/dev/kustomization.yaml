@@ -1,5 +1,0 @@
-resources:
-  - ../../base/
-  - ./ingress.yaml
-  - ./docs.yaml
-  - ./ladle.yaml
