@@ -1,7 +1,0 @@
-[
-  {
-    "op": "replace",
-    "path": "/spec/rules/0/host",
-    "value": "defguard-grpc.teonite.net"
-  }
-]
