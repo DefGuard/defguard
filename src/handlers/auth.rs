@@ -4,7 +4,7 @@ use super::{
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{Session, SessionState, Settings, User, Wallet, WebAuthn},
+    db::{MFAInfo, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     enterprise::ldap::utils::user_from_ldap,
     error::OriWebError,
     license::Features,
@@ -70,13 +70,19 @@ pub async fn authenticate(
     cookies.add(Cookie::new("session", session.id));
 
     info!("Authenticated user {}", data.username);
+    // TODO: return MFA struct with enabled methods
     if user.mfa_enabled {
+        let mfa_info = MFAInfo::for_user(&appstate.pool, &user).await?;
         Ok(ApiResponse {
-            json: json!({}),
+            json: json!(mfa_info),
             status: Status::Created,
         })
     } else {
-        Ok(ApiResponse::default())
+        let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+        Ok(ApiResponse {
+            json: json!(user_info),
+            status: Status::Ok,
+        })
     }
 }
 
@@ -90,8 +96,11 @@ pub fn logout(cookies: &CookieJar<'_>) -> ApiResult {
 #[post("/auth/mfa")]
 pub async fn mfa_enable(session_info: SessionInfo, appstate: &State<AppState>) -> ApiResult {
     let mut user = session_info.user;
-    user.enable_mfa(&appstate.pool).await?;
-    Ok(ApiResponse::default())
+    let recovery_codes = user.enable_mfa(&appstate.pool).await?;
+    Ok(ApiResponse {
+        json: json!(recovery_codes),
+        status: Status::Ok,
+    })
 }
 
 /// Disable MFA
@@ -197,7 +206,7 @@ pub async fn webauthn_end(
     Err(OriWebError::Http(Status::BadRequest))
 }
 
-// Generate new TOTP secret
+/// Generate new TOTP secret
 #[post("/auth/totp/init")]
 pub async fn totp_secret(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
     let mut user = session.user;
@@ -210,7 +219,7 @@ pub async fn totp_secret(session: SessionInfo, appstate: &State<AppState>) -> Ap
 }
 
 /// Enable TOTP
-#[put("/auth/totp", format = "json", data = "<data>")]
+#[post("/auth/totp", format = "json", data = "<data>")]
 pub async fn totp_enable(
     session: SessionInfo,
     appstate: &State<AppState>,
@@ -234,7 +243,7 @@ pub async fn totp_disable(session: SessionInfo, appstate: &State<AppState>) -> A
 }
 
 /// Validate one-time passcode
-#[post("/auth/totp", format = "json", data = "<data>")]
+#[post("/auth/totp/verify", format = "json", data = "<data>")]
 pub async fn totp_code(
     mut session: Session,
     appstate: &State<AppState>,

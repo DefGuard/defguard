@@ -109,7 +109,7 @@ impl User {
     }
 
     /// Enable MFA; generate new recovery codes.
-    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<Vec<String>, SqlxError> {
         self.recovery_codes.clear();
         for _ in 0..RECOVERY_CODES_COUNT {
             let code = thread_rng()
@@ -129,7 +129,7 @@ impl User {
             .await?;
         }
         self.mfa_enabled = true;
-        Ok(())
+        Ok(self.recovery_codes.clone())
     }
 
     /// Disable MFA; discard recovery codes.
