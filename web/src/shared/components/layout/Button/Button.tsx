@@ -455,6 +455,9 @@ const textVariants: Variants = {
           case ButtonStyleVariant.CONFIRM_SUCCESS:
             res = { ...res, color: ColorsRGB.White };
             break;
+          case ButtonStyleVariant.LINK:
+            res = { ...res, color: ColorsRGB.Primary };
+            break;
           default:
             res = { ...res, color: ColorsRGB.GrayDark };
             break;
@@ -506,6 +509,9 @@ const textVariants: Variants = {
             break;
           case ButtonStyleVariant.CONFIRM_SUCCESS:
             res = { ...res, color: ColorsRGB.White };
+            break;
+          case ButtonStyleVariant.LINK:
+            res = { ...res, color: ColorsRGB.Primary };
             break;
           default:
             res = { ...res, color: ColorsRGB.GrayDark };

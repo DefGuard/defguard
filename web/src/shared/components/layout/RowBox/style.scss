@@ -1,0 +1,18 @@
+@use '../../../scss/helpers' as *;
+
+.row-box {
+  height: 50px;
+  display: flex;
+  flex-flow: row nowrap;
+  width: 100%;
+  border-radius: 10px;
+  background-color: var(--white);
+  align-items: center;
+  align-content: flex-start;
+  justify-content: flex-start;
+  position: relative;
+  border: 1px transparent solid;
+  box-sizing: border-box;
+  padding: 0 1.6rem 0 2rem;
+  margin: 0;
+}
