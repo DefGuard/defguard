@@ -10,7 +10,6 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import { Card } from '../../../../shared/components/layout/Card/Card';
 import Divider from '../../../../shared/components/layout/Divider/Divider';
-import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
 import { UserMFAMethod } from '../../../../shared/types';
@@ -18,7 +17,6 @@ import { UserMFAMethod } from '../../../../shared/types';
 export const UserAuthInfo = () => {
   const user = useUserProfileV2Store((store) => store.user);
   const editMode = useUserProfileV2Store((store) => store.editMode);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
   const setChangePasswordModal = useModalStore(
     (state) => state.setChangePasswordModal
   );
@@ -27,7 +25,7 @@ export const UserAuthInfo = () => {
     <section id="user-auth-info">
       <h2>Password and authentication</h2>
       <Card>
-        {editMode && isAdmin && (
+        {editMode && (
           <>
             <section className="password">
               <header>

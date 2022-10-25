@@ -118,10 +118,6 @@ const EditModeControls = () => {
 
   const submitSubject = useUserProfileV2Store((state) => state.submitSubject);
 
-  const profileDetailsValid = useUserProfileV2Store(
-    (state) => state.profileDetailsFormValid
-  );
-
   return (
     <>
       {isAdmin && !isMe ? (
@@ -157,7 +153,6 @@ const EditModeControls = () => {
           styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
           icon={<IconCheckmarkWhite />}
           onClick={() => submitSubject.next()}
-          disabled={!profileDetailsValid}
         />
       </div>
     </>

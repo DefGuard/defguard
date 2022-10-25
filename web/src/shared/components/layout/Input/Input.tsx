@@ -123,7 +123,6 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           onClick={() => {
             if (innerInputRef) {
               innerInputRef.current?.focus();
-              console.log(innerInputRef.current);
             }
           }}
           variants={containerVariants}

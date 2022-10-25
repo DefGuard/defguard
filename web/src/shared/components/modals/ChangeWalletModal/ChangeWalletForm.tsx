@@ -184,7 +184,6 @@ const ChangeWalletForm: React.FC = () => {
               <div className="labeled-input">
                 <label>Address:</label>
                 <FormInput
-                  allowUntouchedFieldValidation
                   controller={{
                     control,
                     name: 'address',
