@@ -1,16 +1,15 @@
 #[cfg(feature = "worker")]
-use crate::enterprise::grpc::worker::{
-    token_interceptor, worker_service_server::WorkerServiceServer, WorkerServer,
-};
+use crate::enterprise::grpc::worker::{worker_service_server::WorkerServiceServer, WorkerServer};
 use crate::{
     db::{DbPool, GatewayEvent},
     enterprise::grpc::WorkerState,
+    grpc::interceptor::jwt_yubibridge_interceptor,
 };
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
 #[cfg(feature = "wireguard")]
 use gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
 #[cfg(any(feature = "wireguard", feature = "worker"))]
-use interceptor::jwt_auth_interceptor;
+use interceptor::jwt_gateway_interceptor;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
@@ -37,12 +36,12 @@ pub async fn run_grpc_server(
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
-        token_interceptor,
+        jwt_yubibridge_interceptor,
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = GatewayServiceServer::with_interceptor(
         GatewayServer::new(wireguard_rx, pool),
-        jwt_auth_interceptor,
+        jwt_gateway_interceptor,
     );
     // Run gRPC server
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), grpc_port);
