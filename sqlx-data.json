@@ -934,6 +934,56 @@
     },
     "query": "SELECT \"user\", client_id, code, redirect_uri, scope, auth_time FROM authorization_code WHERE code = $1"
   },
+  "3a0fc5bc3005b4b6b5d6ccf2cf71b7915cda2c440eb8f3194480bbaf2969228e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "mfa_method: _",
+          "ordinal": 0,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          }
+        },
+        {
+          "name": "totp_available",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "web3_available!",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "webauthn_available!",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" FROM \"user\" WHERE \"user\".id = $1"
+  },
   "3a73f9c03328d54bdaa61188dc3a53811defbe0814fabf6b69a81a78d0bdbd95": {
     "describe": {
       "columns": [

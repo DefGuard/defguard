@@ -50,6 +50,10 @@ jobs:
         run: sed -i -e 's,localhost,postgres,' .env
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
+      - name: Check format
+        run: |
+          rustup component add rustfmt
+          cargo fmt -- --check
       - name: Run tests
         env:
           DEFGUARD_DB_HOST: postgres

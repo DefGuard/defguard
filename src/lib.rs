@@ -47,7 +47,7 @@ use handlers::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
     },
 };
-use rocket::{config::Config, error::Error as RocketError, Build, Ignite, Rocket, fs::FileServer};
+use rocket::{config::Config, error::Error as RocketError, fs::FileServer, Build, Ignite, Rocket};
 use std::{
     net::{IpAddr, Ipv4Addr},
     sync::{Arc, Mutex},
@@ -87,8 +87,7 @@ pub async fn build_webapp(
         ..Config::default()
     };
     let license_decoded = License::decode(&config.license);
-    let webapp = rocket::custom(cfg)
-        .mount("/", FileServer::from("./web"));
+    let webapp = rocket::custom(cfg).mount("/", FileServer::from("./web"));
     let webapp = webapp
         .mount(
             "/api/v1",
