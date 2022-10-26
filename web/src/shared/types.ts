@@ -17,11 +17,13 @@ export interface User {
   username: string;
   last_name: string;
   first_name: string;
-  wallets: WalletInfo[];
   authorized_apps: AuthorizedClient[];
   devices: Device[];
+  wallets: WalletInfo[];
   security_keys: SecurityKey[];
   mfa_method: UserMFAMethod;
+  mfa_enabled: boolean;
+  totp_enabled: boolean;
   email?: string;
   phone?: string;
   lastConnected?: Date;
@@ -231,6 +233,28 @@ export interface ApiHook {
   auth: {
     login: (data: LoginData) => EmptyApiResponse;
     logout: () => EmptyApiResponse;
+    mfa: {
+      enable: () => EmptyApiResponse;
+      disable: () => EmptyApiResponse;
+      webauthn: {
+        register: {
+          start: () => Promise<CredentialCreationOptions>;
+          finish: (data: Credential) => EmptyApiResponse;
+        };
+        start: () => EmptyApiResponse;
+        finish: (data: WebAuthnKeyCredential) => EmptyApiResponse;
+      };
+      totp: {
+        init: () => Promise<{ secret: string }>;
+        enable: (data: TOTPRequest) => EmptyApiResponse;
+        disable: () => EmptyApiResponse;
+        verify: (data: TOTPRequest) => EmptyApiResponse;
+      };
+      web3: {
+        start: () => Promise<{ challenge: string }>;
+        finish: (data: WalletSignature) => EmptyApiResponse;
+      };
+    };
   };
   provisioning: {
     getWorkers: () => Promise<Provisioner[]>;
@@ -397,6 +421,9 @@ export interface UseModalStore {
   gatewaySetupModal: GatewaySetupModal;
   userDeviceModal: UserDeviceModal;
   deleteUserDeviceModal: DeleteUserDeviceModal;
+  manageWebAuthNKeysModal: StandardModalState;
+  addSecurityKeyModal: StandardModalState;
+  setState: (data: Partial<UseModalStore>) => void;
   setDeleteUserDeviceModal: ModalSetter<DeleteUserDeviceModal>;
   setUserDeviceModal: ModalSetter<UserDeviceModal>;
   setAddUserModal: ModalSetter<StandardModalState>;
@@ -568,4 +595,24 @@ export interface WalletProvider {
   Icon: any;
   right: JSX.Element | string | null;
   active?: boolean;
+}
+
+export interface WalletSignature {
+  address: string;
+  signature: string;
+}
+
+export interface TOTPRequest {
+  code: string;
+}
+export interface WebAuthnKeyCredential {
+  id: string;
+  rawId: string;
+  response: string;
+  type: string;
+  extendsions?: unknown;
+}
+export interface WebAuthnRegistrationRequest {
+  name: string;
+  rpkc: WebAuthnKeyCredential;
 }

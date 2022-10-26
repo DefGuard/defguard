@@ -2,6 +2,7 @@ import './style.scss';
 
 import { useMemo } from 'react';
 
+import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
 import AddComponentBox from '../../shared/components/AddComponentBox/AddComponentBox';
@@ -9,10 +10,11 @@ import KeyBox from '../../shared/components/KeyBox/KeyBox';
 
 export const UserYubiKeys = () => {
   const user = useUserProfileV2Store((state) => state.user);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const enableEdit = useMemo(() => {
-    if (user) {
+    if (user && isAdmin) {
       if (user.pgp_key && user.ssh_key) {
         if (user.ssh_key !== '-' && user.pgp_key !== '-') {
           return true;
@@ -36,14 +38,16 @@ export const UserYubiKeys = () => {
         <KeyBox keyValue={user?.pgp_key} title="PGP key" />
         <KeyBox keyValue={user?.ssh_key} title="SSH key" />
       </div>
-      <AddComponentBox
-        callback={() => {
-          if (user) {
-            setProvisioningModal({ visible: true, user: user });
-          }
-        }}
-        text="Provision a Yubikey"
-      />
+      {isAdmin && (
+        <AddComponentBox
+          callback={() => {
+            if (user) {
+              setProvisioningModal({ visible: true, user: user });
+            }
+          }}
+          text="Provision a Yubikey"
+        />
+      )}
     </section>
   );
 };

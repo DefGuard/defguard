@@ -281,6 +281,39 @@ const useApi = (props?: HookProps): ApiHook => {
   const getLicense = () =>
     client.get<License>('/license/').then((res) => res.data);
 
+  const mfaEnable = () => client.post('/auth/mfa').then(unpackRequest);
+
+  const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
+
+  const mfaWebauthnRegisterStart = () =>
+    client.post('/auth/webauthn/init').then(unpackRequest);
+
+  const mfaWebauthnRegisterFinish: ApiHook['auth']['mfa']['webauthn']['register']['finish'] =
+    (data) => client.post('/auth/webauthn/finish', data).then(unpackRequest);
+
+  const mfaWebauthnStart = () =>
+    client.post('/auth/webauthn/start').then(unpackRequest);
+
+  const mfaWebautnFinish: ApiHook['auth']['mfa']['webauthn']['finish'] = (
+    data
+  ) => client.post('/auth/webauthn', data).then(unpackRequest);
+
+  const mfaTOTPInit = () => client.post('/auth/totp/init').then(unpackRequest);
+
+  const mfaTOTPEnable: ApiHook['auth']['mfa']['totp']['enable'] = (data) =>
+    client.post('/auth/totp', data).then(unpackRequest);
+
+  const mfaTOTPDisable = () => client.delete('/auth/totp').then(unpackRequest);
+
+  const mfaTOTPVerify: ApiHook['auth']['mfa']['totp']['verify'] = (data) =>
+    client.post('/auth/totp/verify', data).then(unpackRequest);
+
+  const mfaWeb3Start = () =>
+    client.post('/auth/web3/start').then(unpackRequest);
+
+  const mfaWeb3Finish: ApiHook['auth']['mfa']['web3']['finish'] = (data) =>
+    client.post('/auth/web3', data).then(unpackRequest);
+
   return {
     oAuth: {
       consent: oAuthConsent,
@@ -325,6 +358,28 @@ const useApi = (props?: HookProps): ApiHook => {
     auth: {
       login,
       logout,
+      mfa: {
+        enable: mfaEnable,
+        disable: mfaDisable,
+        webauthn: {
+          register: {
+            start: mfaWebauthnRegisterStart,
+            finish: mfaWebauthnRegisterFinish,
+          },
+          start: mfaWebauthnStart,
+          finish: mfaWebautnFinish,
+        },
+        totp: {
+          init: mfaTOTPInit,
+          enable: mfaTOTPEnable,
+          disable: mfaTOTPDisable,
+          verify: mfaTOTPVerify,
+        },
+        web3: {
+          start: mfaWeb3Start,
+          finish: mfaWeb3Finish,
+        },
+      },
     },
     license: {
       getLicense: getLicense,

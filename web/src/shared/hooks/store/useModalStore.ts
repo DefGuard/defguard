@@ -63,6 +63,13 @@ export const useModalStore = create<UseModalStore>((set) => ({
     visible: false,
     device: undefined,
   },
+  manageWebAuthNKeysModal: {
+    visible: false,
+  },
+  addSecurityKeyModal: {
+    visible: false,
+  },
+  setState: (newState) => set((oldState) => ({ ...oldState, ...newState })),
   setDeleteUserDeviceModal: (newState) =>
     set((oldState) => ({
       deleteUserDeviceModal: { ...oldState.userDeviceModal, ...newState },
