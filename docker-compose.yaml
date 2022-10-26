@@ -6,7 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DEFGUARD_JWT_SECRET: orion-secret
+      DEFGUARD_AUTH_SECRET: defguard-auth-secret
+      DEFGUARD_GATEWAY_SECRET: defguard-gateway-secret
+      DEFGUARD_YUBIBRIDGE_SECRET: defguard-yubibridge-secret
       DEFGUARD_DB_HOST: db
       DEFGUARD_DB_PORT: 5432
       DEFGUARD_DB_USER: defguard

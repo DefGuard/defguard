@@ -1,5 +1,5 @@
 use crate::{
-    auth::{Claims, SESSION_TIMEOUT},
+    auth::{Claims, ClaimsType, SESSION_TIMEOUT},
     db::{DbPool, User},
 };
 use jsonwebtoken::errors::Error as JWTError;
@@ -19,7 +19,7 @@ impl AuthServer {
 
     /// Creates JWT token for specified user
     fn create_jwt(uid: &str) -> Result<String, JWTError> {
-        Claims::new(uid.into(), String::new(), SESSION_TIMEOUT).to_jwt()
+        Claims::new(ClaimsType::Auth, uid.into(), String::new(), SESSION_TIMEOUT).to_jwt()
     }
 }
 

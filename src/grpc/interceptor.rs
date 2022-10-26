@@ -1,4 +1,4 @@
-use crate::auth::Claims;
+use crate::auth::{Claims, ClaimsType};
 use tonic::{Request, Status};
 
 /// Auth interceptor used by GRPC services. Verifies JWT token sent
@@ -10,7 +10,7 @@ pub fn jwt_auth_interceptor(mut req: Request<()>) -> Result<Request<()>, Status>
             .map_err(|_| Status::unauthenticated("Invalid token"))?,
         None => return Err(Status::unauthenticated("Missing authorization header")),
     };
-    if let Ok(claims) = Claims::from_jwt(token) {
+    if let Ok(claims) = Claims::from_jwt(ClaimsType::Gateway, token) {
         // FIXME: can we push whole Claims object into metadata?
         req.metadata_mut().insert(
             "username",
