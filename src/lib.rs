@@ -47,9 +47,15 @@ use handlers::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
     },
 };
-use rocket::{config::Config, error::Error as RocketError, fs::FileServer, Build, Ignite, Rocket};
+use rocket::{
+    config::Config,
+    error::Error as RocketError,
+    fs::{FileServer, NamedFile, Options},
+    Build, Ignite, Rocket,
+};
 use std::{
     net::{IpAddr, Ipv4Addr},
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -73,6 +79,22 @@ extern crate rocket;
 #[macro_use]
 extern crate serde;
 
+/// Catch missing files and serve "index.html".
+#[get("/<path..>", rank = 4)]
+async fn smart_index(path: PathBuf) -> Option<NamedFile> {
+    if path.starts_with("api/") {
+        None
+    } else {
+        NamedFile::open("./web/index.html").await.ok()
+    }
+}
+
+/// Simple health-check.
+#[get("/health")]
+fn health_check() -> &'static str {
+    "alive"
+}
+
 pub async fn build_webapp(
     config: DefGuardConfig,
     webhook_tx: UnboundedSender<AppEvent>,
@@ -87,11 +109,13 @@ pub async fn build_webapp(
         ..Config::default()
     };
     let license_decoded = License::decode(&config.license);
-    let webapp = rocket::custom(cfg).mount("/", FileServer::from("./web"));
-    let webapp = webapp
+    let webapp = rocket::custom(cfg)
+        .mount("/", routes![smart_index])
+        .mount("/", FileServer::new("./web", Options::Missing).rank(3))
         .mount(
             "/api/v1",
             routes![
+                health_check,
                 authenticate,
                 logout,
                 username_available,

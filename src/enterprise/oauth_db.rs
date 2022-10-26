@@ -1,5 +1,5 @@
 use crate::{
-    auth::{Claims, SESSION_TIMEOUT},
+    auth::{Claims, ClaimsType, SESSION_TIMEOUT},
     db::DbPool,
 };
 use chrono::{Duration, TimeZone, Utc};
@@ -66,6 +66,7 @@ impl OAuth2Token {
         grant: &Grant,
     ) -> Result<(), SqlxError> {
         let claims = Claims::new(
+            ClaimsType::Auth,
             grant.owner_id.clone(),
             grant.client_id.clone(),
             SESSION_TIMEOUT,
@@ -170,6 +171,7 @@ impl OAuth2Token {
 impl From<Grant> for OAuth2Token {
     fn from(grant: Grant) -> Self {
         let claims = Claims::new(
+            ClaimsType::Auth,
             grant.owner_id.clone(),
             grant.client_id.clone(),
             SESSION_TIMEOUT,
@@ -188,7 +190,7 @@ impl From<Grant> for OAuth2Token {
 
 impl From<OAuth2Token> for Grant {
     fn from(token: OAuth2Token) -> Self {
-        let claims = Claims::from_jwt(&token.access_token).unwrap();
+        let claims = Claims::from_jwt(ClaimsType::Auth, &token.access_token).unwrap();
         Self {
             owner_id: claims.sub,
             client_id: claims.client_id,

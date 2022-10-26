@@ -3,7 +3,7 @@ use super::{
 };
 use crate::{
     appstate::AppState,
-    auth::{AdminRole, Claims, SessionInfo},
+    auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::{
         models::wireguard::DateTimeAggregation, AddDevice, DbPool, Device, GatewayEvent,
         WireguardNetwork,
@@ -288,14 +288,19 @@ pub async fn create_network_token(
     id: i64,
 ) -> ApiResult {
     let network = find_network(id, &appstate.pool).await?;
-    let token = Claims::new(network.name.clone(), String::new(), u32::MAX.into())
-        .to_jwt()
-        .map_err(|_| {
-            OriWebError::Authorization(format!(
-                "Failed to create token for gateway {}",
-                network.name
-            ))
-        })?;
+    let token = Claims::new(
+        ClaimsType::Gateway,
+        network.name.clone(),
+        String::new(),
+        u32::MAX.into(),
+    )
+    .to_jwt()
+    .map_err(|_| {
+        OriWebError::Authorization(format!(
+            "Failed to create token for gateway {}",
+            network.name
+        ))
+    })?;
     Ok(ApiResponse {
         json: json!({ "token": token }),
         status: Status::Ok,

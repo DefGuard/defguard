@@ -18,7 +18,9 @@ use std::{
 };
 
 pub static JWT_ISSUER: &str = "DefGuard";
-pub static SECRET_ENV: &str = "DEFGUARD_JWT_SECRET";
+pub static AUTH_SECRET_ENV: &str = "DEFGUARD_AUTH_SECRET";
+pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
+pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
 pub const SESSION_TIMEOUT: u64 = 3600 * 24 * 7;
 pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
 
@@ -27,9 +29,24 @@ pub enum ClaimRole {
     Admin,
 }
 
+#[derive(Clone)]
+pub enum ClaimsType {
+    Auth,
+    Gateway,
+    YubiBridge,
+}
+
+impl Default for ClaimsType {
+    fn default() -> Self {
+        ClaimsType::Auth
+    }
+}
+
 // Standard claims: https://www.iana.org/assignments/jwt/jwt.xhtml
 #[derive(Deserialize, Serialize)]
 pub struct Claims {
+    #[serde(skip_serializing, skip_deserializing)]
+    secret: String,
     // issuer
     pub iss: String,
     // subject
@@ -47,7 +64,7 @@ pub struct Claims {
 
 impl Claims {
     #[must_use]
-    pub fn new(sub: String, client_id: String, duration: u64) -> Self {
+    pub fn new(claims_type: ClaimsType, sub: String, client_id: String, duration: u64) -> Self {
         let now = SystemTime::now();
         let exp = now
             .checked_add(Duration::from_secs(duration))
@@ -60,6 +77,7 @@ impl Claims {
             .expect("valid timestamp")
             .as_secs();
         Self {
+            secret: Self::get_secret(claims_type),
             iss: JWT_ISSUER.to_string(),
             sub,
             client_id,
@@ -69,19 +87,27 @@ impl Claims {
         }
     }
 
+    fn get_secret(claims_type: ClaimsType) -> String {
+        let env_var = match claims_type {
+            ClaimsType::Auth => AUTH_SECRET_ENV,
+            ClaimsType::Gateway => GATEWAY_SECRET_ENV,
+            ClaimsType::YubiBridge => YUBIBRIDGE_SECRET_ENV,
+        };
+        env::var(env_var).unwrap_or_default()
+    }
+
     /// Convert claims to JWT.
     pub fn to_jwt(&self) -> Result<String, JWTError> {
-        let secret = env::var(SECRET_ENV).unwrap_or_default();
         encode(
             &Header::default(),
             self,
-            &EncodingKey::from_secret(secret.as_bytes()),
+            &EncodingKey::from_secret(self.secret.as_bytes()),
         )
     }
 
     /// Verify JWT and, if successful, convert it to claims.
-    pub fn from_jwt(token: &str) -> Result<Self, JWTError> {
-        let secret = env::var(SECRET_ENV).unwrap_or_default();
+    pub fn from_jwt(claims_type: ClaimsType, token: &str) -> Result<Self, JWTError> {
+        let secret = Self::get_secret(claims_type);
         let mut validation = Validation::default();
         validation.validate_nbf = true;
         validation.set_issuer(&[JWT_ISSUER]);
@@ -168,7 +194,7 @@ impl<'r> FromRequest<'r> for SessionInfo {
                         }
                     })
                 {
-                    match Claims::from_jwt(token) {
+                    match Claims::from_jwt(ClaimsType::Auth, token) {
                         Ok(claims) => User::find_by_username(&state.pool, &claims.sub).await,
                         Err(_) => {
                             return Outcome::Failure((
