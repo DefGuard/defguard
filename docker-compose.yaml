@@ -6,7 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DEFGUARD_JWT_SECRET: orion-secret
+      DEFGUARD_AUTH_SECRET: defguard-auth-secret
+      DEFGUARD_GATEWAY_SECRET: defguard-gateway-secret
+      DEFGUARD_YUBIBRIDGE_SECRET: defguard-yubibridge-secret
       DEFGUARD_DB_HOST: db
       DEFGUARD_DB_PORT: 5432
       DEFGUARD_DB_USER: defguard
@@ -26,7 +28,7 @@ services:
     environment:
       DEFGUARD_GRPC_URL: http://core:50055
       DEFGUARD_STATS_PERIOD: 60
-      DEFGUARD_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEZWZHdWFyZCIsInN1YiI6IlRlc3ROZXQiLCJjbGllbnRfaWQiOiIiLCJleHAiOjU5NjA1MzQ1NjgsIm5iZiI6MTY2NTU2NzI3Mywicm9sZXMiOltdfQ.NjZ0L5jvrkLuCgjuMU3vUQi1tR1GTAfj5ZN9IfRgUPI
+      DEFGUARD_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEZWZHdWFyZCIsInN1YiI6IlRlc3ROZXQiLCJjbGllbnRfaWQiOiIiLCJleHAiOjU5NjE3NDcwNzYsIm5iZiI6MTY2Njc3OTc4MSwicm9sZXMiOltdfQ.uEUMnw_gO23W0K2q3N1lToeP0D2zAY1swr8N-84sRHA
       RUST_LOG: debug
     ports:
       # wireguard endpoint

@@ -188,19 +188,6 @@ impl WorkerServer {
     }
 }
 
-pub fn token_interceptor(req: Request<()>) -> Result<Request<()>, Status> {
-    if let Some(token) = req.metadata().get("worker-token") {
-        if let Ok(token) = token.to_str() {
-            if token == env::var("DEFGUARD_WORKER_TOKEN").unwrap_or_else(|_| "worker-secret".into())
-            {
-                return Ok(req);
-            }
-        }
-    }
-
-    Err(Status::unauthenticated("Invalid token"))
-}
-
 #[tonic::async_trait]
 impl worker_service_server::WorkerService for WorkerServer {
     async fn register_worker(&self, request: Request<Worker>) -> Result<Response<()>, Status> {
