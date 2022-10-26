@@ -29,6 +29,7 @@ pub enum ClaimRole {
     Admin,
 }
 
+#[derive(Clone)]
 pub enum ClaimsType {
     Auth,
     Gateway,
