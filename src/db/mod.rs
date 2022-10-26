@@ -32,5 +32,5 @@ pub use models::{
     webauthn::WebAuthn,
     webhook::{AppEvent, HWKeyUserData, WebHook},
     wireguard::{GatewayEvent, WireguardNetwork, WireguardPeerStats},
-    UserInfo,
+    MFAInfo, UserInfo,
 };

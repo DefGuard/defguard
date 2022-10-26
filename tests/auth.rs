@@ -87,7 +87,11 @@ async fn test_totp() {
 
     // enable TOTP
     let code = totp_code(&auth_totp);
-    let response = client.put("/api/v1/auth/totp").json(&code).dispatch().await;
+    let response = client
+        .post("/api/v1/auth/totp")
+        .json(&code)
+        .dispatch()
+        .await;
     assert_eq!(response.status(), Status::Ok);
 
     // enable MFA
@@ -109,7 +113,7 @@ async fn test_totp() {
     // provide wrong TOTP code
     let code = AuthCode::new(0);
     let response = client
-        .post("/api/v1/auth/totp")
+        .post("/api/v1/auth/totp/verify")
         .json(&code)
         .dispatch()
         .await;
@@ -118,7 +122,7 @@ async fn test_totp() {
     // provide correct TOTP code
     let code = totp_code(&auth_totp);
     let response = client
-        .post("/api/v1/auth/totp")
+        .post("/api/v1/auth/totp/verify")
         .json(&code)
         .dispatch()
         .await;

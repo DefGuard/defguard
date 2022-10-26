@@ -13,7 +13,7 @@ use super::{DbPool, Group};
 #[cfg(feature = "openid")]
 use crate::enterprise::db::openid::AuthorizedApp;
 use device::Device;
-use sqlx::Error as SqlxError;
+use sqlx::{query_as, Error as SqlxError};
 use user::{MFAMethod, User};
 
 #[derive(Deserialize, Serialize)]
@@ -41,6 +41,8 @@ pub struct UserInfo {
     pub ssh_key: Option<String>,
     pub pgp_key: Option<String>,
     pub pgp_cert_id: Option<String>,
+    pub mfa_enabled: bool,
+    pub totp_enabled: bool,
     pub groups: Vec<String>,
     #[serde(default)]
     pub devices: Vec<Device>,
@@ -73,6 +75,8 @@ impl UserInfo {
             ssh_key: user.ssh_key,
             pgp_key: user.pgp_key,
             pgp_cert_id: user.pgp_cert_id,
+            mfa_enabled: user.mfa_enabled,
+            totp_enabled: user.totp_enabled,
             groups,
             devices,
             #[cfg(feature = "openid")]
@@ -192,6 +196,31 @@ impl UserInfo {
         user.email = self.email;
 
         Ok(())
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct MFAInfo {
+    mfa_method: MFAMethod,
+    totp_available: bool,
+    web3_available: bool,
+    webauthn_available: bool,
+}
+
+impl MFAInfo {
+    pub async fn for_user(pool: &DbPool, user: &User) -> Result<Option<Self>, SqlxError> {
+        if let Some(id) = user.id {
+            query_as!(
+                Self,
+                "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, \
+                (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", \
+                (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" \
+                FROM \"user\" WHERE \"user\".id = $1",
+                id
+            ).fetch_optional(pool).await
+        } else {
+            Ok(None)
+        }
     }
 }
 
