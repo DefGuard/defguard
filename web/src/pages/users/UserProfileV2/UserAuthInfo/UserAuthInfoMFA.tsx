@@ -215,19 +215,15 @@ export const UserAuthInfoMFA = () => {
             <p>Wallets</p>
             <div className="right">
               <span>STATIC</span>
-              <EditButton>
-                <EditButtonOption text="Edit" />
+              <EditButton
+                visible={
+                  user?.mfa_method !== UserMFAMethod.WEB3 && mfaWeb3Enabled
+                }
+              >
                 <EditButtonOption
-                  text="Disable"
-                  styleVariant={EditButtonOptionStyleVariant.WARNING}
+                  text="Make default"
+                  onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB3)}
                 />
-                <EditButtonOption text="Enable" />
-                {user?.mfa_method !== UserMFAMethod.WEB3 && mfaWeb3Enabled && (
-                  <EditButtonOption
-                    text="Make default"
-                    onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB3)}
-                  />
-                )}
               </EditButton>
             </div>
           </RowBox>
