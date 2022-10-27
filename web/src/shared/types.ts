@@ -1,4 +1,8 @@
-import { CredentialCreationOptionsJSON } from '@github/webauthn-json';
+import {
+  CredentialCreationOptionsJSON,
+  PublicKeyCredentialWithAttestationJSON,
+} from '@github/webauthn-json';
+import { RegistrationPublicKeyCredential } from '@github/webauthn-json/dist/types/browser-ponyfill';
 import { AxiosPromise } from 'axios';
 
 export enum UserStatus {
@@ -608,5 +612,5 @@ export interface TOTPRequest {
 }
 export interface WebAuthnRegistrationRequest {
   name: string;
-  rpkc: PublicKeyCredential;
+  rpkc: PublicKeyCredentialWithAttestationJSON;
 }

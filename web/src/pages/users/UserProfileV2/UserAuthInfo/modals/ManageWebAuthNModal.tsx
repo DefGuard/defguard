@@ -20,7 +20,6 @@ import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUser
 import useApi from '../../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { SecurityKey } from '../../../../../shared/types';
-import { convertFromStringToBuffer } from '../../../../../shared/utils/convertFromStringToBuffer';
 import { toaster } from '../../../../../shared/utils/toaster';
 
 export const ManageWebAuthNKeysModal = () => {
@@ -59,10 +58,9 @@ export const ManageWebAuthNKeysModal = () => {
         const response = await create(options);
         setWaitingForSecurityKey(false);
         if (response) {
-          console.log(response);
           registerKeyFinish({
             name: 'test',
-            rpkc: response,
+            rpkc: response.toJSON(),
           });
         } else {
           toaster.error('Failed to get key response, please try again.');
