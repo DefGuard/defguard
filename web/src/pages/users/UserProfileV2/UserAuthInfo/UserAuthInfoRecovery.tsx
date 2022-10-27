@@ -4,7 +4,7 @@ import { RowBox } from '../../../../shared/components/layout/RowBox/RowBox';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
 
 export const UserAuthInfoRecovery = () => {
-  const user = useUserProfileV2Store((store) => store.user);
+  // const user = useUserProfileV2Store((store) => store.user);
   const isMe = useUserProfileV2Store((store) => store.isMe);
   const editMode = useUserProfileV2Store((store) => store.editMode);
   return (

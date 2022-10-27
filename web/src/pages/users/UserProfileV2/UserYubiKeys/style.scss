@@ -5,9 +5,11 @@
     width: 100%;
     position: relative;
     margin-bottom: 2rem;
+
     & > h2 {
       @include card-header;
     }
+
     & > .edit-button {
       position: absolute;
       top: 50%;

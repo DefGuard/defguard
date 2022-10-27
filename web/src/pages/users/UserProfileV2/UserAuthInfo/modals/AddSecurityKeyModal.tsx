@@ -1,7 +1,3 @@
-import Button, {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../../shared/components/layout/Button/Button';
 import { ModalWithTitle } from '../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 
@@ -19,6 +15,7 @@ export const AddSecuritykeyModal = () => {
   );
 };
 
+/**
 const AddSecurityKeyForm = () => {
   const setModalState = useModalStore((state) => state.setState);
   return (
@@ -40,4 +37,4 @@ const AddSecurityKeyForm = () => {
       </div>
     </form>
   );
-};
+};**/

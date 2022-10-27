@@ -11,7 +11,6 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
-import { toaster } from '../../../../shared/utils/toaster';
 
 interface Inputs {
   code: string;

@@ -1,9 +1,5 @@
 import './style.scss';
 
-import Button, {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/Button';
 import { Card } from '../../../../shared/components/layout/Card/Card';
 import Divider from '../../../../shared/components/layout/Divider/Divider';
 import { UserAuthInfoMFA } from './UserAuthInfoMFA';
