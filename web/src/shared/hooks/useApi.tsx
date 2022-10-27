@@ -289,7 +289,8 @@ const useApi = (props?: HookProps): ApiHook => {
     client.post('/auth/webauthn/init').then(unpackRequest);
 
   const mfaWebauthnRegisterFinish: ApiHook['auth']['mfa']['webauthn']['register']['finish'] =
-    (data) => client.post('/auth/webauthn/finish', data).then(unpackRequest);
+    async (data) =>
+      client.post('/auth/webauthn/finish', data).then(unpackRequest);
 
   const mfaWebauthnStart = () =>
     client.post('/auth/webauthn/start').then(unpackRequest);

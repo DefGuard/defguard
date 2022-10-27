@@ -29,6 +29,7 @@
   "dependencies": {
     "@ethersproject/providers": "^5.7.2",
     "@floating-ui/react-dom-interactions": "^0.10.2",
+    "@github/webauthn-json": "^2.0.1",
     "@hookform/resolvers": "^2.9.10",
     "@ladle/react": "^2.4.5",
     "@popperjs/core": "^2.11.6",

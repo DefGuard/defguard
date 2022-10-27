@@ -1,3 +1,7 @@
+import {
+  create,
+  parseCreationOptionsFromJSON,
+} from '@github/webauthn-json/browser-ponyfill';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -39,37 +43,27 @@ export const ManageWebAuthNKeysModal = () => {
     useMutation([MutationKeys.REGISTER_SECURITY_KEY_FINISH], finish, {
       onSuccess: () => {
         toaster.success('Security key added.');
+        setModalState({ manageWebAuthNKeysModal: { visible: false } });
+      },
+      onError: () => {
+        toaster.error('Key registration failed.');
+        setModalState({ manageWebAuthNKeysModal: { visible: false } });
       },
     });
 
   const { mutate: registerKeyStart, isLoading: registerKeyStartLoading } =
     useMutation([MutationKeys.REGISTER_SECURITY_KEY_START], start, {
       onSuccess: async (data) => {
-        // eslint-disable-next-line prettier/prettier
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        if (data.publicKey) {
-          data.publicKey.challenge = convertFromStringToBuffer(
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            data.publicKey.challenge
-          );
-          data.publicKey.user.id = convertFromStringToBuffer(
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            data.publicKey.user.id
-          );
-        }
         setWaitingForSecurityKey(true);
-        const keyResponse = await navigator.credentials
-          .create(data)
-          .catch((e) => {
-            console.error(e);
-            return null;
-          });
+        const options = parseCreationOptionsFromJSON(data);
+        const response = await create(options);
         setWaitingForSecurityKey(false);
-        if (keyResponse) {
-          registerKeyFinish(keyResponse);
+        if (response) {
+          console.log(response);
+          registerKeyFinish({
+            name: 'test',
+            rpkc: response,
+          });
         } else {
           toaster.error('Failed to get key response, please try again.');
           setModalState({ manageWebAuthNKeysModal: { visible: false } });

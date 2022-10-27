@@ -239,10 +239,10 @@ export interface ApiHook {
       webauthn: {
         register: {
           start: () => Promise<CredentialCreationOptions>;
-          finish: (data: Credential) => EmptyApiResponse;
+          finish: (data: WebAuthnRegistrationRequest) => EmptyApiResponse;
         };
-        start: () => EmptyApiResponse;
-        finish: (data: WebAuthnKeyCredential) => EmptyApiResponse;
+        start: () => Promise<CredentialRequestOptions>;
+        finish: (data: PublicKeyCredential) => EmptyApiResponse;
       };
       totp: {
         init: () => Promise<{ secret: string }>;
@@ -605,14 +605,7 @@ export interface WalletSignature {
 export interface TOTPRequest {
   code: string;
 }
-export interface WebAuthnKeyCredential {
-  id: string;
-  rawId: string;
-  response: string;
-  type: string;
-  extendsions?: unknown;
-}
 export interface WebAuthnRegistrationRequest {
   name: string;
-  rpkc: WebAuthnKeyCredential;
+  rpkc: PublicKeyCredential;
 }
