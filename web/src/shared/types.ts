@@ -1,3 +1,4 @@
+import { CredentialCreationOptionsJSON } from '@github/webauthn-json';
 import { AxiosPromise } from 'axios';
 
 export enum UserStatus {
@@ -238,7 +239,7 @@ export interface ApiHook {
       disable: () => EmptyApiResponse;
       webauthn: {
         register: {
-          start: () => Promise<CredentialCreationOptions>;
+          start: () => Promise<CredentialCreationOptionsJSON>;
           finish: (data: WebAuthnRegistrationRequest) => EmptyApiResponse;
         };
         start: () => Promise<CredentialRequestOptions>;
