@@ -2,15 +2,21 @@
 
 #user-yubikeys {
   & > header {
+    width: 100%;
+    position: relative;
     margin-bottom: 2rem;
-
     & > h2 {
       @include card-header;
+    }
+    & > .edit-button {
+      position: absolute;
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
     }
   }
 
   & > .keys {
-    margin-bottom: 1.5rem;
     display: flex;
     flex-flow: column nowrap;
     row-gap: 1.5rem;

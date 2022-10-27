@@ -315,6 +315,17 @@ const useApi = (props?: HookProps): ApiHook => {
   const mfaWeb3Finish: ApiHook['auth']['mfa']['web3']['finish'] = (data) =>
     client.post('/auth/web3', data).then(unpackRequest);
 
+  const editWalletMFA: ApiHook['auth']['mfa']['web3']['updateWalletMFA'] = ({
+    address,
+    username,
+    ...rest
+  }) =>
+    client
+      .put(`/user/${username}/wallet/${address}`, {
+        ...rest,
+      })
+      .then(unpackRequest);
+
   return {
     oAuth: {
       consent: oAuthConsent,
@@ -379,6 +390,7 @@ const useApi = (props?: HookProps): ApiHook => {
         web3: {
           start: mfaWeb3Start,
           finish: mfaWeb3Finish,
+          updateWalletMFA: editWalletMFA,
         },
       },
     },

@@ -39,13 +39,13 @@ const titleVariants: Variants = {
   },
 };
 
-const KeyBox: React.FC<Props> = ({
+const KeyBox = ({
   title,
   keyValue,
   collapsible = false,
   disabled = false,
   initiallyOpen,
-}) => {
+}: Props) => {
   const [collapsed, setCollapsed] = useState(initiallyOpen);
   const [copiedVisible, setCopiedVisible] = useState(false);
   const [copySubject, setCopySubject] = useState<Subject<void> | undefined>();

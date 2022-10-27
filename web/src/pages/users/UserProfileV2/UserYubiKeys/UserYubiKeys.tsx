@@ -2,6 +2,8 @@ import './style.scss';
 
 import { useMemo } from 'react';
 
+import { EditButton } from '../../../../shared/components/layout/EditButton/EditButton';
+import { EditButtonOption } from '../../../../shared/components/layout/EditButton/EditButtonOption';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
@@ -33,12 +35,27 @@ export const UserYubiKeys = () => {
     <section id="user-yubikeys">
       <header>
         <h2>User YubiKey</h2>
+        {enableEdit && (
+          <EditButton>
+            <EditButtonOption text="Provision new keys" />
+          </EditButton>
+        )}
       </header>
-      <div className="keys">
-        <KeyBox keyValue={user?.pgp_key} title="PGP key" />
-        <KeyBox keyValue={user?.ssh_key} title="SSH key" />
-      </div>
-      {isAdmin && (
+      {user?.pgp_key || user?.ssh_key ? (
+        <div className="keys">
+          <KeyBox
+            collapsible={false}
+            keyValue={user?.pgp_key}
+            title="PGP key"
+          />
+          <KeyBox
+            collapsible={false}
+            keyValue={user?.ssh_key}
+            title="SSH key"
+          />
+        </div>
+      ) : null}
+      {isAdmin && !enableEdit && (
         <AddComponentBox
           callback={() => {
             if (user) {

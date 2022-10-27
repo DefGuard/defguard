@@ -2,7 +2,6 @@ import {
   CredentialCreationOptionsJSON,
   PublicKeyCredentialWithAttestationJSON,
 } from '@github/webauthn-json';
-import { RegistrationPublicKeyCredential } from '@github/webauthn-json/dist/types/browser-ponyfill';
 import { AxiosPromise } from 'axios';
 
 export enum UserStatus {
@@ -58,6 +57,7 @@ export interface WalletInfo {
   address: string;
   chain_id: number;
   name: string;
+  use_for_mfa: boolean;
 }
 
 export interface Device {
@@ -190,6 +190,12 @@ export interface UserEditRequest {
   data: Partial<User>;
 }
 
+export interface EditWalletMFARequest {
+  username: string;
+  address: string;
+  use_for_mfa: boolean;
+}
+
 export interface ApiHook {
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
@@ -258,6 +264,7 @@ export interface ApiHook {
       web3: {
         start: () => Promise<{ challenge: string }>;
         finish: (data: WalletSignature) => EmptyApiResponse;
+        updateWalletMFA: (data: EditWalletMFARequest) => EmptyApiResponse;
       };
     };
   };

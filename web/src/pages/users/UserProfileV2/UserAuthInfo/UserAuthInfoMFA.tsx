@@ -1,4 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { cloneDeep, isUndefined } from 'lodash-es';
+import { useMemo } from 'react';
 
 import {
   ActivityStatus,
@@ -30,6 +32,7 @@ export const UserAuthInfoMFA = () => {
   };
 
   const {
+    user: { editUser },
     auth: {
       mfa: {
         enable,
@@ -52,6 +55,16 @@ export const UserAuthInfoMFA = () => {
         toaster.error('Enabling MFA failed.');
       },
     }
+  );
+
+  const mfaWebAuthNEnabled = useMemo(
+    () => user?.security_keys && user.security_keys.length > 0,
+    [user]
+  );
+
+  const mfaWeb3Enabled = useMemo(
+    () => !isUndefined(user?.wallets.find((w) => w.use_for_mfa === true)),
+    [user]
   );
 
   const { mutate: disableMFA } = useMutation(
@@ -83,6 +96,31 @@ export const UserAuthInfoMFA = () => {
       },
     }
   );
+
+  const { mutate: editUserMutation } = useMutation(
+    [MutationKeys.EDIT_USER],
+    editUser,
+    {
+      onSuccess: () => {
+        toaster.success('User updated');
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+      },
+      onError: () => {
+        toaster.error('User update failed');
+      },
+    }
+  );
+
+  const changeDefaultMFAMethod = (mfaMethod: UserMFAMethod) => {
+    if (user) {
+      const userClone = cloneDeep(user);
+      userClone.mfa_method = mfaMethod;
+      editUserMutation({
+        username: user.username,
+        data: userClone,
+      });
+    }
+  };
 
   return (
     <section className="mfa">
@@ -136,9 +174,15 @@ export const UserAuthInfoMFA = () => {
                     }
                   />
                 )}
-                {user?.mfa_method !== UserMFAMethod.ONE_TIME_PASSWORD && (
-                  <EditButtonOption text="Make default" />
-                )}
+                {user?.mfa_method !== UserMFAMethod.ONE_TIME_PASSWORD &&
+                  user?.totp_enabled && (
+                    <EditButtonOption
+                      text="Make default"
+                      onClick={() =>
+                        changeDefaultMFAMethod(UserMFAMethod.ONE_TIME_PASSWORD)
+                      }
+                    />
+                  )}
               </EditButton>
             </div>
           </RowBox>
@@ -155,7 +199,15 @@ export const UserAuthInfoMFA = () => {
                     })
                   }
                 />
-                <EditButtonOption text="Make default" />
+                {user?.mfa_method !== UserMFAMethod.WEB_AUTH_N &&
+                  mfaWebAuthNEnabled && (
+                    <EditButtonOption
+                      text="Make default"
+                      onClick={() =>
+                        changeDefaultMFAMethod(UserMFAMethod.WEB_AUTH_N)
+                      }
+                    />
+                  )}
               </EditButton>
             </div>
           </RowBox>
@@ -170,7 +222,12 @@ export const UserAuthInfoMFA = () => {
                   styleVariant={EditButtonOptionStyleVariant.WARNING}
                 />
                 <EditButtonOption text="Enable" />
-                <EditButtonOption text="Make default" />
+                {user?.mfa_method !== UserMFAMethod.WEB3 && mfaWeb3Enabled && (
+                  <EditButtonOption
+                    text="Make default"
+                    onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB3)}
+                  />
+                )}
               </EditButton>
             </div>
           </RowBox>
