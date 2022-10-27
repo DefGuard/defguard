@@ -2,7 +2,7 @@ import {
   create,
   parseCreationOptionsFromJSON,
 } from '@github/webauthn-json/browser-ponyfill';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import Button, {
@@ -19,6 +19,7 @@ import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../../shared/mutations';
+import { QueryKeys } from '../../../../../shared/queries';
 import { SecurityKey } from '../../../../../shared/types';
 import { toaster } from '../../../../../shared/utils/toaster';
 
@@ -38,11 +39,14 @@ export const ManageWebAuthNKeysModal = () => {
     },
   } = useApi();
 
+  const queryClient = useQueryClient();
+
   const { mutate: registerKeyFinish, isLoading: registerKeyFinishLoading } =
     useMutation([MutationKeys.REGISTER_SECURITY_KEY_FINISH], finish, {
       onSuccess: () => {
         toaster.success('Security key added.');
         setModalState({ manageWebAuthNKeysModal: { visible: false } });
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
       },
       onError: () => {
         toaster.error('Key registration failed.');

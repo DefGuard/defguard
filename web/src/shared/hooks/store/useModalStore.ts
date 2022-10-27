@@ -6,6 +6,9 @@ import { UseModalStore } from '../../types';
  * All modals use this store, it controls their visibility and provides extra values.
  */
 export const useModalStore = create<UseModalStore>((set) => ({
+  registerTOTP: {
+    visible: false,
+  },
   provisionKeyModal: {
     visible: false,
     user: undefined,

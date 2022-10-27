@@ -17,6 +17,7 @@ import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import { ProfileDetails } from './ProfileDetails/ProfileDetails';
 import { ManageWebAuthNKeysModal } from './UserAuthInfo/modals/ManageWebAuthNModal';
+import { RegisterTOTPModal } from './UserAuthInfo/modals/RegisterTOTPModal/RegisterTOTPModal';
 import { UserAuthInfo } from './UserAuthInfo/UserAuthInfo';
 import { UserDevices } from './UserDevices/UserDevices';
 import { UserWallets } from './UserWallets/UserWallets';
@@ -90,6 +91,7 @@ export const UserProfileV2 = () => {
         </div>
       </div>
       <ManageWebAuthNKeysModal />
+      <RegisterTOTPModal />
     </section>
   );
 };

@@ -1,3 +1,5 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 import {
   ActivityStatus,
   ActivityType,
@@ -10,13 +12,77 @@ import {
 import { RowBox } from '../../../../shared/components/layout/RowBox/RowBox';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
+import useApi from '../../../../shared/hooks/useApi';
+import { MutationKeys } from '../../../../shared/mutations';
+import { QueryKeys } from '../../../../shared/queries';
 import { UserMFAMethod } from '../../../../shared/types';
+import { toaster } from '../../../../shared/utils/toaster';
 
 export const UserAuthInfoMFA = () => {
   const user = useUserProfileV2Store((store) => store.user);
   const isMe = useUserProfileV2Store((store) => store.isMe);
   const editMode = useUserProfileV2Store((store) => store.editMode);
   const setModalsState = useModalStore((store) => store.setState);
+  const queryClient = useQueryClient();
+
+  const refreshUserQueries = () => {
+    queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+  };
+
+  const {
+    auth: {
+      mfa: {
+        enable,
+        disable,
+        totp: { disable: disableTOTP },
+      },
+    },
+  } = useApi();
+
+  const { mutate: enableMFA, isLoading: enableMFALoading } = useMutation(
+    [MutationKeys.ENABLE_MFA],
+    enable,
+    {
+      onSuccess: () => {
+        refreshUserQueries();
+        toaster.success('MFA enabled');
+      },
+      onError: (err) => {
+        console.error(err);
+        toaster.error('Enabling MFA failed.');
+      },
+    }
+  );
+
+  const { mutate: disableMFA } = useMutation(
+    [MutationKeys.DISABLE_MFA],
+    disable,
+    {
+      onSuccess: () => {
+        refreshUserQueries();
+        toaster.success('MFA disabled');
+      },
+      onError: (err) => {
+        console.error(err);
+        toaster.error('Disabling MFA failed');
+      },
+    }
+  );
+
+  const { mutate: disableTOTPMutation } = useMutation(
+    [MutationKeys.DISABLE_TOTP],
+    disableTOTP,
+    {
+      onSuccess: () => {
+        refreshUserQueries();
+        toaster.success('One time password disabled');
+      },
+      onError: (err) => {
+        console.error(err);
+        toaster.error('Disabling one time password failed');
+      },
+    }
+  );
 
   return (
     <section className="mfa">
@@ -27,9 +93,14 @@ export const UserAuthInfoMFA = () => {
               <EditButtonOption
                 text="Disable MFA"
                 styleVariant={EditButtonOptionStyleVariant.WARNING}
+                onClick={() => disableMFA()}
               />
             ) : (
-              <EditButtonOption text="Enable MFA" />
+              <EditButtonOption
+                text="Enable MFA"
+                onClick={() => enableMFA()}
+                disabled={enableMFALoading}
+              />
             )}
           </EditButton>
         )}
@@ -37,30 +108,37 @@ export const UserAuthInfoMFA = () => {
         <span className="status">
           <ActivityStatus
             connectionStatus={
-              user?.mfa_method !== UserMFAMethod.NONE
-                ? ActivityType.CONNECTED
-                : ActivityType.ALERT
+              user?.mfa_enabled ? ActivityType.CONNECTED : ActivityType.ALERT
             }
-            customMessage={
-              user?.mfa_method !== UserMFAMethod.NONE ? 'Enable' : 'Disabled'
-            }
+            customMessage={user?.mfa_enabled ? 'Enabled' : 'Disabled'}
           />
         </span>
       </header>
       {editMode && isMe ? (
         <>
           <RowBox>
-            <p>Authenticator code</p>
+            <p>One time password</p>
             <div className="right">
               <span>STATIC</span>
               <EditButton>
-                <EditButtonOption text="Edit" />
-                <EditButtonOption
-                  text="Disable"
-                  styleVariant={EditButtonOptionStyleVariant.WARNING}
-                />
-                <EditButtonOption text="Enable" />
-                <EditButtonOption text="Make default" />
+                {user?.totp_enabled && (
+                  <EditButtonOption
+                    onClick={() => disableTOTPMutation()}
+                    text="Disable"
+                    styleVariant={EditButtonOptionStyleVariant.WARNING}
+                  />
+                )}
+                {!user?.totp_enabled && (
+                  <EditButtonOption
+                    text="Enable"
+                    onClick={() =>
+                      setModalsState({ registerTOTP: { visible: true } })
+                    }
+                  />
+                )}
+                {user?.mfa_method !== UserMFAMethod.ONE_TIME_PASSWORD && (
+                  <EditButtonOption text="Make default" />
+                )}
               </EditButton>
             </div>
           </RowBox>

@@ -428,6 +428,7 @@ export interface UseModalStore {
   deleteUserDeviceModal: DeleteUserDeviceModal;
   manageWebAuthNKeysModal: StandardModalState;
   addSecurityKeyModal: StandardModalState;
+  registerTOTP: StandardModalState;
   setState: (data: Partial<UseModalStore>) => void;
   setDeleteUserDeviceModal: ModalSetter<DeleteUserDeviceModal>;
   setUserDeviceModal: ModalSetter<UserDeviceModal>;
@@ -608,7 +609,7 @@ export interface WalletSignature {
 }
 
 export interface TOTPRequest {
-  code: string;
+  code: number;
 }
 export interface WebAuthnRegistrationRequest {
   name: string;

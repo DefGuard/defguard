@@ -1,4 +1,5 @@
 import { yupResolver } from '@hookform/resolvers/yup';
+import { useMutation } from '@tanstack/react-query';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import * as yup from 'yup';
@@ -8,6 +9,9 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
+import useApi from '../../../../shared/hooks/useApi';
+import { MutationKeys } from '../../../../shared/mutations';
+import { toaster } from '../../../../shared/utils/toaster';
 
 interface Inputs {
   code: string;
@@ -16,14 +20,40 @@ interface Inputs {
 const schema = yup
   .object()
   .shape({
-    code: yup.string().required('Code is required.'),
+    code: yup
+      .string()
+      .required('Code is required.')
+      .min(6, 'Code should have 6 digits')
+      .max(6, 'Code should have 6 digits'),
   })
   .required();
 
-//TOTP method
-export const MFACode = () => {
+export const MFATOTPAuth = () => {
   const navigate = useNavigate();
-  const { handleSubmit, control } = useForm<Inputs>({
+  const {
+    auth: {
+      mfa: {
+        totp: { verify },
+      },
+    },
+  } = useApi();
+
+  const { mutate, isLoading } = useMutation(
+    [MutationKeys.VERIFY_TOTP],
+    verify,
+    {
+      onSuccess: (data) => {
+        console.log(data);
+      },
+      onError: (err) => {
+        console.error(err);
+        setValue('code', '');
+        setError('code', { message: 'Enter a valid code' });
+      },
+    }
+  );
+
+  const { handleSubmit, control, setError, setValue } = useForm<Inputs>({
     resolver: yupResolver(schema),
     mode: 'all',
     defaultValues: {
@@ -32,8 +62,9 @@ export const MFACode = () => {
   });
 
   const handleValidSubmit: SubmitHandler<Inputs> = (values) => {
-    console.table(values);
+    mutate({ code: Number(values.code) });
   };
+
   return (
     <>
       <p>Use code from your authentication app and click button to proceed</p>
@@ -47,6 +78,7 @@ export const MFACode = () => {
           text="Use authenticator code"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
+          loading={isLoading}
           type="submit"
         />
       </form>

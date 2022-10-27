@@ -53,6 +53,7 @@
     "hex-rgb": "^5.0.0",
     "i18next": "21.9.2",
     "lodash-es": "^4.17.21",
+    "next-qrcode": "^2.2.2",
     "radash": "^8.0.3",
     "react": "^18.2.0",
     "react-click-away-listener": "^2.2.2",
