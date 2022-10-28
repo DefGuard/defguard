@@ -5,6 +5,7 @@ import { Route, Routes } from 'react-router';
 import { MFAKey } from './MFAKey/MFAKey';
 import { MFATOTPAuth } from './MFATOTPAuth/MFATOTPAuth';
 import { MFAWallet } from './MFAWallet/MFAWallet';
+import { MFAWeb3SignMessageModal } from './modals/MFAWeb3SignModal';
 
 export const MFARoute = () => {
   return (
@@ -15,6 +16,7 @@ export const MFARoute = () => {
         <Route path="key" element={<MFAKey />} />
         <Route path="wallet" element={<MFAWallet />} />
       </Routes>
+      <MFAWeb3SignMessageModal />
     </section>
   );
 };

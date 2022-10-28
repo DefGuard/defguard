@@ -1,13 +1,15 @@
+import classNames from 'classnames';
+import { ReactNode, useMemo } from 'react';
 import { Connector, useConnect } from 'wagmi';
 
 import { MetamaskIcon, WalletconnectIcon } from '../../svg';
 
 interface Props {
   connector: Connector;
-  right?: React.ReactNode;
+  children?: ReactNode;
 }
 
-const WalletProviderListItem: React.FC<Props> = ({ connector, right }) => {
+const WalletProviderListItem = ({ connector, children }: Props) => {
   const { connect } = useConnect();
 
   const handleClick = () => {
@@ -28,24 +30,28 @@ const WalletProviderListItem: React.FC<Props> = ({ connector, right }) => {
     return null;
   };
 
+  const getListItemCN = useMemo(
+    () =>
+      classNames('wallet-provider-list-item', {
+        disabled: !connector.ready,
+      }),
+    [connector.ready]
+  );
+
+  const getListItemTextCN = useMemo(
+    () =>
+      classNames('wallet-provider-list-text', {
+        disabled: !connector.ready,
+      }),
+    [connector.ready]
+  );
+
   return (
-    <div
-      key={connector.name}
-      className={`wallet-provider-list-item ${
-        connector.ready ? '' : 'disabled'
-      }`}
-      onClick={handleClick}
-    >
+    <div key={connector.name} className={getListItemCN} onClick={handleClick}>
       <div className="wallet-provider-list-item-icon">{renderIcon()}</div>
-      <div
-        className={`wallet-provider-list-item-text ${
-          connector.ready ? '' : 'disabled'
-        }`}
-      >
-        {connector.name}
-      </div>
-      {right ? (
-        <div className="wallet-provider-list-item-right">{right}</div>
+      <div className={getListItemTextCN}>{connector.name}</div>
+      {children ? (
+        <div className="wallet-provider-list-item-right">{children}</div>
       ) : null}
     </div>
   );

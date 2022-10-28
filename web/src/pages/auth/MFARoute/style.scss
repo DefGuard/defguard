@@ -53,6 +53,7 @@
     }
 
     & > nav {
+      margin-top: 2.4rem;
       & > span {
         @include typography(12px, 14px, regular, var(--gray-light));
 

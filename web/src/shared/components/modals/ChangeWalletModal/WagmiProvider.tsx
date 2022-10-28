@@ -1,5 +1,7 @@
+import { ReactNode } from 'react';
 import { chain, configureChains, createClient, WagmiConfig } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
+import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
 import { infuraProvider } from 'wagmi/providers/infura';
 
@@ -14,6 +16,9 @@ const client = createClient({
   webSocketProvider,
   connectors: [
     new InjectedConnector({ chains }),
+    new MetaMaskConnector({
+      chains,
+    }),
     new WalletConnectConnector({
       chains,
       options: {
@@ -24,10 +29,10 @@ const client = createClient({
 });
 
 interface Props {
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
-const WagmiProvider: React.FC<Props> = ({ children }) => {
+const WagmiProvider = ({ children }: Props) => {
   return <WagmiConfig client={client}>{children}</WagmiConfig>;
 };
 

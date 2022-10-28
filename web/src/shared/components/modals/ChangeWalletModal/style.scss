@@ -1,24 +1,22 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/_mixins' as mix;
-@use '@shared/scss/helpers/bootstrap' as bs;
+@use '../../../scss/helpers' as *;
+@use '../../../scss/base/variables' as v;
 
 .modal {
   &.change-wallet {
-    @include bs.media-breakpoint-down(md) {
-      height: 100%;
-      padding: 0;
-    }
-    @include bs.media-breakpoint-up(md) {
+    height: 100%;
+    padding: 0;
+
+    @include media-breakpoint-up(md) {
       transform: translateY(207px);
     }
 
     .modal-content {
       box-sizing: border-box;
-      @include bs.media-breakpoint-down(md) {
+      @include media-breakpoint-down(md) {
         width: 100%;
         height: 100%;
       }
-      @include bs.media-breakpoint-up(md) {
+      @include media-breakpoint-up(md) {
         width: 502px;
         height: 600px;
         padding: 4rem 3rem;
@@ -32,18 +30,18 @@
         align-items: center;
         align-content: center;
         justify-content: flex-start;
-        @include bs.media-breakpoint-down(md) {
+        @include media-breakpoint-down(md) {
           box-sizing: border-box;
           padding: 0 2.1rem 0 2rem;
           height: 70px;
-          border-bottom: 1px solid v.$gray-border;
+          border-bottom: 1px solid var(--gray-border);
           margin-bottom: 3rem;
 
           .icon-button {
             margin-left: auto;
           }
         }
-        @include bs.media-breakpoint-up(md) {
+        @include media-breakpoint-up(md) {
           margin-bottom: 4rem;
 
           .icon-button {
@@ -52,7 +50,7 @@
         }
 
         .title {
-          @include mix.header;
+          @include header;
 
           font-size: 2rem;
           line-height: 2.8rem;
@@ -65,7 +63,7 @@
         flex: 1;
         flex-direction: column;
         width: 100%;
-        @include bs.media-breakpoint-down(md) {
+        @include media-breakpoint-down(md) {
           padding: 0 2.1rem 0 2rem;
           box-sizing: border-box;
         }
@@ -82,14 +80,14 @@
           align-items: center;
           align-content: center;
           justify-content: center;
-          @include bs.media-breakpoint-down(md) {
+          @include media-breakpoint-down(md) {
             row-gap: 1rem;
           }
 
           label {
             display: block;
-            @include mix.poppins;
-            @include mix.text-weight(medium);
+            @include poppins;
+            @include text-weight(medium);
 
             font-size: 1.5rem;
             line-height: 2.3rem;
@@ -111,7 +109,7 @@
           justify-content: flex-end;
           width: 100%;
           margin-top: 1.5rem;
-          @include bs.media-breakpoint-down(md) {
+          @include media-breakpoint-down(md) {
             margin-top: 0.5rem;
 
             button {
@@ -122,7 +120,7 @@
               }
             }
           }
-          @include bs.media-breakpoint-up(md) {
+          @include media-breakpoint-up(md) {
             column-gap: 2.2rem;
 
             button {
@@ -144,7 +142,7 @@
   padding-left: 10px;
   overflow-y: scroll;
 
-  @include bs.media-breakpoint-down(md) {
+  @include media-breakpoint-down(md) {
     height: 100%;
     max-height: max-content;
   }
@@ -160,7 +158,7 @@
     justify-content: flex-start;
     background-color: v.$white;
     border-radius: 15px;
-    border: 1px solid v.$gray-border;
+    border: 1px solid var(--gray-border);
     padding-right: 30px;
     padding-left: 20px;
     margin-bottom: 11px;
@@ -168,7 +166,7 @@
 
     &.disabled {
       cursor: not-allowed;
-      background: v.$gray-border-dark;
+      background: var(--gray-border-dark);
     }
 
     &:not(.disabled):hover {

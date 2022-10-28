@@ -436,6 +436,7 @@ export interface UseModalStore {
   manageWebAuthNKeysModal: StandardModalState;
   addSecurityKeyModal: StandardModalState;
   registerTOTP: StandardModalState;
+  connectWalletModal: StandardModalState;
   setState: (data: Partial<UseModalStore>) => void;
   setDeleteUserDeviceModal: ModalSetter<DeleteUserDeviceModal>;
   setUserDeviceModal: ModalSetter<UserDeviceModal>;

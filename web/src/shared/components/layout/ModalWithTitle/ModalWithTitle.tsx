@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 import { IconHamburgerClose } from '../../svg';
 import Modal, { ModalProps } from '../Modal/Modal';
 
-interface Props extends ModalProps {
+export interface ModalWithTitleProps extends ModalProps {
   title: string;
 }
 
@@ -15,7 +15,7 @@ export const ModalWithTitle = ({
   title,
   className,
   ...rest
-}: Props) => {
+}: ModalWithTitleProps) => {
   const cn = useMemo(() => classNames('titled', className), [className]);
   return (
     <Modal className={cn} {...rest}>
