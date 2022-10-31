@@ -1,4 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
 import { YubikeyProvisioningGraphic } from '../../shared/components/svg';
+import useApi from '../../shared/hooks/useApi';
+import { QueryKeys } from '../../shared/queries';
 import KeyBox from '../users/shared/components/KeyBox/KeyBox';
 
 interface Props {
@@ -6,8 +9,18 @@ interface Props {
 }
 
 const ProvisioningStationSetup: React.FC<Props> = ({ hasAccess = false }) => {
+  const {
+    provisioning: { getWorkerToken },
+  } = useApi();
+
+  const { data } = useQuery([QueryKeys.FETCH_WORKER_TOKEN], () =>
+    getWorkerToken()
+  );
+
+
+
   const command = hasAccess
-    ? `docker compose run ykdev -g defguard-server:50055`
+    ? `docker-compose run ykdev -g -w ${data?.token}`
     : '';
   return (
     <section
