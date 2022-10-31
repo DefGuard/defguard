@@ -15,11 +15,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout
       uses: actions/checkout@v3
+      with:
+        submodules: recursive
 
     - name: Install Rust toolchain
       run: rustup update --no-self-update stable
+
+    - name: Install protoc
+      run: apt-get update && apt-get -y install protobuf-compiler
 
     - name: Build Docs
       run: cargo doc --all --no-deps
