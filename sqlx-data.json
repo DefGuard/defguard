@@ -1221,18 +1221,6 @@
     },
     "query": "DELETE FROM \"openidclientauthcode\" WHERE id = $1"
   },
-  "521b6faf2af49533a87fcaff3ab934d4fe8825f6ed040f4a92c195133742e2e8": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "UPDATE \"user\" SET mfa_enabled = FALSE AND recovery_codes = '{}' WHERE id = $1"
-  },
   "57c6333e11b68c1451f79047aa5449cad8a704aad2756239282738b04ff70fd7": {
     "describe": {
       "columns": [
@@ -1693,6 +1681,18 @@
       }
     },
     "query": "\n            SELECT\n                latest_handshake \"latest_handshake: NaiveDateTime\"\n            FROM wireguard_peer_stats_view\n            WHERE device_id = $1\n                AND latest_handshake IS NOT NULL\n                AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL)\n            ORDER BY collected_at DESC\n            LIMIT 1\n            "
+  },
+  "694a308e1c29c1380ea4a25ea15f2ccfc40396ee1f54d1b44b5d2f5e36a3aae7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET mfa_enabled = FALSE, totp_secret = NULL, recovery_codes = '{}' WHERE id = $1"
   },
   "6b8b18044d42f5f96c243e5060142e260912b1f798cadf53e1df320aa33ceb5c": {
     "describe": {
@@ -3872,6 +3872,18 @@
       }
     },
     "query": "UPDATE \"user\" SET totp_enabled = FALSE AND totp_secret = NULL WHERE id = $1"
+  },
+  "fc3e288a55cef64d17ef2a373aa7fb46dd2548610a09ada4bf2daa8b98249901": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM webauthn WHERE user_id = $1"
   },
   "fd9c7f73acaec83bb9eb5aa48cf06760b775afd1253e6e5cef1b42d6ca04e04e": {
     "describe": {
