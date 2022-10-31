@@ -94,10 +94,6 @@ async fn test_totp() {
         .await;
     assert_eq!(response.status(), Status::Ok);
 
-    // enable MFA
-    let response = client.post("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
     // logout
     let response = client.post("/api/v1/auth/logout").dispatch().await;
     assert_eq!(response.status(), Status::Ok);

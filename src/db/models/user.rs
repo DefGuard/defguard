@@ -1,5 +1,5 @@
 use super::{device::Device, group::Group, SecurityKey, WalletInfo};
-use crate::{auth::TOTP_CODE_VALIDITY_PERIOD, DbPool};
+use crate::{auth::TOTP_CODE_VALIDITY_PERIOD, db::WebAuthn, DbPool};
 use argon2::{
     password_hash::{
         errors::Error as HashError, rand_core::OsRng, PasswordHash, PasswordHasher,
@@ -109,7 +109,11 @@ impl User {
     }
 
     /// Enable MFA; generate new recovery codes.
-    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<Vec<String>, SqlxError> {
+    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<Option<Vec<String>>, SqlxError> {
+        if self.mfa_enabled {
+            return Ok(None);
+        }
+
         self.recovery_codes.clear();
         for _ in 0..RECOVERY_CODES_COUNT {
             let code = thread_rng()
@@ -129,20 +133,22 @@ impl User {
             .await?;
         }
         self.mfa_enabled = true;
-        Ok(self.recovery_codes.clone())
+        Ok(Some(self.recovery_codes.clone()))
     }
 
-    /// Disable MFA; discard recovery codes.
+    /// Disable MFA; discard recovery codes, TOTP secret, and security keys.
     pub async fn disable_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
         if let Some(id) = self.id {
             query!(
-                "UPDATE \"user\" SET mfa_enabled = FALSE AND recovery_codes = '{}' WHERE id = $1",
+                "UPDATE \"user\" SET mfa_enabled = FALSE, totp_secret = NULL, recovery_codes = '{}' \
+                WHERE id = $1",
                 id
             )
             .execute(pool)
             .await?;
         }
         self.mfa_enabled = false;
+        self.totp_secret = None;
         self.recovery_codes.clear();
         Ok(())
     }
@@ -170,6 +176,7 @@ impl User {
                 )
                 .execute(pool)
                 .await?;
+                WebAuthn::delete_all_for_user(pool, id).await?;
             }
             self.totp_enabled = false;
             self.totp_secret = None;

@@ -92,17 +92,6 @@ pub fn logout(cookies: &CookieJar<'_>) -> ApiResult {
     Ok(ApiResponse::default())
 }
 
-/// Enable MFA
-#[post("/auth/mfa")]
-pub async fn mfa_enable(session_info: SessionInfo, appstate: &State<AppState>) -> ApiResult {
-    let mut user = session_info.user;
-    let recovery_codes = user.enable_mfa(&appstate.pool).await?;
-    Ok(ApiResponse {
-        json: json!(recovery_codes),
-        status: Status::Ok,
-    })
-}
-
 /// Disable MFA
 #[delete("/auth/mfa")]
 pub async fn mfa_disable(session_info: SessionInfo, appstate: &State<AppState>) -> ApiResult {
@@ -152,7 +141,13 @@ pub async fn webauthn_finish(
         {
             let mut webauthn = WebAuthn::new(session.user_id, webauth_reg.name, &passkey)?;
             webauthn.save(&appstate.pool).await?;
-            return Ok(ApiResponse::default());
+            if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+                let recovery_codes = user.enable_mfa(&appstate.pool).await?;
+                return Ok(ApiResponse {
+                    json: json!(recovery_codes),
+                    status: Status::Ok,
+                });
+            }
         }
     }
     Err(OriWebError::Http(Status::BadRequest))
@@ -236,7 +231,11 @@ pub async fn totp_enable(
     let mut user = session.user;
     if user.verify_code(data.code) {
         user.enable_totp(&appstate.pool).await?;
-        Ok(ApiResponse::default())
+        let recovery_codes = user.enable_mfa(&appstate.pool).await?;
+        Ok(ApiResponse {
+            json: json!(recovery_codes),
+            status: Status::Ok,
+        })
     } else {
         Err(OriWebError::ObjectNotFound("Invalid TOTP code".into()))
     }
