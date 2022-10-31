@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+
 import { YubikeyProvisioningGraphic } from '../../shared/components/svg';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
@@ -17,10 +18,8 @@ const ProvisioningStationSetup: React.FC<Props> = ({ hasAccess = false }) => {
     getWorkerToken()
   );
 
-
-
   const command = hasAccess
-    ? `docker-compose run ykdev -g -w ${data?.token}`
+    ? `docker compose run ykdev -g -w ${data?.token}`
     : '';
   return (
     <section

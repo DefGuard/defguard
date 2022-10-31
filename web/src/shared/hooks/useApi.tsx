@@ -35,7 +35,7 @@ import {
   WorkerJobRequest,
   WorkerJobResponse,
   WorkerJobStatus,
-	WorkerToken,
+  WorkerToken,
 } from '../types';
 import { useAppStore } from './store/useAppStore';
 
@@ -337,7 +337,7 @@ const useApi = (props?: HookProps): ApiHook => {
       provisionYubiKey: provisionYubiKey,
       getWorkers: getWorkers,
       getJobStatus: getJobStatus,
-			getWorkerToken: getWorkerToken,
+      getWorkerToken: getWorkerToken,
       deleteWorker,
     },
     webhook: {

@@ -239,7 +239,7 @@ export interface ApiHook {
       request_data: WorkerJobRequest
     ) => Promise<WorkerJobResponse>;
     getJobStatus: (job_id?: number) => Promise<WorkerJobStatus>;
-		getWorkerToken: () => Promise<WorkerToken>
+    getWorkerToken: () => Promise<WorkerToken>;
   };
   webhook: {
     getWebhooks: () => Promise<Webhook[]>;
@@ -306,7 +306,7 @@ export interface WorkerJobStatusRequest {
 }
 
 export interface WorkerToken {
-	token: string;
+  token: string;
 }
 
 export interface WorkerJobRequest {
