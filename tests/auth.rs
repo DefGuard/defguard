@@ -94,6 +94,10 @@ async fn test_totp() {
         .await;
     assert_eq!(response.status(), Status::Ok);
 
+    // check recovery codes
+    let recovery_codes: Vec<String> = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.len(), 8); // RECOVERY_CODES_COUNT
+
     // logout
     let response = client.post("/api/v1/auth/logout").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
@@ -156,6 +160,10 @@ async fn test_webauthn() {
         .await;
     assert_eq!(response.status(), Status::Ok);
 
+    // check recovery codes
+    let recovery_codes: Vec<String> = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.len(), 8); // RECOVERY_CODES_COUNT
+
     // WebAuthn authentication
     let response = client.post("/api/v1/auth/webauthn/start").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
@@ -202,6 +210,10 @@ async fn test_web3() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
+
+    // check recovery codes
+    let recovery_codes: Vec<String> = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.len(), 8); // RECOVERY_CODES_COUNT
 
     #[derive(Deserialize)]
     struct Challenge {
