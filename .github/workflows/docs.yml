@@ -14,6 +14,18 @@ jobs:
   rustdoc:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_DB: defguard
+          POSTGRES_USER: defguard
+          POSTGRES_PASSWORD: defguard
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -23,10 +35,20 @@ jobs:
     - name: Install Rust toolchain
       run: rustup update --no-self-update stable
 
+    - name: Set database URL
+      run: sed -i -e 's,localhost,postgres,' .env
+
     - name: Install protoc
       run: sudo apt-get update && sudo apt-get -y install protobuf-compiler
 
     - name: Build Docs
+      env:
+        DEFGUARD_DB_HOST: postgres
+        DEFGUARD_DB_PORT: 5432
+        DEFGUARD_DB_NAME: defguard
+        DEFGUARD_DB_USER: defguard
+        DEFGUARD_DB_PASSWORD: defguard
+        SQLX_OFFLINE: true
       run: cargo doc --all --no-deps
 
     - name: Deploy Docs
