@@ -200,7 +200,15 @@ pub async fn webauthn_end(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            return Ok(ApiResponse::default());
+            return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+                let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+                Ok(ApiResponse {
+                    json: json!(user_info),
+                    status: Status::Ok,
+                })
+            } else {
+                Ok(ApiResponse::default())
+            };
         }
     }
     Err(OriWebError::Http(Status::BadRequest))
@@ -254,7 +262,11 @@ pub async fn totp_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            Ok(ApiResponse::default())
+            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+            Ok(ApiResponse {
+                json: json!(user_info),
+                status: Status::Ok,
+            })
         } else {
             Err(OriWebError::Authorization("Invalid TOTP code".into()))
         }
@@ -298,7 +310,17 @@ pub async fn web3auth_end(
                         session
                             .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                             .await?;
-                        Ok(ApiResponse::default())
+                        if let Some(user) =
+                            User::find_by_id(&appstate.pool, session.user_id).await?
+                        {
+                            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+                            Ok(ApiResponse {
+                                json: json!(user_info),
+                                status: Status::Ok,
+                            })
+                        } else {
+                            Ok(ApiResponse::default())
+                        }
                     }
                     _ => Err(OriWebError::Authorization("Signature not verified".into())),
                 };
