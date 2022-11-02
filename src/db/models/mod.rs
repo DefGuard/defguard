@@ -30,7 +30,6 @@ pub struct SecurityKey {
     pub id: i64,
     pub name: String,
 }
-
 #[derive(Deserialize, Serialize)]
 pub struct UserInfo {
     pub username: String,

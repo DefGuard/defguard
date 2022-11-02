@@ -27,7 +27,7 @@ impl GatewayServer {
             pool,
         }
     }
-    /// Sends new network configuration
+    /// Sends updated network configuration
     async fn send_network_update(
         tx: &mpsc::Sender<Result<Update, Status>>,
         network: &WireguardNetwork,

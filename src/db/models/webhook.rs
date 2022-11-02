@@ -3,13 +3,14 @@ use crate::DbPool;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError, FromRow};
 
+/// App events which triggers webhook action
 pub enum AppEvent {
     UserCreated(UserInfo),
     UserModified(UserInfo),
     UserDeleted(String),
     HWKeyProvision(HWKeyUserData),
 }
-
+/// User data send on HWKeyProvision AppEvent
 #[derive(Serialize)]
 pub struct HWKeyUserData {
     pub username: String,
@@ -56,7 +57,7 @@ pub struct WebHook {
 }
 
 impl WebHook {
-    // Fetch all enabled webhooks.
+    /// Fetch all enabled webhooks.
     pub async fn all_enabled(pool: &DbPool, trigger: &AppEvent) -> Result<Vec<Self>, SqlxError> {
         let column_name = trigger.column_name();
         let query = format!(
