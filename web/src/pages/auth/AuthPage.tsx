@@ -1,14 +1,15 @@
 import './style.scss';
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import shallow from 'zustand/shallow';
 
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import Login from './Login/Login';
+import { MFARoute } from './MFARoute/MFARoute';
 
-const AuthPage: React.FC = () => {
+const AuthPage = () => {
   const navigate = useNavigate();
 
   const [loggedUser, isAdmin] = useAuthStore(
@@ -19,27 +20,26 @@ const AuthPage: React.FC = () => {
   useEffect(() => {
     if (loggedUser) {
       if (loggedUser && isAdmin) {
-        navigate('/admin', { replace: true });
+        navigate('/admin/overview', { replace: true });
       } else {
         navigate('/me', { replace: true });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAdmin, loggedUser, navigate]);
 
   return (
-    <section id="auth-container">
-      <section className="logo-container">
+    <div id="auth-container">
+      <div className="logo-container">
         <SvgDefguardLogoLogin />
-      </section>
+      </div>
       <Routes>
         <Route index element={<Navigate to="login" />} />
         <Route path="/" element={<Navigate to="login" />} />
         <Route path="login" element={<Login />} />
-        {/* <Route path="register" element={<Register />} /> */}
+        <Route path="mfa/*" element={<MFARoute />} />
         <Route path="*" element={<Navigate to="login" />} />
       </Routes>
-    </section>
+    </div>
   );
 };
 

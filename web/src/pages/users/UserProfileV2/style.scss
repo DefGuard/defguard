@@ -76,6 +76,16 @@
       grid-template-areas: 'wide-cards cards-1 cards-2';
     }
 
+    h2 {
+      @include card-header;
+
+      margin-bottom: 1.2rem;
+
+      @include media-breakpoint-up(md) {
+        margin-bottom: 2rem;
+      }
+    }
+
     & > .wide-cards {
       grid-area: wide-cards;
       display: flex;

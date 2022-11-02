@@ -9,6 +9,7 @@ import {
   shift,
   useFloating,
 } from '@floating-ui/react-dom-interactions';
+import classNames from 'classnames';
 import { motion } from 'framer-motion';
 import { ReactNode, useMemo, useRef, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
@@ -19,6 +20,7 @@ interface EditButtonProps {
   disabled?: boolean;
   visible?: boolean;
   children: ReactNode;
+  className?: string;
 }
 
 interface PlacementMap {
@@ -32,10 +34,12 @@ export const EditButton = ({
   children,
   disabled = false,
   visible = true,
+  className,
 }: EditButtonProps) => {
   const [hovered, setHovered] = useState(false);
   const [open, setOpen] = useState(false);
   const arrowRef = useRef(null);
+  const cn = useMemo(() => classNames('edit-button', className), [className]);
   const { x, y, reference, floating, strategy, placement, middlewareData } =
     useFloating({
       placement: 'left',
@@ -76,7 +80,7 @@ export const EditButton = ({
   return (
     <>
       <motion.button
-        className="edit-button"
+        className={cn}
         onHoverStart={() => setHovered(true)}
         onHoverEnd={() => setHovered(false)}
         onClick={() => setOpen((state) => !state)}

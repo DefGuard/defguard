@@ -12,12 +12,7 @@
     "prettier-fix": "prettier -w ./src/**/*.scss ./src/**/*.ts ./src/**/*.tsx",
     "parse-svgs": "svgr --ignore-existing --svgo-config ./svgo.config.js --prettier-config ./.prettierrc --jsx-runtime classic --out-dir ./src/shared/components/svg/ --typescript ./src/shared/images/svg/",
     "fix-lint": "eslint --fix ./*.ts ./src/**/*.ts ./src/**/*.tsx && prettier -w ./src/**/*.ts ./src/**/*.tsx && stylelint --fix --quiet ./src/**/*.scss ",
-    "build-doc-ci": "typedoc --readme ./docs/README.md --out ./docs --entryPointStrategy expand --tsconfig ./tsconfig.json ./src/shared/components/layout ./src/shared/components/modals ./src/shared/components/Router ./src/shared/components/Toasts",
-    "prepare": "husky install",
-    "release": "standard-version",
-    "release:minor": "standard-version --release-as minor",
-    "release:patch": "standard-version --release-as patch",
-    "release:major": "standard-version --release-as major"
+    "build-doc-ci": "typedoc --readme ./docs/README.md --out ./docs --entryPointStrategy expand --tsconfig ./tsconfig.json ./src/shared/components/layout ./src/shared/components/modals ./src/shared/components/Router ./src/shared/components/Toasts"
   },
   "browserslist": {
     "production": [
@@ -32,9 +27,9 @@
     ]
   },
   "dependencies": {
-    "@commitlint/config-conventional": "^17.1.0",
     "@ethersproject/providers": "^5.7.2",
     "@floating-ui/react-dom-interactions": "^0.10.2",
+    "@github/webauthn-json": "^2.0.1",
     "@hookform/resolvers": "^2.9.10",
     "@ladle/react": "^2.4.5",
     "@popperjs/core": "^2.11.6",
@@ -58,6 +53,7 @@
     "hex-rgb": "^5.0.0",
     "i18next": "21.9.2",
     "lodash-es": "^4.17.21",
+    "next-qrcode": "^2.2.2",
     "radash": "^8.0.3",
     "react": "^18.2.0",
     "react-click-away-listener": "^2.2.2",
@@ -86,8 +82,6 @@
   },
   "devDependencies": {
     "@babel/core": "^7.19.6",
-    "@commitlint/cli": "^17.1.2",
-    "@commitlint/prompt-cli": "^17.1.2",
     "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
     "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "@hookform/devtools": "^4.2.2",
@@ -111,7 +105,6 @@
     "eslint-plugin-react": "^7.31.8",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-simple-import-sort": "^8.0.0",
-    "husky": "^8.0.1",
     "postcss": "^8.4.18",
     "prettier": "^2.7.1",
     "prop-types": "^15.8.1",

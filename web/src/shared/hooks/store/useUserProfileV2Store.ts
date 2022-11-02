@@ -9,7 +9,6 @@ export interface UserProfileV2Store {
   user?: User;
   submitSubject: Subject<void>;
   loading: boolean;
-  profileDetailsFormValid: boolean;
   setState: (state: Partial<UserProfileV2Store>) => void;
 }
 
@@ -18,7 +17,6 @@ export const useUserProfileV2Store = create<UserProfileV2Store>((set, get) => ({
   editMode: false,
   loading: false,
   isMe: false,
-  profileDetailsFormValid: false,
   submitSubject: new Subject<void>(),
   setState: (newState) => set((oldState) => ({ ...oldState, ...newState })),
 }));

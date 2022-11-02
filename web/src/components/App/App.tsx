@@ -4,7 +4,8 @@ import 'tippy.js/dist/tippy.css';
 import 'tippy.js/animations/scale.css';
 import './App.scss';
 
-import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import {
   BrowserRouter as Router,
   Navigate,
@@ -17,10 +18,13 @@ import shallow from 'zustand/shallow';
 
 import AuthPage from '../../pages/auth/AuthPage';
 import LoaderPage from '../../pages/loader/LoaderPage';
+import OAuthPage from '../../pages/oauth/OAuthPage';
+import OpenidAllowPage from '../../pages/openid/OpenidAllowPage';
 import OpenidPage from '../../pages/openid/OpenidPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
 import { UserProfilePage } from '../../pages/users/UserProfilePage';
+import UsersPage from '../../pages/users/UsersPage';
 import WizardPage from '../../pages/vpn/Wizard/WizardPage';
 import WebhooksPage from '../../pages/webhooks/WebhooksPage';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
@@ -32,16 +36,9 @@ import {
 import { deviceBreakpoints } from '../../shared/constants';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
+import { QueryKeys } from '../../shared/queries';
 
-const OAuthPage = React.lazy(() => import('../../pages/oauth/OAuthPage'));
-const UsersPage = React.lazy(() => import('../../pages/users/UsersPage'));
-const OpenidAllowPage = React.lazy(
-  () => import('../../pages/openid/OpenidAllowPage')
-);
-
-const App: React.FC = () => {
-  const [meCheckLoading, setMeCheckLoading] = useState(true);
-
+const App = () => {
   const {
     user: { getMe },
   } = useApi();
@@ -56,23 +53,26 @@ const App: React.FC = () => {
       : standardToastConfig;
   }, [breakpoint]);
 
-  useEffect(() => {
-    getMe()
-      .then((user) => {
+  const { isLoading: currentUserLoading, data: userMe } = useQuery(
+    [QueryKeys.FETCH_ME],
+    getMe,
+    {
+      onSuccess: (user) => {
         logIn(user);
-        setMeCheckLoading(false);
-      })
-      .catch(() => {
+      },
+      onError: () => {
         if (currentUser) {
           logOut();
         }
-        setMeCheckLoading(false);
         console.clear();
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      },
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+      retry: false,
+    }
+  );
 
-  if (meCheckLoading) return <LoaderPage />;
+  if (currentUserLoading && !userMe && !currentUser) return <LoaderPage />;
 
   return (
     <>
@@ -102,9 +102,7 @@ const App: React.FC = () => {
                 path="users/*"
                 element={
                   <ProtectedRoute allowedGroups={['admin']}>
-                    <Suspense fallback={<LoaderPage />}>
-                      <UsersPage />
-                    </Suspense>
+                    <UsersPage />
                   </ProtectedRoute>
                 }
               />
@@ -112,9 +110,7 @@ const App: React.FC = () => {
                 path="provisioners/*"
                 element={
                   <ProtectedRoute allowedGroups={['admin']}>
-                    <Suspense fallback={<LoaderPage />}>
-                      <ProvisionersPage />
-                    </Suspense>
+                    <ProvisionersPage />
                   </ProtectedRoute>
                 }
               />
@@ -122,9 +118,7 @@ const App: React.FC = () => {
                 path="webhooks/*"
                 element={
                   <ProtectedRoute allowedGroups={['admin']}>
-                    <Suspense fallback={<LoaderPage />}>
-                      <WebhooksPage />
-                    </Suspense>
+                    <WebhooksPage />
                   </ProtectedRoute>
                 }
               />
@@ -132,9 +126,7 @@ const App: React.FC = () => {
                 path="openid/*"
                 element={
                   <ProtectedRoute allowedGroups={['admin']}>
-                    <Suspense fallback={<LoaderPage />}>
-                      <OpenidPage />
-                    </Suspense>
+                    <OpenidPage />
                   </ProtectedRoute>
                 }
               />
@@ -148,22 +140,8 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="consent/*"
-              element={
-                <Suspense fallback={<LoaderPage />}>
-                  <OAuthPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="openid/authorize/*"
-              element={
-                <Suspense fallback={<LoaderPage />}>
-                  <OpenidAllowPage />
-                </Suspense>
-              }
-            />
+            <Route path="consent/*" element={<OAuthPage />} />
+            <Route path="openid/authorize/*" element={<OpenidAllowPage />} />
             <Route
               path="*"
               element={

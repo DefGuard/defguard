@@ -9,11 +9,9 @@ import { Input, InputProps } from '../../layout/Input/Input';
 
 interface Props<T extends FieldValues> extends InputProps {
   controller: UseControllerProps<T>;
-  allowUntouchedFieldValidation?: boolean;
 }
 export const FormInput = <T extends FieldValues>({
   controller,
-  allowUntouchedFieldValidation = false,
   ...rest
 }: Props<T>) => {
   const {
@@ -21,12 +19,8 @@ export const FormInput = <T extends FieldValues>({
     fieldState: { isDirty, isTouched, error },
   } = useController(controller);
   const isInvalid = useMemo(
-    () =>
-      Boolean(
-        error &&
-          (allowUntouchedFieldValidation ? isDirty : isDirty || isTouched)
-      ),
-    [error, isDirty, isTouched, allowUntouchedFieldValidation]
+    () => error && (isDirty || isTouched),
+    [error, isDirty, isTouched]
   );
   const isValid = useMemo(
     () => !isInvalid && (isTouched || isDirty),

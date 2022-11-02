@@ -1,5 +1,5 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import shallow from 'zustand/shallow';
 import { useModalStore } from '../../../hooks/store/useModalStore';
 import useApi from '../../../hooks/useApi';
 import { MutationKeys } from '../../../mutations';
+import { QueryKeys } from '../../../queries';
 import { chainName } from '../../../utils/chainName';
 import { FormInput } from '../../Form/FormInput/FormInput';
 import Button, {
@@ -51,14 +52,18 @@ const ChangeWalletForm: React.FC = () => {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { chain } = useNetwork();
+  const queryClient = useQueryClient();
 
   const AddWalletMutation = useMutation(setWallet, {
     mutationKey: [MutationKeys.SET_WALLET],
+
     onSuccess: () => {
       setModalValues({ user: undefined, visible: false });
       disconnect();
       toast(<ToastContent type={ToastType.SUCCESS} message="Wallet added" />);
+      queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
     },
+
     onError: () => {
       setModalValues({ user: undefined, visible: false });
       disconnect();
@@ -184,7 +189,6 @@ const ChangeWalletForm: React.FC = () => {
               <div className="labeled-input">
                 <label>Address:</label>
                 <FormInput
-                  allowUntouchedFieldValidation
                   controller={{
                     control,
                     name: 'address',

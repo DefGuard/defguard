@@ -1,0 +1,78 @@
+@use '../../../shared/scss/helpers' as *;
+
+#auth-container {
+  #mfa {
+    display: flex;
+    flex-flow: column nowrap;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 3rem 0;
+
+    > h1 {
+      @include typography(28px, 39px, semiBold, var(--text-main), 'Poppins');
+
+      margin-bottom: 1.5rem;
+
+      @include media-breakpoint-up(md) {
+        margin-bottom: 2.7rem;
+      }
+    }
+
+    & > p {
+      @include regular-text;
+
+      color: var(--gray-dark);
+      margin-bottom: 1.5rem;
+      line-height: 25px;
+      max-width: 334px;
+      text-align: center;
+
+      @include media-breakpoint-up(md) {
+        margin-bottom: 2.7rem;
+      }
+    }
+
+    .btn {
+      width: 284px;
+      height: 50px;
+
+      span,
+      p {
+        font-family: Roboto;
+      }
+    }
+
+    nav,
+    form {
+      width: 284px;
+    }
+
+    & > nav {
+      margin-top: 2.4rem;
+
+      & > span {
+        @include typography(12px, 14px, regular, var(--gray-light));
+
+        display: block;
+        width: 100%;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .btn {
+        margin-bottom: 2rem;
+      }
+    }
+
+    & > form {
+      .btn {
+        margin-bottom: 2.4rem;
+      }
+    }
+  }
+}

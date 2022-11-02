@@ -6,20 +6,6 @@ import WalletProviderListItem from './WalletProviderListItem';
 import WalletProviderListItemUnavailable from './WalletProviderListItemUnavailable';
 
 const items = [
-  // {
-  //   title: 'MetaMask old',
-  //   Icon: MetamaskIcon,
-  //   right: null,
-  //   active: true,
-  //   connector: injected,
-  // },
-  // {
-  //   title: 'Wallet Connect old',
-  //   Icon: WalletconnectIcon,
-  //   right: null,
-  //   active: true,
-  //   connector: walletconnect,
-  // },
   {
     title: 'Phantom',
     Icon: PhantomIcon,

@@ -6,6 +6,16 @@ import { UseModalStore } from '../../types';
  * All modals use this store, it controls their visibility and provides extra values.
  */
 export const useModalStore = create<UseModalStore>((set) => ({
+  recoveryCodesModal: {
+    visible: false,
+    codes: undefined,
+  },
+  connectWalletModal: {
+    visible: false,
+  },
+  registerTOTP: {
+    visible: false,
+  },
   provisionKeyModal: {
     visible: false,
     user: undefined,
@@ -63,6 +73,17 @@ export const useModalStore = create<UseModalStore>((set) => ({
     visible: false,
     device: undefined,
   },
+  manageWebAuthNKeysModal: {
+    visible: false,
+  },
+  addSecurityKeyModal: {
+    visible: false,
+  },
+  setState: (newState) => set((oldState) => ({ ...oldState, ...newState })),
+  setRecoveryCodesModal: (newState) =>
+    set((oldState) => ({
+      recoveryCodesModal: { ...oldState.recoveryCodesModal, ...newState },
+    })),
   setDeleteUserDeviceModal: (newState) =>
     set((oldState) => ({
       deleteUserDeviceModal: { ...oldState.userDeviceModal, ...newState },

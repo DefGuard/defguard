@@ -2,12 +2,11 @@
 
 #user-auth-info {
   & > h2 {
-    margin-bottom: 1.2rem;
-
     @include card-header;
   }
 
   & > .card {
+    position: relative;
     padding: 3rem;
 
     @include media-breakpoint-up(lg) {
@@ -33,6 +32,36 @@
       margin-bottom: 2rem;
     }
 
+    .row-box {
+      &:not(:last-of-type) {
+        margin-bottom: 1rem;
+      }
+
+      & > p {
+        @include regular-text;
+      }
+
+      & > .right {
+        display: flex;
+        flex-flow: row nowrap;
+        margin-left: auto;
+        column-gap: 2rem;
+        align-content: center;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+
+        & > span {
+          height: 14px;
+          display: block;
+          margin: 0;
+          padding: 0;
+
+          @include typography(12px, 14px, medium, var(--gray-light));
+        }
+      }
+    }
+
     & > .password {
       & > header {
         width: 100%;
@@ -40,7 +69,18 @@
       }
     }
 
-    & > .two-factor {
+    & > .mfa {
+      & > header {
+        width: 100%;
+        position: relative;
+
+        & > .edit-mfa {
+          position: absolute;
+          top: 0;
+          right: 1.7rem;
+        }
+      }
+
       & > .row {
         width: 100%;
         display: flex;

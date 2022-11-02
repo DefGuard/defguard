@@ -16,6 +16,8 @@ import { useUserProfileV2Store } from '../../../shared/hooks/store/useUserProfil
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import { ProfileDetails } from './ProfileDetails/ProfileDetails';
+import { ManageWebAuthNKeysModal } from './UserAuthInfo/modals/ManageWebAuthNModal';
+import { RegisterTOTPModal } from './UserAuthInfo/modals/RegisterTOTPModal/RegisterTOTPModal';
 import { UserAuthInfo } from './UserAuthInfo/UserAuthInfo';
 import { UserDevices } from './UserDevices/UserDevices';
 import { UserWallets } from './UserWallets/UserWallets';
@@ -24,6 +26,7 @@ import { UserYubiKeys } from './UserYubiKeys/UserYubiKeys';
 export const UserProfileV2 = () => {
   const location = useLocation();
   const { username } = useParams();
+  const modalState = useModalStore((state) => state.manageWebAuthNKeysModal);
   const currentUser = useAuthStore((state) => state.user);
   const editMode = useUserProfileV2Store((state) => state.editMode);
   const setUserProfileState = useUserProfileV2Store((state) => state.setState);
@@ -33,6 +36,8 @@ export const UserProfileV2 = () => {
   const {
     user: { getUser },
   } = useApi();
+
+  useEffect(() => console.log(modalState), [modalState]);
 
   useQuery(
     [QueryKeys.FETCH_USER, username],
@@ -85,6 +90,8 @@ export const UserProfileV2 = () => {
           <UserYubiKeys />
         </div>
       </div>
+      <ManageWebAuthNKeysModal />
+      <RegisterTOTPModal />
     </section>
   );
 };
@@ -117,10 +124,6 @@ const EditModeControls = () => {
   );
 
   const submitSubject = useUserProfileV2Store((state) => state.submitSubject);
-
-  const profileDetailsValid = useUserProfileV2Store(
-    (state) => state.profileDetailsFormValid
-  );
 
   return (
     <>
@@ -157,7 +160,6 @@ const EditModeControls = () => {
           styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
           icon={<IconCheckmarkWhite />}
           onClick={() => submitSubject.next()}
-          disabled={!profileDetailsValid}
         />
       </div>
     </>

@@ -2,7 +2,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import * as yup from 'yup';
@@ -105,11 +105,7 @@ export const ProfileDetailsForm = () => {
     return res;
   }, [user]);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { isValid },
-  } = useForm<Inputs>({
+  const { control, handleSubmit, setValue, getValues } = useForm<Inputs>({
     resolver: yupResolver(schema),
     mode: 'all',
     defaultValues: formDefaultValues as Inputs,
@@ -157,6 +153,18 @@ export const ProfileDetailsForm = () => {
     }
   };
 
+  // When submitted errors will be visible.
+  const onInvalidSubmit: SubmitErrorHandler<Inputs> = (values) => {
+    const invalidFields = Object.keys(values) as (keyof Partial<Inputs>)[];
+    const invalidFieldsValues = getValues(invalidFields);
+    invalidFields.forEach((key, index) => {
+      setValue(key, invalidFieldsValues[index], {
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+    });
+  };
+
   useEffect(() => {
     if (submitButton && submitButton.current) {
       const sub = submitSubject.subscribe(() => {
@@ -166,12 +174,8 @@ export const ProfileDetailsForm = () => {
     }
   }, [submitSubject]);
 
-  useEffect(() => {
-    setUserProfile({ profileDetailsFormValid: isValid });
-  }, [isValid, setUserProfile]);
-
   return (
-    <form onSubmit={handleSubmit(onValidSubmit)}>
+    <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
       <div className="row">
         <div className="item">
           <FormInput

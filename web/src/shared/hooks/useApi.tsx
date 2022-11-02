@@ -1,4 +1,4 @@
-import axios, { AxiosPromise, AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { toast } from 'react-toastify';
 
 import ToastContent, { ToastType } from '../components/Toasts/ToastContent';
@@ -21,6 +21,7 @@ import {
   GroupsResponse,
   License,
   LoginData,
+  MFALoginResponse,
   Network,
   NetworkToken,
   NetworkUserStats,
@@ -149,7 +150,20 @@ const useApi = (props?: HookProps): ApiHook => {
   const addNetwork = async (network: Network) =>
     client.post<EmptyApiResponse>(`/network/`, network).then((res) => res.data);
 
-  const login = (data: LoginData): AxiosPromise => client.post('/auth', data);
+  const login: ApiHook['auth']['login'] = (data: LoginData) =>
+    client.post('/auth', data).then((response) => {
+      if (response.status === 200) {
+        return {
+          user: response.data as User,
+        };
+      }
+      if (response.status === 201) {
+        return {
+          mfa: response.data as MFALoginResponse,
+        };
+      }
+      return {};
+    });
 
   const logout = () =>
     client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);
@@ -285,6 +299,51 @@ const useApi = (props?: HookProps): ApiHook => {
   const getLicense = () =>
     client.get<License>('/license/').then((res) => res.data);
 
+  const mfaEnable = () => client.post('/auth/mfa').then(unpackRequest);
+
+  const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
+
+  const mfaWebauthnRegisterStart = () =>
+    client.post('/auth/webauthn/init').then(unpackRequest);
+
+  const mfaWebauthnRegisterFinish: ApiHook['auth']['mfa']['webauthn']['register']['finish'] =
+    async (data) =>
+      client.post('/auth/webauthn/finish', data).then(unpackRequest);
+
+  const mfaWebauthnStart = () =>
+    client.post('/auth/webauthn/start').then(unpackRequest);
+
+  const mfaWebautnFinish: ApiHook['auth']['mfa']['webauthn']['finish'] = (
+    data
+  ) => client.post('/auth/webauthn', data).then(unpackRequest);
+
+  const mfaTOTPInit = () => client.post('/auth/totp/init').then(unpackRequest);
+
+  const mfaTOTPEnable: ApiHook['auth']['mfa']['totp']['enable'] = (data) =>
+    client.post('/auth/totp', data).then(unpackRequest);
+
+  const mfaTOTPDisable = () => client.delete('/auth/totp').then(unpackRequest);
+
+  const mfaTOTPVerify: ApiHook['auth']['mfa']['totp']['verify'] = (data) =>
+    client.post('/auth/totp/verify', data).then(unpackRequest);
+
+  const mfaWeb3Start = () =>
+    client.post('/auth/web3/start').then(unpackRequest);
+
+  const mfaWeb3Finish: ApiHook['auth']['mfa']['web3']['finish'] = (data) =>
+    client.post('/auth/web3', data).then(unpackRequest);
+
+  const editWalletMFA: ApiHook['auth']['mfa']['web3']['updateWalletMFA'] = ({
+    address,
+    username,
+    ...rest
+  }) =>
+    client
+      .put(`/user/${username}/wallet/${address}`, {
+        ...rest,
+      })
+      .then(unpackRequest);
+
   return {
     oAuth: {
       consent: oAuthConsent,
@@ -329,6 +388,29 @@ const useApi = (props?: HookProps): ApiHook => {
     auth: {
       login,
       logout,
+      mfa: {
+        enable: mfaEnable,
+        disable: mfaDisable,
+        webauthn: {
+          register: {
+            start: mfaWebauthnRegisterStart,
+            finish: mfaWebauthnRegisterFinish,
+          },
+          start: mfaWebauthnStart,
+          finish: mfaWebautnFinish,
+        },
+        totp: {
+          init: mfaTOTPInit,
+          enable: mfaTOTPEnable,
+          disable: mfaTOTPDisable,
+          verify: mfaTOTPVerify,
+        },
+        web3: {
+          start: mfaWeb3Start,
+          finish: mfaWeb3Finish,
+          updateWalletMFA: editWalletMFA,
+        },
+      },
     },
     license: {
       getLicense: getLicense,

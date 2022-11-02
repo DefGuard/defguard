@@ -1,3 +1,9 @@
+import {
+  CredentialCreationOptionsJSON,
+  CredentialRequestOptionsJSON,
+  PublicKeyCredentialWithAssertionJSON,
+  PublicKeyCredentialWithAttestationJSON,
+} from '@github/webauthn-json';
 import { AxiosPromise } from 'axios';
 
 export enum UserStatus {
@@ -17,11 +23,13 @@ export interface User {
   username: string;
   last_name: string;
   first_name: string;
-  wallets: WalletInfo[];
   authorized_apps: AuthorizedClient[];
   devices: Device[];
+  wallets: WalletInfo[];
   security_keys: SecurityKey[];
   mfa_method: UserMFAMethod;
+  mfa_enabled: boolean;
+  totp_enabled: boolean;
   email?: string;
   phone?: string;
   lastConnected?: Date;
@@ -51,6 +59,7 @@ export interface WalletInfo {
   address: string;
   chain_id: number;
   name: string;
+  use_for_mfa: boolean;
 }
 
 export interface Device {
@@ -85,10 +94,6 @@ export interface NetworkToken {
 export interface LoginData {
   username: string;
   password: string;
-}
-
-export interface LoginResponse {
-  authToken: string;
 }
 
 export interface AuthStore {
@@ -183,6 +188,24 @@ export interface UserEditRequest {
   data: Partial<User>;
 }
 
+export interface EditWalletMFARequest {
+  username: string;
+  address: string;
+  use_for_mfa: boolean;
+}
+
+export interface MFALoginResponse {
+  mfa_method: UserMFAMethod;
+  totp_available: boolean;
+  web3_available: boolean;
+  webautn_available: boolean;
+}
+
+export interface LoginResponse {
+  user?: User;
+  mfa?: MFALoginResponse;
+}
+
 export interface ApiHook {
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
@@ -229,8 +252,31 @@ export interface ApiHook {
     ) => Promise<WireguardNetworkStats>;
   };
   auth: {
-    login: (data: LoginData) => EmptyApiResponse;
+    login: (data: LoginData) => Promise<LoginResponse>;
     logout: () => EmptyApiResponse;
+    mfa: {
+      enable: () => EmptyApiResponse;
+      disable: () => EmptyApiResponse;
+      webauthn: {
+        register: {
+          start: () => Promise<CredentialCreationOptionsJSON>;
+          finish: (data: WebAuthnRegistrationRequest) => EmptyApiResponse;
+        };
+        start: () => Promise<CredentialRequestOptionsJSON>;
+        finish: (data: PublicKeyCredentialWithAssertionJSON) => Promise<User>;
+      };
+      totp: {
+        init: () => Promise<{ secret: string }>;
+        enable: (data: TOTPRequest) => EmptyApiResponse;
+        disable: () => EmptyApiResponse;
+        verify: (data: TOTPRequest) => Promise<User>;
+      };
+      web3: {
+        start: () => Promise<{ challenge: string }>;
+        finish: (data: WalletSignature) => Promise<User>;
+        updateWalletMFA: (data: EditWalletMFARequest) => EmptyApiResponse;
+      };
+    };
   };
   provisioning: {
     getWorkers: () => Promise<Provisioner[]>;
@@ -386,6 +432,10 @@ export interface DeleteUserDeviceModal extends StandardModalState {
   device?: Device;
 }
 
+export interface RecoveryCodesModal extends StandardModalState {
+  codes?: string[];
+}
+
 export interface UseModalStore {
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
@@ -402,6 +452,13 @@ export interface UseModalStore {
   gatewaySetupModal: GatewaySetupModal;
   userDeviceModal: UserDeviceModal;
   deleteUserDeviceModal: DeleteUserDeviceModal;
+  manageWebAuthNKeysModal: StandardModalState;
+  addSecurityKeyModal: StandardModalState;
+  registerTOTP: StandardModalState;
+  connectWalletModal: StandardModalState;
+  recoveryCodesModal: RecoveryCodesModal;
+  setState: (data: Partial<UseModalStore>) => void;
+  setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
   setDeleteUserDeviceModal: ModalSetter<DeleteUserDeviceModal>;
   setUserDeviceModal: ModalSetter<UserDeviceModal>;
   setAddUserModal: ModalSetter<StandardModalState>;
@@ -573,4 +630,17 @@ export interface WalletProvider {
   Icon: any;
   right: JSX.Element | string | null;
   active?: boolean;
+}
+
+export interface WalletSignature {
+  address: string;
+  signature: string;
+}
+
+export interface TOTPRequest {
+  code: number;
+}
+export interface WebAuthnRegistrationRequest {
+  name: string;
+  rpkc: PublicKeyCredentialWithAttestationJSON;
 }
