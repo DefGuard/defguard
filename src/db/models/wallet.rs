@@ -153,6 +153,16 @@ impl Wallet {
         .fetch_optional(pool)
         .await
     }
+
+    pub async fn disable_mfa_for_user(pool: &DbPool, user_id: i64) -> Result<(), SqlxError> {
+        query!(
+            "UPDATE wallet SET use_for_mfa = FALSE WHERE user_id = $1",
+            user_id
+        )
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

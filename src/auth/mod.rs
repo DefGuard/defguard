@@ -207,7 +207,8 @@ impl<'r> FromRequest<'r> for SessionInfo {
                     let session = try_outcome!(request.guard::<Session>().await);
                     let user = User::find_by_id(&state.pool, session.user_id).await;
                     if let Ok(Some(user)) = &user {
-                        if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
+                        let mfa_enabled = user.mfa_enabled(&state.pool).await.unwrap_or_default();
+                        if mfa_enabled && session.state != SessionState::MultiFactorVerified {
                             return Outcome::Failure((
                                 Status::Unauthorized,
                                 OriWebError::Authorization("MFA not verified".into()),
