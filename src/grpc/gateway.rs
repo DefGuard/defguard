@@ -19,6 +19,7 @@ pub struct GatewayServer {
 }
 
 impl GatewayServer {
+    /// Create new gateway server instance
     #[must_use]
     pub fn new(wireguard_rx: UnboundedReceiver<GatewayEvent>, pool: DbPool) -> Self {
         Self {
@@ -26,7 +27,7 @@ impl GatewayServer {
             pool,
         }
     }
-
+    /// Sends updated network configuration
     async fn send_network_update(
         tx: &mpsc::Sender<Result<Update, Status>>,
         network: &WireguardNetwork,
@@ -54,7 +55,7 @@ impl GatewayServer {
         }
         Ok(())
     }
-
+    /// Sends delete network command to gateway
     async fn send_network_delete(
         tx: &mpsc::Sender<Result<Update, Status>>,
         network_name: &str,
@@ -81,7 +82,7 @@ impl GatewayServer {
         }
         Ok(())
     }
-
+    /// Send update peer command to gateway
     async fn send_peer_update(
         tx: &mpsc::Sender<Result<Update, Status>>,
         device: &Device,
@@ -106,7 +107,7 @@ impl GatewayServer {
         }
         Ok(())
     }
-
+    /// Send delete peer command to gateway
     async fn send_peer_delete(
         tx: &mpsc::Sender<Result<Update, Status>>,
         peer_pubkey: &str,
@@ -174,7 +175,7 @@ impl From<PeerStats> for WireguardPeerStats {
 #[tonic::async_trait]
 impl gateway_service_server::GatewayService for GatewayServer {
     type UpdatesStream = ReceiverStream<Result<Update, Status>>;
-
+    /// Retrieve stats from gateway and save it to database
     async fn stats(
         &self,
         request: Request<tonic::Streaming<PeerStats>>,

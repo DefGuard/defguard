@@ -254,6 +254,8 @@ pub async fn set_wallet(
     }
 }
 
+/// Change wallet.
+/// Currenly only `use_for_mfa` flag can be set or unset.
 #[put("/user/<username>/wallet/<address>", format = "json", data = "<data>")]
 pub async fn update_wallet(
     session: SessionInfo,
@@ -262,14 +264,22 @@ pub async fn update_wallet(
     address: &str,
     data: Json<WalletChange>,
 ) -> ApiResult {
-    let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     if let Some(mut wallet) =
         Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await?
     {
         if Some(wallet.user_id) == user.id {
             wallet.use_for_mfa = data.use_for_mfa;
+            let recovery_codes = if data.use_for_mfa {
+                user.enable_mfa(&appstate.pool).await?
+            } else {
+                None
+            };
             wallet.save(&appstate.pool).await?;
-            Ok(ApiResponse::default())
+            Ok(ApiResponse {
+                json: json!(recovery_codes),
+                status: Status::Ok,
+            })
         } else {
             Err(OriWebError::ObjectNotFound("wrong wallet".into()))
         }
@@ -278,6 +288,7 @@ pub async fn update_wallet(
     }
 }
 
+/// Delete wallet.
 #[delete("/user/<username>/wallet/<address>")]
 pub async fn delete_wallet(
     session: SessionInfo,

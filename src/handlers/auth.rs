@@ -70,8 +70,8 @@ pub async fn authenticate(
     cookies.add(Cookie::new("session", session.id));
 
     info!("Authenticated user {}", data.username);
-    // TODO: return MFA struct with enabled methods
-    if user.mfa_enabled {
+    let mfa_enabled = user.mfa_enabled(&appstate.pool).await?;
+    if mfa_enabled {
         let mfa_info = MFAInfo::for_user(&appstate.pool, &user).await?;
         Ok(ApiResponse {
             json: json!(mfa_info),
@@ -90,17 +90,6 @@ pub async fn authenticate(
 pub fn logout(cookies: &CookieJar<'_>) -> ApiResult {
     cookies.remove(Cookie::named("session"));
     Ok(ApiResponse::default())
-}
-
-/// Enable MFA
-#[post("/auth/mfa")]
-pub async fn mfa_enable(session_info: SessionInfo, appstate: &State<AppState>) -> ApiResult {
-    let mut user = session_info.user;
-    let recovery_codes = user.enable_mfa(&appstate.pool).await?;
-    Ok(ApiResponse {
-        json: json!(recovery_codes),
-        status: Status::Ok,
-    })
 }
 
 /// Disable MFA
@@ -150,9 +139,15 @@ pub async fn webauthn_finish(
             .webauthn
             .finish_passkey_registration(&webauth_reg.rpkc, &passkey_reg)
         {
-            let mut webauthn = WebAuthn::new(session.user_id, webauth_reg.name, &passkey)?;
-            webauthn.save(&appstate.pool).await?;
-            return Ok(ApiResponse::default());
+            if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+                let recovery_codes = user.enable_mfa(&appstate.pool).await?;
+                let mut webauthn = WebAuthn::new(session.user_id, webauth_reg.name, &passkey)?;
+                webauthn.save(&appstate.pool).await?;
+                return Ok(ApiResponse {
+                    json: json!(recovery_codes),
+                    status: Status::Ok,
+                });
+            }
         }
     }
     Err(OriWebError::Http(Status::BadRequest))
@@ -200,7 +195,15 @@ pub async fn webauthn_end(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            return Ok(ApiResponse::default());
+            return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+                let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+                Ok(ApiResponse {
+                    json: json!(user_info),
+                    status: Status::Ok,
+                })
+            } else {
+                Ok(ApiResponse::default())
+            };
         }
     }
     Err(OriWebError::Http(Status::BadRequest))
@@ -227,8 +230,12 @@ pub async fn totp_enable(
 ) -> ApiResult {
     let mut user = session.user;
     if user.verify_code(data.code) {
+        let recovery_codes = user.enable_mfa(&appstate.pool).await?;
         user.enable_totp(&appstate.pool).await?;
-        Ok(ApiResponse::default())
+        Ok(ApiResponse {
+            json: json!(recovery_codes),
+            status: Status::Ok,
+        })
     } else {
         Err(OriWebError::ObjectNotFound("Invalid TOTP code".into()))
     }
@@ -254,7 +261,11 @@ pub async fn totp_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            Ok(ApiResponse::default())
+            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+            Ok(ApiResponse {
+                json: json!(user_info),
+                status: Status::Ok,
+            })
         } else {
             Err(OriWebError::Authorization("Invalid TOTP code".into()))
         }
@@ -298,7 +309,17 @@ pub async fn web3auth_end(
                         session
                             .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                             .await?;
-                        Ok(ApiResponse::default())
+                        if let Some(user) =
+                            User::find_by_id(&appstate.pool, session.user_id).await?
+                        {
+                            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+                            Ok(ApiResponse {
+                                json: json!(user_info),
+                                status: Status::Ok,
+                            })
+                        } else {
+                            Ok(ApiResponse::default())
+                        }
                     }
                     _ => Err(OriWebError::Authorization("Signature not verified".into())),
                 };

@@ -39,7 +39,7 @@ impl Device {
         self.wireguard_ip = other.wireguard_ip;
         self.wireguard_pubkey = other.wireguard_pubkey;
     }
-
+    /// Create wireguard config for device
     pub fn create_config(&self, network: WireguardNetwork) -> String {
         let dns = match network.dns {
             Some(dns) => {
@@ -139,7 +139,7 @@ impl Device {
         .fetch_all(pool)
         .await
     }
-
+    /// Assign available ip address to device
     pub async fn assign_device_ip(
         pool: &DbPool,
         user_id: i64,
