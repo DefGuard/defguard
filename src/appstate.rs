@@ -28,7 +28,7 @@ impl AppState {
             Err(err) => error!("Error sending trigger {}: {}", event_name, err),
         }
     }
-
+    /// Handle webhook events
     async fn handle_triggers(pool: DbPool, mut rx: UnboundedReceiver<AppEvent>) {
         let reqwest_client = Client::builder().user_agent("reqwest").build().unwrap();
         while let Some(msg) = rx.recv().await {

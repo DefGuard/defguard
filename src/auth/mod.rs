@@ -42,7 +42,7 @@ impl Default for ClaimsType {
     }
 }
 
-// Standard claims: https://www.iana.org/assignments/jwt/jwt.xhtml
+/// Standard claims: https://www.iana.org/assignments/jwt/jwt.xhtml
 #[derive(Deserialize, Serialize)]
 pub struct Claims {
     #[serde(skip_serializing, skip_deserializing)]
