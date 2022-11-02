@@ -1,6 +1,6 @@
 use crate::{
     appstate::AppState,
-    auth::SessionInfo,
+    auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::User,
     enterprise::grpc::WorkerState,
     error::OriWebError,
@@ -60,6 +60,23 @@ pub async fn create_job(
             job_data.username
         ))),
     }
+}
+
+#[get("/token", format = "json", rank = 2)]
+pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> ApiResult {
+    let username = session.user.username;
+    let token = Claims::new(
+        ClaimsType::YubiBridge,
+        username,
+        String::new(),
+        u32::MAX.into(),
+    )
+    .to_jwt()
+    .map_err(|_| OriWebError::Authorization("Failed to create bridge token".into()))?;
+    Ok(ApiResponse {
+        json: json!({ "token": token }),
+        status: Status::Ok,
+    })
 }
 
 #[get("/", format = "json")]
