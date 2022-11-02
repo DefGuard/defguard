@@ -1,4 +1,4 @@
-import axios, { AxiosPromise, AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { toast } from 'react-toastify';
 
 import ToastContent, { ToastType } from '../components/Toasts/ToastContent';
@@ -21,6 +21,7 @@ import {
   GroupsResponse,
   License,
   LoginData,
+  MFALoginResponse,
   Network,
   NetworkToken,
   NetworkUserStats,
@@ -149,7 +150,20 @@ const useApi = (props?: HookProps): ApiHook => {
   const addNetwork = async (network: Network) =>
     client.post<EmptyApiResponse>(`/network/`, network).then((res) => res.data);
 
-  const login = (data: LoginData): AxiosPromise => client.post('/auth', data);
+  const login: ApiHook['auth']['login'] = (data: LoginData) =>
+    client.post('/auth', data).then((response) => {
+      if (response.status === 200) {
+        return {
+          user: response.data as User,
+        };
+      }
+      if (response.status === 201) {
+        return {
+          mfa: response.data as MFALoginResponse,
+        };
+      }
+      return {};
+    });
 
   const logout = () =>
     client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);

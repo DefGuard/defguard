@@ -96,10 +96,6 @@ export interface LoginData {
   password: string;
 }
 
-export interface LoginResponse {
-  authToken: string;
-}
-
 export interface AuthStore {
   user?: User;
   isAdmin?: boolean;
@@ -198,6 +194,18 @@ export interface EditWalletMFARequest {
   use_for_mfa: boolean;
 }
 
+export interface MFALoginResponse {
+  mfa_method: UserMFAMethod;
+  totp_available: boolean;
+  web3_available: boolean;
+  webautn_available: boolean;
+}
+
+export interface LoginResponse {
+  user?: User;
+  mfa?: MFALoginResponse;
+}
+
 export interface ApiHook {
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
@@ -244,7 +252,7 @@ export interface ApiHook {
     ) => Promise<WireguardNetworkStats>;
   };
   auth: {
-    login: (data: LoginData) => EmptyApiResponse;
+    login: (data: LoginData) => Promise<LoginResponse>;
     logout: () => EmptyApiResponse;
     mfa: {
       enable: () => EmptyApiResponse;
@@ -255,19 +263,17 @@ export interface ApiHook {
           finish: (data: WebAuthnRegistrationRequest) => EmptyApiResponse;
         };
         start: () => Promise<CredentialRequestOptionsJSON>;
-        finish: (
-          data: PublicKeyCredentialWithAssertionJSON
-        ) => EmptyApiResponse;
+        finish: (data: PublicKeyCredentialWithAssertionJSON) => Promise<User>;
       };
       totp: {
         init: () => Promise<{ secret: string }>;
         enable: (data: TOTPRequest) => EmptyApiResponse;
         disable: () => EmptyApiResponse;
-        verify: (data: TOTPRequest) => EmptyApiResponse;
+        verify: (data: TOTPRequest) => Promise<User>;
       };
       web3: {
         start: () => Promise<{ challenge: string }>;
-        finish: (data: WalletSignature) => EmptyApiResponse;
+        finish: (data: WalletSignature) => Promise<User>;
         updateWalletMFA: (data: EditWalletMFARequest) => EmptyApiResponse;
       };
     };

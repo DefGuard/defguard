@@ -1,30 +1,57 @@
 import './style.scss';
 
-import { Route, Routes } from 'react-router';
+import { useEffect } from 'react';
+import { Route, Routes, useNavigate } from 'react-router';
 
 import { Web3ContextProvider } from '../../../shared/components/Web3/Web3ContextProvider';
-import { MFAKey } from './MFAKey/MFAKey';
+import { UserMFAMethod } from '../../../shared/types';
+import { useMFAStore } from '../shared/hooks/useMFAStore';
 import { MFATOTPAuth } from './MFATOTPAuth/MFATOTPAuth';
-import { MFAWallet } from './MFAWallet/MFAWallet';
-import { MFAWeb3SignMessageModal } from './modals/MFAWeb3SignModal';
+import { MFAWeb3 } from './MFAWeb3/MFAWeb3';
+import { MFAWebAuthN } from './MFAWebAuthN/MFAWebAuthN';
 
 export const MFARoute = () => {
   return (
     <section id="mfa">
       <h1>Two-factor authentication</h1>
       <Routes>
-        <Route path="code" element={<MFATOTPAuth />} />
-        <Route path="key" element={<MFAKey />} />
+        <Route index element={<RedirectToDefaultMFA />} />
+        <Route path="totp" element={<MFATOTPAuth />} />
+        <Route path="webauthn" element={<MFAWebAuthN />} />
         <Route
-          path="wallet"
+          path="web3"
           element={
             <Web3ContextProvider>
-              <MFAWallet />
+              <MFAWeb3 />
             </Web3ContextProvider>
           }
         />
+        <Route path="/*" element={<RedirectToDefaultMFA />} />
       </Routes>
-      <MFAWeb3SignMessageModal />
     </section>
   );
+};
+
+const RedirectToDefaultMFA = () => {
+  const defaultMFAMethod = useMFAStore((state) => state.mfa_method);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    switch (defaultMFAMethod) {
+      case UserMFAMethod.WEB3:
+        navigate('/auth/mfa/web3', { replace: true });
+        break;
+      case UserMFAMethod.WEB_AUTH_N:
+        navigate('/auth/mfa/webauthn', { replace: true });
+        break;
+      case UserMFAMethod.ONE_TIME_PASSWORD:
+        navigate('/auth/mfa/totp', { replace: true });
+        break;
+      default:
+        navigate('/auth/login', { replace: true });
+        break;
+    }
+  }, [defaultMFAMethod, navigate]);
+
+  return <></>;
 };

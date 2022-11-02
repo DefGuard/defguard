@@ -8,7 +8,6 @@ import { useForm } from 'react-hook-form';
 import { SubmitHandler } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import * as yup from 'yup';
 
@@ -20,12 +19,13 @@ import Button, {
 import ToastContent, {
   ToastType,
 } from '../../../shared/components/Toasts/ToastContent';
-import { isUserAdmin } from '../../../shared/helpers/isUserAdmin';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternNoSpecialChars } from '../../../shared/patterns';
-import { LoginData } from '../../../shared/types';
+import { LoginData, UserMFAMethod } from '../../../shared/types';
+import { toaster } from '../../../shared/utils/toaster';
+import { useMFAStore } from '../shared/hooks/useMFAStore';
 
 type Inputs = {
   username: string;
@@ -48,7 +48,6 @@ const Login: React.FC = () => {
     .required();
   const {
     auth: { login },
-    user: { getMe },
   } = useApi();
   const logIn = useAuthStore((state) => state.logIn);
   const navigate = useNavigate();
@@ -67,21 +66,39 @@ const Login: React.FC = () => {
       username: '',
     },
   });
-  const location = useLocation();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const state = location.state as any;
+
+  const setMfaStore = useMFAStore((state) => state.setState);
 
   const loginMutation = useMutation((data: LoginData) => login(data), {
     mutationKey: [MutationKeys.LOG_IN],
-    onSuccess: () => {
-      getMe().then((user) => {
-        logIn(user);
-        if (isUserAdmin(user)) {
-          navigate(state ? state.path : '/admin/overview', { replace: true });
-        } else {
-          navigate(state ? state.path : '/me', { replace: true });
+    onSuccess: (data) => {
+      const { user, mfa } = data;
+      if (!user && !mfa) {
+        toaster.error('Unexpected error occured, contact administrator.');
+        console.error('API returned unexpect result upon login.');
+      } else {
+        if (user) {
+          logIn(user);
         }
-      });
+        if (mfa) {
+          setMfaStore(mfa);
+          switch (mfa.mfa_method) {
+            case UserMFAMethod.WEB3:
+              navigate('../mfa/web3');
+              break;
+            case UserMFAMethod.WEB_AUTH_N:
+              navigate('../mfa/webauthn');
+              break;
+            case UserMFAMethod.ONE_TIME_PASSWORD:
+              navigate('../mfa/totp');
+              break;
+            default:
+              toaster.error('Unexpected error occured, contact administrator.');
+              console.error('API returned unexpect result upon login.');
+              break;
+          }
+        }
+      }
     },
     onError: (error: AxiosError) => {
       if (error.response && error.response.status === 401) {
@@ -131,17 +148,6 @@ const Login: React.FC = () => {
           text={t('auth.login.form.template.login')}
         />
       </form>
-      {/* <p>or</p>
-      <Button
-        className="big link"
-        onClick={() =>
-          navigate('../register', {
-            replace: false,
-          })
-        }
-      >
-        <span>{t('auth.login.form.template.register')}</span>
-      </Button> */}
     </section>
   );
 };

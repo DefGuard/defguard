@@ -6,11 +6,13 @@ import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import Button from '../../../../shared/components/layout/Button/Button';
+import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
 import { toaster } from '../../../../shared/utils/toaster';
+import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
-export const MFAKey = () => {
+export const MFAWebAuthN = () => {
   const [awaitingKey, setAwaitingKey] = useState(false);
   const {
     auth: {
@@ -20,11 +22,17 @@ export const MFAKey = () => {
     },
   } = useApi();
 
+  const logIn = useAuthStore((state) => state.logIn);
+  const clearMFAStore = useMFAStore((state) => state.resetState);
+
   const { mutate: mfaFinish, isLoading: mfaFinishLoading } = useMutation(
     [MutationKeys.WEBAUTHN_MFA_FINISH],
     finish,
     {
-      onSuccess: () => { },
+      onSuccess: (data) => {
+        clearMFAStore();
+        logIn(data);
+      },
     }
   );
 

@@ -9,8 +9,10 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
+import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
+import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
 interface Inputs {
   code: string;
@@ -29,6 +31,8 @@ const schema = yup
 
 export const MFATOTPAuth = () => {
   const navigate = useNavigate();
+  const clearMFAStore = useMFAStore((state) => state.resetState);
+  const logIn = useAuthStore((state) => state.logIn);
   const {
     auth: {
       mfa: {
@@ -42,7 +46,8 @@ export const MFATOTPAuth = () => {
     verify,
     {
       onSuccess: (data) => {
-        console.log(data);
+        clearMFAStore();
+        logIn(data);
       },
       onError: (err) => {
         console.error(err);
