@@ -6,7 +6,6 @@ import {
   WagmiConfig,
 } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
-import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
 import { publicProvider } from 'wagmi/providers/public';
 
@@ -22,7 +21,6 @@ const wagmiClient = createClient({
   autoConnect: true,
   connectors: [
     new InjectedConnector({ chains }),
-    new MetaMaskConnector({ chains }),
     new WalletConnectConnector({
       chains,
       options: {
