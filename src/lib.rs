@@ -6,7 +6,9 @@ use crate::enterprise::grpc::WorkerState;
 #[cfg(feature = "oauth")]
 use crate::enterprise::handlers::oauth::{authorize, authorize_consent, refresh, token};
 #[cfg(feature = "worker")]
-use crate::enterprise::handlers::worker::{create_job, job_status, list_workers, remove_worker};
+use crate::enterprise::handlers::worker::{
+    create_job, create_worker_token, job_status, list_workers, remove_worker,
+};
 #[cfg(feature = "openid")]
 use crate::enterprise::handlers::{
     openid_clients::{
@@ -254,7 +256,13 @@ pub async fn run_web_server(
         info!("Worker feature is enabled");
         webapp.manage(worker_state).mount(
             "/api/v1/worker",
-            routes![create_job, list_workers, job_status, remove_worker],
+            routes![
+                create_job,
+                list_workers,
+                job_status,
+                remove_worker,
+                create_worker_token
+            ],
         )
     } else {
         webapp
