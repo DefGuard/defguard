@@ -2,6 +2,7 @@ use crate::{db::models::error::ModelError, enterprise::ldap::error::OriLDAPError
 use sqlx::error::Error as SqlxError;
 use std::{error::Error, fmt};
 
+/// Represents kinds of error that occurred
 #[derive(Debug)]
 pub enum OriWebError {
     Grpc(String),

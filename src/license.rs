@@ -2,6 +2,7 @@ use base64;
 use chrono::{NaiveDate, Utc};
 use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
+/// Decoded license information
 #[derive(Serialize, Deserialize, Debug)]
 pub struct License {
     pub company: String,
@@ -46,6 +47,7 @@ pub enum Features {
 }
 
 impl License {
+    /// Create default community license in case no license supplied
     #[must_use]
     pub fn default() -> Self {
         Self {
@@ -87,7 +89,7 @@ impl License {
         }
     }
 
-    // decode encoded license to struct to send to frontend
+    /// decode encoded license string to License instance
     pub fn decode(license: &str) -> Self {
         debug!("Checking license");
         if !license.is_empty() {
