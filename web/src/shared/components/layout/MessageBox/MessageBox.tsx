@@ -16,7 +16,7 @@ export enum MessageBoxType {
   ERROR = 'error',
 }
 
-interface Props {
+interface Props extends ComponentPropsWithoutRef<'div'> {
   message?: string;
   type?: MessageBoxType;
 }
@@ -28,12 +28,12 @@ interface Props {
  * @param type
  * Determinate styling and icon of a box.
  */
-const MessageBox: React.FC<ComponentPropsWithoutRef<'div'> & Props> = ({
+const MessageBox = ({
   children,
   message,
   type = MessageBoxType.INFO,
   ...props
-}) => {
+}: Props) => {
   const getClassName = useMemo(() => {
     const res = ['message-box'];
     res.push(type.valueOf());
@@ -62,7 +62,7 @@ const MessageBox: React.FC<ComponentPropsWithoutRef<'div'> & Props> = ({
   return (
     <div {...props} className={getClassName}>
       {getIcon}
-      {message ? <p>{message}</p> : null}
+      {message && !children ? <p>{message}</p> : null}
       {children}
     </div>
   );

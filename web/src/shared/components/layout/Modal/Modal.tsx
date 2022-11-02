@@ -13,6 +13,7 @@ export interface ModalProps {
   className?: string;
   children?: ReactNode;
   onClose?: () => void;
+  id?: string;
 }
 
 type MouseObserverState = {
@@ -33,14 +34,15 @@ type MouseObserverState = {
  * @param onClose
  * Called when clicking on the backdrop.
  */
-const Modal: React.FC<ModalProps> = ({
+const Modal = ({
   children,
   backdrop,
   setIsOpen,
   className,
   isOpen,
   onClose,
-}) => {
+  id,
+}: ModalProps) => {
   const element = document.querySelector('#root');
 
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -127,6 +129,7 @@ const Modal: React.FC<ModalProps> = ({
           >
             <motion.div className={cn}>
               <motion.div
+                id={id}
                 className="modal-content"
                 role="dialog"
                 ref={contentRef}

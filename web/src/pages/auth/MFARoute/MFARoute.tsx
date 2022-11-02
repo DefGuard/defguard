@@ -2,6 +2,7 @@ import './style.scss';
 
 import { Route, Routes } from 'react-router';
 
+import { Web3ContextProvider } from '../../../shared/components/Web3/Web3ContextProvider';
 import { MFAKey } from './MFAKey/MFAKey';
 import { MFATOTPAuth } from './MFATOTPAuth/MFATOTPAuth';
 import { MFAWallet } from './MFAWallet/MFAWallet';
@@ -14,7 +15,14 @@ export const MFARoute = () => {
       <Routes>
         <Route path="code" element={<MFATOTPAuth />} />
         <Route path="key" element={<MFAKey />} />
-        <Route path="wallet" element={<MFAWallet />} />
+        <Route
+          path="wallet"
+          element={
+            <Web3ContextProvider>
+              <MFAWallet />
+            </Web3ContextProvider>
+          }
+        />
       </Routes>
       <MFAWeb3SignMessageModal />
     </section>

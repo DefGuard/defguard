@@ -1,9 +1,12 @@
 import { useMutation } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useAccount, useSignMessage } from 'wagmi';
 
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
+import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
 
@@ -11,19 +14,49 @@ export const MFAWallet = () => {
   const {
     auth: {
       mfa: {
-        web3: { start },
+        web3: { start, finish },
       },
     },
   } = useApi();
-  const { mutate, isLoading } = useMutation(
-    [MutationKeys.WEB3_MFA_START],
-    start,
+
+  const { isConnected, isConnecting, address } = useAccount();
+  const setModalsState = useModalStore((state) => state.setState);
+
+  const { mutate: mfaFinishMutation, isLoading: finishLoading } = useMutation(
+    [MutationKeys.WEB3_MFA_FINISH],
+    finish,
     {
       onSuccess: (data) => {
         console.log(data);
       },
     }
   );
+
+  const {
+    data: mfaMessage,
+    mutate: mfaStartMutation,
+    isLoading: startLoading,
+  } = useMutation([MutationKeys.WEB3_MFA_START], start, {
+    onSuccess: (data) => {
+      console.log('LOGGED IN !', data);
+    },
+  });
+
+  const { signMessage } = useSignMessage({
+    onSuccess: (data) => {
+      if (address) {
+        mfaFinishMutation({
+          address,
+          signature: data,
+        });
+      }
+    },
+  });
+
+  useEffect(() => {
+    mfaStartMutation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
@@ -35,8 +68,18 @@ export const MFAWallet = () => {
         text="Use your wallet"
         styleVariant={ButtonStyleVariant.PRIMARY}
         size={ButtonSize.BIG}
-        loading={isLoading}
-        onClick={() => mutate()}
+        loading={finishLoading || startLoading || isConnecting}
+        onClick={() => {
+          if (!isConnected) {
+            setModalsState({ connectWalletModal: { visible: true } });
+          } else {
+            if (mfaMessage?.challenge) {
+              signMessage({
+                message: mfaMessage.challenge,
+              });
+            }
+          }
+        }}
       />
       <div className="mfa-methods"></div>
       <nav>

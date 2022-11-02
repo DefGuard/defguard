@@ -1,5 +1,7 @@
 import {
   CredentialCreationOptionsJSON,
+  CredentialRequestOptionsJSON,
+  PublicKeyCredentialWithAssertionJSON,
   PublicKeyCredentialWithAttestationJSON,
 } from '@github/webauthn-json';
 import { AxiosPromise } from 'axios';
@@ -252,8 +254,10 @@ export interface ApiHook {
           start: () => Promise<CredentialCreationOptionsJSON>;
           finish: (data: WebAuthnRegistrationRequest) => EmptyApiResponse;
         };
-        start: () => Promise<CredentialRequestOptions>;
-        finish: (data: PublicKeyCredential) => EmptyApiResponse;
+        start: () => Promise<CredentialRequestOptionsJSON>;
+        finish: (
+          data: PublicKeyCredentialWithAssertionJSON
+        ) => EmptyApiResponse;
       };
       totp: {
         init: () => Promise<{ secret: string }>;
@@ -422,6 +426,10 @@ export interface DeleteUserDeviceModal extends StandardModalState {
   device?: Device;
 }
 
+export interface RecoveryCodesModal extends StandardModalState {
+  codes?: string[];
+}
+
 export interface UseModalStore {
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
@@ -442,7 +450,9 @@ export interface UseModalStore {
   addSecurityKeyModal: StandardModalState;
   registerTOTP: StandardModalState;
   connectWalletModal: StandardModalState;
+  recoveryCodesModal: RecoveryCodesModal;
   setState: (data: Partial<UseModalStore>) => void;
+  setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
   setDeleteUserDeviceModal: ModalSetter<DeleteUserDeviceModal>;
   setUserDeviceModal: ModalSetter<UserDeviceModal>;
   setAddUserModal: ModalSetter<StandardModalState>;
