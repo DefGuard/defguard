@@ -610,6 +610,18 @@
     },
     "query": "UPDATE session SET webauthn_challenge = $1 WHERE id = $2"
   },
+  "1feeccc3729029c40d9cbecd21919fc184af94f52cb135c4c8bd2830c92a47db": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE wallet SET use_for_mfa = FALSE WHERE user_id = $1"
+  },
   "2163bfa0df95cc31d0325f2a2a6521ef7e3b701ba5a97a74d5e6b3637c626dda": {
     "describe": {
       "columns": [],

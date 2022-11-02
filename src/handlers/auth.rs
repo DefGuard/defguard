@@ -71,7 +71,6 @@ pub async fn authenticate(
 
     info!("Authenticated user {}", data.username);
     let mfa_enabled = user.mfa_enabled(&appstate.pool).await?;
-    error!("XXXXX {}", mfa_enabled);
     if mfa_enabled {
         let mfa_info = MFAInfo::for_user(&appstate.pool, &user).await?;
         Ok(ApiResponse {

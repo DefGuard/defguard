@@ -1,5 +1,9 @@
 use super::{device::Device, group::Group, SecurityKey, WalletInfo};
-use crate::{auth::TOTP_CODE_VALIDITY_PERIOD, db::WebAuthn, DbPool};
+use crate::{
+    auth::TOTP_CODE_VALIDITY_PERIOD,
+    db::{Wallet, WebAuthn},
+    DbPool,
+};
 use argon2::{
     password_hash::{
         errors::Error as HashError, rand_core::OsRng, PasswordHash, PasswordHasher,
@@ -170,6 +174,8 @@ impl User {
             )
             .execute(pool)
             .await?;
+            Wallet::disable_mfa_for_user(pool, id).await?;
+            WebAuthn::delete_all_for_user(pool, id).await?;
         }
         self.totp_secret = None;
         self.recovery_codes.clear();
