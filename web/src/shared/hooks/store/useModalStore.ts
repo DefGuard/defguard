@@ -80,6 +80,10 @@ export const useModalStore = create<UseModalStore>((set) => ({
     visible: false,
   },
   setState: (newState) => set((oldState) => ({ ...oldState, ...newState })),
+  setRecoveryCodesModal: (newState) =>
+    set((oldState) => ({
+      recoveryCodesModal: { ...oldState.recoveryCodesModal, ...newState },
+    })),
   setDeleteUserDeviceModal: (newState) =>
     set((oldState) => ({
       deleteUserDeviceModal: { ...oldState.userDeviceModal, ...newState },
