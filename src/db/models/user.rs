@@ -36,7 +36,6 @@ pub struct User {
     pub ssh_key: Option<String>,
     pub pgp_key: Option<String>,
     pub pgp_cert_id: Option<String>,
-    pub mfa_enabled: bool,
     // secret has been verified and TOTP can be used
     pub totp_enabled: bool,
     totp_secret: Option<Vec<u8>>,
@@ -74,7 +73,6 @@ impl User {
             ssh_key: None,
             pgp_key: None,
             pgp_cert_id: None,
-            mfa_enabled: false,
             totp_enabled: false,
             totp_secret: None,
             mfa_method: MFAMethod::None,
@@ -108,9 +106,35 @@ impl User {
         Ok(secret_base32)
     }
 
+    /// Check if any of the multi-factor authentication methods is on.
+    /// - TOTP is enabled
+    /// - a [`Wallet`] flagged `use_for_mfa`
+    /// - a security key for Webauthn
+    pub async fn mfa_enabled(&self, pool: &DbPool) -> Result<bool, SqlxError> {
+        // short-cut
+        if self.totp_enabled {
+            return Ok(true);
+        }
+
+        if let Some(id) = self.id {
+            query_scalar!(
+                "SELECT totp_enabled OR coalesce(bool_or(wallet.use_for_mfa), FALSE) \
+                OR count(webauthn.id) > 0 \"bool!\" FROM \"user\" \
+                LEFT JOIN wallet ON wallet.user_id = \"user\".id \
+                LEFT JOIN webauthn ON webauthn.user_id = \"user\".id \
+                WHERE \"user\".id = $1 GROUP BY totp_enabled;",
+                id
+            )
+            .fetch_one(pool)
+            .await
+        } else {
+            Ok(false)
+        }
+    }
+
     /// Enable MFA; generate new recovery codes.
     pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<Option<Vec<String>>, SqlxError> {
-        if self.mfa_enabled {
+        if self.mfa_enabled(pool).await? {
             return Ok(None);
         }
 
@@ -125,14 +149,14 @@ impl User {
         }
         if let Some(id) = self.id {
             query!(
-                "UPDATE \"user\" SET mfa_enabled = TRUE, recovery_codes = $2 WHERE id = $1",
+                "UPDATE \"user\" SET recovery_codes = $2 WHERE id = $1",
                 id,
                 &self.recovery_codes
             )
             .execute(pool)
             .await?;
         }
-        self.mfa_enabled = true;
+
         Ok(Some(self.recovery_codes.clone()))
     }
 
@@ -140,14 +164,13 @@ impl User {
     pub async fn disable_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
         if let Some(id) = self.id {
             query!(
-                "UPDATE \"user\" SET mfa_enabled = FALSE, totp_secret = NULL, recovery_codes = '{}' \
+                "UPDATE \"user\" SET totp_secret = NULL, recovery_codes = '{}' \
                 WHERE id = $1",
                 id
             )
             .execute(pool)
             .await?;
         }
-        self.mfa_enabled = false;
         self.totp_secret = None;
         self.recovery_codes.clear();
         Ok(())
@@ -226,7 +249,7 @@ impl User {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
+            phone, ssh_key, pgp_key, pgp_cert_id, totp_enabled, totp_secret, \
             mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\" WHERE username = $1",
             username

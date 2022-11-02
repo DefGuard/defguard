@@ -66,6 +66,8 @@ impl UserInfo {
         #[cfg(feature = "openid")]
         let authorized_apps = AuthorizedApp::all_for_user(pool, &user).await?;
 
+        let mfa_enabled = user.mfa_enabled(pool).await?;
+
         Ok(Self {
             username: user.username,
             last_name: user.last_name,
@@ -75,7 +77,7 @@ impl UserInfo {
             ssh_key: user.ssh_key,
             pgp_key: user.pgp_key,
             pgp_cert_id: user.pgp_cert_id,
-            mfa_enabled: user.mfa_enabled,
+            mfa_enabled,
             totp_enabled: user.totp_enabled,
             groups,
             devices,

@@ -270,17 +270,16 @@ pub async fn update_wallet(
     {
         if Some(wallet.user_id) == user.id {
             wallet.use_for_mfa = data.use_for_mfa;
-            wallet.save(&appstate.pool).await?;
-            if data.use_for_mfa {
-                let recovery_codes = user.enable_mfa(&appstate.pool).await?;
-                Ok(ApiResponse {
-                    json: json!(recovery_codes),
-                    status: Status::Ok,
-                })
+            let recovery_codes = if data.use_for_mfa {
+                user.enable_mfa(&appstate.pool).await?
             } else {
-                // TODO: what if that's the last MFA wallet/method?
-                Ok(ApiResponse::default())
-            }
+                None
+            };
+            wallet.save(&appstate.pool).await?;
+            Ok(ApiResponse {
+                json: json!(recovery_codes),
+                status: Status::Ok,
+            })
         } else {
             Err(OriWebError::ObjectNotFound("wrong wallet".into()))
         }
