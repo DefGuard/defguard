@@ -34,12 +34,24 @@
   }
 
   &.icon {
+    padding: 0;
+    margin: 0;
+  }
+
+  &.with-icon {
     padding: 0 2rem 0 1.5rem;
   }
 
   &.big {
     min-height: 50px;
     min-width: 200px;
+
+    &.icon {
+      min-width: 40px;
+      max-width: 40px;
+      min-height: 40px;
+      max-height: 40px;
+    }
 
     .content {
       span,
@@ -60,6 +72,13 @@
 
   &.small {
     min-height: 40px;
+
+    &.icon {
+      min-width: 40px;
+      max-width: 40px;
+      min-height: 40px;
+      max-height: 40px;
+    }
 
     .content {
       span {

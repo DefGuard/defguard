@@ -1,5 +1,6 @@
 import './style.scss';
 
+import classNames from 'classnames';
 import {
   AnimatePresence,
   HTMLMotionProps,
@@ -37,18 +38,14 @@ export enum ButtonStyleVariant {
   LINK = 'link',
   CONFIRM_SUCCESS = 'confirm success',
   CONFIRM_WARNING = 'confirm warning',
+  ICON = 'icon',
   STANDARD = '',
 }
 
 /**
  * Displays styled button animated by framer-motion
- * @param loading Displays loader spinner and disables button
- * @param size Size of button, styling depends on this
- * @param text Text inside button
- * @param icon Icon will be placed on left side of text
- * @param className Will append class to button element
  */
-const Button: React.FC<Props> = ({
+const Button = ({
   loading = false,
   size = ButtonSize.SMALL,
   styleVariant = ButtonStyleVariant.STANDARD,
@@ -57,27 +54,21 @@ const Button: React.FC<Props> = ({
   className,
   disabled = false,
   ...props
-}) => {
+}: Props) => {
   const [hovered, setHovered] = useState(false);
-  const loaderSize = className?.includes('big') ? 18 : 16;
+  const loaderSize = useMemo(() => (size === ButtonSize.BIG ? 18 : 16), [size]);
   const buttonControls = useAnimation();
   const textControls = useAnimation();
 
   const isDisabled = useMemo(() => disabled || loading, [disabled, loading]);
 
-  const getClassName = useMemo(() => {
-    let res: string | string[] = ['btn'];
-    res.push(size.valueOf());
-    res.push(styleVariant.valueOf());
-    if (typeof icon !== 'undefined') {
-      res.push('icon');
-    }
-    res = res.join(' ');
-    if (className && className.length) {
-      res = res + ` ${className}`;
-    }
-    return res;
-  }, [size, styleVariant, icon, className]);
+  const getClassName = useMemo(
+    () =>
+      classNames('btn', className, size.valueOf(), styleVariant.valueOf(), {
+        'with-icon': !isUndefined(icon),
+      }),
+    [size, styleVariant, icon, className]
+  );
 
   const getCustom: ButtonCustom = useMemo(
     () => ({ disabled: isDisabled, size, styleVariant }),
@@ -136,7 +127,7 @@ const Button: React.FC<Props> = ({
           <motion.div
             className="content"
             variants={containersVariant}
-            initial="hidden"
+            initial={false}
             animate="show"
             exit="exit"
           >
@@ -187,6 +178,12 @@ const buttonVariants: Variants = {
     switch (size) {
       case ButtonSize.SMALL:
         switch (styleVariant) {
+          case ButtonStyleVariant.ICON:
+            res = {
+              borderColor: ColorsRGB.Transparent,
+              backgroundColor: ColorsRGB.Transparent,
+            };
+            break;
           case ButtonStyleVariant.STANDARD:
             res = {
               ...res,
@@ -233,6 +230,12 @@ const buttonVariants: Variants = {
         break;
       case ButtonSize.BIG:
         switch (styleVariant) {
+          case ButtonStyleVariant.ICON:
+            res = {
+              borderColor: ColorsRGB.Transparent,
+              backgroundColor: ColorsRGB.Transparent,
+            };
+            break;
           case ButtonStyleVariant.STANDARD:
             res = {
               ...res,
@@ -288,6 +291,14 @@ const buttonVariants: Variants = {
       switch (size) {
         case ButtonSize.SMALL:
           switch (styleVariant) {
+            case ButtonStyleVariant.ICON:
+              res = {
+                boxShadow: inactiveBoxShadow,
+                opacity: 1,
+                borderColor: ColorsRGB.Transparent,
+                backgroundColor: ColorsRGB.Transparent,
+              };
+              break;
             case ButtonStyleVariant.STANDARD:
               res = {
                 ...res,
@@ -337,6 +348,14 @@ const buttonVariants: Variants = {
           break;
         case ButtonSize.BIG:
           switch (styleVariant) {
+            case ButtonStyleVariant.ICON:
+              res = {
+                boxShadow: inactiveBoxShadow,
+                opacity: 1,
+                borderColor: ColorsRGB.Transparent,
+                backgroundColor: ColorsRGB.Transparent,
+              };
+              break;
             case ButtonStyleVariant.STANDARD:
               res = {
                 ...res,

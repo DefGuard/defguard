@@ -4,8 +4,8 @@ import { HTMLMotionProps, motion } from 'framer-motion';
 import React from 'react';
 
 /**
+ * @deprecated Use {@link Button} with styleVariant of ICON instead.
  * Styled to hold one icon in standardized container.
- *
  * Pass `blank' as className to get plain icon.
  */
 const IconButton = React.forwardRef<

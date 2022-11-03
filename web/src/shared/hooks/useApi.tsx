@@ -303,8 +303,8 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
 
-  const mfaWebauthnRegisterStart = () =>
-    client.post('/auth/webauthn/init').then(unpackRequest);
+  const mfaWebauthnRegisterStart: ApiHook['auth']['mfa']['webauthn']['register']['start'] =
+    () => client.post('/auth/webauthn/init').then(unpackRequest);
 
   const mfaWebauthnRegisterFinish: ApiHook['auth']['mfa']['webauthn']['register']['finish'] =
     async (data) =>
@@ -343,6 +343,10 @@ const useApi = (props?: HookProps): ApiHook => {
         ...rest,
       })
       .then(unpackRequest);
+
+  const mfaWebauthnDeleteKey: ApiHook['auth']['mfa']['webauthn']['deleteKey'] =
+    ({ keyId, username }) =>
+      client.delete(`/user/${username}/security_key/${keyId}`);
 
   return {
     oAuth: {
@@ -398,6 +402,7 @@ const useApi = (props?: HookProps): ApiHook => {
           },
           start: mfaWebauthnStart,
           finish: mfaWebautnFinish,
+          deleteKey: mfaWebauthnDeleteKey,
         },
         totp: {
           init: mfaTOTPInit,
