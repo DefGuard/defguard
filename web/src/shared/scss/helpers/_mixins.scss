@@ -107,3 +107,11 @@
     margin-bottom: 1.2rem;
   }
 }
+
+@mixin text-overflow-dots {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
