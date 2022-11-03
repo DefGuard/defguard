@@ -115,8 +115,8 @@ const Button = ({
       whileTap={
         !isDisabled
           ? {
-            scale: 0.9,
-          }
+              scale: 0.9,
+            }
           : undefined
       }
       custom={getCustom}
