@@ -101,9 +101,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const getUser: ApiHook['user']['getUser'] = async (username: string) =>
     client.get<User>(`/user/${username}`).then((res) => res.data);
 
-  const fetchUsers = async () =>
-    client.get<User[]>(`/user/`).then((res) => res.data);
-
   const modifyUser = async ({ username, data }: UserEditRequest) =>
     client.put<User>(`/user/${username}`, data).then(unpackRequest);
 
@@ -117,6 +114,8 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const fetchDevice = async (id: string) =>
     client.get<Device>(`/device/${id}`).then((res) => res.data);
+
+  const fetchUsers = () => client.get('/user/').then(unpackRequest);
 
   const downloadDeviceConfig = async (id: string) =>
     client.get<string>(`/device/${id}/config`).then((res) => res.data);
@@ -299,8 +298,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const getLicense = () =>
     client.get<License>('/license/').then((res) => res.data);
 
-  const mfaEnable = () => client.post('/auth/mfa').then(unpackRequest);
-
   const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
 
   const mfaWebauthnRegisterStart: ApiHook['auth']['mfa']['webauthn']['register']['start'] =
@@ -393,7 +390,6 @@ const useApi = (props?: HookProps): ApiHook => {
       login,
       logout,
       mfa: {
-        enable: mfaEnable,
         disable: mfaDisable,
         webauthn: {
           register: {

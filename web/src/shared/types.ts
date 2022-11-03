@@ -260,7 +260,6 @@ export interface ApiHook {
     login: (data: LoginData) => Promise<LoginResponse>;
     logout: () => EmptyApiResponse;
     mfa: {
-      enable: () => EmptyApiResponse;
       disable: () => EmptyApiResponse;
       webauthn: {
         register: {

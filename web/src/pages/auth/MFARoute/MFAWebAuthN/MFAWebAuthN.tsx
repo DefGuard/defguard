@@ -4,8 +4,12 @@ import {
 } from '@github/webauthn-json/browser-ponyfill';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 
-import Button from '../../../../shared/components/layout/Button/Button';
+import Button, {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
@@ -24,6 +28,7 @@ export const MFAWebAuthN = () => {
 
   const logIn = useAuthStore((state) => state.logIn);
   const clearMFAStore = useMFAStore((state) => state.resetState);
+  const navigate = useNavigate();
 
   const { mutate: mfaFinish, isLoading: mfaFinishLoading } = useMutation(
     [MutationKeys.WEBAUTHN_MFA_FINISH],
@@ -58,11 +63,22 @@ export const MFAWebAuthN = () => {
         text="Use security key"
         loading={mfaStartLoading || mfaFinishLoading || awaitingKey}
         onClick={() => mfaStart()}
+        size={ButtonSize.BIG}
+        styleVariant={ButtonStyleVariant.PRIMARY}
       />
-      <div className="mfa-choices">
-        <Button text="Use authenticator app instead" />
-        <Button text="Use your wallet instead" />
-      </div>
+      <nav>
+        <span>or</span>
+        <Button
+          text="Use authenticator app instead"
+          size={ButtonSize.BIG}
+          onClick={() => navigate('../totp')}
+        />
+        <Button
+          text="Use your wallet instead"
+          size={ButtonSize.BIG}
+          onClick={() => navigate('../web3')}
+        />
+      </nav>
     </>
   );
 };

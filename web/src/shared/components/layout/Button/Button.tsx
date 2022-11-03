@@ -109,15 +109,14 @@ const Button = ({
       className={getClassName}
       disabled={isDisabled}
       variants={buttonVariants}
-      initial={false}
       animate={buttonControls}
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
       whileTap={
         !isDisabled
           ? {
-              scale: 0.9,
-            }
+            scale: 0.9,
+          }
           : undefined
       }
       custom={getCustom}
@@ -127,14 +126,12 @@ const Button = ({
           <motion.div
             className="content"
             variants={containersVariant}
-            initial={false}
             animate="show"
             exit="exit"
           >
             {icon}
             <motion.span
               variants={textVariants}
-              initial={false}
               animate={textControls}
               custom={{ disabled, styleVariant, size }}
               style={{

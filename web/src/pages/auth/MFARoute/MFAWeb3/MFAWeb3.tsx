@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { useAccount, useSignMessage } from 'wagmi';
 
 import Button, {
@@ -49,6 +50,8 @@ export const MFAWeb3 = () => {
     },
   });
 
+  const navigate = useNavigate();
+
   const { signMessage, isLoading: isSigning } = useSignMessage({
     onSuccess: (data) => {
       if (address) {
@@ -88,11 +91,18 @@ export const MFAWeb3 = () => {
           }
         }}
       />
-      <div className="mfa-methods"></div>
       <nav>
         <span>or</span>
-        <Button text="Use authenticator app instead" />
-        <Button text="Use security key insted" />
+        <Button
+          text="Use authenticator app instead"
+          size={ButtonSize.BIG}
+          onClick={() => navigate('../totp')}
+        />
+        <Button
+          text="Use security key insted"
+          size={ButtonSize.BIG}
+          onClick={() => navigate('../webauthn')}
+        />
       </nav>
     </>
   );

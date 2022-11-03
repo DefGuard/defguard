@@ -92,13 +92,13 @@ export const MFATOTPAuth = () => {
           text="Use security key instead"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.LINK}
-          onClick={() => navigate('../key')}
+          onClick={() => navigate('../webauthn')}
         />
         <Button
           text="Use your wallet instead"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.LINK}
-          onClick={() => navigate('../wallet')}
+          onClick={() => navigate('../web3')}
         />
       </nav>
     </>
