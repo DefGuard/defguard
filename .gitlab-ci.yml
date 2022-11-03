@@ -1,4 +1,8 @@
 variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  GIT_DEPTH: 1
+  GIT_SUBMODULE_STRATEGY: recursive
   IMAGE_TAG: ${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}
 
 default:
@@ -12,7 +16,6 @@ services:
 stages:
   - compile
   - build
-  - apply
   - deploy
 
 .build-image:
