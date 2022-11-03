@@ -1,0 +1,115 @@
+variables:
+  IMAGE_TAG: ${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}
+
+default:
+  tags:
+    - kubernetes
+
+services:
+  - name: docker:20-dind
+    command: ["--mtu=1440"]
+
+stages:
+  - compile
+  - build
+  - apply
+  - deploy
+
+.build-image:
+  stage: build
+  image: docker:20
+  before_script:
+    # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27215
+    - until docker info; do sleep 2; done
+    - docker login -u "${REGISTRY_USER}" -p "${REGISTRY_SECRET}" ${REGISTRY}
+  after_script:
+    - docker logout ${REGISTRY}
+
+compile:
+  image: rust:latest
+  stage: compile
+  cache:
+    key:
+      files:
+        - Cargo.lock
+    paths:
+      - cargo/bin/
+      - cargo/registry/index/
+      - cargo/registry/cache/
+      - cargo/git/db/
+      - target/
+  artifacts:
+    expire_in: 1 hour
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - build
+  variables:
+    CARGO_HOME: $CI_PROJECT_DIR/cargo
+    SQLX_OFFLINE: "true"
+    DEFGUARD_DB_HOST: postgres
+    DEFGUARD_DB_NAME: defguard
+    DEFGUARD_DB_USER: defguard
+    DEFGUARD_DB_PASSWORD: defguard
+    POSTGRES_DB: defguard
+    POSTGRES_USER: defguard
+    POSTGRES_PASSWORD: defguard
+  services:
+    - postgres:14-alpine
+  before_script:
+    - cargo version
+    - apt-get update && apt-get -y install protobuf-compiler
+  script:
+    - mkdir -p build
+    - rustup component add rustfmt
+    - cargo fmt -- --check
+    - rustup component add clippy
+    - cargo clippy -- -D warnings
+    - cargo test --locked --no-fail-fast --features mock-license-key
+    - cargo install --locked --path . --root build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "dev"
+
+build-defguard-latest:
+  extends: .build-image
+  script:
+    - docker build --pull -f Dockerfile.ci -t ${REGISTRY}/defguard/defguard:${IMAGE_TAG} .
+    - docker tag ${REGISTRY}/defguard/defguard:${IMAGE_TAG} ${REGISTRY}/defguard/defguard:latest
+    - docker push ${REGISTRY}/defguard/defguard:${IMAGE_TAG}
+    - docker push ${REGISTRY}/defguard/defguard:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+build-defguard:
+  extends: .build-image
+  script:
+    - docker build --pull -f Dockerfile.ci -t ${REGISTRY}/defguard/defguard:${IMAGE_TAG} .
+    - docker push ${REGISTRY}/defguard/defguard:${IMAGE_TAG}
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.kubernetes:
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  dependencies: []
+  before_script:
+    - kubectl config get-contexts
+    - kubectl config use-context defguard/frontend:defguard
+
+deploy-dev:
+  extends: .kubernetes
+  stage: deploy
+  script:
+    - kubectl -n deguard-dev set image deployment/defguard-defguard defguard=${REGISTRY}/defguard/defguard:${IMAGE_TAG}
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+
+deploy-master:
+  extends: .kubernetes
+  stage: deploy
+  script:
+    - kubectl -n defguard set image deployment/defguard defguard=${REGISTRY}/defguard/defguard:${IMAGE_TAG}
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
