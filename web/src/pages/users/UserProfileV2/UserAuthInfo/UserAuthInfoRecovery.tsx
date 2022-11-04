@@ -1,5 +1,3 @@
-import { EditButton } from '../../../../shared/components/layout/EditButton/EditButton';
-import { EditButtonOption } from '../../../../shared/components/layout/EditButton/EditButtonOption';
 import { RowBox } from '../../../../shared/components/layout/RowBox/RowBox';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
 
@@ -23,9 +21,6 @@ export const UserAuthInfoRecovery = () => {
               {user.mfa_enabled && (
                 <>
                   <span>Viewed</span>
-                  <EditButton>
-                    <EditButtonOption text="Regenerate recovery codes" />
-                  </EditButton>
                 </>
               )}
             </div>
