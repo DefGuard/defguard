@@ -29,7 +29,7 @@
             min-height: 0;
             width: clamp(300px, 635px, 635px);
             box-sizing: border-box;
-            padding: 4rem 0 5.4rem;
+            padding: 4rem 0 0;
             border-radius: 15px;
             box-shadow: 5px 5px 15px #00000005;
           }
@@ -93,7 +93,7 @@
             overflow-y: auto;
 
             @include media-breakpoint-up(md) {
-              padding: 0;
+              padding: 0 0 5.4rem;
               max-height: none;
             }
 

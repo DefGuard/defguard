@@ -6,7 +6,6 @@ button {
     width: 40px;
     background-color: transparent;
     border: 0 solid transparent;
-    cursor: pointer;
     padding: 0;
     display: flex;
     flex-flow: row;
@@ -17,6 +16,10 @@ button {
 
     &:disabled {
       cursor: not-allowed;
+    }
+
+    &.visible {
+      cursor: pointer;
     }
   }
 }

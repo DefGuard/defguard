@@ -1,5 +1,3 @@
-import { EditButton } from '../../../../shared/components/layout/EditButton/EditButton';
-import { EditButtonOption } from '../../../../shared/components/layout/EditButton/EditButtonOption';
 import { RowBox } from '../../../../shared/components/layout/RowBox/RowBox';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
 
@@ -7,6 +5,9 @@ export const UserAuthInfoRecovery = () => {
   // const user = useUserProfileV2Store((store) => store.user);
   const isMe = useUserProfileV2Store((store) => store.isMe);
   const editMode = useUserProfileV2Store((store) => store.editMode);
+  const user = useUserProfileV2Store((store) => store.user);
+
+  if (!user) return null;
   return (
     <section className="recovery">
       <header>
@@ -17,10 +18,11 @@ export const UserAuthInfoRecovery = () => {
           <RowBox>
             <p>Recovery Codes</p>
             <div className="right">
-              <span>Static</span>
-              <EditButton>
-                <EditButtonOption text="Generate recovery codes" />
-              </EditButton>
+              {user.mfa_enabled && (
+                <>
+                  <span>Viewed</span>
+                </>
+              )}
             </div>
           </RowBox>
         </>
@@ -28,7 +30,7 @@ export const UserAuthInfoRecovery = () => {
         <>
           <div className="row">
             <p>Recovery codes</p>
-            <p className="info">Static</p>
+            <p className="info">{user.mfa_enabled && 'Viewed'}</p>
           </div>
         </>
       )}
