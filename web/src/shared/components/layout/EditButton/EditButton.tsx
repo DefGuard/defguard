@@ -39,7 +39,13 @@ export const EditButton = ({
   const [hovered, setHovered] = useState(false);
   const [open, setOpen] = useState(false);
   const arrowRef = useRef(null);
-  const cn = useMemo(() => classNames('edit-button', className), [className]);
+  const cn = useMemo(
+    () =>
+      classNames('edit-button', className, {
+        visible: visible,
+      }),
+    [className, visible]
+  );
   const { x, y, reference, floating, strategy, placement, middlewareData } =
     useFloating({
       placement: 'left',
@@ -83,7 +89,11 @@ export const EditButton = ({
         className={cn}
         onHoverStart={() => setHovered(true)}
         onHoverEnd={() => setHovered(false)}
-        onClick={() => setOpen((state) => !state)}
+        onClick={() => {
+          if (visible) {
+            setOpen((state) => !state);
+          }
+        }}
         disabled={disabled}
         type="button"
       >

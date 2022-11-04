@@ -1,0 +1,55 @@
+@use '../../../../../../shared/scss/helpers' as *;
+
+#view-recovery-codes {
+  .content {
+    & > .message-box {
+      width: calc(100% - 6rem);
+      margin: 0 3rem;
+      min-height: 70px;
+    }
+
+    & > .codes {
+      display: flex;
+      flex-flow: column wrap;
+      max-height: 115px;
+      box-sizing: border-box;
+      padding: 0 3rem;
+      column-gap: 4.6rem;
+      margin: 4rem 0;
+      align-content: center;
+      justify-content: center;
+
+      & > p {
+        @include regular-text;
+
+        display: flex;
+        flex-flow: row;
+        text-align: left;
+        max-width: 161px;
+      }
+    }
+
+    & > .actions {
+      width: 100%;
+      display: inline-grid;
+      grid-template-rows: 50px;
+      grid-auto-columns: 1fr;
+      grid-auto-flow: column;
+      column-gap: 4.6rem;
+      box-sizing: border-box;
+      padding: 0 3rem;
+    }
+
+    & > .controls {
+      display: flex;
+      flex-flow: row nowrap;
+      box-sizing: border-box;
+      padding: 0 3rem;
+      margin-top: 5.4rem;
+
+      & > .btn {
+        width: 100%;
+      }
+    }
+  }
+}
