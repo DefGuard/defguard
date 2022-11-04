@@ -1,6 +1,10 @@
-import { toast } from 'react-toastify';
+import { toast, ToastOptions } from 'react-toastify';
 
 import ToastContent, { ToastType } from '../components/Toasts/ToastContent';
+
+const defaultConfig: ToastOptions = {
+  autoClose: 5000,
+};
 
 /**
  * Shorcut to use toast with custom body, most of the times there is no nead to change ToastContent
@@ -12,7 +16,8 @@ export const toaster = {
         type={ToastType.ERROR}
         message={message}
         subMessage={subMessage}
-      />
+      />,
+      defaultConfig
     );
   },
   info: (message: string, subMessage?: string) =>

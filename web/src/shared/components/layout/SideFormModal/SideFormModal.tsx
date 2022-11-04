@@ -13,7 +13,9 @@ interface Props extends Omit<ModalProps, 'backdrop'> {
   side: 'left' | 'right';
   header: string | React.ReactNode;
 }
-
+/**
+ * @deprecated Part of old design. Use {@link ModalWithTitle} instead.
+ */
 export const SideFormModal = ({
   isOpen,
   setIsOpen,

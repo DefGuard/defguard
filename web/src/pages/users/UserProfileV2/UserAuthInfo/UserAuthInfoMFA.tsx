@@ -35,27 +35,11 @@ export const UserAuthInfoMFA = () => {
     user: { editUser },
     auth: {
       mfa: {
-        enable,
         disable,
         totp: { disable: disableTOTP },
       },
     },
   } = useApi();
-
-  const { mutate: enableMFA, isLoading: enableMFALoading } = useMutation(
-    [MutationKeys.ENABLE_MFA],
-    enable,
-    {
-      onSuccess: () => {
-        refreshUserQueries();
-        toaster.success('MFA enabled');
-      },
-      onError: (err) => {
-        console.error(err);
-        toaster.error('Enabling MFA failed.');
-      },
-    }
-  );
 
   const mfaWebAuthNEnabled = useMemo(
     () => user?.security_keys && user.security_keys.length > 0,
@@ -133,13 +117,7 @@ export const UserAuthInfoMFA = () => {
                 styleVariant={EditButtonOptionStyleVariant.WARNING}
                 onClick={() => disableMFA()}
               />
-            ) : (
-              <EditButtonOption
-                text="Enable MFA"
-                onClick={() => enableMFA()}
-                disabled={enableMFALoading}
-              />
-            )}
+            ) : null}
           </EditButton>
         )}
         <h3>Two-factor methods</h3>

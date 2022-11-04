@@ -206,6 +206,11 @@ export interface LoginResponse {
   mfa?: MFALoginResponse;
 }
 
+export interface DeleteWebAuthNKeyRequest {
+  username: User['username'];
+  keyId: SecurityKey['id'];
+}
+
 export interface ApiHook {
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
@@ -255,15 +260,17 @@ export interface ApiHook {
     login: (data: LoginData) => Promise<LoginResponse>;
     logout: () => EmptyApiResponse;
     mfa: {
-      enable: () => EmptyApiResponse;
       disable: () => EmptyApiResponse;
       webauthn: {
         register: {
-          start: () => Promise<CredentialCreationOptionsJSON>;
+          start: (data: {
+            name: string;
+          }) => Promise<CredentialCreationOptionsJSON>;
           finish: (data: WebAuthnRegistrationRequest) => EmptyApiResponse;
         };
         start: () => Promise<CredentialRequestOptionsJSON>;
         finish: (data: PublicKeyCredentialWithAssertionJSON) => Promise<User>;
+        deleteKey: (data: DeleteWebAuthNKeyRequest) => EmptyApiResponse;
       };
       totp: {
         init: () => Promise<{ secret: string }>;

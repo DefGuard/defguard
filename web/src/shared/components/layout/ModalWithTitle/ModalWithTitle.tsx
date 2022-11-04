@@ -20,17 +20,13 @@ export const ModalWithTitle = ({
   const cn = useMemo(() => classNames('titled', className), [className]);
   return (
     <Modal className={cn} isOpen={isOpen} {...rest}>
-      {isOpen ? (
-        <>
-          <div className="header">
-            <p className="title">{title}</p>
-            <button className="close">
-              <IconHamburgerClose />
-            </button>
-          </div>
-          <div className="content">{children}</div>
-        </>
-      ) : null}
+      <div className="header">
+        <p className="title">{title}</p>
+        <button className="close">
+          <IconHamburgerClose />
+        </button>
+      </div>
+      <div className="content">{children}</div>
     </Modal>
   );
 };
