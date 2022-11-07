@@ -3,8 +3,9 @@ import {
   parseRequestOptionsFromJSON,
 } from '@github/webauthn-json/browser-ponyfill';
 import { useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import shallow from 'zustand/shallow';
 
 import Button, {
   ButtonSize,
@@ -29,6 +30,14 @@ export const MFAWebAuthN = () => {
   const logIn = useAuthStore((state) => state.logIn);
   const clearMFAStore = useMFAStore((state) => state.resetState);
   const navigate = useNavigate();
+  const [webauthnAvailable, web3Available, totpAvailable] = useMFAStore(
+    (state) => [
+      state.webautn_available,
+      state.web3_available,
+      state.totp_available,
+    ],
+    shallow
+  );
 
   const { mutate: mfaFinish, isLoading: mfaFinishLoading } = useMutation(
     [MutationKeys.WEBAUTHN_MFA_FINISH],
@@ -56,6 +65,12 @@ export const MFAWebAuthN = () => {
     }
   );
 
+  useEffect(() => {
+    if (!webauthnAvailable) {
+      navigate('../');
+    }
+  }, [navigate, webauthnAvailable]);
+
   return (
     <>
       <p>When you are ready to authenticate, press the button below.</p>
@@ -66,19 +81,25 @@ export const MFAWebAuthN = () => {
         size={ButtonSize.BIG}
         styleVariant={ButtonStyleVariant.PRIMARY}
       />
-      <nav>
-        <span>or</span>
-        <Button
-          text="Use authenticator app instead"
-          size={ButtonSize.BIG}
-          onClick={() => navigate('../totp')}
-        />
-        <Button
-          text="Use your wallet instead"
-          size={ButtonSize.BIG}
-          onClick={() => navigate('../web3')}
-        />
-      </nav>
+      {totpAvailable || web3Available ? (
+        <nav>
+          <span>or</span>
+          {totpAvailable && (
+            <Button
+              text="Use authenticator app instead"
+              size={ButtonSize.BIG}
+              onClick={() => navigate('../totp')}
+            />
+          )}
+          {web3Available && (
+            <Button
+              text="Use your wallet instead"
+              size={ButtonSize.BIG}
+              onClick={() => navigate('../web3')}
+            />
+          )}
+        </nav>
+      ) : null}
     </>
   );
 };
