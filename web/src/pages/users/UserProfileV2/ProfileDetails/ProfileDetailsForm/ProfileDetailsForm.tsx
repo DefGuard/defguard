@@ -1,7 +1,7 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash-es';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
@@ -53,6 +53,7 @@ export const ProfileDetailsForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const [fetchGroups, setFetchGroups] = useState(false);
   const {
     user: { editUser },
     groups: { getGroups },
@@ -113,7 +114,11 @@ export const ProfileDetailsForm = () => {
 
   const { data: availableGroups, isLoading: groupsLoading } = useQuery(
     [QueryKeys.FETCH_GROUPS],
-    getGroups
+    getGroups,
+    {
+      refetchOnWindowFocus: false,
+      enabled: fetchGroups,
+    }
   );
   const { mutate, isLoading: userEditLoading } = useMutation(
     [MutationKeys.EDIT_USER],
@@ -173,6 +178,10 @@ export const ProfileDetailsForm = () => {
       return () => sub.unsubscribe();
     }
   }, [submitSubject]);
+
+  useEffect(() => {
+    setTimeout(() => setFetchGroups(true), 500);
+  }, []);
 
   return (
     <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>

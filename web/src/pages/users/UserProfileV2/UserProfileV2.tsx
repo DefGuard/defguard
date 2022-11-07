@@ -24,7 +24,6 @@ import { UserYubiKeys } from './UserYubiKeys/UserYubiKeys';
 export const UserProfileV2 = () => {
   const location = useLocation();
   const { username } = useParams();
-  const modalState = useModalStore((state) => state.manageWebAuthNKeysModal);
   const currentUser = useAuthStore((state) => state.user);
   const editMode = useUserProfileV2Store((state) => state.editMode);
   const setUserProfileState = useUserProfileV2Store((state) => state.setState);
@@ -34,8 +33,6 @@ export const UserProfileV2 = () => {
   const {
     user: { getUser },
   } = useApi();
-
-  useEffect(() => console.log(modalState), [modalState]);
 
   useQuery(
     [QueryKeys.FETCH_USER, username],

@@ -55,23 +55,25 @@ export const ManageWebAuthNKeysModal = () => {
           security key.
         </p>
       </MessageBox>
-      <div className="current-keys">
-        {user?.security_keys.map((key) => (
-          <WebAuthNKeyRow
-            key={key.id}
-            data={key}
-            onDelete={() => {
-              if (user) {
-                deleteKeyMutation({
-                  username: user.username,
-                  keyId: key.id,
-                });
-              }
-            }}
-            disableDelete={deleteKeyLoading}
-          />
-        ))}
-      </div>
+      {user && user.security_keys.length > 0 && (
+        <div className="current-keys">
+          {user?.security_keys.map((key) => (
+            <WebAuthNKeyRow
+              key={key.id}
+              data={key}
+              onDelete={() => {
+                if (user) {
+                  deleteKeyMutation({
+                    username: user.username,
+                    keyId: key.id,
+                  });
+                }
+              }}
+              disableDelete={deleteKeyLoading}
+            />
+          ))}
+        </div>
+      )}
       <RegisterWebAuthNForm />
     </ModalWithTitle>
   );
