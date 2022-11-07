@@ -1,0 +1,54 @@
+@use '../../../scss/helpers' as *;
+
+.helper {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: 0 solid transparent;
+  background-color: transparent;
+}
+
+.helper-floating {
+  position: relative;
+  box-shadow: 0 6px 20px #0000001a;
+  box-sizing: border-box;
+  background-color: var(--white);
+  border: 1px solid var(--gray-lighter);
+  border-radius: 10px;
+  padding: 2.8rem 4rem;
+  min-height: 108px;
+  max-width: 411px;
+  width: 411px;
+
+  & > p,
+  span {
+    @include small-text;
+  }
+
+  & > a {
+    @include small-text;
+
+    text-decoration: underline;
+    text-decoration-color: var(--gray-dark);
+    color: var(--gray-dark);
+  }
+
+  & > .arrow {
+    content: ' ';
+    position: absolute;
+    width: 0;
+    height: 0;
+
+    &[data-placement^='left'] {
+      border-style: solid;
+      border-width: 7px 0 7px 8px;
+      border-color: transparent transparent transparent var(--gray-lighter);
+    }
+
+    &[data-placement^='right'] {
+      border-width: 7px 8px 7px 0;
+      border-color: transparent var(--gray-lighter) transparent transparent;
+    }
+  }
+}

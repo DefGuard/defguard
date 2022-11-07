@@ -76,13 +76,15 @@
       grid-template-areas: 'wide-cards cards-1 cards-2';
     }
 
-    h2 {
-      @include card-header;
-
+    & > div > section > header {
       margin-bottom: 1.2rem;
 
       @include media-breakpoint-up(md) {
         margin-bottom: 2rem;
+      }
+
+      & > h2 {
+        @include card-header;
       }
     }
 
