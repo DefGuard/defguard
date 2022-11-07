@@ -21,7 +21,7 @@ export enum ColorsRGB {
   LightRedBg = '#fff5f5',
   LightGrayBg = '#F1F1F1',
   Warning = '#c8a043',
-  Transparent = 'transparent',
+  Transparent = '#00000000',
   DefaultBoxShadow = '#0000001A',
 }
 
