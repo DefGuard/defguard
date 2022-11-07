@@ -12,7 +12,9 @@ import { UserAuthInfoRecovery } from './UserAuthInfoRecovery';
 export const UserAuthInfo = () => {
   return (
     <section id="user-auth-info">
-      <h2>Password and authentication</h2>
+      <header>
+        <h2>Password and authentication</h2>
+      </header>
       <Card>
         <UserAuthInfoPassword />
         <UserAuthInfoMFA />

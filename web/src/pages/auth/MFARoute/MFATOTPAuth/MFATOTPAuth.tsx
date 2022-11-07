@@ -1,8 +1,10 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import * as yup from 'yup';
+import shallow from 'zustand/shallow';
 
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
@@ -32,6 +34,14 @@ const schema = yup
 export const MFATOTPAuth = () => {
   const navigate = useNavigate();
   const clearMFAStore = useMFAStore((state) => state.resetState);
+  const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
+    (state) => [
+      state.totp_available,
+      state.web3_available,
+      state.webautn_available,
+    ],
+    shallow
+  );
   const logIn = useAuthStore((state) => state.logIn);
   const {
     auth: {
@@ -69,6 +79,13 @@ export const MFATOTPAuth = () => {
     mutate({ code: Number(values.code) });
   };
 
+  useEffect(() => {
+    if (!totpAvailable) {
+      navigate('../');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totpAvailable]);
+
   return (
     <>
       <p>Use code from your authentication app and click button to proceed</p>
@@ -86,21 +103,27 @@ export const MFATOTPAuth = () => {
           type="submit"
         />
       </form>
-      <nav>
-        <span>or</span>
-        <Button
-          text="Use security key instead"
-          size={ButtonSize.BIG}
-          styleVariant={ButtonStyleVariant.LINK}
-          onClick={() => navigate('../webauthn')}
-        />
-        <Button
-          text="Use your wallet instead"
-          size={ButtonSize.BIG}
-          styleVariant={ButtonStyleVariant.LINK}
-          onClick={() => navigate('../web3')}
-        />
-      </nav>
+      {web3Available || webauthnAvailable ? (
+        <nav>
+          <span>or</span>
+          {webauthnAvailable && (
+            <Button
+              text="Use security key instead"
+              size={ButtonSize.BIG}
+              styleVariant={ButtonStyleVariant.LINK}
+              onClick={() => navigate('../webauthn')}
+            />
+          )}
+          {web3Available && (
+            <Button
+              text="Use your wallet instead"
+              size={ButtonSize.BIG}
+              styleVariant={ButtonStyleVariant.LINK}
+              onClick={() => navigate('../web3')}
+            />
+          )}
+        </nav>
+      ) : null}
     </>
   );
 };

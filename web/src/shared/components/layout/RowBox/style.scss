@@ -15,4 +15,14 @@
   box-sizing: border-box;
   padding: 0 1.6rem 0 2rem;
   margin: 0;
+
+  &.disabled {
+    pointer-events: none;
+    cursor: not-allowed;
+  }
+
+  & > p,
+  span {
+    user-select: none;
+  }
 }
