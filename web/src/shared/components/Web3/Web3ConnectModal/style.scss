@@ -1,0 +1,54 @@
+@use '../../../scss/helpers' as *;
+
+#connect-wallet {
+  & > .content {
+    padding-bottom: 4.8rem;
+
+    & > .connectors {
+      box-sizing: border-box;
+      padding: 0 3rem;
+      display: flex;
+      flex-flow: column;
+      row-gap: 1rem;
+
+      & > .row-box {
+        &:not(.disabled) {
+          cursor: pointer;
+        }
+
+        & > svg {
+          margin-right: 2rem;
+        }
+
+        p {
+          @include regular-text;
+          @include text-weight(medium);
+        }
+      }
+    }
+
+    & > .controls {
+      width: 100%;
+      flex-flow: row nowrap;
+      align-items: center;
+      align-content: center;
+      justify-content: center;
+      box-sizing: border-box;
+      padding: 0 3rem;
+      margin-top: 4.6rem;
+      display: none;
+
+      @include media-breakpoint-up(md) {
+        display: flex;
+      }
+
+      & > .btn {
+        width: 100%;
+
+        @include media-breakpoint-up(md) {
+          width: 278px;
+        }
+      }
+    }
+  }
+}
