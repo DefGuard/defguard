@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
-
+import shallow from 'zustand/shallow';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -28,6 +28,14 @@ export const MFAWeb3 = () => {
   const setModalsState = useModalStore((state) => state.setState);
   const logIn = useAuthStore((state) => state.logIn);
   const resetMFAStore = useMFAStore((state) => state.resetState);
+  const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
+    (state) => [
+      state.totp_available,
+      state.web3_available,
+      state.webautn_available,
+    ],
+    shallow
+  );
 
   const { mutate: mfaFinishMutation, isLoading: finishLoading } = useMutation(
     [MutationKeys.WEB3_MFA_FINISH],
@@ -80,6 +88,12 @@ export const MFAWeb3 = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!web3Available) {
+      navigate('../');
+    }
+  }, [navigate, web3Available]);
+
   return (
     <>
       <p>
@@ -103,19 +117,25 @@ export const MFAWeb3 = () => {
           }
         }}
       />
-      <nav>
-        <span>or</span>
-        <Button
-          text="Use authenticator app instead"
-          size={ButtonSize.BIG}
-          onClick={() => navigate('../totp')}
-        />
-        <Button
-          text="Use security key insted"
-          size={ButtonSize.BIG}
-          onClick={() => navigate('../webauthn')}
-        />
-      </nav>
+      {webauthnAvailable || totpAvailable ? (
+        <nav>
+          <span>or</span>
+          {totpAvailable && (
+            <Button
+              text="Use authenticator app instead"
+              size={ButtonSize.BIG}
+              onClick={() => navigate('../totp')}
+            />
+          )}
+          {webauthnAvailable && (
+            <Button
+              text="Use security key insted"
+              size={ButtonSize.BIG}
+              onClick={() => navigate('../webauthn')}
+            />
+          )}
+        </nav>
+      ) : null}
     </>
   );
 };
