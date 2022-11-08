@@ -1,9 +1,10 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import QRCode from 'react-qr-code';
 import * as yup from 'yup';
 
 import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
@@ -11,11 +12,12 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/components/layout/Button/Button';
+import { DelayRender } from '../../../../../../shared/components/layout/DelayRender/DelayRender';
+import LoaderSpinner from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../../shared/components/layout/MessageBox/MessageBox';
 import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
-import { QrCode } from '../../../../../../shared/components/layout/QrCode/QrCode';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../../../shared/mutations';
@@ -42,7 +44,9 @@ export const RegisterTOTPModal = () => {
         </p>
       </MessageBox>
       <div className="qr-container">
-        <TOTPRegisterQRCode />
+        <DelayRender delay={1000} fallback={<LoaderSpinner size={250} />}>
+          <TOTPRegisterQRCode />
+        </DelayRender>
       </div>
       <TOTPRegisterForm />
     </ModalWithTitle>
@@ -58,30 +62,22 @@ const TOTPRegisterQRCode = () => {
     },
   } = useApi();
 
-  const { data, isLoading, mutate } = useMutation(
-    [MutationKeys.ENABLE_TOTP_INIT],
-    init,
-    {
-      onError: (err) => {
-        console.error(err);
-        toaster.error('TOTP Initialization failed');
-      },
-    }
-  );
-
-  useEffect(() => {
-    if (!isLoading && !data) {
-      mutate();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { data, isLoading } = useQuery([MutationKeys.ENABLE_TOTP_INIT], init, {
+    suspense: true,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    onError: (err) => {
+      console.error(err);
+      toaster.error('TOTP Initialization failed');
+    },
+  });
 
   const qrData = useMemo(
     () => (data ? `otpauth://totp/Defguard?secret=${data.secret}` : undefined),
     [data]
   );
 
-  return <>{qrData && <QrCode data={qrData} />}</>;
+  return <>{qrData && !isLoading && <QRCode value={qrData} size={250} />}</>;
 };
 
 interface Inputs {

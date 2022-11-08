@@ -5,7 +5,7 @@ import React, { useEffect } from 'react';
 
 import { ColorsRGB } from '../../../constants';
 
-interface Props {
+interface Props extends HTMLMotionProps<'span'> {
   size?: number;
   backColor?: ColorsRGB;
   frontColor?: ColorsRGB;
@@ -17,12 +17,12 @@ interface Props {
  * @param backColor Color assigned to the tail of the spinner.
  * @param frontColor Main color of the spinner.
  */
-const LoaderSpinner: React.FC<HTMLMotionProps<'span'> & Props> = ({
+const LoaderSpinner = ({
   size = 20,
   backColor = ColorsRGB.Transparent,
   frontColor = ColorsRGB.Primary,
   ...rest
-}) => {
+}: Props) => {
   const controls = useAnimation();
 
   useEffect(() => {
