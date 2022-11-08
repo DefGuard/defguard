@@ -1,0 +1,33 @@
+@use '../../../../../../shared/scss/helpers' as *;
+
+#register-totp-modal {
+  & > .content {
+    padding-bottom: 2.6rem;
+
+    & > .message-box {
+      margin: 0 3rem;
+      width: calc(100% - 6rem);
+      min-height: 70px;
+
+      p {
+        max-width: 361px;
+      }
+    }
+
+    & > .qr-container {
+      display: flex;
+      flex-flow: row nowrap;
+      justify-content: center;
+      align-items: center;
+      align-content: center;
+    }
+
+    & > form {
+      margin: 0;
+
+      & > .controls {
+        margin-top: 0.5rem;
+      }
+    }
+  }
+}
