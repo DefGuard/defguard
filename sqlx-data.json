@@ -720,6 +720,31 @@
     },
     "query": "SELECT id \"id?\", \"user_id\", \"client_id\", \"home_url\", \"date\", \"name\" FROM \"authorizedapps\""
   },
+  "31b3fcaa8109121f985a2c740475f1d77fe8dcbcab76e64164be140ad361ab14": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          }
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET mfa_method = $2 WHERE id = $1"
+  },
   "3245de884168dd4a396376933d4d462728c1441c603c69161813cf4ea19c65b6": {
     "describe": {
       "columns": [
