@@ -7,13 +7,13 @@ on:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
+  CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings -W unreachable-pub"
-  RUSTUP_MAX_RETRIES: 10
 
 jobs:
   rustdoc:
     runs-on: self-hosted
-
+    container: rust:latest
     services:
       postgres:
         image: postgres:14-alpine
@@ -33,14 +33,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Rust toolchain
-        run: rustup update --no-self-update stable
-
       - name: Set database URL
         run: sed -i -e 's,localhost,postgres,' .env
 
       - name: Install protoc
-        run: sudo apt-get update && sudo apt-get -y install protobuf-compiler
+        run: apt-get update && sudo apt-get -y install protobuf-compiler
 
       - name: Build Docs
         env:
