@@ -1,7 +1,18 @@
+FROM node:19-alpine3.15 as web
+WORKDIR /app
+COPY web/package.json .
+COPY web/pnpm-lock.yaml .
+COPY web/.npmrc .
+RUN npm i -g pnpm
+RUN pnpm install --ignore-scripts
+COPY web/ .
+RUN pnpm build
+
 FROM debian:bullseye-slim
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 COPY build/bin/defguard .
+COPY --from=web /app/dist ./web
 USER 1000
 ENTRYPOINT ["./defguard"]

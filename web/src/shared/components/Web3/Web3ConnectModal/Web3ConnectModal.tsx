@@ -1,15 +1,26 @@
 import './style.scss';
+import './style.scss';
 
-import { useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 
 import { useModalStore } from '../../../hooks/store/useModalStore';
 import { toaster } from '../../../utils/toaster';
-import Button, {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../layout/Button/Button';
+import Button, { ButtonSize } from '../../layout/Button/Button';
 import { ModalWithTitle } from '../../layout/ModalWithTitle/ModalWithTitle';
+import { RowBox } from '../../layout/RowBox/RowBox';
+import { MetamaskIcon, WalletconnectIcon } from '../../svg';
+
+const getConnectorIcon = (name: string): ReactNode => {
+  switch (name) {
+    case 'WalletConnect':
+      return <WalletconnectIcon />;
+    case 'MetaMask':
+      return <MetamaskIcon />;
+    default:
+      return <></>;
+  }
+};
 
 export const Web3ConnectModal = () => {
   const modalState = useModalStore((state) => state.connectWalletModal);
@@ -17,7 +28,7 @@ export const Web3ConnectModal = () => {
   return (
     <ModalWithTitle
       backdrop
-      className="wallet-connect"
+      id="connect-wallet"
       title="Connect your wallet"
       isOpen={modalState.visible}
       setIsOpen={(visibility) =>
@@ -62,15 +73,18 @@ const WalletConnectorsList = () => {
   return (
     <div className="connectors">
       {connectors.map((connector) => (
-        <Button
+        <RowBox
           key={connector.id}
-          text={connector.name}
           onClick={() => connect({ connector })}
-          size={ButtonSize.BIG}
-          styleVariant={ButtonStyleVariant.PRIMARY}
-          loading={isLoading || connector.id === pendingConnector?.id}
-          disabled={!connector.ready}
-        />
+          disabled={
+            isLoading ||
+            connector.id === pendingConnector?.id ||
+            !connector.ready
+          }
+        >
+          {getConnectorIcon(connector.name)}
+          <p>{connector.name}</p>
+        </RowBox>
       ))}
     </div>
   );

@@ -15,6 +15,9 @@ interface Props {
   smallTopMargin?: boolean;
 }
 
+/**
+ * @depraceted Part of old design. Use {@link ModalWithTitle} instead.
+ */
 const MiddleFormModal: React.FC<Props> = ({
   title,
   FormComponent,

@@ -63,7 +63,7 @@ impl Session {
             VALUES ($1, $2, $3, $4, $5, $6, $7)",
             self.id,
             self.user_id,
-            self.state as i16,
+            self.state.clone() as i16,
             self.created,
             self.expires,
             self.webauthn_challenge,
@@ -77,7 +77,7 @@ impl Session {
     pub async fn set_state(&mut self, pool: &DbPool, state: SessionState) -> Result<(), SqlxError> {
         query!(
             "UPDATE session SET state = $1 WHERE id = $2",
-            state as i16,
+            state.clone() as i16,
             self.id
         )
         .execute(pool)

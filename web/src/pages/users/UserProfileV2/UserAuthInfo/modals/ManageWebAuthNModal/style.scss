@@ -1,0 +1,57 @@
+@use '../../../../../../shared/scss/helpers' as *;
+
+#manage-webauthn-modal {
+  padding-bottom: 2.6rem;
+
+  & > .content {
+    & > .message-box {
+      box-sizing: border-box;
+      width: calc(100% - 6rem);
+      margin: 0 3rem 3.4rem;
+      min-height: 70px;
+    }
+
+    & > .current-keys {
+      display: flex;
+      flex-flow: column;
+      box-sizing: border-box;
+      padding: 0 3rem;
+      row-gap: 2rem;
+      margin-bottom: 3.4rem;
+
+      & > .row-box {
+        width: 100%;
+        display: inline-grid;
+        grid-template-rows: 1fr;
+        grid-template-columns: 74px 1fr 74px;
+        align-items: center;
+        align-content: start;
+        justify-content: start;
+        padding: 0;
+
+        & > :nth-child(1) {
+          margin-left: 2rem;
+          width: 22px;
+          height: 22px;
+        }
+
+        & > p {
+          @include text-overflow-dots;
+          @include typography(15px, 18px, medium);
+
+          color: #444a4e;
+        }
+
+        & > :nth-child(3) {
+          margin-left: 2rem;
+        }
+      }
+    }
+
+    & > form {
+      & > .controls {
+        margin-top: 2rem;
+      }
+    }
+  }
+}

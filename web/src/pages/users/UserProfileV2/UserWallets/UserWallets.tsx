@@ -26,13 +26,13 @@ export const UserWallets = () => {
       <header>
         <h2>User wallets</h2>
       </header>
-      <div className="wallets">
-        {sortedWallet.length
-          ? sortedWallet.map((wallet) => (
-              <WalletCard key={wallet.address} wallet={wallet} />
-            ))
-          : null}
-      </div>
+      {sortedWallet && sortedWallet.length > 0 && (
+        <div className="wallets">
+          {sortedWallet.map((wallet) => (
+            <WalletCard key={wallet.address} wallet={wallet} />
+          ))}
+        </div>
+      )}
       <AddComponentBox
         callback={() =>
           setChangeWalletModalState({ visible: true, user: user })

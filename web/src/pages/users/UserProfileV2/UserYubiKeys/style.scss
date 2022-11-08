@@ -2,9 +2,17 @@
 
 #user-yubikeys {
   & > header {
-    width: 100%;
     position: relative;
-    margin-bottom: 2rem;
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-start;
+    width: 100%;
+
+    & > .helper {
+      margin-left: 1rem;
+    }
 
     & > h2 {
       @include card-header;

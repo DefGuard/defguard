@@ -75,7 +75,7 @@ impl WireguardNetwork {
         dns: Option<String>,
         allowed_ips: Vec<IpNetwork>,
     ) -> Result<Self, IpNetworkError> {
-        let prvkey = StaticSecret::new(&mut OsRng);
+        let prvkey = StaticSecret::new(OsRng);
         let pubkey = PublicKey::from(&prvkey);
         Ok(Self {
             id: None,
@@ -102,7 +102,7 @@ impl WireguardNetwork {
     /// Utility method to create wireguard keypair
     #[must_use]
     pub fn genkey() -> WireguardKey {
-        let private = StaticSecret::new(&mut OsRng);
+        let private = StaticSecret::new(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
             private: base64::encode(private.to_bytes()),
@@ -326,10 +326,7 @@ impl WireguardNetwork {
         // Retrieve data series for all active devices and assign them to users
         let device_stats = Self::device_stats(conn, &devices, from, aggregation).await?;
         for stats in device_stats {
-            user_map
-                .entry(stats.user_id)
-                .or_insert(Vec::new())
-                .push(stats);
+            user_map.entry(stats.user_id).or_default().push(stats);
         }
         // Reshape final result
         let mut stats = Vec::new();

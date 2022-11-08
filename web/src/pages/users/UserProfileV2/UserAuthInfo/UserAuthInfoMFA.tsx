@@ -35,27 +35,11 @@ export const UserAuthInfoMFA = () => {
     user: { editUser },
     auth: {
       mfa: {
-        enable,
         disable,
         totp: { disable: disableTOTP },
       },
     },
   } = useApi();
-
-  const { mutate: enableMFA, isLoading: enableMFALoading } = useMutation(
-    [MutationKeys.ENABLE_MFA],
-    enable,
-    {
-      onSuccess: () => {
-        refreshUserQueries();
-        toaster.success('MFA enabled');
-      },
-      onError: (err) => {
-        console.error(err);
-        toaster.error('Enabling MFA failed.');
-      },
-    }
-  );
 
   const mfaWebAuthNEnabled = useMemo(
     () => user?.security_keys && user.security_keys.length > 0,
@@ -122,24 +106,63 @@ export const UserAuthInfoMFA = () => {
     }
   };
 
+  const getTOTPInfoText = useMemo(() => {
+    if (user?.totp_enabled) {
+      const res = ['Enabled'];
+      if (user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD) {
+        res.push('(default)');
+      }
+      return res.join(' ');
+    }
+    return 'Disabled';
+  }, [user]);
+
+  const getWebAuthNInfoText = useMemo(() => {
+    if (user) {
+      if (user.security_keys && user.security_keys.length) {
+        const res = [
+          `${user.security_keys.length} security key${
+            user.security_keys.length > 1 ? 's' : ''
+          }`,
+        ];
+        if (user.mfa_method === UserMFAMethod.WEB_AUTH_N) {
+          res.push('(default)');
+        }
+        return res.join(' ');
+      }
+    }
+    return 'Disabled';
+  }, [user]);
+
+  const getWalletsInfoText = useMemo(() => {
+    if (user) {
+      const userAuthorizedWallets = user.wallets.filter((w) => w.use_for_mfa);
+      if (userAuthorizedWallets && userAuthorizedWallets.length) {
+        const res = [
+          `${userAuthorizedWallets.length} Wallet${
+            userAuthorizedWallets.length > 1 ? 's' : ''
+          }`,
+        ];
+        if (user.mfa_method === UserMFAMethod.WEB3) {
+          res.push('(default)');
+        }
+        return res.join(' ');
+      }
+      return 'Disabled';
+    }
+    return '';
+  }, [user]);
+
   return (
     <section className="mfa">
       <header>
         {editMode && isMe && (
-          <EditButton className="edit-mfa">
-            {user?.mfa_enabled ? (
-              <EditButtonOption
-                text="Disable MFA"
-                styleVariant={EditButtonOptionStyleVariant.WARNING}
-                onClick={() => disableMFA()}
-              />
-            ) : (
-              <EditButtonOption
-                text="Enable MFA"
-                onClick={() => enableMFA()}
-                disabled={enableMFALoading}
-              />
-            )}
+          <EditButton className="edit-mfa" visible={user?.mfa_enabled}>
+            <EditButtonOption
+              text="Disable MFA"
+              styleVariant={EditButtonOptionStyleVariant.WARNING}
+              onClick={() => disableMFA()}
+            />
           </EditButton>
         )}
         <h3>Two-factor methods</h3>
@@ -157,7 +180,7 @@ export const UserAuthInfoMFA = () => {
           <RowBox>
             <p>One time password</p>
             <div className="right">
-              <span>STATIC</span>
+              <span>{getTOTPInfoText}</span>
               <EditButton>
                 {user?.totp_enabled && (
                   <EditButtonOption
@@ -189,7 +212,7 @@ export const UserAuthInfoMFA = () => {
           <RowBox>
             <p>Security keys</p>
             <div className="right">
-              <span>STATIC</span>
+              <span>{getWebAuthNInfoText}</span>
               <EditButton>
                 <EditButtonOption
                   text="Manage security keys"
@@ -214,7 +237,7 @@ export const UserAuthInfoMFA = () => {
           <RowBox>
             <p>Wallets</p>
             <div className="right">
-              <span>STATIC</span>
+              <span>{getWalletsInfoText}</span>
               <EditButton
                 visible={
                   user?.mfa_method !== UserMFAMethod.WEB3 && mfaWeb3Enabled
@@ -232,23 +255,15 @@ export const UserAuthInfoMFA = () => {
         <>
           <div className="row">
             <p>Authentication method</p>
-            <p className="info">{user?.mfa_method.valueOf() || 'None'}</p>
+            <p className="info">{getTOTPInfoText}</p>
           </div>
           <div className="row">
             <p>Security keys</p>
-            <p className="info">
-              {user && user.security_keys && user.security_keys.length
-                ? `${user.security_keys.length} security keys`
-                : 'No keys'}
-            </p>
+            <p className="info">{getWebAuthNInfoText}</p>
           </div>
           <div className="row">
             <p>Wallets</p>
-            <p className="info">
-              {user && user.wallets.length
-                ? user?.wallets.map((w) => w.name)
-                : 'No wallets'}
-            </p>
+            <p className="info">{getWalletsInfoText}</p>
           </div>
         </>
       )}

@@ -17,8 +17,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef AS builder 
 # build deps from recipe & cache as docker layer
 COPY --from=planner /build/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json 
-RUN cargo install sqlx-cli
+RUN cargo chef cook --release --recipe-path recipe.json
 
 # build project
 RUN apt-get update && apt-get -y install protobuf-compiler libprotobuf-dev
