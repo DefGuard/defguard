@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 import shallow from 'zustand/shallow';
+
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
