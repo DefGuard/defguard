@@ -13,4 +13,9 @@
   min-height: 40px;
   border-radius: 10px;
   background-color: var(--bg-light);
+
+  & > * {
+    width: 22px;
+    height: 22px;
+  }
 }

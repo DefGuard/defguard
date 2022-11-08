@@ -16,8 +16,10 @@
       margin-bottom: 2rem;
       align-content: center;
 
-      h3 {
+      & > h3 {
         @include small-header;
+
+        user-select: text !important;
       }
     }
 
@@ -28,6 +30,7 @@
       & > .info {
         & > label {
           margin-bottom: 1rem;
+          user-select: none;
         }
 
         & > p {

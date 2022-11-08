@@ -33,7 +33,7 @@ export const MFAWeb3 = () => {
     (state) => [
       state.totp_available,
       state.web3_available,
-      state.webautn_available,
+      state.webauthn_available,
     ],
     shallow
   );

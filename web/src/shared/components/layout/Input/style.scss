@@ -126,5 +126,7 @@
 label {
   &.input-outer-label {
     @include mix.outer-label;
+
+    user-select: none;
   }
 }

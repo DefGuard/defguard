@@ -1,12 +1,6 @@
 @use '../../../../shared/scss/helpers' as *;
 
 #profile-details {
-  h2 {
-    @include card-header;
-
-    margin-bottom: 2rem;
-  }
-
   & > .card {
     padding: 2.6rem 3rem;
 

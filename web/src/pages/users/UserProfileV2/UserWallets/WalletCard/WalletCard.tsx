@@ -14,6 +14,7 @@ import {
   EditButtonOptionStyleVariant,
 } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
+import { IconEth } from '../../../../../shared/components/svg';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../../shared/mutations';
@@ -23,9 +24,10 @@ import { toaster } from '../../../../../shared/utils/toaster';
 
 interface Props {
   wallet: WalletInfo;
+  connected?: boolean;
 }
 
-export const WalletCard = ({ wallet }: Props) => {
+export const WalletCard = ({ wallet, connected = false }: Props) => {
   const [hovered, setHovered] = useState(false);
   const {
     user: { deleteWallet },
@@ -78,7 +80,6 @@ export const WalletCard = ({ wallet }: Props) => {
           <EditButtonOption
             text="Enable MFA"
             onClick={() => {
-              console.log(user);
               if (user) {
                 updateWalletMFAMutation({
                   username: user.username,
@@ -121,8 +122,13 @@ export const WalletCard = ({ wallet }: Props) => {
         />
       </EditButton>
       <div className="top">
-        <AvatarBox></AvatarBox>
+        <AvatarBox>
+          <IconEth />
+        </AvatarBox>
         <h3 data-test="wallet-name">{wallet.name}</h3>
+        {connected && (
+          <Badge text="Connected" styleVariant={BadgeStyleVariant.STANDARD} />
+        )}
         {wallet.use_for_mfa && (
           <Badge text="MFA" styleVariant={BadgeStyleVariant.STANDARD} />
         )}

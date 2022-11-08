@@ -60,29 +60,11 @@ export const RegisterWebAuthNForm = () => {
       },
     });
 
-  const { mutate: registerKeyStart, isLoading: registerKeyStartLoading } =
-    useMutation([MutationKeys.REGISTER_SECURITY_KEY_START], start, {
-      onSuccess: async (data, props) => {
-        setWaitingForSecurityKey(true);
-        const options = parseCreationOptionsFromJSON(data);
-        const response = await create(options);
-        setWaitingForSecurityKey(false);
-        if (response) {
-          registerKeyFinish({
-            name: props.name,
-            rpkc: response.toJSON(),
-          });
-        } else {
-          toaster.error('Failed to get key response, please try again.');
-          setModalState({ manageWebAuthNKeysModal: { visible: false } });
-        }
-      },
-    });
-
   const {
     handleSubmit,
     control,
     formState: { isValid },
+    getValues,
     reset,
   } = useForm<FormInputs>({
     resolver: yupResolver(formSchema),
@@ -92,19 +74,16 @@ export const RegisterWebAuthNForm = () => {
     },
   });
 
-  const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
-    registerKeyStart(values);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const onValidSubmit: SubmitHandler<FormInputs> = (_) => {
+    return;
   };
 
   return (
     <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
         controller={{ control, name: 'name' }}
-        disabled={
-          registerKeyStartLoading ||
-          registerKeyFinishLoading ||
-          waitingForSecurityKey
-        }
+        disabled={registerKeyFinishLoading || waitingForSecurityKey}
         outerLabel="New key name"
       />
       <div className="controls">
@@ -122,13 +101,45 @@ export const RegisterWebAuthNForm = () => {
           type="submit"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          loading={
-            registerKeyStartLoading ||
-            registerKeyFinishLoading ||
-            waitingForSecurityKey
-          }
-          disabled={!isValid}
+          loading={registerKeyFinishLoading || waitingForSecurityKey}
           text="Add new key"
+          onClick={async () => {
+            if (isValid) {
+              setWaitingForSecurityKey(true);
+              const formValues = getValues();
+              const responseData = await start({
+                name: formValues.name,
+              }).catch((err) => {
+                console.error(err);
+                toaster.error(
+                  'Error occured while initiating key registration.'
+                );
+              });
+              if (!responseData) {
+                setWaitingForSecurityKey(false);
+                return;
+              }
+              const options = parseCreationOptionsFromJSON(responseData);
+              //const platform = checkPlatform();
+              //if (platform === SupportedPlatform.MAC) {
+              //  if (options.publicKey?.authenticatorSelection) {
+              //    options.publicKey.authenticatorSelection.authenticatorAttachment =
+              //      'platform';
+              //  }
+              //}
+              const response = await create(options);
+              setWaitingForSecurityKey(false);
+              if (response) {
+                registerKeyFinish({
+                  name: formValues.name,
+                  rpkc: response.toJSON(),
+                });
+              } else {
+                toaster.error('Failed to get key response, please try again.');
+                setModalState({ manageWebAuthNKeysModal: { visible: false } });
+              }
+            }
+          }}
         />
       </div>
     </form>

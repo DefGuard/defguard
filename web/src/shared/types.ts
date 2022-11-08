@@ -15,7 +15,7 @@ export enum UserStatus {
 export enum UserMFAMethod {
   NONE = 'None',
   ONE_TIME_PASSWORD = 'OneTimePassword',
-  WEB_AUTH_N = 'WebAuthn',
+  WEB_AUTH_N = 'Webauthn',
   WEB3 = 'Web3',
 }
 
@@ -198,7 +198,7 @@ export interface MFALoginResponse {
   mfa_method: UserMFAMethod;
   totp_available: boolean;
   web3_available: boolean;
-  webautn_available: boolean;
+  webauthn_available: boolean;
 }
 
 export interface LoginResponse {
@@ -443,7 +443,12 @@ export interface RecoveryCodesModal extends StandardModalState {
   codes?: string[];
 }
 
+export interface ConnectWalletModal extends StandardModalState {
+  onConnect?: () => void;
+}
+
 export interface UseModalStore {
+  addWalletModal: StandardModalState;
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
   deleteUserModal: DeleteUserModal;
@@ -462,7 +467,7 @@ export interface UseModalStore {
   manageWebAuthNKeysModal: StandardModalState;
   addSecurityKeyModal: StandardModalState;
   registerTOTP: StandardModalState;
-  connectWalletModal: StandardModalState;
+  connectWalletModal: ConnectWalletModal;
   recoveryCodesModal: RecoveryCodesModal;
   setState: (data: Partial<UseModalStore>) => void;
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;

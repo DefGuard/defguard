@@ -32,7 +32,7 @@ export const MFAWebAuthN = () => {
   const navigate = useNavigate();
   const [webauthnAvailable, web3Available, totpAvailable] = useMFAStore(
     (state) => [
-      state.webautn_available,
+      state.webauthn_available,
       state.web3_available,
       state.totp_available,
     ],

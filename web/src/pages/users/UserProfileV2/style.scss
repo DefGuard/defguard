@@ -11,6 +11,12 @@
     padding: 39px 60px;
   }
 
+  h1,
+  h2,
+  h3 {
+    user-select: none;
+  }
+
   & > header {
     display: inline-grid;
     grid-template-rows: 1fr;
@@ -23,6 +29,8 @@
       grid-row: 1;
       grid-column: 1;
       @include page-header;
+
+      user-select: none;
     }
 
     & > .controls {
@@ -85,6 +93,8 @@
 
       & > h2 {
         @include card-header;
+
+        user-select: none;
       }
     }
 
