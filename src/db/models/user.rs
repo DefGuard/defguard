@@ -190,8 +190,8 @@ impl User {
     pub async fn disable_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
         if let Some(id) = self.id {
             query!(
-                "UPDATE \"user\" SET totp_secret = NULL, recovery_codes = '{}' \
-                WHERE id = $1",
+                "UPDATE \"user\" SET mfa_method = 'none', totp_enabled = FALSE, totp_secret = NULL, \
+                recovery_codes = '{}' WHERE id = $1",
                 id
             )
             .execute(pool)
@@ -200,6 +200,7 @@ impl User {
             WebAuthn::delete_all_for_user(pool, id).await?;
         }
         self.totp_secret = None;
+        self.totp_enabled = false;
         self.mfa_method = MFAMethod::None;
         self.recovery_codes.clear();
         Ok(())
@@ -228,7 +229,6 @@ impl User {
                 )
                 .execute(pool)
                 .await?;
-                WebAuthn::delete_all_for_user(pool, id).await?;
             }
             self.totp_enabled = false;
             self.totp_secret = None;
