@@ -317,6 +317,10 @@ export interface ApiHook {
   license: {
     getLicense: () => Promise<License>;
   };
+  settings: {
+    getSettings: () => Promise<Settings>;
+    editSettings: (data: Settings) => EmptyApiResponse;
+  };
 }
 
 export interface NavigationStore {
@@ -486,7 +490,19 @@ export interface UseModalStore {
 export interface UseAppStore {
   backendVersion?: string;
   wizardCompleted?: boolean;
+  settings?: Settings;
   setAppStore: (newValues: Partial<UseAppStore>) => void;
+}
+
+export interface Settings {
+  id: string;
+  web3_enabled: boolean;
+  openid_enabled: boolean;
+  oauth_enabled: boolean;
+  ldap_enabled: boolean;
+  wireguard_enabled: boolean;
+  webhooks_enabled: boolean;
+  worker_enabled: boolean;
 }
 
 export interface Webhook {

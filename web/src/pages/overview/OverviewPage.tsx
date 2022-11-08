@@ -51,6 +51,9 @@ export const OverviewPage = () => {
 
   const navigate = useNavigate();
 
+  const settings = useAppStore((state) => state.settings);
+  if (!settings?.wireguard_enabled) navigate('/');
+
   const { data: networkStats } = useQuery(
     [QueryKeys.FETCH_NETWORK_STATS, statsFilter],
     () => getNetworkStats({ from: getNetworkStatsFilterValue(statsFilter) })

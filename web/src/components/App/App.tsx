@@ -23,6 +23,7 @@ import OpenidAllowPage from '../../pages/openid/OpenidAllowPage';
 import OpenidPage from '../../pages/openid/OpenidPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
+import SettingsPage from '../../pages/settings/SettingsPage';
 import { UserProfilePage } from '../../pages/users/UserProfilePage';
 import UsersPage from '../../pages/users/UsersPage';
 import WizardPage from '../../pages/vpn/Wizard/WizardPage';
@@ -34,6 +35,7 @@ import {
   standardToastConfigMobile,
 } from '../../shared/components/Toasts/toastConfigs';
 import { deviceBreakpoints } from '../../shared/constants';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
@@ -41,6 +43,7 @@ import { QueryKeys } from '../../shared/queries';
 const App = () => {
   const {
     user: { getMe },
+    settings: { getSettings },
   } = useApi();
   const [currentUser, logOut, logIn, isAdmin] = useAuthStore(
     (state) => [state.user, state.logOut, state.logIn, state.isAdmin],
@@ -71,8 +74,22 @@ const App = () => {
       retry: false,
     }
   );
+  const [setAppStore] = useAppStore((state) => [state.setAppStore], shallow);
 
-  if (currentUserLoading && !userMe && !currentUser) return <LoaderPage />;
+  const { data: settings } = useQuery([QueryKeys.FETCH_SETTINGS], getSettings, {
+    onSuccess: (settings) => {
+      setAppStore({ settings });
+    },
+    onError: () => {
+      console.clear();
+    },
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  if (currentUserLoading && !userMe && !currentUser && !settings)
+    return <LoaderPage />;
 
   return (
     <>
@@ -127,6 +144,14 @@ const App = () => {
                 element={
                   <ProtectedRoute allowedGroups={['admin']}>
                     <OpenidPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="settings/*"
+                element={
+                  <ProtectedRoute allowedGroups={['admin']}>
+                    <SettingsPage />
                   </ProtectedRoute>
                 }
               />
