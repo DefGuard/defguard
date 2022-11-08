@@ -4,7 +4,7 @@ use super::{
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{MFAInfo, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
+    db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     enterprise::ldap::utils::user_from_ldap,
     error::OriWebError,
     license::Features,
@@ -140,6 +140,8 @@ pub async fn webauthn_finish(
             .finish_passkey_registration(&webauth_reg.rpkc, &passkey_reg)
         {
             if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+                user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
+                    .await?;
                 let recovery_codes = user.enable_mfa(&appstate.pool).await?;
                 let mut webauthn = WebAuthn::new(session.user_id, webauth_reg.name, &passkey)?;
                 webauthn.save(&appstate.pool).await?;
@@ -231,6 +233,8 @@ pub async fn totp_enable(
     let mut user = session.user;
     if user.verify_code(data.code) {
         let recovery_codes = user.enable_mfa(&appstate.pool).await?;
+        user.set_mfa_method(&appstate.pool, MFAMethod::OneTimePassword)
+            .await?;
         user.enable_totp(&appstate.pool).await?;
         Ok(ApiResponse {
             json: json!(recovery_codes),

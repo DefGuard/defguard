@@ -19,12 +19,12 @@ use std::time::SystemTime;
 
 const RECOVERY_CODES_COUNT: usize = 8;
 
-#[derive(Deserialize, Serialize, Type)]
+#[derive(Deserialize, Serialize, PartialEq, Type)]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
 pub enum MFAMethod {
     None,
     OneTimePassword,
-    WebAuthn,
+    Webauthn,
     Web3,
 }
 
@@ -44,7 +44,7 @@ pub struct User {
     pub totp_enabled: bool,
     totp_secret: Option<Vec<u8>>,
     #[model(enum)]
-    pub mfa_method: MFAMethod,
+    pub(crate) mfa_method: MFAMethod,
     #[model(ref)]
     recovery_codes: Vec<String>,
 }
@@ -108,6 +108,28 @@ impl User {
         let secret_base32 = TOTP::from_bytes(&secret).base32_secret();
         self.totp_secret = Some(secret);
         Ok(secret_base32)
+    }
+
+    /// Update `mfa_method` only when it's set to `None`, or the new value is `None.
+    /// That way last preferred MFA method is conserved.
+    pub async fn set_mfa_method(
+        &mut self,
+        pool: &DbPool,
+        mfa_method: MFAMethod,
+    ) -> Result<(), SqlxError> {
+        if mfa_method == MFAMethod::None || self.mfa_method == MFAMethod::None {
+            if let Some(id) = self.id {
+                query!(
+                    "UPDATE \"user\" SET mfa_method = $2 WHERE id = $1",
+                    id,
+                    &mfa_method as &MFAMethod
+                )
+                .execute(pool)
+                .await?;
+            }
+            self.mfa_method = mfa_method;
+        }
+        Ok(())
     }
 
     /// Check if any of the multi-factor authentication methods is on.
@@ -178,6 +200,7 @@ impl User {
             WebAuthn::delete_all_for_user(pool, id).await?;
         }
         self.totp_secret = None;
+        self.mfa_method = MFAMethod::None;
         self.recovery_codes.clear();
         Ok(())
     }

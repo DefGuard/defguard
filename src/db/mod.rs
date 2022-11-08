@@ -27,7 +27,7 @@ pub use models::{
     group::Group,
     session::{Session, SessionState},
     settings::Settings,
-    user::User,
+    user::{MFAMethod, User},
     wallet::Wallet,
     webauthn::WebAuthn,
     webhook::{AppEvent, HWKeyUserData, WebHook},
