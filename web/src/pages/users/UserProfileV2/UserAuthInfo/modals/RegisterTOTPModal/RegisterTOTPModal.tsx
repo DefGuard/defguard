@@ -1,3 +1,5 @@
+import './style.scss';
+
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
@@ -9,6 +11,9 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/components/layout/Button/Button';
+import MessageBox, {
+  MessageBoxType,
+} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
 import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { QrCode } from '../../../../../../shared/components/layout/QrCode/QrCode';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
@@ -22,7 +27,7 @@ export const RegisterTOTPModal = () => {
   const setModalsState = useModalStore((state) => state.setState);
   return (
     <ModalWithTitle
-      className="register-totp"
+      id="register-totp-modal"
       backdrop
       title="Authenticator App Setup"
       isOpen={modalState.visible}
@@ -30,6 +35,12 @@ export const RegisterTOTPModal = () => {
         setModalsState({ registerTOTP: { visible: visibility } })
       }
     >
+      <MessageBox type={MessageBoxType.INFO}>
+        <p>
+          To setup your MFA, scan this QR code with your authenticator app, then
+          enter the code in the field below:
+        </p>
+      </MessageBox>
       <div className="qr-container">
         <TOTPRegisterQRCode />
       </div>
