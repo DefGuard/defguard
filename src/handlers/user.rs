@@ -5,7 +5,7 @@ use super::{
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{AppEvent, Settings, User, UserInfo, Wallet, WebAuthn},
+    db::{AppEvent, MFAMethod, Settings, User, UserInfo, Wallet, WebAuthn},
     enterprise::ldap::utils::{
         ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user,
     },
@@ -271,6 +271,7 @@ pub async fn update_wallet(
         if Some(wallet.user_id) == user.id {
             wallet.use_for_mfa = data.use_for_mfa;
             let recovery_codes = if data.use_for_mfa {
+                user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
                 user.enable_mfa(&appstate.pool).await?
             } else {
                 None

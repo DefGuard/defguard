@@ -270,7 +270,10 @@ export const Select = <T,>({
                     }
                     if (event.key === 'Backspace' && multiSearch.length === 0) {
                       if (Array.isArray(selected)) {
-                        onChange(last(selected));
+                        const lastSelected = last(selected);
+                        if (lastSelected) {
+                          onChange(lastSelected);
+                        }
                       }
                     }
                   }}
