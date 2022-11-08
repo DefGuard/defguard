@@ -37,7 +37,7 @@ jobs:
         run: sed -i -e 's,localhost,postgres,' .env
 
       - name: Install protoc
-        run: apt-get update && sudo apt-get -y install protobuf-compiler
+        run: apt-get update && apt-get -y install protobuf-compiler
 
       - name: Build Docs
         env:
