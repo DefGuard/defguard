@@ -5,7 +5,7 @@
     padding-bottom: 2.6rem;
 
     & > .message-box {
-      margin: 0 3rem;
+      margin: 0 3rem 2.5rem;
       width: calc(100% - 6rem);
       min-height: 70px;
 
@@ -20,6 +20,7 @@
       justify-content: center;
       align-items: center;
       align-content: center;
+      margin-bottom: 2.5rem;
     }
 
     & > form {
