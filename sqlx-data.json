@@ -1929,6 +1929,18 @@
     },
     "query": "SELECT id \"id?\", \"device_id\", \"collected_at\", \"network\", \"endpoint\", \"upload\", \"download\", \"latest_handshake\", \"allowed_ips\" FROM \"wireguard_peer_stats\" WHERE id = $1"
   },
+  "735260b884b2369ef3b9efeda46dcd1fd59c60f73f14eb0dd5edd072bfab8040": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET mfa_method = 'none', totp_enabled = FALSE, totp_secret = NULL, recovery_codes = '{}' WHERE id = $1"
+  },
   "77532f50fc8765ac97323cd3df60df8ae443769670c459426d738ac8d4fab6f4": {
     "describe": {
       "columns": [
@@ -2030,18 +2042,6 @@
       }
     },
     "query": "SELECT \"user\".username FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id WHERE group_user.group_id = $1"
-  },
-  "85b0f73642df3fd9c0b76577fa90b033b6296fa1a65401586641fb07cb5985a0": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "UPDATE \"user\" SET totp_secret = NULL, recovery_codes = '{}' WHERE id = $1"
   },
   "86135388d6da625f594c74860ca50859589f8735396acffa968ce88cfe307ff5": {
     "describe": {

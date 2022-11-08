@@ -131,6 +131,15 @@ async fn test_totp() {
     // authorized
     let response = client.get("/api/v1/me").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
+
+    // disable MFA
+    let response = client.delete("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login again
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
 }
 
 #[rocket::async_test]
@@ -191,6 +200,15 @@ async fn test_webauthn() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
+
+    // disable MFA
+    let response = client.delete("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login again
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
 }
 
 #[rocket::async_test]
@@ -237,5 +255,14 @@ async fn test_web3() {
         }))
         .dispatch()
         .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // disable MFA
+    let response = client.delete("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login again
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 }
