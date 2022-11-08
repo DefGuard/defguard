@@ -1,16 +1,8 @@
-import { useQRCode } from 'next-qrcode';
+import { QRCode } from 'react-qrcode';
 
 interface Props {
   data: string;
 }
 export const QrCode = ({ data }: Props) => {
-  const { Canvas } = useQRCode();
-  return (
-    <Canvas
-      text={data}
-      options={{
-        width: 300,
-      }}
-    />
-  );
+  return <QRCode value={data} className="qr-code" width={300} />;
 };
