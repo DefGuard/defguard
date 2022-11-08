@@ -2,7 +2,6 @@
 // oxide macro
 #![allow(clippy::unnecessary_lazy_evaluations)]
 
-use crate::enterprise::grpc::WorkerState;
 #[cfg(feature = "oauth")]
 use crate::enterprise::handlers::oauth::{authorize, authorize_consent, refresh, token};
 #[cfg(feature = "worker")]
@@ -19,10 +18,12 @@ use crate::enterprise::handlers::{
 };
 #[cfg(feature = "oauth")]
 use crate::enterprise::oauth_state::OAuthState;
+use crate::enterprise::{db::openid::AuthorizedApp, grpc::WorkerState};
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
 use crate::license::License;
 use appstate::AppState;
+use chrono::Utc;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
 #[cfg(feature = "wireguard")]
@@ -309,5 +310,18 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         1,
     );
     device.save(&pool).await.expect("Could not save device");
-    log::info!("Dev environment initialized - TestNet, TestDevice added");
+
+    for app_id in &[1, 2, 3] {
+        let mut app = AuthorizedApp::new(
+            1,
+            format!("client-id-{}", app_id),
+            format!("https://app-{}.com", app_id),
+            Utc::now().naive_utc().to_string(),
+            format!("app-{}", app_id),
+        );
+        app.save(&pool)
+            .await
+            .expect("Could not save authorized app");
+    }
+    log::info!("Dev environment initialized - TestNet, TestDevice, AuthorizedApps added");
 }
