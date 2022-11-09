@@ -198,6 +198,7 @@
       position: relative;
 
       span {
+        display: none;
         font-size: 1.5rem;
         line-height: 1.6;
         font-family: Poppins;
@@ -306,6 +307,13 @@
     }
 
     .links {
+      span {
+        display: flex;
+        flex-wrap: nowrap;
+        min-width: 100px;
+      }
+    }
+    .bottom {
       span {
         display: flex;
         flex-wrap: nowrap;

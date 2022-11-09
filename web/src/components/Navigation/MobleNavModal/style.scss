@@ -112,7 +112,6 @@
             height: 50px;
             border: 0 solid transparent;
             background-color: transparent;
-            margin-top: auto;
 
             span {
               display: block;
@@ -121,6 +120,63 @@
               @include mix.poppins;
 
               color: v.$gray-light;
+            }
+          }
+          .settings {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            align-content: center;
+            justify-content: flex-start;
+            column-gap: 1.5rem;
+            padding: 1.3rem 2rem;
+            text-decoration: none;
+            width: inherit;
+            box-sizing: border-box;
+            height: 50px;
+            border: 0 solid transparent;
+            background-color: transparent;
+            margin-top: auto;
+
+            a {
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              align-content: center;
+              justify-content: flex-start;
+              column-gap: 1.5rem;
+              padding: 1.3rem 2rem;
+              text-decoration: none;
+              width: inherit;
+              box-sizing: border-box;
+              height: 50px;
+
+              span {
+                display: block;
+                font-size: 1.5rem;
+                @include mix.text-weight(medium);
+                @include mix.poppins;
+
+                color: v.$gray-light;
+              }
+
+              &.active {
+                background-color: v.$bg-light;
+
+                svg {
+                  path {
+                    fill: v.$primary;
+                  }
+
+                  rect {
+                    fill: v.$primary;
+                  }
+                }
+
+                span {
+                  color: v.$text-main;
+                }
+              }
             }
           }
         }
