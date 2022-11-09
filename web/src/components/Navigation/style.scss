@@ -180,6 +180,67 @@
       }
     }
   }
+  .bottom {
+    a {
+      display: flex;
+      text-decoration: none;
+      width: 100%;
+      height: 50px;
+      flex-grow: 0;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      padding-left: 40px;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+      gap: 1.5rem;
+      cursor: pointer;
+      position: relative;
+
+      span {
+        font-size: 1.5rem;
+        line-height: 1.6;
+        font-family: Poppins;
+        @include mix.text-weight(medium);
+
+        color: v.$gray-light;
+        transition-property: color;
+        transition-timing-function: ease;
+        transition-duration: v.$nav-links-animation-duration;
+      }
+
+      & > svg {
+        min-height: 24px;
+        min-width: 24px;
+      }
+
+      &:hover {
+        & > svg {
+          path {
+            fill: v.$primary;
+          }
+        }
+
+        span {
+          color: v.$text-main;
+        }
+      }
+
+      &.active {
+        // border-right: 2px solid v.$primary;
+        span {
+          color: v.$text-main;
+        }
+
+        & > svg {
+          path,
+          rect {
+            fill: v.$primary;
+          }
+        }
+      }
+    }
+  }
 
   .log-out {
     display: flex;

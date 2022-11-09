@@ -249,6 +249,8 @@ const Navigation: React.FC = () => {
             <SvgIconNavSettings />
             <span>{t('navigation.template.links.settings')}</span>
           </a> */}
+            </section>
+            <motion.section className="bottom">
               <NavigationLink
                 key={'/admin/settings'}
                 item={{
@@ -259,8 +261,6 @@ const Navigation: React.FC = () => {
                   enabled: true,
                 }}
               />
-            </section>
-            <motion.section className="bottom">
               <button
                 className="log-out"
                 onClick={() => logOutMutation.mutate()}

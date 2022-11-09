@@ -4,13 +4,12 @@ import useBreakpoint from 'use-breakpoint';
 
 import { deviceBreakpoints } from '../../../shared/constants';
 import { OverviewLayoutType } from '../../../shared/types';
-import { useOverviewStore } from '../hooks/store/useOverviewStore';
+import { useOverviewStore } from '../../overview/hooks/store/useOverviewStore';
 
-export const OverviewViewSelect = () => {
+export const DefaultNetworkSelect = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const defaultViewMode = useOverviewStore((state) => state.defaultViewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
-
   const getSelectOptions = useMemo(() => {
     if (breakpoint === 'mobile') {
       return [
@@ -44,19 +43,21 @@ export const OverviewViewSelect = () => {
   }, [breakpoint]);
 
   const getSelectValue = useMemo(() => {
-    setOverViewStore({ viewMode: defaultViewMode });
     return getSelectOptions.find((o) => o.value === defaultViewMode);
-  }, [getSelectOptions, defaultViewMode, setOverViewStore]);
+  }, [getSelectOptions, defaultViewMode]);
 
   return (
     <Select
       options={getSelectOptions}
       className="custom-select"
       classNamePrefix="rs"
-      defaultValue={getSelectValue}
+      value={getSelectValue}
       onChange={(option) => {
         if (option) {
-          setOverViewStore({ viewMode: option.value });
+          setOverViewStore({
+            defaultViewMode: option.value,
+            viewMode: option.value,
+          });
         }
       }}
       isOptionDisabled={(option) => Boolean(option.disabled)}

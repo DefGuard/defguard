@@ -9,7 +9,7 @@ import PageContainer from '../../shared/components/layout/PageContainer/PageCont
 import useApi from '../../shared/hooks/useApi';
 import TeoniteLogoGif from '../../shared/images/gif/tnt-built.gif';
 import { QueryKeys } from '../../shared/queries';
-import { OverviewViewSelect } from '../overview/OverviewViewSelect/OverviewViewSelect';
+import { DefaultNetworkSelect } from './DefaultNetworkSelect/DefaultNetworkSelect';
 import { SettingsForm } from './SettingsForm/SettingsForm';
 
 const EnterpriseCardContent = () => {
@@ -106,7 +106,7 @@ const SettingsPage = () => {
                 </div>
               </Helper>
             </h2>
-            <OverviewViewSelect />
+            <DefaultNetworkSelect />
           </div>
           <div className="right">
             <h2>License & Support information</h2>

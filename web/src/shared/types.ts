@@ -606,6 +606,7 @@ export enum OverviewLayoutType {
 
 export interface OverviewStore {
   viewMode: OverviewLayoutType;
+  defaultViewMode: OverviewLayoutType;
   statsFilter: number;
   setState: (override: Partial<OverviewStore>) => void;
 }
