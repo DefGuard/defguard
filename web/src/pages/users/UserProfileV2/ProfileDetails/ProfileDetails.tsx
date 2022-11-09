@@ -15,7 +15,9 @@ export const ProfileDetails = () => {
   const editMode = useUserProfileV2Store((state) => state.editMode);
   return (
     <section id="profile-details">
-      <h2>Profile Details</h2>
+      <header>
+        <h2>Profile Details</h2>
+      </header>
       <Card>{editMode ? <ProfileDetailsForm /> : <ViewMode />}</Card>
     </section>
   );
