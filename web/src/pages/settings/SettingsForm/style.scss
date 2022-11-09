@@ -1,4 +1,3 @@
-@use '@shared/scss/base/variables' as v;
 @use '../../../shared/scss/helpers' as *;
 
 .row {
@@ -11,26 +10,14 @@
     margin-bottom: 20px;
   }
 
-  & > .custom-checkbox {
-    font-size: 20px;
-  }
+  align-items: center;
+  align-content: center;
+  justify-content: flex-start;
+  gap: 1rem;
+  margin: 10px;
 
-  .custom-checkbox {
-    display: flex;
+  font-size: 1.3rem;
 
-    flex-direction: row;
-
-    align-items: center;
-    align-content: center;
-    justify-content: flex-start;
-    gap: 1rem;
-    margin: 10px;
-
-    & > label {
-      font-size: 1.3rem;
-
-      color: v.$gray-dark;
-      line-height: 1.5;
-    }
-  }
+  line-height: 1.5;
+  @include typography(12px, 17px, medium, var(--gray-dark));
 }

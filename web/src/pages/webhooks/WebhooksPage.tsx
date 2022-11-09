@@ -31,7 +31,7 @@ import AddWebhookModal from './modals/AddWebhookModal/AddWebhookModal';
 import WebhooksList from './WebhooksList/WebhooksList';
 import WebhooksTable from './WebhooksTable/WebhooksTable';
 
-const WebhooksPage: React.FC = () => {
+const WebhooksPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [searchValue, setSearchValue] = useState<string>('');
   const [filteredWebhooks, setFilteredWebhooks] = useState<Webhook[]>([]);
@@ -48,11 +48,7 @@ const WebhooksPage: React.FC = () => {
 
   if (!settings?.webhooks_enabled) navigate('/');
 
-  const { data: webhooks } = useQuery([QueryKeys.FETCH_WEBHOOKS], getWebhooks, {
-    onSuccess: (data) => {
-      console.log('fetching webhooks success', data);
-    },
-  });
+  const { data: webhooks } = useQuery([QueryKeys.FETCH_WEBHOOKS], getWebhooks);
 
   const tableColumns: Column<Webhook>[] = useMemo(
     (): Column<Webhook>[] => [

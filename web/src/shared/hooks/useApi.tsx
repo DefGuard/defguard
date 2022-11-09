@@ -346,13 +346,10 @@ const useApi = (props?: HookProps): ApiHook => {
     ({ keyId, username }) =>
       client.delete(`/user/${username}/security_key/${keyId}`);
 
-  const getSettings = () =>
-    client.get<Settings>('/settings/').then((res) => res.data);
+  const getSettings = () => client.get('/settings/').then((res) => res.data);
 
   const editSettings = async (settings: Settings) =>
-    client
-      .put<EmptyApiResponse>('/settings/', settings)
-      .then((res) => res.data);
+    client.put('/settings/', settings).then((res) => res.data);
 
   return {
     oAuth: {

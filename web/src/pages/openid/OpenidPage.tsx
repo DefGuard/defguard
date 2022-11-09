@@ -12,7 +12,7 @@ import OpenidClientsList from './OpenidClientsList/OpenidClientsList';
 
 const OpenidClient = React.lazy(() => import('./OpenidClient/OpenidClient'));
 
-const OpenidPage: React.FC = () => {
+const OpenidPage = () => {
   const navigate = useNavigate();
   const settings = useAppStore((state) => state.settings);
 

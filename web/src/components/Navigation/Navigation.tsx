@@ -38,7 +38,7 @@ export interface NavigationItem {
   enabled: boolean | undefined;
 }
 
-const Navigation: React.FC = () => {
+const Navigation = () => {
   const { t } = useTranslation('en');
   const [currentUser, storeLogOut] = useAuthStore(
     (state) => [state.user, state.logOut],

@@ -1,0 +1,53 @@
+@use '../../../scss/helpers/' as *;
+
+.content-card {
+  text-align: center;
+  & > .divider {
+    width: 90%;
+    margin: auto;
+  }
+  & > .header {
+    height: 50px;
+    display: flex;
+    text-align: center;
+
+    & > h3 {
+      margin: auto;
+      user-select: none;
+      @include small-header;
+    }
+  }
+  & > .content {
+    padding: 4rem 10rem;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    & > p {
+      @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
+    }
+    & > ul {
+      & > li {
+        @include typography(15px, 20px, regular, var(--text-main), 'Poppins');
+      }
+    }
+    & > a {
+      @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+  & > .footer {
+    height: 50px;
+    display: flex;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+    text-align: center;
+    p {
+    @include small-text;
+    color: var(--gray-dark);
+    }
+  }
+}

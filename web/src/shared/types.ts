@@ -452,6 +452,7 @@ export interface UseModalStore {
   keyDeleteModal: KeyDeleteModal;
   deleteUserModal: DeleteUserModal;
   addUserModal: StandardModalState;
+  licenseModal: StandardModalState;
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
@@ -485,6 +486,7 @@ export interface UseModalStore {
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
   setGatewaySetupModal: ModalSetter<GatewaySetupModal>;
+  setLicenseModal: ModalSetter<StandardModalState>;
 }
 
 export interface UseAppStore {

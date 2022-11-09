@@ -23,7 +23,7 @@ import OpenidAllowPage from '../../pages/openid/OpenidAllowPage';
 import OpenidPage from '../../pages/openid/OpenidPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
-import SettingsPage from '../../pages/settings/SettingsPage';
+import { SettingsPage } from '../../pages/settings/SettingsPage';
 import { UserProfilePage } from '../../pages/users/UserProfilePage';
 import UsersPage from '../../pages/users/UsersPage';
 import WizardPage from '../../pages/vpn/Wizard/WizardPage';
@@ -76,20 +76,20 @@ const App = () => {
   );
   const [setAppStore] = useAppStore((state) => [state.setAppStore], shallow);
 
-  const { data: settings } = useQuery([QueryKeys.FETCH_SETTINGS], getSettings, {
+  useQuery([QueryKeys.FETCH_SETTINGS], getSettings, {
     onSuccess: (settings) => {
       setAppStore({ settings });
     },
     onError: () => {
       console.clear();
     },
+    enabled: !userMe,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     retry: false,
   });
 
-  if (currentUserLoading && !userMe && !currentUser && !settings)
-    return <LoaderPage />;
+  if (currentUserLoading && !userMe && !currentUser) return <LoaderPage />;
 
   return (
     <>
