@@ -12,13 +12,14 @@ import Button, {
 } from '../../../../../shared/components/layout/Button/Button';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import {
   patternNoSpecialChars,
   patternValidWireguardKey,
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
-import { toaster } from '../../../../../shared/utils/toaster';
+
 
 interface Inputs {
   name: string;
@@ -93,6 +94,8 @@ export const UserDeviceModalForm = () => {
   const {
     device: { addDevice, editDevice },
   } = useApi();
+
+  const toaster =useToaster();
 
   const onMutationSuccess = () => {
     queryClient.invalidateQueries([QueryKeys.FETCH_USER]);

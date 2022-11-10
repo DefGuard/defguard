@@ -5,11 +5,12 @@ import { ReactNode, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 
 import { useModalStore } from '../../../hooks/store/useModalStore';
-import { toaster } from '../../../utils/toaster';
+
 import Button, { ButtonSize } from '../../layout/Button/Button';
 import { ModalWithTitle } from '../../layout/ModalWithTitle/ModalWithTitle';
 import { RowBox } from '../../layout/RowBox/RowBox';
 import { MetamaskIcon, WalletconnectIcon } from '../../svg';
+import { useToaster } from '../../../hooks/useToaster';
 
 const getConnectorIcon = (name: string): ReactNode => {
   switch (name) {
@@ -54,6 +55,7 @@ const WalletConnectorsList = () => {
   const { isConnected } = useAccount();
   const modalState = useModalStore((state) => state.connectWalletModal);
   const setModalsStore = useModalStore((state) => state.setState);
+  const toaster = useToaster();
   const { connect, connectors, error, isLoading, pendingConnector } =
     useConnect();
 

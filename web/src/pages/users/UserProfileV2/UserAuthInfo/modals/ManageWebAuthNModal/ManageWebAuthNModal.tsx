@@ -9,9 +9,10 @@ import { useUserProfileV2Store } from '../../../../../../shared/hooks/store/useU
 import useApi from '../../../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
-import { toaster } from '../../../../../../shared/utils/toaster';
+
 import { RegisterWebAuthNForm } from './components/RegisterWebAuthNForm';
 import { WebAuthNKeyRow } from './components/WebAuthNKeyRow';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
 
 export const ManageWebAuthNKeysModal = () => {
   const user = useUserProfileV2Store((state) => state.user);
@@ -25,6 +26,7 @@ export const ManageWebAuthNKeysModal = () => {
       },
     },
   } = useApi();
+  const toaster = useToaster();
   const queryClient = useQueryClient();
   const { mutate: deleteKeyMutation, isLoading: deleteKeyLoading } =
     useMutation([MutationKeys.WEBUAUTHN_DELETE_KEY], deleteKey, {

@@ -14,7 +14,7 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import ToastContent, {
   ToastType,
-} from '../../../../shared/components/Toasts/ToastContent';
+} from '../../../../shared/components/layout/Toast/Toast';
 import useApi from '../../../../shared/hooks/useApi';
 import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
@@ -74,9 +74,7 @@ const AddOpenidClientForm: React.FC<Props> = ({ setIsOpen }) => {
   const addOpenidClientMutation = useMutation(addOpenidClient, {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
-      toast(
-        <ToastContent type={ToastType.SUCCESS} message={`OpenidClient added`} />
-      );
+
       setIsOpen(false);
     },
   });

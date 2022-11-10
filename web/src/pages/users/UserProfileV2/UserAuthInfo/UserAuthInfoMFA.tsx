@@ -15,10 +15,11 @@ import { RowBox } from '../../../../shared/components/layout/RowBox/RowBox';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
 import { UserMFAMethod } from '../../../../shared/types';
-import { toaster } from '../../../../shared/utils/toaster';
+
 
 export const UserAuthInfoMFA = () => {
   const user = useUserProfileV2Store((store) => store.user);
@@ -50,6 +51,8 @@ export const UserAuthInfoMFA = () => {
     () => !isUndefined(user?.wallets.find((w) => w.use_for_mfa === true)),
     [user]
   );
+
+  const toaster = useToaster();
 
   const { mutate: disableMFA } = useMutation(
     [MutationKeys.DISABLE_MFA],

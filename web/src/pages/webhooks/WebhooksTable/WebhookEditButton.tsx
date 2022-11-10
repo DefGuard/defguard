@@ -13,7 +13,7 @@ import OptionsPopover from '../../../shared/components/layout/OptionsPopover/Opt
 import SvgIconEditAlt from '../../../shared/components/svg/IconEditAlt';
 import ToastContent, {
   ToastType,
-} from '../../../shared/components/Toasts/ToastContent';
+} from '../../../shared/components/layout/Toast/Toast';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
@@ -49,9 +49,7 @@ const WebhookEditButton: React.FC<EditButtonProps> = ({
   const queryClient = useQueryClient();
   const deleteWebhookMutation = useMutation((id: string) => deleteWebhook(id), {
     onSuccess: () => {
-      toast(
-        <ToastContent type={ToastType.SUCCESS} message={'Webhook deleted'} />
-      );
+  
       setDeleteOpen(false);
       queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
     },
@@ -64,22 +62,12 @@ const WebhookEditButton: React.FC<EditButtonProps> = ({
     mutationKey: [MutationKeys.CHANGE_WEBHOOK_STATE],
     onSuccess: () => {
       setWebhookStateOpen(false);
-      toast(
-        <ToastContent
-          type={ToastType.SUCCESS}
-          message="Webhook state changed"
-        />
-      );
+  
       queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
     },
     onError: () => {
       setWebhookStateOpen(false);
-      toast(
-        <ToastContent
-          type={ToastType.ERROR}
-          message="Unexpected error occurred"
-        />
-      );
+
     },
   });
   return (

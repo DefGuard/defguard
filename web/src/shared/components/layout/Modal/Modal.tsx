@@ -43,7 +43,7 @@ const Modal = ({
   onClose,
   id,
 }: ModalProps) => {
-  const element = document.querySelector('#root');
+  const element = document.getElementById('root');
 
   const contentRef = useRef<HTMLDivElement | null>(null);
 

@@ -20,7 +20,8 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
 import { WalletInfo } from '../../../../../shared/types';
-import { toaster } from '../../../../../shared/utils/toaster';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
+
 
 interface Props {
   wallet: WalletInfo;
@@ -33,6 +34,7 @@ export const WalletCard = ({
   connected = false,
   showMFA = false,
 }: Props) => {
+  const toaster = useToaster();
   const [hovered, setHovered] = useState(false);
   const {
     user: { deleteWallet },

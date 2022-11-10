@@ -11,8 +11,8 @@ import Button, {
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
-import { toaster } from '../../../../shared/utils/toaster';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
 export const MFAWeb3 = () => {
@@ -29,6 +29,7 @@ export const MFAWeb3 = () => {
   const setModalsState = useModalStore((state) => state.setState);
   const logIn = useAuthStore((state) => state.logIn);
   const resetMFAStore = useMFAStore((state) => state.resetState);
+  const toaster = useToaster();
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
     (state) => [
       state.totp_available,

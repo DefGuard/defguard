@@ -15,7 +15,7 @@ import SvgIconArrowGrayLeft from '../../../../../shared/components/svg/IconArrow
 import SvgIconArrowGrayRight from '../../../../../shared/components/svg/IconArrowGrayRight';
 import ToastContent, {
   ToastType,
-} from '../../../../../shared/components/Toasts/ToastContent';
+} from '../../../../../shared/components/layout/Toast/Toast';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { wizardToApiNetwork } from '../../../../../shared/helpers/wizardToApiNetwork';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
@@ -31,11 +31,6 @@ interface Props {
   steps: number;
 }
 
-const saveSuccessToast = (name: string): void => {
-  toast.success(
-    <ToastContent type={ToastType.SUCCESS} message={`${name} added`} />
-  );
-};
 
 const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -73,7 +68,6 @@ const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
     {
       onSuccess: (_, variables) => {
         queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
-        saveSuccessToast(String(variables.name));
         resetStore({ editMode: false });
         setAppStore({ wizardCompleted: true });
         navigate('/admin/overview', { state: { created: true } });

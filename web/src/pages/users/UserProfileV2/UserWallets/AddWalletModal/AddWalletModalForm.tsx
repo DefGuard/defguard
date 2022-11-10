@@ -14,7 +14,7 @@ import Button, {
 } from '../../../../../shared/components/layout/Button/Button';
 import ToastContent, {
   ToastType,
-} from '../../../../../shared/components/Toasts/ToastContent';
+} from '../../../../../shared/components/layout/Toast/Toast';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -52,19 +52,13 @@ export const AddWalletModalForm = () => {
     onSuccess: () => {
       setModalsState({ addWalletModal: { visible: false } });
       disconnect();
-      toast(<ToastContent type={ToastType.SUCCESS} message="Wallet added" />);
       queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
     },
 
     onError: () => {
       setModalsState({ addWalletModal: { visible: false } });
       disconnect();
-      toast(
-        <ToastContent
-          type={ToastType.ERROR}
-          message="Unexpected error occurred"
-        />
-      );
+
     },
   });
 
@@ -85,12 +79,7 @@ export const AddWalletModalForm = () => {
     },
     onError: () => {
       disconnect();
-      toast(
-        <ToastContent
-          type={ToastType.ERROR}
-          message="Unexpected error occurred"
-        />
-      );
+
     },
   });
 

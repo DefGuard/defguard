@@ -8,7 +8,7 @@ import ConfirmModal, {
 } from '../../../../shared/components/layout/ConfirmModal/ConfirmModal';
 import ToastContent, {
   ToastType,
-} from '../../../../shared/components/Toasts/ToastContent';
+} from '../../../../shared/components/layout/Toast/Toast';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../shared/queries';
@@ -33,12 +33,7 @@ const DeleteClientModal: React.FC = () => {
     (client: OpenidClient) => deleteOpenidClient(client.id),
     {
       onSuccess: (_, variables) => {
-        toast(
-          <ToastContent
-            type={ToastType.SUCCESS}
-            message={`${variables.name} deleted`}
-          />
-        );
+
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
         if (modalState.onSuccess) {
           modalState.onSuccess();

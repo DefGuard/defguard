@@ -8,7 +8,7 @@ import ConfirmModal, {
 } from '../../../../shared/components/layout/ConfirmModal/ConfirmModal';
 import ToastContent, {
   ToastType,
-} from '../../../../shared/components/Toasts/ToastContent';
+} from '../../../../shared/components/layout/Toast/Toast';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../shared/queries';
@@ -34,12 +34,7 @@ const EnableClientModal: React.FC = () => {
       changeOpenidClientState({ id: client.id, enabled: !client.enabled }),
     {
       onSuccess: (_, variables) => {
-        toast(
-          <ToastContent
-            type={ToastType.SUCCESS}
-            message={`${variables.name} `}
-          />
-        );
+
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
         if (modalState.onSuccess) {
           modalState.onSuccess();

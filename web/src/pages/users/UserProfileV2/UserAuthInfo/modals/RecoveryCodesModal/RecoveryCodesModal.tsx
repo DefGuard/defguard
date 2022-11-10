@@ -16,7 +16,8 @@ import {
   IconDownload,
 } from '../../../../../../shared/components/svg';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
-import { toaster } from '../../../../../../shared/utils/toaster';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
+
 
 export const RecoveryCodesModal = () => {
   const modalState = useModalStore((state) => state.recoveryCodesModal);
@@ -38,7 +39,8 @@ export const RecoveryCodesModal = () => {
 const ModalContent = () => {
   const codes = useModalStore((state) => state.recoveryCodesModal.codes);
   const setModalState = useModalStore((state) => state.setRecoveryCodesModal);
-
+  const toaster = useToaster();
+  
   if (!codes) return null;
 
   return (

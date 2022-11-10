@@ -18,7 +18,7 @@ import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhit
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
 import ToastContent, {
   ToastType,
-} from '../../shared/components/Toasts/ToastContent';
+} from '../../shared/components/layout/Toast/Toast';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { patternBaseUrl } from '../../shared/patterns';
@@ -46,9 +46,7 @@ const OpenidAllowPage: React.FC = () => {
     const check = [scope, responseType, clientId, nonce, redirectUri, state];
     for (const item in check) {
       if (typeof item === 'undefined' || typeof item === null) {
-        toast(
-          <ToastContent type={ToastType.ERROR} message="Missing parameters" />
-        );
+
         return false;
       }
     }

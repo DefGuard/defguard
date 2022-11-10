@@ -18,7 +18,7 @@ import MessageBox, {
 } from '../../../../shared/components/layout/MessageBox/MessageBox';
 import ToastContent, {
   ToastType,
-} from '../../../../shared/components/Toasts/ToastContent';
+} from '../../../../shared/components/layout/Toast/Toast';
 import useApi from '../../../../shared/hooks/useApi';
 import {
   patternAtLeastOneDigit,
@@ -105,19 +105,10 @@ const AddWebhookForm: React.FC<Props> = ({ setIsOpen, webhook }) => {
   const queryClient = useQueryClient();
   const editWebhookMutation = useMutation(editWebhook, {
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
-      toast(
-        <ToastContent type={ToastType.SUCCESS} message={'Webhook edited'} />
-      );
+      queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]); 
       setIsOpen(false);
     },
     onError: () => {
-      toast(
-        <ToastContent
-          type={ToastType.ERROR}
-          message={'Unexpected error occured'}
-        />
-      );
       setIsOpen(false);
     },
   });

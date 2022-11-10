@@ -7,9 +7,10 @@ import ConfirmModal, {
 } from '../../../../../shared/components/layout/ConfirmModal/ConfirmModal';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { User } from '../../../../../shared/types';
-import { toaster } from '../../../../../shared/utils/toaster';
+
 
 const DeleteUserModal = () => {
   const {
@@ -23,6 +24,8 @@ const DeleteUserModal = () => {
     (state) => [state.deleteUserModal, state.setDeleteUserModal],
     shallow
   );
+
+  const toaster = useToaster();
 
   const { mutate, isLoading } = useMutation((user: User) => deleteUser(user), {
     onSuccess: (_, variables) => {

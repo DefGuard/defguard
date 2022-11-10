@@ -19,7 +19,7 @@ import { IconHamburgerClose } from '../../../../../shared/components/svg';
 import SvgIconCancel from '../../../../../shared/components/svg/IconCancel';
 import ToastContent, {
   ToastType,
-} from '../../../../../shared/components/Toasts/ToastContent';
+} from '../../../../../shared/components/layout/Toast/Toast';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -94,12 +94,7 @@ const KeyProvisioningModal: React.FC = () => {
               setJobSucceeded(true);
               setKeysData(rest);
             } else {
-              toast(
-                <ToastContent
-                  type={ToastType.ERROR}
-                  message="Provisioning failed"
-                />
-              );
+
             }
           }
         } else {

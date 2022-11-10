@@ -13,6 +13,7 @@ import Button, {
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import {
   patternAtLeastOneDigit,
@@ -20,7 +21,7 @@ import {
   patternAtLeastOneSpecialChar,
   patternAtLeastOneUpperCaseChar,
 } from '../../../../../shared/patterns';
-import { toaster } from '../../../../../shared/utils/toaster';
+
 
 interface Inputs {
   new_password: string;
@@ -32,7 +33,7 @@ export const ChangePasswordForm = () => {
   const { t } = useTranslation('en');
   const setModalState = useModalStore((state) => state.setChangePasswordModal);
   const modalState = useModalStore((state) => state.changePasswordModal);
-
+  const toaster = useToaster();
   const schema = useMemo(
     () =>
       yup

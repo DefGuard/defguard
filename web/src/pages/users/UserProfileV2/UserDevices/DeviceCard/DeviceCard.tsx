@@ -13,7 +13,7 @@ import { EditButtonOption } from '../../../../../shared/components/layout/EditBu
 import { Label } from '../../../../../shared/components/layout/Label/Label';
 import ToastContent, {
   ToastType,
-} from '../../../../../shared/components/Toasts/ToastContent';
+} from '../../../../../shared/components/layout/Toast/Toast';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { displayDate } from '../../../../../shared/helpers/displayDate';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
@@ -48,12 +48,7 @@ export const DeviceCard = ({ device }: Props) => {
         saveAs(blob, `${device.name.toLowerCase()}.conf`);
       })
       .catch(() => {
-        toast(
-          <ToastContent
-            type={ToastType.ERROR}
-            message={'Failed to create config'}
-          />
-        );
+
       });
   };
 

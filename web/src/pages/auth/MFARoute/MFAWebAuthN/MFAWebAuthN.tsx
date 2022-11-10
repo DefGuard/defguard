@@ -13,8 +13,8 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
-import { toaster } from '../../../../shared/utils/toaster';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
 export const MFAWebAuthN = () => {
@@ -30,6 +30,7 @@ export const MFAWebAuthN = () => {
   const logIn = useAuthStore((state) => state.logIn);
   const clearMFAStore = useMFAStore((state) => state.resetState);
   const navigate = useNavigate();
+  const toaster = useToaster();
   const [webauthnAvailable, web3Available, totpAvailable] = useMFAStore(
     (state) => [
       state.webauthn_available,

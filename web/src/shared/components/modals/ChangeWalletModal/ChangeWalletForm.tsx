@@ -19,7 +19,7 @@ import Button, {
   ButtonStyleVariant,
 } from '../../layout/Button/Button';
 import MessageBox, { MessageBoxType } from '../../layout/MessageBox/MessageBox';
-import ToastContent, { ToastType } from '../../Toasts/ToastContent';
+import ToastContent, { ToastType } from '../../layout/Toast/Toast';
 import SignMessageLoader from './SignMessageLoader';
 import WalletProviderList from './WalletProviderList';
 
@@ -60,19 +60,12 @@ const ChangeWalletForm: React.FC = () => {
     onSuccess: () => {
       setModalValues({ user: undefined, visible: false });
       disconnect();
-      toast(<ToastContent type={ToastType.SUCCESS} message="Wallet added" />);
       queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
     },
 
     onError: () => {
       setModalValues({ user: undefined, visible: false });
       disconnect();
-      toast(
-        <ToastContent
-          type={ToastType.ERROR}
-          message="Unexpected error occurred"
-        />
-      );
     },
   });
 
@@ -93,12 +86,7 @@ const ChangeWalletForm: React.FC = () => {
     },
     onError: () => {
       disconnect();
-      toast(
-        <ToastContent
-          type={ToastType.ERROR}
-          message="Unexpected error occurred"
-        />
-      );
+
     },
   });
 

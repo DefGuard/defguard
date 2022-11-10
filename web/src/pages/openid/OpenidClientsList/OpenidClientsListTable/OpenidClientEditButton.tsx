@@ -14,7 +14,7 @@ import SvgIconDelete from '../../../../shared/components/svg/IconDelete';
 import SvgIconEditAlt from '../../../../shared/components/svg/IconEditAlt';
 import ToastContent, {
   ToastType,
-} from '../../../../shared/components/Toasts/ToastContent';
+} from '../../../../shared/components/layout/Toast/Toast';
 import { deviceBreakpoints } from '../../../../shared/constants';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useOpenidClientStore } from '../../../../shared/hooks/store/useOpenidClientStore';
@@ -48,12 +48,7 @@ const OpenidClientEditButton: React.FC<Props> = ({ client }) => {
     (client: OpenidClient) => deleteOpenidClient(client.id),
     {
       onSuccess: (_, variables) => {
-        toast(
-          <ToastContent
-            type={ToastType.SUCCESS}
-            message={`${variables.name} deleted`}
-          />
-        );
+
         setEditOpen(false);
         setDeleteOpen(false);
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
