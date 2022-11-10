@@ -155,7 +155,9 @@ const EditModeControls = () => {
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
           icon={<IconCheckmarkWhite />}
-          onClick={() => submitSubject.next()}
+          onClick={async () => {
+            setTimeout(() => submitSubject.next(), 500);
+          }}
         />
       </div>
     </>

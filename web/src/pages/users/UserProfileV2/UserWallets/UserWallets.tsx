@@ -16,6 +16,7 @@ export const UserWallets = () => {
   const { isConnected, address } = useAccount();
   const { disconnect, disconnectAsync } = useDisconnect();
   const user = useUserProfileV2Store((state) => state.user);
+  const isMe = useUserProfileV2Store((state) => state.isMe);
   const setModalsState = useModalStore((state) => state.setState);
 
   const sortedWallet = useMemo(() => {
@@ -54,6 +55,7 @@ export const UserWallets = () => {
               key={wallet.address}
               wallet={wallet}
               connected={address ? wallet.address === address : false}
+              showMFA={isMe}
             />
           ))}
         </div>

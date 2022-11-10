@@ -25,9 +25,14 @@ import { toaster } from '../../../../../shared/utils/toaster';
 interface Props {
   wallet: WalletInfo;
   connected?: boolean;
+  showMFA?: boolean;
 }
 
-export const WalletCard = ({ wallet, connected = false }: Props) => {
+export const WalletCard = ({
+  wallet,
+  connected = false,
+  showMFA = false,
+}: Props) => {
   const [hovered, setHovered] = useState(false);
   const {
     user: { deleteWallet },
@@ -76,7 +81,7 @@ export const WalletCard = ({ wallet, connected = false }: Props) => {
       onHoverEnd={() => setHovered(false)}
     >
       <EditButton visible={hovered}>
-        {!wallet.use_for_mfa && (
+        {!wallet.use_for_mfa && showMFA && (
           <EditButtonOption
             text="Enable MFA"
             onClick={() => {
@@ -90,7 +95,7 @@ export const WalletCard = ({ wallet, connected = false }: Props) => {
             }}
           />
         )}
-        {wallet.use_for_mfa && (
+        {wallet.use_for_mfa && showMFA && (
           <EditButtonOption
             text="Disable MFA"
             styleVariant={EditButtonOptionStyleVariant.WARNING}
