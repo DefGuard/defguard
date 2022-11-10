@@ -1,5 +1,6 @@
 use super::{
-    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, WalletSignature, WebAuthnRegistration,
+    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, RecoveryCode, WalletSignature,
+    WebAuthnRegistration,
 };
 use crate::{
     appstate::AppState,
@@ -333,4 +334,22 @@ pub async fn web3auth_end(
         }
     }
     Err(OriWebError::Http(Status::BadRequest))
+}
+
+/// Authenticate with a recovery code.
+#[post("/auth/recovery", format = "json", data = "<recovery_code>")]
+pub async fn recovery_code(
+    session_info: SessionInfo,
+    appstate: &State<AppState>,
+    recovery_code: Json<RecoveryCode>,
+) -> ApiResult {
+    let mut user = session_info.user;
+    if user
+        .verify_recovery_code(&appstate.pool, &recovery_code.code)
+        .await?
+    {
+        Ok(ApiResponse::default())
+    } else {
+        Err(OriWebError::Http(Status::Unauthorized))
+    }
 }
