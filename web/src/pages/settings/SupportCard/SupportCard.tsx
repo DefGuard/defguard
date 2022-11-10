@@ -14,14 +14,14 @@ export const SupportCard = () => {
       <p>
         for Enterprise support
         <br /> Please contact:{' '}
-        <span
+        <a
           className="link"
           onClick={() =>
             (window.location.href = 'mailto:community@defguard.net')
           }
         >
           support@defguard.net
-        </span>
+        </a>
       </p>
     </ContentCard>
   );
