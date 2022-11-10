@@ -16,11 +16,25 @@
 
     & > .qr-container {
       display: flex;
-      flex-flow: row nowrap;
+      flex-flow: column;
       justify-content: center;
       align-items: center;
       align-content: center;
       margin-bottom: 2.5rem;
+      row-gap: 2.5rem;
+
+      & > .actions {
+        display: flex;
+        flex-flow: row nowrap;
+        justify-content: center;
+        align-items: center;
+        align-content: center;
+        width: 100%;
+
+        & > .btn {
+          width: 50%;
+        }
+      }
     }
 
     & > form {

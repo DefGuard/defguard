@@ -92,8 +92,9 @@ export const MFATOTPAuth = () => {
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'code' }}
-          required
+          autoComplete="one-time-code"
           placeholder="Enter Authenticator code"
+          required
         />
         <Button
           text="Use authenticator code"

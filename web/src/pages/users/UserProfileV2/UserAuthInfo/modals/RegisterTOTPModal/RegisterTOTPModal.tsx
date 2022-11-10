@@ -2,6 +2,8 @@ import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import clipboard from 'clipboardy';
+import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import QRCode from 'react-qr-code';
@@ -18,6 +20,7 @@ import MessageBox, {
   MessageBoxType,
 } from '../../../../../../shared/components/layout/MessageBox/MessageBox';
 import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
+import { IconCopy } from '../../../../../../shared/components/svg';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../../../shared/mutations';
@@ -77,7 +80,35 @@ const TOTPRegisterQRCode = () => {
     [data]
   );
 
-  return <>{qrData && !isLoading && <QRCode value={qrData} size={250} />}</>;
+  const handleCopy = () => {
+    if (qrData) {
+      clipboard
+        .write(qrData)
+        .then(() => {
+          toaster.success('TOTP path copied');
+        })
+        .catch((e) => {
+          console.error(e);
+        });
+    }
+  };
+
+  if (!qrData || isLoading) return null;
+
+  return (
+    <>
+      <QRCode value={qrData} size={250} />
+      <div className="actions">
+        <Button
+          icon={<IconCopy />}
+          size={ButtonSize.BIG}
+          text="Copy TOTP path"
+          onClick={handleCopy}
+          loading={isUndefined(qrData)}
+        />
+      </div>
+    </>
+  );
 };
 
 interface Inputs {
@@ -137,6 +168,8 @@ const TOTPRegisterForm = () => {
       <FormInput
         controller={{ control, name: 'code' }}
         outerLabel="Authenticator code"
+        autoComplete="one-time-code"
+        required
       />
       <div className="controls">
         <Button
