@@ -63,6 +63,19 @@ async fn test_logout() {
 }
 
 #[rocket::async_test]
+async fn test_cannot_enable_mfa() {
+    let client = make_client().await;
+
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::NotModified);
+}
+
+#[rocket::async_test]
 async fn test_totp() {
     let client = make_client().await;
 
@@ -97,6 +110,10 @@ async fn test_totp() {
     // check recovery codes
     let recovery_codes: Vec<String> = response.into_json().await.unwrap();
     assert_eq!(recovery_codes.len(), 8); // RECOVERY_CODES_COUNT
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
 
     // logout
     let response = client.post("/api/v1/auth/logout").dispatch().await;
