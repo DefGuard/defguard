@@ -10,10 +10,9 @@
     height: 50px;
     display: flex;
     text-align: center;
-
+    justify-content: center;
+    align-items: center;
     & > h3 {
-      margin: auto;
-      user-select: none;
       @include small-header;
     }
   }
@@ -21,13 +20,13 @@
     padding: 4rem 10rem;
     box-sizing: border-box;
     display: flex;
-    flex-direction: column;
+    flex-flow: column;
     align-items: center;
     & > p {
       @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
       a {
-	text-decoration: underline;
-	cursor: pointer;
+        text-decoration: underline;
+        cursor: pointer;
       }
     }
     & > ul {
@@ -50,8 +49,8 @@
     margin: auto;
     text-align: center;
     p {
-    @include small-text;
-    color: var(--gray-dark);
+      @include small-text;
+      color: var(--gray-dark);
     }
   }
 }

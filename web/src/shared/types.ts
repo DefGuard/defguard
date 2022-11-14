@@ -498,6 +498,7 @@ export interface UseAppStore {
   backendVersion?: string;
   wizardCompleted?: boolean;
   settings?: Settings;
+  settingsEditMode?: boolean;
   setAppStore: (newValues: Partial<UseAppStore>) => void;
 }
 
@@ -510,6 +511,7 @@ export interface Settings {
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;
   worker_enabled: boolean;
+  challenge_template: boolean;
 }
 
 export interface Webhook {

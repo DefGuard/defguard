@@ -8,7 +8,7 @@ export const useAppStore = create<
   [
     [
       'zustand/persist',
-      Pick<UseAppStore, 'backendVersion' | 'wizardCompleted' | 'settings'>
+      Pick<UseAppStore, 'backendVersion' | 'wizardCompleted' | 'settings' | 'settingsEditMode'>
     ]
   ]
 >(
@@ -16,6 +16,7 @@ export const useAppStore = create<
     (set) => ({
       backendVersion: undefined,
       wizardCompleted: undefined,
+			settingsEditMode: false,
       settings: undefined,
       setAppStore: (data) => set((state) => ({ ...state, ...data })),
     }),

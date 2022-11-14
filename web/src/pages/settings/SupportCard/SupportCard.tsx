@@ -2,7 +2,7 @@ import { ContentCard } from '../../../shared/components/layout/ContentCard/Conte
 
 export const SupportCard = () => {
   return (
-    <ContentCard title="Support">
+    <ContentCard header={<h3> Support </h3>}>
       <p>
         For Community support Please visit:
         <br />

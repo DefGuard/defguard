@@ -9,13 +9,13 @@ import Divider from '../Divider/Divider';
 
 interface Props extends HTMLMotionProps<'div'> {
   children: ReactNode;
-  title?: string;
+  header?: ReactNode;
   footer?: ReactNode;
 }
 
 export const ContentCard = ({
   children,
-  title,
+  header,
   footer,
   className,
   ...rest
@@ -23,10 +23,12 @@ export const ContentCard = ({
   const cn = useMemo(() => classNames('content-card', className), [className]);
   return (
     <Card className={cn} {...rest}>
-      <div className="header">
-        <h3> {title} </h3>
-      </div>
-      <Divider />
+      {header ? (
+        <>
+          <div className="header">{header}</div>
+          <Divider />
+        </>
+      ) : null}
       <div className="content">{children}</div>
       {footer ? (
         <>

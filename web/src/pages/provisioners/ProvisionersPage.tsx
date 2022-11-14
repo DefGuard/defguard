@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { clone, orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
 import { Column } from 'react-table';
 import useBreakpoint from 'use-breakpoint';
 
@@ -14,7 +13,6 @@ import Search from '../../shared/components/layout/Search/Search';
 import { IconDeactivated } from '../../shared/components/svg';
 import SvgIconCheckmarkGreen from '../../shared/components/svg/IconCheckmarkGreen';
 import { deviceBreakpoints } from '../../shared/constants';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { Provisioner } from '../../shared/types';
@@ -35,10 +33,6 @@ const ProvisionersPage = () => {
   } = useApi();
 
   const { data: license } = useQuery([QueryKeys.FETCH_LICENSE], getLicense);
-  const settings = useAppStore((state) => state.settings);
-  const navigate = useNavigate();
-
-  if (!settings?.worker_enabled) navigate('/');
 
   const hasAccess = useMemo(() => {
     return license?.enterprise || license?.worker;

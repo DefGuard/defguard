@@ -1,7 +1,10 @@
-import { useMemo } from 'react';
-import Select from 'react-select';
+import { useEffect, useMemo } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
+import {
+  Select,
+  SelectOption,
+} from '../../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
@@ -9,58 +12,88 @@ import { useOverviewStore } from '../hooks/store/useOverviewStore';
 export const OverviewViewSelect = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const defaultViewMode = useOverviewStore((state) => state.defaultViewMode);
+  const viewMode = useOverviewStore((state) => state.viewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
+
+  useEffect(() => {
+    setOverViewStore({ viewMode: defaultViewMode });
+  }, [defaultViewMode, setOverViewStore]);
 
   const getSelectOptions = useMemo(() => {
     if (breakpoint === 'mobile') {
       return [
         {
+          key: 0,
           value: OverviewLayoutType.GRID,
           label: 'Grid view',
         },
-        { value: OverviewLayoutType.LIST, label: 'List view', disabled: true },
-        { value: OverviewLayoutType.MAP, label: 'Map view', disabled: true },
+        {
+          key: 1,
+          value: OverviewLayoutType.LIST,
+          label: 'List view',
+          disabled: true,
+        },
+        /*{
+          key: 2,
+          value: OverviewLayoutType.MAP,
+          label: 'Map view',
+          disabled: true,
+        },*/
       ];
     }
     if (breakpoint === 'tablet') {
       return [
         {
+          key: 0,
           value: OverviewLayoutType.GRID,
           label: 'Grid view',
           disabled: true,
         },
-        { value: OverviewLayoutType.LIST, label: 'List view', disabled: false },
-        { value: OverviewLayoutType.MAP, label: 'Map view', disabled: true },
+        {
+          key: 1,
+          value: OverviewLayoutType.LIST,
+          label: 'List view',
+          disabled: false,
+        },
+        /*{
+          key: 2,
+          value: OverviewLayoutType.MAP,
+          label: 'Map view',
+          disabled: true,
+        },*/
       ];
     }
     return [
-      {
-        value: OverviewLayoutType.GRID,
-        label: 'Grid view',
-      },
-      { value: OverviewLayoutType.LIST, label: 'List view' },
-      { value: OverviewLayoutType.MAP, label: 'Map view', disabled: true },
+      { key: 0, value: OverviewLayoutType.GRID, label: 'Grid view' },
+      { key: 1, value: OverviewLayoutType.LIST, label: 'List view' },
+      /*{
+        key: 2,
+        value: OverviewLayoutType.MAP,
+        label: 'Map view',
+        disabled: true,
+      },*/
     ];
   }, [breakpoint]);
 
   const getSelectValue = useMemo(() => {
-    setOverViewStore({ viewMode: defaultViewMode });
-    return getSelectOptions.find((o) => o.value === defaultViewMode);
-  }, [getSelectOptions, defaultViewMode, setOverViewStore]);
+    return getSelectOptions.find((o) => o.value === viewMode);
+  }, [getSelectOptions, viewMode]);
 
   return (
     <Select
       options={getSelectOptions}
-      className="custom-select"
-      classNamePrefix="rs"
-      defaultValue={getSelectValue}
+      selected={getSelectValue}
+      searchable={false}
+      disabled={false}
+      multi={false}
+      loading={false}
       onChange={(option) => {
         if (option) {
-          setOverViewStore({ viewMode: option.value });
+          setOverViewStore({
+            viewMode: (option as SelectOption<OverviewLayoutType>).value,
+          });
         }
       }}
-      isOptionDisabled={(option) => Boolean(option.disabled)}
-      isSearchable={false}
     />
   );
 };

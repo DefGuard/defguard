@@ -3,8 +3,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { clone, orderBy } from 'lodash-es';
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Column } from 'react-table';
 import useBreakpoint from 'use-breakpoint';
 
@@ -20,7 +19,6 @@ import { IconDeactivated } from '../../shared/components/svg';
 import SvgIconCheckmarkGreen from '../../shared/components/svg/IconCheckmarkGreen';
 import SvgIconPlusWhite from '../../shared/components/svg/IconPlusWhite';
 import { deviceBreakpoints } from '../../shared/constants';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../shared/hooks/store/useModalStore';
 import useApi from '../../shared/hooks/useApi';
 import { patternBaseUrl } from '../../shared/patterns';
@@ -42,11 +40,6 @@ const WebhooksPage = () => {
   const {
     webhook: { getWebhooks },
   } = useApi();
-
-  const navigate = useNavigate();
-  const settings = useAppStore((state) => state.settings);
-
-  if (!settings?.webhooks_enabled) navigate('/');
 
   const { data: webhooks } = useQuery([QueryKeys.FETCH_WEBHOOKS], getWebhooks);
 

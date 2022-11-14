@@ -1,10 +1,9 @@
 import './style.scss';
 
 import React from 'react';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import LoaderPage from '../loader/LoaderPage';
 import DeleteClientModal from './modals/DeleteClientModal/DeleteClientModal';
 import EnableClientModal from './modals/EnableClientModal/EnableClientModal';
@@ -13,10 +12,6 @@ import OpenidClientsList from './OpenidClientsList/OpenidClientsList';
 const OpenidClient = React.lazy(() => import('./OpenidClient/OpenidClient'));
 
 const OpenidPage = () => {
-  const navigate = useNavigate();
-  const settings = useAppStore((state) => state.settings);
-
-  if (!settings?.openid_enabled) navigate('/');
   return (
     <PageContainer id="openid">
       <Routes>

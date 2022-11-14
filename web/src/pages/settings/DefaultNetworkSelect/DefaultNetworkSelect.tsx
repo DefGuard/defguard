@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
-import Select from 'react-select';
 import useBreakpoint from 'use-breakpoint';
 
+import {
+  Select,
+  SelectOption,
+} from '../../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../../overview/hooks/store/useOverviewStore';
@@ -14,31 +17,55 @@ export const DefaultNetworkSelect = () => {
     if (breakpoint === 'mobile') {
       return [
         {
+          key: 0,
           value: OverviewLayoutType.GRID,
           label: 'Grid view',
         },
-        { value: OverviewLayoutType.LIST, label: 'List view', disabled: true },
-        { value: OverviewLayoutType.MAP, label: 'Map view', disabled: true },
+        {
+          key: 1,
+          value: OverviewLayoutType.LIST,
+          label: 'List view',
+          disabled: true,
+        },
+        /*{
+        //key: 2,
+        //value: OverviewLayoutType.MAP,
+        //label: 'Map view',
+        //disabled: true,
+				}*/
       ];
     }
     if (breakpoint === 'tablet') {
       return [
         {
+          key: 0,
           value: OverviewLayoutType.GRID,
           label: 'Grid view',
           disabled: true,
         },
-        { value: OverviewLayoutType.LIST, label: 'List view', disabled: false },
-        { value: OverviewLayoutType.MAP, label: 'Map view', disabled: true },
+        {
+          key: 1,
+          value: OverviewLayoutType.LIST,
+          label: 'List view',
+          disabled: false,
+        },
+        /*{
+        //key: 2,
+        //value: OverviewLayoutType.MAP,
+        //label: 'Map view',
+        //disabled: true,
+      },*/
       ];
     }
     return [
-      {
-        value: OverviewLayoutType.GRID,
-        label: 'Grid view',
-      },
-      { value: OverviewLayoutType.LIST, label: 'List view' },
-      { value: OverviewLayoutType.MAP, label: 'Map view', disabled: true },
+      { key: 0, value: OverviewLayoutType.GRID, label: 'Grid view' },
+      { key: 1, value: OverviewLayoutType.LIST, label: 'List view' },
+      /*{
+        //key: 2,
+        //value: OverviewLayoutType.MAP,
+        //label: 'Map view',
+        //disabled: true,
+      },*/
     ];
   }, [breakpoint]);
 
@@ -49,19 +76,19 @@ export const DefaultNetworkSelect = () => {
   return (
     <Select
       options={getSelectOptions}
-      className="custom-select"
-      classNamePrefix="rs"
-      value={getSelectValue}
+      selected={getSelectValue}
       onChange={(option) => {
         if (option) {
           setOverViewStore({
-            defaultViewMode: option.value,
-            viewMode: option.value,
+            defaultViewMode: (option as SelectOption<OverviewLayoutType>).value,
+            viewMode: (option as SelectOption<OverviewLayoutType>).value,
           });
         }
       }}
-      isOptionDisabled={(option) => Boolean(option.disabled)}
-      isSearchable={false}
+      searchable={false}
+      disabled={false}
+      multi={false}
+      loading={false}
     />
   );
 };

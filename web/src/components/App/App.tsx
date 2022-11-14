@@ -102,7 +102,10 @@ const App = () => {
               <Route
                 path="overview/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute
+                    allowedGroups={['admin']}
+                    setting={'wireguard_enabled'}
+                  >
                     <OverviewPage />
                   </ProtectedRoute>
                 }
@@ -126,7 +129,10 @@ const App = () => {
               <Route
                 path="provisioners/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute
+                    allowedGroups={['admin']}
+                    setting={'worker_enabled'}
+                  >
                     <ProvisionersPage />
                   </ProtectedRoute>
                 }
@@ -134,7 +140,10 @@ const App = () => {
               <Route
                 path="webhooks/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute
+                    allowedGroups={['admin']}
+                    setting={'webhooks_enabled'}
+                  >
                     <WebhooksPage />
                   </ProtectedRoute>
                 }
@@ -142,7 +151,10 @@ const App = () => {
               <Route
                 path="openid/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute
+                    allowedGroups={['admin']}
+                    setting={'openid_enabled'}
+                  >
                     <OpenidPage />
                   </ProtectedRoute>
                 }

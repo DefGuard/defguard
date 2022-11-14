@@ -13,7 +13,7 @@ export const EnterpriseCard = () => {
   const { data: license } = useQuery([QueryKeys.FETCH_LICENSE], getLicense);
   return (
     <ContentCard
-      title="Enterprise license"
+      header={<h3>Enterprise license</h3>}
       footer={
         <p>
           {`Licensed to: ${license?.company}`}

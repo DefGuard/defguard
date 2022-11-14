@@ -3,19 +3,28 @@ import React, { ReactNode, useEffect } from 'react';
 import { useIdleTimer } from 'react-idle-timer';
 import { Navigate, useNavigate } from 'react-router-dom';
 
+import { useAppStore } from '../../../../hooks/store/useAppStore';
 import { useAuthStore } from '../../../../hooks/store/useAuthStore';
 import useApi from '../../../../hooks/useApi';
+import { Settings } from '../../../../types';
 
 interface Props {
   children?: ReactNode;
   allowedGroups?: string[];
+  setting?: Setting;
 }
-
+type Setting = keyof Settings;
 /**
  * Wrapper around Route, check if user is logged in.
  */
-const ProtectedRoute: React.FC<Props> = ({ children, allowedGroups }) => {
+
+const ProtectedRoute: React.FC<Props> = ({
+  children,
+  allowedGroups,
+  setting,
+}) => {
   const currentUser = useAuthStore((state) => state.user);
+  const settings = useAppStore((state) => state.settings);
   const {
     auth: { logout },
   } = useApi();
@@ -48,6 +57,11 @@ const ProtectedRoute: React.FC<Props> = ({ children, allowedGroups }) => {
 
   if (isUndefined(currentUser)) {
     return <Navigate replace to="/auth/login" />;
+  }
+  if (settings !== undefined && setting !== undefined) {
+    if (!settings[setting]) {
+      navigate('/', { replace: true });
+    }
   }
   return <>{children}</>;
 };
