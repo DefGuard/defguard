@@ -104,11 +104,13 @@ pub async fn mfa_disable(session_info: SessionInfo, appstate: &State<AppState>) 
 #[post("/auth/webauthn/init")]
 pub async fn webauthn_init(mut session: Session, appstate: &State<AppState>) -> ApiResult {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+        // passkeys to exclude
+        let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
         match appstate.webauthn.start_passkey_registration(
             Uuid::new_v4(),
             &user.email,
             &user.username,
-            None,
+            Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
         ) {
             Ok((ccr, passkey_reg)) => {
                 session
