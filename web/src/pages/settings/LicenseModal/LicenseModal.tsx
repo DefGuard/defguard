@@ -17,9 +17,10 @@ import {
   IconDownload,
 } from '../../../shared/components/svg';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
-import { toaster } from '../../../shared/utils/toaster';
+import { useToaster } from '../../../shared/hooks/useToaster';
 
 export const LicenseModal = () => {
+  const toaster = useToaster();
   const [{ visible: isOpen }, setModalValues] = useModalStore(
     (state) => [state.licenseModal, state.setLicenseModal],
     shallow

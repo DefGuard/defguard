@@ -9,12 +9,13 @@ import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useSettingsFormStore } from '../../../shared/hooks/store/useSettingsFormStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
-import { toaster } from '../../../shared/utils/toaster';
 
 export const SettingsForm = () => {
+  const toaster = useToaster();
   const {
     settings: { editSettings },
   } = useApi();
