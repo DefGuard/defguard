@@ -32,7 +32,7 @@ export const MFAWebAuthN = () => {
   const navigate = useNavigate();
   const [webauthnAvailable, web3Available, totpAvailable] = useMFAStore(
     (state) => [
-      state.webautn_available,
+      state.webauthn_available,
       state.web3_available,
       state.totp_available,
     ],
@@ -59,7 +59,10 @@ export const MFAWebAuthN = () => {
         const parsed = parseRequestOptionsFromJSON(data);
         get(parsed)
           .then((response) => mfaFinish(response.toJSON()))
-          .catch(() => toaster.error('Failed to read key. Try again.'))
+          .catch((err) => {
+            toaster.error('Failed to read key. Try again.');
+            console.error(err);
+          })
           .finally(() => setAwaitingKey(false));
       },
     }

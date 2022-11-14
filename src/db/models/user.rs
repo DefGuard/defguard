@@ -40,8 +40,9 @@ pub struct User {
     pub ssh_key: Option<String>,
     pub pgp_key: Option<String>,
     pub pgp_cert_id: Option<String>,
+    pub mfa_enabled: bool,
     // secret has been verified and TOTP can be used
-    pub totp_enabled: bool,
+    pub(crate) totp_enabled: bool,
     totp_secret: Option<Vec<u8>>,
     #[model(enum)]
     pub(crate) mfa_method: MFAMethod,
@@ -77,6 +78,7 @@ impl User {
             ssh_key: None,
             pgp_key: None,
             pgp_cert_id: None,
+            mfa_enabled: false,
             totp_enabled: false,
             totp_secret: None,
             mfa_method: MFAMethod::None,
@@ -136,7 +138,7 @@ impl User {
     /// - TOTP is enabled
     /// - a [`Wallet`] flagged `use_for_mfa`
     /// - a security key for Webauthn
-    pub async fn mfa_enabled(&self, pool: &DbPool) -> Result<bool, SqlxError> {
+    async fn check_mfa(&self, pool: &DbPool) -> Result<bool, SqlxError> {
         // short-cut
         if self.totp_enabled {
             return Ok(true);
@@ -158,13 +160,45 @@ impl User {
         }
     }
 
-    /// Enable MFA; generate new recovery codes.
-    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<Option<Vec<String>>, SqlxError> {
-        if self.mfa_enabled(pool).await? {
+    /// Verify the state of `mfa_enabled` flag is correct.
+    /// Use this function after removing some of the authentication factors.
+    pub async fn verify_mfa_state(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        let mfa_enabled = self.check_mfa(pool).await?;
+        if self.mfa_enabled != mfa_enabled {
+            if let Some(id) = self.id {
+                query!(
+                    "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1",
+                    id,
+                    mfa_enabled
+                )
+                .execute(pool)
+                .await?;
+            }
+            self.mfa_enabled = mfa_enabled;
+        }
+
+        Ok(())
+    }
+
+    /// Enable MFA. At least one of the authenticator factors must be configured.
+    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        if !self.mfa_enabled {
+            self.verify_mfa_state(pool).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Get recovery codes. If recovery codes exist, this function returns `None`.
+    /// That way recovery codes are returned only once - when MFA is turned on.
+    pub async fn get_recovery_codes(
+        &mut self,
+        pool: &DbPool,
+    ) -> Result<Option<Vec<String>>, SqlxError> {
+        if !self.recovery_codes.is_empty() {
             return Ok(None);
         }
 
-        self.recovery_codes.clear();
         for _ in 0..RECOVERY_CODES_COUNT {
             let code = thread_rng()
                 .sample_iter(Alphanumeric)
@@ -190,8 +224,8 @@ impl User {
     pub async fn disable_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
         if let Some(id) = self.id {
             query!(
-                "UPDATE \"user\" SET totp_secret = NULL, recovery_codes = '{}' \
-                WHERE id = $1",
+                "UPDATE \"user\" SET mfa_enabled = FALSE, mfa_method = 'none', totp_enabled = FALSE, \
+                totp_secret = NULL, recovery_codes = '{}' WHERE id = $1",
                 id
             )
             .execute(pool)
@@ -200,6 +234,7 @@ impl User {
             WebAuthn::delete_all_for_user(pool, id).await?;
         }
         self.totp_secret = None;
+        self.totp_enabled = false;
         self.mfa_method = MFAMethod::None;
         self.recovery_codes.clear();
         Ok(())
@@ -221,17 +256,21 @@ impl User {
     /// Disable TOTP; discard the secret.
     pub async fn disable_totp(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
         if self.totp_enabled {
+            self.mfa_enabled = self.check_mfa(pool).await?;
+            self.totp_enabled = false;
+            self.totp_secret = None;
             if let Some(id) = self.id {
                 query!(
-                    "UPDATE \"user\" SET totp_enabled = FALSE AND totp_secret = NULL WHERE id = $1",
-                    id
+                    "UPDATE \"user\" SET mfa_enabled = $2, totp_enabled = $3 AND totp_secret = $4 \
+                    WHERE id = $1",
+                    id,
+                    self.mfa_enabled,
+                    self.totp_enabled,
+                    self.totp_secret,
                 )
                 .execute(pool)
                 .await?;
-                WebAuthn::delete_all_for_user(pool, id).await?;
             }
-            self.totp_enabled = false;
-            self.totp_secret = None;
         }
         Ok(())
     }
@@ -278,7 +317,7 @@ impl User {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, totp_enabled, totp_secret, \
+            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
             mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\" WHERE username = $1",
             username
@@ -448,7 +487,7 @@ mod test {
             "h.potter@hogwart.edu.uk".into(),
             None,
         );
-        harry.enable_mfa(&pool).await.unwrap();
+        harry.get_recovery_codes(&pool).await.unwrap();
         assert_eq!(harry.recovery_codes.len(), RECOVERY_CODES_COUNT);
         harry.save(&pool).await.unwrap();
 

@@ -124,10 +124,10 @@ export const ProfileDetailsForm = () => {
     [MutationKeys.EDIT_USER],
     editUser,
     {
-      onSuccess: (response) => {
+      onSuccess: (_, request) => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USERS]);
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        toaster.success(`User ${response.username} modified.`);
+        toaster.success(`User ${request.username} modified.`);
         setUserProfile({ editMode: false });
         if (location.pathname.includes('/edit')) {
           navigate('../');
@@ -154,7 +154,15 @@ export const ProfileDetailsForm = () => {
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
     if (user) {
       const groups = values.groups.map((g) => g.value);
-      mutate({ username: user.username, data: { ...values, groups: groups } });
+      mutate({
+        username: user.username,
+        data: {
+          ...user,
+          ...values,
+          groups: groups,
+          totp_enabled: user.totp_enabled,
+        },
+      });
     }
   };
 
@@ -191,6 +199,7 @@ export const ProfileDetailsForm = () => {
             outerLabel="Username"
             controller={{ control, name: 'username' }}
             disabled={userEditLoading || !isAdmin}
+            required
           />
         </div>
       </div>
@@ -200,6 +209,7 @@ export const ProfileDetailsForm = () => {
             outerLabel="First name"
             controller={{ control, name: 'first_name' }}
             disabled={userEditLoading || !isAdmin}
+            required
           />
         </div>
         <div className="item">
@@ -207,6 +217,7 @@ export const ProfileDetailsForm = () => {
             outerLabel="Last name"
             controller={{ control, name: 'last_name' }}
             disabled={userEditLoading || !isAdmin}
+            required
           />
         </div>
       </div>
@@ -223,6 +234,7 @@ export const ProfileDetailsForm = () => {
             outerLabel="E-Mail"
             controller={{ control, name: 'email' }}
             disabled={userEditLoading || !isAdmin}
+            required
           />
         </div>
       </div>

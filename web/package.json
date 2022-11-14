@@ -64,7 +64,7 @@
     "react-is": "^18.2.0",
     "react-markdown": "^8.0.3",
     "react-popper": "^2.3.0",
-    "react-qrcode": "^0.3.6",
+    "react-qr-code": "^2.0.8",
     "react-router": "^6.4.3",
     "react-router-dom": "^6.4.3",
     "react-select": "^5.6.0",

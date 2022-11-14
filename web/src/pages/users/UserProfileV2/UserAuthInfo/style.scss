@@ -73,6 +73,7 @@
       & > header {
         width: 100%;
         position: relative;
+        user-select: none;
 
         & > .edit-mfa {
           position: absolute;

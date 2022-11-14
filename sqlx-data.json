@@ -369,6 +369,44 @@
     },
     "query": "DELETE FROM \"wallet\" WHERE id = $1"
   },
+  "16be3197b7d4df94ca7b1805c6d9237b1725ee99c475dcc424f3ffad4a36e94a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Bool",
+          "Bool",
+          "Bytea",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          },
+          "TextArray"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET \"username\" = $2, \"password_hash\" = $3, \"last_name\" = $4, \"first_name\" = $5, \"email\" = $6, \"phone\" = $7, \"ssh_key\" = $8, \"pgp_key\" = $9, \"pgp_cert_id\" = $10, \"mfa_enabled\" = $11, \"totp_enabled\" = $12, \"totp_secret\" = $13, \"mfa_method\" = $14, \"recovery_codes\" = $15 WHERE id = $1"
+  },
   "181648e27fa631654a0068c51bf25ed9c275cc98d718bac2452c6a73090285d4": {
     "describe": {
       "columns": [],
@@ -890,6 +928,21 @@
     },
     "query": "SELECT access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE access_token = $1"
   },
+  "381a91411dae9517c285d2f57cf81ac75d3bf0812c190ef118d6dce1b564b37d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Bool",
+          "Bool",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET mfa_enabled = $2, totp_enabled = $3 AND totp_secret = $4 WHERE id = $1"
+  },
   "3910d049cef41cdd2364eb9da72eef6c40a9bd22ec4b20fe3c5e425252246f77": {
     "describe": {
       "columns": [
@@ -1065,6 +1118,19 @@
     },
     "query": "INSERT INTO oauth2token (access_token, refresh_token, redirect_uri, scope, expires_in) VALUES ($1, $2, $3, $4, $5)"
   },
+  "454f2edaee1d6c60e75f20ef4344e5ceba35c07316b4317b9b0a6e78b41de0bf": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Bool"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1"
+  },
   "4a50eccb1be2b1721d27b4aaf59108ab739b7cbc9dad8b602297c5cded6bd03e": {
     "describe": {
       "columns": [
@@ -1226,50 +1292,6 @@
       }
     },
     "query": "DELETE FROM \"openidclientauthcode\" WHERE id = $1"
-  },
-  "5418ab883357c0b54de43d5186bf67447785e86510a5ac68a6d6869e24a46e11": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Bool",
-          "Bytea",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "one_time_password",
-                  "webauthn",
-                  "web3"
-                ]
-              },
-              "name": "mfa_method"
-            }
-          },
-          "TextArray"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"user\" (\"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"totp_enabled\", \"totp_secret\", \"mfa_method\", \"recovery_codes\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id"
   },
   "57c6333e11b68c1451f79047aa5449cad8a704aad2756239282738b04ff70fd7": {
     "describe": {
@@ -1649,116 +1671,6 @@
     },
     "query": "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE device.id = $1 AND \"user\".id = $2"
   },
-  "65b5700e754563c05b11d392d3a85fbafd2f8dbc94f975270baa22f7615ebd08": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "username",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "password_hash",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "last_name",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "first_name",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "email",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "phone",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "ssh_key",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "pgp_key",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "pgp_cert_id",
-          "ordinal": 9,
-          "type_info": "Text"
-        },
-        {
-          "name": "totp_enabled",
-          "ordinal": 10,
-          "type_info": "Bool"
-        },
-        {
-          "name": "totp_secret",
-          "ordinal": 11,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "mfa_method: _",
-          "ordinal": 12,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "one_time_password",
-                  "webauthn",
-                  "web3"
-                ]
-              },
-              "name": "mfa_method"
-            }
-          }
-        },
-        {
-          "name": "recovery_codes",
-          "ordinal": 13,
-          "type_info": "TextArray"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        true,
-        true,
-        false,
-        true,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, ssh_key, pgp_key, pgp_cert_id, totp_enabled, totp_secret, mfa_method \"mfa_method: _\", recovery_codes FROM \"user\" WHERE username = $1"
-  },
   "66e54bfa4ee59adf2a1dc3b2e454a440617a53d376a21b9dcc7d482de2e8d54f": {
     "describe": {
       "columns": [
@@ -1973,6 +1885,132 @@
     },
     "query": "SELECT count(*) \"count!\" FROM device"
   },
+  "7d502cb019e69adc755d828bc581fa56c24c48245689fd21799ec96b1dac10ad": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "last_name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "email",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "phone",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "ssh_key",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "pgp_key",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "pgp_cert_id",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "mfa_enabled",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "totp_enabled",
+          "ordinal": 11,
+          "type_info": "Bool"
+        },
+        {
+          "name": "totp_secret",
+          "ordinal": 12,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "mfa_method: _",
+          "ordinal": 13,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          }
+        },
+        {
+          "name": "recovery_codes: _",
+          "ordinal": 14,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"mfa_enabled\", \"totp_enabled\", \"totp_secret\", \"mfa_method\" \"mfa_method: _\", \"recovery_codes\" \"recovery_codes: _\" FROM \"user\""
+  },
+  "7dd9cb419f9488ab2f1da11febdbac08a3a37eb93864104bd667f95615c87c41": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET mfa_enabled = FALSE, mfa_method = 'none', totp_enabled = FALSE, totp_secret = NULL, recovery_codes = '{}' WHERE id = $1"
+  },
   "7e19c2e4c2abb3b3f75eb0745552dfbfcde10e2f959d92907d58a607bb210bc6": {
     "describe": {
       "columns": [],
@@ -2030,18 +2068,6 @@
       }
     },
     "query": "SELECT \"user\".username FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id WHERE group_user.group_id = $1"
-  },
-  "85b0f73642df3fd9c0b76577fa90b033b6296fa1a65401586641fb07cb5985a0": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "UPDATE \"user\" SET totp_secret = NULL, recovery_codes = '{}' WHERE id = $1"
   },
   "86135388d6da625f594c74860ca50859589f8735396acffa968ce88cfe307ff5": {
     "describe": {
@@ -2165,114 +2191,6 @@
       }
     },
     "query": "UPDATE \"user\" SET totp_enabled = TRUE WHERE id = $1"
-  },
-  "954dbc6fe6d00420c6682aee634a687e7e062409d43b1d021dbfc50068f2bb92": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "username",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "password_hash",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "last_name",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "first_name",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "email",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "phone",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "ssh_key",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "pgp_key",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "pgp_cert_id",
-          "ordinal": 9,
-          "type_info": "Text"
-        },
-        {
-          "name": "totp_enabled",
-          "ordinal": 10,
-          "type_info": "Bool"
-        },
-        {
-          "name": "totp_secret",
-          "ordinal": 11,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "mfa_method: _",
-          "ordinal": 12,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "one_time_password",
-                  "webauthn",
-                  "web3"
-                ]
-              },
-              "name": "mfa_method"
-            }
-          }
-        },
-        {
-          "name": "recovery_codes: _",
-          "ordinal": 13,
-          "type_info": "TextArray"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        true,
-        true,
-        false,
-        true,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"totp_enabled\", \"totp_secret\", \"mfa_method\" \"mfa_method: _\", \"recovery_codes\" \"recovery_codes: _\" FROM \"user\""
   },
   "984544838a95d7e90fdd8f2d8108558118167abd49d43e0fb7372df65b427115": {
     "describe": {
@@ -2745,43 +2663,6 @@
       }
     },
     "query": "INSERT INTO \"webhook\" (\"url\", \"description\", \"token\", \"enabled\", \"on_user_created\", \"on_user_deleted\", \"on_user_modified\", \"on_hwkey_provision\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
-  },
-  "ab59ba438d9c93accbb689de0566a476fabcbab77a7fc62b3c19b64999f32826": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Bool",
-          "Bytea",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "one_time_password",
-                  "webauthn",
-                  "web3"
-                ]
-              },
-              "name": "mfa_method"
-            }
-          },
-          "TextArray"
-        ]
-      }
-    },
-    "query": "UPDATE \"user\" SET \"username\" = $2, \"password_hash\" = $3, \"last_name\" = $4, \"first_name\" = $5, \"email\" = $6, \"phone\" = $7, \"ssh_key\" = $8, \"pgp_key\" = $9, \"pgp_cert_id\" = $10, \"totp_enabled\" = $11, \"totp_secret\" = $12, \"mfa_method\" = $13, \"recovery_codes\" = $14 WHERE id = $1"
   },
   "ac9fdeb2a7c0d6b81f3f5e7ad2cc6f73e07a897def131f93dc5d616dfd8c032f": {
     "describe": {
@@ -3290,57 +3171,7 @@
     },
     "query": "INSERT INTO \"openidclientauthcode\" (\"user\", \"code\", \"client_id\", \"state\", \"scope\", \"redirect_uri\", \"nonce\") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
   },
-  "c8aa12003d91b6fc3fcd225bc260be4e51297101ebb0a02215245676cd708ab0": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "wireguard_ip",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "wireguard_pubkey",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 4,
-          "type_info": "Int8"
-        },
-        {
-          "name": "created",
-          "ordinal": 5,
-          "type_info": "Timestamp"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE \"user\".username = $1"
-  },
-  "ca595bfbfb03789ac1a1abd39ed52e77dbd458ffa976b4cb1d321a89efe3827b": {
+  "c863944a13f1b8c3eb0d5a62bff40f453da7ac74551c2e62275931a1e8a7ec9e": {
     "describe": {
       "columns": [
         {
@@ -3394,18 +3225,23 @@
           "type_info": "Text"
         },
         {
-          "name": "totp_enabled",
+          "name": "mfa_enabled",
           "ordinal": 10,
           "type_info": "Bool"
         },
         {
-          "name": "totp_secret",
+          "name": "totp_enabled",
           "ordinal": 11,
+          "type_info": "Bool"
+        },
+        {
+          "name": "totp_secret",
+          "ordinal": 12,
           "type_info": "Bytea"
         },
         {
           "name": "mfa_method: _",
-          "ordinal": 12,
+          "ordinal": 13,
           "type_info": {
             "Custom": {
               "kind": {
@@ -3421,8 +3257,8 @@
           }
         },
         {
-          "name": "recovery_codes: _",
-          "ordinal": 13,
+          "name": "recovery_codes",
+          "ordinal": 14,
           "type_info": "TextArray"
         }
       ],
@@ -3438,17 +3274,68 @@
         true,
         true,
         false,
+        false,
         true,
         false,
         false
       ],
       "parameters": {
         "Left": [
-          "Int8"
+          "Text"
         ]
       }
     },
-    "query": "SELECT id \"id?\", \"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"totp_enabled\", \"totp_secret\", \"mfa_method\" \"mfa_method: _\", \"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1"
+    "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, mfa_method \"mfa_method: _\", recovery_codes FROM \"user\" WHERE username = $1"
+  },
+  "c8aa12003d91b6fc3fcd225bc260be4e51297101ebb0a02215245676cd708ab0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "wireguard_ip",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "wireguard_pubkey",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE \"user\".username = $1"
   },
   "cc02ddc8c954d28c58a443ba7c86def4b1134177e4a5c5ab661667eeb5da5ed7": {
     "describe": {
@@ -3555,6 +3442,122 @@
       }
     },
     "query": "SELECT passkey FROM webauthn WHERE user_id = $1"
+  },
+  "dea8e678aa8f367d359afb80663c56b9429176e3dba0c2db7c224efa430c5fc4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "last_name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "email",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "phone",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "ssh_key",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "pgp_key",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "pgp_cert_id",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "mfa_enabled",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "totp_enabled",
+          "ordinal": 11,
+          "type_info": "Bool"
+        },
+        {
+          "name": "totp_secret",
+          "ordinal": 12,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "mfa_method: _",
+          "ordinal": 13,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          }
+        },
+        {
+          "name": "recovery_codes: _",
+          "ordinal": 14,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"mfa_enabled\", \"totp_enabled\", \"totp_secret\", \"mfa_method\" \"mfa_method: _\", \"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1"
   },
   "e34c2a7ac137329f1a9813db3f1ebbc837971d9c64ee2a6d7d902c1a0f8d6c05": {
     "describe": {
@@ -3725,6 +3728,51 @@
     },
     "query": "INSERT INTO \"group\" (\"name\") VALUES ($1) RETURNING id"
   },
+  "eb00cea26638259fe12354abc085bbf893f10e62afb409fb0f198d33aadf1497": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Bool",
+          "Bool",
+          "Bytea",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          },
+          "TextArray"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"user\" (\"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"mfa_enabled\", \"totp_enabled\", \"totp_secret\", \"mfa_method\", \"recovery_codes\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id"
+  },
   "ee5eca69f32bc6b71279d207a9d6cc1ceda31120d1858042c10743f6929e5903": {
     "describe": {
       "columns": [
@@ -3884,18 +3932,6 @@
       }
     },
     "query": "UPDATE wallet SET challenge_signature = $1, validation_timestamp = $2 WHERE id = $3"
-  },
-  "f72072385b9966b9fe82af26eb166877d001bb3a723b396f8ab5cacea0e3220d": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "UPDATE \"user\" SET totp_enabled = FALSE AND totp_secret = NULL WHERE id = $1"
   },
   "fc3e288a55cef64d17ef2a373aa7fb46dd2548610a09ada4bf2daa8b98249901": {
     "describe": {

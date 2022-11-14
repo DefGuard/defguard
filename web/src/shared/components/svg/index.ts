@@ -59,6 +59,7 @@ export { default as IconEditAlt } from './IconEditAlt';
 export { default as IconEditHover } from './IconEditHover';
 export { default as IconEdit } from './IconEdit';
 export { default as IconEditNetwork } from './IconEditNetwork';
+export { default as IconEth } from './IconEth';
 export { default as IconFilter } from './IconFilter';
 export { default as IconHamburgerClose } from './IconHamburgerClose';
 export { default as IconHamburgerMenu1 } from './IconHamburgerMenu1';

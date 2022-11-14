@@ -1,4 +1,3 @@
-import ChangeWalletModal from '../../shared/components/modals/ChangeWalletModal/ChangeWalletModal';
 import { ChangePasswordModal } from './shared/modals/ChangeUserPasswordModal/ChangeUserPasswordModal';
 import { DeleteUserDeviceModal } from './shared/modals/DeleteUserDeviceModal/DeleteUserDeviceModal';
 import DeleteUserModal from './shared/modals/DeleteUserModal/DeleteUserModal';
@@ -17,7 +16,6 @@ export const UsersSharedModals = () => {
       <ChangePasswordModal />
       <UserDeviceModal />
       <DeleteUserDeviceModal />
-      <ChangeWalletModal />
       <KeyDetailsModal />
     </>
   );

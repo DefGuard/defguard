@@ -3,7 +3,7 @@ import './style.scss';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { SubmitHandler } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +32,7 @@ type Inputs = {
   password: string;
 };
 
-const Login: React.FC = () => {
+const Login = () => {
   const { t } = useTranslation('en');
   const schema = yup
     .object({
@@ -121,6 +121,10 @@ const Login: React.FC = () => {
       loginMutation.mutate(data);
     }
   };
+
+  useEffect(() => {
+    setMfaStore({});
+  }, [setMfaStore]);
 
   return (
     <section id="login-container">

@@ -38,7 +38,7 @@ export const MFATOTPAuth = () => {
     (state) => [
       state.totp_available,
       state.web3_available,
-      state.webautn_available,
+      state.webauthn_available,
     ],
     shallow
   );
@@ -92,8 +92,9 @@ export const MFATOTPAuth = () => {
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'code' }}
-          required
+          autoComplete="one-time-code"
           placeholder="Enter Authenticator code"
+          required
         />
         <Button
           text="Use authenticator code"

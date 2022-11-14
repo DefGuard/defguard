@@ -9,6 +9,7 @@ import Button, {
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
 import { IconCheckmarkWhite, IconEdit } from '../../../shared/components/svg';
+import { Web3ContextProvider } from '../../../shared/components/Web3/Web3ContextProvider';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useNavigationStore } from '../../../shared/hooks/store/useNavigationStore';
@@ -79,7 +80,9 @@ export const UserProfileV2 = () => {
         </div>
         <div className="cards-1">
           <UserDevices />
-          <UserWallets />
+          <Web3ContextProvider>
+            <UserWallets />
+          </Web3ContextProvider>
         </div>
         <div className="cards-2">
           <UserYubiKeys />
@@ -152,7 +155,9 @@ const EditModeControls = () => {
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
           icon={<IconCheckmarkWhite />}
-          onClick={() => submitSubject.next()}
+          onClick={async () => {
+            setTimeout(() => submitSubject.next(), 500);
+          }}
         />
       </div>
     </>

@@ -12,7 +12,7 @@ const defaultState: MFALoginResponse = {
   mfa_method: UserMFAMethod.NONE,
   totp_available: false,
   web3_available: false,
-  webautn_available: false,
+  webauthn_available: false,
 };
 
 export const useMFAStore = create<MFAStore, [['zustand/persist', MFAStore]]>(

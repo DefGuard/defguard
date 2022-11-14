@@ -65,7 +65,7 @@ specifiers:
   react-is: ^18.2.0
   react-markdown: ^8.0.3
   react-popper: ^2.3.0
-  react-qrcode: ^0.3.6
+  react-qr-code: ^2.0.8
   react-router: ^6.4.3
   react-router-dom: ^6.4.3
   react-select: ^5.6.0
@@ -133,7 +133,7 @@ dependencies:
   react-is: 18.2.0
   react-markdown: 8.0.3_fan5qbzahqtxlm5dzefqlqx5ia
   react-popper: 2.3.0_r6q5zrenym2zg7je7hgi674bti
-  react-qrcode: 0.3.6_qrcode@1.5.1+react@18.2.0
+  react-qr-code: 2.0.8_react@18.2.0
   react-router: 6.4.3_react@18.2.0
   react-router-dom: 6.4.3_biqbaboplfbrettd7655fr4n2y
   react-select: 5.6.0_o6ujcdmwt6ni5mv4wdf5n6tg3y
@@ -7586,6 +7586,10 @@ packages:
     engines: {node: '>=0.6.0', teleport: '>=0.2.0'}
     dev: true
 
+  /qr.js/0.0.0:
+    resolution: {integrity: sha512-c4iYnWb+k2E+vYpRimHqSu575b1/wKl4XFeJGpFmrJQz5I88v9aY2czh7s0w36srfCM1sXgC/xpoJz5dJfq+OQ==}
+    dev: false
+
   /qrcode/1.4.4:
     resolution: {integrity: sha512-oLzEC5+NKFou9P0bMj5+v6Z40evexeE29Z9cummZXZ9QXyMr3lphkURzxjXgPJC5azpxcshoDWV1xE46z+/c3Q==}
     engines: {node: '>=4'}
@@ -7820,13 +7824,17 @@ packages:
       warning: 4.0.3
     dev: false
 
-  /react-qrcode/0.3.6_qrcode@1.5.1+react@18.2.0:
-    resolution: {integrity: sha512-F905AAyNu/gyhsp321FW21WDLwQ/di3qBsqolCwiuRnj8VXewanhp1YtHMiEi/h/1F6GkYd0lj+g/Vc64L6ihQ==}
+  /react-qr-code/2.0.8_react@18.2.0:
+    resolution: {integrity: sha512-zYO9EAPQU8IIeD6c6uAle7NlKOiVKs8ji9hpbWPTGxO+FLqBN2on+XCXQvnhm91nrRd306RvNXUkUNcXXSfhWA==}
     peerDependencies:
-      qrcode: '>=1.0.0'
-      react: '>=16.8.0'
+      react: ^16.x || ^17.x || ^18.x
+      react-native-svg: '*'
+    peerDependenciesMeta:
+      react-native-svg:
+        optional: true
     dependencies:
-      qrcode: 1.5.1
+      prop-types: 15.8.1
+      qr.js: 0.0.0
       react: 18.2.0
     dev: false
 
