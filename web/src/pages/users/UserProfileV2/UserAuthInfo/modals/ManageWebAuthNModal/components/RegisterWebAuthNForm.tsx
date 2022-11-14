@@ -120,15 +120,14 @@ export const RegisterWebAuthNForm = () => {
                 return;
               }
               const options = parseCreationOptionsFromJSON(responseData);
-              //const platform = checkPlatform();
-              //if (platform === SupportedPlatform.MAC) {
-              //  if (options.publicKey?.authenticatorSelection) {
-              //    options.publicKey.authenticatorSelection.authenticatorAttachment =
-              //      'platform';
-              //  }
-              //}
-              const response = await create(options);
+              const response = await create(options).catch((err) => {
+                console.error(err);
+                return null;
+              });
               setWaitingForSecurityKey(false);
+              if (!response) {
+                return;
+              }
               if (response) {
                 registerKeyFinish({
                   name: formValues.name,
