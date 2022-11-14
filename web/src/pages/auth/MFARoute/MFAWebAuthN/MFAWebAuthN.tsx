@@ -59,7 +59,10 @@ export const MFAWebAuthN = () => {
         const parsed = parseRequestOptionsFromJSON(data);
         get(parsed)
           .then((response) => mfaFinish(response.toJSON()))
-          .catch(() => toaster.error('Failed to read key. Try again.'))
+          .catch((err) => {
+            toaster.error('Failed to read key. Try again.');
+            console.error(err);
+          })
           .finally(() => setAwaitingKey(false));
       },
     }
