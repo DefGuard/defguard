@@ -13,6 +13,7 @@ import { SelectOption } from '../../../../../shared/components/layout/Select/Sel
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import {
   patternNoSpecialChars,
@@ -22,7 +23,6 @@ import {
 import { QueryKeys } from '../../../../../shared/queries';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
-import { toaster } from '../../../../../shared/utils/toaster';
 
 interface Inputs {
   username: string;
@@ -120,6 +120,7 @@ export const ProfileDetailsForm = () => {
       enabled: fetchGroups,
     }
   );
+  const toaster = useToaster();
   const { mutate, isLoading: userEditLoading } = useMutation(
     [MutationKeys.EDIT_USER],
     editUser,

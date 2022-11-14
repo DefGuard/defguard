@@ -1,14 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { toast } from 'react-toastify';
 import shallow from 'zustand/shallow';
 
 import ConfirmModal, {
   ConfirmModalType,
 } from '../../../../shared/components/layout/ConfirmModal/ConfirmModal';
-import ToastContent, {
-  ToastType,
-} from '../../../../shared/components/Toasts/ToastContent';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../shared/queries';
@@ -32,13 +28,7 @@ const DeleteClientModal: React.FC = () => {
   const { mutate, isLoading } = useMutation(
     (client: OpenidClient) => deleteOpenidClient(client.id),
     {
-      onSuccess: (_, variables) => {
-        toast(
-          <ToastContent
-            type={ToastType.SUCCESS}
-            message={`${variables.name} deleted`}
-          />
-        );
+      onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
         if (modalState.onSuccess) {
           modalState.onSuccess();

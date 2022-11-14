@@ -2,7 +2,6 @@ import './style.scss';
 
 import saveAs from 'file-saver';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'react-toastify';
 import useBreakpoint from 'use-breakpoint';
 
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
@@ -11,14 +10,12 @@ import { DeviceAvatar } from '../../../../../shared/components/layout/DeviceAvat
 import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
-import ToastContent, {
-  ToastType,
-} from '../../../../../shared/components/Toasts/ToastContent';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { displayDate } from '../../../../../shared/helpers/displayDate';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { Device } from '../../../../../shared/types';
 
 interface Props {
@@ -26,6 +23,7 @@ interface Props {
 }
 
 export const DeviceCard = ({ device }: Props) => {
+  const toaster = useToaster();
   const user = useUserProfileV2Store((state) => state.user);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const setDeleteUserDeviceModal = useModalStore(
@@ -47,13 +45,9 @@ export const DeviceCard = ({ device }: Props) => {
         });
         saveAs(blob, `${device.name.toLowerCase()}.conf`);
       })
-      .catch(() => {
-        toast(
-          <ToastContent
-            type={ToastType.ERROR}
-            message={'Failed to create config'}
-          />
-        );
+      .catch((err) => {
+        console.log(err);
+        toaster.error('Clipboard is not accessible.');
       });
   };
 

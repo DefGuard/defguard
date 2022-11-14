@@ -17,10 +17,10 @@ import { Label } from '../../../../../shared/components/layout/Label/Label';
 import { IconEth } from '../../../../../shared/components/svg';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
 import { WalletInfo } from '../../../../../shared/types';
-import { toaster } from '../../../../../shared/utils/toaster';
 
 interface Props {
   wallet: WalletInfo;
@@ -33,6 +33,7 @@ export const WalletCard = ({
   connected = false,
   showMFA = false,
 }: Props) => {
+  const toaster = useToaster();
   const [hovered, setHovered] = useState(false);
   const {
     user: { deleteWallet },

@@ -1,14 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { toast } from 'react-toastify';
 import shallow from 'zustand/shallow';
 
 import ConfirmModal, {
   ConfirmModalType,
 } from '../../../../shared/components/layout/ConfirmModal/ConfirmModal';
-import ToastContent, {
-  ToastType,
-} from '../../../../shared/components/Toasts/ToastContent';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../shared/queries';
@@ -33,13 +29,7 @@ const EnableClientModal: React.FC = () => {
     (client: OpenidClient) =>
       changeOpenidClientState({ id: client.id, enabled: !client.enabled }),
     {
-      onSuccess: (_, variables) => {
-        toast(
-          <ToastContent
-            type={ToastType.SUCCESS}
-            message={`${variables.name} `}
-          />
-        );
+      onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
         if (modalState.onSuccess) {
           modalState.onSuccess();

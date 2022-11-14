@@ -15,9 +15,9 @@ import Button, {
 } from '../../../../../../../shared/components/layout/Button/Button';
 import { useModalStore } from '../../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../../shared/queries';
-import { toaster } from '../../../../../../../shared/utils/toaster';
 
 interface FormInputs {
   name: string;
@@ -34,6 +34,7 @@ const formSchema = yup
   .required();
 
 export const RegisterWebAuthNForm = () => {
+  const toaster = useToaster();
   const setModalState = useModalStore((state) => state.setState);
   const [waitingForSecurityKey, setWaitingForSecurityKey] = useState(false);
   const {

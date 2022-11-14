@@ -10,14 +10,13 @@
     inset: 0;
     overflow: auto;
     outline: 0;
-    z-index: 110000;
+    z-index: 4;
 
     .modal {
       box-sizing: border-box;
       margin: 0 auto;
       display: grid;
       width: 100%;
-      z-index: 110002;
       @include bs.media-breakpoint-up(xl) {
         padding: 0 0 4rem;
       }
@@ -64,7 +63,7 @@
   .backdrop {
     position: fixed;
     inset: 0;
-    z-index: 100000;
+    z-index: 3;
     display: block;
     height: 100%;
     width: 100%;

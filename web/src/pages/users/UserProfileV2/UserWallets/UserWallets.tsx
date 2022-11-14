@@ -7,7 +7,7 @@ import { useAccount, useDisconnect } from 'wagmi';
 
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
-import { toaster } from '../../../../shared/utils/toaster';
+import { useToaster } from '../../../../shared/hooks/useToaster';
 import AddComponentBox from '../../shared/components/AddComponentBox/AddComponentBox';
 import { AddWalletModal } from './AddWalletModal/AddWalletModal';
 import { WalletCard } from './WalletCard/WalletCard';
@@ -18,6 +18,7 @@ export const UserWallets = () => {
   const user = useUserProfileV2Store((state) => state.user);
   const isMe = useUserProfileV2Store((state) => state.isMe);
   const setModalsState = useModalStore((state) => state.setState);
+  const toaster = useToaster();
 
   const sortedWallet = useMemo(() => {
     if (user && user.wallets) {
