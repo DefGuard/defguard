@@ -71,7 +71,7 @@ const App = () => {
     enabled: !userMe,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
-    retry: false,
+    retry: true,
   });
 
   if (currentUserLoading && !userMe && !currentUser) return <LoaderPage />;

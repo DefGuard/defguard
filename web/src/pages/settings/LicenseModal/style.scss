@@ -49,15 +49,13 @@
         overflow-wrap: break-word;
         word-break: break-all;
         @include typography(15px, 23px, regular, var(--gray-dark), 'Poppins');
-	& > pre {
-	  @include typography(15px, 23px, regular, var(--gray-dark), 'Poppins');
-	}
-	& > strong {
-	  @include typography(15px, 23px, bold, var(--gray-dark), 'Poppins');
-	}
-	& > p {
-	  @include typography(15px, 23px, regular, var(--gray-dark), 'Poppins');
-	}
+        & > pre,
+        p {
+          @include typography(15px, 23px, regular, var(--gray-dark), 'Poppins');
+        }
+        & > strong {
+          @include typography(15px, 23px, bold, var(--gray-dark), 'Poppins');
+        }
       }
       .controls {
         margin-top: 2rem;

@@ -9,6 +9,14 @@
   @include media-breakpoint-up(lg) {
     padding: 40px 60px;
   }
+  h1,
+  h2,
+  h3 {
+    user-select: none;
+  }
+  h2 {
+    @include card-header;
+  }
 
   & > header {
     display: inline-grid;
@@ -83,7 +91,6 @@
       flex-flow: column nowrap;
       row-gap: 3.5rem;
       & > h2 {
-        @include card-header;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -99,9 +106,7 @@
       flex-flow: column nowrap;
       row-gap: 3.5rem;
       padding-right: 3rem;
-      h2 {
-        @include card-header;
-      }
+
       .logo-card {
         min-height: 170px;
         display: flex;
