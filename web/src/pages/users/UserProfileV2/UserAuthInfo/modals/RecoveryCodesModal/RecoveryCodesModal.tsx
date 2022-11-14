@@ -18,7 +18,6 @@ import {
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 
-
 export const RecoveryCodesModal = () => {
   const modalState = useModalStore((state) => state.recoveryCodesModal);
   const setModalState = useModalStore((state) => state.setRecoveryCodesModal);
@@ -40,7 +39,7 @@ const ModalContent = () => {
   const codes = useModalStore((state) => state.recoveryCodesModal.codes);
   const setModalState = useModalStore((state) => state.setRecoveryCodesModal);
   const toaster = useToaster();
-  
+
   if (!codes) return null;
 
   return (

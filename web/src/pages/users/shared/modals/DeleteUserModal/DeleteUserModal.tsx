@@ -11,7 +11,6 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { User } from '../../../../../shared/types';
 
-
 const DeleteUserModal = () => {
   const {
     user: { deleteUser },

@@ -1,25 +1,36 @@
-import { useContext } from 'react';
-
-import { ToastType } from '../components/layout/Toast/Toast';
-import { ToasterContext } from '../contexts/ToasterContext';
+import { ToastType } from '../components/layout/ToastManager/Toast/Toast';
+import { useToastsStore } from './store/useToastStore';
 
 export const useToaster = () => {
-  const { eventObserver } = useContext(ToasterContext);
-
-  const callToast = (type: ToastType, message: string, subMessage?: string) => {
-    eventObserver.next({ type, message, subMessage });
-  };
+  const addToast = useToastsStore((store) => store.addToast);
 
   const success = (message: string, subMessage?: string) =>
-    callToast(ToastType.SUCCESS, message, subMessage);
+    addToast({
+      type: ToastType.SUCCESS,
+      message,
+      subMessage,
+    });
 
   const info = (message: string, subMessage?: string) =>
-    callToast(ToastType.INFO, message, subMessage);
+    addToast({
+      type: ToastType.INFO,
+      message,
+      subMessage,
+    });
 
   const warning = (message: string, subMessage?: string) =>
-    callToast(ToastType.WARNING, message, subMessage);
+    addToast({
+      type: ToastType.WARNING,
+      message,
+      subMessage,
+    });
 
   const error = (message: string, subMessage?: string) =>
-    callToast(ToastType.ERROR, message, subMessage);
+    addToast({
+      type: ToastType.ERROR,
+      message,
+      subMessage,
+    });
+
   return { success, info, warning, error };
 };

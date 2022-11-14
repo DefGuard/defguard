@@ -7,11 +7,10 @@ import { useAccount, useDisconnect } from 'wagmi';
 
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
-
+import { useToaster } from '../../../../shared/hooks/useToaster';
 import AddComponentBox from '../../shared/components/AddComponentBox/AddComponentBox';
 import { AddWalletModal } from './AddWalletModal/AddWalletModal';
 import { WalletCard } from './WalletCard/WalletCard';
-import { useToaster } from '../../../../shared/hooks/useToaster';
 
 export const UserWallets = () => {
   const { isConnected, address } = useAccount();

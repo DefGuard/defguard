@@ -1,7 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { toast } from 'react-toastify';
 
-import ToastContent, { ToastType } from '../components/layout/Toast/Toast';
 import {
   AddDeviceRequest,
   AddOpenidClientRequest,
@@ -79,7 +77,8 @@ const useApi = (props?: HookProps): ApiHook => {
     (error) => {
       if (Number(error.code) > 401 && Number(error.code) < 500) {
         const message = error.response?.data.message;
-        if (message) {}
+        if (message) {
+        }
       }
       return Promise.reject(error);
     }

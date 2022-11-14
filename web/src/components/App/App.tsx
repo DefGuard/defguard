@@ -23,6 +23,7 @@ import { UserProfilePage } from '../../pages/users/UserProfilePage';
 import UsersPage from '../../pages/users/UsersPage';
 import WizardPage from '../../pages/vpn/Wizard/WizardPage';
 import WebhooksPage from '../../pages/webhooks/WebhooksPage';
+import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
@@ -139,6 +140,7 @@ const App = () => {
           </Routes>
         </Router>
       </div>
+      <ToastManager />
     </>
   );
 };

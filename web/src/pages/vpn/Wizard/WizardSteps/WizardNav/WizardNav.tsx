@@ -3,7 +3,6 @@ import './style.scss';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
 import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
 
@@ -13,9 +12,6 @@ import Button, {
 } from '../../../../../shared/components/layout/Button/Button';
 import SvgIconArrowGrayLeft from '../../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../../shared/components/svg/IconArrowGrayRight';
-import ToastContent, {
-  ToastType,
-} from '../../../../../shared/components/layout/Toast/Toast';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { wizardToApiNetwork } from '../../../../../shared/helpers/wizardToApiNetwork';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
@@ -30,7 +26,6 @@ interface Props {
   currentStep: number;
   steps: number;
 }
-
 
 const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -66,7 +61,7 @@ const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
   const addNetworkMutation = useMutation(
     (networkData: Network) => addNetwork(networkData),
     {
-      onSuccess: (_, variables) => {
+      onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
         resetStore({ editMode: false });
         setAppStore({ wizardCompleted: true });
@@ -78,14 +73,8 @@ const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
   const editNetworkMutation = useMutation(
     (networkData: Network) => editNetwork(networkData),
     {
-      onSuccess: (_, variables) => {
+      onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
-        toast.success(
-          <ToastContent
-            type={ToastType.SUCCESS}
-            message={`${variables.name} edited`}
-          />
-        );
         resetStore({ editMode: false });
         navigate('/admin/overview');
       },

@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
-import { toast } from 'react-toastify';
 
 import Button, {
   ButtonSize,
@@ -11,9 +10,6 @@ import Button, {
 import IconButton from '../../../shared/components/layout/IconButton/IconButton';
 import OptionsPopover from '../../../shared/components/layout/OptionsPopover/OptionsPopover';
 import SvgIconEditAlt from '../../../shared/components/svg/IconEditAlt';
-import ToastContent, {
-  ToastType,
-} from '../../../shared/components/layout/Toast/Toast';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
@@ -49,7 +45,6 @@ const WebhookEditButton: React.FC<EditButtonProps> = ({
   const queryClient = useQueryClient();
   const deleteWebhookMutation = useMutation((id: string) => deleteWebhook(id), {
     onSuccess: () => {
-  
       setDeleteOpen(false);
       queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
     },
@@ -62,12 +57,11 @@ const WebhookEditButton: React.FC<EditButtonProps> = ({
     mutationKey: [MutationKeys.CHANGE_WEBHOOK_STATE],
     onSuccess: () => {
       setWebhookStateOpen(false);
-  
+
       queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
     },
     onError: () => {
       setWebhookStateOpen(false);
-
     },
   });
   return (

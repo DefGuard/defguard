@@ -14,7 +14,6 @@ import Button, {
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
-
 import { standardVariants } from '../../shared/variants';
 
 const OAuthPage: React.FC = () => {
@@ -69,7 +68,6 @@ const OAuthPage: React.FC = () => {
     ];
     for (const item in check) {
       if (typeof item === 'undefined' || typeof item === null) {
-
         return false;
       }
     }

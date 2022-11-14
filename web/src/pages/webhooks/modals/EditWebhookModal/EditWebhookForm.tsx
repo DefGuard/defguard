@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { SubmitHandler } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
 import * as yup from 'yup';
 
 import { FormCheckBox } from '../../../../shared/components/Form/FormCheckBox/FormCheckBox';
@@ -16,9 +15,6 @@ import Button, {
 import MessageBox, {
   MessageBoxType,
 } from '../../../../shared/components/layout/MessageBox/MessageBox';
-import ToastContent, {
-  ToastType,
-} from '../../../../shared/components/layout/Toast/Toast';
 import useApi from '../../../../shared/hooks/useApi';
 import {
   patternAtLeastOneDigit,
@@ -105,7 +101,7 @@ const AddWebhookForm: React.FC<Props> = ({ setIsOpen, webhook }) => {
   const queryClient = useQueryClient();
   const editWebhookMutation = useMutation(editWebhook, {
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]); 
+      queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
       setIsOpen(false);
     },
     onError: () => {

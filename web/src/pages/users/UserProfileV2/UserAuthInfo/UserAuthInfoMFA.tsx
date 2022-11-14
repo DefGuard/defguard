@@ -20,7 +20,6 @@ import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
 import { UserMFAMethod } from '../../../../shared/types';
 
-
 export const UserAuthInfoMFA = () => {
   const user = useUserProfileV2Store((store) => store.user);
   const isMe = useUserProfileV2Store((store) => store.isMe);

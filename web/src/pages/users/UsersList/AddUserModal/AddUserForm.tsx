@@ -35,7 +35,6 @@ import {
 } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 
-
 interface Inputs {
   username: string;
   password: string;

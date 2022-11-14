@@ -8,14 +8,10 @@ import { useEffect } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
 import { Subject } from 'rxjs';
 import * as yup from 'yup';
 
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
-import ToastContent, {
-  ToastType,
-} from '../../../../shared/components/layout/Toast/Toast';
 import useApi from '../../../../shared/hooks/useApi';
 import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
@@ -34,8 +30,6 @@ interface Props {
   navigateOnSuccess?: boolean;
   onSuccessCallBack?: () => void;
 }
-
-
 
 const OpenidClientForm: React.FC<Props> = ({
   client,

@@ -23,16 +23,7 @@ type MouseObserverState = {
 
 /**
  * Modal component, renders it's `children` above all normal page content.
- * @param backdrop
- * Determinate visibility of backdrop.
- * @param isOpen
- * Determinate if modal should be rendered.
- * @param setIsOpen
- * Callback to control modal visibility.
- * @param className
- * Appended to main modal container `className` attribute.
- * @param onClose
- * Called when clicking on the backdrop.
+ * This should be used to build other generic modal components with proper styling like {@link ModalWithTitle}.
  */
 const Modal = ({
   children,
@@ -43,7 +34,7 @@ const Modal = ({
   onClose,
   id,
 }: ModalProps) => {
-  const element = document.getElementById('root');
+  const element = document.getElementById('modals-root');
 
   const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -79,7 +70,7 @@ const Modal = ({
    *
    * Close modal if mouse at click event was outside of modal content box.
    *
-   * ClickOutside does not work with react Portals or just in this case, resulting in firing onClickOutside when clicked anywhere on the page.
+   * ClickOutside does not work with react Portals or just in this case, resulting in onClickOutside running when clicked anywhere on the page.
    */
   const checkEventOutside = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>

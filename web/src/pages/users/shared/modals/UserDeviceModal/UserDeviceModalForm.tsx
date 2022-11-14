@@ -20,7 +20,6 @@ import {
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
 
-
 interface Inputs {
   name: string;
   wireguard_pubkey: string;
@@ -95,7 +94,7 @@ export const UserDeviceModalForm = () => {
     device: { addDevice, editDevice },
   } = useApi();
 
-  const toaster =useToaster();
+  const toaster = useToaster();
 
   const onMutationSuccess = () => {
     queryClient.invalidateQueries([QueryKeys.FETCH_USER]);

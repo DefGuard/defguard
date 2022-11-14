@@ -17,11 +17,11 @@ import Button, {
 } from '../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternNoSpecialChars } from '../../../shared/patterns';
 import { LoginData, UserMFAMethod } from '../../../shared/types';
 import { useMFAStore } from '../shared/hooks/useMFAStore';
-import { useToaster } from '../../../shared/hooks/useToaster';
 
 type Inputs = {
   username: string;
@@ -114,7 +114,8 @@ const Login = () => {
 
   useEffect(() => {
     setMfaStore({});
-  }, [setMfaStore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section id="login-container">

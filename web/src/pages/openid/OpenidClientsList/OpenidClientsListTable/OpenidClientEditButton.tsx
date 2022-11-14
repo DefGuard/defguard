@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
 import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
 
@@ -12,9 +11,6 @@ import Button, {
 import OptionsPopover from '../../../../shared/components/layout/OptionsPopover/OptionsPopover';
 import SvgIconDelete from '../../../../shared/components/svg/IconDelete';
 import SvgIconEditAlt from '../../../../shared/components/svg/IconEditAlt';
-import ToastContent, {
-  ToastType,
-} from '../../../../shared/components/layout/Toast/Toast';
 import { deviceBreakpoints } from '../../../../shared/constants';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useOpenidClientStore } from '../../../../shared/hooks/store/useOpenidClientStore';
@@ -47,8 +43,7 @@ const OpenidClientEditButton: React.FC<Props> = ({ client }) => {
   const deleteClientMutation = useMutation(
     (client: OpenidClient) => deleteOpenidClient(client.id),
     {
-      onSuccess: (_, variables) => {
-
+      onSuccess: () => {
         setEditOpen(false);
         setDeleteOpen(false);
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);

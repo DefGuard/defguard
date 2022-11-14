@@ -22,7 +22,6 @@ import {
   patternAtLeastOneUpperCaseChar,
 } from '../../../../../shared/patterns';
 
-
 interface Inputs {
   new_password: string;
   repeat: string;

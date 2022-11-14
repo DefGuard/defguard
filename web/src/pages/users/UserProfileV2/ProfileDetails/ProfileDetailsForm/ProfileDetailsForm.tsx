@@ -24,7 +24,6 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 
-
 interface Inputs {
   username: string;
   first_name: string;
