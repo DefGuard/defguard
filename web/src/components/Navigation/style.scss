@@ -16,7 +16,7 @@
   background-color: v.$white;
   border-bottom: 1px solid v.$gray-border;
   box-sizing: border-box;
-  z-index: 1000;
+  z-index: 2;
 
   .page-title {
     @include mix.poppins;
@@ -45,7 +45,7 @@
   position: fixed;
   top: 0;
   bottom: 0;
-  z-index: 9999;
+  z-index: 2;
   overflow-y: hidden;
   height: auto;
   min-height: 100%;
@@ -347,7 +347,7 @@
   transition: box-shadow v.$nav-links-animation-duration ease,
     background-color v.$nav-links-animation-duration ease,
     left v.$nav-collapse-duration cubic-bezier(0.25, 0.8, 0.25, 1);
-  z-index: 10000;
+  z-index: 3;
 
   &:hover {
     border: 0 solid transparent;

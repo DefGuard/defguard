@@ -5,7 +5,7 @@ import { ReactNode, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 
 import { useModalStore } from '../../../hooks/store/useModalStore';
-import { toaster } from '../../../utils/toaster';
+import { useToaster } from '../../../hooks/useToaster';
 import Button, { ButtonSize } from '../../layout/Button/Button';
 import { ModalWithTitle } from '../../layout/ModalWithTitle/ModalWithTitle';
 import { RowBox } from '../../layout/RowBox/RowBox';
@@ -54,6 +54,7 @@ const WalletConnectorsList = () => {
   const { isConnected } = useAccount();
   const modalState = useModalStore((state) => state.connectWalletModal);
   const setModalsStore = useModalStore((state) => state.setState);
+  const toaster = useToaster();
   const { connect, connectors, error, isLoading, pendingConnector } =
     useConnect();
 
@@ -63,7 +64,8 @@ const WalletConnectorsList = () => {
       console.error(error);
       setModalsStore({ connectWalletModal: { visible: false } });
     }
-  }, [error, setModalsStore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
 
   useEffect(() => {
     if (isConnected && modalState.visible) {

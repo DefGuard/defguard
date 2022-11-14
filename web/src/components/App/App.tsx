@@ -1,19 +1,15 @@
-import 'react-toastify/dist/ReactToastify.css';
 import 'tippy.js/dist/svg-arrow.css';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/animations/scale.css';
 import './App.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
 import {
   BrowserRouter as Router,
   Navigate,
   Route,
   Routes,
 } from 'react-router-dom';
-import { ToastContainer, ToastOptions } from 'react-toastify';
-import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
 
 import AuthPage from '../../pages/auth/AuthPage';
@@ -28,13 +24,8 @@ import { UserProfilePage } from '../../pages/users/UserProfilePage';
 import UsersPage from '../../pages/users/UsersPage';
 import WizardPage from '../../pages/vpn/Wizard/WizardPage';
 import WebhooksPage from '../../pages/webhooks/WebhooksPage';
+import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
-import ToastifyCloseButton from '../../shared/components/Toasts/CloseButton';
-import {
-  standardToastConfig,
-  standardToastConfigMobile,
-} from '../../shared/components/Toasts/toastConfigs';
-import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
@@ -49,12 +40,6 @@ const App = () => {
     (state) => [state.user, state.logOut, state.logIn, state.isAdmin],
     shallow
   );
-  const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const getToastDefaultConfig: ToastOptions = useMemo(() => {
-    return breakpoint === 'mobile'
-      ? standardToastConfigMobile
-      : standardToastConfig;
-  }, [breakpoint]);
 
   const { isLoading: currentUserLoading, data: userMe } = useQuery(
     [QueryKeys.FETCH_ME],
@@ -192,10 +177,7 @@ const App = () => {
           </Routes>
         </Router>
       </div>
-      <ToastContainer
-        {...getToastDefaultConfig}
-        closeButton={ToastifyCloseButton}
-      />
+      <ToastManager />
     </>
   );
 };

@@ -3,7 +3,6 @@ import './style.scss';
 import { motion } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
 
 import Badge, {
   BadgeStyleVariant,
@@ -15,9 +14,6 @@ import Button, {
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
-import ToastContent, {
-  ToastType,
-} from '../../shared/components/Toasts/ToastContent';
 import { standardVariants } from '../../shared/variants';
 
 const OAuthPage: React.FC = () => {
@@ -72,7 +68,6 @@ const OAuthPage: React.FC = () => {
     ];
     for (const item in check) {
       if (typeof item === 'undefined' || typeof item === null) {
-        toast(<ToastContent type={ToastType.ERROR} message="Missing params" />);
         return false;
       }
     }

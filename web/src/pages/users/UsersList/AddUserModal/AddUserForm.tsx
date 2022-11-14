@@ -22,6 +22,7 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
 import {
   patternAtLeastOneDigit,
   patternAtLeastOneLowerCaseChar,
@@ -33,7 +34,6 @@ import {
   patternValidPhoneNumber,
 } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
-import { toaster } from '../../../../shared/utils/toaster';
 
 interface Inputs {
   username: string;
@@ -129,6 +129,7 @@ const AddUserForm = () => {
   } = useController({ control, name: 'username' });
   const queryClient = useQueryClient();
   const setModalState = useModalStore((state) => state.setAddUserModal);
+  const toaster = useToaster();
   const addUserMutation = useMutation(addUser, {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_USERS]);

@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
 import { Subject, switchMap, timer } from 'rxjs';
 import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
@@ -17,12 +16,10 @@ import MessageBox, {
 import Modal from '../../../../../shared/components/layout/Modal/Modal';
 import { IconHamburgerClose } from '../../../../../shared/components/svg';
 import SvgIconCancel from '../../../../../shared/components/svg/IconCancel';
-import ToastContent, {
-  ToastType,
-} from '../../../../../shared/components/Toasts/ToastContent';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import {
   WorkerJobStatus,
@@ -56,6 +53,7 @@ const KeyProvisioningModal: React.FC = () => {
     provisioning: { getWorkers, getJobStatus },
   } = useApi();
   const queryClient = useQueryClient();
+  const toaster = useToaster();
 
   const { data: workers, isLoading } = useQuery(
     [QueryKeys.FETCH_WORKERS],
@@ -93,12 +91,11 @@ const KeyProvisioningModal: React.FC = () => {
             if (success === true) {
               setJobSucceeded(true);
               setKeysData(rest);
+              toaster.success('Keys provisioned.');
             } else {
-              toast(
-                <ToastContent
-                  type={ToastType.ERROR}
-                  message="Provisioning failed"
-                />
+              toaster.error(
+                'Unexpected error occured.',
+                'Please contact administrator.'
               );
             }
           }

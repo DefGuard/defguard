@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
 import { useAccount, useDisconnect, useNetwork, useSignMessage } from 'wagmi';
 import * as yup from 'yup';
 
@@ -12,9 +11,6 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/components/layout/Button/Button';
-import ToastContent, {
-  ToastType,
-} from '../../../../../shared/components/Toasts/ToastContent';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -52,19 +48,12 @@ export const AddWalletModalForm = () => {
     onSuccess: () => {
       setModalsState({ addWalletModal: { visible: false } });
       disconnect();
-      toast(<ToastContent type={ToastType.SUCCESS} message="Wallet added" />);
       queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
     },
 
     onError: () => {
       setModalsState({ addWalletModal: { visible: false } });
       disconnect();
-      toast(
-        <ToastContent
-          type={ToastType.ERROR}
-          message="Unexpected error occurred"
-        />
-      );
     },
   });
 
@@ -85,12 +74,6 @@ export const AddWalletModalForm = () => {
     },
     onError: () => {
       disconnect();
-      toast(
-        <ToastContent
-          type={ToastType.ERROR}
-          message="Unexpected error occurred"
-        />
-      );
     },
   });
 

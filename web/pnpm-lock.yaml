@@ -70,7 +70,6 @@ specifiers:
   react-router-dom: ^6.4.3
   react-select: ^5.6.0
   react-table: ^7.8.0
-  react-toastify: ^9.1.1
   react-virtualized-auto-sizer: ^1.0.7
   react-window: ^1.8.8
   recharts: ^2.1.16
@@ -138,7 +137,6 @@ dependencies:
   react-router-dom: 6.4.3_biqbaboplfbrettd7655fr4n2y
   react-select: 5.6.0_o6ujcdmwt6ni5mv4wdf5n6tg3y
   react-table: 7.8.0_react@18.2.0
-  react-toastify: 9.1.1_biqbaboplfbrettd7655fr4n2y
   react-virtualized-auto-sizer: 1.0.7_biqbaboplfbrettd7655fr4n2y
   react-window: 1.8.8_biqbaboplfbrettd7655fr4n2y
   recharts: 2.1.16_v2m5e27vhdewzwhryxwfaorcca
@@ -7927,17 +7925,6 @@ packages:
       react: ^16.8.3 || ^17.0.0-0 || ^18.0.0
     dependencies:
       react: 18.2.0
-    dev: false
-
-  /react-toastify/9.1.1_biqbaboplfbrettd7655fr4n2y:
-    resolution: {integrity: sha512-pkFCla1z3ve045qvjEmn2xOJOy4ZciwRXm1oMPULVkELi5aJdHCN/FHnuqXq8IwGDLB7PPk2/J6uP9D8ejuiRw==}
-    peerDependencies:
-      react: '>=16'
-      react-dom: '>=16'
-    dependencies:
-      clsx: 1.2.1
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
     dev: false
 
   /react-transition-group/2.9.0_biqbaboplfbrettd7655fr4n2y:

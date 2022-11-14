@@ -3,12 +3,11 @@ import './style.scss';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { SubmitHandler } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
 import * as yup from 'yup';
 
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
@@ -16,15 +15,12 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
-import ToastContent, {
-  ToastType,
-} from '../../../shared/components/Toasts/ToastContent';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternNoSpecialChars } from '../../../shared/patterns';
 import { LoginData, UserMFAMethod } from '../../../shared/types';
-import { toaster } from '../../../shared/utils/toaster';
 import { useMFAStore } from '../shared/hooks/useMFAStore';
 
 type Inputs = {
@@ -51,12 +47,7 @@ const Login = () => {
   } = useApi();
   const logIn = useAuthStore((state) => state.logIn);
   const navigate = useNavigate();
-
-  const responseErrorToast = (message: string) =>
-    toast(<ToastContent message={message} type={ToastType.ERROR} />, {
-      toastId: 'login-form-error',
-      hideProgressBar: true,
-    });
+  const toaster = useToaster();
 
   const { handleSubmit, control, setError } = useForm<Inputs>({
     resolver: yupResolver(schema),
@@ -102,7 +93,6 @@ const Login = () => {
     },
     onError: (error: AxiosError) => {
       if (error.response && error.response.status === 401) {
-        responseErrorToast('Login failed');
         setError(
           'password',
           {
@@ -124,7 +114,8 @@ const Login = () => {
 
   useEffect(() => {
     setMfaStore({});
-  }, [setMfaStore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section id="login-container">

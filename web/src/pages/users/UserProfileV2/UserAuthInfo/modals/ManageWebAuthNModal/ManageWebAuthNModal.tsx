@@ -7,9 +7,9 @@ import { ModalWithTitle } from '../../../../../../shared/components/layout/Modal
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
-import { toaster } from '../../../../../../shared/utils/toaster';
 import { RegisterWebAuthNForm } from './components/RegisterWebAuthNForm';
 import { WebAuthNKeyRow } from './components/WebAuthNKeyRow';
 
@@ -25,6 +25,7 @@ export const ManageWebAuthNKeysModal = () => {
       },
     },
   } = useApi();
+  const toaster = useToaster();
   const queryClient = useQueryClient();
   const { mutate: deleteKeyMutation, isLoading: deleteKeyLoading } =
     useMutation([MutationKeys.WEBUAUTHN_DELETE_KEY], deleteKey, {

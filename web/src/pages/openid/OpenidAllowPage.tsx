@@ -7,7 +7,6 @@ import { isUndefined } from 'lodash-es';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
 
 import Button, {
   ButtonSize,
@@ -16,9 +15,6 @@ import Button, {
 import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
-import ToastContent, {
-  ToastType,
-} from '../../shared/components/Toasts/ToastContent';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { patternBaseUrl } from '../../shared/patterns';
@@ -46,9 +42,6 @@ const OpenidAllowPage: React.FC = () => {
     const check = [scope, responseType, clientId, nonce, redirectUri, state];
     for (const item in check) {
       if (typeof item === 'undefined' || typeof item === null) {
-        toast(
-          <ToastContent type={ToastType.ERROR} message="Missing parameters" />
-        );
         return false;
       }
     }
