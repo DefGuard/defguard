@@ -52,7 +52,7 @@ impl License {
     pub fn default() -> Self {
         Self {
             company: "community".into(),
-            expiration: NaiveDate::from_ymd(2100, 1, 1),
+            expiration: NaiveDate::from_ymd_opt(2100, 1, 1).unwrap_or_default(),
             worker: false,
             ldap: false,
             oauth: false,

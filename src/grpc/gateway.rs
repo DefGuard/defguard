@@ -166,7 +166,8 @@ impl From<PeerStats> for WireguardPeerStats {
             collected_at: Utc::now().naive_utc(),
             upload: stats.upload,
             download: stats.download,
-            latest_handshake: NaiveDateTime::from_timestamp(stats.latest_handshake, 0),
+            latest_handshake: NaiveDateTime::from_timestamp_opt(stats.latest_handshake, 0)
+                .unwrap_or_default(),
             allowed_ips: Some(stats.allowed_ips),
         }
     }

@@ -418,11 +418,10 @@ async fn test_stats() {
     );
     assert_eq!(stats[0].devices[0].stats.len(), 61);
     assert_eq!(stats[0].devices[1].stats.len(), 61);
-    let now_trunc = NaiveDate::from_ymd(now.year(), now.month(), now.day()).and_hms(
-        now.hour(),
-        now.minute(),
-        0,
-    );
+    let now_trunc = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        .unwrap_or_default()
+        .and_hms_opt(now.hour(), now.minute(), 0)
+        .unwrap_or_default();
     assert_eq!(
         stats[0].devices[0].stats.last().unwrap().clone(),
         WireguardDeviceTransferRow {

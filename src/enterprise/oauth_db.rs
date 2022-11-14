@@ -207,7 +207,10 @@ impl From<OAuth2Token> for IssuedToken {
         Self {
             token: token.access_token,
             refresh: Some(token.refresh_token),
-            until: Utc.timestamp(token.expires_in, 0),
+            until: Utc
+                .timestamp_opt(token.expires_in, 0)
+                .earliest()
+                .unwrap_or_default(),
             token_type: TokenType::Bearer,
         }
     }
@@ -218,7 +221,10 @@ impl From<OAuth2Token> for RefreshedToken {
         Self {
             token: token.access_token,
             refresh: Some(token.refresh_token),
-            until: Utc.timestamp(token.expires_in, 0),
+            until: Utc
+                .timestamp_opt(token.expires_in, 0)
+                .earliest()
+                .unwrap_or_default(),
             token_type: TokenType::Bearer,
         }
     }

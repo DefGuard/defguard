@@ -18,54 +18,6 @@ pub struct OpenIDRequest {
 }
 
 impl OpenIDRequest {
-    pub fn verify_response(&self) -> Result<(), Redirect> {
-        let response: Vec<&str> = self.response_type.split(' ').collect();
-        if response.len() > 1 || !response.contains(&"code") {
-            Err(Redirect::found(format!(
-                "{}?error=unsupported_response_type",
-                self.redirect_uri
-            )))
-        } else {
-            Ok(())
-        }
-    }
-
-    // verify redirect uri
-    pub fn verify_redirect_uri(&self, client: &OpenIDClient) -> Result<(), Redirect> {
-        if self.redirect_uri != client.redirect_uri {
-            Err(Redirect::found(format!(
-                "{}?error=unauthorized_client&error_description=client_redirect_uri_dont_match",
-                self.redirect_uri
-            )))
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Verify user allow
-    pub fn verify_allow(&self) -> Result<(), Redirect> {
-        if self.allow {
-            Ok(())
-        } else {
-            Err(Redirect::found(format!(
-                "{}?error=user_unauthorized",
-                self.redirect_uri
-            )))
-        }
-    }
-
-    /// Verify if supported scopes
-    pub fn verify_scope(&self) -> Result<(), Redirect> {
-        if self.scope.to_lowercase().contains("openid") {
-            Ok(())
-        } else {
-            Err(Redirect::found(format!(
-                "{}?error=wrong_scope&error_description=scope_must_contain_openid",
-                self.redirect_uri
-            )))
-        }
-    }
-
     // Create authorization code and save it to database
     pub async fn create_code(
         &self,
@@ -75,10 +27,35 @@ impl OpenIDRequest {
     ) -> Result<Redirect, Redirect> {
         match OpenIDClient::find_enabled_for_client_id(pool, &self.client_id).await {
             Ok(Some(client)) => {
-                self.verify_allow()?;
-                self.verify_scope()?;
-                self.verify_response()?;
-                self.verify_redirect_uri(&client)?;
+                if !self.allow {
+                    return Err(Redirect::found(format!(
+                        "{}?error=user_unauthorized",
+                        self.redirect_uri
+                    )));
+                }
+
+                if !self.scope.to_lowercase().contains("openid") {
+                    return Err(Redirect::found(format!(
+                        "{}?error=wrong_scope&error_description=scope_must_contain_openid",
+                        self.redirect_uri
+                    )));
+                }
+
+                let response: Vec<&str> = self.response_type.split(' ').collect();
+                if response.len() > 1 || !response.contains(&"code") {
+                    return Err(Redirect::found(format!(
+                        "{}?error=unsupported_response_type",
+                        self.redirect_uri
+                    )));
+                }
+
+                if self.redirect_uri != client.redirect_uri {
+                    return Err(Redirect::found(format!(
+                        "{}?error=unauthorized_client&error_description=client_redirect_uri_dont_match",
+                        self.redirect_uri
+                    )));
+                }
+
                 let (code, _) = PkceCodeChallenge::new_random_sha256_len(32);
                 let mut client_auth = OpenIDClientAuth::new(
                     username.into(),
