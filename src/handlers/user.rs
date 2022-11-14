@@ -272,7 +272,7 @@ pub async fn update_wallet(
             wallet.use_for_mfa = data.use_for_mfa;
             let recovery_codes = if data.use_for_mfa {
                 user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
-                user.enable_mfa(&appstate.pool).await?
+                user.get_recovery_codes(&appstate.pool).await?
             } else {
                 None
             };
@@ -297,12 +297,13 @@ pub async fn delete_wallet(
     username: &str,
     address: &str,
 ) -> ApiResult {
-    let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     if let Some(wallet) =
         Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await?
     {
         if Some(wallet.user_id) == user.id {
             wallet.delete(&appstate.pool).await?;
+            user.verify_mfa_state(&appstate.pool).await?;
             Ok(ApiResponse::default())
         } else {
             Err(OriWebError::ObjectNotFound("wrong wallet".into()))
@@ -319,10 +320,11 @@ pub async fn delete_security_key(
     username: &str,
     id: i64,
 ) -> ApiResult {
-    let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     if let Some(webauthn) = WebAuthn::find_by_id(&appstate.pool, id).await? {
         if Some(webauthn.user_id) == user.id {
             webauthn.delete(&appstate.pool).await?;
+            user.verify_mfa_state(&appstate.pool).await?;
             Ok(ApiResponse::default())
         } else {
             Err(OriWebError::ObjectNotFound("wrong security key".into()))

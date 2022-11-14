@@ -34,8 +34,9 @@ use handlers::wireguard::{
 };
 use handlers::{
     auth::{
-        authenticate, logout, mfa_disable, totp_code, totp_disable, totp_enable, totp_secret,
-        web3auth_end, web3auth_start, webauthn_end, webauthn_finish, webauthn_init, webauthn_start,
+        authenticate, logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable,
+        totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
+        webauthn_init, webauthn_start,
     },
     group::{add_group_member, get_group, list_groups, remove_group_member},
     license::get_license,
@@ -140,6 +141,7 @@ pub async fn build_webapp(
                 get_license,
                 get_settings,
                 update_settings,
+                mfa_enable,
                 mfa_disable,
                 totp_secret,
                 totp_disable,
@@ -151,6 +153,7 @@ pub async fn build_webapp(
                 webauthn_end,
                 web3auth_start,
                 web3auth_end,
+                recovery_code
             ],
         )
         .mount(
