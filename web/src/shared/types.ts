@@ -317,6 +317,10 @@ export interface ApiHook {
   license: {
     getLicense: () => Promise<License>;
   };
+  settings: {
+    getSettings: () => Promise<Settings>;
+    editSettings: (data: Settings) => EmptyApiResponse;
+  };
 }
 
 export interface NavigationStore {
@@ -453,6 +457,7 @@ export interface UseModalStore {
   keyDeleteModal: KeyDeleteModal;
   deleteUserModal: DeleteUserModal;
   addUserModal: StandardModalState;
+  licenseModal: StandardModalState;
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
@@ -486,12 +491,27 @@ export interface UseModalStore {
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
   setGatewaySetupModal: ModalSetter<GatewaySetupModal>;
+  setLicenseModal: ModalSetter<StandardModalState>;
 }
 
 export interface UseAppStore {
   backendVersion?: string;
   wizardCompleted?: boolean;
+  settings?: Settings;
+  settingsEditMode?: boolean;
   setAppStore: (newValues: Partial<UseAppStore>) => void;
+}
+
+export interface Settings {
+  id: string;
+  web3_enabled: boolean;
+  openid_enabled: boolean;
+  oauth_enabled: boolean;
+  ldap_enabled: boolean;
+  wireguard_enabled: boolean;
+  webhooks_enabled: boolean;
+  worker_enabled: boolean;
+  challenge_template: boolean;
 }
 
 export interface Webhook {
@@ -595,6 +615,7 @@ export enum OverviewLayoutType {
 
 export interface OverviewStore {
   viewMode: OverviewLayoutType;
+  defaultViewMode: OverviewLayoutType;
   statsFilter: number;
   setState: (override: Partial<OverviewStore>) => void;
 }

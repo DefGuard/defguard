@@ -3,7 +3,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { clone, orderBy } from 'lodash-es';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Column } from 'react-table';
 import useBreakpoint from 'use-breakpoint';
 
@@ -29,7 +29,7 @@ import AddWebhookModal from './modals/AddWebhookModal/AddWebhookModal';
 import WebhooksList from './WebhooksList/WebhooksList';
 import WebhooksTable from './WebhooksTable/WebhooksTable';
 
-const WebhooksPage: React.FC = () => {
+const WebhooksPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [searchValue, setSearchValue] = useState<string>('');
   const [filteredWebhooks, setFilteredWebhooks] = useState<Webhook[]>([]);
@@ -41,11 +41,7 @@ const WebhooksPage: React.FC = () => {
     webhook: { getWebhooks },
   } = useApi();
 
-  const { data: webhooks } = useQuery([QueryKeys.FETCH_WEBHOOKS], getWebhooks, {
-    onSuccess: (data) => {
-      console.log('fetching webhooks success', data);
-    },
-  });
+  const { data: webhooks } = useQuery([QueryKeys.FETCH_WEBHOOKS], getWebhooks);
 
   const tableColumns: Column<Webhook>[] = useMemo(
     (): Column<Webhook>[] => [

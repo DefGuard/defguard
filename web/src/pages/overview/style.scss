@@ -58,6 +58,12 @@
         margin-left: 3rem;
       }
 
+      & > .select {
+	min-width: 200px;
+	height: 40px;
+	margin-left: 3rem;
+      }
+
       & > .docker-command {
         margin-left: auto;
         margin-right: 3rem;

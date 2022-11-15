@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
 import {
@@ -7,18 +7,12 @@ import {
 } from '../../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { OverviewLayoutType } from '../../../shared/types';
-import { useOverviewStore } from '../hooks/store/useOverviewStore';
+import { useOverviewStore } from '../../overview/hooks/store/useOverviewStore';
 
-export const OverviewViewSelect = () => {
+export const DefaultNetworkSelect = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const defaultViewMode = useOverviewStore((state) => state.defaultViewMode);
-  const viewMode = useOverviewStore((state) => state.viewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
-
-  useEffect(() => {
-    setOverViewStore({ viewMode: defaultViewMode });
-  }, [defaultViewMode, setOverViewStore]);
-
   const getSelectOptions = useMemo(() => {
     if (breakpoint === 'mobile') {
       return [
@@ -33,6 +27,12 @@ export const OverviewViewSelect = () => {
           label: 'List view',
           disabled: true,
         },
+        /*{
+        //key: 2,
+        //value: OverviewLayoutType.MAP,
+        //label: 'Map view',
+        //disabled: true,
+				}*/
       ];
     }
     if (breakpoint === 'tablet') {
@@ -49,33 +49,46 @@ export const OverviewViewSelect = () => {
           label: 'List view',
           disabled: false,
         },
+        /*{
+        //key: 2,
+        //value: OverviewLayoutType.MAP,
+        //label: 'Map view',
+        //disabled: true,
+      },*/
       ];
     }
     return [
       { key: 0, value: OverviewLayoutType.GRID, label: 'Grid view' },
       { key: 1, value: OverviewLayoutType.LIST, label: 'List view' },
+      /*{
+        //key: 2,
+        //value: OverviewLayoutType.MAP,
+        //label: 'Map view',
+        //disabled: true,
+      },*/
     ];
   }, [breakpoint]);
 
   const getSelectValue = useMemo(() => {
-    return getSelectOptions.find((o) => o.value === viewMode);
-  }, [getSelectOptions, viewMode]);
+    return getSelectOptions.find((o) => o.value === defaultViewMode);
+  }, [getSelectOptions, defaultViewMode]);
 
   return (
     <Select
       options={getSelectOptions}
       selected={getSelectValue}
-      searchable={false}
-      disabled={false}
-      multi={false}
-      loading={false}
       onChange={(option) => {
         if (option) {
           setOverViewStore({
+            defaultViewMode: (option as SelectOption<OverviewLayoutType>).value,
             viewMode: (option as SelectOption<OverviewLayoutType>).value,
           });
         }
       }}
+      searchable={false}
+      disabled={false}
+      multi={false}
+      loading={false}
     />
   );
 };

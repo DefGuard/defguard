@@ -24,6 +24,7 @@ import {
   NetworkToken,
   NetworkUserStats,
   OpenidClient,
+  Settings,
   User,
   UserEditRequest,
   UserGroupRequest,
@@ -339,6 +340,11 @@ const useApi = (props?: HookProps): ApiHook => {
     ({ keyId, username }) =>
       client.delete(`/user/${username}/security_key/${keyId}`);
 
+  const getSettings = () => client.get('/settings/').then((res) => res.data);
+
+  const editSettings = async (settings: Settings) =>
+    client.put('/settings/', settings).then((res) => res.data);
+
   return {
     oAuth: {
       consent: oAuthConsent,
@@ -434,6 +440,10 @@ const useApi = (props?: HookProps): ApiHook => {
       verifyOpenidClient: verifyOpenidClient,
       getUserClients: getUserClients,
       removeUserClient: removeUserClient,
+    },
+    settings: {
+      getSettings: getSettings,
+      editSettings: editSettings,
     },
   };
 };

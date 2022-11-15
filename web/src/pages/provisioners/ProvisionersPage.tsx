@@ -3,7 +3,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { clone, orderBy } from 'lodash-es';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Column } from 'react-table';
 import useBreakpoint from 'use-breakpoint';
 
@@ -21,7 +21,7 @@ import ProvisionersList from './ProvisionersList/ProvisionersList';
 import ProvisionersTable from './ProvisionersTable/ProvisionersTable';
 import ProvisioningStationSetup from './ProvisioningStationSetup';
 
-const ProvisionersPage: React.FC = () => {
+const ProvisionersPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [searchValue, setSearchValue] = useState<string>('');
   const [filteredProvisioners, setFilteredProvisioners] = useState<

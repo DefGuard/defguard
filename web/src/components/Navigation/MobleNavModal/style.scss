@@ -96,6 +96,10 @@
                 }
               }
             }
+
+            &.bottom {
+              margin-top: auto;
+            }
           }
 
           .log-out {
@@ -112,7 +116,6 @@
             height: 50px;
             border: 0 solid transparent;
             background-color: transparent;
-            margin-top: auto;
 
             span {
               display: block;
