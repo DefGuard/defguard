@@ -1,6 +1,9 @@
 use crate::{
     db::DbPool,
-    enterprise::oauth_db::{AuthorizationCode, OAuth2Client, OAuth2Token},
+    enterprise::db::{
+        oauth::{AuthorizationCode, OAuth2Token},
+        OAuth2Client,
+    },
     oxide_auth_rocket::{OAuthFailure, OAuthRequest, OAuthResponse, WebError},
 };
 use oxide_auth::{
@@ -31,24 +34,13 @@ use std::borrow::Cow;
 // Must implement Clone for flows.
 #[derive(Clone)]
 pub struct OAuthState {
-    pool: DbPool,
+    pub(crate) pool: DbPool,
     pub decision: bool,
     pub allow: bool,
 }
 
 impl OAuthState {
     pub async fn new(pool: DbPool) -> Self {
-        // FIXME: Hard-coded client. It should be removed once client management has been implemented.
-        let client = OAuth2Client {
-            user: "dummy".into(),
-            client_id: "LocalClient".into(),
-            client_secret: "secret".into(),
-            redirect_uri: "http://localhost:3000/".into(),
-            scope: "default-scope".into(),
-        };
-        // FIXME: use result
-        let _result = client.save(&pool).await;
-
         OAuthState {
             pool,
             decision: false,
@@ -61,6 +53,7 @@ impl OAuthState {
 impl Authorizer for OAuthState {
     /// Create a code which allows retrieval of a bearer token at a later time.
     async fn authorize(&mut self, grant: Grant) -> Result<String, ()> {
+        warn!("Authorizer: authorize");
         let auth_code: AuthorizationCode = grant.into();
         auth_code.save(&self.pool).await.unwrap();
         Ok(auth_code.code)
@@ -70,6 +63,7 @@ impl Authorizer for OAuthState {
     /// in the process. In particular, a code should not be usable twice
     /// (there is no stateless implementation of an authorizer for this reason).
     async fn extract(&mut self, code: &str) -> Result<Option<Grant>, ()> {
+        warn!("Authorizer: extract");
         match AuthorizationCode::find_code(&self.pool, code).await {
             Some(auth_code) => {
                 let _result = auth_code.delete(&self.pool).await;
@@ -129,6 +123,7 @@ impl<'r> OwnerSolicitor<OAuthRequest<'r>> for OAuthState {
     ) -> OwnerConsent<OAuthResponse<'r>> {
         if self.decision {
             consent_decision(self.allow, &solicitation)
+        // OwnerConsent::Authorized / Denied
         } else {
             consent_form(req, &solicitation)
         }
@@ -142,15 +137,16 @@ impl Registrar for OAuthState {
         &self,
         bound: ClientUrl<'a>,
     ) -> Result<BoundClient<'a>, RegistrarError> {
-        if let Some(client) = OAuth2Client::find_client_id(&self.pool, &bound.client_id).await {
-            if let Ok(client_uri) = ExactUrl::new(client.redirect_uri) {
-                if let Some(url) = bound.redirect_uri {
-                    if url.as_ref() == &client_uri {
-                        return Ok(BoundClient {
-                            client_id: bound.client_id,
-                            redirect_uri: Cow::Owned(RegisteredUrl::from(client_uri)),
-                        });
-                    }
+        warn!("Registrar: bound_redirect");
+        if let Some(client) = OAuth2Client::find_by_client_id(&self.pool, &bound.client_id).await {
+            let client_uri =
+                ExactUrl::new(client.redirect_uri).map_err(|_| RegistrarError::PrimitiveError)?;
+            if let Some(url) = bound.redirect_uri {
+                if url.as_ref() == &client_uri {
+                    return Ok(BoundClient {
+                        client_id: bound.client_id,
+                        redirect_uri: Cow::Owned(RegisteredUrl::from(client_uri)),
+                    });
                 }
             }
         }
@@ -164,7 +160,8 @@ impl Registrar for OAuthState {
         bound: BoundClient<'a>,
         _scope: Option<Scope>,
     ) -> Result<PreGrant, RegistrarError> {
-        match OAuth2Client::find_client_id(&self.pool, &bound.client_id).await {
+        warn!("Registrar: negotiate");
+        match OAuth2Client::find_by_client_id(&self.pool, &bound.client_id).await {
             Some(client) => Ok(PreGrant {
                 client_id: bound.client_id.into_owned(),
                 redirect_uri: bound.redirect_uri.into_owned(),
@@ -181,8 +178,9 @@ impl Registrar for OAuthState {
         client_id: &str,
         passphrase: Option<&[u8]>,
     ) -> Result<(), RegistrarError> {
+        warn!("Registrar: check");
         if let Some(secret) = passphrase {
-            if let Some(client) = OAuth2Client::find_client_id(&self.pool, client_id).await {
+            if let Some(client) = OAuth2Client::find_by_client_id(&self.pool, client_id).await {
                 if secret == client.client_secret.as_bytes() {
                     return Ok(());
                 }
@@ -194,10 +192,12 @@ impl Registrar for OAuthState {
 
 impl Extension for OAuthState {
     fn authorization(&mut self) -> Option<&mut (dyn AuthorizationExtension + Send)> {
+        warn!("OAuthState: authorization");
         Some(self)
     }
 
     fn access_token(&mut self) -> Option<&mut (dyn AccessTokenExtension + Send)> {
+        warn!("OAuthState: access_token");
         Some(self)
     }
 }

@@ -8,17 +8,13 @@ use defguard::{
     license::{Features, License},
 };
 use rocket::{http::Status, local::asynchronous::Client, routes};
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
 use common::{init_test_db, LICENSE_ENTERPRISE, LICENSE_EXPIRED, LICENSE_WITHOUT_OPENID};
 
 async fn make_client(license: &str) -> Client {
-    env::set_var("DEFGUARD_OAUTH_ENABLED", "true");
     let (pool, mut config) = init_test_db().await;
     config.license = license.into();
 
@@ -60,19 +56,19 @@ async fn test_license_ok() {
     let response = client.get("/api/v1/worker").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    let response = client
-        .get(
-            "/api/oauth/authorize?\
-            response_type=code&\
-            client_id=LocalClient&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-            scope=default-scope&\
-            state=ABCDEF",
-        )
-        .dispatch()
-        .await;
+    // let response = client
+    //     .get(
+    //         "/api/oauth/authorize?\
+    //         response_type=code&\
+    //         client_id=LocalClient&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=default-scope&\
+    //         state=ABCDEF",
+    //     )
+    //     .dispatch()
+    //     .await;
 
-    assert_eq!(response.status(), Status::Found);
+    // assert_eq!(response.status(), Status::Found);
 }
 
 #[rocket::async_test]
@@ -112,16 +108,16 @@ async fn test_license_openid_disabled() {
     let response = client.get("/api/v1/worker").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    let response = client
-        .get(
-            "/api/oauth/authorize?\
-            response_type=code&\
-            client_id=LocalClient&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-            scope=default-scope&\
-            state=ABCDEF",
-        )
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Found);
+    // let response = client
+    //     .get(
+    //         "/api/oauth/authorize?\
+    //         response_type=code&\
+    //         client_id=LocalClient&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=default-scope&\
+    //         state=ABCDEF",
+    //     )
+    //     .dispatch()
+    //     .await;
+    // assert_eq!(response.status(), Status::Found);
 }

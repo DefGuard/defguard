@@ -3,7 +3,9 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 
 #[cfg(feature = "oauth")]
-use crate::enterprise::handlers::oauth::{authorize, authorize_consent, refresh, token};
+use crate::enterprise::handlers::oauth::{
+    add_oauth2client, authorize, authorize_consent, refresh, token,
+};
 #[cfg(feature = "worker")]
 use crate::enterprise::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
@@ -222,12 +224,15 @@ pub async fn build_webapp(
 
     // initialize OAuth2
     #[cfg(feature = "oauth")]
-    let webapp = if config.oauth_enabled && license_decoded.validate(&Features::Oauth) {
+    let webapp = if license_decoded.validate(&Features::Oauth) {
         info!("OAuth2 feature is enabled");
-        webapp.manage(OAuthState::new(pool.clone()).await).mount(
-            "/api/oauth",
-            routes![authorize, authorize_consent, token, refresh],
-        )
+        webapp
+            .manage(OAuthState::new(pool.clone()).await)
+            .mount(
+                "/api/oauth",
+                routes![authorize, authorize_consent, token, refresh],
+            )
+            .mount("/api/v1", routes![add_oauth2client])
     } else {
         webapp
     };

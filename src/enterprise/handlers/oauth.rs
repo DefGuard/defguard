@@ -1,11 +1,14 @@
 use crate::{
-    enterprise::oauth_state::OAuthState,
+    auth::SessionInfo,
+    enterprise::{db::OAuth2Client, oauth_state::OAuthState},
+    error::OriWebError,
+    handlers::{user_for_admin_or_self, ApiResponse, ApiResult},
     oxide_auth_rocket::{OAuthFailure, OAuthRequest, OAuthResponse},
 };
 use oxide_auth_async::endpoint::{
     access_token::AccessTokenFlow, authorization::AuthorizationFlow, refresh::RefreshFlow,
 };
-use rocket::{Data, State};
+use rocket::{http::Status, serde::json::Json, Data, State};
 
 #[get("/authorize")]
 pub async fn authorize<'r>(
@@ -61,4 +64,20 @@ pub async fn refresh<'r>(
         Ok(flow) => flow,
     };
     flow.execute(oauth).await
+}
+
+#[post("/user/<username>/oauth2client", format = "json", data = "<data>")]
+pub async fn add_oauth2client(
+    session: SessionInfo,
+    state: &State<OAuthState>,
+    username: &str,
+    data: Json<OAuth2Client>,
+) -> ApiResult {
+    let user = user_for_admin_or_self(&state.pool, &session, username).await?;
+    let mut oauth2client = data.into_inner();
+    if oauth2client.set_for_user(&state.pool, &user).await? {
+        Ok(ApiResponse::default())
+    } else {
+        Err(OriWebError::Http(Status::NotFound))
+    }
 }

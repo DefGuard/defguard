@@ -1,28 +1,69 @@
 use defguard::{
-    enterprise::handlers::oauth::{authorize, authorize_consent, refresh, token},
-    enterprise::oauth_state::OAuthState,
+    build_webapp,
+    db::{AppEvent, GatewayEvent, User},
+    handlers::Auth,
 };
 use rocket::{
     http::{ContentType, Header, Status},
     local::asynchronous::Client,
-    routes,
 };
+use serde::Serialize;
+use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
-use common::init_test_db;
+use common::{init_test_db, LICENSE_ENTERPRISE};
 
 async fn make_client() -> Client {
-    let (pool, _config) = init_test_db().await;
-    let webapp = rocket::build().manage(OAuthState::new(pool).await).mount(
-        "/api/oauth",
-        routes![authorize, authorize_consent, token, refresh],
-    );
+    let (pool, mut config) = init_test_db().await;
+    config.license = LICENSE_ENTERPRISE.into();
+
+    User::new(
+        "hpotter".into(),
+        "pass123",
+        "Potter".into(),
+        "Harry".into(),
+        "h.potter@hogwart.edu.uk".into(),
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let (tx, rx) = unbounded_channel::<AppEvent>();
+    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+
+    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
     Client::tracked(webapp).await.unwrap()
+}
+
+#[derive(Serialize)]
+pub struct OAuth2Client {
+    client_id: String,
+    client_secret: String,
+    redirect_uri: String,
+    scope: String,
 }
 
 #[rocket::async_test]
 async fn test_authorize() {
     let client = make_client().await;
+
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let oc = OAuth2Client {
+        client_id: "LocalClient".into(),
+        client_secret: "secret".into(),
+        redirect_uri: "http://localhost:3000/".into(),
+        scope: "default-scope".into(),
+    };
+    let response = client
+        .post("/api/v1/user/hpotter/oauth2client")
+        .json(&oc)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
 
     let response = client
         .get(
@@ -41,6 +82,23 @@ async fn test_authorize() {
 #[rocket::async_test]
 async fn test_authorize_consent() {
     let client = make_client().await;
+
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let oc = OAuth2Client {
+        client_id: "LocalClient".into(),
+        client_secret: "secret".into(),
+        redirect_uri: "http://localhost:3000/".into(),
+        scope: "default-scope".into(),
+    };
+    let response = client
+        .post("/api/v1/user/hpotter/oauth2client")
+        .json(&oc)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
 
     let response = client
         .post(

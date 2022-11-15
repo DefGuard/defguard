@@ -23,9 +23,6 @@ pub struct DefGuardConfig {
     #[clap(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
     pub http_port: u16,
 
-    #[clap(long, env = "DEFGUARD_OAUTH_ENABLED")]
-    pub oauth_enabled: bool,
-
     #[clap(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
 

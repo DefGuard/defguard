@@ -10,46 +10,6 @@ use oxide_auth::primitives::{
 };
 use sqlx::{query, query_as, Error as SqlxError};
 
-pub struct OAuth2Client {
-    /// user ID
-    pub user: String,
-    pub client_id: String,
-    pub client_secret: String,
-    pub redirect_uri: String,
-    pub scope: String,
-}
-
-impl OAuth2Client {
-    /// Find client by ID.
-    pub async fn find_client_id(pool: &DbPool, client_id: &str) -> Option<Self> {
-        query_as!(
-            Self,
-            "SELECT \"user\", client_id, client_secret, redirect_uri, scope \
-            FROM oauth2client WHERE client_id = $1",
-            client_id
-        )
-        .fetch_one(pool)
-        .await
-        .ok()
-    }
-
-    /// Store data in the database.
-    pub async fn save(&self, pool: &DbPool) -> Result<(), SqlxError> {
-        query!(
-            "INSERT INTO oauth2client (\"user\", client_id, client_secret, redirect_uri, scope) \
-            VALUES ($1, $2, $3, $4, $5)",
-            self.user,
-            self.client_id,
-            self.client_secret,
-            self.redirect_uri,
-            self.scope
-        )
-        .execute(pool)
-        .await?;
-        Ok(())
-    }
-}
-
 pub struct OAuth2Token {
     pub access_token: String,
     pub refresh_token: String,
