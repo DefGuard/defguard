@@ -85,25 +85,29 @@ export const MFAWebAuthN = () => {
         size={ButtonSize.BIG}
         styleVariant={ButtonStyleVariant.PRIMARY}
       />
-      {totpAvailable || web3Available ? (
-        <nav>
-          <span>or</span>
-          {totpAvailable && (
-            <Button
-              text="Use authenticator app instead"
-              size={ButtonSize.BIG}
-              onClick={() => navigate('../totp')}
-            />
-          )}
-          {web3Available && (
-            <Button
-              text="Use your wallet instead"
-              size={ButtonSize.BIG}
-              onClick={() => navigate('../web3')}
-            />
-          )}
-        </nav>
-      ) : null}
+      <nav>
+        <span>or</span>
+        {totpAvailable && (
+          <Button
+            text="Use authenticator app instead"
+            size={ButtonSize.BIG}
+            onClick={() => navigate('../totp')}
+          />
+        )}
+        {web3Available && (
+          <Button
+            text="Use your wallet instead"
+            size={ButtonSize.BIG}
+            onClick={() => navigate('../web3')}
+          />
+        )}
+        <Button
+          text="Use recovery code instead"
+          size={ButtonSize.BIG}
+          styleVariant={ButtonStyleVariant.LINK}
+          onClick={() => navigate('../recovery')}
+        />
+      </nav>
     </>
   );
 };

@@ -15,16 +15,31 @@ export const ModalWithTitle = ({
   title,
   className,
   isOpen,
+  setIsOpen,
+  disableClose = false,
   ...rest
 }: ModalWithTitleProps) => {
   const cn = useMemo(() => classNames('titled', className), [className]);
   return (
-    <Modal className={cn} isOpen={isOpen} {...rest}>
+    <Modal
+      className={cn}
+      isOpen={isOpen}
+      setIsOpen={setIsOpen}
+      disableClose={disableClose}
+      {...rest}
+    >
       <div className="header">
         <p className="title">{title}</p>
-        <button className="close">
-          <IconHamburgerClose />
-        </button>
+        {!disableClose && (
+          <button
+            className="close"
+            onClick={() => {
+              setIsOpen(false);
+            }}
+          >
+            <IconHamburgerClose />
+          </button>
+        )}
       </div>
       <div className="content">{children}</div>
     </Modal>

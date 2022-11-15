@@ -340,10 +340,15 @@ const useApi = (props?: HookProps): ApiHook => {
     ({ keyId, username }) =>
       client.delete(`/user/${username}/security_key/${keyId}`);
 
-  const getSettings = () => client.get('/settings/').then((res) => res.data);
+  const getSettings = () => client.get('/settings/').then(unpackRequest);
 
   const editSettings = async (settings: Settings) =>
-    client.put('/settings/', settings).then((res) => res.data);
+    client.put('/settings/', settings).then(unpackRequest);
+
+  const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
+
+  const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
+    client.post('/auth/recovery', data).then(unpackRequest);
 
   return {
     oAuth: {
@@ -391,6 +396,8 @@ const useApi = (props?: HookProps): ApiHook => {
       logout,
       mfa: {
         disable: mfaDisable,
+        enable: mfaEnable,
+        recovery: recovery,
         webauthn: {
           register: {
             start: mfaWebauthnRegisterStart,
