@@ -121,25 +121,29 @@ export const MFAWeb3 = () => {
           }
         }}
       />
-      {webauthnAvailable || totpAvailable ? (
-        <nav>
-          <span>or</span>
-          {totpAvailable && (
-            <Button
-              text="Use authenticator app instead"
-              size={ButtonSize.BIG}
-              onClick={() => navigate('../totp')}
-            />
-          )}
-          {webauthnAvailable && (
-            <Button
-              text="Use security key insted"
-              size={ButtonSize.BIG}
-              onClick={() => navigate('../webauthn')}
-            />
-          )}
-        </nav>
-      ) : null}
+      <nav>
+        <span>or</span>
+        {totpAvailable && (
+          <Button
+            text="Use authenticator app instead"
+            size={ButtonSize.BIG}
+            onClick={() => navigate('../totp')}
+          />
+        )}
+        {webauthnAvailable && (
+          <Button
+            text="Use security key insted"
+            size={ButtonSize.BIG}
+            onClick={() => navigate('../webauthn')}
+          />
+        )}
+        <Button
+          text="Use recovery code instead"
+          size={ButtonSize.BIG}
+          styleVariant={ButtonStyleVariant.LINK}
+          onClick={() => navigate('../recovery')}
+        />
+      </nav>
     </>
   );
 };

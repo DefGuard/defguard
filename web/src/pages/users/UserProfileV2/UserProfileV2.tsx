@@ -9,7 +9,6 @@ import Button, {
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
 import { IconCheckmarkWhite, IconEdit } from '../../../shared/components/svg';
-import { Web3ContextProvider } from '../../../shared/components/Web3/Web3ContextProvider';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useNavigationStore } from '../../../shared/hooks/store/useNavigationStore';
@@ -80,9 +79,7 @@ export const UserProfileV2 = () => {
         </div>
         <div className="cards-1">
           <UserDevices />
-          <Web3ContextProvider>
-            <UserWallets />
-          </Web3ContextProvider>
+          <UserWallets />
         </div>
         <div className="cards-2">
           <UserYubiKeys />

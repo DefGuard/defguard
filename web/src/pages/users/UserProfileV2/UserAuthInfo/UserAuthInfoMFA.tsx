@@ -199,15 +199,16 @@ export const UserAuthInfoMFA = () => {
                     }
                   />
                 )}
-                {user?.mfa_method !== UserMFAMethod.ONE_TIME_PASSWORD &&
-                  user?.totp_enabled && (
-                    <EditButtonOption
-                      text="Make default"
-                      onClick={() =>
-                        changeDefaultMFAMethod(UserMFAMethod.ONE_TIME_PASSWORD)
-                      }
-                    />
-                  )}
+                <EditButtonOption
+                  disabled={
+                    !user?.totp_enabled ||
+                    user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD
+                  }
+                  text="Make default"
+                  onClick={() =>
+                    changeDefaultMFAMethod(UserMFAMethod.ONE_TIME_PASSWORD)
+                  }
+                />
               </EditButton>
             </div>
           </RowBox>
@@ -224,15 +225,16 @@ export const UserAuthInfoMFA = () => {
                     })
                   }
                 />
-                {user?.mfa_method !== UserMFAMethod.WEB_AUTH_N &&
-                  mfaWebAuthNEnabled && (
-                    <EditButtonOption
-                      text="Make default"
-                      onClick={() =>
-                        changeDefaultMFAMethod(UserMFAMethod.WEB_AUTH_N)
-                      }
-                    />
-                  )}
+                <EditButtonOption
+                  disabled={
+                    user?.mfa_method === UserMFAMethod.WEB_AUTH_N ||
+                    !mfaWebAuthNEnabled
+                  }
+                  text="Make default"
+                  onClick={() =>
+                    changeDefaultMFAMethod(UserMFAMethod.WEB_AUTH_N)
+                  }
+                />
               </EditButton>
             </div>
           </RowBox>
@@ -240,12 +242,11 @@ export const UserAuthInfoMFA = () => {
             <p>Wallets</p>
             <div className="right">
               <span>{getWalletsInfoText}</span>
-              <EditButton
-                visible={
-                  user?.mfa_method !== UserMFAMethod.WEB3 && mfaWeb3Enabled
-                }
-              >
+              <EditButton>
                 <EditButtonOption
+                  disabled={
+                    user?.mfa_method === UserMFAMethod.WEB3 || !mfaWeb3Enabled
+                  }
                   text="Make default"
                   onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB3)}
                 />

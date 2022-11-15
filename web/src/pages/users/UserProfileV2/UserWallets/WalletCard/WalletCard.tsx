@@ -15,6 +15,7 @@ import {
 } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
 import { IconEth } from '../../../../../shared/components/svg';
+import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -33,6 +34,7 @@ export const WalletCard = ({
   connected = false,
   showMFA = false,
 }: Props) => {
+  const setModalsState = useModalStore((state) => state.setState);
   const toaster = useToaster();
   const [hovered, setHovered] = useState(false);
   const {
@@ -64,9 +66,18 @@ export const WalletCard = ({
     [MutationKeys.EDIT_WALLET_MFA],
     updateWalletMFA,
     {
-      onSuccess: () => {
+      onSuccess: (data, props) => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        toaster.success('Wallet MFA changed');
+        if (props.use_for_mfa) {
+          toaster.success('Wallet MFA enabled');
+        } else {
+          toaster.success('Wallet MFA disabled');
+        }
+        if (data && data.codes) {
+          setModalsState({
+            recoveryCodesModal: { visible: true, codes: data.codes },
+          });
+        }
       },
       onError: (err) => {
         console.error(err);

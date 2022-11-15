@@ -140,9 +140,13 @@ const TOTPRegisterForm = () => {
     enable,
     {
       onSuccess: (data) => {
-        console.log(data);
         toaster.success('TOTP Enabled');
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        if (data && data.codes) {
+          setModalsState({
+            recoveryCodesModal: { visible: true, codes: data.codes },
+          });
+        }
         setModalsState({ registerTOTP: { visible: false } });
       },
       onError: () => {

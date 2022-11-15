@@ -211,6 +211,16 @@ export interface DeleteWebAuthNKeyRequest {
   keyId: SecurityKey['id'];
 }
 
+export interface RecoveryCodes {
+  codes: string[];
+}
+
+export interface RecoveryLoginRequest {
+  code: string;
+}
+
+export type MFARecoveryCodesResponse = Promise<void | RecoveryCodes>;
+
 export interface ApiHook {
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
@@ -261,12 +271,16 @@ export interface ApiHook {
     logout: () => EmptyApiResponse;
     mfa: {
       disable: () => EmptyApiResponse;
+      enable: () => EmptyApiResponse;
+      recovery: (data: RecoveryLoginRequest) => Promise<User>;
       webauthn: {
         register: {
           start: (data: {
             name: string;
           }) => Promise<CredentialCreationOptionsJSON>;
-          finish: (data: WebAuthnRegistrationRequest) => EmptyApiResponse;
+          finish: (
+            data: WebAuthnRegistrationRequest
+          ) => MFARecoveryCodesResponse;
         };
         start: () => Promise<CredentialRequestOptionsJSON>;
         finish: (data: PublicKeyCredentialWithAssertionJSON) => Promise<User>;
@@ -274,14 +288,16 @@ export interface ApiHook {
       };
       totp: {
         init: () => Promise<{ secret: string }>;
-        enable: (data: TOTPRequest) => EmptyApiResponse;
+        enable: (data: TOTPRequest) => MFARecoveryCodesResponse;
         disable: () => EmptyApiResponse;
         verify: (data: TOTPRequest) => Promise<User>;
       };
       web3: {
         start: () => Promise<{ challenge: string }>;
         finish: (data: WalletSignature) => Promise<User>;
-        updateWalletMFA: (data: EditWalletMFARequest) => EmptyApiResponse;
+        updateWalletMFA: (
+          data: EditWalletMFARequest
+        ) => MFARecoveryCodesResponse;
       };
     };
   };

@@ -1,5 +1,6 @@
 import './style.scss';
 
+import { useMutation } from '@tanstack/react-query';
 import clipboard from 'clipboardy';
 import { saveAs } from 'file-saver';
 
@@ -15,8 +16,11 @@ import {
   IconCopy,
   IconDownload,
 } from '../../../../../../shared/components/svg';
+import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
+import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
+import { MutationKeys } from '../../../../../../shared/mutations';
 
 export const RecoveryCodesModal = () => {
   const modalState = useModalStore((state) => state.recoveryCodesModal);
@@ -28,6 +32,7 @@ export const RecoveryCodesModal = () => {
       title="Recovery codes"
       isOpen={modalState.visible}
       setIsOpen={(visible) => setModalState({ visible, codes: undefined })}
+      disableClose={true}
       backdrop
     >
       <ModalContent />
@@ -38,6 +43,18 @@ export const RecoveryCodesModal = () => {
 const ModalContent = () => {
   const codes = useModalStore((state) => state.recoveryCodesModal.codes);
   const setModalState = useModalStore((state) => state.setRecoveryCodesModal);
+  const {
+    auth: {
+      mfa: { enable },
+    },
+  } = useApi();
+  const logOut = useAuthStore((state) => state.logOut);
+  const { mutate, isLoading } = useMutation([MutationKeys.ENABLE_MFA], enable, {
+    onSuccess: () => {
+      setModalState({ visible: false, codes: undefined });
+      logOut();
+    },
+  });
   const toaster = useToaster();
 
   if (!codes) return null;
@@ -93,11 +110,11 @@ const ModalContent = () => {
       </div>
       <div className="controls">
         <Button
-          className="cancel"
-          text="Close"
-          onClick={() => setModalState({ visible: false, codes: undefined })}
+          text="I have saved my codes."
+          onClick={() => mutate()}
           styleVariant={ButtonStyleVariant.WARNING}
           size={ButtonSize.BIG}
+          loading={isLoading}
         />
       </div>
     </>

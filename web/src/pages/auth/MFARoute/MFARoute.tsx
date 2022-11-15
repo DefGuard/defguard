@@ -3,9 +3,9 @@ import './style.scss';
 import { useEffect } from 'react';
 import { Route, Routes, useNavigate } from 'react-router';
 
-import { Web3ContextProvider } from '../../../shared/components/Web3/Web3ContextProvider';
 import { UserMFAMethod } from '../../../shared/types';
 import { useMFAStore } from '../shared/hooks/useMFAStore';
+import { MFARecovery } from './MFARecovery/MFARecovery';
 import { MFATOTPAuth } from './MFATOTPAuth/MFATOTPAuth';
 import { MFAWeb3 } from './MFAWeb3/MFAWeb3';
 import { MFAWebAuthN } from './MFAWebAuthN/MFAWebAuthN';
@@ -18,14 +18,8 @@ export const MFARoute = () => {
         <Route index element={<RedirectToDefaultMFA />} />
         <Route path="totp" element={<MFATOTPAuth />} />
         <Route path="webauthn" element={<MFAWebAuthN />} />
-        <Route
-          path="web3"
-          element={
-            <Web3ContextProvider>
-              <MFAWeb3 />
-            </Web3ContextProvider>
-          }
-        />
+        <Route path="web3" element={<MFAWeb3 />} />
+        <Route path="recovery" element={<MFARecovery />} />
         <Route path="/*" element={<RedirectToDefaultMFA />} />
       </Routes>
     </section>

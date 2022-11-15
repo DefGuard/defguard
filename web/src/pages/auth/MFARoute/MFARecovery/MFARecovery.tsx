@@ -13,27 +13,23 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
+import { RecoveryLoginRequest } from '../../../../shared/types';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
-
-interface Inputs {
-  code: string;
-}
 
 const schema = yup
   .object()
   .shape({
-    code: yup
-      .string()
-      .required('Code is required.')
-      .min(6, 'Code should have 6 digits')
-      .max(6, 'Code should have 6 digits'),
+    code: yup.string().required('Field requried'),
   })
   .required();
 
-export const MFATOTPAuth = () => {
+export const MFARecovery = () => {
+  const toaster = useToaster();
   const navigate = useNavigate();
   const clearMFAStore = useMFAStore((state) => state.resetState);
+  const logIn = useAuthStore((state) => state.logIn);
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
     (state) => [
       state.totp_available,
@@ -42,18 +38,15 @@ export const MFATOTPAuth = () => {
     ],
     shallow
   );
-  const logIn = useAuthStore((state) => state.logIn);
   const {
     auth: {
-      mfa: {
-        totp: { verify },
-      },
+      mfa: { recovery },
     },
   } = useApi();
 
   const { mutate, isLoading } = useMutation(
-    [MutationKeys.VERIFY_TOTP],
-    verify,
+    [MutationKeys.RECOVERY_LOGIN],
+    recovery,
     {
       onSuccess: (data) => {
         clearMFAStore();
@@ -61,51 +54,51 @@ export const MFATOTPAuth = () => {
       },
       onError: (err) => {
         console.error(err);
-        setValue('code', '');
-        setError('code', { message: 'Enter a valid code' });
+        toaster.error('Recovery code invalid.');
       },
     }
   );
 
-  const { handleSubmit, control, setError, setValue } = useForm<Inputs>({
+  const { handleSubmit, control } = useForm<RecoveryLoginRequest>({
     resolver: yupResolver(schema),
-    mode: 'all',
-    defaultValues: {
-      code: '',
-    },
   });
 
-  const handleValidSubmit: SubmitHandler<Inputs> = (values) => {
-    mutate({ code: Number(values.code) });
-  };
-
   useEffect(() => {
-    if (!totpAvailable) {
+    if (!totpAvailable && !web3Available && !webauthnAvailable) {
       navigate('../');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totpAvailable]);
+  }, []);
+
+  const handleValidSubmit: SubmitHandler<RecoveryLoginRequest> = (values) =>
+    mutate(values);
 
   return (
     <>
-      <p>Use code from your authentication app and click button to proceed</p>
+      <p>Enter one of active recovery codes and click button to log in.</p>
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
+          outerLabel="Recovery code"
+          placeholder="Code"
           controller={{ control, name: 'code' }}
-          autoComplete="one-time-code"
-          placeholder="Enter Authenticator code"
-          required
         />
         <Button
-          text="Use authenticator code"
+          type="submit"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
+          text="Use recovery code"
           loading={isLoading}
-          type="submit"
         />
       </form>
       <nav>
         <span>or</span>
+        {totpAvailable && (
+          <Button
+            text="Use authenticator app instead"
+            size={ButtonSize.BIG}
+            onClick={() => navigate('../totp')}
+          />
+        )}
         {webauthnAvailable && (
           <Button
             text="Use security key instead"
@@ -122,12 +115,6 @@ export const MFATOTPAuth = () => {
             onClick={() => navigate('../web3')}
           />
         )}
-        <Button
-          text="Use recovery code instead"
-          size={ButtonSize.BIG}
-          styleVariant={ButtonStyleVariant.LINK}
-          onClick={() => navigate('../recovery')}
-        />
       </nav>
     </>
   );
