@@ -123,7 +123,8 @@ export const UserAuthInfoMFA = () => {
     if (user) {
       if (user.security_keys && user.security_keys.length) {
         const res = [
-          `${user.security_keys.length} security key${user.security_keys.length > 1 ? 's' : ''
+          `${user.security_keys.length} security key${
+            user.security_keys.length > 1 ? 's' : ''
           }`,
         ];
         if (user.mfa_method === UserMFAMethod.WEB_AUTH_N) {
@@ -140,7 +141,8 @@ export const UserAuthInfoMFA = () => {
       const userAuthorizedWallets = user.wallets.filter((w) => w.use_for_mfa);
       if (userAuthorizedWallets && userAuthorizedWallets.length) {
         const res = [
-          `${userAuthorizedWallets.length} Wallet${userAuthorizedWallets.length > 1 ? 's' : ''
+          `${userAuthorizedWallets.length} Wallet${
+            userAuthorizedWallets.length > 1 ? 's' : ''
           }`,
         ];
         if (user.mfa_method === UserMFAMethod.WEB3) {
