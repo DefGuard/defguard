@@ -121,7 +121,13 @@
     }
   }
   .card {
-    & > form {
+    &.disabled {
+      cursor: not-allowed;
+      #settings-form {
+        pointer-events: none;
+      }
+    }
+    & > #settings-form {
       padding: 1rem;
       align-items: flex-start;
       .row {

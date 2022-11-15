@@ -163,13 +163,8 @@ const Navigation = () => {
         return true;
       }
     });
-    base = base.filter((item) => {
-      if (item.enabled) {
-        return true;
-      } else {
-        return false;
-      }
-    });
+    base = base.filter((item) => item.enabled);
+
     return base;
   }, [currentUser, t, settings]);
 
@@ -250,7 +245,7 @@ const Navigation = () => {
             <span>{t('navigation.template.links.settings')}</span>
           </a> */}
             </section>
-            <motion.section className="bottom">
+            <motion.section className="links bottom">
               <NavigationLink
                 key={'/admin/settings'}
                 item={{

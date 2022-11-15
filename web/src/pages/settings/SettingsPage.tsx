@@ -71,7 +71,7 @@ export const SettingsPage = () => {
                   </a>
                 </Helper>
               </h2>
-              <Card>
+              <Card className={editMode ? '' : 'disabled'}>
                 <SettingsForm />
               </Card>
               <h2>

@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import shallow from 'zustand/shallow';
 
-import license from '../../../LICENSE.txt';
 import Button, {
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
@@ -18,6 +17,7 @@ import {
 } from '../../../shared/components/svg';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useToaster } from '../../../shared/hooks/useToaster';
+import license from '../../../shared/LICENSE.txt';
 
 export const LicenseModal = () => {
   const toaster = useToaster();
@@ -60,7 +60,7 @@ export const LicenseModal = () => {
           styleVariant={ButtonStyleVariant.STANDARD}
           icon={<IconCopy />}
           onClick={() => {
-            if (license) {
+            if (licenseAgreement) {
               clipboard
                 .write(license)
                 .then(() => {

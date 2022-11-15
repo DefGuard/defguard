@@ -11,7 +11,7 @@ import { Settings } from '../../../../types';
 interface Props {
   children?: ReactNode;
   allowedGroups?: string[];
-  setting?: Setting;
+  moduleRequired?: Setting;
 }
 type Setting = keyof Settings;
 /**
@@ -21,7 +21,7 @@ type Setting = keyof Settings;
 const ProtectedRoute: React.FC<Props> = ({
   children,
   allowedGroups,
-  setting,
+  moduleRequired,
 }) => {
   const currentUser = useAuthStore((state) => state.user);
   const settings = useAppStore((state) => state.settings);
@@ -58,8 +58,8 @@ const ProtectedRoute: React.FC<Props> = ({
   if (isUndefined(currentUser)) {
     return <Navigate replace to="/auth/login" />;
   }
-  if (settings !== undefined && setting !== undefined) {
-    if (!settings[setting]) {
+  if (settings !== undefined && moduleRequired !== undefined) {
+    if (!settings[moduleRequired]) {
       navigate('/', { replace: true });
     }
   }

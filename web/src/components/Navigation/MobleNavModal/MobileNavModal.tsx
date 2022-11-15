@@ -49,7 +49,7 @@ const MobileNavModal: React.FC<Props> = ({
           />
         ))}
       </div>
-      <div className="settings">
+      <div className="links bottom">
         <NavigationLink
           key={'/admin/settings'}
           item={{

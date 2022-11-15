@@ -59,7 +59,7 @@ const App = () => {
       retry: false,
     }
   );
-  const [setAppStore] = useAppStore((state) => [state.setAppStore], shallow);
+  const setAppStore = useAppStore((state) => state.setAppStore);
 
   useQuery([QueryKeys.FETCH_SETTINGS], getSettings, {
     onSuccess: (settings) => {
@@ -89,7 +89,7 @@ const App = () => {
                 element={
                   <ProtectedRoute
                     allowedGroups={['admin']}
-                    setting={'wireguard_enabled'}
+                    moduleRequired="wireguard_enabled"
                   >
                     <OverviewPage />
                   </ProtectedRoute>
@@ -116,7 +116,7 @@ const App = () => {
                 element={
                   <ProtectedRoute
                     allowedGroups={['admin']}
-                    setting={'worker_enabled'}
+                    moduleRequired="worker_enabled"
                   >
                     <ProvisionersPage />
                   </ProtectedRoute>
@@ -127,7 +127,7 @@ const App = () => {
                 element={
                   <ProtectedRoute
                     allowedGroups={['admin']}
-                    setting={'webhooks_enabled'}
+                    moduleRequired="webhooks_enabled"
                   >
                     <WebhooksPage />
                   </ProtectedRoute>
@@ -138,7 +138,7 @@ const App = () => {
                 element={
                   <ProtectedRoute
                     allowedGroups={['admin']}
-                    setting={'openid_enabled'}
+                    moduleRequired="openid_enabled"
                   >
                     <OpenidPage />
                   </ProtectedRoute>

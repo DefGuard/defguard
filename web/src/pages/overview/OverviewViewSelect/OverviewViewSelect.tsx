@@ -33,12 +33,6 @@ export const OverviewViewSelect = () => {
           label: 'List view',
           disabled: true,
         },
-        /*{
-          key: 2,
-          value: OverviewLayoutType.MAP,
-          label: 'Map view',
-          disabled: true,
-        },*/
       ];
     }
     if (breakpoint === 'tablet') {
@@ -55,23 +49,11 @@ export const OverviewViewSelect = () => {
           label: 'List view',
           disabled: false,
         },
-        /*{
-          key: 2,
-          value: OverviewLayoutType.MAP,
-          label: 'Map view',
-          disabled: true,
-        },*/
       ];
     }
     return [
       { key: 0, value: OverviewLayoutType.GRID, label: 'Grid view' },
       { key: 1, value: OverviewLayoutType.LIST, label: 'List view' },
-      /*{
-        key: 2,
-        value: OverviewLayoutType.MAP,
-        label: 'Map view',
-        disabled: true,
-      },*/
     ];
   }, [breakpoint]);
 
