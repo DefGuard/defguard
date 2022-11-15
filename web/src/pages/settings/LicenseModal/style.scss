@@ -24,8 +24,6 @@
       }
 
       .header {
-        display: flex;
-        flex-direction: row;
         width: 100%;
         margin-bottom: 3.4rem;
         display: flex;
@@ -35,6 +33,7 @@
         @include media-breakpoint-down(md) {
           text-align: center;
         }
+
         svg {
           margin-left: auto;
           cursor: pointer;
@@ -49,14 +48,17 @@
         overflow-wrap: break-word;
         word-break: break-all;
         @include typography(15px, 23px, regular, var(--gray-dark), 'Poppins');
+
         & > pre,
         p {
           @include typography(15px, 23px, regular, var(--gray-dark), 'Poppins');
         }
+
         & > strong {
           @include typography(15px, 23px, bold, var(--gray-dark), 'Poppins');
         }
       }
+
       .controls {
         margin-top: 2rem;
         display: flex;
@@ -66,6 +68,7 @@
         justify-content: flex-end;
         column-gap: 1rem;
         width: 100%;
+
         button {
           width: 40px;
           height: 40px;

@@ -180,6 +180,7 @@
       }
     }
   }
+
   .log-out {
     display: flex;
     flex-direction: row;
@@ -244,13 +245,6 @@
     }
 
     .links {
-      span {
-        display: flex;
-        flex-wrap: nowrap;
-        min-width: 100px;
-      }
-    }
-    .bottom {
       span {
         display: flex;
         flex-wrap: nowrap;

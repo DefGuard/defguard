@@ -245,7 +245,7 @@ const Navigation = () => {
             <span>{t('navigation.template.links.settings')}</span>
           </a> */}
             </section>
-            <motion.section className="links bottom">
+            <motion.section className="links">
               <NavigationLink
                 key={'/admin/settings'}
                 item={{
