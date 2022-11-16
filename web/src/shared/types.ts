@@ -211,6 +211,16 @@ export interface DeleteWebAuthNKeyRequest {
   keyId: SecurityKey['id'];
 }
 
+export interface RecoveryCodes {
+  codes: string[];
+}
+
+export interface RecoveryLoginRequest {
+  code: string;
+}
+
+export type MFARecoveryCodesResponse = Promise<void | RecoveryCodes>;
+
 export interface ApiHook {
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
@@ -261,12 +271,16 @@ export interface ApiHook {
     logout: () => EmptyApiResponse;
     mfa: {
       disable: () => EmptyApiResponse;
+      enable: () => EmptyApiResponse;
+      recovery: (data: RecoveryLoginRequest) => Promise<User>;
       webauthn: {
         register: {
           start: (data: {
             name: string;
           }) => Promise<CredentialCreationOptionsJSON>;
-          finish: (data: WebAuthnRegistrationRequest) => EmptyApiResponse;
+          finish: (
+            data: WebAuthnRegistrationRequest
+          ) => MFARecoveryCodesResponse;
         };
         start: () => Promise<CredentialRequestOptionsJSON>;
         finish: (data: PublicKeyCredentialWithAssertionJSON) => Promise<User>;
@@ -274,14 +288,16 @@ export interface ApiHook {
       };
       totp: {
         init: () => Promise<{ secret: string }>;
-        enable: (data: TOTPRequest) => EmptyApiResponse;
+        enable: (data: TOTPRequest) => MFARecoveryCodesResponse;
         disable: () => EmptyApiResponse;
         verify: (data: TOTPRequest) => Promise<User>;
       };
       web3: {
         start: () => Promise<{ challenge: string }>;
         finish: (data: WalletSignature) => Promise<User>;
-        updateWalletMFA: (data: EditWalletMFARequest) => EmptyApiResponse;
+        updateWalletMFA: (
+          data: EditWalletMFARequest
+        ) => MFARecoveryCodesResponse;
       };
     };
   };
@@ -316,6 +332,10 @@ export interface ApiHook {
   };
   license: {
     getLicense: () => Promise<License>;
+  };
+  settings: {
+    getSettings: () => Promise<Settings>;
+    editSettings: (data: Settings) => EmptyApiResponse;
   };
 }
 
@@ -453,6 +473,7 @@ export interface UseModalStore {
   keyDeleteModal: KeyDeleteModal;
   deleteUserModal: DeleteUserModal;
   addUserModal: StandardModalState;
+  licenseModal: StandardModalState;
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
@@ -486,12 +507,27 @@ export interface UseModalStore {
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
   setGatewaySetupModal: ModalSetter<GatewaySetupModal>;
+  setLicenseModal: ModalSetter<StandardModalState>;
 }
 
 export interface UseAppStore {
   backendVersion?: string;
   wizardCompleted?: boolean;
+  settings?: Settings;
+  settingsEditMode?: boolean;
   setAppStore: (newValues: Partial<UseAppStore>) => void;
+}
+
+export interface Settings {
+  id: string;
+  web3_enabled: boolean;
+  openid_enabled: boolean;
+  oauth_enabled: boolean;
+  ldap_enabled: boolean;
+  wireguard_enabled: boolean;
+  webhooks_enabled: boolean;
+  worker_enabled: boolean;
+  challenge_template: boolean;
 }
 
 export interface Webhook {
@@ -595,6 +631,7 @@ export enum OverviewLayoutType {
 
 export interface OverviewStore {
   viewMode: OverviewLayoutType;
+  defaultViewMode: OverviewLayoutType;
   statsFilter: number;
   setState: (override: Partial<OverviewStore>) => void;
 }

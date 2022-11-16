@@ -24,6 +24,7 @@ import {
   NetworkToken,
   NetworkUserStats,
   OpenidClient,
+  Settings,
   User,
   UserEditRequest,
   UserGroupRequest,
@@ -339,6 +340,16 @@ const useApi = (props?: HookProps): ApiHook => {
     ({ keyId, username }) =>
       client.delete(`/user/${username}/security_key/${keyId}`);
 
+  const getSettings = () => client.get('/settings/').then(unpackRequest);
+
+  const editSettings = async (settings: Settings) =>
+    client.put('/settings/', settings).then(unpackRequest);
+
+  const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
+
+  const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
+    client.post('/auth/recovery', data).then(unpackRequest);
+
   return {
     oAuth: {
       consent: oAuthConsent,
@@ -385,6 +396,8 @@ const useApi = (props?: HookProps): ApiHook => {
       logout,
       mfa: {
         disable: mfaDisable,
+        enable: mfaEnable,
+        recovery: recovery,
         webauthn: {
           register: {
             start: mfaWebauthnRegisterStart,
@@ -434,6 +447,10 @@ const useApi = (props?: HookProps): ApiHook => {
       verifyOpenidClient: verifyOpenidClient,
       getUserClients: getUserClients,
       removeUserClient: removeUserClient,
+    },
+    settings: {
+      getSettings: getSettings,
+      editSettings: editSettings,
     },
   };
 };

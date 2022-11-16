@@ -50,10 +50,16 @@ export const RegisterWebAuthNForm = () => {
 
   const { mutate: registerKeyFinish, isLoading: registerKeyFinishLoading } =
     useMutation([MutationKeys.REGISTER_SECURITY_KEY_FINISH], finish, {
-      onSuccess: () => {
+      onSuccess: (data) => {
         toaster.success('Security key added.');
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
         reset();
+        if (data && data.codes) {
+          setModalState({
+            recoveryCodesModal: { visible: true, codes: data.codes },
+            manageWebAuthNKeysModal: { visible: false },
+          });
+        }
       },
       onError: () => {
         toaster.error('Key registration failed.');

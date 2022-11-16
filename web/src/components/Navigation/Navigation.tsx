@@ -13,6 +13,7 @@ import IconButton from '../../shared/components/layout/IconButton/IconButton';
 import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
 import SvgDefguadNavLogoCollapsed from '../../shared/components/svg/DefguadNavLogoCollapsed';
 import SvgIconArrowDoubleGrayLeft from '../../shared/components/svg/IconArrowDoubleGrayLeft';
+import SvgIconEdit from '../../shared/components/svg/IconEditAlt';
 import SvgIconHamburgerMenu from '../../shared/components/svg/IconHamburgerMenu';
 import SvgIconNavLogout from '../../shared/components/svg/IconNavLogout';
 import SvgIconNavOpenId from '../../shared/components/svg/IconNavOpenid';
@@ -21,6 +22,7 @@ import SvgIconNavProfile from '../../shared/components/svg/IconNavProfile';
 import SvgIconNavSettings from '../../shared/components/svg/IconNavSettings';
 import SvgIconNavUsers from '../../shared/components/svg/IconNavUsers';
 import { deviceBreakpoints } from '../../shared/constants';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
@@ -33,9 +35,10 @@ export interface NavigationItem {
   linkPath: string;
   icon?: React.ReactNode;
   allowedToView?: string[];
+  enabled: boolean | undefined;
 }
 
-const Navigation: React.FC = () => {
+const Navigation = () => {
   const { t } = useTranslation('en');
   const [currentUser, storeLogOut] = useAuthStore(
     (state) => [state.user, state.logOut],
@@ -55,6 +58,8 @@ const Navigation: React.FC = () => {
       storeLogOut();
     },
   });
+
+  const settings = useAppStore((state) => state.settings);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
   const { pathname } = useLocation();
@@ -104,36 +109,42 @@ const Navigation: React.FC = () => {
         linkPath: '/admin/overview',
         icon: <SvgIconNavOverview />,
         allowedToView: ['admin'],
+        enabled: settings?.wireguard_enabled,
       },
       {
         title: t('navigation.template.links.users'),
         linkPath: '/admin/users',
         icon: <SvgIconNavUsers />,
         allowedToView: ['admin'],
+        enabled: true,
       },
       {
         title: t('navigation.template.links.Provisioners'),
         linkPath: '/admin/provisioners',
         icon: <SvgIconNavOverview />,
         allowedToView: ['admin'],
+        enabled: settings?.worker_enabled,
       },
       {
         title: t('navigation.template.links.Webhooks'),
         linkPath: '/admin/webhooks',
         icon: <SvgIconNavSettings />,
         allowedToView: ['admin'],
+        enabled: settings?.webhooks_enabled,
       },
       {
         title: t('navigation.template.links.OpenIDApps'),
         linkPath: '/admin/openid',
         icon: <SvgIconNavOpenId />,
         allowedToView: ['admin'],
+        enabled: settings?.openid_enabled,
       },
       {
         title: t('navigation.template.links.myProfile'),
         linkPath: `/me`,
         icon: <SvgIconNavProfile />,
         allowedToView: [],
+        enabled: true,
       },
     ];
     base = base.filter((item) => {
@@ -152,8 +163,10 @@ const Navigation: React.FC = () => {
         return true;
       }
     });
+    base = base.filter((item) => item.enabled);
+
     return base;
-  }, [currentUser, t]);
+  }, [currentUser, t, settings]);
 
   return (
     <>
@@ -232,7 +245,17 @@ const Navigation: React.FC = () => {
             <span>{t('navigation.template.links.settings')}</span>
           </a> */}
             </section>
-            <motion.section className="bottom">
+            <motion.section className="links">
+              <NavigationLink
+                key={'/admin/settings'}
+                item={{
+                  title: t('navigation.template.links.settings'),
+                  linkPath: '/admin/settings',
+                  icon: <SvgIconEdit />,
+                  allowedToView: ['admin'],
+                  enabled: true,
+                }}
+              />
               <button
                 className="log-out"
                 onClick={() => logOutMutation.mutate()}

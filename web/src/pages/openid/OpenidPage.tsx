@@ -11,7 +11,7 @@ import OpenidClientsList from './OpenidClientsList/OpenidClientsList';
 
 const OpenidClient = React.lazy(() => import('./OpenidClient/OpenidClient'));
 
-const OpenidPage: React.FC = () => {
+const OpenidPage = () => {
   return (
     <PageContainer id="openid">
       <Routes>

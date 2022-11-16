@@ -19,12 +19,14 @@ import OpenidAllowPage from '../../pages/openid/OpenidAllowPage';
 import OpenidPage from '../../pages/openid/OpenidPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
+import { SettingsPage } from '../../pages/settings/SettingsPage';
 import { UserProfilePage } from '../../pages/users/UserProfilePage';
 import UsersPage from '../../pages/users/UsersPage';
 import WizardPage from '../../pages/vpn/Wizard/WizardPage';
 import WebhooksPage from '../../pages/webhooks/WebhooksPage';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
@@ -32,6 +34,7 @@ import { QueryKeys } from '../../shared/queries';
 const App = () => {
   const {
     user: { getMe },
+    settings: { getSettings },
   } = useApi();
   const [currentUser, logOut, logIn, isAdmin] = useAuthStore(
     (state) => [state.user, state.logOut, state.logIn, state.isAdmin],
@@ -56,6 +59,20 @@ const App = () => {
       retry: false,
     }
   );
+  const setAppStore = useAppStore((state) => state.setAppStore);
+
+  useQuery([QueryKeys.FETCH_SETTINGS], getSettings, {
+    onSuccess: (settings) => {
+      setAppStore({ settings });
+    },
+    onError: () => {
+      console.clear();
+    },
+    enabled: !userMe,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    retry: true,
+  });
 
   if (currentUserLoading && !userMe && !currentUser) return <LoaderPage />;
 
@@ -70,7 +87,10 @@ const App = () => {
               <Route
                 path="overview/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute
+                    allowedGroups={['admin']}
+                    moduleRequired="wireguard_enabled"
+                  >
                     <OverviewPage />
                   </ProtectedRoute>
                 }
@@ -94,7 +114,10 @@ const App = () => {
               <Route
                 path="provisioners/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute
+                    allowedGroups={['admin']}
+                    moduleRequired="worker_enabled"
+                  >
                     <ProvisionersPage />
                   </ProtectedRoute>
                 }
@@ -102,7 +125,10 @@ const App = () => {
               <Route
                 path="webhooks/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute
+                    allowedGroups={['admin']}
+                    moduleRequired="webhooks_enabled"
+                  >
                     <WebhooksPage />
                   </ProtectedRoute>
                 }
@@ -110,8 +136,19 @@ const App = () => {
               <Route
                 path="openid/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute
+                    allowedGroups={['admin']}
+                    moduleRequired="openid_enabled"
+                  >
                     <OpenidPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="settings/*"
+                element={
+                  <ProtectedRoute allowedGroups={['admin']}>
+                    <SettingsPage />
                   </ProtectedRoute>
                 }
               />

@@ -104,27 +104,31 @@ export const MFATOTPAuth = () => {
           type="submit"
         />
       </form>
-      {web3Available || webauthnAvailable ? (
-        <nav>
-          <span>or</span>
-          {webauthnAvailable && (
-            <Button
-              text="Use security key instead"
-              size={ButtonSize.BIG}
-              styleVariant={ButtonStyleVariant.LINK}
-              onClick={() => navigate('../webauthn')}
-            />
-          )}
-          {web3Available && (
-            <Button
-              text="Use your wallet instead"
-              size={ButtonSize.BIG}
-              styleVariant={ButtonStyleVariant.LINK}
-              onClick={() => navigate('../web3')}
-            />
-          )}
-        </nav>
-      ) : null}
+      <nav>
+        <span>or</span>
+        {webauthnAvailable && (
+          <Button
+            text="Use security key instead"
+            size={ButtonSize.BIG}
+            styleVariant={ButtonStyleVariant.LINK}
+            onClick={() => navigate('../webauthn')}
+          />
+        )}
+        {web3Available && (
+          <Button
+            text="Use your wallet instead"
+            size={ButtonSize.BIG}
+            styleVariant={ButtonStyleVariant.LINK}
+            onClick={() => navigate('../web3')}
+          />
+        )}
+        <Button
+          text="Use recovery code instead"
+          size={ButtonSize.BIG}
+          styleVariant={ButtonStyleVariant.LINK}
+          onClick={() => navigate('../recovery')}
+        />
+      </nav>
     </>
   );
 };

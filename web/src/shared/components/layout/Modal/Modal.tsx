@@ -14,6 +14,7 @@ export interface ModalProps {
   children?: ReactNode;
   onClose?: () => void;
   id?: string;
+  disableClose?: boolean;
 }
 
 type MouseObserverState = {
@@ -33,6 +34,7 @@ const Modal = ({
   isOpen,
   onClose,
   id,
+  disableClose = false,
 }: ModalProps) => {
   const element = document.getElementById('modals-root');
 
@@ -46,7 +48,7 @@ const Modal = ({
         if (release && press) {
           const checkPress = checkEventOutside(press);
           const checkRelease = checkEventOutside(release);
-          if (checkPress && checkRelease) {
+          if (checkPress && checkRelease && !disableClose) {
             setIsOpen(false);
             onClose && onClose();
           }
@@ -56,7 +58,7 @@ const Modal = ({
         sub.unsubscribe();
       };
     }
-  }, [isOpen, mouseObserver, onClose, setIsOpen]);
+  }, [disableClose, isOpen, mouseObserver, onClose, setIsOpen]);
 
   useEffect(() => {
     // clear observer after closing modal

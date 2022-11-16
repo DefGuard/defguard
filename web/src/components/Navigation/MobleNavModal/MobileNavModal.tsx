@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import Divider from '../../../shared/components/layout/Divider/Divider';
 import Modal from '../../../shared/components/layout/Modal/Modal';
 import SvgDefguadNavLogo from '../../../shared/components/svg/DefguadNavLogo';
+import SvgIconEdit from '../../../shared/components/svg/IconEditAlt';
 import SvgIconHamburgerClose from '../../../shared/components/svg/IconHamburgerClose';
 import SvgIconNavLogout from '../../../shared/components/svg/IconNavLogout';
 import ApplicationVersion from '../ApplicationVersion/ApplicationVersion';
@@ -47,6 +48,18 @@ const MobileNavModal: React.FC<Props> = ({
             callback={() => setIsOpen(false)}
           />
         ))}
+      </div>
+      <div className="links bottom">
+        <NavigationLink
+          key={'/admin/settings'}
+          item={{
+            title: t('navigation.template.links.settings'),
+            linkPath: '/admin/settings',
+            icon: <SvgIconEdit />,
+            allowedToView: ['admin'],
+            enabled: true,
+          }}
+        />
       </div>
       <button className="log-out" onClick={() => onLogOut()}>
         <SvgIconNavLogout /> <span>{t('navigation.template.logOut')}</span>

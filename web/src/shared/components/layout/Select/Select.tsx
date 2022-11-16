@@ -26,6 +26,7 @@ import { SelectOption } from './SelectOption';
 export interface SelectOption<T> {
   value: T;
   label: string;
+  disabled?: boolean;
   key: Key;
 }
 

@@ -17,12 +17,13 @@ export const UserDevices = () => {
       </header>
       {user && (
         <>
-          <div className="devices">
-            {user.devices &&
-              user.devices.map((device) => (
+          {user.devices && user.devices.length > 0 && (
+            <div className="devices">
+              {user.devices.map((device) => (
                 <DeviceCard key={device.id} device={device} />
               ))}
-          </div>
+            </div>
+          )}
           <AddComponentBox
             text="Add new device"
             callback={() =>

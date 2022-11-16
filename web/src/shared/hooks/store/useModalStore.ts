@@ -82,6 +82,9 @@ export const useModalStore = create<UseModalStore>((set) => ({
   addSecurityKeyModal: {
     visible: false,
   },
+	licenseModal: {
+		visible: false,
+	},
   setState: (newState) => set((oldState) => ({ ...oldState, ...newState })),
   setRecoveryCodesModal: (newState) =>
     set((oldState) => ({
@@ -124,6 +127,10 @@ export const useModalStore = create<UseModalStore>((set) => ({
   setAddOpenidClientModal: (v) =>
     set((state) => ({
       addOpenidClientModal: { ...state.addOpenidClientModal, ...v },
+    })),
+  setLicenseModal: (v) =>
+    set((state) => ({
+      licenseModal: { ...state.licenseModal, ...v },
     })),
   setDeleteOpenidClientModal: (data) =>
     set((state) => ({

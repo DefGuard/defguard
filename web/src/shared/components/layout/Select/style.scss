@@ -84,6 +84,7 @@
   padding: 1rem 0;
   position: absolute;
   box-shadow: 0 6px 20px #0000001a;
+  z-index: 1;
 
   & > .options-container {
     overflow-x: hidden;

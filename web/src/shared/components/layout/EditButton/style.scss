@@ -43,6 +43,10 @@ button {
     text-align: left;
 
     @include small-text;
+
+    &:disabled {
+      cursor: not-allowed;
+    }
   }
 
   & > .arrow {
