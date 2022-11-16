@@ -1,5 +1,6 @@
 import './style.scss';
 
+import classNames from 'classnames';
 import React, { ComponentPropsWithoutRef, useMemo } from 'react';
 
 import SvgIconDeactivated from '../../svg/IconDeactivated';
@@ -23,10 +24,7 @@ interface Props extends ComponentPropsWithoutRef<'div'> {
 
 /**
  * Styled box with message.
- * @param message
- * Displayed string in the box.
- * @param type
- * Determinate styling and icon of a box.
+ * children should be only one container element.
  */
 const MessageBox = ({
   children,
@@ -35,13 +33,7 @@ const MessageBox = ({
   ...props
 }: Props) => {
   const getClassName = useMemo(() => {
-    const res = ['message-box'];
-    res.push(type.valueOf());
-    if (props.className && props.className.length) {
-      const definedClasses = props.className.split(' ');
-      res.push(...definedClasses);
-    }
-    return res.join(' ');
+    return classNames('message-box', props.className, type.valueOf());
   }, [props.className, type]);
 
   const getIcon = useMemo(() => {

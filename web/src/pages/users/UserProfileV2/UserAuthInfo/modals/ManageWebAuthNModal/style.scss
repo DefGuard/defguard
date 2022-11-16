@@ -6,18 +6,31 @@
   & > .content {
     & > .message-box {
       box-sizing: border-box;
-      width: calc(100% - 6rem);
-      margin: 0 3rem 3.4rem;
       min-height: 70px;
+      margin-bottom: 2rem;
+
+      @include media-breakpoint-up(lg) {
+        width: calc(100% - 6rem);
+        margin: 0 3rem 3.4rem;
+      }
     }
 
     & > .current-keys {
       display: flex;
       flex-flow: column;
       box-sizing: border-box;
-      padding: 0 3rem;
-      row-gap: 2rem;
-      margin-bottom: 3.4rem;
+
+      @include media-breakpoint-down(lg) {
+        padding: 0 1.5rem;
+        row-gap: 1rem;
+        margin-bottom: 3rem;
+      }
+
+      @include media-breakpoint-up(lg) {
+        padding: 0 3rem;
+        row-gap: 2rem;
+        margin-bottom: 3.4rem;
+      }
 
       & > .row-box {
         width: 100%;
@@ -45,12 +58,6 @@
         & > :nth-child(3) {
           margin-left: 2rem;
         }
-      }
-    }
-
-    & > form {
-      & > .controls {
-        margin-top: 2rem;
       }
     }
   }

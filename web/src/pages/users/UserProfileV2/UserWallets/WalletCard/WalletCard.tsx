@@ -2,6 +2,7 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import useBreakpoint from 'use-breakpoint';
 
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
 import Badge, {
@@ -15,6 +16,7 @@ import {
 } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
 import { IconEth } from '../../../../../shared/components/svg';
+import { deviceBreakpoints } from '../../../../../shared/constants';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -34,6 +36,7 @@ export const WalletCard = ({
   connected = false,
   showMFA = false,
 }: Props) => {
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const setModalsState = useModalStore((state) => state.setState);
   const toaster = useToaster();
   const [hovered, setHovered] = useState(false);
@@ -92,7 +95,7 @@ export const WalletCard = ({
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
     >
-      <EditButton visible={hovered}>
+      <EditButton visible={hovered || breakpoint !== 'desktop'}>
         {!wallet.use_for_mfa && showMFA && (
           <EditButtonOption
             text="Enable MFA"
