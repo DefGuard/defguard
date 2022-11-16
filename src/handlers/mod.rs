@@ -169,6 +169,18 @@ pub struct RecoveryCode {
     code: String,
 }
 
+#[derive(Serialize)]
+pub struct RecoveryCodes {
+    codes: Option<Vec<String>>,
+}
+
+impl RecoveryCodes {
+    #[must_use]
+    pub fn new(codes: Option<Vec<String>>) -> Self {
+        Self { codes }
+    }
+}
+
 /// Try to fetch [`User`] if the username is of the currently logged in user, or
 /// the logged in user is an admin.
 pub async fn user_for_admin_or_self(

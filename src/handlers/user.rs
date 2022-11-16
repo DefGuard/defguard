@@ -1,6 +1,6 @@
 use super::{
-    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange, Username,
-    WalletChallenge, WalletChange, WalletSignature,
+    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange, RecoveryCodes,
+    Username, WalletChallenge, WalletChange, WalletSignature,
 };
 use crate::{
     appstate::AppState,
@@ -278,7 +278,7 @@ pub async fn update_wallet(
             };
             wallet.save(&appstate.pool).await?;
             Ok(ApiResponse {
-                json: json!(recovery_codes),
+                json: json!(RecoveryCodes::new(recovery_codes)),
                 status: Status::Ok,
             })
         } else {

@@ -1,5 +1,5 @@
 use super::{
-    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, RecoveryCode, WalletSignature,
+    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, RecoveryCode, RecoveryCodes, WalletSignature,
     WebAuthnRegistration,
 };
 use crate::{
@@ -157,7 +157,8 @@ pub async fn webauthn_finish(
             if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
                 user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
                     .await?;
-                let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;
+                let recovery_codes =
+                    RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
                 let mut webauthn = WebAuthn::new(session.user_id, webauth_reg.name, &passkey)?;
                 webauthn.save(&appstate.pool).await?;
                 return Ok(ApiResponse {
@@ -247,7 +248,7 @@ pub async fn totp_enable(
 ) -> ApiResult {
     let mut user = session.user;
     if user.verify_code(data.code) {
-        let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;
+        let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.set_mfa_method(&appstate.pool, MFAMethod::OneTimePassword)
             .await?;
         user.enable_totp(&appstate.pool).await?;
