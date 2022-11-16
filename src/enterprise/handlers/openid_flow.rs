@@ -155,6 +155,7 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
         claims_supported: vec![
             "iss".into(),
             "sub".into(),
+            "aud".into(), // TODO: add to JWT? https://openid.net/specs/openid-connect-core-1_0.html
             "exp".into(),
             "iat".into(),
             "given_name".into(),

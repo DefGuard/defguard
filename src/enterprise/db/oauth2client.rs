@@ -8,7 +8,7 @@ pub struct OAuth2Client {
     client_id: String,
     pub client_secret: String,
     pub redirect_uri: String,
-    pub scope: String,
+    pub scope: String, // TODO: Vec<String>
 }
 
 impl OAuth2Client {
