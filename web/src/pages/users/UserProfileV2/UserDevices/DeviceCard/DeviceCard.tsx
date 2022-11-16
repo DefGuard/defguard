@@ -1,7 +1,7 @@
 import './style.scss';
 
 import saveAs from 'file-saver';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
@@ -26,13 +26,11 @@ export const DeviceCard = ({ device }: Props) => {
   const toaster = useToaster();
   const user = useUserProfileV2Store((state) => state.user);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
+  const [editButtonVisible, setEditButtonVisible] = useState(false);
   const setDeleteUserDeviceModal = useModalStore(
     (state) => state.setDeleteUserDeviceModal
   );
   const setUserDeviceModal = useModalStore((state) => state.setUserDeviceModal);
-  const [editButtonVisible, setEditButtonVisible] = useState(
-    breakpoint === 'mobile'
-  );
   const {
     device: { downloadDeviceConfig },
   } = useApi();
@@ -56,31 +54,16 @@ export const DeviceCard = ({ device }: Props) => {
     [device]
   );
 
-  useEffect(() => {
-    if (breakpoint === 'mobile' && editButtonVisible === false) {
-      setEditButtonVisible(true);
-    }
-
-    if (breakpoint !== 'mobile' && editButtonVisible === true) {
-      setEditButtonVisible(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [breakpoint]);
-
   if (!user) return null;
 
   return (
     <Card
       className="device-card"
       onHoverStart={() => {
-        if (breakpoint !== 'mobile') {
-          setEditButtonVisible(true);
-        }
+        setEditButtonVisible(true);
       }}
       onHoverEnd={() => {
-        if (breakpoint !== 'mobile') {
-          setEditButtonVisible(false);
-        }
+        setEditButtonVisible(false);
       }}
     >
       <header>
@@ -103,7 +86,7 @@ export const DeviceCard = ({ device }: Props) => {
           <p>{formattedCreationDate}</p>
         </div>
       </div>
-      <EditButton visible={editButtonVisible}>
+      <EditButton visible={editButtonVisible || breakpoint !== 'desktop'}>
         <EditButtonOption
           text="Delete device"
           onClick={() =>

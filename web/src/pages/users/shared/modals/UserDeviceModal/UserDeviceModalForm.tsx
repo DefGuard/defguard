@@ -140,6 +140,7 @@ export const UserDeviceModalForm = () => {
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.STANDARD}
           text="Cancel"
+          className="cancel"
           onClick={() =>
             setModalState({
               visible: false,
