@@ -15,6 +15,11 @@ use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 mod common;
 use common::init_test_db;
 
+#[derive(Deserialize)]
+pub struct RecoveryCodes {
+    codes: Option<Vec<String>>,
+}
+
 async fn make_client() -> Client {
     let (pool, config) = init_test_db().await;
 
@@ -108,8 +113,8 @@ async fn test_totp() {
     assert_eq!(response.status(), Status::Ok);
 
     // check recovery codes
-    let recovery_codes: Vec<String> = response.into_json().await.unwrap();
-    assert_eq!(recovery_codes.len(), 8); // RECOVERY_CODES_COUNT
+    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // enable MFA
     let response = client.put("/api/v1/auth/mfa").dispatch().await;
@@ -187,8 +192,8 @@ async fn test_webauthn() {
     assert_eq!(response.status(), Status::Ok);
 
     // check recovery codes
-    let recovery_codes: Vec<String> = response.into_json().await.unwrap();
-    assert_eq!(recovery_codes.len(), 8); // RECOVERY_CODES_COUNT
+    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // WebAuthn authentication
     let response = client.post("/api/v1/auth/webauthn/start").dispatch().await;
@@ -247,8 +252,8 @@ async fn test_web3() {
     assert_eq!(response.status(), Status::Ok);
 
     // check recovery codes
-    let recovery_codes: Vec<String> = response.into_json().await.unwrap();
-    assert_eq!(recovery_codes.len(), 8); // RECOVERY_CODES_COUNT
+    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     #[derive(Deserialize)]
     struct Challenge {
