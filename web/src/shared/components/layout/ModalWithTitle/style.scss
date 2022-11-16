@@ -8,7 +8,7 @@
         padding: 0;
         display: flex;
 
-        @include media-breakpoint-up(md) {
+        @include media-breakpoint-up(lg) {
           display: flex;
           flex-flow: row nowrap;
           align-content: center;
@@ -25,7 +25,7 @@
           display: block;
           background-color: var(--white);
 
-          @include media-breakpoint-up(md) {
+          @include media-breakpoint-up(lg) {
             min-height: 0;
             width: clamp(300px, 635px, 635px);
             box-sizing: border-box;
@@ -47,7 +47,7 @@
             padding: 0 2rem;
             position: relative;
 
-            @include media-breakpoint-up(md) {
+            @include media-breakpoint-up(lg) {
               display: block;
               border-bottom: 0 solid transparent;
               margin-bottom: 2rem;
@@ -58,7 +58,7 @@
             & > .title {
               @include modal-header;
 
-              @include media-breakpoint-up(md) {
+              @include media-breakpoint-up(lg) {
                 margin-bottom: 2rem;
               }
             }
@@ -79,7 +79,7 @@
               border: 0 solid transparent;
               background-color: transparent;
 
-              @include media-breakpoint-up(md) {
+              @include media-breakpoint-up(lg) {
                 display: none;
               }
             }
@@ -92,7 +92,7 @@
             max-height: calc(100% - 70px);
             overflow-y: auto;
 
-            @include media-breakpoint-up(md) {
+            @include media-breakpoint-up(lg) {
               padding: 0 0 5.4rem;
               max-height: none;
             }
@@ -101,9 +101,8 @@
               width: 100%;
               align-items: flex-start;
               box-sizing: border-box;
-              padding: 0 2rem;
 
-              @include media-breakpoint-up(md) {
+              @include media-breakpoint-up(lg) {
                 padding: 0 3rem;
               }
 
@@ -114,11 +113,11 @@
                 column-gap: 1rem;
                 flex-flow: column-reverse;
                 box-sizing: border-box;
-                margin-top: 4rem;
+                margin-top: 1.5rem;
 
-                @include media-breakpoint-up(md) {
+                @include media-breakpoint-up(lg) {
                   flex-flow: row nowrap;
-                  margin-top: calc(6.6rem);
+                  margin-top: calc(6.6rem - 2.5rem);
                 }
 
                 & > .btn {
@@ -128,7 +127,7 @@
                   &.cancel {
                     display: none;
 
-                    @include media-breakpoint-up(md) {
+                    @include media-breakpoint-up(lg) {
                       display: flex;
                     }
                   }

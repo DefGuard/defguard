@@ -2,11 +2,8 @@
 @use '@shared/scss/helpers/mixins' as mix;
 
 .message-box {
-  display: flex;
   min-height: 58px;
   box-sizing: border-box;
-  flex-direction: row;
-  flex-wrap: nowrap;
   padding: 1rem 2rem;
   height: auto;
   width: 100%;
@@ -15,19 +12,31 @@
   border-radius: 1rem;
   font-size: 1.2rem;
   line-height: 1.4;
-  text-align: left;
-  @include mix.text-weight(medium);
-
+  display: inline-grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 20px 1fr;
+  column-gap: 1rem;
+  justify-content: center;
   align-content: center;
   align-items: center;
-  justify-content: flex-start;
+  @include mix.text-weight(medium);
 
-  b {
+  &:nth-child(1) {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  &:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  b,
+  strong {
     @include mix.text-weight(bold);
   }
 
   svg {
-    margin-right: 0.8rem;
     width: 20px;
   }
 

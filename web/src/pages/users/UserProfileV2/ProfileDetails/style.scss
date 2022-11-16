@@ -2,7 +2,7 @@
 
 #profile-details {
   & > .card {
-    padding: 2.6rem 3rem;
+    padding: 2rem 1.5rem 3rem;
 
     @include media-breakpoint-up(lg) {
       padding: 2.6rem 3rem 5.5rem;

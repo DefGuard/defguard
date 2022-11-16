@@ -38,7 +38,7 @@ export const UserDeviceModal = () => {
           You need to configure WireguardVPN on your device, please visit{' '}
           <a href="" target="blank">
             documentation
-          </a>{' '}
+          </a>
           if you don&apos;t know how to do it.
         </p>
       </MessageBox>

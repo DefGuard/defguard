@@ -65,7 +65,8 @@ const Button = ({
   const getClassName = useMemo(
     () =>
       classNames('btn', className, size.valueOf(), styleVariant.valueOf(), {
-        'with-icon': !isUndefined(icon),
+        'with-icon':
+          !isUndefined(icon) && styleVariant !== ButtonStyleVariant.ICON,
       }),
     [size, styleVariant, icon, className]
   );
