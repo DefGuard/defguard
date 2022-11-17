@@ -1,0 +1,33 @@
+@use '../../../shared/scss/helpers' as *;
+
+#network-page {
+  .network-config {
+    & > .card {
+      padding: 1.5rem 3rem 4rem;
+
+      & > form {
+        justify-content: flex-start;
+        align-content: flex-start;
+        align-items: flex-start;
+
+        & > .hidden {
+          @include visually-hidden;
+        }
+
+        & > label {
+          margin-bottom: 1.2rem;
+        }
+
+        & > .input-container {
+          width: 100%;
+        }
+
+        & > .message-box {
+          &:not(:last-child) {
+            margin-bottom: 2.5rem;
+          }
+        }
+      }
+    }
+  }
+}

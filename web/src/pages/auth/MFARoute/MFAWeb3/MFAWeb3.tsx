@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
+import { useAccount, useSignMessage } from 'wagmi';
 import shallow from 'zustand/shallow';
 
 import Button, {
@@ -25,7 +25,6 @@ export const MFAWeb3 = () => {
   } = useApi();
 
   const { isConnected, isConnecting, address } = useAccount();
-  const { disconnect } = useDisconnect();
   const setModalsState = useModalStore((state) => state.setState);
   const logIn = useAuthStore((state) => state.logIn);
   const resetMFAStore = useMFAStore((state) => state.resetState);
@@ -44,32 +43,37 @@ export const MFAWeb3 = () => {
     finish,
     {
       onSuccess: (data) => {
-        disconnect();
         resetMFAStore();
         toaster.success('Logged in.');
         logIn(data);
       },
       onError: (err) => {
         console.error(err);
-        toaster.error('Wallet is not authorized for MFA login.');
+        toaster.error(
+          'Wallet is not authorized for MFA login.',
+          'Please use authorized wallet.'
+        );
         if (isConnected) {
-          disconnect();
         }
       },
     }
   );
 
-  const {
-    data: mfaMessage,
-    mutate: mfaStartMutation,
-    isLoading: startLoading,
-  } = useMutation([MutationKeys.WEB3_MFA_START], start, {
-    onSuccess: (data) => {
-      signMessage({
-        message: data.challenge,
-      });
-    },
-  });
+  const { mutate: mfaStartMutation, isLoading: startLoading } = useMutation(
+    [MutationKeys.WEB3_MFA_START],
+    start,
+    {
+      onSuccess: (data) => {
+        if (isConnected) {
+          signMessage({
+            message: data.challenge,
+          });
+        } else {
+          toaster.error('Wallet was disconnected during signing process.');
+        }
+      },
+    }
+  );
 
   const navigate = useNavigate();
 
@@ -85,14 +89,6 @@ export const MFAWeb3 = () => {
   });
 
   useEffect(() => {
-    mfaStartMutation();
-    if (isConnected) {
-      disconnect();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     if (!web3Available) {
       navigate('../');
     }
@@ -105,7 +101,7 @@ export const MFAWeb3 = () => {
         app or extension.
       </p>
       <Button
-        text="Use your wallet"
+        text={isConnected ? 'Use your wallet' : 'Connect your wallet'}
         styleVariant={ButtonStyleVariant.PRIMARY}
         size={ButtonSize.BIG}
         loading={finishLoading || startLoading || isConnecting || isSigning}
@@ -113,11 +109,7 @@ export const MFAWeb3 = () => {
           if (!isConnected) {
             setModalsState({ connectWalletModal: { visible: true } });
           } else {
-            if (mfaMessage?.challenge) {
-              signMessage({
-                message: mfaMessage.challenge,
-              });
-            }
+            mfaStartMutation();
           }
         }}
       />

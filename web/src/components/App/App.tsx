@@ -14,6 +14,7 @@ import shallow from 'zustand/shallow';
 
 import AuthPage from '../../pages/auth/AuthPage';
 import LoaderPage from '../../pages/loader/LoaderPage';
+import { NetworkPage } from '../../pages/network/NetworkPage';
 import OAuthPage from '../../pages/oauth/OAuthPage';
 import OpenidAllowPage from '../../pages/openid/OpenidAllowPage';
 import OpenidPage from '../../pages/openid/OpenidPage';
@@ -22,7 +23,6 @@ import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
 import { UserProfilePage } from '../../pages/users/UserProfilePage';
 import UsersPage from '../../pages/users/UsersPage';
-import WizardPage from '../../pages/vpn/Wizard/WizardPage';
 import WebhooksPage from '../../pages/webhooks/WebhooksPage';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
@@ -85,6 +85,14 @@ const App = () => {
             <Route path="admin/*">
               <Route index element={<Navigate to="users" />} />
               <Route
+                path="network/*"
+                element={
+                  <ProtectedRoute allowedGroups={['admin']}>
+                    <NetworkPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="overview/*"
                 element={
                   <ProtectedRoute
@@ -92,14 +100,6 @@ const App = () => {
                     moduleRequired="wireguard_enabled"
                   >
                     <OverviewPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="wizard/*"
-                element={
-                  <ProtectedRoute allowedGroups={['admin']}>
-                    <WizardPage />
                   </ProtectedRoute>
                 }
               />

@@ -1,0 +1,29 @@
+@use '../../../shared/scss/helpers' as *;
+
+#network-page {
+  .gateway {
+    & > .card {
+      padding: 3rem 4rem 5rem;
+
+      & > .message-box {
+        margin-bottom: 4rem;
+      }
+
+      & > .status {
+        width: 100%;
+        display: inline-grid;
+        grid-template-columns: 280px 1fr;
+        column-gap: 3rem;
+        grid-template-rows: 50px;
+        align-items: center;
+        justify-content: center;
+        align-content: center;
+
+        & > .btn {
+          height: 100%;
+          width: 100%;
+        }
+      }
+    }
+  }
+}
