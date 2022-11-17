@@ -45,10 +45,8 @@ export const SelectArrowIcon = ({ active = false, ...rest }: Props) => {
 const variants: Variants = {
   idle: {
     rotate: '0deg',
-    translateY: '-50%',
   },
   active: {
     rotate: '180deg',
-    translateY: '-50%',
   },
 };

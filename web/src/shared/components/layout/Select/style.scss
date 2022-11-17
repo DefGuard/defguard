@@ -8,30 +8,79 @@
   border: 1px solid var(--gray-border);
   cursor: pointer;
 
-  & .disabled {
+  &.disabled {
     cursor: not-allowed;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  &.in-form {
+    margin-bottom: 2.5rem;
+  }
+
+  .side {
+    display: flex;
+    flex-flow: row nowrap;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &.single {
+    background-color: var(--bg-light);
+
+    & > .inner-frame {
+      height: 100%;
+      display: inline-grid;
+      grid-template-columns: 1fr 22px;
+      grid-template-rows: 1fr;
+      min-width: 100%;
+      align-items: center;
+      align-content: center;
+      box-sizing: border-box;
+      padding: 0 8px 0 12px;
+      column-gap: 8px;
+
+      & > .selected {
+        grid-column: 1;
+        grid-row: 1;
+        @include text-overflow-dots;
+        @include typography(12px, 14px, medium, var(--text-main));
+      }
+
+      & > .side {
+        grid-column: 2;
+        grid-row: 1;
+      }
+    }
   }
 
   & > .inner-frame {
     &.multi {
-      height: 49px;
+      height: 100%;
       display: inline-grid;
-      grid-template-columns: 1fr 38px;
+      grid-template-columns: 1fr 22px;
+      grid-template-rows: 1fr;
+      align-items: center;
+      align-content: center;
+      box-sizing: border-box;
+      padding: 0 8px 0 10px;
+      column-gap: 8px;
       max-width: 100%;
       width: 100%;
 
       & > .content-frame {
+        grid-column: 1;
+        grid-row: 1;
         display: flex;
         flex-flow: row wrap;
         row-gap: 10px;
         column-gap: 10px;
-        height: 49px;
         grid-area: 1/1;
         align-items: center;
         align-content: center;
         justify-content: flex-start;
         box-sizing: border-box;
-        padding-left: 1rem;
 
         & > .multi-select-search-frame {
           display: inline-grid;
@@ -46,7 +95,7 @@
             height: 30px;
             min-width: 2px;
 
-            @include small-text;
+            @include typography(15px, 18px, regular, var(--text-main));
           }
 
           & > .multi-select-search {
@@ -62,15 +111,15 @@
             box-sizing: content-box;
             background-color: var(--transparent);
             max-width: 100%;
-            @include small-text;
+
+            @include typography(15px, 18px, regular, var(--text-main));
           }
         }
       }
 
-      & > svg {
-        position: absolute;
-        right: 8px;
-        top: 50%;
+      & > .side {
+        grid-column: 2;
+        grid-row: 1;
       }
     }
   }
@@ -96,9 +145,9 @@
     & > .select-option {
       @include regular-text;
 
-      height: 50px;
+      height: 30px;
       text-align: left;
-      padding: 8px 12px;
+      padding: 0 12px;
       display: block;
       border: 0 solid transparent;
       background-color: var(--white);

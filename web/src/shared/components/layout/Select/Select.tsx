@@ -19,6 +19,7 @@ import {
   ColorsRGB,
   inactiveBoxShadow,
 } from '../../../constants';
+import LoaderSpinner from '../LoaderSpinner/LoaderSpinner';
 import { Tag } from '../Tag/Tag';
 import { SelectArrowIcon } from './SelectArrowIcon';
 import { SelectOption } from './SelectOption';
@@ -53,6 +54,7 @@ export interface SelectProps<T> {
   disabled?: boolean;
   outerLabel?: string;
   disableOuterLabelColon?: boolean;
+  inForm?: boolean;
 }
 
 const defaultOnRemove = <T,>(v: SelectOption<T>, pool: SelectOption<T>[]) =>
@@ -75,6 +77,7 @@ export const Select = <T,>({
   searchDebounce = 1000,
   searchMinLength = 1,
   disableOuterLabelColon = false,
+  inForm = false,
 }: SelectProps<T>): React.ReactElement => {
   const selectId = useId();
   const [open, setOpen] = useState(false);
@@ -125,8 +128,10 @@ export const Select = <T,>({
       open: open,
       selected: selected,
       multi: multi,
+      single: !multi,
+      'in-form': inForm,
     });
-  }, [disabled, loading, multi, open, selected]);
+  }, [disabled, inForm, loading, multi, open, selected]);
 
   const showSelectInnerPlaceholder = useMemo(() => {
     if (Array.isArray(selected)) {
@@ -148,10 +153,7 @@ export const Select = <T,>({
     if (disabled) {
       return 'disabled';
     }
-    if (open) {
-      return 'activeOpen';
-    }
-    if (hovered) {
+    if (open || hovered) {
       return 'active';
     }
     return 'idle';
@@ -211,6 +213,11 @@ export const Select = <T,>({
         onHoverEnd={() => setHovered(false)}
         variants={selectContainerVariants}
         animate={getContainerVariant}
+        custom={{
+          hovered: hovered,
+          multi: multi,
+          invalid: invalid,
+        }}
         ref={reference}
         id={selectId}
       >
@@ -299,7 +306,13 @@ export const Select = <T,>({
                 />
               </div>
             </div>
-            <SelectArrowIcon active={open} />
+            <div className="side">
+              {loading ? (
+                <LoaderSpinner size={22} />
+              ) : (
+                <SelectArrowIcon active={open} />
+              )}
+            </div>
           </div>
         )}
         <AnimatePresence>
@@ -390,31 +403,41 @@ const selectContainerTextVariants: Variants = {
   },
 };
 
+interface SelectContainerCustom {
+  multi?: boolean;
+  invalid?: boolean;
+}
+
 const selectContainerVariants: Variants = {
-  idle: {
-    backgroundColor: ColorsRGB.White,
-    borderColor: ColorsRGB.GrayBorder,
-    boxShadow: inactiveBoxShadow,
-  },
-  invalidIdle: {
-    backgroundColor: ColorsRGB.White,
-    borderColor: ColorsRGB.Error,
-    boxShadow: inactiveBoxShadow,
+  idle: ({ multi, invalid }: SelectContainerCustom) => {
+    const res = {
+      backgroundColor: ColorsRGB.BgLight,
+      borderColor: ColorsRGB.GrayBorder,
+      boxShadow: inactiveBoxShadow,
+    };
+    if (multi) {
+      res.backgroundColor = ColorsRGB.White;
+    }
+    if (invalid) {
+      res.borderColor = ColorsRGB.Error;
+    }
+    return res;
   },
   invalidActive: {
     backgroundColor: ColorsRGB.White,
     borderColor: ColorsRGB.Error,
     boxShadow: buttonsBoxShadow,
   },
-  active: {
-    backgroundColor: ColorsRGB.White,
-    borderColor: ColorsRGB.GrayLighter,
-    boxShadow: buttonsBoxShadow,
-  },
-  activeOpen: {
-    backgroundColor: ColorsRGB.White,
-    borderColor: ColorsRGB.GrayLighter,
-    boxShadow: inactiveBoxShadow,
+  active: ({ invalid }: SelectContainerCustom) => {
+    const res = {
+      backgroundColor: ColorsRGB.White,
+      borderColor: ColorsRGB.GrayLighter,
+      boxShadow: buttonsBoxShadow,
+    };
+    if (invalid) {
+      res.borderColor = ColorsRGB.Error;
+    }
+    return res;
   },
   disabled: {
     backgroundColor: ColorsRGB.BgLight,
