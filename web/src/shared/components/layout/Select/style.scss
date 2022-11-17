@@ -18,6 +18,14 @@
     margin-bottom: 2.5rem;
   }
 
+  .side {
+    display: flex;
+    flex-flow: row nowrap;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+  }
+
   &.single {
     background-color: var(--bg-light);
 
@@ -40,7 +48,7 @@
         @include typography(12px, 14px, medium, var(--text-main));
       }
 
-      & > svg {
+      & > .side {
         grid-column: 2;
         grid-row: 1;
       }
@@ -109,7 +117,7 @@
         }
       }
 
-      & > svg {
+      & > .side {
         grid-column: 2;
         grid-row: 1;
       }

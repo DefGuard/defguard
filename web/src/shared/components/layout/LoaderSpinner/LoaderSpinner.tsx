@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { HTMLMotionProps, motion, useAnimation, Variants } from 'framer-motion';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 import { ColorsRGB } from '../../../constants';
 
@@ -13,9 +13,6 @@ interface Props extends HTMLMotionProps<'span'> {
 
 /**
  * Creates infinitely spinning circle.
- * @param size Size in `px`.
- * @param backColor Color assigned to the tail of the spinner.
- * @param frontColor Main color of the spinner.
  */
 const LoaderSpinner = ({
   size = 20,

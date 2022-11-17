@@ -19,6 +19,7 @@ import {
   ColorsRGB,
   inactiveBoxShadow,
 } from '../../../constants';
+import LoaderSpinner from '../LoaderSpinner/LoaderSpinner';
 import { Tag } from '../Tag/Tag';
 import { SelectArrowIcon } from './SelectArrowIcon';
 import { SelectOption } from './SelectOption';
@@ -305,7 +306,13 @@ export const Select = <T,>({
                 />
               </div>
             </div>
-            <SelectArrowIcon active={open} />
+            <div className="side">
+              {loading ? (
+                <LoaderSpinner size={22} />
+              ) : (
+                <SelectArrowIcon active={open} />
+              )}
+            </div>
           </div>
         )}
         <AnimatePresence>
