@@ -90,7 +90,7 @@ async fn smart_index(path: PathBuf) -> Option<NamedFile> {
     if path.starts_with("api/") {
         None
     } else {
-        NamedFile::open("./web/index.html").await.ok()
+        NamedFile::open("./web/dist/index.html").await.ok()
     }
 }
 
@@ -116,7 +116,7 @@ pub async fn build_webapp(
     let license_decoded = License::decode(&config.license);
     let webapp = rocket::custom(cfg)
         .mount("/", routes![smart_index])
-        .mount("/", FileServer::new("./web", Options::Missing).rank(3))
+        .mount("/", FileServer::new("./web/dist", Options::Missing).rank(3))
         .mount(
             "/api/v1",
             routes![
