@@ -1,3 +1,5 @@
+import './style.scss';
+
 import React from 'react';
 import shallow from 'zustand/shallow';
 
@@ -19,6 +21,7 @@ const AddUserModal: React.FC = () => {
       title="New user"
       isOpen={isOpen}
       setIsOpen={setIsOpen}
+      id="add-user-modal"
     >
       <AddUserForm />
     </ModalWithTitle>
