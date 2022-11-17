@@ -164,7 +164,7 @@ async fn test_webauthn() {
     let client = make_client().await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new());
-    let origin = Url::parse("http://localhost:8080").unwrap();
+    let origin = Url::parse("http://localhost:8000").unwrap();
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
