@@ -47,5 +47,5 @@ RUN apt-get update -y && \
     rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
-COPY --from=web /app/dist ./web
+COPY --from=web /app/dist ./web/dist
 ENTRYPOINT ["./defguard"]

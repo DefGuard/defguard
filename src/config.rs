@@ -41,7 +41,7 @@ pub struct DefGuardConfig {
     // relying party id and relying party origin for WebAuthn
     #[clap(long, env = "DEFGUARD_WEBAUTHN_RP_ID", default_value = "localhost")]
     pub webauthn_rp_id: String,
-    #[clap(long, env = "DEFGUARD_URL", default_value = "http://localhost:8080")]
+    #[clap(long, env = "DEFGUARD_URL", default_value = "http://localhost:8000")]
     pub url: String,
 
     #[clap(
