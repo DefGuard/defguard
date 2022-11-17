@@ -4,7 +4,7 @@
 
 #[cfg(feature = "oauth")]
 use crate::enterprise::handlers::oauth::{
-    add_oauth2client, authorize, authorize_consent, refresh, token,
+    add_oauth2client, authorize, authorize_consent, discovery_keys, refresh, token,
 };
 #[cfg(feature = "worker")]
 use crate::enterprise::handlers::worker::{
@@ -200,24 +200,25 @@ pub async fn build_webapp(
     #[cfg(feature = "openid")]
     let webapp = if license_decoded.validate(&Features::Openid) {
         info!("Openid feature is enabled");
-        webapp.mount(
-            "/api/v1/openid",
-            routes![
-                add_openid_client,
-                delete_openid_client,
-                change_openid_client,
-                list_openid_clients,
-                get_openid_client,
-                authentication_request,
-                id_token,
-                change_openid_client_state,
-                openid_configuration,
-                check_authorized,
-                update_user_app,
-                delete_user_app,
-                get_user_apps
-            ],
-        )
+        webapp
+            .mount(
+                "/api/v1/openid",
+                routes![
+                    add_openid_client,
+                    delete_openid_client,
+                    change_openid_client,
+                    list_openid_clients,
+                    get_openid_client,
+                    authentication_request,
+                    id_token,
+                    change_openid_client_state,
+                    check_authorized,
+                    update_user_app,
+                    delete_user_app,
+                    get_user_apps
+                ],
+            )
+            .mount("/.well-known", routes![openid_configuration])
     } else {
         webapp
     };
@@ -230,7 +231,7 @@ pub async fn build_webapp(
             .manage(OAuthState::new(pool.clone()).await)
             .mount(
                 "/api/oauth",
-                routes![authorize, authorize_consent, token, refresh],
+                routes![authorize, authorize_consent, discovery_keys, token, refresh],
             )
             .mount("/api/v1", routes![add_oauth2client])
     } else {

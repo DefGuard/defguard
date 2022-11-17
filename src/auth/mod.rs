@@ -51,6 +51,7 @@ pub struct Claims {
     pub iss: String,
     // subject
     pub sub: String,
+    // TODO: aud https://openid.net/specs/openid-connect-core-1_0.html
     // client identifier
     pub client_id: String,
     // expiration time

@@ -3,12 +3,19 @@ use crate::{
     enterprise::{db::OAuth2Client, oauth_state::OAuthState},
     error::OriWebError,
     handlers::{user_for_admin_or_self, ApiResponse, ApiResult},
+    license::PUBLIC_KEY,
     oxide_auth_rocket::{OAuthFailure, OAuthRequest, OAuthResponse},
 };
+use openidconnect::core::{CoreJsonWebKey, CoreJsonWebKeySet};
 use oxide_auth_async::endpoint::{
     access_token::AccessTokenFlow, authorization::AuthorizationFlow, refresh::RefreshFlow,
 };
-use rocket::{http::Status, serde::json::Json, Data, State};
+use rocket::{
+    http::Status,
+    serde::json::{serde_json::json, Json},
+    Data, State,
+};
+use rsa::{pkcs8::FromPublicKey, PublicKeyParts, RsaPublicKey};
 
 #[get("/authorize")]
 pub async fn authorize<'r>(
@@ -80,4 +87,19 @@ pub async fn add_oauth2client(
     } else {
         Err(OriWebError::Http(Status::NotFound))
     }
+}
+
+#[get("/discovery/keys")]
+pub async fn discovery_keys() -> ApiResult {
+    let public_key = RsaPublicKey::from_public_key_pem(PUBLIC_KEY).unwrap();
+    let jwks = CoreJsonWebKeySet::new(vec![CoreJsonWebKey::new_rsa(
+        public_key.n().to_bytes_be(),
+        public_key.e().to_bytes_be(),
+        None,
+    )]);
+
+    Ok(ApiResponse {
+        json: json!(jwks),
+        status: Status::Ok,
+    })
 }

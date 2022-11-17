@@ -10,6 +10,15 @@ use crate::{
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
 };
+use openidconnect::{
+    core::{
+        CoreClaimName, CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
+        CoreSubjectIdentifierType,
+    },
+    url::Url,
+    AuthUrl, EmptyAdditionalProviderMetadata, IssuerUrl, JsonWebKeySetUrl, ResponseTypes, Scope,
+    TokenUrl,
+};
 use rocket::{
     form::{Form, Lenient},
     http::Status,
@@ -129,46 +138,45 @@ pub async fn id_token(form: Form<IDTokenRequest>, appstate: &State<AppState>) ->
     }
 }
 
-#[derive(Serialize)]
-pub struct OpenIDConfiguration {
-    issuer: String,
-    authorization_endpoint: String,
-    token_endpoint: String,
-    scopes_supported: Vec<String>,
-    response_types_supported: Vec<String>,
-    claims_supported: Vec<String>,
-}
-
-#[get("/.well-known/openid-configuration", format = "json")]
+// Must be served under /.well-known/openid-configuration
+#[get("/openid-configuration", format = "json")]
 pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
-    let openid_config = OpenIDConfiguration {
-        issuer: appstate.config.url.clone(),
-        authorization_endpoint: format!("{}/openid/authorize", appstate.config.url),
-        token_endpoint: format!("{}/api/openid/token", appstate.config.url),
-        scopes_supported: vec![
-            "openid".into(),
-            "profile".into(),
-            "email".into(),
-            "phone".into(),
-        ],
-        response_types_supported: vec!["code".into()],
-        claims_supported: vec![
-            "iss".into(),
-            "sub".into(),
-            "aud".into(), // TODO: add to JWT? https://openid.net/specs/openid-connect-core-1_0.html
-            "exp".into(),
-            "iat".into(),
-            "given_name".into(),
-            "family_name".into(),
-            "email".into(),
-            "email_verified".into(),
-            "phone".into(),
-            "phone_verified".into(),
-            "nonce".into(),
-        ],
-    };
+    let base_url = Url::parse(&appstate.config.url).unwrap();
+    let provider_metadata = CoreProviderMetadata::new(
+        IssuerUrl::from_url(base_url.clone()),
+        AuthUrl::from_url(base_url.join("api/v1/openid/authorize").unwrap()),
+        JsonWebKeySetUrl::from_url(base_url.join("api/oauth/discovery/keys").unwrap()),
+        vec![ResponseTypes::new(vec![CoreResponseType::Code])],
+        vec![CoreSubjectIdentifierType::Public],
+        vec![CoreJwsSigningAlgorithm::HmacSha256], // match with auth::Claims.encode()
+        EmptyAdditionalProviderMetadata {},
+    )
+    .set_token_endpoint(Some(TokenUrl::from_url(
+        base_url.join("api/v1/openid/token").unwrap(),
+    )))
+    .set_scopes_supported(Some(vec![
+        Scope::new("openid".into()),
+        Scope::new("profile".into()),
+        Scope::new("email".into()),
+        Scope::new("phone".into()),
+    ]))
+    .set_claims_supported(Some(vec![
+        CoreClaimName::new("iss".into()),
+        CoreClaimName::new("sub".into()),
+        CoreClaimName::new("aud".into()),
+        CoreClaimName::new("exp".into()),
+        CoreClaimName::new("iat".into()),
+        CoreClaimName::new("given_name".into()),
+        CoreClaimName::new("family_name".into()),
+        CoreClaimName::new("email".into()),
+        CoreClaimName::new("email_verified".into()),
+        CoreClaimName::new("phone".into()),
+        CoreClaimName::new("phone_verified".into()),
+        CoreClaimName::new("nonce".into()),
+    ]));
+
     Ok(ApiResponse {
-        json: json!(openid_config),
+        json: json!(provider_metadata),
         status: Status::Ok,
     })
 }

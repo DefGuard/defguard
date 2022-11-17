@@ -15,7 +15,7 @@ pub struct License {
 }
 
 #[cfg(feature = "mock-license-key")]
-const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
+pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoowOenhBJnaS5C/W9kHX
 Vz6LQYUXczT1BasE+ehy53LWnj5nPD98J0/h3mUNrYcr28qKfj8MVNBDcvzRDCx2
 eVyXoEVffDLaMUU4rqNmIirOOm+Epwiln31Mwhi2G6RS+oHJsEprSoaZSa4GEtLk
@@ -27,7 +27,7 @@ jQIDAQAB
 ";
 
 #[cfg(not(feature = "mock-license-key"))]
-const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
+pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApI/JdghL3uSNqRbFwAv3
 s5tQQKfqL60srY6uaxng4dtpt0juWIhdzhoDEwUqJL8RA7mIRxJZ+FrgwrHm6Q7a
 GI1TCKL+7QEjgNRlemtb9LeVo1eK3SVpV3UnXLAOTXnWXZanYcPYDp4MpflTUAIN
