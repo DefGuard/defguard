@@ -53,6 +53,7 @@ export interface SelectProps<T> {
   disabled?: boolean;
   outerLabel?: string;
   disableOuterLabelColon?: boolean;
+  inForm?: boolean;
 }
 
 const defaultOnRemove = <T,>(v: SelectOption<T>, pool: SelectOption<T>[]) =>
@@ -75,6 +76,7 @@ export const Select = <T,>({
   searchDebounce = 1000,
   searchMinLength = 1,
   disableOuterLabelColon = false,
+  inForm = false,
 }: SelectProps<T>): React.ReactElement => {
   const selectId = useId();
   const [open, setOpen] = useState(false);
@@ -125,8 +127,10 @@ export const Select = <T,>({
       open: open,
       selected: selected,
       multi: multi,
+      single: !multi,
+      'in-form': inForm,
     });
-  }, [disabled, loading, multi, open, selected]);
+  }, [disabled, inForm, loading, multi, open, selected]);
 
   const showSelectInnerPlaceholder = useMemo(() => {
     if (Array.isArray(selected)) {

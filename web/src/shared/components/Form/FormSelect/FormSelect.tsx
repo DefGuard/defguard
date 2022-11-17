@@ -39,6 +39,7 @@ export const FormSelect = <T extends FieldValues, Y>({
       invalid={!isValid}
       errorMessage={error?.message}
       onChange={(res) => field.onChange(res)}
+      inForm={true}
     />
   );
 };
