@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import { isNull } from 'lodash-es';
 
 import {
   AddDeviceRequest,
@@ -73,6 +74,17 @@ const useApi = (props?: HookProps): ApiHook => {
           }
         }
       }
+      // API sometimes returns null in optional fileds.
+      if (res.data) {
+        const keys = Object.keys(res.data);
+        if (keys && keys.length) {
+          keys.forEach((k) => {
+            if (isNull(res.data[k])) {
+              delete res.data[k];
+            }
+          });
+        }
+      }
       return res;
     },
     (error) => {
@@ -141,8 +153,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const deleteNetwork = async (network: Network) =>
     client.delete<EmptyApiResponse>(`/network/${network.id}`);
 
-  const addNetwork = async (network: Network) =>
-    client.post<EmptyApiResponse>(`/network/`, network).then((res) => res.data);
+  const addNetwork: ApiHook['network']['addNetwork'] = (network) =>
+    client.post(`/network/`, network).then(unpackRequest);
 
   const login: ApiHook['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
@@ -382,7 +394,7 @@ const useApi = (props?: HookProps): ApiHook => {
       downloadDeviceConfig,
     },
     network: {
-      addNetwork: addNetwork,
+      addNetwork,
       getNetwork: fetchNetwork,
       getNetworks: fetchNetworks,
       editNetwork: modifyNetwork,

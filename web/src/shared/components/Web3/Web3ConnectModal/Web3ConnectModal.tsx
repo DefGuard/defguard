@@ -54,21 +54,12 @@ const WalletConnectorsList = () => {
   const { isConnected } = useAccount();
   const modalState = useModalStore((state) => state.connectWalletModal);
   const setModalsStore = useModalStore((state) => state.setState);
+  const { connect, connectors, isLoading, pendingConnector } = useConnect();
   const toaster = useToaster();
-  const { connect, connectors, error, isLoading, pendingConnector } =
-    useConnect();
-
-  useEffect(() => {
-    if (error && error.message) {
-      toaster.error(error.message);
-      console.error(error);
-      setModalsStore({ connectWalletModal: { visible: false } });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [error]);
 
   useEffect(() => {
     if (isConnected && modalState.visible) {
+      toaster.success('Wallet connected.');
       setModalsStore({ connectWalletModal: { visible: false } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

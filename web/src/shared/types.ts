@@ -82,10 +82,12 @@ export interface Network {
   address: string;
   port: number;
   endpoint: string;
-  connected_at: string | null;
-  allowed_ips: string | null;
-  dns: string | null;
+  connected_at?: string;
+  allowed_ips?: string;
+  dns?: string;
 }
+
+export type CreateNetworkRequest = Omit<Network, 'id' | 'connected_at'>;
 
 export interface NetworkToken {
   token: string;
@@ -253,7 +255,7 @@ export interface ApiHook {
     downloadDeviceConfig: (id: string) => Promise<string>;
   };
   network: {
-    addNetwork: (network: Network) => EmptyApiResponse;
+    addNetwork: (network: CreateNetworkRequest) => Promise<Network>;
     getNetwork: (networkId: string) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: Network) => Promise<Network>;
