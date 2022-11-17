@@ -1,5 +1,6 @@
 import './style.scss';
 
+import classNames from 'classnames';
 import { useMemo } from 'react';
 
 import { Card } from '../../../../shared/components/layout/Card/Card';
@@ -18,7 +19,9 @@ export const ProfileDetails = () => {
       <header>
         <h2>Profile Details</h2>
       </header>
-      <Card>{editMode ? <ProfileDetailsForm /> : <ViewMode />}</Card>
+      <Card className={classNames({ edit: editMode })}>
+        {editMode ? <ProfileDetailsForm /> : <ViewMode />}
+      </Card>
     </section>
   );
 };

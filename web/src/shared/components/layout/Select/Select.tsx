@@ -55,6 +55,7 @@ export interface SelectProps<T> {
   outerLabel?: string;
   disableOuterLabelColon?: boolean;
   inForm?: boolean;
+  disableOpen?: boolean;
 }
 
 const defaultOnRemove = <T,>(v: SelectOption<T>, pool: SelectOption<T>[]) =>
@@ -78,6 +79,7 @@ export const Select = <T,>({
   searchMinLength = 1,
   disableOuterLabelColon = false,
   inForm = false,
+  disableOpen = false,
 }: SelectProps<T>): React.ReactElement => {
   const selectId = useId();
   const [open, setOpen] = useState(false);
@@ -204,7 +206,7 @@ export const Select = <T,>({
       <motion.div
         className={getClassName}
         onClick={() => {
-          if (!disabled && !loading) {
+          if (!disabled && !loading && !disableOpen) {
             setOpen(true);
             focusSearch();
           }

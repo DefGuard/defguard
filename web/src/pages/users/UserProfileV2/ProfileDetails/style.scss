@@ -5,10 +5,15 @@
     padding: 2rem 1.5rem 3rem;
 
     @include media-breakpoint-up(lg) {
-      padding: 3rem 3rem 1.5rem;
+      padding: 3rem 3rem 5.5rem;
+
+      &.edit {
+        padding: 3rem;
+      }
     }
 
-    .row {
+    & > .row,
+    & > form > .row {
       min-width: 100%;
       display: grid;
       grid-auto-flow: row;
@@ -25,7 +30,6 @@
       }
 
       &.tags {
-        margin-bottom: 2.5rem;
         display: block;
         max-width: 100%;
 
@@ -63,6 +67,16 @@
 
         & > p {
           @include regular-text;
+        }
+      }
+    }
+
+    & > .row {
+      &:not(:last-of-type) {
+        margin-bottom: 3rem;
+
+        &.tags {
+          margin-bottom: 2.5rem;
         }
       }
     }
