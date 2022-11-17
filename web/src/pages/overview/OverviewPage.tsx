@@ -1,11 +1,10 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { isNull, isUndefined } from 'lodash-es';
+import { isUndefined } from 'lodash-es';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import useBreakpoint from 'use-breakpoint';
-import shallow from 'zustand/shallow';
 
 import { Action } from '../../shared/components/layout/Action/Action';
 import Button, {
@@ -14,14 +13,12 @@ import Button, {
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
-import { apiToWizardNetwork } from '../../shared/helpers/apiToWizardNetwork';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../shared/hooks/store/useModalStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { OverviewLayoutType } from '../../shared/types';
+import { useNetworkPageStore } from '../network/hooks/useNetworkPageStore';
 import GatewaySetupModal from '../vpn/modals/GatewaySetupModal/GatewaySetupModal';
-import { useWizardStore } from '../vpn/Wizard/WizardSteps/store';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
 import { OverviewActivityStream } from './OverviewActivityStream/OverviewActivityStream';
@@ -31,11 +28,12 @@ import { OverviewStatsFilterSelect } from './OverviewStatsFilterSelect/OverviewS
 import { OverviewViewSelect } from './OverviewViewSelect/OverviewViewSelect';
 
 export const OverviewPage = () => {
+  const navigate = useNavigate();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const viewMode = useOverviewStore((state) => state.viewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
   const statsFilter = useOverviewStore((state) => state.statsFilter);
-  const wizardCompleted = useAppStore((state) => state.wizardCompleted);
+  const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
 
   const setGatewaySetupModal = useModalStore(
     (state) => state.setGatewaySetupModal
@@ -43,13 +41,6 @@ export const OverviewPage = () => {
   const {
     network: { getNetworks, getUsersStats, getNetworkStats },
   } = useApi();
-
-  const [resetWizardStore, setNetwork, setWizardState] = useWizardStore(
-    (state) => [state.resetStore, state.setNetwork, state.setState],
-    shallow
-  );
-
-  const navigate = useNavigate();
 
   const { data: networkStats } = useQuery(
     [QueryKeys.FETCH_NETWORK_STATS, statsFilter],
@@ -64,20 +55,10 @@ export const OverviewPage = () => {
     }
   );
 
-  const {
-    data: networks,
-    isLoading: networksLoading,
-    isSuccess: networksSuccess,
-  } = useQuery([QueryKeys.FETCH_NETWORKS], getNetworks, {
-    onSuccess: (networks) => {
-      const network = networks[0];
-      if (network) {
-        if (isNull(network.connected_at)) {
-          setGatewaySetupModal({ visible: true });
-        }
-      }
-    },
-  });
+  const { data: networks, isLoading: networksLoading } = useQuery(
+    [QueryKeys.FETCH_NETWORKS],
+    getNetworks
+  );
 
   useEffect(() => {
     if (breakpoint === 'mobile' && viewMode === OverviewLayoutType.LIST) {
@@ -87,24 +68,6 @@ export const OverviewPage = () => {
       setOverViewStore({ viewMode: OverviewLayoutType.LIST });
     }
   }, [viewMode, breakpoint, setOverViewStore]);
-
-  useEffect(() => {
-    if (!networksLoading && networksSuccess) {
-      if (networks?.length == 0 && !wizardCompleted) {
-        resetWizardStore({
-          editMode: false,
-        });
-        navigate('/admin/wizard', { replace: true });
-      }
-    }
-  }, [
-    networks,
-    navigate,
-    networksLoading,
-    resetWizardStore,
-    networksSuccess,
-    wizardCompleted,
-  ]);
 
   return (
     <>
@@ -128,19 +91,18 @@ export const OverviewPage = () => {
             </Action>
             <Button
               styleVariant={ButtonStyleVariant.STANDARD}
-              text={'Edit network settings'}
+              text={
+                isUndefined(networks) || !networks?.length
+                  ? 'Configure network settings'
+                  : 'Edit network settings'
+              }
               icon={<IconEditNetwork />}
-              disabled={isUndefined(networks) || networksLoading}
+              disabled={networksLoading}
               onClick={() => {
-                if (networks) {
-                  setNetwork(apiToWizardNetwork(networks[0]));
-                  setWizardState({
-                    editMode: true,
-                  });
-                  navigate('/admin/wizard/1', {
-                    replace: true,
-                  });
+                if (networks && networks.length) {
+                  setNetworkPageStore({ network: networks[0] });
                 }
+                navigate('../network');
               }}
             />
           </header>

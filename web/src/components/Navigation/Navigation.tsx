@@ -45,11 +45,10 @@ const Navigation = () => {
     shallow
   );
   const [isMobileNavOpen, setMobileNavOpen] = useState(false);
-  const [isNavigationOpen, setNavigationOpen, navigationUser] =
-    useNavigationStore(
-      (state) => [state.isNavigationOpen, state.setNavigationOpen, state.user],
-      shallow
-    );
+  const [isNavigationOpen, setNavigationOpen] = useNavigationStore(
+    (state) => [state.isNavigationOpen, state.setNavigationOpen, state.user],
+    shallow
+  );
   const {
     auth: { logout },
   } = useApi();
@@ -65,27 +64,11 @@ const Navigation = () => {
   const { pathname } = useLocation();
 
   const getPageTitle = useMemo(() => {
-    if (pathname.includes('/me')) {
-      return 'My profile';
-    }
     if (pathname === '/admin/users' || pathname === '/admin/users/') {
       return 'Users';
     }
-    if (pathname.includes('/admin/users/') && !pathname.includes('/edit')) {
-      if (
-        navigationUser &&
-        navigationUser.first_name &&
-        navigationUser.last_name
-      ) {
-        return `${navigationUser.first_name} ${navigationUser.last_name}`;
-      }
-    }
-    if (
-      pathname.includes('/admin/users') &&
-      pathname.includes('/edit') &&
-      navigationUser
-    ) {
-      return `Edit ${navigationUser.username}`;
+    if (pathname.includes('/admin/users/') || pathname.includes('/me')) {
+      return 'User profile';
     }
     if (pathname.includes('/admin/provisioners')) {
       return 'Provisioners';
@@ -99,8 +82,11 @@ const Navigation = () => {
     if (pathname.includes('/admin/overview')) {
       return 'Network overview';
     }
+    if (pathname.includes('/admin/network')) {
+      return 'Network settings';
+    }
     return '';
-  }, [pathname, navigationUser]);
+  }, [pathname]);
 
   const navItems: NavigationItem[] = useMemo(() => {
     let base: NavigationItem[] = [
