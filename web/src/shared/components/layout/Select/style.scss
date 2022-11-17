@@ -10,6 +10,8 @@
 
   &.disabled {
     cursor: not-allowed;
+    user-select: none;
+    pointer-events: none;
   }
 
   &.in-form {
@@ -17,6 +19,8 @@
   }
 
   &.single {
+    background-color: var(--bg-light);
+
     & > .inner-frame {
       height: 100%;
       display: inline-grid;

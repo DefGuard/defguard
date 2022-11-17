@@ -152,10 +152,7 @@ export const Select = <T,>({
     if (disabled) {
       return 'disabled';
     }
-    if (open) {
-      return 'activeOpen';
-    }
-    if (hovered) {
+    if (open || hovered) {
       return 'active';
     }
     return 'idle';
@@ -215,6 +212,11 @@ export const Select = <T,>({
         onHoverEnd={() => setHovered(false)}
         variants={selectContainerVariants}
         animate={getContainerVariant}
+        custom={{
+          hovered: hovered,
+          multi: multi,
+          invalid: invalid,
+        }}
         ref={reference}
         id={selectId}
       >
@@ -394,31 +396,41 @@ const selectContainerTextVariants: Variants = {
   },
 };
 
+interface SelectContainerCustom {
+  multi?: boolean;
+  invalid?: boolean;
+}
+
 const selectContainerVariants: Variants = {
-  idle: {
-    backgroundColor: ColorsRGB.White,
-    borderColor: ColorsRGB.GrayBorder,
-    boxShadow: inactiveBoxShadow,
-  },
-  invalidIdle: {
-    backgroundColor: ColorsRGB.White,
-    borderColor: ColorsRGB.Error,
-    boxShadow: inactiveBoxShadow,
+  idle: ({ multi, invalid }: SelectContainerCustom) => {
+    const res = {
+      backgroundColor: ColorsRGB.BgLight,
+      borderColor: ColorsRGB.GrayBorder,
+      boxShadow: inactiveBoxShadow,
+    };
+    if (multi) {
+      res.backgroundColor = ColorsRGB.White;
+    }
+    if (invalid) {
+      res.borderColor = ColorsRGB.Error;
+    }
+    return res;
   },
   invalidActive: {
     backgroundColor: ColorsRGB.White,
     borderColor: ColorsRGB.Error,
     boxShadow: buttonsBoxShadow,
   },
-  active: {
-    backgroundColor: ColorsRGB.White,
-    borderColor: ColorsRGB.GrayLighter,
-    boxShadow: buttonsBoxShadow,
-  },
-  activeOpen: {
-    backgroundColor: ColorsRGB.White,
-    borderColor: ColorsRGB.GrayLighter,
-    boxShadow: inactiveBoxShadow,
+  active: ({ invalid }: SelectContainerCustom) => {
+    const res = {
+      backgroundColor: ColorsRGB.White,
+      borderColor: ColorsRGB.GrayLighter,
+      boxShadow: buttonsBoxShadow,
+    };
+    if (invalid) {
+      res.borderColor = ColorsRGB.Error;
+    }
+    return res;
   },
   disabled: {
     backgroundColor: ColorsRGB.BgLight,
