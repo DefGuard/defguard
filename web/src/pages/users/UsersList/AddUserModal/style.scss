@@ -4,6 +4,7 @@
   @include media-breakpoint-up(lg) {
     width: 1150px;
   }
+
   & > .content {
     & > form {
       & > .row {
@@ -16,6 +17,7 @@
           grid-template-rows: auto;
           column-gap: 4rem;
         }
+
         & > .item {
           display: flex;
           flex-flow: column;
@@ -26,6 +28,7 @@
         & > .controls {
           width: 100%;
           justify-content: center;
+
           & > .btn {
             max-width: 275px;
           }
