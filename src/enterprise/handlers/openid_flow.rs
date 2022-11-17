@@ -144,8 +144,8 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
     let base_url = Url::parse(&appstate.config.url).unwrap();
     let provider_metadata = CoreProviderMetadata::new(
         IssuerUrl::from_url(base_url.clone()),
-        AuthUrl::from_url(base_url.join("api/v1/openid/authorize").unwrap()),
-        JsonWebKeySetUrl::from_url(base_url.join("api/oauth/discovery/keys").unwrap()),
+        AuthUrl::from_url(base_url.join("api/v1/oauth/authorize").unwrap()),
+        JsonWebKeySetUrl::from_url(base_url.join("api/v1/oauth/discovery/keys").unwrap()),
         vec![ResponseTypes::new(vec![CoreResponseType::Code])],
         vec![CoreSubjectIdentifierType::Public],
         vec![CoreJwsSigningAlgorithm::HmacSha256], // match with auth::Claims.encode()

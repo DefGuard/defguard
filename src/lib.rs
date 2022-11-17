@@ -227,13 +227,17 @@ pub async fn build_webapp(
     #[cfg(feature = "oauth")]
     let webapp = if license_decoded.validate(&Features::Oauth) {
         info!("OAuth2 feature is enabled");
-        webapp
-            .manage(OAuthState::new(pool.clone()).await)
-            .mount(
-                "/api/oauth",
-                routes![authorize, authorize_consent, discovery_keys, token, refresh],
-            )
-            .mount("/api/v1", routes![add_oauth2client])
+        webapp.manage(OAuthState::new(pool.clone()).await).mount(
+            "/api/v1",
+            routes![
+                authorize,
+                authorize_consent,
+                discovery_keys,
+                token,
+                refresh,
+                add_oauth2client
+            ],
+        )
     } else {
         webapp
     };

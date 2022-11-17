@@ -17,7 +17,7 @@ use rocket::{
 };
 use rsa::{pkcs8::FromPublicKey, PublicKeyParts, RsaPublicKey};
 
-#[get("/authorize")]
+#[get("/oauth/authorize")]
 pub async fn authorize<'r>(
     oauth: OAuthRequest<'r>,
     state: &State<OAuthState>,
@@ -29,7 +29,7 @@ pub async fn authorize<'r>(
     flow.execute(oauth).await
 }
 
-#[post("/authorize?<allow>")]
+#[post("/oauth/authorize?<allow>")]
 pub async fn authorize_consent<'r>(
     oauth: OAuthRequest<'r>,
     allow: Option<bool>,
@@ -45,7 +45,7 @@ pub async fn authorize_consent<'r>(
     flow.execute(oauth).await
 }
 
-#[post("/token", data = "<body>")]
+#[post("/oauth/token", data = "<body>")]
 pub async fn token<'r>(
     mut oauth: OAuthRequest<'r>,
     body: Data<'_>,
@@ -59,7 +59,7 @@ pub async fn token<'r>(
     flow.execute(oauth).await
 }
 
-#[post("/refresh", data = "<body>")]
+#[post("/oauth/refresh", data = "<body>")]
 pub async fn refresh<'r>(
     mut oauth: OAuthRequest<'r>,
     body: Data<'_>,
@@ -89,7 +89,7 @@ pub async fn add_oauth2client(
     }
 }
 
-#[get("/discovery/keys")]
+#[get("/oauth/discovery/keys")]
 pub async fn discovery_keys() -> ApiResult {
     let public_key = RsaPublicKey::from_public_key_pem(PUBLIC_KEY).unwrap();
     let jwks = CoreJsonWebKeySet::new(vec![CoreJsonWebKey::new_rsa(

@@ -67,7 +67,7 @@ async fn test_authorize() {
 
     let response = client
         .get(
-            "/api/oauth/authorize?\
+            "/api/v1/oauth/authorize?\
             response_type=code&\
             client_id=LocalClient&\
             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
@@ -102,7 +102,7 @@ async fn test_authorize_consent() {
 
     let response = client
         .post(
-            "/api/oauth/authorize?\
+            "/api/v1/oauth/authorize?\
             allow=true&\
             response_type=code&\
             client_id=LocalClient&\
@@ -122,7 +122,7 @@ async fn test_authorize_consent() {
     let code = localtion.get(28..index).unwrap();
 
     let response = client
-        .post("/api/oauth/token")
+        .post("/api/v1/oauth/token")
         .header(ContentType::Form)
         .header(Header::new(
             "Authorization",
@@ -146,7 +146,7 @@ async fn test_authorize_consent_wrong_client() {
 
     let response = client
         .post(
-            "/api/oauth/authorize?\
+            "/api/v1/oauth/authorize?\
             allow=true&\
             response_type=code&\
             client_id=NonExistentClient&\
