@@ -1,6 +1,6 @@
 @use '../../../scss/helpers' as *;
 
-.custom-checkbox {
+.checkbox {
   display: flex;
   height: 18px;
   width: auto;
@@ -10,6 +10,11 @@
   gap: 0.8rem;
   cursor: pointer;
 
+  &.disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
   &.label-right {
     flex-flow: row nowrap;
   }
@@ -18,16 +23,17 @@
     flex-flow: row-reverse nowrap;
   }
 
-  label,
-  & > label > span,
-  p,
-  a {
-    @include label-text;
-
+  .label {
+    display: flex;
+    flex-flow: row nowrap;
+    column-gap: 1rem;
     user-select: none;
+
+    @include label-text;
   }
 
   .box {
+    user-select: none;
     height: 18px;
     width: 18px;
     box-sizing: border-box;
@@ -47,9 +53,5 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-  }
-
-  input {
-    display: none;
   }
 }

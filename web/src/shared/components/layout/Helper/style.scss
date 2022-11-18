@@ -35,13 +35,12 @@
   }
 
   & > .arrow {
-    content: ' ';
-    position: absolute;
     width: 0;
     height: 0;
+    position: absolute;
+    border-style: solid;
 
     &[data-placement^='left'] {
-      border-style: solid;
       border-width: 7px 0 7px 8px;
       border-color: transparent transparent transparent var(--gray-lighter);
     }

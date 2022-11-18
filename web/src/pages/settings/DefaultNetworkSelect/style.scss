@@ -1,0 +1,20 @@
+@use '../../../shared/scss/helpers' as *;
+
+#settings-page {
+  .network-view {
+    @include media-breakpoint-up(lg) {
+      margin-bottom: 5rem;
+    }
+
+    & > header {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: 1rem;
+    }
+
+    & > .select {
+      height: 40px;
+      width: 140px;
+    }
+  }
+}

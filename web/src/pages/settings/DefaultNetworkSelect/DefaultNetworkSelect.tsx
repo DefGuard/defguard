@@ -1,6 +1,9 @@
+import './style.scss';
+
 import { useMemo } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
+import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import {
   Select,
   SelectOption,
@@ -27,12 +30,6 @@ export const DefaultNetworkSelect = () => {
           label: 'List view',
           disabled: true,
         },
-        /*{
-        //key: 2,
-        //value: OverviewLayoutType.MAP,
-        //label: 'Map view',
-        //disabled: true,
-				}*/
       ];
     }
     if (breakpoint === 'tablet') {
@@ -49,23 +46,11 @@ export const DefaultNetworkSelect = () => {
           label: 'List view',
           disabled: false,
         },
-        /*{
-        //key: 2,
-        //value: OverviewLayoutType.MAP,
-        //label: 'Map view',
-        //disabled: true,
-      },*/
       ];
     }
     return [
       { key: 0, value: OverviewLayoutType.GRID, label: 'Grid view' },
       { key: 1, value: OverviewLayoutType.LIST, label: 'List view' },
-      /*{
-        //key: 2,
-        //value: OverviewLayoutType.MAP,
-        //label: 'Map view',
-        //disabled: true,
-      },*/
     ];
   }, [breakpoint]);
 
@@ -74,21 +59,33 @@ export const DefaultNetworkSelect = () => {
   }, [getSelectOptions, defaultViewMode]);
 
   return (
-    <Select
-      options={getSelectOptions}
-      selected={getSelectValue}
-      onChange={(option) => {
-        if (option) {
-          setOverViewStore({
-            defaultViewMode: (option as SelectOption<OverviewLayoutType>).value,
-            viewMode: (option as SelectOption<OverviewLayoutType>).value,
-          });
-        }
-      }}
-      searchable={false}
-      disabled={false}
-      multi={false}
-      loading={false}
-    />
+    <section className="network-view">
+      <header>
+        <h2>Default network view</h2>
+        <Helper>
+          <p>Here you can change your default network view.</p>{' '}
+          <a href="defguard.gitbook.io" target="_blank">
+            Read more in documentation.
+          </a>
+        </Helper>
+      </header>
+      <Select
+        options={getSelectOptions}
+        selected={getSelectValue}
+        onChange={(option) => {
+          if (option) {
+            setOverViewStore({
+              defaultViewMode: (option as SelectOption<OverviewLayoutType>)
+                .value,
+              viewMode: (option as SelectOption<OverviewLayoutType>).value,
+            });
+          }
+        }}
+        searchable={false}
+        disabled={false}
+        multi={false}
+        loading={false}
+      />
+    </section>
   );
 };

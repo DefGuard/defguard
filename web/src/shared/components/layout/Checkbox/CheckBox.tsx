@@ -2,66 +2,64 @@ import './style.scss';
 
 import classNames from 'classnames';
 import { motion, Variants } from 'framer-motion';
-import React, { ComponentPropsWithoutRef, ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 
 import { ColorsRGB } from '../../../constants';
 
-export interface CheckBoxProps extends ComponentPropsWithoutRef<'input'> {
+export interface CheckBoxProps {
   label?: string | ReactNode;
-  value: string | number;
+  value: boolean;
   labelPosition?: 'left' | 'right';
-  onChange?: (value: unknown) => void;
+  disabled?: boolean;
+  onChange?: (value: boolean) => void;
 }
 
-export const CheckBox = React.forwardRef<HTMLInputElement, CheckBoxProps>(
-  ({ label, value, onChange, labelPosition = 'right', ...props }, ref) => {
-    const checked = useMemo(() => (Number(value) ? true : false), [value]);
+export const CheckBox = ({
+  label,
+  value,
+  onChange,
+  labelPosition = 'right',
+  disabled = false,
+}: CheckBoxProps) => {
+  const checked = useMemo(() => (Number(value) ? true : false), [value]);
 
-    const cn = useMemo(
-      () =>
-        classNames('custom-checkbox', {
-          checked: checked,
-          'label-left': labelPosition === 'left',
-          'label-right': labelPosition === 'right',
-        }),
-      [checked, labelPosition]
-    );
+  const cn = useMemo(
+    () =>
+      classNames('checkbox', {
+        checked: checked,
+        'label-left': labelPosition === 'left',
+        'label-right': labelPosition === 'right',
+        disabled: disabled,
+      }),
+    [checked, disabled, labelPosition]
+  );
 
-    return (
-      <div
-        className={cn}
-        onClick={() => {
-          if (onChange) {
-            onChange(!value);
-          }
-        }}
-      >
+  return (
+    <motion.div
+      className={cn}
+      onClick={() => {
+        if (onChange && !disabled) {
+          onChange(!value);
+        }
+      }}
+      variants={containerVariants}
+      animate={disabled ? 'containerDisabled' : 'containerIdle'}
+    >
+      <motion.div className="box">
         <motion.div
-          className="box"
-          variants={boxVariants}
+          className="check-box"
+          variants={checkBoxVariants}
           animate={checked ? 'boxChecked' : 'boxDefault'}
-        >
-          <motion.div
-            className="check-box"
-            variants={checkBoxVariants}
-          ></motion.div>
-        </motion.div>
-        {label ? <label>{label}</label> : null}
-        <input
-          ref={ref}
-          type="checkbox"
-          checked={checked}
-          onChange={onChange}
-          {...props}
-        />
-      </div>
-    );
-  }
-);
+        ></motion.div>
+      </motion.div>
+      {label ? <div className="label">{label}</div> : null}
+    </motion.div>
+  );
+};
 
-const boxVariants: Variants = {
-  boxDefault: {},
-  boxChecked: {},
+const containerVariants: Variants = {
+  containerIdle: { opacity: 1 },
+  containerDisabled: { opacity: 0.8 },
 };
 
 const checkBoxVariants: Variants = {

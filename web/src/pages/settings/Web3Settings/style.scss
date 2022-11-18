@@ -1,0 +1,43 @@
+@use '../../../shared/scss/helpers' as *;
+
+#settings-page {
+  .web3-settings {
+    & > .card {
+      box-sizing: border-box;
+      padding: 2.5rem 2rem 2.5rem 1.5rem;
+
+      & > header {
+        display: flex;
+        flex-flow: row nowrap;
+        align-content: center;
+        align-items: flex-start;
+        justify-content: flex-start;
+        width: 100%;
+        margin-bottom: 1.5rem;
+
+        & > h3 {
+          @include small-header;
+        }
+
+        & > .controls {
+          margin-left: auto;
+        }
+      }
+
+      & > textarea {
+        resize: none;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        height: 147px;
+        margin: 0;
+        box-sizing: border-box;
+        padding: 2rem 1.5rem;
+        border-radius: 10px;
+        border: 1px solid var(--gray-lighter);
+
+        @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
+      }
+    }
+  }
+}
