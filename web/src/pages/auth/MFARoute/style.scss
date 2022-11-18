@@ -11,7 +11,7 @@
     height: 100%;
     width: 100%;
     box-sizing: border-box;
-    padding: 3rem 0;
+    padding: 3rem 1.5rem;
 
     > h1 {
       @include typography(28px, 39px, semiBold, var(--text-main), 'Poppins');
@@ -71,7 +71,9 @@
 
     & > form {
       .btn {
-        margin-bottom: 2.4rem;
+        &:not(:last-child) {
+          margin-bottom: 2.4rem;
+        }
       }
     }
   }

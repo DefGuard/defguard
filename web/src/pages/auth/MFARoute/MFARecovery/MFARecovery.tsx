@@ -78,8 +78,7 @@ export const MFARecovery = () => {
       <p>Enter one of active recovery codes and click button to log in.</p>
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
-          outerLabel="Recovery code"
-          placeholder="Code"
+          placeholder="Recovery code"
           controller={{ control, name: 'code' }}
         />
         <Button
