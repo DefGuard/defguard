@@ -81,7 +81,7 @@ const ModalContent = () => {
           text="Download"
           onClick={() => {
             if (codes) {
-              const blob = new Blob(codes, {
+              const blob = new Blob([codes.join('\n')], {
                 type: 'text/plain;charset=utf-8',
               });
               saveAs(blob, 'recovery_codes.txt');

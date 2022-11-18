@@ -61,6 +61,10 @@ export const MFARecovery = () => {
 
   const { handleSubmit, control } = useForm<RecoveryLoginRequest>({
     resolver: yupResolver(schema),
+    defaultValues: {
+      code: '',
+    },
+    mode: 'all',
   });
 
   useEffect(() => {
