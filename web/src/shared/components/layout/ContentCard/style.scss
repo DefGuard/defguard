@@ -51,10 +51,12 @@
       @include typography(15px, 23px, regular, var(--text-main));
       @include poppins;
     }
+
     a {
       text-decoration: underline;
       text-decoration-color: var(--text-main);
     }
+
     & > div {
       display: flex;
       flex-flow: column;

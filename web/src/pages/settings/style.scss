@@ -13,7 +13,7 @@
     grid-template-rows: 60px repeat(2, auto);
 
     @include media-breakpoint-up(lg) {
-      padding: 4rem 6rem 4rem 6rem;
+      padding: 4rem 6rem;
       grid-template-areas:
         'header header'
         'left right';
@@ -30,9 +30,11 @@
     & > header {
       grid-area: header;
     }
+
     & > .left {
       grid-area: left;
     }
+
     & > .right {
       grid-area: right;
     }

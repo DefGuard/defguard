@@ -9,7 +9,6 @@ import Button, {
 } from '../../../shared/components/layout/Button/Button';
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
-import { Input } from '../../../shared/components/layout/Input/Input';
 import { IconCheckmarkWhite } from '../../../shared/components/svg';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
