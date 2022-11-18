@@ -71,6 +71,7 @@ export const ChangePasswordForm = () => {
   const {
     user: { changePassword },
   } = useApi();
+
   const changePasswordMutation = useMutation(changePassword, {
     mutationKey: [MutationKeys.CHANGE_PASSWORD],
     onSuccess: () => {
@@ -80,6 +81,7 @@ export const ChangePasswordForm = () => {
       ) {
         logout();
         setModalState({ user: undefined, visible: false });
+        toaster.success('Password changed.');
       } else {
         setModalState({ user: undefined, visible: false });
       }

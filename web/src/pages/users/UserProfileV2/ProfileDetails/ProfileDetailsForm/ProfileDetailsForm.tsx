@@ -21,6 +21,7 @@ import {
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
+import { AuthorizedClient } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 
@@ -31,6 +32,7 @@ interface Inputs {
   phone: string;
   email: string;
   groups: SelectOption<string>[];
+  authorized_apps: SelectOption<AuthorizedClient>[];
 }
 
 const defaultValues: Inputs = {
@@ -40,6 +42,7 @@ const defaultValues: Inputs = {
   phone: '',
   email: '',
   groups: [],
+  authorized_apps: [],
 };
 
 export const ProfileDetailsForm = () => {
@@ -85,12 +88,13 @@ export const ProfileDetailsForm = () => {
             .required(t('form.errors.required'))
             .matches(patternValidEmail, t('form.errors.email')),
           groups: yup.array(),
+          authorized_apps: yup.array(),
         })
         .required(),
     [t]
   );
 
-  const formDefaultValues = useMemo(() => {
+  const formDefaultValues = useMemo((): Inputs => {
     const ommited = pick(omitNull(user), Object.keys(defaultValues));
     const res = { ...defaultValues, ...ommited };
     if (ommited.groups) {
@@ -103,7 +107,18 @@ export const ProfileDetailsForm = () => {
     } else {
       res.groups = [];
     }
-    return res;
+    if (ommited.authorized_apps) {
+      const appsOptions: SelectOption<AuthorizedClient>[] =
+        ommited.authorized_apps.map((a) => ({
+          key: a.id,
+          value: a,
+          label: a.client_id,
+        }));
+      res.authorized_apps = appsOptions;
+    } else {
+      res.authorized_apps = [] as SelectOption<AuthorizedClient>[];
+    }
+    return res as Inputs;
   }, [user]);
 
   const { control, handleSubmit, setValue, getValues } = useForm<Inputs>({
@@ -155,6 +170,7 @@ export const ProfileDetailsForm = () => {
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
     if (user) {
       const groups = values.groups.map((g) => g.value);
+      const apps = values.authorized_apps.map((a) => a.value);
       mutate({
         username: user.username,
         data: {
@@ -162,6 +178,7 @@ export const ProfileDetailsForm = () => {
           ...values,
           groups: groups,
           totp_enabled: user.totp_enabled,
+          authorized_apps: apps,
         },
       });
     }
@@ -249,6 +266,18 @@ export const ProfileDetailsForm = () => {
             searchable={true}
             multi={true}
             disabled={!isAdmin}
+          />
+        </div>
+      </div>
+      <div className="row">
+        <div className="item">
+          <FormSelect
+            outerLabel="Authorized apps"
+            controller={{ control, name: 'authorized_apps' }}
+            options={formDefaultValues.authorized_apps}
+            searchable={false}
+            multi={true}
+            disableOpen
           />
         </div>
       </div>

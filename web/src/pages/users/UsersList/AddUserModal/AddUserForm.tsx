@@ -193,43 +193,49 @@ const AddUserForm = () => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <FormInput
-        placeholder="User name"
-        controller={{ control, name: 'username' }}
-        outerLabel="User name"
-        required
-      />
-      <FormInput
-        outerLabel="Password"
-        placeholder="Password"
-        controller={{ control, name: 'password' }}
-        type="password"
-        required
-      />
-      <FormInput
-        outerLabel="User e-mail"
-        controller={{ control, name: 'email' }}
-        placeholder="User e-mail"
-        required
-      />
-      <FormInput
-        outerLabel="First name"
-        controller={{ control, name: 'first_name' }}
-        placeholder="First name"
-        required
-      />
-      <FormInput
-        outerLabel="Last name"
-        controller={{ control, name: 'last_name' }}
-        placeholder="Last name"
-        required
-      />
-      <FormInput
-        controller={{ control, name: 'phone' }}
-        outerLabel="Phone"
-        placeholder="Phone"
-        required
-      />
+      <div className="row">
+        <div className="item">
+          <FormInput
+            placeholder="User name"
+            controller={{ control, name: 'username' }}
+            outerLabel="User name"
+            required
+          />
+          <FormInput
+            outerLabel="Password"
+            placeholder="Password"
+            controller={{ control, name: 'password' }}
+            type="password"
+            required
+          />
+          <FormInput
+            outerLabel="User e-mail"
+            controller={{ control, name: 'email' }}
+            placeholder="User e-mail"
+            required
+          />
+        </div>
+        <div className="item">
+          <FormInput
+            outerLabel="First name"
+            controller={{ control, name: 'first_name' }}
+            placeholder="First name"
+            required
+          />
+          <FormInput
+            outerLabel="Last name"
+            controller={{ control, name: 'last_name' }}
+            placeholder="Last name"
+            required
+          />
+          <FormInput
+            controller={{ control, name: 'phone' }}
+            outerLabel="Phone"
+            placeholder="Phone"
+            required
+          />
+        </div>
+      </div>
       <div className="controls">
         <Button
           size={ButtonSize.BIG}
