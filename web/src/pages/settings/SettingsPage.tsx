@@ -1,102 +1,31 @@
 import './style.scss';
 
-import Button, {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../shared/components/layout/Button/Button';
-import { Card } from '../../shared/components/layout/Card/Card';
-import { Helper } from '../../shared/components/layout/Helper/Helper';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
-import { IconCheckmarkWhite, IconEdit } from '../../shared/components/svg';
-import { useSettingsFormStore } from '../../shared/hooks/store/useSettingsFormStore';
-import TeoniteLogoGif from '../../shared/images/gif/tnt-built.gif';
+import { BuiltByCard } from './BuiltByCard/BuiltByCard';
 import { DefaultNetworkSelect } from './DefaultNetworkSelect/DefaultNetworkSelect';
-import { EnterpriseCard } from './EnterpriseCard/EnterpriseCard';
+import { LicenseCard } from './LicenseCard/LicenseCard';
 import { LicenseModal } from './LicenseModal/LicenseModal';
-import { SettingsForm } from './SettingsForm/SettingsForm';
+import { ModulesCard } from './ModulesCard/ModulesCard';
 import { SupportCard } from './SupportCard/SupportCard';
+import { Web3Settings } from './Web3Settings/Web3Settings';
 
 export const SettingsPage = () => {
-  const [editMode, submitSubject, setSettingsFormState] = useSettingsFormStore(
-    (state) => [state.editMode, state.submitSubject, state.setState]
-  );
   return (
-    <>
-      <PageContainer>
-        <section id="settings-page">
-          <header>
-            <h1>Defguard global settings</h1>
-            <div className="controls">
-              {editMode ? (
-                <div className="right">
-                  <Button
-                    text="Cancel"
-                    size={ButtonSize.SMALL}
-                    styleVariant={ButtonStyleVariant.STANDARD}
-                    onClick={() => {
-                      setSettingsFormState({ editMode: false });
-                    }}
-                  />
-                  <Button
-                    text="Save Changes"
-                    size={ButtonSize.SMALL}
-                    styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
-                    icon={<IconCheckmarkWhite />}
-                    onClick={async () => {
-                      setTimeout(() => submitSubject.next(), 500);
-                    }}
-                  />
-                </div>
-              ) : (
-                <Button
-                  text="Edit settings"
-                  icon={<IconEdit />}
-                  styleVariant={ButtonStyleVariant.STANDARD}
-                  onClick={() => setSettingsFormState({ editMode: true })}
-                />
-              )}
-            </div>
-          </header>
-          <div className="content">
-            <div className="left">
-              <h2>
-                Modules visibility
-                <Helper>
-                  <p>
-                    If your not using some modules you can disable their
-                    visibility.
-                  </p>
-                  <a href="defguard.gitbook.io" target="_blank">
-                    Read more in documentation.
-                  </a>
-                </Helper>
-              </h2>
-              <Card className={editMode ? '' : 'disabled'}>
-                <SettingsForm />
-              </Card>
-              <h2>
-                Default network view
-                <Helper>
-                  <p>Here you can change your default network view.</p>
-                  <a href="defguard.gitbook.io" target="_blank">
-                    Read more in documentation.
-                  </a>
-                </Helper>
-              </h2>
-              <DefaultNetworkSelect />
-            </div>
-            <div className="right">
-              <h2>License & Support information</h2>
-              <EnterpriseCard />
-              <SupportCard />
-              <Card className="logo-card">
-                <img src={TeoniteLogoGif} alt="logo" />
-              </Card>
-            </div>
-          </div>
-        </section>
-      </PageContainer>
+    <PageContainer id="settings-page">
+      <header>
+        <h1>Defguard Global Settings</h1>
+      </header>
+      <div className="left">
+        <ModulesCard />
+        <DefaultNetworkSelect />
+        <Web3Settings />
+      </div>
+      <div className="right">
+        <LicenseCard />
+        <SupportCard />
+        <BuiltByCard />
+      </div>
       <LicenseModal />
-    </>
+    </PageContainer>
   );
 };

@@ -1,0 +1,22 @@
+@use '../../../shared/scss/helpers' as *;
+
+#settings-page {
+  .modules {
+    margin-bottom: 3rem;
+    & > .card {
+      display: flex;
+      flex-flow: column;
+      box-sizing: border-box;
+      padding: 1.2rem 1.5rem 2rem;
+      row-gap: 1.5rem;
+      .checkbox {
+        & > .label {
+          color: var(--gray-dark);
+          & > * {
+            color: var(--gray-dark);
+          }
+        }
+      }
+    }
+  }
+}

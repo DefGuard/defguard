@@ -4,6 +4,7 @@ import 'tippy.js/animations/scale.css';
 import './App.scss';
 
 import { useQuery } from '@tanstack/react-query';
+import { isUndefined } from 'lodash-es';
 import {
   BrowserRouter as Router,
   Navigate,
@@ -29,12 +30,15 @@ import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
+import { useToaster } from '../../shared/hooks/useToaster';
 import { QueryKeys } from '../../shared/queries';
 
 const App = () => {
+  const toaster = useToaster();
   const {
     user: { getMe },
     settings: { getSettings },
+    license: { getLicense },
   } = useApi();
   const [currentUser, logOut, logIn, isAdmin] = useAuthStore(
     (state) => [state.user, state.logOut, state.logIn, state.isAdmin],
@@ -59,6 +63,7 @@ const App = () => {
       retry: false,
     }
   );
+
   const setAppStore = useAppStore((state) => state.setAppStore);
 
   useQuery([QueryKeys.FETCH_SETTINGS], getSettings, {
@@ -68,10 +73,19 @@ const App = () => {
     onError: () => {
       console.clear();
     },
-    enabled: !userMe,
-    refetchOnMount: true,
+    enabled: !isUndefined(userMe),
     refetchOnWindowFocus: false,
-    retry: true,
+  });
+
+  useQuery([QueryKeys.FETCH_LICENSE], getLicense, {
+    onSuccess: (data) => {
+      setAppStore({ license: data });
+    },
+    onError: () => {
+      toaster.error('Failed to fetch licence');
+    },
+    refetchOnWindowFocus: false,
+    enabled: !isUndefined(userMe),
   });
 
   if (currentUserLoading && !userMe && !currentUser) return <LoaderPage />;

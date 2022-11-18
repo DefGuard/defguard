@@ -514,14 +514,14 @@ export interface UseModalStore {
 
 export interface UseAppStore {
   backendVersion?: string;
-  wizardCompleted?: boolean;
   settings?: Settings;
-  settingsEditMode?: boolean;
-  setAppStore: (newValues: Partial<UseAppStore>) => void;
+  license?: License;
+  setAppStore: (newValues: Partial<Omit<UseAppStore, 'setAppStore'>>) => void;
 }
 
 export interface Settings {
   id: string;
+  challenge_template: string;
   web3_enabled: boolean;
   openid_enabled: boolean;
   oauth_enabled: boolean;
@@ -529,7 +529,6 @@ export interface Settings {
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;
   worker_enabled: boolean;
-  challenge_template: boolean;
 }
 
 export interface Webhook {

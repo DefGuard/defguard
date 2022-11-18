@@ -5,18 +5,11 @@ import { UseAppStore } from '../../types';
 
 export const useAppStore = create<
   UseAppStore,
-  [
-    [
-      'zustand/persist',
-      Pick<UseAppStore, 'backendVersion' | 'wizardCompleted' | 'settings' | 'settingsEditMode'>
-    ]
-  ]
+  [['zustand/persist', Pick<UseAppStore, 'settings'>]]
 >(
   persist(
     (set) => ({
       backendVersion: undefined,
-      wizardCompleted: undefined,
-			settingsEditMode: false,
       settings: undefined,
       setAppStore: (data) => set((state) => ({ ...state, ...data })),
     }),

@@ -1,0 +1,15 @@
+#settings-page {
+  .built-by {
+    display: flex;
+    flex-flow: row;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    height: 175px;
+
+    img {
+      width: 218px;
+      height: 32px;
+    }
+  }
+}

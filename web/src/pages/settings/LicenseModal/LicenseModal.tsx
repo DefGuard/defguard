@@ -2,10 +2,10 @@ import './style.scss';
 
 import clipboard from 'clipboardy';
 import { saveAs } from 'file-saver';
-import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import shallow from 'zustand/shallow';
 
+import licenseAgreement from '../../../shared/assets/LICENSE.md?raw';
 import Button, {
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
@@ -17,7 +17,6 @@ import {
 } from '../../../shared/components/svg';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useToaster } from '../../../shared/hooks/useToaster';
-import license from '../../../shared/LICENSE.txt';
 
 export const LicenseModal = () => {
   const toaster = useToaster();
@@ -25,14 +24,8 @@ export const LicenseModal = () => {
     (state) => [state.licenseModal, state.setLicenseModal],
     shallow
   );
-  const [licenseAgreement, setLicenseAgreement] = useState('');
   const setIsOpen = (v: boolean) => setModalValues({ visible: v });
 
-  useEffect(() => {
-    fetch(license)
-      .then((res) => res.text())
-      .then((text) => setLicenseAgreement(text));
-  });
   const handleDownload = () => {
     const blob = new Blob([licenseAgreement], {
       type: 'text/plain;charset=utf-8',
@@ -62,7 +55,7 @@ export const LicenseModal = () => {
           onClick={() => {
             if (licenseAgreement) {
               clipboard
-                .write(license)
+                .write(licenseAgreement)
                 .then(() => {
                   toaster.success('License copied');
                 })
