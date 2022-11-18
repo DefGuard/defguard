@@ -26,7 +26,7 @@
     width: 100%;
     height: 100%;
 
-    @include media-breakpoint-up(md) {
+    @include media-breakpoint-up(lg) {
       display: flex;
     }
   }

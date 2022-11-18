@@ -61,6 +61,10 @@ export const MFARecovery = () => {
 
   const { handleSubmit, control } = useForm<RecoveryLoginRequest>({
     resolver: yupResolver(schema),
+    defaultValues: {
+      code: '',
+    },
+    mode: 'all',
   });
 
   useEffect(() => {
@@ -78,8 +82,7 @@ export const MFARecovery = () => {
       <p>Enter one of active recovery codes and click button to log in.</p>
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
-          outerLabel="Recovery code"
-          placeholder="Code"
+          placeholder="Recovery code"
           controller={{ control, name: 'code' }}
         />
         <Button

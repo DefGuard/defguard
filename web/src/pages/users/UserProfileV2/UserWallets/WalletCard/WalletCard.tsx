@@ -115,7 +115,6 @@ export const WalletCard = ({
             text="Disable MFA"
             styleVariant={EditButtonOptionStyleVariant.WARNING}
             onClick={() => {
-              console.log(user);
               if (user) {
                 updateWalletMFAMutation({
                   username: user.username,

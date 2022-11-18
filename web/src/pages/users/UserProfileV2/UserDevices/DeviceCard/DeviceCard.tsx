@@ -44,7 +44,7 @@ export const DeviceCard = ({ device }: Props) => {
         saveAs(blob, `${device.name.toLowerCase()}.conf`);
       })
       .catch((err) => {
-        console.log(err);
+        console.error(err);
         toaster.error('Clipboard is not accessible.');
       });
   };
