@@ -1,39 +1,24 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/mixins' as mix;
-@use '@shared/scss/helpers/bootstrap' as bs;
+@use '../../../shared/scss/helpers' as *;
 
-.AppVersion {
+.app-version {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  align-content: flex-start;
-  justify-content: center;
-  box-sizing: border-box;
+  flex-flow: column;
   width: 100%;
-  height: auto;
-  background-color: transparent;
-  @include bs.media-breakpoint-down(md) {
-    padding: 1.3rem 2rem;
-  }
-  @include bs.media-breakpoint-up(md) {
-    padding-left: 4rem;
-    padding-bottom: 1.5rem;
-    padding-top: 1.5rem;
-  }
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  box-sizing: border-box;
+  padding: 0 1.5rem;
+  height: 60px;
 
-  p,
-  span {
-    margin: 0;
-    padding: 0;
-    font-size: 1rem;
-    color: v.$gray-light;
-    font-family: Roboto;
-    text-align: left;
-  }
+  & > p {
+    @include typography(10px, 13px, regular, var(--gray-light));
 
-  p {
-    span {
-      display: block;
+    & > span,
+    & > a {
+      @include typography(10px, 13px, regular, var(--gray-light));
+
+      display: inline-block;
     }
   }
 }

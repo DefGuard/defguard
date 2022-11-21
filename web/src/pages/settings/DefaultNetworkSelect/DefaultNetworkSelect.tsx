@@ -7,6 +7,7 @@ import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import {
   Select,
   SelectOption,
+  SelectStyleVariant,
 } from '../../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { OverviewLayoutType } from '../../../shared/types';
@@ -70,6 +71,7 @@ export const DefaultNetworkSelect = () => {
         </Helper>
       </header>
       <Select
+        styleVariant={SelectStyleVariant.WHITE}
         options={getSelectOptions}
         selected={getSelectValue}
         onChange={(option) => {

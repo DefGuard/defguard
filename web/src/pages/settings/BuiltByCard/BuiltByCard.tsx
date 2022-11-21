@@ -6,7 +6,9 @@ import TeoniteLogoGif from '../../../shared/images/gif/tnt-built.gif';
 export const BuiltByCard = () => {
   return (
     <Card className="built-by">
-      <img src={TeoniteLogoGif} alt="logo" />
+      <a href="https://www.teonite.com" target="_blank" rel="noreferrer">
+        <img src={TeoniteLogoGif} alt="logo" />
+      </a>
     </Card>
   );
 };
