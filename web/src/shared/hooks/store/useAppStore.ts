@@ -11,6 +11,8 @@ export const useAppStore = create<
     (set) => ({
       backendVersion: undefined,
       settings: undefined,
+      license: undefined,
+      version: undefined,
       setAppStore: (data) => set((state) => ({ ...state, ...data })),
     }),
     {

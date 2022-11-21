@@ -1,23 +1,94 @@
 import './style.scss';
 
-import { motion, Variants } from 'framer-motion';
-import React, { useState } from 'react';
+import classNames from 'classnames';
+import { motion, Variant, Variants } from 'framer-motion';
+import { useMemo, useState } from 'react';
 
-import IconButton from '../../../../../shared/components/layout/IconButton/IconButton';
 import { ColorsRGB } from '../../../../../shared/constants';
 import AddButtonIcon from './AddButtonIcon';
 
 interface Props {
   callback: () => void;
   text: string;
+  disabled?: boolean;
+}
+
+export const AddComponentBox = ({
+  callback,
+  text,
+  disabled = false,
+}: Props) => {
+  const [hovered, setHovered] = useState(false);
+
+  const cn = useMemo(
+    () => classNames('add-component', { disabled: disabled }),
+    [disabled]
+  );
+
+  const getAnimate = useMemo(() => {
+    if (disabled) {
+      return 'idle';
+    }
+    if (hovered) {
+      return 'hover';
+    }
+    return 'idle';
+  }, [disabled, hovered]);
+
+  return (
+    <motion.div
+      className={cn}
+      initial="idle"
+      animate={getAnimate}
+      onHoverStart={() => {
+        if (!disabled) {
+          setHovered(true);
+        }
+      }}
+      onHoverEnd={() => setHovered(false)}
+      whileTap={{
+        scale: 0.9,
+      }}
+      variants={boxVariants}
+      onClick={() => callback()}
+      custom={{ disabled }}
+    >
+      <motion.button
+        variants={buttonVariants}
+        initial="idle"
+        animate={hovered ? 'hover' : 'idle'}
+      >
+        <AddButtonIcon rectVariants={iconVariants} hover={hovered} />
+      </motion.button>
+      <motion.span variants={textVariants}>{text}</motion.span>
+    </motion.div>
+  );
+};
+
+interface BoxCustom {
+  disabled?: boolean;
 }
 
 const boxVariants: Variants = {
-  idle: {
-    borderColor: ColorsRGB.GrayBorder,
+  idle: ({ disabled }: BoxCustom) => {
+    const res: Variant = {
+      borderColor: ColorsRGB.GrayBorder,
+      opacity: 1,
+    };
+    if (disabled) {
+      res.opacity = 0.4;
+    }
+    return res;
   },
-  hover: {
-    borderColor: ColorsRGB.GrayLighter,
+  hover: ({ disabled }: BoxCustom) => {
+    const res: Variant = {
+      borderColor: ColorsRGB.GrayLighter,
+      opacity: 1,
+    };
+    if (disabled) {
+      res.opacity = 0.4;
+    }
+    return res;
   },
 };
 
@@ -47,35 +118,3 @@ const textVariants: Variants = {
     color: ColorsRGB.Primary,
   },
 };
-
-const AddComponentBox: React.FC<Props> = ({ callback, text }) => {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <motion.div
-      className="add-component"
-      initial="idle"
-      animate="idle"
-      whileHover="hover"
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
-      whileTap={{
-        scale: 0.9,
-      }}
-      variants={boxVariants}
-      onClick={() => callback()}
-    >
-      <IconButton
-        className="blank"
-        variants={buttonVariants}
-        initial="idle"
-        animate={hovered ? 'hover' : 'idle'}
-      >
-        <AddButtonIcon rectVariants={iconVariants} hover={hovered} />
-      </IconButton>
-      <motion.span variants={textVariants}>{text}</motion.span>
-    </motion.div>
-  );
-};
-
-export default AddComponentBox;

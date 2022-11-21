@@ -362,7 +362,10 @@ const useApi = (props?: HookProps): ApiHook => {
   const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
     client.post('/auth/recovery', data).then(unpackRequest);
 
+  const getVersion = () => client.get('/version').then(unpackRequest);
+
   return {
+    getVersion,
     oAuth: {
       consent: oAuthConsent,
     },
