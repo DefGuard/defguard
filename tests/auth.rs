@@ -264,6 +264,7 @@ async fn test_web3() {
     let response = client.post("/api/v1/auth/web3/start").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     let data: Challenge = response.into_json().await.unwrap();
+
     let address = "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e";
     let message = format!(
         "Please read this carefully:
