@@ -138,7 +138,10 @@ impl Registrar for OAuthState {
         bound: ClientUrl<'a>,
     ) -> Result<BoundClient<'a>, RegistrarError> {
         warn!("Registrar: bound_redirect");
-        if let Some(client) = OAuth2Client::find_by_client_id(&self.pool, &bound.client_id).await {
+        if let Some(client) = OAuth2Client::find_by_client_id(&self.pool, &bound.client_id)
+            .await
+            .unwrap()
+        {
             let client_uri =
                 ExactUrl::new(client.redirect_uri).map_err(|_| RegistrarError::PrimitiveError)?;
             if let Some(url) = bound.redirect_uri {
@@ -161,11 +164,14 @@ impl Registrar for OAuthState {
         _scope: Option<Scope>,
     ) -> Result<PreGrant, RegistrarError> {
         warn!("Registrar: negotiate");
-        match OAuth2Client::find_by_client_id(&self.pool, &bound.client_id).await {
+        match OAuth2Client::find_by_client_id(&self.pool, &bound.client_id)
+            .await
+            .unwrap()
+        {
             Some(client) => Ok(PreGrant {
                 client_id: bound.client_id.into_owned(),
                 redirect_uri: bound.redirect_uri.into_owned(),
-                scope: client.scope.parse().unwrap(),
+                scope: client.scope[0].parse().unwrap(), // FIXME
             }),
             None => Err(RegistrarError::Unspecified),
         }
@@ -180,7 +186,10 @@ impl Registrar for OAuthState {
     ) -> Result<(), RegistrarError> {
         warn!("Registrar: check");
         if let Some(secret) = passphrase {
-            if let Some(client) = OAuth2Client::find_by_client_id(&self.pool, client_id).await {
+            if let Some(client) = OAuth2Client::find_by_client_id(&self.pool, client_id)
+                .await
+                .unwrap()
+            {
                 if secret == client.client_secret.as_bytes() {
                     return Ok(());
                 }

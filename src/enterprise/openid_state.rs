@@ -1,6 +1,9 @@
 use crate::{
     db::DbPool,
-    enterprise::db::openid::{AuthorizedApp, OpenIDClient, OpenIDClientAuth},
+    enterprise::db::{
+        openid::{AuthorizedApp, OpenIDClientAuth},
+        OAuth2Client,
+    },
 };
 use chrono::Local;
 use openidconnect::PkceCodeChallenge;
@@ -25,7 +28,7 @@ impl OpenIDRequest {
         username: &str,
         user_id: i64,
     ) -> Result<Redirect, Redirect> {
-        match OpenIDClient::find_enabled_for_client_id(pool, &self.client_id).await {
+        match OAuth2Client::find_enabled_for_client_id(pool, &self.client_id).await {
             Ok(Some(client)) => {
                 if !self.allow {
                     return Err(Redirect::found(format!(
@@ -76,7 +79,7 @@ impl OpenIDRequest {
                         let mut app = AuthorizedApp::new(
                             user_id,
                             client.client_id.clone(),
-                            client.home_url,
+                            String::new(), // FIXME
                             date.to_string(),
                             client.name,
                         );
@@ -101,7 +104,6 @@ impl OpenIDRequest {
                         client.redirect_uri
                     ))
                 })?;
-                info!("Created code for client: {}", client.client_id);
                 Ok(Redirect::found(format!(
                     "{}?code={}&state={}",
                     client.redirect_uri,

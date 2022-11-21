@@ -14,9 +14,11 @@ use crate::enterprise::handlers::worker::{
 use crate::enterprise::handlers::{
     openid_clients::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-        delete_user_app, get_openid_client, get_user_apps, list_openid_clients, update_user_app,
+        delete_user_app, get_openid_client, get_user_apps, update_user_app,
     },
-    openid_flow::{authentication_request, check_authorized, id_token, openid_configuration},
+    openid_flow::{
+        authentication, authentication_request, check_authorized, id_token, openid_configuration,
+    },
 };
 #[cfg(feature = "oauth")]
 use crate::enterprise::oauth_state::OAuthState;
@@ -207,8 +209,8 @@ pub async fn build_webapp(
                     add_openid_client,
                     delete_openid_client,
                     change_openid_client,
-                    list_openid_clients,
                     get_openid_client,
+                    authentication,
                     authentication_request,
                     id_token,
                     change_openid_client_state,
@@ -336,5 +338,5 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .await
             .expect("Could not save authorized app");
     }
-    log::info!("Dev environment initialized - TestNet, TestDevice, AuthorizedApps added");
+    info!("Dev environment initialized - TestNet, TestDevice, AuthorizedApps added");
 }

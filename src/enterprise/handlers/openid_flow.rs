@@ -3,7 +3,10 @@ use crate::{
     auth::SessionInfo,
     db::{Session, User},
     enterprise::{
-        db::openid::{AuthorizedApp, OpenIDClient, OpenIDClientAuth},
+        db::{
+            openid::{AuthorizedApp, OpenIDClientAuth},
+            OAuth2Client,
+        },
         openid_idtoken::IDTokenClaims,
         openid_state::OpenIDRequest,
     },
@@ -12,12 +15,12 @@ use crate::{
 };
 use openidconnect::{
     core::{
-        CoreClaimName, CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
-        CoreSubjectIdentifierType,
+        CoreClaimName, CoreErrorResponseType, CoreJwsSigningAlgorithm, CoreProviderMetadata,
+        CoreResponseType, CoreSubjectIdentifierType,
     },
     url::Url,
     AuthUrl, EmptyAdditionalProviderMetadata, IssuerUrl, JsonWebKeySetUrl, ResponseTypes, Scope,
-    TokenUrl,
+    StandardErrorResponse, TokenUrl,
 };
 use rocket::{
     form::{Form, Lenient},
@@ -48,6 +51,101 @@ pub async fn check_authorized(
         json: json!({}),
         status,
     })
+}
+
+// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+// see https://docs.rs/oauth2/latest/src/oauth2/lib.rs.html
+#[derive(Debug, FromForm)]
+pub struct AuthenticationRequest<'r> {
+    scope: &'r str,
+    response_type: &'r str,
+    client_id: &'r str,
+    client_secret: Option<&'r str>,
+    redirect_uri: &'r str,
+    state: &'r str,
+    // response_mode: Option<&'r str>,
+    // nonce: Option<&'r str>,
+    // display:
+    // prompt:
+    // max_age:
+    // ui_locales:
+    // id_token_hint:
+    // login_hint:
+    // acr_values
+}
+
+impl<'r> AuthenticationRequest<'r> {
+    // TODO: return CoreErrorResponseType
+    fn validate_for_client(
+        &self,
+        oauth2client: &OAuth2Client,
+    ) -> Result<(), CoreErrorResponseType> {
+        // check scope: for now it is valid is any requested scope exists in the `oauth2client`
+        if self
+            .scope
+            .split(' ')
+            .all(|scope| !oauth2client.scope.contains(&scope.to_owned()))
+        {
+            return Err(CoreErrorResponseType::InvalidScope);
+        }
+
+        // currenly we support only "code" for `response_type`
+        if self.response_type != "code" {
+            return Err(CoreErrorResponseType::InvalidRequest);
+        }
+
+        // assume `client_id` is the same here and in `oauth2client`
+
+        // check `client_secret`
+        if let Some(secret) = self.client_secret {
+            if oauth2client.client_secret != secret {
+                return Err(CoreErrorResponseType::InvalidGrant);
+            }
+        }
+
+        // check `redirect_uri`
+        // TODO: allow multiple uris in `oauth2client`
+        if self.redirect_uri != oauth2client.redirect_uri {
+            return Err(CoreErrorResponseType::InvalidGrant);
+        }
+
+        Ok(())
+    }
+}
+
+#[get("/authorize?<data..>")]
+pub async fn authentication(
+    appstate: &State<AppState>,
+    data: AuthenticationRequest<'_>,
+) -> Result<Redirect, OriWebError> {
+    match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
+        Some(oauth2client) => match data.validate_for_client(&oauth2client) {
+            Ok(_) => {
+                // FIXME: missing a proper struct from `openidconnect`, see CoreResponseType::Code
+                Ok(Redirect::found(format!(
+                    "{}?code={}&state={}",
+                    data.redirect_uri, "code.as_str()", data.state
+                )))
+            }
+            Err(err) => {
+                let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+                Ok(Redirect::found(format!(
+                    "{}?{}",
+                    data.redirect_uri,
+                    serde_qs::to_string(&response).unwrap()
+                )))
+            }
+        },
+        None => {
+            let err = CoreErrorResponseType::InvalidClient;
+            let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+            Ok(Redirect::found(format!(
+                "{}?{}",
+                data.redirect_uri,
+                serde_qs::to_string(&response).unwrap()
+            )))
+        }
+    }
 }
 
 // Login endpoint redirect with authorization code on success, or error if something failed
@@ -89,7 +187,7 @@ pub async fn id_token(form: Form<IDTokenRequest>, appstate: &State<AppState>) ->
             // Create user claims based on scope
             let user_claims = IDTokenClaims::get_user_claims(user, &client.scope);
             let secret =
-                match OpenIDClient::find_enabled_for_client_id(&appstate.pool, &client.client_id)
+                match OAuth2Client::find_enabled_for_client_id(&appstate.pool, &client.client_id)
                     .await?
                 {
                     Some(client) => client.client_secret,
@@ -144,7 +242,7 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
     let base_url = Url::parse(&appstate.config.url).unwrap();
     let provider_metadata = CoreProviderMetadata::new(
         IssuerUrl::from_url(base_url.clone()),
-        AuthUrl::from_url(base_url.join("api/v1/oauth/authorize").unwrap()),
+        AuthUrl::from_url(base_url.join("api/v1/openid/authorize").unwrap()),
         JsonWebKeySetUrl::from_url(base_url.join("api/v1/oauth/discovery/keys").unwrap()),
         vec![ResponseTypes::new(vec![CoreResponseType::Code])],
         vec![CoreSubjectIdentifierType::Public],

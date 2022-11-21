@@ -1,45 +1,17 @@
+use super::OAuth2Client;
 use crate::db::{DbPool, User};
 use model_derive::Model;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sqlx::{query_as, Error as SqlxError};
 
-#[derive(Deserialize, Model, Serialize)]
-pub struct OpenIDClient {
-    pub id: Option<i64>,
-    pub name: String,
-    pub description: String,
-    pub home_url: String,
-    pub client_id: String,
-    pub client_secret: String,
-    pub redirect_uri: String,
-    pub enabled: bool,
-}
-
-impl OpenIDClient {
-    /// Find client by `client_id`.
-    pub async fn find_enabled_for_client_id(
-        pool: &DbPool,
-        client_id: &str,
-    ) -> Result<Option<Self>, SqlxError> {
-        query_as!(
-                Self,
-                "SELECT id \"id?\", name, home_url, client_id, client_secret, redirect_uri, description, enabled \
-                FROM openidclient WHERE client_id = $1 AND enabled", client_id)
-                .fetch_optional(pool)
-                .await
-    }
-}
-
 #[derive(Deserialize, Serialize)]
 pub struct NewOpenIDClient {
     pub name: String,
-    pub description: String,
-    pub home_url: String,
     pub redirect_uri: String,
     pub enabled: bool,
 }
 
-impl From<NewOpenIDClient> for OpenIDClient {
+impl From<NewOpenIDClient> for OAuth2Client {
     fn from(new: NewOpenIDClient) -> Self {
         let client_id = thread_rng()
             .sample_iter(Alphanumeric)
@@ -52,13 +24,12 @@ impl From<NewOpenIDClient> for OpenIDClient {
             .map(char::from)
             .collect();
         Self {
-            id: None,
-            name: new.name,
-            description: new.description,
-            home_url: new.home_url,
+            user_id: 0, // FIXME
             client_id,
             client_secret,
             redirect_uri: new.redirect_uri,
+            scope: Vec::new(), // FIXME
+            name: new.name,
             enabled: new.enabled,
         }
     }
@@ -67,7 +38,7 @@ impl From<NewOpenIDClient> for OpenIDClient {
 #[derive(Deserialize, Model, Serialize)]
 #[table(openidclientauthcode)]
 pub struct OpenIDClientAuth {
-    #[serde(default)]
+    #[serde(skip)]
     id: Option<i64>,
     /// User ID
     pub user: String,
@@ -123,8 +94,8 @@ pub struct AuthorizedApp {
     #[serde(default)]
     pub user_id: i64,
     pub client_id: String,
-    pub home_url: String,
-    pub date: String, // TODO: NaiveDateTime %d-%m-%Y %H:%M
+    pub home_url: String, // TODO: remove
+    pub date: String,     // TODO: NaiveDateTime %d-%m-%Y %H:%M
     pub name: String,
 }
 
