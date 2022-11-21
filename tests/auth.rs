@@ -264,10 +264,21 @@ async fn test_web3() {
     let response = client.post("/api/v1/auth/web3/start").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     let data: Challenge = response.into_json().await.unwrap();
-    assert_eq!(
-        data.challenge,
-        "By signing this message you confirm that you're the owner of the wallet"
+    let address = "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e";
+    let message = format!(
+        "Please read this carefully:
+
+        Click to sign to prove you are in possesion of your private key to the account.
+        This request will not trigger a blockchain transaction or cost any gas fees.\n\
+        Wallet address:\n\
+        {}\n\
+        \n\
+        Date and time:\n\
+        {}",
+        address,
+        chrono::Local::now().format("%Y-%m-%d %H:%M")
     );
+    assert_eq!(data.challenge, message.trim_start());
 
     let response = client
         .post("/api/v1/auth/web3")
