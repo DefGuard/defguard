@@ -1,5 +1,5 @@
 use crate::{hex::hex_decode, DbPool};
-use chrono::{NaiveDateTime, Utc};
+use chrono::{Local, NaiveDateTime, Utc};
 use model_derive::Model;
 use secp256k1::{
     ecdsa::{RecoverableSignature, RecoveryId},
@@ -135,6 +135,24 @@ impl Wallet {
             .await?;
         }
         Ok(())
+    }
+
+    pub fn format_challenge(address: &str, challenge_message: &str) -> String {
+        let date = Local::now();
+        format!(
+            "
+            {}\n\
+            Wallet address:\n\
+            {}\n\
+            \n\
+            Date and time:\n\
+            {}",
+            challenge_message,
+            address,
+            date.format("%Y-%m-%d %H:%M"),
+        )
+        .trim_start()
+        .into()
     }
 
     pub async fn find_by_user_and_address(
