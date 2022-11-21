@@ -19,6 +19,7 @@ pub(crate) mod group;
 pub(crate) mod license;
 pub(crate) mod settings;
 pub(crate) mod user;
+pub(crate) mod version;
 pub(crate) mod webhooks;
 #[cfg(feature = "wireguard")]
 pub mod wireguard;
@@ -29,7 +30,7 @@ pub struct ApiResponse {
     pub status: Status,
 }
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub type ApiResult = Result<ApiResponse, OriWebError>;
 

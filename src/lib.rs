@@ -46,6 +46,7 @@ use handlers::{
         list_users, me, modify_user, set_wallet, update_wallet, username_available,
         wallet_challenge,
     },
+    version::get_version,
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
     },
@@ -139,6 +140,7 @@ pub async fn build_webapp(
                 add_group_member,
                 remove_group_member,
                 get_license,
+                get_version,
                 get_settings,
                 update_settings,
                 mfa_enable,
