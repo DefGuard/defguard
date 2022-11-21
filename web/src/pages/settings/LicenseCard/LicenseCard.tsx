@@ -25,9 +25,24 @@ export const LicenseCard = () => {
       >
         <div>
           {license.enterprise ? (
-            <p>This includes following modules:</p>
+            <>
+              <p> Thank you for purchasing enterprise license!</p>
+              <br />
+              <p>This includes following modules:</p>
+            </>
           ) : (
-            <p>Enterprice license includes:</p>
+            <>
+              <p>
+                You have our community license. If you wish to get Enterprise
+                license for full features
+              </p>
+              <p>
+                set and support, please visit{' '}
+                <a href="https://defguard.net">https://defguard.net</a>
+              </p>
+              <br />
+              <p>Enterprise license includes:</p>
+            </>
           )}
           <ul>
             <li>YubiBridge</li>
@@ -35,6 +50,7 @@ export const LicenseCard = () => {
             <li>Oauth2</li>
             <li>OpenLDAP</li>
           </ul>
+          <br />
         </div>
         <a onClick={() => setLicenseModal({ visible: true })}>
           read license agreement

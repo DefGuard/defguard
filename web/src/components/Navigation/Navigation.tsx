@@ -187,49 +187,9 @@ const Navigation = () => {
             </section>
             <span className="divider"></span>
             <section className="links">
-              {/* <NavLink
-            to="/users"
-            className={({ isActive }) => (isActive ? 'active' : '')}
-          >
-            <SvgIconNavOverview />
-            <span>{t('navigation.template.links.overview')}</span>
-          </NavLink>
-          <NavLink
-            to="/users"
-            className={({ isActive }) => (isActive ? 'active' : '')}
-          >
-            <SvgIconNavUsers />
-            <span>{t('navigation.template.links.users')}</span>
-          </NavLink>
-          <NavLink
-            to="/users"
-            className={({ isActive }) => (isActive ? 'active' : '')}
-          >
-            <SvgIconNavLocations />
-            <span>{t('navigation.template.links.locations')}</span>
-          </NavLink>
-          <NavLink
-            to="/users"
-            className={({ isActive }) => (isActive ? 'active' : '')}
-          >
-            <SvgIconNavSettings />
-            <span>{t('navigation.template.links.settings')}</span>
-          </NavLink> */}
-              {/* <a className="">
-            <SvgIconNavOverview />
-            <span>{t('navigation.template.links.overview')}</span>
-          </a> */}
               {navItems.map((item) => (
                 <NavigationLink key={item.linkPath} item={item} />
               ))}
-              {/* <a className="">
-            <SvgIconNavLocations />
-            <span>{t('navigation.template.links.locations')}</span>
-          </a>
-          <a className="">
-            <SvgIconNavSettings />
-            <span>{t('navigation.template.links.settings')}</span>
-          </a> */}
             </section>
             <motion.section className="links">
               <NavigationLink

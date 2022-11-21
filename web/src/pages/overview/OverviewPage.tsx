@@ -57,7 +57,15 @@ export const OverviewPage = () => {
 
   const { data: networks, isLoading: networksLoading } = useQuery(
     [QueryKeys.FETCH_NETWORKS],
-    getNetworks
+    getNetworks,
+    {
+      onSuccess: (data) => {
+        if (!data || (data && data.length === 0)) {
+          setNetworkPageStore({ network: undefined });
+          navigate('../network');
+        }
+      },
+    }
   );
 
   useEffect(() => {

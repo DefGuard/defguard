@@ -7,7 +7,7 @@ import {
   useFloating,
 } from '@floating-ui/react-dom-interactions';
 import classNames from 'classnames';
-import { AnimatePresence, motion, Variants } from 'framer-motion';
+import { AnimatePresence, motion, Variant, Variants } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
 import { last } from 'radash';
 import { Key, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -33,6 +33,11 @@ export interface SelectOption<T> {
 
 export type SelectResult<T> = SelectOption<T> | SelectOption<T>[] | undefined;
 
+export enum SelectStyleVariant {
+  LIGHT = 'light',
+  WHITE = 'white',
+}
+
 export interface SelectProps<T> {
   selected?: SelectResult<T>;
   options?: SelectOption<T>[];
@@ -56,6 +61,7 @@ export interface SelectProps<T> {
   disableOuterLabelColon?: boolean;
   inForm?: boolean;
   disableOpen?: boolean;
+  styleVariant?: SelectStyleVariant;
 }
 
 const defaultOnRemove = <T,>(v: SelectOption<T>, pool: SelectOption<T>[]) =>
@@ -80,6 +86,7 @@ export const Select = <T,>({
   disableOuterLabelColon = false,
   inForm = false,
   disableOpen = false,
+  styleVariant = SelectStyleVariant.LIGHT,
 }: SelectProps<T>): React.ReactElement => {
   const selectId = useId();
   const [open, setOpen] = useState(false);
@@ -216,9 +223,8 @@ export const Select = <T,>({
         variants={selectContainerVariants}
         animate={getContainerVariant}
         custom={{
-          hovered: hovered,
-          multi: multi,
           invalid: invalid,
+          styleVariant,
         }}
         ref={reference}
         id={selectId}
@@ -406,18 +412,19 @@ const selectContainerTextVariants: Variants = {
 };
 
 interface SelectContainerCustom {
-  multi?: boolean;
   invalid?: boolean;
+  styleVariant: SelectStyleVariant;
 }
 
 const selectContainerVariants: Variants = {
-  idle: ({ multi, invalid }: SelectContainerCustom) => {
-    const res = {
-      backgroundColor: ColorsRGB.BgLight,
+  idle: ({ styleVariant, invalid }: SelectContainerCustom) => {
+    const res: Variant = {
       borderColor: ColorsRGB.GrayBorder,
       boxShadow: inactiveBoxShadow,
     };
-    if (multi) {
+    if (styleVariant === SelectStyleVariant.LIGHT) {
+      res.backgroundColor = ColorsRGB.BgLight;
+    } else {
       res.backgroundColor = ColorsRGB.White;
     }
     if (invalid) {
@@ -430,12 +437,17 @@ const selectContainerVariants: Variants = {
     borderColor: ColorsRGB.Error,
     boxShadow: buttonsBoxShadow,
   },
-  active: ({ invalid }: SelectContainerCustom) => {
-    const res = {
+  active: ({ invalid, styleVariant }: SelectContainerCustom) => {
+    const res: Variant = {
       backgroundColor: ColorsRGB.White,
       borderColor: ColorsRGB.GrayLighter,
       boxShadow: buttonsBoxShadow,
     };
+    if (styleVariant === SelectStyleVariant.LIGHT) {
+      res.backgroundColor = ColorsRGB.BgLight;
+    } else {
+      res.backgroundColor = ColorsRGB.White;
+    }
     if (invalid) {
       res.borderColor = ColorsRGB.Error;
     }
