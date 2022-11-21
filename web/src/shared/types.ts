@@ -223,7 +223,12 @@ export interface RecoveryLoginRequest {
 
 export type MFARecoveryCodesResponse = Promise<void | RecoveryCodes>;
 
+export interface VersionResponse {
+  version: string;
+}
+
 export interface ApiHook {
+  getVersion: () => Promise<VersionResponse>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
@@ -516,6 +521,7 @@ export interface UseAppStore {
   backendVersion?: string;
   settings?: Settings;
   license?: License;
+  version?: string;
   setAppStore: (newValues: Partial<Omit<UseAppStore, 'setAppStore'>>) => void;
 }
 
