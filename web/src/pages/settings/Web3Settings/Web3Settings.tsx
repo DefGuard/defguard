@@ -2,6 +2,7 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import useBreakpoint from 'use-breakpoint';
 
 import Button, {
   ButtonSize,
@@ -10,6 +11,7 @@ import Button, {
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import { IconCheckmarkWhite } from '../../../shared/components/svg';
+import { deviceBreakpoints } from '../../../shared/constants';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -19,6 +21,7 @@ import { QueryKeys } from '../../../shared/queries';
 export const Web3Settings = () => {
   const [signMessage, setSignMessage] = useState('');
   const settings = useAppStore((state) => state.settings);
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
   const {
     settings: { editSettings },
@@ -60,7 +63,7 @@ export const Web3Settings = () => {
           <h3>Default sign message template:</h3>
           <div className="controls">
             <Button
-              text="Save changes"
+              text={breakpoint !== 'mobile' ? 'Save changes' : undefined}
               icon={<IconCheckmarkWhite />}
               size={ButtonSize.SMALL}
               styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}

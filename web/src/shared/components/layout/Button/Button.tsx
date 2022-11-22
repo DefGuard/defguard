@@ -66,9 +66,16 @@ const Button = ({
     () =>
       classNames('btn', className, size.valueOf(), styleVariant.valueOf(), {
         'with-icon':
-          !isUndefined(icon) && styleVariant !== ButtonStyleVariant.ICON,
+          !isUndefined(icon) &&
+          styleVariant !== ButtonStyleVariant.ICON &&
+          text !== undefined &&
+          text.length > 0,
+        'with-icon-no-text':
+          !isUndefined(icon) &&
+          styleVariant !== ButtonStyleVariant.ICON &&
+          (text === undefined || text.length === 0),
       }),
-    [size, styleVariant, icon, className]
+    [className, size, styleVariant, icon, text]
   );
 
   const getCustom: ButtonCustom = useMemo(
