@@ -13,7 +13,7 @@ use openidconnect::{
     AuthenticationFlow, ClientId, ClientSecret, CsrfToken, HttpRequest, HttpResponse, IssuerUrl,
     Nonce, RedirectUrl, Scope,
 };
-use rocket::local::asynchronous::Client;
+use rocket::{http, local::asynchronous::Client};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
@@ -392,39 +392,47 @@ async fn make_client() -> Client {
 //     assert_eq!(apps.len(), 0);
 // }
 
+// Helper function for translating HTTP communication from `openidconnect` to `LocalClient`.
+async fn http_client(request: HttpRequest) -> Result<HttpResponse, rocket::Error> {
+    let client = make_client().await;
+    let mut uri = request.url.path().to_string();
+    if let Some(query) = request.url.query() {
+        uri += "?";
+        uri += query;
+    }
+    let rocket_request = match request.method {
+        Method::GET => client.get(uri),
+        Method::POST => client.post(uri),
+        Method::PUT => client.put(uri),
+        Method::DELETE => client.delete(uri),
+        _ => unimplemented!(),
+    };
+    // TODO: build headers
+    // for (key, value) in request.headers.iter() {
+    //     let header = Header::new(key.as_str(), value.to_str().unwrap());
+    //     rocket_request.add_header(header);
+    // }
+    let response = rocket_request.body(request.body).dispatch().await;
+
+    let headers = HeaderMap::new();
+    // TODO: deal with headers and fix lifetime
+    // for header in response.headers().iter() {
+    //     headers.insert(header.name().as_str(), header.value().parse().unwrap());
+    // }
+
+    Ok(HttpResponse {
+        status_code: StatusCode::from_u16(response.status().code).unwrap(),
+        headers,
+        body: response.into_bytes().await.unwrap_or_default(),
+    })
+}
+
 #[rocket::async_test]
 async fn test_openid_authorization_code() {
-    async fn http_client(request: HttpRequest) -> Result<HttpResponse, rocket::Error> {
-        let client = make_client().await;
-        let path = request.url.path();
-        let rocket_request = match request.method {
-            Method::GET => client.get(path),
-            Method::POST => client.post(path),
-            Method::PUT => client.put(path),
-            Method::DELETE => client.delete(path),
-            _ => unimplemented!(),
-        };
-        // for (key, value) in request.headers.iter() {
-        //     let header = Header::new(key.as_str(), value.to_str().unwrap());
-        //     rocket_request.add_header(header);
-        // }
-        let response = rocket_request.dispatch().await;
-
-        let headers = HeaderMap::new();
-        // TODO: deal with headers and fix lifetime
-        // for header in response.headers().iter() {
-        //     headers.insert(header.name().as_str(), header.value().parse().unwrap());
-        // }
-
-        Ok(HttpResponse {
-            status_code: StatusCode::from_u16(response.status().code).unwrap(),
-            headers,
-            body: response.into_bytes().await.unwrap(),
-        })
-    }
-
     let issuer_url =
         IssuerUrl::new("http://localhost:8000/".to_string()).expect("Invalid issuer URL");
+
+    // discover OpenID service
     let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, http_client)
         .await
         .unwrap();
@@ -449,4 +457,14 @@ async fn test_openid_authorization_code() {
     assert_eq!(authorize_url.scheme(), "http");
     assert_eq!(authorize_url.host_str(), Some("localhost"));
     assert_eq!(authorize_url.path(), "/api/v1/openid/authorize");
+
+    let response = http_client(HttpRequest {
+        url: authorize_url,
+        method: Method::GET,
+        headers: HeaderMap::new(),
+        body: Vec::new(),
+    })
+    .await
+    .unwrap();
+    assert_eq!(response.status_code, StatusCode::FOUND);
 }

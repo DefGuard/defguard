@@ -1,8 +1,10 @@
 use crate::{
     auth::{Claims, ClaimsType, SESSION_TIMEOUT},
     db::DbPool,
+    random::gen_alphanumeric,
 };
 use chrono::{Duration, TimeZone, Utc};
+use model_derive::Model;
 use oxide_auth::primitives::{
     generator::{RandomGenerator, TagGrant},
     grant::{Extensions, Grant},
@@ -190,52 +192,40 @@ impl From<OAuth2Token> for RefreshedToken {
     }
 }
 
+#[derive(Model)]
+#[table(authorization_code)]
 pub struct AuthorizationCode {
-    /// user ID
-    pub user: String,
+    id: Option<i64>,
+    pub user_id: i64,
     pub client_id: String,
     pub code: String,
     pub redirect_uri: String,
-    pub scope: String,
+    pub scope: String, // FIXME: is this needed? or use Vec<String>
     pub auth_time: i64,
+    pub nonce: Option<String>,
 }
 
 impl AuthorizationCode {
-    /// Store data in the database.
-    pub async fn save(&self, pool: &DbPool) -> Result<(), SqlxError> {
-        query!(
-            "INSERT INTO authorization_code \
-            (\"user\", client_id, code, redirect_uri, scope, auth_time) \
-            VALUES ($1, $2, $3, $4, $5, $6)",
-            self.user,
-            self.client_id,
-            self.code,
-            self.redirect_uri,
-            self.scope,
-            self.auth_time
-        )
-        .execute(pool)
-        .await?;
-        Ok(())
-    }
-
-    /// Delete from the database.
-    pub async fn delete(&self, pool: &DbPool) -> Result<(), SqlxError> {
-        query!(
-            "DELETE FROM authorization_code WHERE client_id = $1 AND code = $2",
-            self.client_id,
-            self.code,
-        )
-        .execute(pool)
-        .await?;
-        Ok(())
+    #[must_use]
+    pub fn new(user_id: i64, client_id: String, redirect_uri: String, scope: String) -> Self {
+        let code = gen_alphanumeric(24);
+        Self {
+            id: None,
+            user_id,
+            client_id,
+            code,
+            redirect_uri,
+            scope,
+            auth_time: 0,
+            nonce: None, // FIXME: add
+        }
     }
 
     /// Find by code.
     pub async fn find_code(pool: &DbPool, code: &str) -> Option<Self> {
         query_as!(
             Self,
-            "SELECT \"user\", client_id, code, redirect_uri, scope, auth_time \
+            "SELECT id \"id?\", user_id, client_id, code, redirect_uri, scope, auth_time, nonce \
             FROM authorization_code WHERE code = $1",
             code
         )
@@ -250,12 +240,14 @@ impl From<Grant> for AuthorizationCode {
         let mut rnd = RandomGenerator::new(16);
         let code = rnd.tag(2, &grant).unwrap();
         Self {
-            user: grant.owner_id,
+            id: None,
+            user_id: 0, // FIXME: grant.owner_id,
             client_id: grant.client_id,
             code,
             redirect_uri: grant.redirect_uri.to_string(),
             scope: grant.scope.to_string(),
             auth_time: Utc::now().timestamp(),
+            nonce: None,
         }
     }
 }
@@ -263,7 +255,7 @@ impl From<Grant> for AuthorizationCode {
 impl From<AuthorizationCode> for Grant {
     fn from(code: AuthorizationCode) -> Self {
         Self {
-            owner_id: code.user,
+            owner_id: code.user_id.to_string(),
             client_id: code.client_id,
             scope: code.scope.parse().unwrap(),
             redirect_uri: code.redirect_uri.parse().unwrap(),

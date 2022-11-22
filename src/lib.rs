@@ -79,6 +79,7 @@ mod hex;
 pub mod license;
 #[cfg(feature = "oauth")]
 pub mod oxide_auth_rocket;
+pub(crate) mod random;
 
 #[macro_use]
 extern crate rocket;

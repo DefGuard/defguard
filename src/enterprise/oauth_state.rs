@@ -54,7 +54,7 @@ impl Authorizer for OAuthState {
     /// Create a code which allows retrieval of a bearer token at a later time.
     async fn authorize(&mut self, grant: Grant) -> Result<String, ()> {
         warn!("Authorizer: authorize");
-        let auth_code: AuthorizationCode = grant.into();
+        let mut auth_code: AuthorizationCode = grant.into();
         auth_code.save(&self.pool).await.unwrap();
         Ok(auth_code.code)
     }
@@ -66,7 +66,7 @@ impl Authorizer for OAuthState {
         warn!("Authorizer: extract");
         match AuthorizationCode::find_code(&self.pool, code).await {
             Some(auth_code) => {
-                let _result = auth_code.delete(&self.pool).await;
+                // FIXME: let _result = auth_code.delete(&self.pool).await;
                 Ok(Some(auth_code.into()))
             }
             None => Err(()),

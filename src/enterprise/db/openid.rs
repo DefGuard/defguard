@@ -1,7 +1,9 @@
 use super::OAuth2Client;
-use crate::db::{DbPool, User};
+use crate::{
+    db::{DbPool, User},
+    random::gen_alphanumeric,
+};
 use model_derive::Model;
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sqlx::{query_as, Error as SqlxError};
 
 #[derive(Deserialize, Serialize)]
@@ -13,16 +15,8 @@ pub struct NewOpenIDClient {
 
 impl From<NewOpenIDClient> for OAuth2Client {
     fn from(new: NewOpenIDClient) -> Self {
-        let client_id = thread_rng()
-            .sample_iter(Alphanumeric)
-            .take(16)
-            .map(char::from)
-            .collect();
-        let client_secret = thread_rng()
-            .sample_iter(Alphanumeric)
-            .take(32)
-            .map(char::from)
-            .collect();
+        let client_id = gen_alphanumeric(16);
+        let client_secret = gen_alphanumeric(32);
         Self {
             user_id: 0, // FIXME
             client_id,

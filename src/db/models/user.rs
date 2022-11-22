@@ -2,6 +2,7 @@ use super::{device::Device, group::Group, SecurityKey, WalletInfo};
 use crate::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{Wallet, WebAuthn},
+    random::gen_alphanumeric,
     DbPool,
 };
 use argon2::{
@@ -13,7 +14,7 @@ use argon2::{
 };
 use model_derive::Model;
 use otpauth::TOTP;
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use rand::{thread_rng, Rng};
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, Type};
 use std::time::SystemTime;
 
@@ -200,11 +201,7 @@ impl User {
         }
 
         for _ in 0..RECOVERY_CODES_COUNT {
-            let code = thread_rng()
-                .sample_iter(Alphanumeric)
-                .take(16)
-                .map(char::from)
-                .collect();
+            let code = gen_alphanumeric(16);
             self.recovery_codes.push(code);
         }
         if let Some(id) = self.id {

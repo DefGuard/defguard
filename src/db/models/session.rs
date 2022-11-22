@@ -1,6 +1,5 @@
-use crate::{auth::SESSION_TIMEOUT, db::DbPool};
+use crate::{auth::SESSION_TIMEOUT, db::DbPool, random::gen_alphanumeric};
 use chrono::{Duration, NaiveDateTime, Utc};
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sqlx::{query, query_as, Error as SqlxError, Type};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
@@ -28,11 +27,7 @@ impl Session {
     pub fn new(user_id: i64, state: SessionState) -> Self {
         let now = Utc::now();
         Self {
-            id: thread_rng()
-                .sample_iter(Alphanumeric)
-                .take(24)
-                .map(char::from)
-                .collect(),
+            id: gen_alphanumeric(24),
             user_id,
             state,
             created: now.naive_utc(),

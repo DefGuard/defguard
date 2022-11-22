@@ -1,3 +1,10 @@
+ALTER TABLE authorization_code DROP CONSTRAINT authorization_code_user_id_fkey;
+ALTER TABLE authorization_code ADD "user" text NULL;
+UPDATE authorization_code SET "user" = "user".username FROM "user" WHERE "user".id = authorization_code.user_id;
+ALTER TABLE authorization_code ALTER "user" SET NOT NULL;
+ALTER TABLE authorization_code DROP user_id;
+ALTER TABLE authorization_code DROP nonce;
+
 CREATE TABLE openidclient (
     id bigserial PRIMARY KEY,
     name text NOT NULL,

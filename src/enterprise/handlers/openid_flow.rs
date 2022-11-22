@@ -4,6 +4,7 @@ use crate::{
     db::{Session, User},
     enterprise::{
         db::{
+            oauth::AuthorizationCode,
             openid::{AuthorizedApp, OpenIDClientAuth},
             OAuth2Client,
         },
@@ -118,13 +119,21 @@ pub async fn authentication(
     appstate: &State<AppState>,
     data: AuthenticationRequest<'_>,
 ) -> Result<Redirect, OriWebError> {
+    // TODO: PKCE https://www.rfc-editor.org/rfc/rfc7636
     match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(_) => {
-                // FIXME: missing a proper struct from `openidconnect`, see CoreResponseType::Code
+                // FIXME: missing a proper struct from `openidconnect`; check CoreResponseType::Code
+                let mut code = AuthorizationCode::new(
+                    oauth2client.user_id,
+                    data.client_id.into(),
+                    data.redirect_uri.into(),
+                    data.scope.into(), // FIXME: is this needed?
+                );
+                code.save(&appstate.pool).await?;
                 Ok(Redirect::found(format!(
                     "{}?code={}&state={}",
-                    data.redirect_uri, "code.as_str()", data.state
+                    data.redirect_uri, code.code, data.state
                 )))
             }
             Err(err) => {
