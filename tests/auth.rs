@@ -74,7 +74,6 @@ async fn make_client_with_wallet(address: String) -> Client {
         5,
         String::new(),
     );
-    wallet.use_for_mfa = true;
     wallet.save(&pool).await.unwrap();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
@@ -270,63 +269,6 @@ async fn test_webauthn() {
 
 #[rocket::async_test]
 async fn test_web3() {
-    let client = make_client().await;
-
-    // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
-    let response = client
-        .put("/api/v1/user/hpotter/wallet/0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e")
-        .json(&json!({
-            "use_for_mfa": true
-        }))
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
-
-    // check recovery codes
-    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
-    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
-
-    #[derive(Deserialize)]
-    struct Challenge {
-        challenge: String,
-    }
-
-    let wallet_address = json!({
-        "address": "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
-    });
-    let response = client
-        .post("/api/v1/auth/web3/start")
-        .json(&wallet_address)
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
-    let data: Challenge = response.into_json().await.unwrap();
-
-    let address = "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e";
-    let message: String = format!(
-        "
-        Please read this carefully:\n\n\
-        Click to sign to prove you are in possesion of your private key to the account.\n\
-        This request will not trigger a blockchain transaction or cost any gas fees.\n\
-        Wallet address:\n\
-        {}\n\
-        \n\
-        Date and time:\n\
-        {}",
-        address,
-        chrono::Local::now().format("%Y-%m-%d %H:%M"),
-    )
-    .trim()
-    .into();
-    assert_eq!(data.challenge, message);
-
-    let response = client.post("/api/v1/auth/logout").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
     let secp = Secp256k1::new();
     let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
 
@@ -351,18 +293,53 @@ async fn test_web3() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
+    // set wallet for MFA
+    let response = client
+        .put(format!("/api/v1/user/hpotter/wallet/{wallet_address}"))
+        .json(&json!({
+            "use_for_mfa": true
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // check recovery codes
+    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
+
+    #[derive(Deserialize)]
+    struct Challenge {
+        challenge: String,
+    }
+
     let wallet_address_request = json!({
         "address": wallet_address.clone(),
     });
+
     // obtain challenge message
     let response = client
         .post("/api/v1/auth/web3/start")
         .json(&wallet_address_request)
         .dispatch()
         .await;
-
     assert_eq!(response.status(), Status::Ok);
     let data: Challenge = response.into_json().await.unwrap();
+
+    let message: String = format!(
+        "
+        Please read this carefully:\n\n\
+        Click to sign to prove you are in possesion of your private key to the account.\n\
+        This request will not trigger a blockchain transaction or cost any gas fees.\n\
+        Wallet address:\n\
+        {wallet_address}\n\
+        \n\
+        Date and time:\n\
+        {}",
+        chrono::Local::now().format("%Y-%m-%d %H:%M"),
+    )
+    .trim()
+    .into();
+    assert_eq!(data.challenge, message);
 
     // Sign message
     let message = Message::from_slice(&hash_message(&data.challenge)).unwrap();
@@ -374,6 +351,7 @@ async fn test_web3() {
     sig_arr[0..64].copy_from_slice(&sig[0..64]);
     sig_arr[64] = rec_id.to_i32() as u8;
 
+    // Web3 authentication
     let response = client
         .post("/api/v1/auth/web3")
         .json(&json!({
@@ -383,11 +361,6 @@ async fn test_web3() {
         .dispatch()
         .await;
 
-    assert_eq!(response.status(), Status::Ok);
-
-    // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
     // disable MFA
