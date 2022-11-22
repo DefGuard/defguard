@@ -2,17 +2,28 @@
 
 #network-page {
   & > .page-content {
+    padding: 3rem 2rem;
     box-sizing: border-box;
-    padding: 4rem 6rem;
     overflow-y: auto;
     display: grid;
-    grid-template-rows: 60px auto;
-    grid-template-columns: 1fr 1fr;
+    row-gap: 3rem;
+    grid-template-rows: 60px auto auto;
+    grid-template-columns: 1fr;
     grid-template-areas:
-      'header header'
-      'config gateway';
-    row-gap: 4rem;
-    column-gap: 4rem;
+      'header'
+      'config'
+      'gateway';
+
+    @include media-breakpoint-up(lg) {
+      padding: 4rem 6rem;
+      grid-template-rows: 60px auto;
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        'header header'
+        'config gateway';
+      row-gap: 4rem;
+      column-gap: 4rem;
+    }
 
     & > header {
       grid-area: header;
@@ -23,7 +34,13 @@
       justify-content: flex-start;
 
       & > h1 {
+        display: none;
+
         @include page-header;
+
+        @include media-breakpoint-up(lg) {
+          display: block;
+        }
       }
 
       & > .controls {

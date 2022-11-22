@@ -3,21 +3,34 @@
 #network-page {
   .gateway {
     & > .card {
-      padding: 3rem 4rem 5rem;
+      padding: 1.5rem 1.5rem 3rem;
+      @include media-breakpoint-up(lg) {
+        padding: 3rem 4rem 5rem;
+      }
 
       & > .message-box {
-        margin-bottom: 4rem;
+        margin-bottom: 2rem;
+
+        @include media-breakpoint-up(lg) {
+          margin-bottom: 4rem;
+        }
       }
 
       & > .status {
         width: 100%;
-        display: inline-grid;
-        grid-template-columns: 280px 1fr;
-        column-gap: 3rem;
-        grid-template-rows: 50px;
-        align-items: center;
-        justify-content: center;
-        align-content: center;
+        display: flex;
+        flex-flow: column-reverse;
+        row-gap: 1.5rem;
+
+        @include media-breakpoint-up(lg) {
+          display: inline-grid;
+          grid-template-columns: 280px 1fr;
+          column-gap: 3rem;
+          grid-template-rows: 50px;
+          align-items: center;
+          justify-content: center;
+          align-content: center;
+        }
 
         & > .btn {
           height: 100%;
