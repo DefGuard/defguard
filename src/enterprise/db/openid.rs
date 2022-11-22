@@ -1,8 +1,4 @@
-use super::OAuth2Client;
-use crate::{
-    db::{DbPool, User},
-    random::gen_alphanumeric,
-};
+use crate::db::{DbPool, User};
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};
 
@@ -10,75 +6,60 @@ use sqlx::{query_as, Error as SqlxError};
 pub struct NewOpenIDClient {
     pub name: String,
     pub redirect_uri: String,
+    pub scope: Vec<String>,
     pub enabled: bool,
 }
 
-impl From<NewOpenIDClient> for OAuth2Client {
-    fn from(new: NewOpenIDClient) -> Self {
-        let client_id = gen_alphanumeric(16);
-        let client_secret = gen_alphanumeric(32);
-        Self {
-            user_id: 0, // FIXME
-            client_id,
-            client_secret,
-            redirect_uri: new.redirect_uri,
-            scope: Vec::new(), // FIXME
-            name: new.name,
-            enabled: new.enabled,
-        }
-    }
-}
+// #[derive(Deserialize, Model, Serialize)]
+// #[table(openidclientauthcode)]
+// pub struct OpenIDClientAuth {
+//     #[serde(skip)]
+//     id: Option<i64>,
+//     /// User ID
+//     pub user: String,
+//     pub code: String,
+//     pub client_id: String,
+//     pub state: String,
+//     pub scope: String,
+//     pub redirect_uri: String,
+//     pub nonce: Option<String>,
+// }
 
-#[derive(Deserialize, Model, Serialize)]
-#[table(openidclientauthcode)]
-pub struct OpenIDClientAuth {
-    #[serde(skip)]
-    id: Option<i64>,
-    /// User ID
-    pub user: String,
-    pub code: String,
-    pub client_id: String,
-    pub state: String,
-    pub scope: String,
-    pub redirect_uri: String,
-    pub nonce: Option<String>,
-}
+// impl OpenIDClientAuth {
+//     #[must_use]
+//     pub fn new(
+//         user: String,
+//         code: String,
+//         client_id: String,
+//         state: String,
+//         redirect_uri: String,
+//         scope: String,
+//         nonce: Option<String>,
+//     ) -> Self {
+//         Self {
+//             id: None,
+//             user,
+//             code,
+//             client_id,
+//             state,
+//             scope,
+//             redirect_uri,
+//             nonce,
+//         }
+//     }
 
-impl OpenIDClientAuth {
-    #[must_use]
-    pub fn new(
-        user: String,
-        code: String,
-        client_id: String,
-        state: String,
-        redirect_uri: String,
-        scope: String,
-        nonce: Option<String>,
-    ) -> Self {
-        Self {
-            id: None,
-            user,
-            code,
-            client_id,
-            state,
-            scope,
-            redirect_uri,
-            nonce,
-        }
-    }
-
-    /// Get client by code
-    pub async fn find_by_code(pool: &DbPool, code: &str) -> Result<Option<Self>, SqlxError> {
-        query_as!(
-            Self,
-            "SELECT id \"id?\", \"user\", code, client_id, state, scope, redirect_uri, nonce \
-            FROM openidclientauthcode WHERE code = $1",
-            code
-        )
-        .fetch_optional(pool)
-        .await
-    }
-}
+//     /// Get client by code
+//     pub async fn find_by_code(pool: &DbPool, code: &str) -> Result<Option<Self>, SqlxError> {
+//         query_as!(
+//             Self,
+//             "SELECT id \"id?\", \"user\", code, client_id, state, scope, redirect_uri, nonce \
+//             FROM openidclientauthcode WHERE code = $1",
+//             code
+//         )
+//         .fetch_optional(pool)
+//         .await
+//     }
+// }
 
 #[derive(Deserialize, Model, PartialEq, Serialize)]
 #[table(authorizedapps)]

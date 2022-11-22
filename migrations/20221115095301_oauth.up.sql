@@ -19,3 +19,5 @@ ALTER TABLE authorization_code DROP "user";
 DELETE FROM authorization_code WHERE user_id IS NULL;
 ALTER TABLE authorization_code ALTER user_id SET NOT NULL;
 ALTER TABLE authorization_code ADD FOREIGN KEY(user_id) REFERENCES "user"(id);
+
+DROP TABLE openidclientauthcode;

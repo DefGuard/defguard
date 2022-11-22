@@ -1,10 +1,7 @@
 use defguard::{
     build_webapp,
     db::{AppEvent, GatewayEvent},
-    enterprise::db::{
-        openid::{AuthorizedApp, NewOpenIDClient},
-        OAuth2Client,
-    },
+    enterprise::db::{openid::NewOpenIDClient, OAuth2Client},
     handlers::Auth,
 };
 use openidconnect::{
@@ -13,7 +10,7 @@ use openidconnect::{
     AuthenticationFlow, ClientId, ClientSecret, CsrfToken, HttpRequest, HttpResponse, IssuerUrl,
     Nonce, RedirectUrl, Scope,
 };
-use rocket::{http, local::asynchronous::Client};
+use rocket::{http::Status, local::asynchronous::Client};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
@@ -392,14 +389,10 @@ async fn make_client() -> Client {
 //     assert_eq!(apps.len(), 0);
 // }
 
-// Helper function for translating HTTP communication from `openidconnect` to `LocalClient`.
+/// Helper function for translating HTTP communication from `openidconnect` to `LocalClient`.
 async fn http_client(request: HttpRequest) -> Result<HttpResponse, rocket::Error> {
     let client = make_client().await;
-    let mut uri = request.url.path().to_string();
-    if let Some(query) = request.url.query() {
-        uri += "?";
-        uri += query;
-    }
+    let uri = request.url.path();
     let rocket_request = match request.method {
         Method::GET => client.get(uri),
         Method::POST => client.post(uri),
@@ -407,22 +400,11 @@ async fn http_client(request: HttpRequest) -> Result<HttpResponse, rocket::Error
         Method::DELETE => client.delete(uri),
         _ => unimplemented!(),
     };
-    // TODO: build headers
-    // for (key, value) in request.headers.iter() {
-    //     let header = Header::new(key.as_str(), value.to_str().unwrap());
-    //     rocket_request.add_header(header);
-    // }
     let response = rocket_request.body(request.body).dispatch().await;
-
-    let headers = HeaderMap::new();
-    // TODO: deal with headers and fix lifetime
-    // for header in response.headers().iter() {
-    //     headers.insert(header.name().as_str(), header.value().parse().unwrap());
-    // }
 
     Ok(HttpResponse {
         status_code: StatusCode::from_u16(response.status().code).unwrap(),
-        headers,
+        headers: HeaderMap::new(),
         body: response.into_bytes().await.unwrap_or_default(),
     })
 }
@@ -437,20 +419,42 @@ async fn test_openid_authorization_code() {
         .await
         .unwrap();
 
-    let client_id = ClientId::new("CLIENT_ID".into());
-    let client_secret = ClientSecret::new("CLIENT_SECRET".into());
-    let client =
+    let client = make_client().await;
+
+    // create OAuth2 client/application
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let oauth2client = NewOpenIDClient {
+        name: "My test client".into(),
+        redirect_uri: "http://test.server.tnt:12345/".into(),
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/openid")
+        .json(&oauth2client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let oauth2client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(oauth2client.name, "My test client");
+
+    // start the flow
+    let client_id = ClientId::new(oauth2client.client_id);
+    let client_secret = ClientSecret::new(oauth2client.client_secret);
+    let core_client =
         CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
             .set_redirect_uri(
                 RedirectUrl::new("http://test.server.tnt:12345/".to_string()).unwrap(),
             );
-    let (authorize_url, _csrf_state, _nonce) = client
+    let (authorize_url, _csrf_state, _nonce) = core_client
         .authorize_url(
             AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        // This example is requesting access to the the user's profile including email.
+        .add_scope(Scope::new("openid".to_string()))
         .add_scope(Scope::new("email".to_string()))
         .add_scope(Scope::new("profile".to_string()))
         .url();
@@ -458,13 +462,14 @@ async fn test_openid_authorization_code() {
     assert_eq!(authorize_url.host_str(), Some("localhost"));
     assert_eq!(authorize_url.path(), "/api/v1/openid/authorize");
 
-    let response = http_client(HttpRequest {
-        url: authorize_url,
-        method: Method::GET,
-        headers: HeaderMap::new(),
-        body: Vec::new(),
-    })
-    .await
-    .unwrap();
-    assert_eq!(response.status_code, StatusCode::FOUND);
+    let uri = format!(
+        "{}?{}",
+        authorize_url.path(),
+        authorize_url.query().unwrap()
+    );
+    let response = client.get(uri.clone()).dispatch().await;
+    assert_eq!(response.status(), Status::Found);
+    let location = response.headers().get_one("Location").unwrap();
+    assert!(location.contains("code="));
+    assert!(location.contains("state="));
 }

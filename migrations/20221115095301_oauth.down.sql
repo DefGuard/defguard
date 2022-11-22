@@ -1,3 +1,14 @@
+CREATE TABLE openidclientauthcode (
+    id bigserial PRIMARY KEY,
+    "user" text NOT NULL,
+    code text NOT NULL UNIQUE,
+    client_id text NOT NULL UNIQUE,
+    state text NOT NULL UNIQUE,
+    scope text NOT NULL,
+    redirect_uri text NOT NULL,
+    nonce text
+);
+
 ALTER TABLE authorization_code DROP CONSTRAINT authorization_code_user_id_fkey;
 ALTER TABLE authorization_code ADD "user" text NULL;
 UPDATE authorization_code SET "user" = "user".username FROM "user" WHERE "user".id = authorization_code.user_id;

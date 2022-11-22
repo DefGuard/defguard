@@ -3,11 +3,7 @@ use crate::{
     auth::SessionInfo,
     db::{Session, User},
     enterprise::{
-        db::{
-            oauth::AuthorizationCode,
-            openid::{AuthorizedApp, OpenIDClientAuth},
-            OAuth2Client,
-        },
+        db::{authorization_code::AuthorizationCode, openid::AuthorizedApp, OAuth2Client},
         openid_idtoken::IDTokenClaims,
         openid_state::OpenIDRequest,
     },
@@ -16,12 +12,12 @@ use crate::{
 };
 use openidconnect::{
     core::{
-        CoreClaimName, CoreErrorResponseType, CoreJwsSigningAlgorithm, CoreProviderMetadata,
-        CoreResponseType, CoreSubjectIdentifierType,
+        CoreClaimName, CoreErrorResponseType, CoreIdTokenFields, CoreJwsSigningAlgorithm,
+        CoreProviderMetadata, CoreResponseType, CoreSubjectIdentifierType, CoreTokenType,
     },
     url::Url,
-    AuthUrl, EmptyAdditionalProviderMetadata, IssuerUrl, JsonWebKeySetUrl, ResponseTypes, Scope,
-    StandardErrorResponse, TokenUrl,
+    AccessToken, AuthUrl, EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, IssuerUrl,
+    JsonWebKeySetUrl, ResponseTypes, Scope, StandardErrorResponse, StandardTokenResponse, TokenUrl,
 };
 use rocket::{
     form::{Form, Lenient},
@@ -56,7 +52,7 @@ pub async fn check_authorized(
 
 // https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 // see https://docs.rs/oauth2/latest/src/oauth2/lib.rs.html
-#[derive(Debug, FromForm)]
+#[derive(FromForm)]
 pub struct AuthenticationRequest<'r> {
     scope: &'r str,
     response_type: &'r str,
@@ -76,7 +72,6 @@ pub struct AuthenticationRequest<'r> {
 }
 
 impl<'r> AuthenticationRequest<'r> {
-    // TODO: return CoreErrorResponseType
     fn validate_for_client(
         &self,
         oauth2client: &OAuth2Client,
@@ -120,7 +115,8 @@ pub async fn authentication(
     data: AuthenticationRequest<'_>,
 ) -> Result<Redirect, OriWebError> {
     // TODO: PKCE https://www.rfc-editor.org/rfc/rfc7636
-    match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
+    info!("XXX {}", data.client_id);
+    let err = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(_) => {
                 // FIXME: missing a proper struct from `openidconnect`; check CoreResponseType::Code
@@ -131,30 +127,22 @@ pub async fn authentication(
                     data.scope.into(), // FIXME: is this needed?
                 );
                 code.save(&appstate.pool).await?;
-                Ok(Redirect::found(format!(
+                return Ok(Redirect::found(format!(
                     "{}?code={}&state={}",
                     data.redirect_uri, code.code, data.state
-                )))
+                )));
             }
-            Err(err) => {
-                let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-                Ok(Redirect::found(format!(
-                    "{}?{}",
-                    data.redirect_uri,
-                    serde_qs::to_string(&response).unwrap()
-                )))
-            }
+            Err(err) => err,
         },
-        None => {
-            let err = CoreErrorResponseType::InvalidClient;
-            let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-            Ok(Redirect::found(format!(
-                "{}?{}",
-                data.redirect_uri,
-                serde_qs::to_string(&response).unwrap()
-            )))
-        }
-    }
+        None => CoreErrorResponseType::InvalidClient,
+    };
+
+    let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+    Ok(Redirect::found(format!(
+        "{}?{}",
+        data.redirect_uri,
+        serde_qs::to_string(&response).unwrap()
+    )))
 }
 
 // Login endpoint redirect with authorization code on success, or error if something failed
@@ -179,24 +167,35 @@ pub async fn authentication_request(
 }
 
 #[derive(FromForm)]
-pub struct IDTokenRequest {
-    pub grant_type: String,
-    pub code: String,
-    pub redirect_uri: String,
+pub struct IDTokenRequest<'r> {
+    grant_type: &'r str,
+    code: &'r str,
+    redirect_uri: &'r str,
 }
 
 // Create token with scopes based on client
 #[post("/token", data = "<form>")]
-pub async fn id_token(form: Form<IDTokenRequest>, appstate: &State<AppState>) -> ApiResult {
-    debug!("Verifying authorization code: {}", &form.code);
-    if let Some(client) = OpenIDClientAuth::find_by_code(&appstate.pool, &form.code).await? {
+pub async fn id_token(form: Form<IDTokenRequest<'_>>, appstate: &State<AppState>) -> ApiResult {
+    // currently, we only support "authorization_code" for `grant_type`
+    if form.grant_type != "authorization_code" {
+        return Err(OriWebError::ObjectNotFound("Wrong grant type".to_string()));
+    }
+
+    info!("Verifying authorization code: {}", form.code);
+    if let Some(code) = AuthorizationCode::find_code(&appstate.pool, form.code).await? {
+        if form.redirect_uri != code.redirect_uri {
+            return Err(OriWebError::ObjectNotFound(
+                "Wrong redirect URI".to_string(),
+            ));
+        }
+
         // Check user session and create id token
-        debug!("Checking session for user: {}", &client.user);
-        if let Some(user) = User::find_by_username(&appstate.pool, &client.user).await? {
+        info!("Checking session for user: {}", code.user_id);
+        if let Some(user) = User::find_by_id(&appstate.pool, code.user_id).await? {
             // Create user claims based on scope
-            let user_claims = IDTokenClaims::get_user_claims(user, &client.scope);
+            let user_claims = IDTokenClaims::get_user_claims(user, &code.scope);
             let secret =
-                match OAuth2Client::find_enabled_for_client_id(&appstate.pool, &client.client_id)
+                match OAuth2Client::find_enabled_for_client_id(&appstate.pool, &code.client_id)
                     .await?
                 {
                     Some(client) => client.client_secret,
@@ -206,26 +205,40 @@ pub async fn id_token(form: Form<IDTokenRequest>, appstate: &State<AppState>) ->
                         ));
                     }
                 };
-            debug!("Creating ID Token for {}", &client.user);
+            info!("Creating ID Token for {}", code.user_id);
             let token = IDTokenClaims::new(
                 user_claims.username.clone(),
-                client.client_id.clone(),
-                client.nonce.clone(),
+                code.client_id.clone(),
+                code.nonce.clone(),
                 user_claims,
             )
             .to_jwt(&secret)
             .map_err(|_| OriWebError::Authorization("Failed to create ID token".to_string()))?;
-            info!("ID Token for user {} created", &client.user);
+            info!("ID Token for user {} created", code.user_id);
+
+            // let id_token = IdToken::new(claims, signing_key, alg, access_token, code);
+            let response = StandardTokenResponse::new(
+                AccessToken::new("to be implemented".into()),
+                CoreTokenType::Bearer,
+                CoreIdTokenFields::new(None, EmptyExtraTokenFields {}),
+            );
+            info!("{:#?}", response);
 
             // Remove client authorization code from database
             // FIXME: this used to the first statement in this function -- check if it is valid here
-            client
-                .delete(&appstate.pool)
+            code.delete(&appstate.pool)
                 .await
-                .map_err(|_| OriWebError::ObjectNotFound("Failed to remove client".into()))?;
+                .map_err(|_| OriWebError::ObjectNotFound("Failed to remove code".into()))?;
 
             Ok(ApiResponse {
-                json: json!({ "id_token": token }),
+                // SHOULD BE: StandardTokenResponse
+                // TODO: missing:
+                // - access_token
+                // - token_type
+                // - refresh_token
+                // - expires_in
+                // json: json!({ "id_token": token }),
+                json: json!(response),
                 status: Status::Ok,
             })
         } else {

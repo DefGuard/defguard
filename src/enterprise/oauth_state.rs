@@ -1,9 +1,6 @@
 use crate::{
     db::DbPool,
-    enterprise::db::{
-        oauth::{AuthorizationCode, OAuth2Token},
-        OAuth2Client,
-    },
+    enterprise::db::{authorization_code::AuthorizationCode, oauth::OAuth2Token, OAuth2Client},
     oxide_auth_rocket::{OAuthFailure, OAuthRequest, OAuthResponse, WebError},
 };
 use oxide_auth::{
@@ -64,7 +61,10 @@ impl Authorizer for OAuthState {
     /// (there is no stateless implementation of an authorizer for this reason).
     async fn extract(&mut self, code: &str) -> Result<Option<Grant>, ()> {
         warn!("Authorizer: extract");
-        match AuthorizationCode::find_code(&self.pool, code).await {
+        match AuthorizationCode::find_code(&self.pool, code)
+            .await
+            .map_err(|_| ())?
+        {
             Some(auth_code) => {
                 // FIXME: let _result = auth_code.delete(&self.pool).await;
                 Ok(Some(auth_code.into()))

@@ -1,5 +1,10 @@
-use crate::db::{DbPool, User};
+use crate::{
+    db::{DbPool, User},
+    random::gen_alphanumeric,
+};
 use sqlx::{query, query_as, Error as SqlxError};
+
+use super::openid::NewOpenIDClient;
 
 #[derive(Deserialize, Serialize)]
 pub struct OAuth2Client {
@@ -80,6 +85,20 @@ impl OAuth2Client {
             Ok(true)
         } else {
             Ok(false)
+        }
+    }
+
+    pub fn from_new(new: NewOpenIDClient, user_id: i64) -> Self {
+        let client_id = gen_alphanumeric(16);
+        let client_secret = gen_alphanumeric(32);
+        Self {
+            user_id,
+            client_id,
+            client_secret,
+            redirect_uri: new.redirect_uri,
+            scope: new.scope,
+            name: new.name,
+            enabled: new.enabled,
         }
     }
 }

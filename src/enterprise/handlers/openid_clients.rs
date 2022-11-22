@@ -1,6 +1,7 @@
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
+    db::Session,
     enterprise::db::{
         openid::{AuthorizedApp, NewOpenIDClient},
         OAuth2Client,
@@ -15,11 +16,11 @@ use rocket::{
 
 #[post("/", format = "json", data = "<data>")]
 pub async fn add_openid_client(
-    _session: SessionInfo,
+    session: Session,
     appstate: &State<AppState>,
     data: Json<NewOpenIDClient>,
 ) -> ApiResult {
-    let client: OAuth2Client = data.into_inner().into();
+    let client = OAuth2Client::from_new(data.into_inner(), session.user_id);
     client.save(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(client),

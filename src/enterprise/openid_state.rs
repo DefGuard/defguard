@@ -1,9 +1,6 @@
 use crate::{
     db::DbPool,
-    enterprise::db::{
-        openid::{AuthorizedApp, OpenIDClientAuth},
-        OAuth2Client,
-    },
+    enterprise::db::{authorization_code::AuthorizationCode, openid::AuthorizedApp, OAuth2Client},
 };
 use chrono::Local;
 use openidconnect::PkceCodeChallenge;
@@ -60,14 +57,12 @@ impl OpenIDRequest {
                 }
 
                 let (code, _) = PkceCodeChallenge::new_random_sha256_len(32);
-                let mut client_auth = OpenIDClientAuth::new(
-                    username.into(),
-                    code.as_str().into(),
+                let mut client_auth = AuthorizationCode::new(
+                    0, // FIXME: dummy
                     client.client_id.clone(),
-                    self.state.clone(),
                     client.redirect_uri.clone(),
                     self.scope.clone(),
-                    self.nonce.clone(),
+                    // self.nonce.clone(),
                 );
 
                 match AuthorizedApp::find_by_user_and_client_id(pool, user_id, &client.client_id)
