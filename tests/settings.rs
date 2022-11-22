@@ -42,12 +42,12 @@ async fn test_settings() {
             wireguard_enabled: true,
             webhooks_enabled: true,
             worker_enabled: true,
-            challenge_template: "Please read this carefully:
-
-                Click to sign to prove you are in possesion of your private key to the account.
+            challenge_template: "
+                Please read this carefully:\n\n\
+                Click to sign to prove you are in possesion of your private key to the account.\n\
                 This request will not trigger a blockchain transaction or cost any gas fees."
                 .trim_start()
-                .to_string(),
+                .into(),
         }
     );
 

@@ -1,12 +1,17 @@
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     build_webapp,
-    db::{AppEvent, GatewayEvent, User, UserInfo, Wallet},
+    db::{
+        models::wallet::{hash_message, keccak256},
+        AppEvent, GatewayEvent, User, UserInfo, Wallet,
+    },
     handlers::{Auth, AuthCode, AuthTotp},
 };
 use otpauth::TOTP;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
+use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde::Deserialize;
+use std::fmt::Write;
 use std::time::SystemTime;
 use tokio::sync::mpsc::unbounded_channel;
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
@@ -40,6 +45,36 @@ async fn make_client() -> Client {
         5,
         String::new(),
     );
+    wallet.save(&pool).await.unwrap();
+
+    let (tx, rx) = unbounded_channel::<AppEvent>();
+    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+
+    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+    Client::tracked(webapp).await.unwrap()
+}
+
+async fn make_client_with_wallet(address: String) -> Client {
+    let (pool, config) = init_test_db().await;
+
+    let mut user = User::new(
+        "hpotter".into(),
+        "pass123",
+        "Potter".into(),
+        "Harry".into(),
+        "h.potter@hogwart.edu.uk".into(),
+        None,
+    );
+    user.save(&pool).await.unwrap();
+
+    let mut wallet = Wallet::new_for_user(
+        user.id.unwrap(),
+        address.into(),
+        "test".into(),
+        5,
+        String::new(),
+    );
+    wallet.use_for_mfa = true;
     wallet.save(&pool).await.unwrap();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
@@ -260,16 +295,22 @@ async fn test_web3() {
         challenge: String,
     }
 
-    // Web3 authentication
-    let response = client.post("/api/v1/auth/web3/start").dispatch().await;
+    let wallet_address = json!({
+        "address": "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
+    });
+    let response = client
+        .post("/api/v1/auth/web3/start")
+        .json(&wallet_address)
+        .dispatch()
+        .await;
     assert_eq!(response.status(), Status::Ok);
     let data: Challenge = response.into_json().await.unwrap();
 
     let address = "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e";
-    let message = format!(
-        "Please read this carefully:
-
-        Click to sign to prove you are in possesion of your private key to the account.
+    let message: String = format!(
+        "
+        Please read this carefully:\n\n\
+        Click to sign to prove you are in possesion of your private key to the account.\n\
         This request will not trigger a blockchain transaction or cost any gas fees.\n\
         Wallet address:\n\
         {}\n\
@@ -277,18 +318,76 @@ async fn test_web3() {
         Date and time:\n\
         {}",
         address,
-        chrono::Local::now().format("%Y-%m-%d %H:%M")
-    );
-    assert_eq!(data.challenge, message.trim_start());
+        chrono::Local::now().format("%Y-%m-%d %H:%M"),
+    )
+    .trim()
+    .into();
+    assert_eq!(data.challenge, message);
+
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let secp = Secp256k1::new();
+    let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
+
+    fn encode_hex(bytes: &[u8]) -> String {
+        let mut s = String::with_capacity(bytes.len() * 2);
+        for &b in bytes {
+            write!(&mut s, "{:02x}", b).unwrap();
+        }
+        format!("0x{}", s)
+    }
+    // create eth wallet address
+    let public_key = public_key.serialize_uncompressed();
+    let hash = keccak256(&public_key[1..]);
+    let addr = &hash[hash.len() - 20..];
+    let wallet_address = encode_hex(addr);
+
+    // create client
+    let client = make_client_with_wallet(wallet_address.clone()).await;
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let wallet_address_request = json!({
+        "address": wallet_address.clone(),
+    });
+    // obtain challenge message
+    let response = client
+        .post("/api/v1/auth/web3/start")
+        .json(&wallet_address_request)
+        .dispatch()
+        .await;
+
+    assert_eq!(response.status(), Status::Ok);
+    let data: Challenge = response.into_json().await.unwrap();
+
+    // Sign message
+    let message = Message::from_slice(&hash_message(&data.challenge)).unwrap();
+    let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
+    let (rec_id, sig) = sig_r.serialize_compact();
+
+    // Create recoverable_signature array
+    let mut sig_arr = [0; 65];
+    sig_arr[0..64].copy_from_slice(&sig[0..64]);
+    sig_arr[64] = rec_id.to_i32() as u8;
 
     let response = client
         .post("/api/v1/auth/web3")
         .json(&json!({
-            "address": "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
-            "signature": "0xcf9a650ed3dbb594f68a0614fc385363f17a150f0ced6e0e92f6cc40923ec0d86c70aa3a74e73216a57d6ae6a1e07e5951416491a2660a88d5d78a5ec7e4a9bd1c"
+            "address": wallet_address.clone(),
+            "signature": encode_hex(&sig_arr),
         }))
         .dispatch()
         .await;
+
+    assert_eq!(response.status(), Status::Ok);
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
     // disable MFA

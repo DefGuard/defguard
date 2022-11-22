@@ -38,7 +38,7 @@ impl Display for Web3Error {
 }
 
 /// Compute the Keccak-256 hash of input bytes.
-fn keccak256(bytes: &[u8]) -> [u8; 32] {
+pub fn keccak256(bytes: &[u8]) -> [u8; 32] {
     let mut output = [0u8; 32];
     let mut hasher = Keccak::v256();
     hasher.update(bytes);
@@ -46,7 +46,7 @@ fn keccak256(bytes: &[u8]) -> [u8; 32] {
     output
 }
 
-fn hash_message<S: AsRef<[u8]>>(message: S) -> [u8; 32] {
+pub fn hash_message<S: AsRef<[u8]>>(message: S) -> [u8; 32] {
     let message = message.as_ref();
     let mut eth_message = format!("\x19Ethereum Signed Message:\n{}", message.len()).into_bytes();
     eth_message.extend_from_slice(message);
