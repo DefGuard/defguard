@@ -64,6 +64,9 @@ const Navigation = () => {
   const { pathname } = useLocation();
 
   const getPageTitle = useMemo(() => {
+    if (pathname === '/admin/settings') {
+      return 'Defguard global settings';
+    }
     if (pathname === '/admin/users' || pathname === '/admin/users/') {
       return 'Users';
     }
