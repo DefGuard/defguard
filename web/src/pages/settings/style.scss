@@ -1,181 +1,103 @@
 @use '../../shared/scss/helpers' as *;
 
 #settings-page {
-  box-sizing: border-box;
-  min-height: 100vh;
-  max-height: 100vh;
-  overflow-y: auto;
-
-  @include media-breakpoint-up(lg) {
-    padding: 40px 60px;
-  }
-
-  h1,
-  h2,
-  h3 {
-    user-select: none;
-  }
-
-  h2 {
-    @include card-header;
-  }
-
-  & > header {
-    display: inline-grid;
-    grid-template-rows: 1fr;
-    grid-template-columns: auto 1fr;
-    grid-column-gap: 14px;
-    width: 100%;
-    margin-bottom: 40px;
-
-    & > .controls {
-      display: flex;
-      flex-flow: row nowrap;
-      align-items: center;
-      align-content: center;
-      justify-content: flex-end;
-
-      .btn {
-        height: 40px;
-      }
-
-      & > .left,
-      & > .right {
-        display: flex;
-        flex-flow: row nowrap;
-        column-gap: 1rem;
-      }
-
-      & > .right {
-        margin-left: auto;
-      }
-    }
-
-    h1 {
-      grid-row: 1;
-      grid-column: 1;
-      user-select: none;
-      @include page-header;
-    }
-  }
-
-  & > .content {
+  & > .page-content {
+    box-sizing: border-box;
+    overflow-y: auto;
     display: grid;
-    grid-template-rows: repeat(3, auto);
-    grid-template-columns: 1fr;
     grid-template-areas:
       'left'
       'right';
+    grid-template-rows: repeat(2, auto);
+    grid-template-columns: 1fr;
+    position: relative;
+    padding: 3rem 1.5rem;
+    row-gap: 3rem;
 
     @include media-breakpoint-up(lg) {
-      grid-template-rows: repeat(2, 1fr);
-      grid-template-columns: 1fr 369px;
-      grid-template-areas: 'left right';
-      column-gap: 35px;
+      padding: 4rem 6rem;
+      grid-template-areas:
+        'header header'
+        'left right';
+      grid-template-rows: 60px repeat(2, auto);
+      grid-template-columns: 1fr 1fr;
+      column-gap: 6rem;
+      row-gap: 5rem;
     }
 
     @include media-breakpoint-up(xxl) {
-      grid-template-rows: 1fr;
-      grid-template-columns: 800px 650px;
-      grid-template-areas: 'left right';
+      padding: 4erm 8rem 8rem 6rem;
     }
 
-    & > div > section > header {
-      margin-bottom: 1.2rem;
+    & > header {
+      display: none;
 
-      @include media-breakpoint-up(md) {
-        margin-bottom: 2rem;
+      @include media-breakpoint-up(lg) {
+        display: flex;
+        grid-area: header;
       }
     }
 
-    .left {
+    & > .left {
       grid-area: left;
-      display: flex;
-      flex-flow: column nowrap;
-      row-gap: 3.5rem;
-
-      & > h2 {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
     }
 
-    .select {
-      width: 20%;
-    }
-
-    .right {
+    & > .right {
       grid-area: right;
+    }
+
+    h1,
+    h2,
+    h3 {
+      user-select: none;
+    }
+
+    h2 {
+      @include card-header;
+    }
+
+    h1 {
+      @include page-header;
+    }
+
+    & > .left {
       display: flex;
-      flex-flow: column nowrap;
-      row-gap: 3.5rem;
-      padding-right: 3rem;
+      flex-flow: column;
+      width: 100%;
 
-      .logo-card {
-        min-height: 170px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 4rem;
-
-        img {
-          width: 40%;
-          height: 40%;
-        }
-      }
-    }
-  }
-
-  .card {
-    &.disabled {
-      cursor: not-allowed;
-
-      #settings-form {
-        pointer-events: none;
+      @include media-breakpoint-down(lg) {
+        row-gap: 3rem;
       }
     }
 
-    & > #settings-form {
-      padding: 1rem;
-      align-items: flex-start;
+    & > .right {
+      display: flex;
+      flex-flow: column;
+      row-gap: 3rem;
 
-      .row {
-        width: 90%;
-        flex-direction: column;
-        margin-bottom: 10px;
-        display: grid;
-        align-items: center;
-        align-content: center;
-        gap: 1rem;
-        margin: 10px;
-        font-size: 1.3rem;
-        line-height: 1.5;
-        @include typography(12px, 17px, medium, var(--gray-dark));
+      @include media-breakpoint-up(lg) {
+        row-gap: 2rem;
+      }
+    }
 
-        & > .enterprise {
-          display: inline-flex;
-          gap: 8px;
+    & > .left,
+    & > .right {
+      & > * {
+        &:not(.card) {
+          & > header {
+            display: flex;
+            flex-flow: row nowrap;
+            column-gap: 1rem;
+            align-items: center;
+            align-content: center;
+            justify-content: flex-start;
+            margin-bottom: 1.5rem;
 
-          & > span {
-            display: inline-flex;
-            padding-left: 4px;
-            padding-right: 4px;
-            line-height: 1.7rem;
-            border-radius: 4px;
-            height: 15px;
-            background-color: var(--bg-light);
-            color: var(--gray-dark);
+            @include media-breakpoint-up(lg) {
+              margin-bottom: 2.5rem;
+            }
           }
         }
-      }
-
-      button {
-        margin-left: auto;
-      }
-
-      & > .hidden {
-        display: none;
       }
     }
   }

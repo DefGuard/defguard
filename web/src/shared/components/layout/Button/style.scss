@@ -43,6 +43,11 @@
     padding: 0 2rem 0 1.5rem;
   }
 
+  &.with-icon-no-text {
+    padding: 0;
+    width: 40px;
+  }
+
   &.big {
     min-height: 50px;
     min-width: 200px;

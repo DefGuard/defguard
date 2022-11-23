@@ -2,8 +2,8 @@ import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
-import { omit } from 'lodash-es';
-import { useEffect, useRef } from 'react';
+import { isNull, omit, omitBy } from 'lodash-es';
+import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
@@ -14,7 +14,7 @@ import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox'
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
-import { CreateNetworkRequest, Network } from '../../../shared/types';
+import { ModifyNetworkRequest, Network } from '../../../shared/types';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
 const schema = yup
@@ -44,7 +44,7 @@ const schema = yup
   })
   .required();
 
-type FormInputs = CreateNetworkRequest;
+type FormInputs = ModifyNetworkRequest;
 
 const defaultValues: FormInputs = {
   address: '',
@@ -57,8 +57,11 @@ const defaultValues: FormInputs = {
 
 const networkToForm = (data?: Network): FormInputs | undefined => {
   if (!data) return undefined;
-  const omited = omit(data, ['id', 'connected_at']);
-  return { ...defaultValues, omited } as FormInputs;
+  const omited = omitBy(omit(data, ['id', 'connected_at']), isNull);
+  if (Array.isArray(omited.allowed_ips)) {
+    omited.allowed_ips = omited.allowed_ips.join(',');
+  }
+  return { ...defaultValues, ...omited } as FormInputs;
 };
 
 export const NetworkConfiguration = () => {
@@ -74,7 +77,8 @@ export const NetworkConfiguration = () => {
     [MutationKeys.CHANGE_NETWORK],
     editNetwork,
     {
-      onSuccess: () => {
+      onSuccess: (response) => {
+        setStoreState({ network: response });
         toaster.success('Network modified');
       },
       onError: (err) => {
@@ -88,35 +92,44 @@ export const NetworkConfiguration = () => {
     addNetwork,
     {
       onSuccess: (network) => {
-        setStoreState({ network });
+        setStoreState({ network, loading: false });
         toaster.success('Network added');
       },
       onError: (err) => {
-        console.error(err);
+        setStoreState({ loading: false });
         toaster.error('Unexpected error occurred.');
+        console.error(err);
       },
     }
   );
 
-  const {
-    control,
-    handleSubmit,
-    formState: { isValid },
-  } = useForm<FormInputs>({
-    defaultValues: networkToForm(network) || defaultValues,
+  const defaultFormValues = useMemo(() => {
+    if (network) {
+      const res = networkToForm(network);
+      if (res) {
+        return res;
+      }
+    }
+    return defaultValues;
+  }, [network]);
+
+  const { control, handleSubmit } = useForm<FormInputs>({
+    defaultValues: defaultFormValues,
     resolver: yupResolver(schema),
   });
+
   const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
     if (network) {
       editNetworkMutation({ ...network, ...values });
     } else {
       addNetworkMutation(values);
     }
+    setStoreState({ loading: true });
   };
 
   useEffect(() => {
-    setStoreState({ formValid: isValid, loading: addLoading || editLoading });
-  }, [addLoading, editLoading, isValid, setStoreState]);
+    setStoreState({ loading: addLoading || editLoading });
+  }, [addLoading, editLoading, setStoreState]);
 
   useEffect(() => {
     const sub = submitSubject.subscribe(() => submitRef.current?.click());

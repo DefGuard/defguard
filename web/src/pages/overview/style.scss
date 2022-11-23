@@ -16,18 +16,20 @@
     }
 
     & > .mobile-options {
-      display: grid;
-      grid-auto-columns: 1fr;
-      grid-template-rows: 38px;
-      column-gap: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      row-gap: 1.5rem;
       box-sizing: border-box;
       padding: 0 2rem;
-      padding-bottom: 1.5rem;
+      margin-bottom: 3rem;
+      align-items: flex-end;
 
-      & > .custom-select {
-        height: 100%;
+      & > .btn {
+        width: 200px;
+      }
+
+      & > .select {
         width: 100%;
-        grid-row: 1;
       }
     }
 
@@ -59,9 +61,9 @@
       }
 
       & > .select {
-	min-width: 200px;
-	height: 40px;
-	margin-left: 3rem;
+        min-width: 200px;
+        height: 40px;
+        margin-left: 3rem;
       }
 
       & > .docker-command {

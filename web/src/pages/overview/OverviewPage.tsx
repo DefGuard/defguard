@@ -57,7 +57,15 @@ export const OverviewPage = () => {
 
   const { data: networks, isLoading: networksLoading } = useQuery(
     [QueryKeys.FETCH_NETWORKS],
-    getNetworks
+    getNetworks,
+    {
+      onSuccess: (data) => {
+        if (!data || (data && data.length === 0)) {
+          setNetworkPageStore({ network: undefined });
+          navigate('../network');
+        }
+      },
+    }
   );
 
   useEffect(() => {
@@ -69,13 +77,31 @@ export const OverviewPage = () => {
     }
   }, [viewMode, breakpoint, setOverViewStore]);
 
+  const handleNetworkAction = () => {
+    if (networks && networks.length) {
+      setNetworkPageStore({ network: networks[0] });
+    }
+    navigate('../network');
+  };
+
   return (
     <>
       <PageContainer id="network-overview-page">
         {breakpoint !== 'desktop' && (
           <div className="mobile-options">
-            <OverviewViewSelect />
+            <Button
+              styleVariant={ButtonStyleVariant.STANDARD}
+              text={
+                isUndefined(networks) || !networks?.length
+                  ? 'Configure network settings'
+                  : 'Edit network settings'
+              }
+              icon={<IconEditNetwork />}
+              disabled={networksLoading}
+              onClick={handleNetworkAction}
+            />
             <OverviewStatsFilterSelect />
+            <OverviewViewSelect />
           </div>
         )}
         {breakpoint === 'desktop' && (
@@ -98,12 +124,7 @@ export const OverviewPage = () => {
               }
               icon={<IconEditNetwork />}
               disabled={networksLoading}
-              onClick={() => {
-                if (networks && networks.length) {
-                  setNetworkPageStore({ network: networks[0] });
-                }
-                navigate('../network');
-              }}
+              onClick={handleNetworkAction}
             />
           </header>
         )}

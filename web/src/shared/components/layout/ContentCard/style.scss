@@ -1,15 +1,28 @@
 @use '../../../scss/helpers/' as *;
 
 .content-card {
-  text-align: center;
+  display: flex;
+  flex-flow: column;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 
-  & > .divider {
-    width: 90%;
-    margin: auto;
+  & > header,
+  & > .content,
+  & > .footer {
+    box-sizing: border-box;
+    padding: 0 2rem;
   }
 
-  & > .header {
-    height: 50px;
+  .divider {
+    margin: 0 2rem;
+    width: calc(100% - 4rem);
+  }
+
+  & > header {
+    width: 100%;
+    height: 60px;
     display: flex;
     text-align: center;
     justify-content: center;
@@ -21,38 +34,44 @@
   }
 
   & > .content {
-    padding: 4rem 10rem;
+    width: 100%;
     box-sizing: border-box;
+    padding: 2rem;
     display: flex;
     flex-flow: column;
     align-items: center;
+    align-content: center;
+    justify-content: center;
 
-    & > p {
-      @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
+    p,
+    span,
+    ul,
+    li,
+    a {
+      @include typography(15px, 23px, regular, var(--text-main));
+      @include poppins;
 
-      a {
-        text-decoration: underline;
-        cursor: pointer;
-      }
+      text-align: center;
     }
 
-    & > ul {
-      & > li {
-        @include typography(15px, 20px, regular, var(--text-main), 'Poppins');
-      }
-    }
-
-    & > a {
-      @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
-
+    a {
       text-decoration: underline;
-      cursor: pointer;
+      text-decoration-color: var(--text-main);
+    }
+
+    & > div {
+      display: flex;
+      flex-flow: column;
+      align-items: center;
+      align-content: center;
+      justify-content: center;
     }
   }
 
   & > .footer {
-    height: 50px;
+    height: 72px;
     display: flex;
+    flex-flow: column;
     align-content: center;
     align-items: center;
     justify-content: center;
@@ -60,9 +79,7 @@
     text-align: center;
 
     p {
-      @include small-text;
-
-      color: var(--gray-dark);
+      @include typography(12px, 20px, regular, var(--gray-dark));
     }
   }
 }

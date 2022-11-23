@@ -9,7 +9,10 @@ import * as yup from 'yup';
 
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../../shared/components/Form/FormSelect/FormSelect';
-import { SelectOption } from '../../../../../shared/components/layout/Select/Select';
+import {
+  SelectOption,
+  SelectStyleVariant,
+} from '../../../../../shared/components/layout/Select/Select';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUserProfileV2Store';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -259,6 +262,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormSelect
+            styleVariant={SelectStyleVariant.WHITE}
             options={groupsOptions}
             controller={{ control, name: 'groups' }}
             outerLabel="Groups"
@@ -272,6 +276,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormSelect
+            styleVariant={SelectStyleVariant.WHITE}
             outerLabel="Authorized apps"
             controller={{ control, name: 'authorized_apps' }}
             options={formDefaultValues.authorized_apps}

@@ -25,7 +25,7 @@ export const ContentCard = ({
     <Card className={cn} {...rest}>
       {header ? (
         <>
-          <div className="header">{header}</div>
+          <header>{header}</header>
           <Divider />
         </>
       ) : null}

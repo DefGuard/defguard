@@ -145,10 +145,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const fetchNetwork = async (id: string) =>
     client.get<Network>(`/network/${id}`).then((res) => res.data);
 
-  const modifyNetwork = async (network: Network) =>
-    client
-      .put<Network>(`/network/${network.id}`, network)
-      .then((res) => res.data);
+  // For now there is only one network
+  const modifyNetwork: ApiHook['network']['editNetwork'] = async (network) =>
+    client.put<Network>(`/network/1`, network).then((res) => res.data);
 
   const deleteNetwork = async (network: Network) =>
     client.delete<EmptyApiResponse>(`/network/${network.id}`);
@@ -362,7 +361,10 @@ const useApi = (props?: HookProps): ApiHook => {
   const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
     client.post('/auth/recovery', data).then(unpackRequest);
 
+  const getVersion = () => client.get('/version').then(unpackRequest);
+
   return {
+    getVersion,
     oAuth: {
       consent: oAuthConsent,
     },

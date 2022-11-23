@@ -1,19 +1,27 @@
 import { Subject } from 'rxjs';
 import create from 'zustand';
+import { persist } from 'zustand/middleware';
 
 import { Network } from '../../../shared/types';
 
 interface NetworkPageStore {
   saveSubject: Subject<void>;
-  formValid: boolean;
   loading: boolean;
   network?: Network;
   setState: (data: Partial<NetworkPageStore>) => void;
 }
-export const useNetworkPageStore = create<NetworkPageStore>((set) => ({
-  saveSubject: new Subject(),
-  formValid: false,
-  loading: false,
-  network: undefined,
-  setState: (newState) => set(() => newState),
-}));
+export const useNetworkPageStore = create<NetworkPageStore>()(
+  persist(
+    (set) => ({
+      saveSubject: new Subject(),
+      loading: false,
+      network: undefined,
+      setState: (newState) => set(() => newState),
+    }),
+    {
+      name: 'network-page',
+      getStorage: () => sessionStorage,
+      partialize: (state) => ({ network: state.network }),
+    }
+  )
+);

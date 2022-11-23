@@ -10,7 +10,7 @@ export const CheckBoxStory: Story<Pick<CheckBoxProps, 'value' | 'label'>> = ({
   return (
     <CheckBox
       label={label || 'label'}
-      value={Number(checked)}
+      value={checked}
       onChange={(val) => setChecked(Boolean(val))}
     />
   );

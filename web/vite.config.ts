@@ -22,7 +22,7 @@ export default defineConfig({
       allow: ['.'],
     },
   },
-  assetsInclude: ['./src/shared/fonts/**/*'],
+  assetsInclude: ['./src/shared/fonts/**/*', './src/shared/assets/**/*'],
   resolve: {
     alias: {
       '@fonts': path.resolve(__dirname, '/src/shared/fonts'),
