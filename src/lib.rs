@@ -16,9 +16,7 @@ use crate::enterprise::handlers::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
         delete_user_app, get_openid_client, get_user_apps, update_user_app,
     },
-    openid_flow::{
-        authentication, authentication_request, check_authorized, id_token, openid_configuration,
-    },
+    openid_flow::{authentication, id_token, openid_configuration},
 };
 #[cfg(feature = "oauth")]
 use crate::enterprise::oauth_state::OAuthState;
@@ -212,10 +210,8 @@ pub async fn build_webapp(
                     change_openid_client,
                     get_openid_client,
                     authentication,
-                    authentication_request,
                     id_token,
                     change_openid_client_state,
-                    check_authorized,
                     update_user_app,
                     delete_user_app,
                     get_user_apps

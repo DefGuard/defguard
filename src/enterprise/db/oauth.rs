@@ -1,6 +1,7 @@
 use crate::{
     auth::{Claims, ClaimsType, SESSION_TIMEOUT},
     db::DbPool,
+    random::gen_alphanumeric,
 };
 use chrono::{Duration, TimeZone, Utc};
 use oxide_auth::primitives::{
@@ -19,6 +20,18 @@ pub struct OAuth2Token {
 }
 
 impl OAuth2Token {
+    #[must_use]
+    pub fn new(redirect_uri: String, scope: String) -> Self {
+        let expiration = Utc::now() + Duration::seconds(SESSION_TIMEOUT as i64);
+        Self {
+            access_token: gen_alphanumeric(24),
+            refresh_token: gen_alphanumeric(24),
+            redirect_uri,
+            scope,
+            expires_in: expiration.timestamp(),
+        }
+    }
+
     /// Generate new access token, scratching the old one. Changes are reflected in the database.
     pub async fn refresh_and_save(
         &mut self,

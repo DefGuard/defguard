@@ -1,54 +1,47 @@
 use crate::{
     appstate::AppState,
-    auth::SessionInfo,
-    db::{Session, User},
-    enterprise::{
-        db::{authorization_code::AuthorizationCode, openid::AuthorizedApp, OAuth2Client},
-        openid_idtoken::IDTokenClaims,
-        openid_state::OpenIDRequest,
-    },
+    auth::SESSION_TIMEOUT,
+    db::User,
+    enterprise::db::{authorization_code::AuthorizationCode, oauth::OAuth2Token, OAuth2Client},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
 };
+use chrono::{Duration, Utc};
 use openidconnect::{
     core::{
-        CoreClaimName, CoreErrorResponseType, CoreIdTokenFields, CoreJwsSigningAlgorithm,
-        CoreProviderMetadata, CoreResponseType, CoreSubjectIdentifierType, CoreTokenType,
+        CoreClaimName, CoreErrorResponseType, CoreHmacKey, CoreIdToken, CoreIdTokenClaims,
+        CoreIdTokenFields, CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
+        CoreSubjectIdentifierType, CoreTokenType,
     },
     url::Url,
-    AccessToken, AuthUrl, EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, IssuerUrl,
-    JsonWebKeySetUrl, ResponseTypes, Scope, StandardErrorResponse, StandardTokenResponse, TokenUrl,
+    AccessToken, Audience, AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata,
+    EmptyExtraTokenFields, IssuerUrl, JsonWebKeySetUrl, Nonce, ResponseTypes, Scope,
+    StandardClaims, StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl,
 };
-use rocket::{
-    form::{Form, Lenient},
-    http::Status,
-    response::Redirect,
-    serde::json::{serde_json::json, Json},
-    State,
-};
+use rocket::{form::Form, http::Status, response::Redirect, serde::json::serde_json::json, State};
 
 // Check if app is authorized, return 200 or 404
-#[post("/verify", format = "json", data = "<data>")]
-pub async fn check_authorized(
-    session: Session,
-    data: Json<OpenIDRequest>,
-    appstate: &State<AppState>,
-) -> ApiResult {
-    let status = match AuthorizedApp::find_by_user_and_client_id(
-        &appstate.pool,
-        session.user_id,
-        &data.client_id,
-    )
-    .await?
-    {
-        Some(_app) => Status::Ok,
-        None => Status::NotFound,
-    };
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
-}
+// #[post("/verify", format = "json", data = "<data>")]
+// pub async fn check_authorized(
+//     session: Session,
+//     data: Json<OpenIDRequest>,
+//     appstate: &State<AppState>,
+// ) -> ApiResult {
+//     let status = match AuthorizedApp::find_by_user_and_client_id(
+//         &appstate.pool,
+//         session.user_id,
+//         &data.client_id,
+//     )
+//     .await?
+//     {
+//         Some(_app) => Status::Ok,
+//         None => Status::NotFound,
+//     };
+//     Ok(ApiResponse {
+//         json: json!({}),
+//         status,
+//     })
+// }
 
 // https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 // see https://docs.rs/oauth2/latest/src/oauth2/lib.rs.html
@@ -61,7 +54,7 @@ pub struct AuthenticationRequest<'r> {
     redirect_uri: &'r str,
     state: &'r str,
     // response_mode: Option<&'r str>,
-    // nonce: Option<&'r str>,
+    nonce: Option<&'r str>,
     // display:
     // prompt:
     // max_age:
@@ -109,6 +102,8 @@ impl<'r> AuthenticationRequest<'r> {
     }
 }
 
+/// Authorization Endpoint
+/// https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 #[get("/authorize?<data..>")]
 pub async fn authentication(
     appstate: &State<AppState>,
@@ -119,14 +114,15 @@ pub async fn authentication(
     let err = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(_) => {
-                // FIXME: missing a proper struct from `openidconnect`; check CoreResponseType::Code
                 let mut code = AuthorizationCode::new(
                     oauth2client.user_id,
                     data.client_id.into(),
                     data.redirect_uri.into(),
                     data.scope.into(), // FIXME: is this needed?
+                    data.nonce.map(str::to_owned),
                 );
                 code.save(&appstate.pool).await?;
+                // FIXME: missing a proper struct from `openidconnect`; check CoreResponseType::Code
                 return Ok(Redirect::found(format!(
                     "{}?code={}&state={}",
                     data.redirect_uri, code.code, data.state
@@ -149,22 +145,22 @@ pub async fn authentication(
 // https://openid.net/specs/openid-connect-core-1_0.html#ImplicitAuthorizationEndpoint
 // Generate PKCE code challenge, store in the database
 // and return 302 redirect for given URL with state and code
-#[post("/authorize?<data..>")]
-pub async fn authentication_request(
-    session: SessionInfo,
-    data: Lenient<OpenIDRequest>,
-    appstate: &State<AppState>,
-) -> Result<Redirect, Redirect> {
-    let openid_request = data.into_inner();
-    debug!("Verifying client: {}", openid_request.client_id);
-    openid_request
-        .create_code(
-            &appstate.pool,
-            &session.user.username,
-            session.user.id.unwrap(),
-        )
-        .await
-}
+// #[post("/authorize?<data..>")]
+// pub async fn authentication_request(
+//     session: SessionInfo,
+//     data: Lenient<OpenIDRequest>,
+//     appstate: &State<AppState>,
+// ) -> Result<Redirect, Redirect> {
+//     let openid_request = data.into_inner();
+//     debug!("Verifying client: {}", openid_request.client_id);
+//     openid_request
+//         .create_code(
+//             &appstate.pool,
+//             &session.user.username,
+//             session.user.id.unwrap(),
+//         )
+//         .await
+// }
 
 #[derive(FromForm)]
 pub struct IDTokenRequest<'r> {
@@ -173,89 +169,92 @@ pub struct IDTokenRequest<'r> {
     redirect_uri: &'r str,
 }
 
-// Create token with scopes based on client
+/// Token Endpoint
+/// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
 #[post("/token", data = "<form>")]
 pub async fn id_token(form: Form<IDTokenRequest<'_>>, appstate: &State<AppState>) -> ApiResult {
-    // currently, we only support "authorization_code" for `grant_type`
+    let err;
+
+    // Currentl only "authorization_code" is supported for `grant_type`
     if form.grant_type != "authorization_code" {
-        return Err(OriWebError::ObjectNotFound("Wrong grant type".to_string()));
-    }
-
-    info!("Verifying authorization code: {}", form.code);
-    if let Some(code) = AuthorizationCode::find_code(&appstate.pool, form.code).await? {
-        if form.redirect_uri != code.redirect_uri {
-            return Err(OriWebError::ObjectNotFound(
-                "Wrong redirect URI".to_string(),
-            ));
-        }
-
-        // Check user session and create id token
-        info!("Checking session for user: {}", code.user_id);
-        if let Some(user) = User::find_by_id(&appstate.pool, code.user_id).await? {
-            // Create user claims based on scope
-            let user_claims = IDTokenClaims::get_user_claims(user, &code.scope);
-            let secret =
-                match OAuth2Client::find_enabled_for_client_id(&appstate.pool, &code.client_id)
-                    .await?
-                {
-                    Some(client) => client.client_secret,
-                    None => {
-                        return Err(OriWebError::ObjectNotFound(
-                            "Failed to find client secret corresponding to id".to_string(),
-                        ));
-                    }
-                };
-            info!("Creating ID Token for {}", code.user_id);
-            let token = IDTokenClaims::new(
-                user_claims.username.clone(),
-                code.client_id.clone(),
-                code.nonce.clone(),
-                user_claims,
-            )
-            .to_jwt(&secret)
-            .map_err(|_| OriWebError::Authorization("Failed to create ID token".to_string()))?;
-            info!("ID Token for user {} created", code.user_id);
-
-            // let id_token = IdToken::new(claims, signing_key, alg, access_token, code);
-            let response = StandardTokenResponse::new(
-                AccessToken::new("to be implemented".into()),
-                CoreTokenType::Bearer,
-                CoreIdTokenFields::new(None, EmptyExtraTokenFields {}),
-            );
-            info!("{:#?}", response);
-
-            // Remove client authorization code from database
-            // FIXME: this used to the first statement in this function -- check if it is valid here
-            code.delete(&appstate.pool)
-                .await
-                .map_err(|_| OriWebError::ObjectNotFound("Failed to remove code".into()))?;
-
-            Ok(ApiResponse {
-                // SHOULD BE: StandardTokenResponse
-                // TODO: missing:
-                // - access_token
-                // - token_type
-                // - refresh_token
-                // - expires_in
-                // json: json!({ "id_token": token }),
-                json: json!(response),
-                status: Status::Ok,
-            })
-        } else {
-            Ok(ApiResponse {
-                json: json!({
-                    "error":
-                    "failed to get user session",
-                }),
-                status: Status::BadRequest,
-            })
-        }
+        err = CoreErrorResponseType::UnsupportedGrantType;
     } else {
-        Ok(ApiResponse {
-            json: json!({"error": "failed to authorize client"}),
-            status: Status::BadRequest,
-        })
+        info!("Verifying authorization code: {}", form.code);
+        if let Some(auth_code) = AuthorizationCode::find_code(&appstate.pool, form.code).await? {
+            if form.redirect_uri != auth_code.redirect_uri {
+                err = CoreErrorResponseType::UnauthorizedClient;
+            } else {
+                info!("Checking session for user: {}", auth_code.user_id);
+                if let Some(user) = User::find_by_id(&appstate.pool, auth_code.user_id).await? {
+                    // Create user claims based on scope
+                    // let user_claims = IDTokenClaims::get_user_claims(user, &auth_code.scope);
+                    let oauth2client = OAuth2Client::find_enabled_for_client_id(
+                        &appstate.pool,
+                        &auth_code.client_id,
+                    )
+                    .await?
+                    .unwrap();
+
+                    let token =
+                        OAuth2Token::new(auth_code.redirect_uri.clone(), auth_code.scope.clone());
+                    // token.save(&appstate.pool).await?;
+
+                    let access_token = AccessToken::new(token.access_token.clone());
+                    let authorization_code =
+                        openidconnect::AuthorizationCode::new(auth_code.code.clone());
+                    let issue_time = Utc::now();
+                    let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
+                    let std_claims = StandardClaims::new(SubjectIdentifier::new(user.username));
+                    let base_url = Url::parse(&appstate.config.url).unwrap();
+                    let claims = CoreIdTokenClaims::new(
+                        IssuerUrl::from_url(base_url),
+                        vec![Audience::new(auth_code.client_id.clone())],
+                        expiration,
+                        issue_time,
+                        std_claims,
+                        EmptyAdditionalClaims {},
+                    )
+                    .set_nonce(auth_code.nonce.clone().map(Nonce::new));
+                    let signing_key = CoreHmacKey::new(oauth2client.client_secret);
+                    let id_token = CoreIdToken::new(
+                        claims,
+                        &signing_key,
+                        CoreJwsSigningAlgorithm::HmacSha256,
+                        Some(&access_token),
+                        Some(&authorization_code),
+                    )
+                    .unwrap();
+                    let response = StandardTokenResponse::new(
+                        access_token,
+                        CoreTokenType::Bearer,
+                        CoreIdTokenFields::new(Some(id_token), EmptyExtraTokenFields {}),
+                    );
+                    info!("{:#?}", response);
+
+                    // Remove client authorization code from database
+                    auth_code
+                        .delete(&appstate.pool)
+                        .await
+                        .map_err(|_| OriWebError::ObjectNotFound("Failed to remove code".into()))?;
+
+                    return Ok(ApiResponse {
+                        json: json!(response),
+                        status: Status::Ok,
+                    });
+                } else {
+                    err = CoreErrorResponseType::UnauthorizedClient;
+                }
+            }
+        } else {
+            err = CoreErrorResponseType::InvalidGrant;
+        }
     }
+
+    let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+    Ok(ApiResponse {
+        json: json!(response),
+        status: Status::BadRequest,
+    })
 }
 
 // Must be served under /.well-known/openid-configuration
@@ -268,7 +267,9 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
         JsonWebKeySetUrl::from_url(base_url.join("api/v1/oauth/discovery/keys").unwrap()),
         vec![ResponseTypes::new(vec![CoreResponseType::Code])],
         vec![CoreSubjectIdentifierType::Public],
-        vec![CoreJwsSigningAlgorithm::HmacSha256], // match with auth::Claims.encode()
+        vec![
+            CoreJwsSigningAlgorithm::HmacSha256, // required
+        ], // match with auth::Claims.encode()
         EmptyAdditionalProviderMetadata {},
     )
     .set_token_endpoint(Some(TokenUrl::from_url(

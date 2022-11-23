@@ -22,7 +22,13 @@ pub struct AuthorizationCode {
 
 impl AuthorizationCode {
     #[must_use]
-    pub fn new(user_id: i64, client_id: String, redirect_uri: String, scope: String) -> Self {
+    pub fn new(
+        user_id: i64,
+        client_id: String,
+        redirect_uri: String,
+        scope: String,
+        nonce: Option<String>,
+    ) -> Self {
         let code = gen_alphanumeric(24);
         Self {
             id: None,
@@ -32,7 +38,7 @@ impl AuthorizationCode {
             redirect_uri,
             scope,
             auth_time: Utc::now().timestamp(),
-            nonce: None, // FIXME: add
+            nonce,
         }
     }
 
