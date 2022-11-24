@@ -75,7 +75,7 @@ export const DeviceCard = ({ device }: Props) => {
       </header>
       <div className="content">
         <div className="info">
-          <Label>Last location</Label>={' '}
+          <Label>Last location</Label>
           <p data-text="device-location">Szczecin</p>
         </div>
         <div className="info">
