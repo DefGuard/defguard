@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { HTMLMotionProps, motion, Variants } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { ColorsRGB } from '../../../constants';
 import SvgAvatar01Blue from '../../svg/Avatar01Blue';
@@ -84,8 +84,6 @@ export const DeviceAvatar = ({
   deviceId,
   ...props
 }: Props) => {
-  const [avatar, setAvatar] = useState<JSX.Element[]>([]);
-
   const deviceAvatar = useMemo(() => {
     if (deviceId) {
       const elements = getDeviceAvatar(deviceId);
@@ -98,15 +96,15 @@ export const DeviceAvatar = ({
     }
   }, [deviceId]);
 
-  useEffect(() => {
+  const avatar = useMemo(() => {
     if (active) {
       if (deviceId && deviceAvatar) {
-        setAvatar(deviceAvatar);
+        return deviceAvatar;
       } else {
-        setAvatar(blue);
+        return blue;
       }
     } else {
-      setAvatar(gray);
+      return gray;
     }
   }, [active, deviceAvatar, deviceId]);
 
