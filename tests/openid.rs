@@ -1,25 +1,42 @@
 use defguard::{
     build_webapp,
-    db::{AppEvent, GatewayEvent},
-    enterprise::db::{openid::NewOpenIDClient, OAuth2Client},
+    config::DefGuardConfig,
+    db::{AppEvent, DbPool, GatewayEvent},
+    enterprise::{
+        db::{openid::NewOpenIDClient, OAuth2Client},
+        handlers::openid_flow::AuthenticationResponse,
+    },
     handlers::Auth,
 };
 use openidconnect::{
-    core::{CoreClient, CoreProviderMetadata, CoreResponseType},
+    core::{
+        CoreClient, CoreIdTokenClaims, CoreIdTokenVerifier, CoreProviderMetadata, CoreResponseType,
+    },
     http::{HeaderMap, Method, StatusCode},
-    AuthenticationFlow, ClientId, ClientSecret, CsrfToken, HttpRequest, HttpResponse, IssuerUrl,
-    Nonce, RedirectUrl, Scope,
+    AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, HttpRequest,
+    HttpResponse, IssuerUrl, Nonce, RedirectUrl, Scope,
 };
-use rocket::{http::Status, local::asynchronous::Client};
+use rocket::{
+    http::{Header, Status},
+    local::asynchronous::Client,
+};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
 use common::{init_test_db, LICENSE_ENTERPRISE};
 
-async fn make_client() -> Client {
-    let (pool, mut config) = init_test_db().await;
-    config.license = LICENSE_ENTERPRISE.into();
+// async fn make_client() -> Client {
+//     let (pool, mut config) = init_test_db().await;
+//     config.license = LICENSE_ENTERPRISE.into();
 
+//     let (tx, rx) = unbounded_channel::<AppEvent>();
+//     let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+
+//     let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+//     Client::tracked(webapp).await.unwrap()
+// }
+
+async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> Client {
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
 
@@ -390,16 +407,25 @@ async fn make_client() -> Client {
 // }
 
 /// Helper function for translating HTTP communication from `openidconnect` to `LocalClient`.
-async fn http_client(request: HttpRequest) -> Result<HttpResponse, rocket::Error> {
-    let client = make_client().await;
+async fn http_client(
+    request: HttpRequest,
+    pool: DbPool,
+    config: DefGuardConfig,
+) -> Result<HttpResponse, rocket::Error> {
+    let client = make_client_v2(pool, config).await;
+
     let uri = request.url.path();
-    let rocket_request = match request.method {
+    let mut rocket_request = match request.method {
         Method::GET => client.get(uri),
         Method::POST => client.post(uri),
         Method::PUT => client.put(uri),
         Method::DELETE => client.delete(uri),
         _ => unimplemented!(),
     };
+    for (key, value) in request.headers.iter() {
+        let header = Header::new(key.as_str().to_owned(), value.to_str().unwrap().to_owned());
+        rocket_request = rocket_request.header(header);
+    }
     let response = rocket_request.body(request.body).dispatch().await;
 
     Ok(HttpResponse {
@@ -411,15 +437,22 @@ async fn http_client(request: HttpRequest) -> Result<HttpResponse, rocket::Error
 
 #[rocket::async_test]
 async fn test_openid_authorization_code() {
+    let (pool, mut config) = init_test_db().await;
+    config.license = LICENSE_ENTERPRISE.into();
+
     let issuer_url =
         IssuerUrl::new("http://localhost:8000/".to_string()).expect("Invalid issuer URL");
 
-    // discover OpenID service
-    let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, http_client)
-        .await
-        .unwrap();
+    let client = make_client_v2(pool.clone(), config.clone()).await;
+    let pool_clone = pool.clone();
+    let config_clone = config.clone();
 
-    let client = make_client().await;
+    // discover OpenID service
+    let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, move |r| {
+        http_client(r, pool.clone(), config.clone())
+    })
+    .await
+    .unwrap();
 
     // create OAuth2 client/application
     let auth = Auth::new("admin".into(), "pass123".into());
@@ -448,7 +481,7 @@ async fn test_openid_authorization_code() {
             .set_redirect_uri(
                 RedirectUrl::new("http://test.server.tnt:12345/".to_string()).unwrap(),
             );
-    let (authorize_url, _csrf_state, _nonce) = core_client
+    let (authorize_url, _csrf_state, nonce) = core_client
         .authorize_url(
             AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
             CsrfToken::new_random,
@@ -470,6 +503,19 @@ async fn test_openid_authorization_code() {
     let response = client.get(uri.clone()).dispatch().await;
     assert_eq!(response.status(), Status::Found);
     let location = response.headers().get_one("Location").unwrap();
-    assert!(location.contains("code="));
-    assert!(location.contains("state="));
+    let (_, query) = location.split_once('?').unwrap();
+    let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
+
+    let token_response = core_client
+        .exchange_code(AuthorizationCode::new(auth_response.code))
+        .request_async(move |r| http_client(r, pool_clone.clone(), config_clone))
+        .await
+        .unwrap();
+    let id_token_verifier: CoreIdTokenVerifier = core_client.id_token_verifier().allow_any_alg();
+    let _id_token_claims: &CoreIdTokenClaims = token_response
+        .extra_fields()
+        .id_token()
+        .expect("Server did not return an ID token")
+        .claims(&id_token_verifier, &nonce)
+        .unwrap();
 }

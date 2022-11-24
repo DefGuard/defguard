@@ -102,15 +102,22 @@ impl<'r> AuthenticationRequest<'r> {
     }
 }
 
+// https://openid.net/specs/openid-connect-core-1_0.html#AuthResponse
+// FIXME: missing a proper struct from `openidconnect`; check CoreResponseType::Code
+#[derive(Deserialize, Serialize)]
+pub struct AuthenticationResponse {
+    pub code: String,
+    pub state: String,
+}
+
 /// Authorization Endpoint
-/// https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+// https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 #[get("/authorize?<data..>")]
 pub async fn authentication(
     appstate: &State<AppState>,
     data: AuthenticationRequest<'_>,
 ) -> Result<Redirect, OriWebError> {
     // TODO: PKCE https://www.rfc-editor.org/rfc/rfc7636
-    info!("XXX {}", data.client_id);
     let err = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(_) => {
@@ -122,10 +129,14 @@ pub async fn authentication(
                     data.nonce.map(str::to_owned),
                 );
                 code.save(&appstate.pool).await?;
-                // FIXME: missing a proper struct from `openidconnect`; check CoreResponseType::Code
+                let response = AuthenticationResponse {
+                    code: code.code,
+                    state: data.state.into(),
+                };
                 return Ok(Redirect::found(format!(
-                    "{}?code={}&state={}",
-                    data.redirect_uri, code.code, data.state
+                    "{}?{}",
+                    data.redirect_uri,
+                    serde_qs::to_string(&response).unwrap()
                 )));
             }
             Err(err) => err,
@@ -171,7 +182,7 @@ pub struct IDTokenRequest<'r> {
 
 /// Token Endpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
-#[post("/token", data = "<form>")]
+#[post("/token", format = "form", data = "<form>")]
 pub async fn id_token(form: Form<IDTokenRequest<'_>>, appstate: &State<AppState>) -> ApiResult {
     let err;
 
@@ -187,7 +198,6 @@ pub async fn id_token(form: Form<IDTokenRequest<'_>>, appstate: &State<AppState>
                 info!("Checking session for user: {}", auth_code.user_id);
                 if let Some(user) = User::find_by_id(&appstate.pool, auth_code.user_id).await? {
                     // Create user claims based on scope
-                    // let user_claims = IDTokenClaims::get_user_claims(user, &auth_code.scope);
                     let oauth2client = OAuth2Client::find_enabled_for_client_id(
                         &appstate.pool,
                         &auth_code.client_id,
@@ -197,7 +207,7 @@ pub async fn id_token(form: Form<IDTokenRequest<'_>>, appstate: &State<AppState>
 
                     let token =
                         OAuth2Token::new(auth_code.redirect_uri.clone(), auth_code.scope.clone());
-                    // token.save(&appstate.pool).await?;
+                    token.save(&appstate.pool).await?;
 
                     let access_token = AccessToken::new(token.access_token.clone());
                     let authorization_code =
