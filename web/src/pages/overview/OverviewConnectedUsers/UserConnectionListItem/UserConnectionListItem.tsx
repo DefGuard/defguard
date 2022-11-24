@@ -30,6 +30,7 @@ import SvgIconUserListElement from '../../../../shared/components/svg/IconUserLi
 import SvgIconUserListExpanded from '../../../../shared/components/svg/IconUserListExpanded';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
+import { getDeviceAvatar } from '../../../../shared/utils/getDeviceAvatar';
 import { summarizeDeviceStats } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
 dayjs.extend(utc);
@@ -159,6 +160,7 @@ const DeviceRow = ({ data, dataMax }: DeviceRowProps) => {
         <SvgIconUserListElement />
         <DeviceAvatar
           styleVariant={DeviceAvatarVariants.GRAY_BOX}
+          numbers={getDeviceAvatar(Number(data.id))}
           active={true}
         />
         <span className="name">{data.name}</span>

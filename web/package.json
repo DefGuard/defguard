@@ -52,6 +52,7 @@
     "framer-motion": "^7.6.5",
     "hex-rgb": "^5.0.0",
     "i18next": "21.9.2",
+    "itertools": "^1.7.1",
     "lodash-es": "^4.17.21",
     "qrcode": "^1.5.1",
     "radash": "^9.0.2",

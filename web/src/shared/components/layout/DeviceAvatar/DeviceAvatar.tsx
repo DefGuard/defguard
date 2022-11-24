@@ -72,23 +72,33 @@ const gray: JSX.Element[] = [
   <SvgAvatar12Gray key={12} />,
 ];
 
+interface NumbersProps {
+  numbers?: number[];
+}
+
 /**
  * Displays avatar for user devices.
  * @param active Determinate style variant.
  */
-export const DeviceAvatar: React.FC<Props> = ({
+export const DeviceAvatar: React.FC<Props & NumbersProps> = ({
   active = true,
   styleVariant = DeviceAvatarVariants.BLANK,
+  numbers,
   ...props
 }) => {
   const [avatar, setAvatar] = useState<JSX.Element[]>([]);
   useEffect(() => {
-    if (active) {
-      setAvatar(blue);
+    if (active && numbers) {
+      const pieces = blue.filter((piece) => {
+        if (!numbers.includes(Number(piece.key))) {
+          return true;
+        }
+      });
+      setAvatar(pieces);
     } else {
       setAvatar(gray);
     }
-  }, [active]);
+  }, [active, numbers]);
 
   const getClassName = useMemo(() => {
     const res = ['avatar-icon'];
