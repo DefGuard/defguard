@@ -28,6 +28,7 @@ import SvgAvatar11Blue from '../../svg/Avatar11Blue';
 import SvgAvatar11Gray from '../../svg/Avatar11Gray';
 import SvgAvatar12Blue from '../../svg/Avatar12Blue';
 import SvgAvatar12Gray from '../../svg/Avatar12Gray';
+import { getDeviceAvatar } from './utils/getDeviceAvatar';
 
 export enum DeviceAvatarVariants {
   BLANK = 'blank',
@@ -37,6 +38,7 @@ export enum DeviceAvatarVariants {
 interface Props extends HTMLMotionProps<'div'> {
   active?: boolean;
   styleVariant?: DeviceAvatarVariants;
+  deviceId?: number;
 }
 
 // NOTE: This matter should be discussed later.
@@ -72,37 +74,41 @@ const gray: JSX.Element[] = [
   <SvgAvatar12Gray key={12} />,
 ];
 
-interface NumbersProps {
-  numbers?: number[];
-}
-
 /**
  * Displays avatar for user devices.
  * @param active Determinate style variant.
  */
-export const DeviceAvatar: React.FC<Props & NumbersProps> = ({
+export const DeviceAvatar = ({
   active = true,
   styleVariant = DeviceAvatarVariants.BLANK,
-  numbers,
+  deviceId,
   ...props
-}) => {
+}: Props) => {
   const [avatar, setAvatar] = useState<JSX.Element[]>([]);
+
+  const deviceAvatar = useMemo(() => {
+    if (deviceId) {
+      const elements = getDeviceAvatar(deviceId);
+      const result: JSX.Element[] = blue.filter((el) => {
+        if (!elements.includes(Number(el.key))) {
+          return true;
+        }
+      });
+      return result as JSX.Element[];
+    }
+  }, [deviceId]);
+
   useEffect(() => {
     if (active) {
-      if (numbers) {
-        const result = blue.filter((el) => {
-          if (!numbers.includes(Number(el.key))) {
-            return true;
-          }
-        });
-        setAvatar(result);
+      if (deviceId && deviceAvatar) {
+        setAvatar(deviceAvatar);
       } else {
         setAvatar(blue);
       }
     } else {
       setAvatar(gray);
     }
-  }, [active, numbers]);
+  }, [active, deviceAvatar, deviceId]);
 
   const getClassName = useMemo(() => {
     const res = ['avatar-icon'];

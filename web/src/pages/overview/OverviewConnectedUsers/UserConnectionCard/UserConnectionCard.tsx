@@ -321,6 +321,7 @@ const ActiveDevices = ({ data }: ActiveDevicesProps) => {
           <DeviceAvatar
             styleVariant={DeviceAvatarVariants.GRAY_BOX}
             active={true}
+            deviceId={device.id}
             key={device.id}
           />
         ))}

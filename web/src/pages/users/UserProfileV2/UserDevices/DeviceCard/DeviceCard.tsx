@@ -17,7 +17,6 @@ import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUser
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { Device } from '../../../../../shared/types';
-import { getDeviceAvatar } from '../../../../../shared/utils/getDeviceAvatar';
 
 interface Props {
   device: Device;
@@ -69,7 +68,7 @@ export const DeviceCard = ({ device }: Props) => {
     >
       <header>
         <AvatarBox>
-          <DeviceAvatar numbers={getDeviceAvatar(Number(device.id))} />
+          <DeviceAvatar deviceId={Number(device.id)} />
         </AvatarBox>
         <h3 data-test="device-name">{device.name}</h3>
       </header>
