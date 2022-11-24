@@ -88,13 +88,17 @@ export const DeviceAvatar: React.FC<Props & NumbersProps> = ({
 }) => {
   const [avatar, setAvatar] = useState<JSX.Element[]>([]);
   useEffect(() => {
-    if (active && numbers) {
-      const pieces = blue.filter((piece) => {
-        if (!numbers.includes(Number(piece.key))) {
-          return true;
-        }
-      });
-      setAvatar(pieces);
+    if (active) {
+      if (numbers) {
+        const result = blue.filter((el) => {
+          if (!numbers.includes(Number(el.key))) {
+            return true;
+          }
+        });
+        setAvatar(result);
+      } else {
+        setAvatar(blue);
+      }
     } else {
       setAvatar(gray);
     }
