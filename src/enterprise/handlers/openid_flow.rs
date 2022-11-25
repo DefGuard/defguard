@@ -1,8 +1,7 @@
 use crate::{
     appstate::AppState,
     auth::SESSION_TIMEOUT,
-    db::User,
-    enterprise::db::{authorization_code::AuthorizationCode, oauth::OAuth2Token, OAuth2Client},
+    enterprise::db::{auth_code::AuthCode, oauth2token::OAuth2Token, OAuth2Client},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
 };
@@ -11,12 +10,13 @@ use openidconnect::{
     core::{
         CoreClaimName, CoreErrorResponseType, CoreHmacKey, CoreIdToken, CoreIdTokenClaims,
         CoreIdTokenFields, CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
-        CoreSubjectIdentifierType, CoreTokenType,
+        CoreSubjectIdentifierType, CoreTokenResponse, CoreTokenType,
     },
     url::Url,
-    AccessToken, Audience, AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata,
-    EmptyExtraTokenFields, IssuerUrl, JsonWebKeySetUrl, Nonce, ResponseTypes, Scope,
-    StandardClaims, StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl,
+    AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
+    EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, IssuerUrl, JsonWebKeySetUrl, Nonce,
+    RefreshToken, ResponseTypes, Scope, StandardClaims, StandardErrorResponse, SubjectIdentifier,
+    TokenUrl,
 };
 use rocket::{form::Form, http::Status, response::Redirect, serde::json::serde_json::json, State};
 
@@ -56,7 +56,7 @@ pub struct AuthenticationRequest<'r> {
     // response_mode: Option<&'r str>,
     nonce: Option<&'r str>,
     // display:
-    // prompt:
+    // prompt: Option<&'r str>,
     // max_age:
     // ui_locales:
     // id_token_hint:
@@ -121,11 +121,11 @@ pub async fn authentication(
     let err = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(_) => {
-                let mut code = AuthorizationCode::new(
+                let mut code = AuthCode::new(
                     oauth2client.user_id,
                     data.client_id.into(),
                     data.redirect_uri.into(),
-                    data.scope.into(), // FIXME: is this needed?
+                    data.scope.into(),
                     data.nonce.map(str::to_owned),
                 );
                 code.save(&appstate.pool).await?;
@@ -173,93 +173,130 @@ pub async fn authentication(
 //         .await
 // }
 
+/// https://openid.net/specs/openid-connect-core-1_0.html#TokenRequest
 #[derive(FromForm)]
-pub struct IDTokenRequest<'r> {
+pub struct TokenRequest<'r> {
     grant_type: &'r str,
-    code: &'r str,
-    redirect_uri: &'r str,
+    // grant_type == "authorization_code"
+    code: Option<&'r str>,
+    redirect_uri: Option<&'r str>,
+    // grant_type == "refresh_token"
+    client_id: Option<&'r str>,
+    // client_secret: Option<&'r str>,
+    // refresh_token: Option<&'r str>,
+    // scope: Option<&'r str>,
+}
+
+impl<'r> TokenRequest<'r> {
+    fn authorization_code_flow<T>(
+        &self,
+        auth_code: &AuthCode,
+        token: &OAuth2Token,
+        claims_subject: String,
+        base_url: Url,
+        secret: T,
+    ) -> Result<CoreTokenResponse, CoreErrorResponseType>
+    where
+        T: Into<Vec<u8>>,
+    {
+        // assume self.grant_type == "authorization_code"
+
+        if let (Some(code), Some(redirect_uri)) = (self.code, self.redirect_uri) {
+            if redirect_uri != auth_code.redirect_uri {
+                return Err(CoreErrorResponseType::UnauthorizedClient);
+            }
+
+            let access_token = AccessToken::new(token.access_token.clone());
+            let authorization_code = AuthorizationCode::new(code.into());
+            let issue_time = Utc::now();
+            let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
+            let std_claims = StandardClaims::new(SubjectIdentifier::new(claims_subject));
+            let claims = CoreIdTokenClaims::new(
+                IssuerUrl::from_url(base_url),
+                vec![Audience::new(auth_code.client_id.clone())],
+                expiration,
+                issue_time,
+                std_claims,
+                EmptyAdditionalClaims {},
+            )
+            .set_nonce(auth_code.nonce.clone().map(Nonce::new));
+            let signing_key = CoreHmacKey::new(secret);
+            let refresh_token = RefreshToken::new(token.refresh_token.clone());
+            match CoreIdToken::new(
+                claims,
+                &signing_key,
+                CoreJwsSigningAlgorithm::HmacSha256,
+                Some(&access_token),
+                Some(&authorization_code),
+            ) {
+                Ok(id_token) => {
+                    let mut token_response = CoreTokenResponse::new(
+                        access_token,
+                        CoreTokenType::Bearer,
+                        CoreIdTokenFields::new(Some(id_token), EmptyExtraTokenFields {}),
+                    );
+                    token_response.set_refresh_token(Some(refresh_token));
+                    Ok(token_response)
+                }
+                Err(err) => Err(CoreErrorResponseType::Extension(err.to_string())),
+            }
+        } else {
+            Err(CoreErrorResponseType::InvalidRequest)
+        }
+    }
 }
 
 /// Token Endpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
 #[post("/token", format = "form", data = "<form>")]
-pub async fn id_token(form: Form<IDTokenRequest<'_>>, appstate: &State<AppState>) -> ApiResult {
-    let err;
-
-    // Currentl only "authorization_code" is supported for `grant_type`
-    if form.grant_type != "authorization_code" {
-        err = CoreErrorResponseType::UnsupportedGrantType;
-    } else {
-        info!("Verifying authorization code: {}", form.code);
-        if let Some(auth_code) = AuthorizationCode::find_code(&appstate.pool, form.code).await? {
-            if form.redirect_uri != auth_code.redirect_uri {
-                err = CoreErrorResponseType::UnauthorizedClient;
-            } else {
-                info!("Checking session for user: {}", auth_code.user_id);
-                if let Some(user) = User::find_by_id(&appstate.pool, auth_code.user_id).await? {
-                    // Create user claims based on scope
-                    let oauth2client = OAuth2Client::find_enabled_for_client_id(
+pub async fn id_token(form: Form<TokenRequest<'_>>, appstate: &State<AppState>) -> ApiResult {
+    match form.grant_type {
+        "authorization_code" => {
+            if let Some(code) = form.code {
+                if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
+                    if let Some(oauth2client) = OAuth2Client::find_enabled_for_client_id(
                         &appstate.pool,
                         &auth_code.client_id,
                     )
                     .await?
-                    .unwrap();
-
-                    let token =
-                        OAuth2Token::new(auth_code.redirect_uri.clone(), auth_code.scope.clone());
-                    token.save(&appstate.pool).await?;
-
-                    let access_token = AccessToken::new(token.access_token.clone());
-                    let authorization_code =
-                        openidconnect::AuthorizationCode::new(auth_code.code.clone());
-                    let issue_time = Utc::now();
-                    let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
-                    let std_claims = StandardClaims::new(SubjectIdentifier::new(user.username));
-                    let base_url = Url::parse(&appstate.config.url).unwrap();
-                    let claims = CoreIdTokenClaims::new(
-                        IssuerUrl::from_url(base_url),
-                        vec![Audience::new(auth_code.client_id.clone())],
-                        expiration,
-                        issue_time,
-                        std_claims,
-                        EmptyAdditionalClaims {},
-                    )
-                    .set_nonce(auth_code.nonce.clone().map(Nonce::new));
-                    let signing_key = CoreHmacKey::new(oauth2client.client_secret);
-                    let id_token = CoreIdToken::new(
-                        claims,
-                        &signing_key,
-                        CoreJwsSigningAlgorithm::HmacSha256,
-                        Some(&access_token),
-                        Some(&authorization_code),
-                    )
-                    .unwrap();
-                    let response = StandardTokenResponse::new(
-                        access_token,
-                        CoreTokenType::Bearer,
-                        CoreIdTokenFields::new(Some(id_token), EmptyExtraTokenFields {}),
-                    );
-                    info!("{:#?}", response);
-
-                    // Remove client authorization code from database
-                    auth_code
-                        .delete(&appstate.pool)
-                        .await
-                        .map_err(|_| OriWebError::ObjectNotFound("Failed to remove code".into()))?;
-
-                    return Ok(ApiResponse {
-                        json: json!(response),
-                        status: Status::Ok,
-                    });
-                } else {
-                    err = CoreErrorResponseType::UnauthorizedClient;
+                    {
+                        let token = OAuth2Token::new(
+                            auth_code.redirect_uri.clone(),
+                            auth_code.scope.clone(),
+                        );
+                        let base_url = Url::parse(&appstate.config.url).unwrap();
+                        match form.authorization_code_flow(
+                            &auth_code,
+                            &token,
+                            "username".into(), // FIXME: get real username
+                            base_url,
+                            oauth2client.client_secret,
+                        ) {
+                            Ok(response) => {
+                                token.save(&appstate.pool).await?;
+                                return Ok(ApiResponse {
+                                    json: json!(response),
+                                    status: Status::Ok,
+                                });
+                            }
+                            Err(err) => {
+                                let response = StandardErrorResponse::<CoreErrorResponseType>::new(
+                                    err, None, None,
+                                );
+                                return Ok(ApiResponse {
+                                    json: json!(response),
+                                    status: Status::BadRequest,
+                                });
+                            }
+                        }
+                    }
                 }
             }
-        } else {
-            err = CoreErrorResponseType::InvalidGrant;
         }
+        "refresh_token" => if let Some(client_id) = form.client_id {},
+        _ => (),
     }
-
+    let err = CoreErrorResponseType::UnsupportedGrantType;
     let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
     Ok(ApiResponse {
         json: json!(response),

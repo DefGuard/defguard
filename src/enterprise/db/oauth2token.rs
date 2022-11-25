@@ -33,20 +33,11 @@ impl OAuth2Token {
     }
 
     /// Generate new access token, scratching the old one. Changes are reflected in the database.
-    pub async fn refresh_and_save(
-        &mut self,
-        pool: &DbPool,
-        grant: &Grant,
-    ) -> Result<(), SqlxError> {
-        let claims = Claims::new(
-            ClaimsType::Auth,
-            grant.owner_id.clone(),
-            grant.client_id.clone(),
-            SESSION_TIMEOUT,
-        );
-        let new_access_token = claims.to_jwt().unwrap();
-        let mut rnd = RandomGenerator::new(16);
-        let new_refresh_token = rnd.tag(1, grant).unwrap();
+    pub async fn refresh_and_save(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        let new_access_token = gen_alphanumeric(24);
+        let new_refresh_token = gen_alphanumeric(24);
+        let expiration = Utc::now() + Duration::seconds(SESSION_TIMEOUT as i64);
+        self.expires_in = expiration.timestamp();
 
         query!(
             "UPDATE oauth2token SET access_token = $2, refresh_token = $3, expires_in = $4 \

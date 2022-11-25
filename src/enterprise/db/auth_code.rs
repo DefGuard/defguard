@@ -9,18 +9,18 @@ use sqlx::{query_as, Error as SqlxError};
 
 #[derive(Model)]
 #[table(authorization_code)]
-pub struct AuthorizationCode {
+pub struct AuthCode {
     id: Option<i64>,
     pub user_id: i64,
     pub client_id: String,
     pub code: String,
     pub redirect_uri: String,
-    pub scope: String, // FIXME: is this needed? or use Vec<String>
+    pub scope: String,
     pub auth_time: i64,
     pub nonce: Option<String>,
 }
 
-impl AuthorizationCode {
+impl AuthCode {
     #[must_use]
     pub fn new(
         user_id: i64,
@@ -55,7 +55,7 @@ impl AuthorizationCode {
     }
 }
 
-impl From<Grant> for AuthorizationCode {
+impl From<Grant> for AuthCode {
     fn from(grant: Grant) -> Self {
         let mut rnd = RandomGenerator::new(16);
         let code = rnd.tag(2, &grant).unwrap();
@@ -72,8 +72,8 @@ impl From<Grant> for AuthorizationCode {
     }
 }
 
-impl From<AuthorizationCode> for Grant {
-    fn from(code: AuthorizationCode) -> Self {
+impl From<AuthCode> for Grant {
+    fn from(code: AuthCode) -> Self {
         Self {
             owner_id: code.user_id.to_string(),
             client_id: code.client_id,

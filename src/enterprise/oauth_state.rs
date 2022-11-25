@@ -1,6 +1,6 @@
 use crate::{
     db::DbPool,
-    enterprise::db::{authorization_code::AuthorizationCode, oauth::OAuth2Token, OAuth2Client},
+    enterprise::db::{auth_code::AuthCode, oauth2token::OAuth2Token, OAuth2Client},
     oxide_auth_rocket::{OAuthFailure, OAuthRequest, OAuthResponse, WebError},
 };
 use oxide_auth::{
@@ -51,7 +51,7 @@ impl Authorizer for OAuthState {
     /// Create a code which allows retrieval of a bearer token at a later time.
     async fn authorize(&mut self, grant: Grant) -> Result<String, ()> {
         warn!("Authorizer: authorize");
-        let mut auth_code: AuthorizationCode = grant.into();
+        let mut auth_code: AuthCode = grant.into();
         auth_code.save(&self.pool).await.unwrap();
         Ok(auth_code.code)
     }
@@ -61,7 +61,7 @@ impl Authorizer for OAuthState {
     /// (there is no stateless implementation of an authorizer for this reason).
     async fn extract(&mut self, code: &str) -> Result<Option<Grant>, ()> {
         warn!("Authorizer: extract");
-        match AuthorizationCode::find_code(&self.pool, code)
+        match AuthCode::find_code(&self.pool, code)
             .await
             .map_err(|_| ())?
         {
@@ -84,13 +84,10 @@ impl Issuer for OAuthState {
     }
 
     /// Refresh a token.
-    async fn refresh(&mut self, refresh_token: &str, grant: Grant) -> Result<RefreshedToken, ()> {
+    async fn refresh(&mut self, refresh_token: &str, _grant: Grant) -> Result<RefreshedToken, ()> {
         match OAuth2Token::find_refresh_token(&self.pool, refresh_token).await {
             Some(mut token) => {
-                token
-                    .refresh_and_save(&self.pool, &grant)
-                    .await
-                    .map_err(|_| ())?;
+                token.refresh_and_save(&self.pool).await.map_err(|_| ())?;
                 Ok(token.into())
             }
             None => Err(()),
