@@ -20,7 +20,7 @@ pub async fn add_openid_client(
     appstate: &State<AppState>,
     data: Json<NewOpenIDClient>,
 ) -> ApiResult {
-    let client = OAuth2Client::from_new(data.into_inner(), session.user_id);
+    let mut client = OAuth2Client::from_new(data.into_inner(), session.user_id);
     client.save(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(client),
@@ -28,15 +28,14 @@ pub async fn add_openid_client(
     })
 }
 
-// #[get("/", format = "json")]
-// pub async fn list_openid_clients(_session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
-//     debug!("Listing OpenID clients");
-//     let openid_clients = OAuth2Client::all(&appstate.pool).await?;
-//     Ok(ApiResponse {
-//         json: json!(openid_clients),
-//         status: Status::Ok,
-//     })
-// }
+#[get("/", format = "json")]
+pub async fn list_openid_clients(session: Session, appstate: &State<AppState>) -> ApiResult {
+    let openid_clients = OAuth2Client::all_for_user(&appstate.pool, session.user_id).await?;
+    Ok(ApiResponse {
+        json: json!(openid_clients),
+        status: Status::Ok,
+    })
+}
 
 #[get("/<client_id>", format = "json")]
 pub async fn get_openid_client(

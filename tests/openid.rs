@@ -14,7 +14,7 @@ use openidconnect::{
     },
     http::{HeaderMap, Method, StatusCode},
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, HttpRequest,
-    HttpResponse, IssuerUrl, Nonce, RedirectUrl, Scope,
+    HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse, RedirectUrl, Scope,
 };
 use rocket::{
     http::{Header, Status},
@@ -25,16 +25,16 @@ use tokio::sync::mpsc::unbounded_channel;
 mod common;
 use common::{init_test_db, LICENSE_ENTERPRISE};
 
-// async fn make_client() -> Client {
-//     let (pool, mut config) = init_test_db().await;
-//     config.license = LICENSE_ENTERPRISE.into();
+async fn make_client() -> Client {
+    let (pool, mut config) = init_test_db().await;
+    config.license = LICENSE_ENTERPRISE.into();
 
-//     let (tx, rx) = unbounded_channel::<AppEvent>();
-//     let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+    let (tx, rx) = unbounded_channel::<AppEvent>();
+    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
 
-//     let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
-//     Client::tracked(webapp).await.unwrap()
-// }
+    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+    Client::tracked(webapp).await.unwrap()
+}
 
 async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> Client {
     let (tx, rx) = unbounded_channel::<AppEvent>();
@@ -44,63 +44,64 @@ async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> Client {
     Client::tracked(webapp).await.unwrap()
 }
 
-// #[rocket::async_test]
-// async fn test_openid_client() {
-//     let client = make_client().await;
+#[rocket::async_test]
+async fn test_openid_client() {
+    let client = make_client().await;
 
-//     let auth = Auth::new("admin".into(), "pass123".into());
-//     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-//     assert_eq!(response.status(), Status::Ok);
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
 
-//     let mut openid_client = NewOpenIDClient {
-//         name: "Test".into(),
-//         redirect_uri: "http://localhost:3000/".into(),
-//         enabled: true,
-//     };
+    let mut openid_client = NewOpenIDClient {
+        name: "Test".into(),
+        redirect_uri: "http://localhost:3000/".into(),
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
 
-//     let response = client
-//         .post("/api/v1/openid")
-//         .json(&openid_client)
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Created);
+    let response = client
+        .post("/api/v1/openid")
+        .json(&openid_client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
 
-//     let response = client.get("/api/v1/openid").dispatch().await;
-//     assert_eq!(response.status(), Status::Ok);
-//     let openid_clients: Vec<OAuth2Client> = response.into_json().await.unwrap();
-//     assert_eq!(openid_clients.len(), 1);
+    let response = client.get("/api/v1/openid").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let openid_clients: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    assert_eq!(openid_clients.len(), 1);
 
-//     openid_client.name = "Test changed".into();
-//     let response = client
-//         .put(format!("/api/v1/openid/{}", openid_clients[0].client_id))
-//         .json(&openid_client)
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Ok);
+    openid_client.name = "Test changed".into();
+    let response = client
+        .put(format!("/api/v1/openid/{}", openid_clients[0].client_id))
+        .json(&openid_client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
 
-//     let response = client
-//         .get(format!("/api/v1/openid/{}", openid_clients[0].client_id))
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Ok);
-//     let fetched_client: OAuth2Client = response.into_json().await.unwrap();
-//     assert_eq!(fetched_client.name, openid_client.name);
+    let response = client
+        .get(format!("/api/v1/openid/{}", openid_clients[0].client_id))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    let fetched_client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(fetched_client.name, openid_client.name);
 
-//     // Openid flow tests
-//     // test unsupported response type
-//     // Test client delete
-//     let response = client
-//         .delete(format!("/api/v1/openid/{}", openid_clients[0].client_id))
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Ok);
+    // OpenID flow tests
+    // test unsupported response type
+    // Test client delete
+    let response = client
+        .delete(format!("/api/v1/openid/{}", openid_clients[0].client_id))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
 
-//     let response = client.get("/api/v1/openid").dispatch().await;
-//     assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/openid").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
 
-//     let openid_clients: Vec<OAuth2Client> = response.into_json().await.unwrap();
-//     assert!(openid_clients.is_empty());
-// }
+    let openid_clients: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    assert!(openid_clients.is_empty());
+}
 
 // #[rocket::async_test]
 // async fn test_openid_flow() {
@@ -415,6 +416,10 @@ async fn http_client(
     let client = make_client_v2(pool, config).await;
 
     let uri = request.url.path();
+    eprintln!("HTTP client request: {:?}", request);
+    if let Ok(text) = String::from_utf8(request.body.clone()) {
+        eprintln!("HTTP client body: {}", text);
+    }
     let mut rocket_request = match request.method {
         Method::GET => client.get(uri),
         Method::POST => client.post(uri),
@@ -449,7 +454,7 @@ async fn test_openid_authorization_code() {
 
     // discover OpenID service
     let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, move |r| {
-        http_client(r, pool.clone(), config.clone())
+        http_client(r, pool_clone.clone(), config_clone.clone())
     })
     .await
     .unwrap();
@@ -506,9 +511,11 @@ async fn test_openid_authorization_code() {
     let (_, query) = location.split_once('?').unwrap();
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
 
+    let pool_clone_2 = pool.clone();
+    let config_clone_2 = config.clone();
     let token_response = core_client
         .exchange_code(AuthorizationCode::new(auth_response.code))
-        .request_async(move |r| http_client(r, pool_clone.clone(), config_clone))
+        .request_async(move |r| http_client(r, pool_clone_2, config_clone_2))
         .await
         .unwrap();
     let id_token_verifier: CoreIdTokenVerifier = core_client.id_token_verifier().allow_any_alg();
@@ -518,4 +525,13 @@ async fn test_openid_authorization_code() {
         .expect("Server did not return an ID token")
         .claims(&id_token_verifier, &nonce)
         .unwrap();
+
+    // refresh
+    let refresh_token = token_response.refresh_token().unwrap();
+    let refresh_response = core_client
+        .exchange_refresh_token(refresh_token)
+        .request_async(move |r| http_client(r, pool, config))
+        .await
+        .unwrap();
+    assert!(refresh_response.refresh_token().is_some());
 }

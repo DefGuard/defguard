@@ -15,8 +15,8 @@ use openidconnect::{
     url::Url,
     AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, IssuerUrl, JsonWebKeySetUrl, Nonce,
-    RefreshToken, ResponseTypes, Scope, StandardClaims, StandardErrorResponse, SubjectIdentifier,
-    TokenUrl,
+    RefreshToken, ResponseTypes, Scope, StandardClaims, StandardErrorResponse,
+    StandardTokenResponse, SubjectIdentifier, TokenUrl,
 };
 use rocket::{form::Form, http::Status, response::Redirect, serde::json::serde_json::json, State};
 
@@ -181,9 +181,9 @@ pub struct TokenRequest<'r> {
     code: Option<&'r str>,
     redirect_uri: Option<&'r str>,
     // grant_type == "refresh_token"
-    client_id: Option<&'r str>,
+    // client_id: Option<&'r str>,
     // client_secret: Option<&'r str>,
-    // refresh_token: Option<&'r str>,
+    refresh_token: Option<&'r str>,
     // scope: Option<&'r str>,
 }
 
@@ -244,12 +244,34 @@ impl<'r> TokenRequest<'r> {
             Err(CoreErrorResponseType::InvalidRequest)
         }
     }
+
+    fn refresh_token_flow(
+        &self,
+        token: &OAuth2Token,
+    ) -> Result<StandardTokenResponse<EmptyExtraTokenFields, CoreTokenType>, CoreErrorResponseType>
+    {
+        // assume self.grant_type == "refresh_token"
+
+        let access_token = AccessToken::new(token.access_token.clone());
+        let refresh_token = RefreshToken::new(token.refresh_token.clone());
+        let mut token_response = StandardTokenResponse::new(
+            access_token,
+            CoreTokenType::Bearer,
+            EmptyExtraTokenFields {},
+        );
+        token_response.set_refresh_token(Some(refresh_token));
+        Ok(token_response)
+    }
 }
 
 /// Token Endpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
+/// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
 #[post("/token", format = "form", data = "<form>")]
 pub async fn id_token(form: Form<TokenRequest<'_>>, appstate: &State<AppState>) -> ApiResult {
+    // TODO: implement basic authorization
+
+    // TODO: cleanup branches
     match form.grant_type {
         "authorization_code" => {
             if let Some(code) = form.code {
@@ -293,8 +315,34 @@ pub async fn id_token(form: Form<TokenRequest<'_>>, appstate: &State<AppState>) 
                 }
             }
         }
-        "refresh_token" => if let Some(client_id) = form.client_id {},
-        _ => (),
+        "refresh_token" => {
+            if let Some(refresh_token) = form.refresh_token {
+                if let Some(mut token) =
+                    OAuth2Token::find_refresh_token(&appstate.pool, refresh_token).await
+                {
+                    token.refresh_and_save(&appstate.pool).await?;
+                    match form.refresh_token_flow(&token) {
+                        Ok(response) => {
+                            token.save(&appstate.pool).await?;
+                            return Ok(ApiResponse {
+                                json: json!(response),
+                                status: Status::Ok,
+                            });
+                        }
+                        Err(err) => {
+                            let response = StandardErrorResponse::<CoreErrorResponseType>::new(
+                                err, None, None,
+                            );
+                            return Ok(ApiResponse {
+                                json: json!(response),
+                                status: Status::BadRequest,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        _ => (), // TODO: Err(CoreErrorResponseType::UnsupportedGrantType),
     }
     let err = CoreErrorResponseType::UnsupportedGrantType;
     let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);

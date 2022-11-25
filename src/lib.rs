@@ -14,7 +14,7 @@ use crate::enterprise::handlers::worker::{
 use crate::enterprise::handlers::{
     openid_clients::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-        delete_user_app, get_openid_client, get_user_apps, update_user_app,
+        delete_user_app, get_openid_client, get_user_apps, list_openid_clients, update_user_app,
     },
     openid_flow::{authentication, id_token, openid_configuration},
 };
@@ -208,6 +208,7 @@ pub async fn build_webapp(
                 "/api/v1/openid",
                 routes![
                     add_openid_client,
+                    list_openid_clients,
                     delete_openid_client,
                     change_openid_client,
                     get_openid_client,

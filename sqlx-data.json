@@ -1,5 +1,67 @@
 {
   "db": "PostgreSQL",
+  "00afdd59fb83f46995693f6a3df06598a073fc4ef5f1d99899e666edca66c605": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "client_secret",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "name",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 7,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", user_id, client_id, client_secret, redirect_uri, scope, name, enabled FROM oauth2client WHERE client_id = $1"
+  },
   "0341a2debb445319fe7b1905aaad7f797b61940a342e08c58b6d2205d9c2eb87": {
     "describe": {
       "columns": [
@@ -538,6 +600,18 @@
     },
     "query": "SELECT id \"id?\", \"user_id\", \"client_id\", \"home_url\", \"date\", \"name\" FROM \"authorizedapps\" WHERE id = $1"
   },
+  "1996dee9b5e3b8f8a1f63f99e83230927c09d30ceabd07dc193502ce780a3aed": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM \"oauth2client\" WHERE id = $1"
+  },
   "1b79c9433e20ab471bb1dc4e82224f3063d142b93f6c5fdb4203261b272a8144": {
     "describe": {
       "columns": [
@@ -648,6 +722,25 @@
       }
     },
     "query": "DELETE FROM \"settings\" WHERE id = $1"
+  },
+  "24350cfaad47e7f905ebcd2958a336d4995bb0507f7e7b6060dcf87287df9646": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Text",
+          "Text",
+          "Text",
+          "TextArray",
+          "Text",
+          "Bool"
+        ]
+      }
+    },
+    "query": "UPDATE \"oauth2client\" SET \"user_id\" = $2, \"client_id\" = $3, \"client_secret\" = $4, \"redirect_uri\" = $5, \"scope\" = $6, \"name\" = $7, \"enabled\" = $8 WHERE id = $1"
   },
   "2e73d767e5c98702de3d5340e9f0818f346d9d25547aedd4dc388347b7620cfd": {
     "describe": {
@@ -1222,62 +1315,6 @@
     },
     "query": "UPDATE \"wireguard_peer_stats\" SET \"device_id\" = $2, \"collected_at\" = $3, \"network\" = $4, \"endpoint\" = $5, \"upload\" = $6, \"download\" = $7, \"latest_handshake\" = $8, \"allowed_ips\" = $9 WHERE id = $1"
   },
-  "55bd408208d69a735797e559152775cb0526540c18066ec8f38151e0172b7d10": {
-    "describe": {
-      "columns": [
-        {
-          "name": "user_id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "client_id",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "client_secret",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "redirect_uri",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "scope",
-          "ordinal": 4,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "name",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "enabled",
-          "ordinal": 6,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT user_id, client_id, client_secret, redirect_uri, scope, name, enabled FROM oauth2client WHERE client_id = $1"
-  },
   "57c6333e11b68c1451f79047aa5449cad8a704aad2756239282738b04ff70fd7": {
     "describe": {
       "columns": [
@@ -1518,6 +1555,68 @@
       }
     },
     "query": "UPDATE \"webauthn\" SET \"user_id\" = $2, \"name\" = $3, \"passkey\" = $4 WHERE id = $1"
+  },
+  "5a2179dd02197e77c13d950dc58074aba2af26a03e688ae7e93b92447317e8aa": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "client_secret",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "name",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 7,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", user_id, client_id, client_secret, redirect_uri, scope, name, enabled FROM oauth2client WHERE client_id = $1 AND enabled"
   },
   "5ea39dc9b43eddd950bea2ac1c50faf6c9cdc04614ba85624129d555d13304a6": {
     "describe": {
@@ -2025,6 +2124,68 @@
     },
     "query": "SELECT id \"id?\", \"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"mfa_enabled\", \"totp_enabled\", \"totp_secret\", \"mfa_method\" \"mfa_method: _\", \"recovery_codes\" \"recovery_codes: _\" FROM \"user\""
   },
+  "7d63c43aaf6d4b69b21ac2a6210216ba47b10dfe870a1cb5dc14a79bb739e31f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "client_secret",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "name",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 7,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", user_id, client_id, client_secret, redirect_uri, scope, name, enabled FROM oauth2client WHERE user_id = $1"
+  },
   "7dd9cb419f9488ab2f1da11febdbac08a3a37eb93864104bd667f95615c87c41": {
     "describe": {
       "columns": [],
@@ -2166,62 +2327,6 @@
       }
     },
     "query": "SELECT id \"id?\", \"user_id\", \"address\", \"name\", \"chain_id\", \"challenge_message\", \"challenge_signature\", \"creation_timestamp\", \"validation_timestamp\", \"use_for_mfa\" FROM \"wallet\""
-  },
-  "898766af5f042d7c11154dff2f99752fd01a3d7d93e84e5450819bb3f40e5e0d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "user_id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "client_id",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "client_secret",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "redirect_uri",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "scope",
-          "ordinal": 4,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "name",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "enabled",
-          "ordinal": 6,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT user_id, client_id, client_secret, redirect_uri, scope, name, enabled FROM oauth2client WHERE client_id = $1 AND enabled"
   },
   "89ecf876c5ba576acc57f53e273f1e1799ad9cf619a1d31e79de116308f85c30": {
     "describe": {
@@ -2388,6 +2493,66 @@
       }
     },
     "query": "DELETE FROM \"webauthn\" WHERE id = $1"
+  },
+  "9d294ae444631b0df2c10e190ce56b501a05e5ae5cc6eec1922c1b01a497fe1d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "client_secret",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope: _",
+          "ordinal": 5,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "name",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 7,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"user_id\", \"client_id\", \"client_secret\", \"redirect_uri\", \"scope\" \"scope: _\", \"name\", \"enabled\" FROM \"oauth2client\""
   },
   "9d3693f4dcbc33a5b0af891d2c56644ee595eb4b39cdff43c0416dc7ad35a816": {
     "describe": {
@@ -2812,6 +2977,68 @@
       }
     },
     "query": "SELECT id \"id?\", name FROM \"group\" WHERE name = $1"
+  },
+  "b46bbdd4829959e6b78c1f8cf40e3bb4d3c1b9fa830a584a6845deef19c58ab0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "client_secret",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope: _",
+          "ordinal": 5,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "name",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 7,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"user_id\", \"client_id\", \"client_secret\", \"redirect_uri\", \"scope\" \"scope: _\", \"name\", \"enabled\" FROM \"oauth2client\" WHERE id = $1"
   },
   "b57f8562cff6e1d13d6ffa0e7a382fda523559100424c771e25757994a1fca13": {
     "describe": {
@@ -3431,6 +3658,32 @@
     },
     "query": "DELETE FROM \"device\" WHERE id = $1"
   },
+  "e41f8996965865f36ba29d9c1f43b7fabcb17bc17c61bf3a7a9605f4c50f9993": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Text",
+          "Text",
+          "TextArray",
+          "Text",
+          "Bool"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"oauth2client\" (\"user_id\", \"client_id\", \"client_secret\", \"redirect_uri\", \"scope\", \"name\", \"enabled\") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
+  },
   "e5624c65ab8248f1fcf973c0c7501792d53748dbd5d227e492527f07ca194fc6": {
     "describe": {
       "columns": [],
@@ -3581,18 +3834,6 @@
     },
     "query": "DELETE FROM session WHERE expires < now()"
   },
-  "f15eced372dc8201ebbf2d1f4d0a09483970e4111f74b99102841702510a6a42": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "DELETE FROM oauth2client WHERE client_id = $1"
-  },
   "f444433840871aff81db51bbf1b615e64018be82154fd655509a365ca91d3e65": {
     "describe": {
       "columns": [
@@ -3675,24 +3916,6 @@
       }
     },
     "query": "UPDATE \"authorization_code\" SET \"user_id\" = $2, \"client_id\" = $3, \"code\" = $4, \"redirect_uri\" = $5, \"scope\" = $6, \"auth_time\" = $7, \"nonce\" = $8 WHERE id = $1"
-  },
-  "fa2557f0deb815a25a5a241ba89b43210b88f7539e2ea613eabc05a74745b824": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Text",
-          "Text",
-          "TextArray",
-          "Text",
-          "Bool"
-        ]
-      }
-    },
-    "query": "INSERT INTO oauth2client (user_id, client_id, client_secret, redirect_uri, scope, name, enabled) VALUES ($1, $2, $3, $4, $5, $6, $7)"
   },
   "fc3e288a55cef64d17ef2a373aa7fb46dd2548610a09ada4bf2daa8b98249901": {
     "describe": {
