@@ -1,16 +1,16 @@
 use crate::{
     appstate::AppState,
     auth::SESSION_TIMEOUT,
-    enterprise::db::{auth_code::AuthCode, oauth2token::OAuth2Token, OAuth2Client},
+    enterprise::db::{AuthCode, OAuth2Client, OAuth2Token},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
 };
 use chrono::{Duration, Utc};
 use openidconnect::{
     core::{
-        CoreClaimName, CoreErrorResponseType, CoreHmacKey, CoreIdToken, CoreIdTokenClaims,
-        CoreIdTokenFields, CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
-        CoreSubjectIdentifierType, CoreTokenResponse, CoreTokenType,
+        CoreClaimName, CoreErrorResponseType, CoreGrantType, CoreHmacKey, CoreIdToken,
+        CoreIdTokenClaims, CoreIdTokenFields, CoreJwsSigningAlgorithm, CoreProviderMetadata,
+        CoreResponseType, CoreSubjectIdentifierType, CoreTokenResponse, CoreTokenType,
     },
     url::Url,
     AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
@@ -27,7 +27,7 @@ use rocket::{form::Form, http::Status, response::Redirect, serde::json::serde_js
 //     data: Json<OpenIDRequest>,
 //     appstate: &State<AppState>,
 // ) -> ApiResult {
-//     let status = match AuthorizedApp::find_by_user_and_client_id(
+//     let status = match OAuth2Client::find_by_user_and_client_id(
 //         &appstate.pool,
 //         session.user_id,
 //         &data.client_id,
@@ -90,6 +90,8 @@ impl<'r> AuthenticationRequest<'r> {
             if oauth2client.client_secret != secret {
                 return Err(CoreErrorResponseType::InvalidGrant);
             }
+        } else {
+            // TODO: what?
         }
 
         // check `redirect_uri`
@@ -211,6 +213,7 @@ impl<'r> TokenRequest<'r> {
             let issue_time = Utc::now();
             let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
             let std_claims = StandardClaims::new(SubjectIdentifier::new(claims_subject));
+            // TODO: .set_name(...)
             let claims = CoreIdTokenClaims::new(
                 IssuerUrl::from_url(base_url),
                 vec![Audience::new(auth_code.client_id.clone())],
@@ -389,6 +392,10 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
         CoreClaimName::new("phone".into()),
         CoreClaimName::new("phone_verified".into()),
         CoreClaimName::new("nonce".into()),
+    ]))
+    .set_grant_types_supported(Some(vec![
+        CoreGrantType::AuthorizationCode,
+        CoreGrantType::RefreshToken,
     ]));
 
     Ok(ApiResponse {

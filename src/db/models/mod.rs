@@ -11,7 +11,7 @@ pub mod wireguard;
 
 use super::{DbPool, Group};
 #[cfg(feature = "openid")]
-use crate::enterprise::db::openid::AuthorizedApp;
+use crate::enterprise::db::OAuth2Client;
 use device::Device;
 use sqlx::{query_as, Error as SqlxError};
 use user::{MFAMethod, User};
@@ -47,7 +47,7 @@ pub struct UserInfo {
     pub devices: Vec<Device>,
     #[cfg(feature = "openid")]
     #[serde(default)]
-    pub authorized_apps: Vec<AuthorizedApp>,
+    pub authorized_apps: Vec<OAuth2Client>,
     #[serde(default)]
     pub wallets: Vec<WalletInfo>,
     #[serde(default)]
@@ -63,7 +63,7 @@ impl UserInfo {
         let security_keys = user.security_keys(pool).await?;
 
         #[cfg(feature = "openid")]
-        let authorized_apps = AuthorizedApp::all_for_user(pool, &user).await?;
+        let authorized_apps = OAuth2Client::all_for_user(pool, user.id.unwrap()).await?;
 
         Ok(Self {
             username: user.username,
@@ -126,30 +126,30 @@ impl UserInfo {
         pool: &DbPool,
         user: &mut User,
     ) -> Result<(), SqlxError> {
-        let mut present_apps = AuthorizedApp::all_for_user(pool, user).await?;
+        let mut present_clients = OAuth2Client::all_for_user(pool, user.id.unwrap()).await?;
 
         // create applications that don't already exist
-        for mut auth_app in &mut self.authorized_apps {
-            match present_apps
+        for mut client in &mut self.authorized_apps {
+            match present_clients
                 .iter()
-                .position(|app| app.client_id == auth_app.client_id)
+                .position(|app| app.client_id == client.client_id)
             {
                 Some(index) => {
-                    present_apps.swap_remove(index);
+                    present_clients.swap_remove(index);
                 }
                 None => {
                     if let Some(id) = user.id {
-                        auth_app.id = None;
-                        auth_app.user_id = id;
-                        auth_app.save(pool).await?;
+                        client.id = None;
+                        client.user_id = id;
+                        client.save(pool).await?;
                     }
                 }
             }
         }
 
         // remove from remaining applications
-        for app in present_apps {
-            app.delete(pool).await?;
+        for client in present_clients {
+            client.delete(pool).await?;
         }
 
         Ok(())

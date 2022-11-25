@@ -113,30 +113,6 @@
     },
     "query": "INSERT INTO \"device\" (\"name\", \"wireguard_ip\", \"wireguard_pubkey\", \"user_id\", \"created\") VALUES ($1, $2, $3, $4, $5) RETURNING id"
   },
-  "06a4279a416a752095d6195668b790b1b703806fab9b9ca0af645b1b9bc1c735": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Text",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"authorizedapps\" (\"user_id\", \"client_id\", \"home_url\", \"date\", \"name\") VALUES ($1, $2, $3, $4, $5) RETURNING id"
-  },
   "06be7b39c87c3a1d1465dfb007937b5b584f60e9094a18936b482c4dfb6b1aca": {
     "describe": {
       "columns": [
@@ -550,56 +526,6 @@
     },
     "query": "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created FROM device WHERE user_id = $1"
   },
-  "198f23315d696f39da9084de6f20ccbb0c79997cb9c5daaed7c6377f2877669f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "client_id",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "home_url",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "date",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"user_id\", \"client_id\", \"home_url\", \"date\", \"name\" FROM \"authorizedapps\" WHERE id = $1"
-  },
   "1996dee9b5e3b8f8a1f63f99e83230927c09d30ceabd07dc193502ce780a3aed": {
     "describe": {
       "columns": [],
@@ -779,54 +705,6 @@
       }
     },
     "query": "SELECT address \"address!\", name, chain_id, use_for_mfa FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL"
-  },
-  "306f3e5727878044b9cc9a2bdf250ad2c0008cc2aba333455d413ef2f2d3785c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "client_id",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "home_url",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "date",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"user_id\", \"client_id\", \"home_url\", \"date\", \"name\" FROM \"authorizedapps\""
   },
   "31b3fcaa8109121f985a2c740475f1d77fe8dcbcab76e64164be140ad361ab14": {
     "describe": {
@@ -2768,57 +2646,6 @@
     },
     "query": "UPDATE oauth2token SET access_token = $2, refresh_token = $3, expires_in = $4 WHERE access_token = $1"
   },
-  "a62684020a138be9e8d7a4fba3b74cff25b549008c718ea53922443683f26f72": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "client_id",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "home_url",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "date",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", user_id, client_id, home_url, date, name FROM authorizedapps WHERE user_id = $1 AND client_id = $2"
-  },
   "a85ff25c6803ab54c4a297fa946e2f469a9599d734163613c7ea7fa125c25148": {
     "describe": {
       "columns": [
@@ -3225,56 +3052,6 @@
     },
     "query": "UPDATE \"device\" SET \"name\" = $2, \"wireguard_ip\" = $3, \"wireguard_pubkey\" = $4, \"user_id\" = $5, \"created\" = $6 WHERE id = $1"
   },
-  "c764d846599198933ee52cd6207c9ade98383d59be656bdee566bd795f78c2db": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "client_id",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "home_url",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "date",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", user_id, client_id, home_url, date, name FROM authorizedapps WHERE user_id = $1"
-  },
   "c863944a13f1b8c3eb0d5a62bff40f453da7ac74551c2e62275931a1e8a7ec9e": {
     "describe": {
       "columns": [
@@ -3467,35 +3244,6 @@
       }
     },
     "query": "INSERT INTO \"settings\" (\"web3_enabled\", \"openid_enabled\", \"oauth_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
-  },
-  "cd921af31e4d0d281fc06e3904e2f8a29f8fc8a84902b5a9cc65392523cb3735": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Text",
-          "Text",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE \"authorizedapps\" SET \"user_id\" = $2, \"client_id\" = $3, \"home_url\" = $4, \"date\" = $5, \"name\" = $6 WHERE id = $1"
-  },
-  "d7682c748095810c88a420da7596d68b3da6c58538f541a901d027d17f50fd16": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "DELETE FROM \"authorizedapps\" WHERE id = $1"
   },
   "d98e365929bb0fbf3915b517db93168f76f9a0c4832cd2efd13d74268cc435b8": {
     "describe": {

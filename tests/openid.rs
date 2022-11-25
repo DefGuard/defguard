@@ -1,18 +1,22 @@
+use std::str::FromStr;
+
 use defguard::{
     build_webapp,
     config::DefGuardConfig,
     db::{AppEvent, DbPool, GatewayEvent},
     enterprise::{
-        db::{openid::NewOpenIDClient, OAuth2Client},
+        db::{NewOpenIDClient, OAuth2Client},
         handlers::openid_flow::AuthenticationResponse,
     },
     handlers::Auth,
 };
 use openidconnect::{
-    core::{
-        CoreClient, CoreIdTokenClaims, CoreIdTokenVerifier, CoreProviderMetadata, CoreResponseType,
+    core::{CoreClient, CoreProviderMetadata, CoreResponseType},
+    http::{
+        header::{HeaderName, HeaderValue},
+        HeaderMap, Method, StatusCode,
     },
-    http::{HeaderMap, Method, StatusCode},
+    url::Url,
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, HttpRequest,
     HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse, RedirectUrl, Scope,
 };
@@ -433,9 +437,19 @@ async fn http_client(
     }
     let response = rocket_request.body(request.body).dispatch().await;
 
+    let mut headers = HeaderMap::new();
+    for header in response.headers().iter() {
+        if let (Ok(key), Ok(value)) = (
+            HeaderName::from_str(header.name.as_ref()),
+            HeaderValue::from_str(header.value()),
+        ) {
+            headers.append(key, value);
+        }
+    }
+
     Ok(HttpResponse {
         status_code: StatusCode::from_u16(response.status().code).unwrap(),
-        headers: HeaderMap::new(),
+        headers,
         body: response.into_bytes().await.unwrap_or_default(),
     })
 }
@@ -445,8 +459,7 @@ async fn test_openid_authorization_code() {
     let (pool, mut config) = init_test_db().await;
     config.license = LICENSE_ENTERPRISE.into();
 
-    let issuer_url =
-        IssuerUrl::new("http://localhost:8000/".to_string()).expect("Invalid issuer URL");
+    let issuer_url = IssuerUrl::from_url(Url::parse(&config.url).expect("Invalid issuer URL"));
 
     let client = make_client_v2(pool.clone(), config.clone()).await;
     let pool_clone = pool.clone();
@@ -477,15 +490,14 @@ async fn test_openid_authorization_code() {
     assert_eq!(response.status(), Status::Created);
     let oauth2client: OAuth2Client = response.into_json().await.unwrap();
     assert_eq!(oauth2client.name, "My test client");
+    assert_eq!(oauth2client.scope[0], "openid");
 
     // start the flow
     let client_id = ClientId::new(oauth2client.client_id);
     let client_secret = ClientSecret::new(oauth2client.client_secret);
     let core_client =
         CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
-            .set_redirect_uri(
-                RedirectUrl::new("http://test.server.tnt:12345/".to_string()).unwrap(),
-            );
+            .set_redirect_uri(RedirectUrl::new("http://test.server.tnt:12345/".into()).unwrap());
     let (authorize_url, _csrf_state, nonce) = core_client
         .authorize_url(
             AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
@@ -500,17 +512,19 @@ async fn test_openid_authorization_code() {
     assert_eq!(authorize_url.host_str(), Some("localhost"));
     assert_eq!(authorize_url.path(), "/api/v1/openid/authorize");
 
+    // obtain authorization code
     let uri = format!(
         "{}?{}",
         authorize_url.path(),
         authorize_url.query().unwrap()
     );
-    let response = client.get(uri.clone()).dispatch().await;
+    let response = client.get(uri).dispatch().await;
     assert_eq!(response.status(), Status::Found);
     let location = response.headers().get_one("Location").unwrap();
     let (_, query) = location.split_once('?').unwrap();
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
 
+    // exchange authorization code for token
     let pool_clone_2 = pool.clone();
     let config_clone_2 = config.clone();
     let token_response = core_client
@@ -518,15 +532,17 @@ async fn test_openid_authorization_code() {
         .request_async(move |r| http_client(r, pool_clone_2, config_clone_2))
         .await
         .unwrap();
-    let id_token_verifier: CoreIdTokenVerifier = core_client.id_token_verifier().allow_any_alg();
-    let _id_token_claims: &CoreIdTokenClaims = token_response
+
+    // verify id token
+    let id_token_verifier = core_client.id_token_verifier().allow_any_alg();
+    let _id_token_claims = token_response
         .extra_fields()
         .id_token()
         .expect("Server did not return an ID token")
         .claims(&id_token_verifier, &nonce)
         .unwrap();
 
-    // refresh
+    // refresh token
     let refresh_token = token_response.refresh_token().unwrap();
     let refresh_response = core_client
         .exchange_refresh_token(refresh_token)

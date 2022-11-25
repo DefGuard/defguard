@@ -1,4 +1,4 @@
-use super::openid::NewOpenIDClient;
+use super::NewOpenIDClient;
 use crate::{
     db::{DbPool, User},
     random::gen_alphanumeric,
@@ -9,7 +9,7 @@ use sqlx::{query_as, Error as SqlxError};
 #[derive(Deserialize, Model, Serialize)]
 pub struct OAuth2Client {
     #[serde(skip)]
-    id: Option<i64>,
+    pub(crate) id: Option<i64>,
     #[serde(skip)]
     pub(crate) user_id: i64,
     pub client_id: String, // unique
@@ -23,6 +23,38 @@ pub struct OAuth2Client {
 }
 
 impl OAuth2Client {
+    #[must_use]
+    pub fn new(user_id: i64, redirect_uri: String, scope: Vec<String>, name: String) -> Self {
+        let client_id = gen_alphanumeric(16);
+        let client_secret = gen_alphanumeric(32);
+        Self {
+            id: None,
+            user_id,
+            client_id,
+            client_secret,
+            redirect_uri,
+            scope,
+            name,
+            enabled: true,
+        }
+    }
+
+    #[must_use]
+    pub fn from_new(new: NewOpenIDClient, user_id: i64) -> Self {
+        let client_id = gen_alphanumeric(16);
+        let client_secret = gen_alphanumeric(32);
+        Self {
+            id: None,
+            user_id,
+            client_id,
+            client_secret,
+            redirect_uri: new.redirect_uri,
+            scope: new.scope,
+            name: new.name,
+            enabled: new.enabled,
+        }
+    }
+
     /// All by `user_id`.
     pub async fn all_for_user(pool: &DbPool, user_id: i64) -> Result<Vec<Self>, SqlxError> {
         query_as!(
@@ -72,21 +104,6 @@ impl OAuth2Client {
             Ok(true)
         } else {
             Ok(false)
-        }
-    }
-
-    pub fn from_new(new: NewOpenIDClient, user_id: i64) -> Self {
-        let client_id = gen_alphanumeric(16);
-        let client_secret = gen_alphanumeric(32);
-        Self {
-            id: None,
-            user_id,
-            client_id,
-            client_secret,
-            redirect_uri: new.redirect_uri,
-            scope: new.scope,
-            name: new.name,
-            enabled: new.enabled,
         }
     }
 }

@@ -2,11 +2,8 @@ use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::Session,
-    enterprise::db::{
-        openid::{AuthorizedApp, NewOpenIDClient},
-        OAuth2Client,
-    },
-    handlers::{webhooks::ChangeStateData, ApiResponse, ApiResult},
+    enterprise::db::{NewOpenIDClient, OAuth2Client},
+    handlers::{user_for_admin_or_self, webhooks::ChangeStateData, ApiResponse, ApiResult},
 };
 use rocket::{
     http::Status,
@@ -122,9 +119,10 @@ pub async fn delete_openid_client(
 pub async fn get_user_apps(
     session_info: SessionInfo,
     appstate: &State<AppState>,
-    username: &str, // FIXME: unused
+    username: &str,
 ) -> ApiResult {
-    let apps = AuthorizedApp::all_for_user(&appstate.pool, &session_info.user).await?;
+    let user = user_for_admin_or_self(&appstate.pool, &session_info, username).await?;
+    let apps = OAuth2Client::all_for_user(&appstate.pool, user.id.unwrap()).await?;
     Ok(ApiResponse {
         json: json!(apps),
         status: Status::Ok,
@@ -136,15 +134,15 @@ pub async fn update_user_app(
     _session: SessionInfo,
     appstate: &State<AppState>,
     id: i64,
-    data: Json<AuthorizedApp>,
+    data: Json<NewOpenIDClient>,
 ) -> ApiResult {
-    let status = match AuthorizedApp::find_by_id(&appstate.pool, id).await? {
+    let status = match OAuth2Client::find_by_id(&appstate.pool, id).await? {
         Some(mut app) => {
             let update = data.into_inner();
-            app.client_id = update.client_id;
-            app.home_url = update.home_url;
-            app.date = update.date;
+            app.redirect_uri = update.redirect_uri;
             app.name = update.name;
+            app.scope = update.scope;
+            app.enabled = update.enabled;
             app.save(&appstate.pool).await?;
             Status::Ok
         }
@@ -163,7 +161,7 @@ pub async fn delete_user_app(
     id: i64,
 ) -> ApiResult {
     debug!("Removing authorized app with id: {}", id);
-    let status = match AuthorizedApp::find_by_id(&appstate.pool, id).await? {
+    let status = match OAuth2Client::find_by_id(&appstate.pool, id).await? {
         Some(app) => {
             app.delete(&appstate.pool).await?;
             Status::Ok

@@ -77,9 +77,12 @@ openid = ["oauth", "dep:openidconnect"]
 worker = []
 wireguard = []
 
+[profile.dev]
+strip = "debuginfo"
+
 [profile.dev.package.sqlx-macros]
 opt-level = 2
 
 [profile.release]
 lto = "thin"
-strip = "debuginfo"
+strip = "symbols"

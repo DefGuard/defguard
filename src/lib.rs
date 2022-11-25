@@ -20,12 +20,11 @@ use crate::enterprise::handlers::{
 };
 #[cfg(feature = "oauth")]
 use crate::enterprise::oauth_state::OAuthState;
-use crate::enterprise::{db::openid::AuthorizedApp, grpc::WorkerState};
+use crate::enterprise::{db::OAuth2Client, grpc::WorkerState};
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
 use crate::license::License;
 use appstate::AppState;
-use chrono::Utc;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
 #[cfg(feature = "wireguard")]
@@ -326,17 +325,14 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     );
     device.save(&pool).await.expect("Could not save device");
 
-    for app_id in &[1, 2, 3] {
-        let mut app = AuthorizedApp::new(
+    for app_id in 1..=3 {
+        let mut app = OAuth2Client::new(
             1,
-            format!("client-id-{}", app_id),
             format!("https://app-{}.com", app_id),
-            Utc::now().naive_utc().to_string(),
+            vec!["openid".into(), "profile".into(), "email".into()],
             format!("app-{}", app_id),
         );
-        app.save(&pool)
-            .await
-            .expect("Could not save authorized app");
+        app.save(&pool).await.expect("Could not save oauth2client");
     }
     info!("Dev environment initialized - TestNet, TestDevice, AuthorizedApps added");
 }

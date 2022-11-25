@@ -1,6 +1,6 @@
 use crate::{
     db::DbPool,
-    enterprise::db::{auth_code::AuthCode, oauth2token::OAuth2Token, OAuth2Client},
+    enterprise::db::{AuthCode, OAuth2Client, OAuth2Token},
     oxide_auth_rocket::{OAuthFailure, OAuthRequest, OAuthResponse, WebError},
 };
 use oxide_auth::{
