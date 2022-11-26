@@ -2,7 +2,7 @@
 // oxide macro
 #![allow(clippy::unnecessary_lazy_evaluations)]
 
-#[cfg(feature = "oauth")]
+#[cfg(feature = "openid")]
 use crate::enterprise::handlers::oauth::{
     add_oauth2client, authorize, authorize_consent, discovery_keys, refresh, token,
 };
@@ -18,7 +18,7 @@ use crate::enterprise::handlers::{
     },
     openid_flow::{authentication, id_token, openid_configuration},
 };
-#[cfg(feature = "oauth")]
+#[cfg(feature = "openid")]
 use crate::enterprise::oauth_state::OAuthState;
 use crate::enterprise::{db::OAuth2Client, grpc::WorkerState};
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
@@ -75,7 +75,7 @@ pub mod grpc;
 pub mod handlers;
 mod hex;
 pub mod license;
-#[cfg(feature = "oauth")]
+#[cfg(feature = "openid")]
 pub mod oxide_auth_rocket;
 pub(crate) mod random;
 
@@ -203,6 +203,18 @@ pub async fn build_webapp(
     let webapp = if license_decoded.validate(&Features::Openid) {
         info!("Openid feature is enabled");
         webapp
+            .manage(OAuthState::new(pool.clone()).await)
+            .mount(
+                "/api/v1",
+                routes![
+                    authorize,
+                    authorize_consent,
+                    discovery_keys,
+                    token,
+                    refresh,
+                    add_oauth2client
+                ],
+            )
             .mount(
                 "/api/v1/openid",
                 routes![
@@ -220,25 +232,6 @@ pub async fn build_webapp(
                 ],
             )
             .mount("/.well-known", routes![openid_configuration])
-    } else {
-        webapp
-    };
-
-    // initialize OAuth2
-    #[cfg(feature = "oauth")]
-    let webapp = if license_decoded.validate(&Features::Oauth) {
-        info!("OAuth2 feature is enabled");
-        webapp.manage(OAuthState::new(pool.clone()).await).mount(
-            "/api/v1",
-            routes![
-                authorize,
-                authorize_consent,
-                discovery_keys,
-                token,
-                refresh,
-                add_oauth2client
-            ],
-        )
     } else {
         webapp
     };

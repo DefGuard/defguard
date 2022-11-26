@@ -1,4 +1,4 @@
-#[cfg(feature = "oauth")]
+#[cfg(feature = "openid")]
 pub mod oauth;
 #[cfg(feature = "openid")]
 pub mod openid_clients;

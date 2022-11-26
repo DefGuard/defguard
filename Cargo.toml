@@ -72,8 +72,7 @@ tonic-build = "0.8"
 [features]
 default = ["openid", "wireguard", "worker"]
 mock-license-key = []
-oauth = ["dep:oxide-auth", "dep:oxide-auth-async"]
-openid = ["oauth", "dep:openidconnect"]
+openid = ["dep:oxide-auth", "dep:oxide-auth-async", "dep:openidconnect"]
 worker = []
 wireguard = []
 

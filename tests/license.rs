@@ -43,7 +43,7 @@ async fn make_client(license: &str) -> Client {
     client
 }
 
-#[cfg(feature = "oauth")]
+#[cfg(feature = "openid")]
 #[rocket::async_test]
 async fn test_license_ok() {
     let client = make_client(LICENSE_ENTERPRISE).await;
@@ -96,7 +96,7 @@ async fn test_license_expired() {
     assert_eq!(response.status(), Status::NotFound);
 }
 
-#[cfg(feature = "oauth")]
+#[cfg(feature = "openid")]
 #[rocket::async_test]
 async fn test_license_openid_disabled() {
     // test expired license

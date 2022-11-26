@@ -9,7 +9,6 @@ pub struct License {
     pub expiration: NaiveDate,
     pub ldap: bool,
     pub openid: bool,
-    pub oauth: bool,
     pub worker: bool,
     pub enterprise: bool,
 }
@@ -43,7 +42,6 @@ pub enum Features {
     Ldap,
     Worker,
     Openid,
-    Oauth,
 }
 
 impl License {
@@ -55,7 +53,6 @@ impl License {
             expiration: NaiveDate::from_ymd_opt(2100, 1, 1).unwrap_or_default(),
             worker: false,
             ldap: false,
-            oauth: false,
             openid: false,
             enterprise: false,
         }
@@ -65,7 +62,6 @@ impl License {
         match feature {
             Features::Ldap => self.ldap,
             Features::Openid => self.openid,
-            Features::Oauth => self.oauth,
             Features::Worker => self.worker,
         }
     }
@@ -84,7 +80,6 @@ impl License {
         if self.enterprise {
             self.worker = true;
             self.ldap = true;
-            self.oauth = true;
             self.openid = true;
         }
     }
