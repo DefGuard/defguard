@@ -15,8 +15,8 @@ use openidconnect::{
     url::Url,
     AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, IssuerUrl, JsonWebKeySetUrl, Nonce,
-    RefreshToken, ResponseTypes, Scope, StandardClaims, StandardErrorResponse,
-    StandardTokenResponse, SubjectIdentifier, TokenUrl,
+    PkceCodeChallenge, PkceCodeVerifier, RefreshToken, ResponseTypes, Scope, StandardClaims,
+    StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl,
 };
 use rocket::{form::Form, http::Status, response::Redirect, serde::json::serde_json::json, State};
 
@@ -50,7 +50,7 @@ pub struct AuthenticationRequest<'r> {
     scope: &'r str,
     response_type: &'r str,
     client_id: &'r str,
-    client_secret: Option<&'r str>,
+    // client_secret: Option<&'r str>,
     redirect_uri: &'r str,
     state: &'r str,
     // response_mode: Option<&'r str>,
@@ -62,13 +62,17 @@ pub struct AuthenticationRequest<'r> {
     // id_token_hint:
     // login_hint:
     // acr_values
+    // PKCE
+    code_challenge: Option<&'r str>,
+    code_challenge_method: Option<&'r str>,
 }
 
 impl<'r> AuthenticationRequest<'r> {
+    /// Returns PKCE code challenge.
     fn validate_for_client(
         &self,
         oauth2client: &OAuth2Client,
-    ) -> Result<(), CoreErrorResponseType> {
+    ) -> Result<Option<String>, CoreErrorResponseType> {
         // check scope: for now it is valid is any requested scope exists in the `oauth2client`
         if self
             .scope
@@ -86,13 +90,11 @@ impl<'r> AuthenticationRequest<'r> {
         // assume `client_id` is the same here and in `oauth2client`
 
         // check `client_secret`
-        if let Some(secret) = self.client_secret {
-            if oauth2client.client_secret != secret {
-                return Err(CoreErrorResponseType::InvalidGrant);
-            }
-        } else {
-            // TODO: what?
-        }
+        // if let Some(secret) = self.client_secret {
+        //     if oauth2client.client_secret != secret {
+        //         return Err(CoreErrorResponseType::InvalidGrant);
+        //     }
+        // }
 
         // check `redirect_uri`
         // TODO: allow multiple uris in `oauth2client`
@@ -100,7 +102,16 @@ impl<'r> AuthenticationRequest<'r> {
             return Err(CoreErrorResponseType::InvalidGrant);
         }
 
-        Ok(())
+        // check PKCE
+        if let Some(code_challenge_method) = self.code_challenge_method {
+            // currently, only SHA-256 method is supported
+            // TODO: support `plain` which is the default is not specified
+            if self.code_challenge.is_some() && code_challenge_method != "S256" {
+                return Err(CoreErrorResponseType::InvalidRequest);
+            }
+        }
+
+        Ok(self.code_challenge.map(str::to_string))
     }
 }
 
@@ -119,16 +130,16 @@ pub async fn authentication(
     appstate: &State<AppState>,
     data: AuthenticationRequest<'_>,
 ) -> Result<Redirect, OriWebError> {
-    // TODO: PKCE https://www.rfc-editor.org/rfc/rfc7636
     let err = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
-            Ok(_) => {
+            Ok(code_challenge) => {
                 let mut code = AuthCode::new(
                     oauth2client.user_id,
                     data.client_id.into(),
                     data.redirect_uri.into(),
                     data.scope.into(),
                     data.nonce.map(str::to_owned),
+                    code_challenge,
                 );
                 code.save(&appstate.pool).await?;
                 let response = AuthenticationResponse {
@@ -187,6 +198,8 @@ pub struct TokenRequest<'r> {
     // client_secret: Option<&'r str>,
     refresh_token: Option<&'r str>,
     // scope: Option<&'r str>,
+    // PKCE
+    code_verifier: Option<&'r str>,
 }
 
 impl<'r> TokenRequest<'r> {
@@ -206,6 +219,21 @@ impl<'r> TokenRequest<'r> {
         if let (Some(code), Some(redirect_uri)) = (self.code, self.redirect_uri) {
             if redirect_uri != auth_code.redirect_uri {
                 return Err(CoreErrorResponseType::UnauthorizedClient);
+            }
+
+            // Proof Key for Code Exchange (PKCE) https://www.rfc-editor.org/rfc/rfc7636
+            if let Some(ref code_challenge) = auth_code.code_challenge {
+                match self.code_verifier {
+                    Some(code_verifier) => {
+                        let pkce_code_challenge = PkceCodeChallenge::from_code_verifier_sha256(
+                            &PkceCodeVerifier::new(code_verifier.into()),
+                        );
+                        if pkce_code_challenge.as_str() != code_challenge {
+                            return Err(CoreErrorResponseType::InvalidRequest);
+                        }
+                    }
+                    None => return Err(CoreErrorResponseType::InvalidRequest),
+                }
             }
 
             let access_token = AccessToken::new(token.access_token.clone());

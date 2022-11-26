@@ -13,6 +13,7 @@ ALTER TABLE oauth2client ALTER scope TYPE text[] USING string_to_array(replace(s
 DROP TABLE openidclient;
 
 ALTER TABLE authorization_code ADD nonce text NULL;
+ALTER TABLE authorization_code ADD code_challenge text NULL;
 ALTER TABLE authorization_code ADD user_id bigint NULL;
 UPDATE authorization_code SET user_id = "user".id FROM "user" WHERE "user".username = authorization_code.user;
 ALTER TABLE authorization_code DROP "user";

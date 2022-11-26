@@ -81,12 +81,14 @@ impl Session {
         Ok(())
     }
 
+    #[must_use]
     pub fn get_passkey_registration(&self) -> Option<PasskeyRegistration> {
         self.webauthn_challenge
             .as_ref()
             .and_then(|challenge| serde_cbor::from_slice(challenge).ok())
     }
 
+    #[must_use]
     pub fn get_passkey_authentication(&self) -> Option<PasskeyAuthentication> {
         self.webauthn_challenge
             .as_ref()

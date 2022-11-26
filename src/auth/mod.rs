@@ -78,7 +78,7 @@ impl Claims {
             .expect("valid timestamp")
             .as_secs();
         Self {
-            secret: Self::get_secret(claims_type),
+            secret: Self::get_secret(&claims_type),
             iss: JWT_ISSUER.to_string(),
             sub,
             client_id,
@@ -88,7 +88,7 @@ impl Claims {
         }
     }
 
-    fn get_secret(claims_type: ClaimsType) -> String {
+    fn get_secret(claims_type: &ClaimsType) -> String {
         let env_var = match claims_type {
             ClaimsType::Auth => AUTH_SECRET_ENV,
             ClaimsType::Gateway => GATEWAY_SECRET_ENV,
@@ -108,7 +108,7 @@ impl Claims {
 
     /// Verify JWT and, if successful, convert it to claims.
     pub fn from_jwt(claims_type: ClaimsType, token: &str) -> Result<Self, JWTError> {
-        let secret = Self::get_secret(claims_type);
+        let secret = Self::get_secret(&claims_type);
         let mut validation = Validation::default();
         validation.validate_nbf = true;
         validation.set_issuer(&[JWT_ISSUER]);

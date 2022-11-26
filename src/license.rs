@@ -3,12 +3,14 @@ use chrono::{NaiveDate, Utc};
 use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
 /// Decoded license information
+/// Important: order must be preserved for bincode.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct License {
     pub company: String,
     pub expiration: NaiveDate,
     pub ldap: bool,
     pub openid: bool,
+    pub oauth: bool, // obsolete, but needed for bincode
     pub worker: bool,
     pub enterprise: bool,
 }
@@ -51,9 +53,10 @@ impl License {
         Self {
             company: "community".into(),
             expiration: NaiveDate::from_ymd_opt(2100, 1, 1).unwrap_or_default(),
-            worker: false,
             ldap: false,
+            oauth: false,
             openid: false,
+            worker: false,
             enterprise: false,
         }
     }
@@ -66,6 +69,7 @@ impl License {
         }
     }
 
+    #[must_use]
     pub fn validate(&self, feature: &Features) -> bool {
         if self.expiration < Utc::now().naive_utc().date() {
             info!("License expired");
@@ -85,6 +89,7 @@ impl License {
     }
 
     /// decode encoded license string to License instance
+    #[must_use]
     pub fn decode(license: &str) -> Self {
         debug!("Checking license");
         if !license.is_empty() {

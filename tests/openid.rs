@@ -18,7 +18,7 @@ use openidconnect::{
     },
     url::Url,
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, HttpRequest,
-    HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse, RedirectUrl, Scope,
+    HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse, PkceCodeChallenge, RedirectUrl, Scope,
 };
 use rocket::{
     http::{Header, Status},
@@ -420,7 +420,11 @@ async fn http_client(
     let client = make_client_v2(pool, config).await;
 
     let uri = request.url.path();
-    eprintln!("HTTP client request: {:?}", request);
+    eprintln!("HTTP client request path: {}", uri);
+    if let Some(query) = request.url.query() {
+        eprintln!("HTTP client request query: {}", query);
+    }
+    eprintln!("HTTP client request headers: {:#?}", request.headers);
     if let Ok(text) = String::from_utf8(request.body.clone()) {
         eprintln!("HTTP client body: {}", text);
     }
@@ -460,7 +464,6 @@ async fn test_openid_authorization_code() {
     config.license = LICENSE_ENTERPRISE.into();
 
     let issuer_url = IssuerUrl::from_url(Url::parse(&config.url).expect("Invalid issuer URL"));
-
     let client = make_client_v2(pool.clone(), config.clone()).await;
     let pool_clone = pool.clone();
     let config_clone = config.clone();
@@ -491,6 +494,8 @@ async fn test_openid_authorization_code() {
     let oauth2client: OAuth2Client = response.into_json().await.unwrap();
     assert_eq!(oauth2client.name, "My test client");
     assert_eq!(oauth2client.scope[0], "openid");
+    assert_eq!(oauth2client.client_id.len(), 16);
+    assert_eq!(oauth2client.client_secret.len(), 32);
 
     // start the flow
     let client_id = ClientId::new(oauth2client.client_id);
@@ -529,6 +534,106 @@ async fn test_openid_authorization_code() {
     let config_clone_2 = config.clone();
     let token_response = core_client
         .exchange_code(AuthorizationCode::new(auth_response.code))
+        .request_async(move |r| http_client(r, pool_clone_2, config_clone_2))
+        .await
+        .unwrap();
+
+    // verify id token
+    let id_token_verifier = core_client.id_token_verifier().allow_any_alg();
+    let _id_token_claims = token_response
+        .extra_fields()
+        .id_token()
+        .expect("Server did not return an ID token")
+        .claims(&id_token_verifier, &nonce)
+        .unwrap();
+
+    // refresh token
+    let refresh_token = token_response.refresh_token().unwrap();
+    let refresh_response = core_client
+        .exchange_refresh_token(refresh_token)
+        .request_async(move |r| http_client(r, pool, config))
+        .await
+        .unwrap();
+    assert!(refresh_response.refresh_token().is_some());
+}
+
+#[rocket::async_test]
+async fn test_openid_authorization_code_with_pkce() {
+    let (pool, mut config) = init_test_db().await;
+    config.license = LICENSE_ENTERPRISE.into();
+
+    let issuer_url = IssuerUrl::from_url(Url::parse(&config.url).expect("Invalid issuer URL"));
+    let client = make_client_v2(pool.clone(), config.clone()).await;
+    let pool_clone = pool.clone();
+    let config_clone = config.clone();
+
+    // discover OpenID service
+    let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, move |r| {
+        http_client(r, pool_clone.clone(), config_clone.clone())
+    })
+    .await
+    .unwrap();
+
+    // create OAuth2 client/application
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let oauth2client = NewOpenIDClient {
+        name: "My test client".into(),
+        redirect_uri: "http://test.server.tnt:12345/".into(),
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/openid")
+        .json(&oauth2client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let oauth2client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(oauth2client.name, "My test client");
+    assert_eq!(oauth2client.scope[0], "openid");
+
+    // start the flow
+    let client_id = ClientId::new(oauth2client.client_id);
+    let client_secret = ClientSecret::new(oauth2client.client_secret);
+    let core_client =
+        CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
+            .set_redirect_uri(RedirectUrl::new("http://test.server.tnt:12345/".into()).unwrap());
+    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
+    let (authorize_url, _csrf_state, nonce) = core_client
+        .authorize_url(
+            AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
+            CsrfToken::new_random,
+            Nonce::new_random,
+        )
+        .add_scope(Scope::new("openid".to_string()))
+        .add_scope(Scope::new("email".to_string()))
+        .add_scope(Scope::new("profile".to_string()))
+        .set_pkce_challenge(pkce_challenge)
+        .url();
+    assert_eq!(authorize_url.scheme(), "http");
+    assert_eq!(authorize_url.host_str(), Some("localhost"));
+    assert_eq!(authorize_url.path(), "/api/v1/openid/authorize");
+
+    // obtain authorization code
+    let uri = format!(
+        "{}?{}",
+        authorize_url.path(),
+        authorize_url.query().unwrap()
+    );
+    let response = client.get(uri).dispatch().await;
+    assert_eq!(response.status(), Status::Found);
+    let location = response.headers().get_one("Location").unwrap();
+    let (_, query) = location.split_once('?').unwrap();
+    let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
+
+    // exchange authorization code for token
+    let pool_clone_2 = pool.clone();
+    let config_clone_2 = config.clone();
+    let token_response = core_client
+        .exchange_code(AuthorizationCode::new(auth_response.code))
+        .set_pkce_verifier(pkce_verifier)
         .request_async(move |r| http_client(r, pool_clone_2, config_clone_2))
         .await
         .unwrap();

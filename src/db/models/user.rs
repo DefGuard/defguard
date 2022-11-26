@@ -113,7 +113,7 @@ impl User {
         Ok(secret_base32)
     }
 
-    /// Update `mfa_method` only when it's set to `None`, or the new value is `None.
+    /// Update `mfa_method` only when it's set to `None`, or the new value is `None`.
     /// That way last preferred MFA method is conserved.
     pub async fn set_mfa_method(
         &mut self,
@@ -273,6 +273,7 @@ impl User {
     }
 
     /// Check if TOTP `code` is valid.
+    #[must_use]
     pub fn verify_code(&self, code: u32) -> bool {
         if let Some(totp_secret) = &self.totp_secret {
             let totp = TOTP::from_bytes(totp_secret);

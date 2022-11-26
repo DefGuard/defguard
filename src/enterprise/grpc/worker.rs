@@ -29,11 +29,13 @@ impl WorkerInfo {
     }
 
     /// Connectivity status.
+    #[must_use]
     pub fn connected(&self) -> bool {
         self.last_seen.elapsed().as_secs() < 2
     }
 
     /// Return first availale Job.
+    #[must_use]
     pub fn get_job(&self) -> Option<&Job> {
         self.jobs.first()
     }
@@ -133,6 +135,7 @@ impl WorkerState {
         }
     }
 
+    #[must_use]
     pub fn list_workers(&self) -> Vec<WorkerDetail> {
         let mut w = Vec::new();
         for (id, worker) in &self.workers {
@@ -146,6 +149,7 @@ impl WorkerState {
         w
     }
 
+    #[must_use]
     pub fn remove_worker(&mut self, id: &str) -> bool {
         self.workers.remove_entry(id).is_some()
     }
@@ -171,6 +175,7 @@ impl WorkerState {
         );
     }
 
+    #[must_use]
     pub fn get_job_status(&self, job_id: u32) -> Option<&JobResponse> {
         self.job_status.get(&job_id)
     }

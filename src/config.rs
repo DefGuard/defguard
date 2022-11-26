@@ -119,6 +119,7 @@ pub enum Command {
 
 impl DefGuardConfig {
     /// Constructs user distinguished name.
+    #[must_use]
     pub fn user_dn(&self, username: &str) -> String {
         format!(
             "{}={},{}",
@@ -127,6 +128,7 @@ impl DefGuardConfig {
     }
 
     /// Constructs group distinguished name.
+    #[must_use]
     pub fn group_dn(&self, groupname: &str) -> String {
         format!(
             "{}={},{}",

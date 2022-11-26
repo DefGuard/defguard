@@ -18,6 +18,7 @@ pub struct AuthCode {
     pub scope: String,
     pub auth_time: i64,
     pub nonce: Option<String>,
+    pub code_challenge: Option<String>,
 }
 
 impl AuthCode {
@@ -28,6 +29,7 @@ impl AuthCode {
         redirect_uri: String,
         scope: String,
         nonce: Option<String>,
+        code_challenge: Option<String>,
     ) -> Self {
         let code = gen_alphanumeric(24);
         Self {
@@ -39,6 +41,7 @@ impl AuthCode {
             scope,
             auth_time: Utc::now().timestamp(),
             nonce,
+            code_challenge,
         }
     }
 
@@ -46,8 +49,8 @@ impl AuthCode {
     pub async fn find_code(pool: &DbPool, code: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id?\", user_id, client_id, code, redirect_uri, scope, auth_time, nonce \
-            FROM authorization_code WHERE code = $1",
+            "SELECT id \"id?\", user_id, client_id, code, redirect_uri, scope, auth_time, nonce, \
+            code_challenge FROM authorization_code WHERE code = $1",
             code
         )
         .fetch_optional(pool)
@@ -68,6 +71,7 @@ impl From<Grant> for AuthCode {
             scope: grant.scope.to_string(),
             auth_time: Utc::now().timestamp(),
             nonce: None,
+            code_challenge: None,
         }
     }
 }

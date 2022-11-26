@@ -14,6 +14,7 @@ ALTER TABLE authorization_code ADD "user" text NULL;
 UPDATE authorization_code SET "user" = "user".username FROM "user" WHERE "user".id = authorization_code.user_id;
 ALTER TABLE authorization_code ALTER "user" SET NOT NULL;
 ALTER TABLE authorization_code DROP user_id;
+ALTER TABLE authorization_code DROP code_challenge;
 ALTER TABLE authorization_code DROP nonce;
 
 CREATE TABLE openidclient (
