@@ -1,6 +1,7 @@
 use crate::{
     appstate::AppState,
     auth::SESSION_TIMEOUT,
+    db::DbPool,
     enterprise::db::{AuthCode, OAuth2Client, OAuth2Token},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
@@ -18,7 +19,55 @@ use openidconnect::{
     PkceCodeChallenge, PkceCodeVerifier, RefreshToken, ResponseTypes, Scope, StandardClaims,
     StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl,
 };
-use rocket::{form::Form, http::Status, response::Redirect, serde::json::serde_json::json, State};
+use rocket::{
+    form::Form,
+    http::Status,
+    request::{FromRequest, Outcome},
+    response::Redirect,
+    serde::json::serde_json::json,
+    Request, State,
+};
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for OAuth2Client {
+    type Error = OriWebError;
+
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let state = request
+            .rocket()
+            .state::<AppState>()
+            .expect("Missing AppState");
+        if let Some(basic_auth) = request
+            .headers()
+            .get_one("Authorization")
+            .and_then(|value| {
+                if value.starts_with("Basic ") {
+                    value.get(6..)
+                } else {
+                    None
+                }
+            })
+        {
+            if let Ok(decoded) = base64::decode(basic_auth) {
+                if let Ok(auth_pair) = String::from_utf8(decoded) {
+                    if let Some((client_id, client_secret)) = auth_pair.split_once(':') {
+                        if let Ok(Some(oauth2client)) =
+                            OAuth2Client::find_by_auth(&state.pool, client_id, client_secret).await
+                        {
+                            return Outcome::Success(oauth2client);
+                        }
+                    }
+                }
+            }
+            Outcome::Failure((
+                Status::Unauthorized,
+                OriWebError::Authorization("Invalid credentials".into()),
+            ))
+        } else {
+            Outcome::Forward(())
+        }
+    }
+}
 
 // Check if app is authorized, return 200 or 404
 // #[post("/verify", format = "json", data = "<data>")]
@@ -194,10 +243,11 @@ pub struct TokenRequest<'r> {
     code: Option<&'r str>,
     redirect_uri: Option<&'r str>,
     // grant_type == "refresh_token"
-    // client_id: Option<&'r str>,
-    // client_secret: Option<&'r str>,
     refresh_token: Option<&'r str>,
     // scope: Option<&'r str>,
+    // Authorization
+    client_id: Option<&'r str>,
+    client_secret: Option<&'r str>,
     // PKCE
     code_verifier: Option<&'r str>,
 }
@@ -241,7 +291,7 @@ impl<'r> TokenRequest<'r> {
             let issue_time = Utc::now();
             let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
             let std_claims = StandardClaims::new(SubjectIdentifier::new(claims_subject));
-            // TODO: .set_name(...)
+            // TODO: .set_name(...) and more, but first implement auth check (basic, etc.).
             let claims = CoreIdTokenClaims::new(
                 IssuerUrl::from_url(base_url),
                 vec![Audience::new(auth_code.client_id.clone())],
@@ -293,26 +343,35 @@ impl<'r> TokenRequest<'r> {
         token_response.set_refresh_token(Some(refresh_token));
         Ok(token_response)
     }
+
+    async fn oauth2client(&self, pool: &DbPool) -> Option<OAuth2Client> {
+        if let (Some(client_id), Some(client_secret)) = (self.client_id, self.client_secret) {
+            OAuth2Client::find_by_auth(pool, client_id, client_secret)
+                .await
+                .unwrap_or_default()
+            // .map_err(|_| CoreErrorResponseType::InvalidClient)
+        } else {
+            None
+        }
+    }
 }
 
 /// Token Endpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
 #[post("/token", format = "form", data = "<form>")]
-pub async fn id_token(form: Form<TokenRequest<'_>>, appstate: &State<AppState>) -> ApiResult {
-    // TODO: implement basic authorization
-
+pub async fn id_token(
+    form: Form<TokenRequest<'_>>,
+    appstate: &State<AppState>,
+    oauth2client: Option<OAuth2Client>,
+) -> ApiResult {
     // TODO: cleanup branches
     match form.grant_type {
         "authorization_code" => {
             if let Some(code) = form.code {
                 if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
-                    if let Some(oauth2client) = OAuth2Client::find_enabled_for_client_id(
-                        &appstate.pool,
-                        &auth_code.client_id,
-                    )
-                    .await?
-                    {
+                    let client = oauth2client.or(form.oauth2client(&appstate.pool).await);
+                    if let Some(client) = client {
                         let token = OAuth2Token::new(
                             auth_code.redirect_uri.clone(),
                             auth_code.scope.clone(),
@@ -323,7 +382,7 @@ pub async fn id_token(form: Form<TokenRequest<'_>>, appstate: &State<AppState>) 
                             &token,
                             "username".into(), // FIXME: get real username
                             base_url,
-                            oauth2client.client_secret,
+                            client.client_secret,
                         ) {
                             Ok(response) => {
                                 token.save(&appstate.pool).await?;

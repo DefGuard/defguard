@@ -82,6 +82,22 @@ impl OAuth2Client {
         .await
     }
 
+    /// Find using `client_id` and `client_secret`; must be `enabled`.
+    pub async fn find_by_auth(
+        pool: &DbPool,
+        client_id: &str,
+        client_secret: &str,
+    ) -> Result<Option<Self>, SqlxError> {
+        query_as!(
+            Self,
+            "SELECT id \"id?\", user_id, client_id, client_secret, redirect_uri, scope, name, enabled \
+            FROM oauth2client WHERE client_id = $1 AND client_secret = $2 AND enabled",
+            client_id, client_secret
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
     /// Find enabled client by `client_id`.
     pub async fn find_enabled_for_client_id(
         pool: &DbPool,

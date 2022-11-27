@@ -49,7 +49,7 @@ async fn test_authorize() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/openid").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
     let oc = OAuth2Client {
@@ -146,7 +146,7 @@ async fn test_authorize_consent_wrong_client() {
 
     let response = client
         .post(
-            "/api/v1/oauth/authorize?\
+            "/api/v1/openid/authorize?\
             allow=true&\
             response_type=code&\
             client_id=NonExistentClient&\
@@ -154,6 +154,19 @@ async fn test_authorize_consent_wrong_client() {
             scope=default-scope&\
             state=ABCDEF",
         )
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
+}
+
+#[rocket::async_test]
+async fn test_token_client_credentials() {
+    let client = make_client().await;
+
+    let response = client
+        .post("/api/v1/openid/token")
+        .header(ContentType::Form)
+        .body("client_id=WrongClient&client_secret=WrongSecret&grant_type=code")
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::BadRequest);

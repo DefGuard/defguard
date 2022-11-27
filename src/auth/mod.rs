@@ -8,8 +8,8 @@ use jsonwebtoken::{
 };
 use rocket::{
     http::{Cookie, Status},
-    outcome::{try_outcome, Outcome},
-    request::{self, FromRequest, Request},
+    outcome::try_outcome,
+    request::{FromRequest, Outcome, Request},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -131,7 +131,7 @@ impl Claims {
 impl<'r> FromRequest<'r> for Session {
     type Error = OriWebError;
 
-    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         if let Some(state) = request.rocket().state::<AppState>() {
             let cookies = request.cookies();
             if let Some(session_cookie) = cookies.get("session") {
@@ -181,7 +181,7 @@ impl SessionInfo {
 impl<'r> FromRequest<'r> for SessionInfo {
     type Error = OriWebError;
 
-    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         if let Some(state) = request.rocket().state::<AppState>() {
             let user = {
                 if let Some(token) = request
@@ -247,7 +247,7 @@ pub struct AdminRole;
 impl<'r> FromRequest<'r> for AdminRole {
     type Error = OriWebError;
 
-    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let session_info = try_outcome!(request.guard::<SessionInfo>().await);
         if session_info.is_admin {
             Outcome::Success(AdminRole {})

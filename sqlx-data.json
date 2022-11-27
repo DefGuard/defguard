@@ -3006,6 +3006,69 @@
     },
     "query": "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, web3_challenge FROM session WHERE id = $1"
   },
+  "c15d04eb062b8e1dd09935b2d78d8774f15cbcc7c08901c5d0154fa43fbf8fc0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "client_secret",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "name",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 7,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", user_id, client_id, client_secret, redirect_uri, scope, name, enabled FROM oauth2client WHERE client_id = $1 AND client_secret = $2 AND enabled"
+  },
   "c6bce4888a517be6fa0d6c9dd21c681f60bc711dfb0c6f85529a4eef62e6c165": {
     "describe": {
       "columns": [],
