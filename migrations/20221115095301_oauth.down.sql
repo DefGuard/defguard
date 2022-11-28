@@ -28,6 +28,9 @@ CREATE TABLE openidclient (
     enabled boolean NOT NULL DEFAULT true
 );
 
+ALTER TABLE oauth2token DROP CONSTRAINT oauth2token_user_id_fkey;
+ALTER TABLE oauth2token DROP user_id;
+
 ALTER TABLE oauth2client ALTER scope TYPE text USING array_to_string(scope, ',');
 
 ALTER TABLE oauth2client DROP enabled;

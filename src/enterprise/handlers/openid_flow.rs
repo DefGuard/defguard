@@ -1,6 +1,6 @@
 use crate::{
     appstate::AppState,
-    auth::SESSION_TIMEOUT,
+    auth::{SessionInfo, SESSION_TIMEOUT},
     db::{DbPool, User},
     enterprise::db::{AuthCode, OAuth2Client, OAuth2Token},
     error::OriWebError,
@@ -19,7 +19,7 @@ use openidconnect::{
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
     EndUserGivenName, EndUserName, EndUserPhoneNumber, IssuerUrl, JsonWebKeySetUrl, LocalizedClaim,
     Nonce, PkceCodeChallenge, PkceCodeVerifier, RefreshToken, ResponseTypes, Scope, StandardClaims,
-    StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl,
+    StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
 use rocket::{
     form::Form,
@@ -408,6 +408,7 @@ pub async fn id_token(
                             User::find_by_id(&appstate.pool, auth_code.user_id).await?
                         {
                             let token = OAuth2Token::new(
+                                user.id.unwrap(),
                                 auth_code.redirect_uri.clone(),
                                 auth_code.scope.clone(),
                             );
@@ -479,6 +480,17 @@ pub async fn id_token(
     })
 }
 
+/// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
+#[get("/userinfo", format = "json")]
+pub fn userinfo(session_info: SessionInfo) -> ApiResult {
+    info!("Userinfo for user {}", session_info.user.username);
+    let userclaims = StandardClaims::<CoreGenderClaim>::from(&session_info.user);
+    Ok(ApiResponse {
+        json: json!(userclaims),
+        status: Status::Ok,
+    })
+}
+
 // Must be served under /.well-known/openid-configuration
 #[get("/openid-configuration", format = "json")]
 pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
@@ -518,7 +530,10 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
     .set_grant_types_supported(Some(vec![
         CoreGrantType::AuthorizationCode,
         CoreGrantType::RefreshToken,
-    ]));
+    ]))
+    .set_userinfo_endpoint(Some(UserInfoUrl::from_url(
+        base_url.join("api/v1/oauth/userinfo").unwrap(),
+    )));
 
     Ok(ApiResponse {
         json: json!(provider_metadata),

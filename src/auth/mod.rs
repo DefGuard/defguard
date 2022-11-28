@@ -1,6 +1,7 @@
 use crate::{
     appstate::AppState,
     db::{Session, SessionState, User},
+    enterprise::db::OAuth2Token,
     error::OriWebError,
 };
 use jsonwebtoken::{
@@ -23,11 +24,6 @@ pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
 pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
 pub const SESSION_TIMEOUT: u64 = 3600 * 24 * 7;
 pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
-
-#[derive(Deserialize, PartialEq, Serialize)]
-pub enum ClaimRole {
-    Admin,
-}
 
 #[derive(Clone)]
 pub enum ClaimsType {
@@ -58,9 +54,6 @@ pub struct Claims {
     pub exp: u64,
     // not before
     pub nbf: u64,
-    // roles
-    #[serde(default)]
-    pub roles: Vec<ClaimRole>,
 }
 
 impl Claims {
@@ -84,7 +77,6 @@ impl Claims {
             client_id,
             exp,
             nbf,
-            roles: Vec::new(),
         }
     }
 
@@ -119,11 +111,6 @@ impl Claims {
             &validation,
         )
         .map(|data| data.claims)
-    }
-
-    #[must_use]
-    pub fn is_admin(&self) -> bool {
-        self.roles.contains(&ClaimRole::Admin)
     }
 }
 
@@ -194,10 +181,13 @@ impl<'r> FromRequest<'r> for SessionInfo {
                             None
                         }
                     })
+                // TODO: #[cfg(feature = "openid")]
                 {
-                    match Claims::from_jwt(ClaimsType::Auth, token) {
-                        Ok(claims) => User::find_by_username(&state.pool, &claims.sub).await,
-                        Err(_) => {
+                    match OAuth2Token::find_access_token(&state.pool, token).await {
+                        Some(oauth2token) => {
+                            User::find_by_id(&state.pool, oauth2token.user_id).await
+                        }
+                        None => {
                             return Outcome::Failure((
                                 Status::Unauthorized,
                                 OriWebError::Authorization("Invalid token".into()),

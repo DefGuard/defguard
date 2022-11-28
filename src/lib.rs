@@ -12,7 +12,7 @@ use crate::enterprise::handlers::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
         delete_user_app, get_openid_client, get_user_apps, list_openid_clients, update_user_app,
     },
-    openid_flow::{authorization, discovery_keys, id_token, openid_configuration},
+    openid_flow::{authorization, discovery_keys, id_token, openid_configuration, userinfo},
 };
 use crate::enterprise::{db::OAuth2Client, grpc::WorkerState};
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
@@ -206,6 +206,7 @@ pub async fn build_webapp(
                     get_openid_client,
                     authorization,
                     id_token,
+                    userinfo,
                     change_openid_client_state,
                     update_user_app,
                     delete_user_app,

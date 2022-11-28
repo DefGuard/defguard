@@ -11,14 +11,15 @@ use defguard::{
     handlers::Auth,
 };
 use openidconnect::{
-    core::{CoreClient, CoreProviderMetadata, CoreResponseType},
+    core::{CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType},
     http::{
         header::{HeaderName, HeaderValue},
         HeaderMap, Method, StatusCode,
     },
     url::Url,
-    AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, HttpRequest,
-    HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse, PkceCodeChallenge, RedirectUrl, Scope,
+    AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
+    EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
+    PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
 };
 use rocket::{
     http::{Header, Status},
@@ -650,11 +651,21 @@ async fn test_openid_authorization_code_with_pkce() {
         .unwrap();
 
     // refresh token
+    let pool_clone_3 = pool.clone();
+    let config_clone_3 = config.clone();
     let refresh_token = token_response.refresh_token().unwrap();
     let refresh_response = core_client
         .exchange_refresh_token(refresh_token)
-        .request_async(move |r| http_client(r, pool, config))
+        .request_async(move |r| http_client(r, pool_clone_3, config_clone_3))
         .await
         .unwrap();
     assert!(refresh_response.refresh_token().is_some());
+
+    // userinfo
+    let _userinfo_claims: UserInfoClaims<EmptyAdditionalClaims, CoreGenderClaim> = core_client
+        .user_info(token_response.access_token().to_owned(), None)
+        .expect("Missing info endpoint")
+        .request_async(move |r| http_client(r, pool, config))
+        .await
+        .unwrap();
 }

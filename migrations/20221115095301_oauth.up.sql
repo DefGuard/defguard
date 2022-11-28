@@ -10,6 +10,10 @@ ALTER TABLE oauth2client ADD enabled boolean NOT NULL DEFAULT true;
 
 ALTER TABLE oauth2client ALTER scope TYPE text[] USING string_to_array(replace(scope, ' ', ''), ',')::text[];
 
+DELETE FROM oauth2token;
+ALTER TABLE oauth2token ADD user_id bigint NOT NULL;
+ALTER TABLE oauth2token ADD FOREIGN KEY(user_id) REFERENCES "user"(id);
+
 DROP TABLE openidclient;
 
 ALTER TABLE authorization_code ADD nonce text NULL;
