@@ -96,6 +96,10 @@ impl User {
         Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
     }
 
+    pub fn name(&self) -> String {
+        format!("{} {}", self.first_name, self.last_name)
+    }
+
     /// Generate new `secret`, save it, then return it as RFC 4648 base32-encoded string.
     pub async fn new_secret(&mut self, pool: &DbPool) -> Result<String, SqlxError> {
         let secret = thread_rng().gen::<[u8; 20]>().to_vec();

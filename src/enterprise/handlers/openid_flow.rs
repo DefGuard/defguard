@@ -1,7 +1,7 @@
 use crate::{
     appstate::AppState,
     auth::SESSION_TIMEOUT,
-    db::DbPool,
+    db::{DbPool, User},
     enterprise::db::{AuthCode, OAuth2Client, OAuth2Token},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
@@ -9,15 +9,16 @@ use crate::{
 use chrono::{Duration, Utc};
 use openidconnect::{
     core::{
-        CoreClaimName, CoreErrorResponseType, CoreGrantType, CoreHmacKey, CoreIdToken,
-        CoreIdTokenClaims, CoreIdTokenFields, CoreJsonWebKeySet, CoreJwsSigningAlgorithm,
-        CoreProviderMetadata, CoreResponseType, CoreSubjectIdentifierType, CoreTokenResponse,
-        CoreTokenType,
+        CoreClaimName, CoreErrorResponseType, CoreGenderClaim, CoreGrantType, CoreHmacKey,
+        CoreIdToken, CoreIdTokenClaims, CoreIdTokenFields, CoreJsonWebKeySet,
+        CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType, CoreSubjectIdentifierType,
+        CoreTokenResponse, CoreTokenType,
     },
     url::Url,
     AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
-    EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, IssuerUrl, JsonWebKeySetUrl, Nonce,
-    PkceCodeChallenge, PkceCodeVerifier, RefreshToken, ResponseTypes, Scope, StandardClaims,
+    EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
+    EndUserGivenName, EndUserName, EndUserPhoneNumber, IssuerUrl, JsonWebKeySetUrl, LocalizedClaim,
+    Nonce, PkceCodeChallenge, PkceCodeVerifier, RefreshToken, ResponseTypes, Scope, StandardClaims,
     StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl,
 };
 use rocket::{
@@ -28,6 +29,29 @@ use rocket::{
     serde::json::serde_json::json,
     Request, State,
 };
+
+/// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+impl From<&User> for StandardClaims<CoreGenderClaim> {
+    fn from(user: &User) -> StandardClaims<CoreGenderClaim> {
+        let mut name = LocalizedClaim::new();
+        name.insert(None, EndUserName::new(user.name()));
+        let mut given_name = LocalizedClaim::new();
+        given_name.insert(None, EndUserGivenName::new(user.first_name.clone()));
+        let mut given_name = LocalizedClaim::new();
+        given_name.insert(None, EndUserGivenName::new(user.first_name.clone()));
+        let mut family_name = LocalizedClaim::new();
+        family_name.insert(None, EndUserFamilyName::new(user.last_name.clone()));
+        let email = EndUserEmail::new(user.email.clone());
+        let phone_number = user.phone.clone().map(EndUserPhoneNumber::new);
+
+        StandardClaims::new(SubjectIdentifier::new(user.username.clone()))
+            .set_name(Some(name))
+            .set_given_name(Some(given_name))
+            .set_family_name(Some(family_name))
+            .set_email(Some(email))
+            .set_phone_number(phone_number)
+    }
+}
 
 #[get("/discovery/keys")]
 pub async fn discovery_keys() -> ApiResult {
@@ -45,6 +69,7 @@ pub async fn discovery_keys() -> ApiResult {
     })
 }
 
+/// Provide `OAuth2Client` when Basic Authorization header contains `client_id` and `client_secret`.
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for OAuth2Client {
     type Error = OriWebError;
@@ -110,7 +135,6 @@ impl<'r> FromRequest<'r> for OAuth2Client {
 // }
 
 // https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-// see https://docs.rs/oauth2/latest/src/oauth2/lib.rs.html
 #[derive(FromForm)]
 pub struct AuthenticationRequest<'r> {
     scope: &'r str,
@@ -134,12 +158,11 @@ pub struct AuthenticationRequest<'r> {
 }
 
 impl<'r> AuthenticationRequest<'r> {
-    /// Returns PKCE code challenge.
     fn validate_for_client(
         &self,
         oauth2client: &OAuth2Client,
-    ) -> Result<Option<String>, CoreErrorResponseType> {
-        // check scope: for now it is valid is any requested scope exists in the `oauth2client`
+    ) -> Result<(), CoreErrorResponseType> {
+        // check scope: it is valid if any requested scope exists in the `oauth2client`
         if self
             .scope
             .split(' ')
@@ -170,7 +193,7 @@ impl<'r> AuthenticationRequest<'r> {
             }
         }
 
-        Ok(self.code_challenge.map(str::to_string))
+        Ok(())
     }
 }
 
@@ -185,20 +208,20 @@ pub struct AuthenticationResponse {
 /// Authorization Endpoint
 // https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 #[get("/authorize?<data..>")]
-pub async fn authentication(
+pub async fn authorization(
     appstate: &State<AppState>,
     data: AuthenticationRequest<'_>,
 ) -> Result<Redirect, OriWebError> {
     let err = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
-            Ok(code_challenge) => {
+            Ok(()) => {
                 let mut code = AuthCode::new(
                     oauth2client.user_id,
                     data.client_id.into(),
                     data.redirect_uri.into(),
                     data.scope.into(),
                     data.nonce.map(str::to_owned),
-                    code_challenge,
+                    data.code_challenge.map(str::to_owned),
                 );
                 code.save(&appstate.pool).await?;
                 let response = AuthenticationResponse {
@@ -267,7 +290,7 @@ impl<'r> TokenRequest<'r> {
         &self,
         auth_code: &AuthCode,
         token: &OAuth2Token,
-        claims_subject: String,
+        claims: StandardClaims<CoreGenderClaim>,
         base_url: Url,
         secret: T,
     ) -> Result<CoreTokenResponse, CoreErrorResponseType>
@@ -282,7 +305,7 @@ impl<'r> TokenRequest<'r> {
             }
 
             // Proof Key for Code Exchange (PKCE) https://www.rfc-editor.org/rfc/rfc7636
-            if let Some(ref code_challenge) = auth_code.code_challenge {
+            if let Some(code_challenge) = &auth_code.code_challenge {
                 match self.code_verifier {
                     Some(code_verifier) => {
                         let pkce_code_challenge = PkceCodeChallenge::from_code_verifier_sha256(
@@ -297,40 +320,40 @@ impl<'r> TokenRequest<'r> {
             }
 
             let access_token = AccessToken::new(token.access_token.clone());
-            let authorization_code = AuthorizationCode::new(code.into());
-            let issue_time = Utc::now();
-            let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
-            let std_claims = StandardClaims::new(SubjectIdentifier::new(claims_subject));
-            // TODO: .set_name(...) and more, but first implement auth check (basic, etc.).
-            let claims = CoreIdTokenClaims::new(
-                IssuerUrl::from_url(base_url),
-                vec![Audience::new(auth_code.client_id.clone())],
-                expiration,
-                issue_time,
-                std_claims,
-                EmptyAdditionalClaims {},
-            )
-            .set_nonce(auth_code.nonce.clone().map(Nonce::new));
-            let signing_key = CoreHmacKey::new(secret);
-            let refresh_token = RefreshToken::new(token.refresh_token.clone());
-            match CoreIdToken::new(
-                claims,
-                &signing_key,
-                CoreJwsSigningAlgorithm::HmacSha256,
-                Some(&access_token),
-                Some(&authorization_code),
-            ) {
-                Ok(id_token) => {
-                    let mut token_response = CoreTokenResponse::new(
-                        access_token,
-                        CoreTokenType::Bearer,
-                        CoreIdTokenFields::new(Some(id_token), EmptyExtraTokenFields {}),
-                    );
-                    token_response.set_refresh_token(Some(refresh_token));
-                    Ok(token_response)
-                }
-                Err(err) => Err(CoreErrorResponseType::Extension(err.to_string())),
-            }
+
+            let id_token = if token.scope.split(' ').any(|scope| scope == "openid") {
+                let authorization_code = AuthorizationCode::new(code.into());
+                let issue_time = Utc::now();
+                let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
+                let id_token_claims = CoreIdTokenClaims::new(
+                    IssuerUrl::from_url(base_url),
+                    vec![Audience::new(auth_code.client_id.clone())],
+                    expiration,
+                    issue_time,
+                    claims,
+                    EmptyAdditionalClaims {},
+                )
+                .set_nonce(auth_code.nonce.clone().map(Nonce::new));
+                let signing_key = CoreHmacKey::new(secret);
+                CoreIdToken::new(
+                    id_token_claims,
+                    &signing_key,
+                    CoreJwsSigningAlgorithm::HmacSha256,
+                    Some(&access_token),
+                    Some(&authorization_code),
+                )
+                .ok()
+            } else {
+                None
+            };
+
+            let mut token_response = CoreTokenResponse::new(
+                access_token,
+                CoreTokenType::Bearer,
+                CoreIdTokenFields::new(id_token, EmptyExtraTokenFields {}),
+            );
+            token_response.set_refresh_token(Some(RefreshToken::new(token.refresh_token.clone())));
+            Ok(token_response)
         } else {
             Err(CoreErrorResponseType::InvalidRequest)
         }
@@ -380,35 +403,39 @@ pub async fn id_token(
         "authorization_code" => {
             if let Some(code) = form.code {
                 if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
-                    let client = oauth2client.or(form.oauth2client(&appstate.pool).await);
-                    if let Some(client) = client {
-                        let token = OAuth2Token::new(
-                            auth_code.redirect_uri.clone(),
-                            auth_code.scope.clone(),
-                        );
-                        let base_url = Url::parse(&appstate.config.url).unwrap();
-                        match form.authorization_code_flow(
-                            &auth_code,
-                            &token,
-                            "username".into(), // FIXME: get real username
-                            base_url,
-                            client.client_secret,
-                        ) {
-                            Ok(response) => {
-                                token.save(&appstate.pool).await?;
-                                return Ok(ApiResponse {
-                                    json: json!(response),
-                                    status: Status::Ok,
-                                });
-                            }
-                            Err(err) => {
-                                let response = StandardErrorResponse::<CoreErrorResponseType>::new(
-                                    err, None, None,
-                                );
-                                return Ok(ApiResponse {
-                                    json: json!(response),
-                                    status: Status::BadRequest,
-                                });
+                    if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
+                        if let Some(user) =
+                            User::find_by_id(&appstate.pool, auth_code.user_id).await?
+                        {
+                            let token = OAuth2Token::new(
+                                auth_code.redirect_uri.clone(),
+                                auth_code.scope.clone(),
+                            );
+                            let base_url = Url::parse(&appstate.config.url).unwrap();
+                            match form.authorization_code_flow(
+                                &auth_code,
+                                &token,
+                                (&user).into(),
+                                base_url,
+                                client.client_secret,
+                            ) {
+                                Ok(response) => {
+                                    token.save(&appstate.pool).await?;
+                                    return Ok(ApiResponse {
+                                        json: json!(response),
+                                        status: Status::Ok,
+                                    });
+                                }
+                                Err(err) => {
+                                    let response =
+                                        StandardErrorResponse::<CoreErrorResponseType>::new(
+                                            err, None, None,
+                                        );
+                                    return Ok(ApiResponse {
+                                        json: json!(response),
+                                        status: Status::BadRequest,
+                                    });
+                                }
                             }
                         }
                     }
@@ -482,13 +509,11 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
         CoreClaimName::new("aud".into()),
         CoreClaimName::new("exp".into()),
         CoreClaimName::new("iat".into()),
+        CoreClaimName::new("name".into()),
         CoreClaimName::new("given_name".into()),
         CoreClaimName::new("family_name".into()),
         CoreClaimName::new("email".into()),
-        CoreClaimName::new("email_verified".into()),
-        CoreClaimName::new("phone".into()),
-        CoreClaimName::new("phone_verified".into()),
-        CoreClaimName::new("nonce".into()),
+        CoreClaimName::new("phone_number".into()),
     ]))
     .set_grant_types_supported(Some(vec![
         CoreGrantType::AuthorizationCode,

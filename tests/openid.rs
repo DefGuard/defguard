@@ -499,7 +499,7 @@ async fn test_openid_authorization_code() {
     assert_eq!(oauth2client.client_id.len(), 16);
     assert_eq!(oauth2client.client_secret.len(), 32);
 
-    // start the flow
+    // start the Authorization Code Flow
     let client_id = ClientId::new(oauth2client.client_id);
     let client_secret = ClientSecret::new(oauth2client.client_secret);
     let core_client =
@@ -511,7 +511,6 @@ async fn test_openid_authorization_code() {
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        .add_scope(Scope::new("openid".to_string()))
         .add_scope(Scope::new("email".to_string()))
         .add_scope(Scope::new("profile".to_string()))
         .url();
@@ -528,7 +527,8 @@ async fn test_openid_authorization_code() {
     let response = client.get(uri).dispatch().await;
     assert_eq!(response.status(), Status::Found);
     let location = response.headers().get_one("Location").unwrap();
-    let (_, query) = location.split_once('?').unwrap();
+    let (location, query) = location.split_once('?').unwrap();
+    assert_eq!(location, "http://test.server.tnt:12345/");
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
 
     // exchange authorization code for token
@@ -596,7 +596,7 @@ async fn test_openid_authorization_code_with_pkce() {
     assert_eq!(oauth2client.name, "My test client");
     assert_eq!(oauth2client.scope[0], "openid");
 
-    // start the flow
+    // start the Authorization Code Flow with PKCE
     let client_id = ClientId::new(oauth2client.client_id);
     let client_secret = ClientSecret::new(oauth2client.client_secret);
     let core_client =
@@ -609,7 +609,6 @@ async fn test_openid_authorization_code_with_pkce() {
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        .add_scope(Scope::new("openid".to_string()))
         .add_scope(Scope::new("email".to_string()))
         .add_scope(Scope::new("profile".to_string()))
         .set_pkce_challenge(pkce_challenge)
@@ -627,7 +626,8 @@ async fn test_openid_authorization_code_with_pkce() {
     let response = client.get(uri).dispatch().await;
     assert_eq!(response.status(), Status::Found);
     let location = response.headers().get_one("Location").unwrap();
-    let (_, query) = location.split_once('?').unwrap();
+    let (location, query) = location.split_once('?').unwrap();
+    assert_eq!(location, "http://test.server.tnt:12345/");
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
 
     // exchange authorization code for token
