@@ -1,14 +1,5 @@
-use crate::{
-    auth::{Claims, ClaimsType, SESSION_TIMEOUT},
-    db::DbPool,
-    random::gen_alphanumeric,
-};
-use chrono::{Duration, TimeZone, Utc};
-use oxide_auth::primitives::{
-    generator::{RandomGenerator, TagGrant},
-    grant::{Extensions, Grant},
-    issuer::{IssuedToken, RefreshedToken, TokenType},
-};
+use crate::{auth::SESSION_TIMEOUT, db::DbPool, random::gen_alphanumeric};
+use chrono::{Duration, Utc};
 use sqlx::{query, query_as, Error as SqlxError};
 
 pub struct OAuth2Token {
@@ -128,68 +119,6 @@ impl OAuth2Token {
                 }
             }
             Err(_) => None,
-        }
-    }
-}
-
-impl From<Grant> for OAuth2Token {
-    fn from(grant: Grant) -> Self {
-        let claims = Claims::new(
-            ClaimsType::Auth,
-            grant.owner_id.clone(),
-            grant.client_id.clone(),
-            SESSION_TIMEOUT,
-        );
-        let mut rnd = RandomGenerator::new(16);
-        let refresh_token = rnd.tag(1, &grant).unwrap();
-        Self {
-            access_token: claims.to_jwt().unwrap(),
-            refresh_token,
-            redirect_uri: grant.redirect_uri.to_string(),
-            scope: grant.scope.to_string(),
-            expires_in: claims.exp as i64,
-        }
-    }
-}
-
-impl From<OAuth2Token> for Grant {
-    fn from(token: OAuth2Token) -> Self {
-        let claims = Claims::from_jwt(ClaimsType::Auth, &token.access_token).unwrap();
-        Self {
-            owner_id: claims.sub,
-            client_id: claims.client_id,
-            scope: token.scope.parse().unwrap(),
-            redirect_uri: token.redirect_uri.parse().unwrap(),
-            until: Utc::now() + Duration::minutes(1),
-            extensions: Extensions::new(),
-        }
-    }
-}
-
-impl From<OAuth2Token> for IssuedToken {
-    fn from(token: OAuth2Token) -> Self {
-        Self {
-            token: token.access_token,
-            refresh: Some(token.refresh_token),
-            until: Utc
-                .timestamp_opt(token.expires_in, 0)
-                .earliest()
-                .unwrap_or_default(),
-            token_type: TokenType::Bearer,
-        }
-    }
-}
-
-impl From<OAuth2Token> for RefreshedToken {
-    fn from(token: OAuth2Token) -> Self {
-        Self {
-            token: token.access_token,
-            refresh: Some(token.refresh_token),
-            until: Utc
-                .timestamp_opt(token.expires_in, 0)
-                .earliest()
-                .unwrap_or_default(),
-            token_type: TokenType::Bearer,
         }
     }
 }

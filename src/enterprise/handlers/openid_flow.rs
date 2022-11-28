@@ -10,8 +10,9 @@ use chrono::{Duration, Utc};
 use openidconnect::{
     core::{
         CoreClaimName, CoreErrorResponseType, CoreGrantType, CoreHmacKey, CoreIdToken,
-        CoreIdTokenClaims, CoreIdTokenFields, CoreJwsSigningAlgorithm, CoreProviderMetadata,
-        CoreResponseType, CoreSubjectIdentifierType, CoreTokenResponse, CoreTokenType,
+        CoreIdTokenClaims, CoreIdTokenFields, CoreJsonWebKeySet, CoreJwsSigningAlgorithm,
+        CoreProviderMetadata, CoreResponseType, CoreSubjectIdentifierType, CoreTokenResponse,
+        CoreTokenType,
     },
     url::Url,
     AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
@@ -27,6 +28,22 @@ use rocket::{
     serde::json::serde_json::json,
     Request, State,
 };
+
+#[get("/discovery/keys")]
+pub async fn discovery_keys() -> ApiResult {
+    // let public_key = RsaPublicKey::from_public_key_pem(PUBLIC_KEY).unwrap();
+    // let jwks = CoreJsonWebKeySet::new(vec![CoreJsonWebKey::new_rsa(
+    //     public_key.n().to_bytes_be(),
+    //     public_key.e().to_bytes_be(),
+    //     None,
+    // )]);
+    let jwks = CoreJsonWebKeySet::new(Vec::new());
+
+    Ok(ApiResponse {
+        json: json!(jwks),
+        status: Status::Ok,
+    })
+}
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for OAuth2Client {
@@ -137,13 +154,6 @@ impl<'r> AuthenticationRequest<'r> {
         }
 
         // assume `client_id` is the same here and in `oauth2client`
-
-        // check `client_secret`
-        // if let Some(secret) = self.client_secret {
-        //     if oauth2client.client_secret != secret {
-        //         return Err(CoreErrorResponseType::InvalidGrant);
-        //     }
-        // }
 
         // check `redirect_uri`
         // TODO: allow multiple uris in `oauth2client`
@@ -448,7 +458,7 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
     let base_url = Url::parse(&appstate.config.url).unwrap();
     let provider_metadata = CoreProviderMetadata::new(
         IssuerUrl::from_url(base_url.clone()),
-        AuthUrl::from_url(base_url.join("api/v1/openid/authorize").unwrap()),
+        AuthUrl::from_url(base_url.join("api/v1/oauth/authorize").unwrap()),
         JsonWebKeySetUrl::from_url(base_url.join("api/v1/oauth/discovery/keys").unwrap()),
         vec![ResponseTypes::new(vec![CoreResponseType::Code])],
         vec![CoreSubjectIdentifierType::Public],
@@ -458,7 +468,7 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
         EmptyAdditionalProviderMetadata {},
     )
     .set_token_endpoint(Some(TokenUrl::from_url(
-        base_url.join("api/v1/openid/token").unwrap(),
+        base_url.join("api/v1/oauth/token").unwrap(),
     )))
     .set_scopes_supported(Some(vec![
         Scope::new("openid".into()),

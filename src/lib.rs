@@ -1,11 +1,7 @@
 #![allow(clippy::derive_partial_eq_without_eq)]
-// oxide macro
+// Rocket macro
 #![allow(clippy::unnecessary_lazy_evaluations)]
 
-#[cfg(feature = "openid")]
-use crate::enterprise::handlers::oauth::{
-    add_oauth2client, authorize, authorize_consent, discovery_keys, refresh, token,
-};
 #[cfg(feature = "worker")]
 use crate::enterprise::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
@@ -16,10 +12,8 @@ use crate::enterprise::handlers::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
         delete_user_app, get_openid_client, get_user_apps, list_openid_clients, update_user_app,
     },
-    openid_flow::{authentication, id_token, openid_configuration},
+    openid_flow::{authentication, discovery_keys, id_token, openid_configuration},
 };
-#[cfg(feature = "openid")]
-use crate::enterprise::oauth_state::OAuthState;
 use crate::enterprise::{db::OAuth2Client, grpc::WorkerState};
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
@@ -75,8 +69,6 @@ pub mod grpc;
 pub mod handlers;
 mod hex;
 pub mod license;
-#[cfg(feature = "openid")]
-pub mod oxide_auth_rocket;
 pub(crate) mod random;
 
 #[macro_use]
@@ -201,23 +193,12 @@ pub async fn build_webapp(
     );
     #[cfg(feature = "openid")]
     let webapp = if license_decoded.validate(&Features::Openid) {
-        info!("Openid feature is enabled");
+        info!("OpenID Connect feature is enabled");
         webapp
-            .manage(OAuthState::new(pool.clone()).await)
             .mount(
-                "/api/v1",
+                "/api/v1/oauth",
                 routes![
-                    authorize,
-                    authorize_consent,
                     discovery_keys,
-                    token,
-                    refresh,
-                    add_oauth2client
-                ],
-            )
-            .mount(
-                "/api/v1/openid",
-                routes![
                     add_openid_client,
                     list_openid_clients,
                     delete_openid_client,

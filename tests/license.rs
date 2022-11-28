@@ -49,26 +49,18 @@ async fn test_license_ok() {
     let client = make_client(LICENSE_ENTERPRISE).await;
 
     // Check if openid path exist
-    let response = client.get("/api/v1/openid").dispatch().await;
+    let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
     // check if worker path exist
     let response = client.get("/api/v1/worker").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    // let response = client
-    //     .get(
-    //         "/api/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id=LocalClient&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=default-scope&\
-    //         state=ABCDEF",
-    //     )
-    //     .dispatch()
-    //     .await;
-
-    // assert_eq!(response.status(), Status::Found);
+    let response = client
+        .get("/.well-known/openid-configuration")
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
 }
 
 #[rocket::async_test]
@@ -76,21 +68,14 @@ async fn test_license_expired() {
     // test expired license
     let client = make_client(LICENSE_EXPIRED).await;
 
-    let response = client.get("/api/v1/openid").dispatch().await;
+    let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::NotFound);
 
     let response = client.get("/api/v1/worker").dispatch().await;
     assert_eq!(response.status(), Status::NotFound);
 
     let response = client
-        .get(
-            "/api/oauth/authorize?\
-            response_type=code&\
-            client_id=LocalClient&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-            scope=default-scope&\
-            state=ABCDEF",
-        )
+        .get("/.well-known/openid-configuration")
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::NotFound);
@@ -99,25 +84,18 @@ async fn test_license_expired() {
 #[cfg(feature = "openid")]
 #[rocket::async_test]
 async fn test_license_openid_disabled() {
-    // test expired license
+    // test license without OpenID
     let client = make_client(LICENSE_WITHOUT_OPENID).await;
 
-    let response = client.get("/api/v1/openid").dispatch().await;
+    let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::NotFound);
 
     let response = client.get("/api/v1/worker").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    // let response = client
-    //     .get(
-    //         "/api/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id=LocalClient&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=default-scope&\
-    //         state=ABCDEF",
-    //     )
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response.status(), Status::Found);
+    let response = client
+        .get("/.well-known/openid-configuration")
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::NotFound);
 }

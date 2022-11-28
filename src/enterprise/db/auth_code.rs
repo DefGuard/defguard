@@ -1,10 +1,6 @@
 use crate::{db::DbPool, random::gen_alphanumeric};
-use chrono::{Duration, Utc};
+use chrono::Utc;
 use model_derive::Model;
-use oxide_auth::primitives::{
-    generator::{RandomGenerator, TagGrant},
-    grant::{Extensions, Grant},
-};
 use sqlx::{query_as, Error as SqlxError};
 
 #[derive(Model)]
@@ -55,36 +51,5 @@ impl AuthCode {
         )
         .fetch_optional(pool)
         .await
-    }
-}
-
-impl From<Grant> for AuthCode {
-    fn from(grant: Grant) -> Self {
-        let mut rnd = RandomGenerator::new(16);
-        let code = rnd.tag(2, &grant).unwrap();
-        Self {
-            id: None,
-            user_id: 0, // FIXME: grant.owner_id,
-            client_id: grant.client_id,
-            code,
-            redirect_uri: grant.redirect_uri.to_string(),
-            scope: grant.scope.to_string(),
-            auth_time: Utc::now().timestamp(),
-            nonce: None,
-            code_challenge: None,
-        }
-    }
-}
-
-impl From<AuthCode> for Grant {
-    fn from(code: AuthCode) -> Self {
-        Self {
-            owner_id: code.user_id.to_string(),
-            client_id: code.client_id,
-            scope: code.scope.parse().unwrap(),
-            redirect_uri: code.redirect_uri.parse().unwrap(),
-            until: Utc::now() + Duration::minutes(1),
-            extensions: Extensions::new(),
-        }
     }
 }

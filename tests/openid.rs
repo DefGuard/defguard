@@ -64,27 +64,27 @@ async fn test_openid_client() {
     };
 
     let response = client
-        .post("/api/v1/openid")
+        .post("/api/v1/oauth")
         .json(&openid_client)
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
 
-    let response = client.get("/api/v1/openid").dispatch().await;
+    let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     let openid_clients: Vec<OAuth2Client> = response.into_json().await.unwrap();
     assert_eq!(openid_clients.len(), 1);
 
     openid_client.name = "Test changed".into();
     let response = client
-        .put(format!("/api/v1/openid/{}", openid_clients[0].client_id))
+        .put(format!("/api/v1/oauth/{}", openid_clients[0].client_id))
         .json(&openid_client)
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
 
     let response = client
-        .get(format!("/api/v1/openid/{}", openid_clients[0].client_id))
+        .get(format!("/api/v1/oauth/{}", openid_clients[0].client_id))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
@@ -95,321 +95,323 @@ async fn test_openid_client() {
     // test unsupported response type
     // Test client delete
     let response = client
-        .delete(format!("/api/v1/openid/{}", openid_clients[0].client_id))
+        .delete(format!("/api/v1/oauth/{}", openid_clients[0].client_id))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
 
-    let response = client.get("/api/v1/openid").dispatch().await;
+    let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
     let openid_clients: Vec<OAuth2Client> = response.into_json().await.unwrap();
     assert!(openid_clients.is_empty());
 }
 
-// #[rocket::async_test]
-// async fn test_openid_flow() {
-//     let client = make_client().await;
-//     let auth = Auth::new("admin".into(), "pass123".into());
-//     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-//     assert_eq!(response.status(), Status::Ok);
-//     let openid_client = NewOpenIDClient {
-//         name: "Test".into(),
-//         redirect_uri: "http://localhost:3000/".into(),
-//         enabled: true,
-//     };
+#[rocket::async_test]
+async fn test_openid_flow() {
+    let client = make_client().await;
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let openid_client = NewOpenIDClient {
+        name: "Test".into(),
+        redirect_uri: "http://localhost:3000/".into(),
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
 
-//     let response = client
-//         .post("/api/v1/openid")
-//         .json(&openid_client)
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Created);
-//     let openid_client: OAuth2Client = response.into_json().await.unwrap();
-//     assert_eq!(openid_client.name, "Test");
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&openid_client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let openid_client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(openid_client.name, "Test");
 
-//     // all clients
-//     let response = client.get("/api/v1/openid").dispatch().await;
-//     assert_eq!(response.status(), Status::Ok);
+    // all clients
+    let response = client.get("/api/v1/oauth").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
 
-//     let response = client
-//         .post(format!(
-//             "/api/v1/openid/authorize?\
-//             response_type=code%20id_token%20token&\
-//             client_id={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=openid&\
-//             state=ABCDEF&\
-//             allow=true&\
-//             nonce=blabla",
-//             openid_client.client_id
-//         ))
-//         .dispatch()
-//         .await;
-//     let location = response.headers().get_one("Location").unwrap();
-//     assert!(location.contains("error=unsupported_response_type"));
+    // let response = client
+    //     .post(format!(
+    //         "/api/v1/oauth/authorize?\
+    //         response_type=code%20id_token%20token&\
+    //         client_id={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=openid&\
+    //         state=ABCDEF&\
+    //         allow=true&\
+    //         nonce=blabla",
+    //         openid_client.client_id
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // let location = response.headers().get_one("Location").unwrap();
+    // assert!(location.contains("error=unsupported_response_type"));
 
-//     // unsupported_response_type
-//     let response = client
-//         .post(format!(
-//             "/api/v1/openid/authorize?\
-//             response_type=code%20id_token%20token&\
-//             client_id={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=openid&\
-//             state=ABCDEF&\
-//             allow=true&\
-//             nonce=blabla",
-//             openid_client.client_id
-//         ))
-//         .dispatch()
-//         .await;
-//     let location = response.headers().get_one("Location").unwrap();
-//     assert!(location.contains("error=unsupported_response_type"));
+    // // unsupported_response_type
+    // let response = client
+    //     .post(format!(
+    //         "/api/v1/oauth/authorize?\
+    //         response_type=code%20id_token%20token&\
+    //         client_id={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=openid&\
+    //         state=ABCDEF&\
+    //         allow=true&\
+    //         nonce=blabla",
+    //         openid_client.client_id
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // let location = response.headers().get_one("Location").unwrap();
+    // assert!(location.contains("error=unsupported_response_type"));
 
-//     let response = client
-//         .post(format!(
-//             "/api/v1/openid/authorize?\
-//             response_type=id_token&\
-//             client_id={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=openid&\
-//             state=ABCDEF&\
-//             allow=true&\
-//             nonce=blabla",
-//             openid_client.client_id
-//         ))
-//         .dispatch()
-//         .await;
-//     let location = response.headers().get_one("Location").unwrap();
-//     assert!(location.contains("error=unsupported_response_type"));
+    // let response = client
+    //     .post(format!(
+    //         "/api/v1/oauth/authorize?\
+    //         response_type=id_token&\
+    //         client_id={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=openid&\
+    //         state=ABCDEF&\
+    //         allow=true&\
+    //         nonce=blabla",
+    //         openid_client.client_id
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // let location = response.headers().get_one("Location").unwrap();
+    // assert!(location.contains("error=unsupported_response_type"));
 
-//     // Obtain code
-//     let response = client
-//         .post(format!(
-//             "/api/v1/openid/authorize?\
-//             response_type=code&\
-//             client_id={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=openid&\
-//             state=ABCDEF&\
-//             allow=true&\
-//             nonce=blabla",
-//             openid_client.client_id
-//         ))
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Found);
+    // // Obtain code
+    // let response = client
+    //     .post(format!(
+    //         "/api/v1/oauth/authorize?\
+    //         response_type=code&\
+    //         client_id={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=openid&\
+    //         state=ABCDEF&\
+    //         allow=true&\
+    //         nonce=blabla",
+    //         openid_client.client_id
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // assert_eq!(response.status(), Status::Found);
 
-//     let location = response.headers().get_one("Location").unwrap();
-//     assert!(location.starts_with("http://localhost:3000/?code="));
+    // let location = response.headers().get_one("Location").unwrap();
+    // assert!(location.starts_with("http://localhost:3000/?code="));
 
-//     // check returned state
-//     let index = location.find("&state").unwrap();
-//     assert_eq!("&state=ABCDEF", location.get(index..).unwrap());
-//     // exchange wrong code for token should fail
-//     let response = client
-//         .post("/api/v1/openid/token")
-//         .header(ContentType::Form)
-//         .body(
-//             "grant_type=authorization_code&\
-//             code=ncuoew2323&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-//         )
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::BadRequest);
+    // // check returned state
+    // let index = location.find("&state").unwrap();
+    // assert_eq!("&state=ABCDEF", location.get(index..).unwrap());
+    // // exchange wrong code for token should fail
+    // let response = client
+    //     .post("/api/v1/oauth/token")
+    //     .header(ContentType::Form)
+    //     .body(
+    //         "grant_type=authorization_code&\
+    //         code=ncuoew2323&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
+    //     )
+    //     .dispatch()
+    //     .await;
+    // assert_eq!(response.status(), Status::BadRequest);
 
-//     // exchange code for token
-//     let code = location.get(28..index).unwrap();
-//     let response = client
-//         .post("/api/v1/openid/token")
-//         .header(ContentType::Form)
-//         .body(format!(
-//             "grant_type=authorization_code&\
-//             code={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-//             code
-//         ))
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Ok);
+    // // exchange code for token
+    // let code = location.get(28..index).unwrap();
+    // let response = client
+    //     .post("/api/v1/oauth/token")
+    //     .header(ContentType::Form)
+    //     .body(format!(
+    //         "grant_type=authorization_code&\
+    //         code={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
+    //         code
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // assert_eq!(response.status(), Status::Ok);
 
-//     // check used code
-//     let response = client
-//         .post("/api/v1/openid/token")
-//         .header(ContentType::Form)
-//         .body(format!(
-//             "grant_type=authorization_code&\
-//             code={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-//             code
-//         ))
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::BadRequest);
+    // // check used code
+    // let response = client
+    //     .post("/api/v1/oauth/token")
+    //     .header(ContentType::Form)
+    //     .body(format!(
+    //         "grant_type=authorization_code&\
+    //         code={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
+    //         code
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // assert_eq!(response.status(), Status::BadRequest);
 
-//     // test non-existing client
-//     let response = client
-//         .post(
-//             "/api/v1/openid/authorize?\
-//             response_type=code&\
-//             client_id=666&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=openid&\
-//             state=ABCDEF&\
-//             nonce=blabla",
-//         )
-//         .dispatch()
-//         .await;
-//     let location = response.headers().get_one("Location").unwrap();
-//     assert!(location.contains("error"));
+    // // test non-existing client
+    // let response = client
+    //     .post(
+    //         "/api/v1/oauth/authorize?\
+    //         response_type=code&\
+    //         client_id=666&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=openid&\
+    //         state=ABCDEF&\
+    //         nonce=blabla",
+    //     )
+    //     .dispatch()
+    //     .await;
+    // let location = response.headers().get_one("Location").unwrap();
+    // assert!(location.contains("error"));
 
-//     // test wrong redirect uri
-//     let response = client
-//         .post(
-//             "/api/v1/openid/authorize?\
-//             response_type=code&\
-//             client_id=1&\
-//             redirect_uri=http%3A%2F%example%3A3000%2F&\
-//             scope=openid&\
-//             state=ABCDEF&\
-//             nonce=blabla",
-//         )
-//         .dispatch()
-//         .await;
-//     let location = response.headers().get_one("Location").unwrap();
-//     assert!(location.contains("error"));
+    // // test wrong redirect uri
+    // let response = client
+    //     .post(
+    //         "/api/v1/oauth/authorize?\
+    //         response_type=code&\
+    //         client_id=1&\
+    //         redirect_uri=http%3A%2F%example%3A3000%2F&\
+    //         scope=openid&\
+    //         state=ABCDEF&\
+    //         nonce=blabla",
+    //     )
+    //     .dispatch()
+    //     .await;
+    // let location = response.headers().get_one("Location").unwrap();
+    // assert!(location.contains("error"));
 
-//     // test scope doesnt contain openid
-//     let response = client
-//         .post(format!(
-//             "/api/v1/openid/authorize?\
-//             response_type=code&\
-//             client_id={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=blabla&\
-//             state=ABCDEF&\
-//             allow=true&\
-//             nonce=blabla",
-//             openid_client.client_id
-//         ))
-//         .dispatch()
-//         .await;
-//     let location = response.headers().get_one("Location").unwrap();
-//     assert!(location.contains("error=wrong_scope&error_description=scope_must_contain_openid"));
+    // // test scope doesnt contain openid
+    // let response = client
+    //     .post(format!(
+    //         "/api/v1/oauth/authorize?\
+    //         response_type=code&\
+    //         client_id={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=blabla&\
+    //         state=ABCDEF&\
+    //         allow=true&\
+    //         nonce=blabla",
+    //         openid_client.client_id
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // let location = response.headers().get_one("Location").unwrap();
+    // assert!(location.contains("error=wrong_scope&error_description=scope_must_contain_openid"));
 
-//     // test allow false
-//     let response = client
-//         .post(format!(
-//             "/api/v1/openid/authorize?\
-//             response_type=code&\
-//             client_id={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=blabla&\
-//             state=ABCDEF&\
-//             allow=false&\
-//             nonce=blabla",
-//             openid_client.client_id
-//         ))
-//         .dispatch()
-//         .await;
-//     let location = response.headers().get_one("Location").unwrap();
-//     assert!(location.contains("error=user_unauthorized"));
-// }
+    // // test allow false
+    // let response = client
+    //     .post(format!(
+    //         "/api/v1/oauth/authorize?\
+    //         response_type=code&\
+    //         client_id={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=blabla&\
+    //         state=ABCDEF&\
+    //         allow=false&\
+    //         nonce=blabla",
+    //         openid_client.client_id
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // let location = response.headers().get_one("Location").unwrap();
+    // assert!(location.contains("error=user_unauthorized"));
+}
 
-// #[rocket::async_test]
-// async fn test_openid_apps() {
-//     let client = make_client().await;
+#[rocket::async_test]
+async fn test_openid_apps() {
+    let client = make_client().await;
 
-//     let auth = Auth::new("admin".into(), "pass123".into());
-//     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-//     assert_eq!(response.status(), Status::Ok);
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
 
-//     let openid_client = NewOpenIDClient {
-//         name: "Test".into(),
-//         redirect_uri: "http://localhost:3000/".into(),
-//         enabled: true,
-//     };
-//     let response = client
-//         .post("/api/v1/openid")
-//         .json(&openid_client)
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Created);
-//     let fetched_client: OAuth2Client = response.into_json().await.unwrap();
-//     assert_eq!(fetched_client.name, "Test");
+    let openid_client = NewOpenIDClient {
+        name: "Test".into(),
+        redirect_uri: "http://localhost:3000/".into(),
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&openid_client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let fetched_client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(fetched_client.name, "Test");
 
-//     let response = client
-//         .post(format!(
-//             "/api/v1/openid/authorize?\
-//             response_type=code&\
-//             client_id={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=openid&\
-//             state=ABCDEF&\
-//             allow=true&\
-//             nonce=blabla",
-//             fetched_client.client_id
-//         ))
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Found);
+    // let response = client
+    //     .post(format!(
+    //         "/api/v1/oauth/authorize?\
+    //         response_type=code&\
+    //         client_id={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+    //         scope=openid&\
+    //         state=ABCDEF&\
+    //         allow=true&\
+    //         nonce=blabla",
+    //         fetched_client.client_id
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // assert_eq!(response.status(), Status::Found);
 
-//     let location = response.headers().get_one("Location").unwrap();
-//     let index = location.find("&state").unwrap();
-//     let code = location.get(28..index).unwrap();
-//     let response = client
-//         .post("/api/v1/openid/token")
-//         .header(ContentType::Form)
-//         .body(format!(
-//             "grant_type=authorization_code&\
-//             code={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-//             code
-//         ))
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Ok);
+    // let location = response.headers().get_one("Location").unwrap();
+    // let index = location.find("&state").unwrap();
+    // let code = location.get(28..index).unwrap();
+    // let response = client
+    //     .post("/api/v1/oauth/token")
+    //     .header(ContentType::Form)
+    //     .body(format!(
+    //         "grant_type=authorization_code&\
+    //         code={}&\
+    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
+    //         code
+    //     ))
+    //     .dispatch()
+    //     .await;
+    // assert_eq!(response.status(), Status::Ok);
 
-//     // fetch applications
-//     let response = client.get("/api/v1/openid/apps/admin").dispatch().await;
-//     assert_eq!(response.status(), Status::Ok);
-//     let mut apps: Vec<AuthorizedApp> = response.into_json().await.unwrap();
-//     assert_eq!(apps.len(), 1);
+    // // fetch applications
+    // let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
+    // assert_eq!(response.status(), Status::Ok);
+    // let mut apps: Vec<AuthorizedApp> = response.into_json().await.unwrap();
+    // assert_eq!(apps.len(), 1);
 
-//     let mut app = apps.pop().unwrap();
-//     assert_eq!(app.name, "Test");
+    // let mut app = apps.pop().unwrap();
+    // assert_eq!(app.name, "Test");
 
-//     // rename application
-//     app.name = "My app".into();
-//     let response = client
-//         .put(format!("/api/v1/openid/apps/{}", app.id.unwrap()))
-//         .json(&app)
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Ok);
+    // // rename application
+    // app.name = "My app".into();
+    // let response = client
+    //     .put(format!("/api/v1/oauth/apps/{}", app.id.unwrap()))
+    //     .json(&app)
+    //     .dispatch()
+    //     .await;
+    // assert_eq!(response.status(), Status::Ok);
 
-//     // fetch again to check if the name has been changed
-//     let response = client.get("/api/v1/openid/apps/admin").dispatch().await;
-//     assert_eq!(response.status(), Status::Ok);
-//     let apps: Vec<AuthorizedApp> = response.into_json().await.unwrap();
-//     assert_eq!(apps.len(), 1);
-//     assert_eq!(apps[0].name, "My app");
+    // // fetch again to check if the name has been changed
+    // let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
+    // assert_eq!(response.status(), Status::Ok);
+    // let apps: Vec<AuthorizedApp> = response.into_json().await.unwrap();
+    // assert_eq!(apps.len(), 1);
+    // assert_eq!(apps[0].name, "My app");
 
-//     // delete application
-//     let response = client
-//         .delete(format!("/api/v1/openid/apps/{}", app.id.unwrap()))
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::Ok);
+    // // delete application
+    // let response = client
+    //     .delete(format!("/api/v1/oauth/apps/{}", app.id.unwrap()))
+    //     .dispatch()
+    //     .await;
+    // assert_eq!(response.status(), Status::Ok);
 
-//     // fetch once more to check if the application has been deleted
-//     let response = client.get("/api/v1/openid/apps/admin").dispatch().await;
-//     assert_eq!(response.status(), Status::Ok);
-//     let apps: Vec<AuthorizedApp> = response.into_json().await.unwrap();
-//     assert_eq!(apps.len(), 0);
-// }
+    // // fetch once more to check if the application has been deleted
+    // let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
+    // assert_eq!(response.status(), Status::Ok);
+    // let apps: Vec<AuthorizedApp> = response.into_json().await.unwrap();
+    // assert_eq!(apps.len(), 0);
+}
 
 /// Helper function for translating HTTP communication from `openidconnect` to `LocalClient`.
 async fn http_client(
@@ -475,7 +477,7 @@ async fn test_openid_authorization_code() {
     .await
     .unwrap();
 
-    // create OAuth2 client/application
+    // create OAuth2 client
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
@@ -486,7 +488,7 @@ async fn test_openid_authorization_code() {
         enabled: true,
     };
     let response = client
-        .post("/api/v1/openid")
+        .post("/api/v1/oauth")
         .json(&oauth2client)
         .dispatch()
         .await;
@@ -515,7 +517,7 @@ async fn test_openid_authorization_code() {
         .url();
     assert_eq!(authorize_url.scheme(), "http");
     assert_eq!(authorize_url.host_str(), Some("localhost"));
-    assert_eq!(authorize_url.path(), "/api/v1/openid/authorize");
+    assert_eq!(authorize_url.path(), "/api/v1/oauth/authorize");
 
     // obtain authorization code
     let uri = format!(
@@ -585,7 +587,7 @@ async fn test_openid_authorization_code_with_pkce() {
         enabled: true,
     };
     let response = client
-        .post("/api/v1/openid")
+        .post("/api/v1/oauth")
         .json(&oauth2client)
         .dispatch()
         .await;
@@ -614,7 +616,7 @@ async fn test_openid_authorization_code_with_pkce() {
         .url();
     assert_eq!(authorize_url.scheme(), "http");
     assert_eq!(authorize_url.host_str(), Some("localhost"));
-    assert_eq!(authorize_url.path(), "/api/v1/openid/authorize");
+    assert_eq!(authorize_url.path(), "/api/v1/oauth/authorize");
 
     // obtain authorization code
     let uri = format!(
