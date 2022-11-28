@@ -59,7 +59,7 @@ async fn test_openid_client() {
 
     let mut openid_client = NewOpenIDClient {
         name: "Test".into(),
-        redirect_uri: "http://localhost:3000/".into(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -116,7 +116,7 @@ async fn test_openid_flow() {
     assert_eq!(response.status(), Status::Ok);
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
-        redirect_uri: "http://localhost:3000/".into(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -330,7 +330,7 @@ async fn test_openid_apps() {
 
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
-        redirect_uri: "http://localhost:3000/".into(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -484,7 +484,7 @@ async fn test_openid_authorization_code() {
     assert_eq!(response.status(), Status::Ok);
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
-        redirect_uri: "http://test.server.tnt:12345/".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -583,7 +583,7 @@ async fn test_openid_authorization_code_with_pkce() {
     assert_eq!(response.status(), Status::Ok);
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
-        redirect_uri: "http://test.server.tnt:12345/".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
         scope: vec!["openid".into()],
         enabled: true,
     };

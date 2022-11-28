@@ -14,7 +14,8 @@ pub struct OAuth2Client {
     pub(crate) user_id: i64,
     pub client_id: String, // unique
     pub client_secret: String,
-    pub redirect_uri: String, // TODO: Vec<String>
+    #[model(ref)]
+    pub redirect_uri: Vec<String>,
     #[model(ref)]
     pub scope: Vec<String>,
     // informational
@@ -24,7 +25,7 @@ pub struct OAuth2Client {
 
 impl OAuth2Client {
     #[must_use]
-    pub fn new(user_id: i64, redirect_uri: String, scope: Vec<String>, name: String) -> Self {
+    pub fn new(user_id: i64, redirect_uri: Vec<String>, scope: Vec<String>, name: String) -> Self {
         let client_id = gen_alphanumeric(16);
         let client_secret = gen_alphanumeric(32);
         Self {

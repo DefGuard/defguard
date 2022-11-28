@@ -12,7 +12,7 @@ pub use {auth_code::AuthCode, oauth2client::OAuth2Client, oauth2token::OAuth2Tok
 #[derive(Deserialize, Serialize)]
 pub struct NewOpenIDClient {
     pub name: String,
-    pub redirect_uri: String,
+    pub redirect_uri: Vec<String>,
     pub scope: Vec<String>,
     pub enabled: bool,
 }

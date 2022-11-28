@@ -35,7 +35,7 @@ async fn test_authorize() {
     // create OAuth2 client
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
-        redirect_uri: "http://test.server.tnt:12345/".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
         scope: vec!["openid".into()],
         enabled: true,
     };

@@ -8,6 +8,7 @@ ALTER TABLE oauth2client ADD FOREIGN KEY(user_id) REFERENCES "user"(id);
 ALTER TABLE oauth2client ADD name text NOT NULL DEFAULT 'OAuth2 Application';
 ALTER TABLE oauth2client ADD enabled boolean NOT NULL DEFAULT true;
 
+ALTER TABLE oauth2client ALTER redirect_uri TYPE text[] USING string_to_array(replace(redirect_uri, ' ', ''), ',')::text[];
 ALTER TABLE oauth2client ALTER scope TYPE text[] USING string_to_array(replace(scope, ' ', ''), ',')::text[];
 
 DELETE FROM oauth2token;

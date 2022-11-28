@@ -179,8 +179,11 @@ impl<'r> AuthenticationRequest<'r> {
         // assume `client_id` is the same here and in `oauth2client`
 
         // check `redirect_uri`
-        // TODO: allow multiple uris in `oauth2client`
-        if self.redirect_uri != oauth2client.redirect_uri {
+        if self
+            .redirect_uri
+            .split(' ')
+            .all(|uri| !oauth2client.redirect_uri.contains(&uri.to_owned()))
+        {
             return Err(CoreErrorResponseType::InvalidGrant);
         }
 

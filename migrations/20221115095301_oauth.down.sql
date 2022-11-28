@@ -32,6 +32,7 @@ ALTER TABLE oauth2token DROP CONSTRAINT oauth2token_user_id_fkey;
 ALTER TABLE oauth2token DROP user_id;
 
 ALTER TABLE oauth2client ALTER scope TYPE text USING array_to_string(scope, ',');
+ALTER TABLE oauth2client ALTER redirect_uri TYPE text USING array_to_string(redirect_uri, ',');
 
 ALTER TABLE oauth2client DROP enabled;
 ALTER TABLE oauth2client DROP name;

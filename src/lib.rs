@@ -303,7 +303,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     for app_id in 1..=3 {
         let mut app = OAuth2Client::new(
             1,
-            format!("https://app-{}.com", app_id),
+            vec![format!("https://app-{}.com", app_id)],
             vec!["openid".into(), "profile".into(), "email".into()],
             format!("app-{}", app_id),
         );
