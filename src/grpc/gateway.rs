@@ -4,27 +4,34 @@ use crate::db::{
 };
 use chrono::{NaiveDateTime, Utc};
 use std::sync::Arc;
-use tokio::sync::{
+use tokio::sync::{Mutex,
     mpsc::{self, UnboundedReceiver},
-    Mutex,
 };
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
+
+use super::GatewayState;
 
 tonic::include_proto!("gateway");
 
 pub struct GatewayServer {
     pool: DbPool,
     wireguard_rx: Arc<Mutex<UnboundedReceiver<GatewayEvent>>>,
+    state: Arc<Mutex<GatewayState>>,
 }
 
 impl GatewayServer {
     /// Create new gateway server instance
     #[must_use]
-    pub fn new(wireguard_rx: UnboundedReceiver<GatewayEvent>, pool: DbPool) -> Self {
+    pub fn new(
+        wireguard_rx: UnboundedReceiver<GatewayEvent>,
+        pool: DbPool,
+        state: Arc<Mutex<GatewayState>>,
+    ) -> Self {
         Self {
             wireguard_rx: Arc::new(Mutex::new(wireguard_rx)),
             pool,
+            state,
         }
     }
     /// Sends updated network configuration
@@ -246,6 +253,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
     async fn updates(&self, _: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
         let (tx, rx) = mpsc::channel(4);
         let events_rx = Arc::clone(&self.wireguard_rx);
+        self.state.lock().await.clients.push("test".to_string());
+        let state = Arc::clone(&self.state);
         tokio::spawn(async move {
             while let Some(update) = events_rx.lock().await.recv().await {
                 let result = match update {
@@ -270,6 +279,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 };
                 if let Err(err) = result {
                     error!("Client stream disconnected: {}", err);
+                    state.lock().await.clients.clear();
                     break;
                 }
             }

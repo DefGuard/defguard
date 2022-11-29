@@ -15,7 +15,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::Mutex as AsyncMutex;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
+
 mod auth;
 #[cfg(feature = "wireguard")]
 mod gateway;
@@ -28,6 +30,7 @@ pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     wireguard_rx: UnboundedReceiver<GatewayEvent>,
     pool: DbPool,
+    gateway_state: Arc<AsyncMutex<GatewayState>>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -40,7 +43,7 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(wireguard_rx, pool),
+        GatewayServer::new(wireguard_rx, pool, gateway_state),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
     // Run gRPC server
@@ -60,3 +63,23 @@ pub async fn run_grpc_server(
     router.serve(addr).await?;
     Ok(())
 }
+
+
+pub struct GatewayState {
+    clients: Vec<String>,
+}
+
+impl GatewayState {
+
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            clients: Vec::new(),
+        }
+    }
+
+    pub fn clients_connected(&self) -> bool {
+        !self.clients.is_empty()
+    }
+}
+

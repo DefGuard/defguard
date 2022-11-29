@@ -3,7 +3,7 @@ use defguard::{
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent},
     enterprise::grpc::WorkerState,
-    grpc::run_grpc_server,
+    grpc::{run_grpc_server, GatewayState},
     init_dev_env, run_web_server,
 };
 use fern::{
@@ -16,7 +16,7 @@ use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::unbounded_channel;
+use tokio::sync::{Mutex as AsyncMutex, mpsc::unbounded_channel};
 
 /// Configures fern logging library.
 fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
@@ -55,6 +55,7 @@ async fn main() -> Result<(), SetLoggerError> {
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
     let (wireguard_tx, wireguard_rx) = unbounded_channel::<GatewayEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
+    let gateway_state = Arc::new(AsyncMutex::new(GatewayState::new()));
     let pool = init_db(
         &config.database_host,
         config.database_port,
@@ -76,8 +77,8 @@ async fn main() -> Result<(), SetLoggerError> {
 
     // run services
     tokio::select! {
-        _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), wireguard_rx, pool.clone(), grpc_cert, grpc_key) => (),
-        _ = run_web_server(config, worker_state, webhook_tx, webhook_rx, wireguard_tx, pool) => (),
+        _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), wireguard_rx, pool.clone(), Arc::clone(&gateway_state), grpc_cert, grpc_key) => (),
+        _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool) => (),
     };
     Ok(())
 }
