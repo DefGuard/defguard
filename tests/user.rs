@@ -5,12 +5,12 @@ use defguard::{
         AppEvent, GatewayEvent, User, UserInfo,
     },
     handlers::{AddUserData, Auth, PasswordChange, Username, WalletChallenge},
+    hex::to_lower_hex,
 };
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use tokio::sync::mpsc::unbounded_channel;
 
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
-use std::fmt::Write;
 mod common;
 use common::init_test_db;
 
@@ -233,18 +233,11 @@ async fn test_wallet() {
     let secp = Secp256k1::new();
     let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
 
-    fn encode_hex(bytes: &[u8]) -> String {
-        let mut s = String::with_capacity(bytes.len() * 2);
-        for &b in bytes {
-            write!(&mut s, "{:02x}", b).unwrap();
-        }
-        format!("0x{}", s)
-    }
     // create eth wallet address
     let public_key = public_key.serialize_uncompressed();
     let hash = keccak256(&public_key[1..]);
     let addr = &hash[hash.len() - 20..];
-    let wallet_address = encode_hex(addr);
+    let wallet_address = to_lower_hex(addr);
 
     let challenge_query = format!(
         "/api/v1/user/hpotter/challenge?address={wallet_address}&name=portefeuille&chain_id=5"
@@ -256,19 +249,18 @@ async fn test_wallet() {
     let challenge: WalletChallenge = response.into_json().await.unwrap();
     // see migrations for the default message
     let message: String = format!(
-        "
+        "\
         Please read this carefully:\n\n\
         Click to sign to prove you are in possesion of your private key to the account.\n\
         This request will not trigger a blockchain transaction or cost any gas fees.\n\
         Wallet address:\n\
         {}\n\
         \n\
-        Date and time:\n\
+        Nonce:\n\
         {}",
         wallet_address,
-        chrono::Local::now().format("%Y-%m-%d %H:%M"),
+        to_lower_hex(&keccak256(wallet_address.as_bytes()))
     )
-    .trim()
     .into();
     assert_eq!(challenge.message, message);
 
@@ -290,7 +282,7 @@ async fn test_wallet() {
         .put("/api/v1/user/hpotter/wallet")
         .json(&json!({
             "address": wallet_address,
-            "signature": encode_hex(&sig_arr),
+            "signature": to_lower_hex(&sig_arr),
         }))
         .dispatch()
         .await;

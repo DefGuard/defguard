@@ -11,7 +11,6 @@ use otpauth::TOTP;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde::Deserialize;
-use std::fmt::Write;
 use std::time::SystemTime;
 use tokio::sync::mpsc::unbounded_channel;
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
@@ -272,18 +271,25 @@ async fn test_web3() {
     let secp = Secp256k1::new();
     let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
 
-    fn encode_hex(bytes: &[u8]) -> String {
-        let mut s = String::with_capacity(bytes.len() * 2);
-        for &b in bytes {
-            write!(&mut s, "{:02x}", b).unwrap();
-        }
-        format!("0x{}", s)
+    pub fn to_lower_hex(bytes: &[u8]) -> String {
+        let mut hex = String::with_capacity(bytes.len() + 1 * 2);
+        let to_char = |nibble: u8| -> char {
+            (match nibble {
+                0..=9 => b'0' + nibble,
+                _ => nibble + b'a' - 10,
+            }) as char
+        };
+        bytes.iter().for_each(|byte| {
+            hex.push(to_char(*byte >> 4));
+            hex.push(to_char(*byte & 0xf));
+        });
+        hex
     }
     // create eth wallet address
     let public_key = public_key.serialize_uncompressed();
     let hash = keccak256(&public_key[1..]);
     let addr = &hash[hash.len() - 20..];
-    let wallet_address = encode_hex(addr);
+    let wallet_address = to_lower_hex(addr);
 
     // create client
     let client = make_client_with_wallet(wallet_address.clone()).await;
@@ -326,18 +332,17 @@ async fn test_web3() {
     let data: Challenge = response.into_json().await.unwrap();
 
     let message: String = format!(
-        "
+        "\
         Please read this carefully:\n\n\
         Click to sign to prove you are in possesion of your private key to the account.\n\
         This request will not trigger a blockchain transaction or cost any gas fees.\n\
         Wallet address:\n\
         {wallet_address}\n\
         \n\
-        Date and time:\n\
+        Nonce:\n\
         {}",
-        chrono::Local::now().format("%Y-%m-%d %H:%M"),
+        to_lower_hex(&keccak256(wallet_address.as_bytes()))
     )
-    .trim()
     .into();
     assert_eq!(data.challenge, message);
 
@@ -356,7 +361,7 @@ async fn test_web3() {
         .post("/api/v1/auth/web3")
         .json(&json!({
             "address": wallet_address.clone(),
-            "signature": encode_hex(&sig_arr),
+            "signature": to_lower_hex(&sig_arr),
         }))
         .dispatch()
         .await;

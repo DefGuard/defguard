@@ -72,7 +72,7 @@ pub mod enterprise;
 mod error;
 pub mod grpc;
 pub mod handlers;
-mod hex;
+pub mod hex;
 pub mod license;
 #[cfg(feature = "oauth")]
 pub mod oxide_auth_rocket;
