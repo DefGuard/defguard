@@ -8,8 +8,7 @@ use sqlx::{query_as, Error as SqlxError};
 
 #[derive(Deserialize, Model, Serialize)]
 pub struct OAuth2Client {
-    #[serde(skip)]
-    pub(crate) id: Option<i64>,
+    pub id: Option<i64>,
     #[serde(skip)]
     pub(crate) user_id: i64,
     pub client_id: String, // unique

@@ -329,75 +329,43 @@ async fn test_openid_apps() {
     let fetched_client: OAuth2Client = response.into_json().await.unwrap();
     assert_eq!(fetched_client.name, "Test");
 
+    // fetch clients
+    let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let mut apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    assert_eq!(apps.len(), 1);
+
+    let mut app = apps.pop().unwrap();
+    assert_eq!(app.name, "Test");
+
+    // rename client
+    app.name = "My app".into();
     let response = client
-        .post(format!(
-            "/api/v1/oauth/authorize?\
-            response_type=code&\
-            client_id={}&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-            scope=openid&\
-            state=ABCDEF&\
-            allow=true&\
-            nonce=blabla",
-            fetched_client.client_id
-        ))
+        .put(format!("/api/v1/oauth/apps/{}", app.id.unwrap()))
+        .json(&app)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Found);
+    assert_eq!(response.status(), Status::Ok);
 
-    // let location = response.headers().get_one("Location").unwrap();
-    // let index = location.find("&state").unwrap();
-    // let code = location.get(28..index).unwrap();
-    // let response = client
-    //     .post("/api/v1/oauth/token")
-    //     .header(ContentType::Form)
-    //     .body(format!(
-    //         "grant_type=authorization_code&\
-    //         code={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-    //         code
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response.status(), Status::Ok);
+    // fetch again to check if the name has been changed
+    let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    assert_eq!(apps.len(), 1);
+    assert_eq!(apps[0].name, "My app");
 
-    // // fetch applications
-    // let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
-    // assert_eq!(response.status(), Status::Ok);
-    // let mut apps: Vec<AuthorizedApp> = response.into_json().await.unwrap();
-    // assert_eq!(apps.len(), 1);
+    // delete client
+    let response = client
+        .delete(format!("/api/v1/oauth/apps/{}", app.id.unwrap()))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
 
-    // let mut app = apps.pop().unwrap();
-    // assert_eq!(app.name, "Test");
-
-    // // rename application
-    // app.name = "My app".into();
-    // let response = client
-    //     .put(format!("/api/v1/oauth/apps/{}", app.id.unwrap()))
-    //     .json(&app)
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response.status(), Status::Ok);
-
-    // // fetch again to check if the name has been changed
-    // let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
-    // assert_eq!(response.status(), Status::Ok);
-    // let apps: Vec<AuthorizedApp> = response.into_json().await.unwrap();
-    // assert_eq!(apps.len(), 1);
-    // assert_eq!(apps[0].name, "My app");
-
-    // // delete application
-    // let response = client
-    //     .delete(format!("/api/v1/oauth/apps/{}", app.id.unwrap()))
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response.status(), Status::Ok);
-
-    // // fetch once more to check if the application has been deleted
-    // let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
-    // assert_eq!(response.status(), Status::Ok);
-    // let apps: Vec<AuthorizedApp> = response.into_json().await.unwrap();
-    // assert_eq!(apps.len(), 0);
+    // fetch once more to check if the application has been deleted
+    let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    assert!(apps.is_empty());
 }
 
 /// Helper function for translating HTTP communication from `openidconnect` to `LocalClient`.
