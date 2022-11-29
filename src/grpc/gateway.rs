@@ -3,11 +3,11 @@ use crate::db::{
     DbPool, Device, GatewayEvent,
 };
 use chrono::{NaiveDateTime, Utc};
-use std::{sync::Arc, pin::Pin, task::{Context, Poll}};
-use tokio::sync::{Mutex,
+use std::{sync::{Arc, Mutex}, pin::Pin, task::{Context, Poll}};
+use tokio::sync::{Mutex as AsyncMutex,
     mpsc::{self, UnboundedReceiver, Receiver},
 };
-use tokio_stream::{wrappers::ReceiverStream, Stream};
+use tokio_stream::Stream;
 use tonic::{Request, Response, Status};
 
 use super::GatewayState;
@@ -16,7 +16,7 @@ tonic::include_proto!("gateway");
 
 pub struct GatewayServer {
     pool: DbPool,
-    wireguard_rx: Arc<Mutex<UnboundedReceiver<GatewayEvent>>>,
+    wireguard_rx: Arc<AsyncMutex<UnboundedReceiver<GatewayEvent>>>,
     state: Arc<Mutex<GatewayState>>,
 }
 
@@ -29,7 +29,7 @@ impl GatewayServer {
         state: Arc<Mutex<GatewayState>>,
     ) -> Self {
         Self {
-            wireguard_rx: Arc::new(Mutex::new(wireguard_rx)),
+            wireguard_rx: Arc::new(AsyncMutex::new(wireguard_rx)),
             pool,
             state,
         }
@@ -205,7 +205,7 @@ impl Stream for GatewayUpdatesStream {
 impl Drop for GatewayUpdatesStream {
     fn drop(&mut self) {
         info!("Client disconnected");
-        self.gateway_state.lock().await.connected = false;
+        self.gateway_state.lock().unwrap().connected = false;
     }
 }
 
@@ -283,7 +283,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let (tx, rx) = mpsc::channel(4);
         let events_rx = Arc::clone(&self.wireguard_rx);
         info!("New client connected");
-        let handle = tokio::spawn(async move {
+        self.state.lock().unwrap().connected = true;
+        tokio::spawn(async move {
             while let Some(update) = events_rx.lock().await.recv().await {
                 let result = match update {
                     GatewayEvent::NetworkCreated(network) => {
@@ -311,8 +312,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 }
             }
         });
-        self.state.lock().await.handles.push(handle);
-        Ok(Response::new(GatewayUpdatesStream {rx}))
+        Ok(Response::new(GatewayUpdatesStream::new(rx, Arc::clone(&self.state))))
     }
 }
 

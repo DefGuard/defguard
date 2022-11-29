@@ -63,7 +63,7 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tokio::sync::{Mutex as AsyncMutex, mpsc::{UnboundedReceiver, UnboundedSender}};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 pub mod appstate;
 pub mod auth;
@@ -105,7 +105,7 @@ pub async fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: UnboundedSender<GatewayEvent>,
-    gateway_state: Arc<AsyncMutex<GatewayState>>,
+    gateway_state: Arc<Mutex<GatewayState>>,
     pool: DbPool,
 ) -> Rocket<Build> {
     // configure Rocket webapp
@@ -254,7 +254,7 @@ pub async fn build_webapp(
 pub async fn run_web_server(
     config: DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<AsyncMutex<GatewayState>>,
+    gateway_state: Arc<Mutex<GatewayState>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: UnboundedSender<GatewayEvent>,

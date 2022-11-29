@@ -14,13 +14,8 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-use tokio::sync::Mutex as AsyncMutex;
-use tokio::{sync::mpsc::UnboundedReceiver, task::JoinHandle};
-use tonic::{
-    service::Interceptor,
-    transport::{Identity, Server, ServerTlsConfig},
-    Response, Status,
-};
+use tokio::sync::mpsc::UnboundedReceiver;
+use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 mod auth;
 #[cfg(feature = "wireguard")]
@@ -34,7 +29,7 @@ pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     wireguard_rx: UnboundedReceiver<GatewayEvent>,
     pool: DbPool,
-    gateway_state: Arc<AsyncMutex<GatewayState>>,
+    gateway_state: Arc<Mutex<GatewayState>>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {

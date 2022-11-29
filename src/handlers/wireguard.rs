@@ -19,8 +19,7 @@ use rocket::{
     },
     State,
 };
-use tokio::sync::Mutex;
-use std::str::FromStr;
+use std::{str::FromStr, sync::Mutex};
 use std::sync::Arc;
 
 
@@ -380,7 +379,7 @@ pub async fn connection_info(
 ) -> ApiResult {
     debug!("Checking gateway connection info");
     let info = ConnectionInfo {
-        connected: gateway_state.lock().await.clients_connected(),
+        connected: gateway_state.lock().unwrap().connected,
     };
     info!("Checked gateway connection info");
  
