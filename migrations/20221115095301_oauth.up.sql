@@ -27,3 +27,12 @@ ALTER TABLE authorization_code ALTER user_id SET NOT NULL;
 ALTER TABLE authorization_code ADD FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE;
 
 DROP TABLE openidclientauthcode;
+
+ALTER TABLE device DROP CONSTRAINT device_user_id_fkey;
+ALTER TABLE device ADD FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE;
+
+ALTER TABLE session DROP CONSTRAINT session_user_id_fkey;
+ALTER TABLE session ADD FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE;
+
+ALTER TABLE webauthn DROP CONSTRAINT webauthn_user_id_fkey;
+ALTER TABLE webauthn ADD FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE;

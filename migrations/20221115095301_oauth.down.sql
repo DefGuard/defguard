@@ -1,3 +1,12 @@
+ALTER TABLE webauthn DROP CONSTRAINT webauthn_user_id_fkey;
+ALTER TABLE webauthn ADD FOREIGN KEY(user_id) REFERENCES "user"(id);
+
+ALTER TABLE session DROP CONSTRAINT session_user_id_fkey;
+ALTER TABLE session ADD FOREIGN KEY(user_id) REFERENCES "user"(id);
+
+ALTER TABLE device DROP CONSTRAINT device_user_id_fkey;
+ALTER TABLE device ADD FOREIGN KEY(user_id) REFERENCES "user"(id);
+
 CREATE TABLE openidclientauthcode (
     id bigserial PRIMARY KEY,
     "user" text NOT NULL,
