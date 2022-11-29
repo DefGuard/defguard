@@ -47,7 +47,6 @@ pub struct Claims {
     pub iss: String,
     // subject
     pub sub: String,
-    // TODO: aud https://openid.net/specs/openid-connect-core-1_0.html
     // client identifier
     pub client_id: String,
     // expiration time
@@ -184,14 +183,17 @@ impl<'r> FromRequest<'r> for SessionInfo {
                 // TODO: #[cfg(feature = "openid")]
                 {
                     match OAuth2Token::find_access_token(&state.pool, token).await {
-                        Some(oauth2token) => {
+                        Ok(Some(oauth2token)) => {
                             User::find_by_id(&state.pool, oauth2token.user_id).await
                         }
-                        None => {
+                        Ok(None) => {
                             return Outcome::Failure((
                                 Status::Unauthorized,
                                 OriWebError::Authorization("Invalid token".into()),
                             ));
+                        }
+                        Err(err) => {
+                            return Outcome::Failure((Status::InternalServerError, err.into()));
                         }
                     }
                 } else {

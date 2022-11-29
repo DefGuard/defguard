@@ -22,7 +22,7 @@ use openidconnect::{
     PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
 };
 use rocket::{
-    http::{Header, Status},
+    http::{ContentType, Header, Status},
     local::asynchronous::Client,
 };
 use tokio::sync::mpsc::unbounded_channel;
@@ -134,156 +134,142 @@ async fn test_openid_flow() {
     let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code%20id_token%20token&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=openid&\
-    //         state=ABCDEF&\
-    //         allow=true&\
-    //         nonce=blabla",
-    //         openid_client.client_id
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.contains("error=unsupported_response_type"));
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code%20id_token%20token&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            scope=openid&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .dispatch()
+        .await;
+    let location = response.headers().get_one("Location").unwrap();
+    assert!(location.contains("error=invalid_request"));
 
-    // // unsupported_response_type
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code%20id_token%20token&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=openid&\
-    //         state=ABCDEF&\
-    //         allow=true&\
-    //         nonce=blabla",
-    //         openid_client.client_id
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.contains("error=unsupported_response_type"));
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=id_token&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            scope=openid&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .dispatch()
+        .await;
+    let location = response.headers().get_one("Location").unwrap();
+    assert!(location.contains("error=invalid_request"));
 
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=id_token&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=openid&\
-    //         state=ABCDEF&\
-    //         allow=true&\
-    //         nonce=blabla",
-    //         openid_client.client_id
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.contains("error=unsupported_response_type"));
+    // obtain authentication code
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            scope=openid&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Found);
 
-    // // Obtain code
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=openid&\
-    //         state=ABCDEF&\
-    //         allow=true&\
-    //         nonce=blabla",
-    //         openid_client.client_id
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response.status(), Status::Found);
+    let location = response.headers().get_one("Location").unwrap();
+    let (location, query) = location.split_once('?').unwrap();
+    assert_eq!(location, "http://localhost:3000/");
+    let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
+    assert_eq!(auth_response.state, "ABCDEF");
 
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.starts_with("http://localhost:3000/?code="));
+    // exchange wrong code for token should fail
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(ContentType::Form)
+        .body(format!(
+            "grant_type=authorization_code&\
+            code=ncuoew2323&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            client_id={}&\
+            client_secret={}",
+            openid_client.client_id, openid_client.client_secret
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
 
-    // // check returned state
-    // let index = location.find("&state").unwrap();
-    // assert_eq!("&state=ABCDEF", location.get(index..).unwrap());
-    // // exchange wrong code for token should fail
-    // let response = client
-    //     .post("/api/v1/oauth/token")
-    //     .header(ContentType::Form)
-    //     .body(
-    //         "grant_type=authorization_code&\
-    //         code=ncuoew2323&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-    //     )
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response.status(), Status::BadRequest);
+    // exchange correct code for token
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(ContentType::Form)
+        .body(format!(
+            "grant_type=authorization_code&\
+            code={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            client_id={}&\
+            client_secret={}",
+            auth_response.code, openid_client.client_id, openid_client.client_secret
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
 
-    // // exchange code for token
-    // let code = location.get(28..index).unwrap();
-    // let response = client
-    //     .post("/api/v1/oauth/token")
-    //     .header(ContentType::Form)
-    //     .body(format!(
-    //         "grant_type=authorization_code&\
-    //         code={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-    //         code
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response.status(), Status::Ok);
+    // check used code
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(ContentType::Form)
+        .body(format!(
+            "grant_type=authorization_code&\
+            code={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
+            auth_response.code
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
 
-    // // check used code
-    // let response = client
-    //     .post("/api/v1/oauth/token")
-    //     .header(ContentType::Form)
-    //     .body(format!(
-    //         "grant_type=authorization_code&\
-    //         code={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-    //         code
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response.status(), Status::BadRequest);
+    // test non-existing client
+    let response = client
+        .post(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=666&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            scope=openid&\
+            state=ABCDEF&\
+            nonce=blabla",
+        )
+        .dispatch()
+        .await;
+    let location = response.headers().get_one("Location").unwrap();
+    assert!(location.contains("error"));
 
-    // // test non-existing client
-    // let response = client
-    //     .post(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id=666&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=openid&\
-    //         state=ABCDEF&\
-    //         nonce=blabla",
-    //     )
-    //     .dispatch()
-    //     .await;
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.contains("error"));
+    // test wrong redirect uri
+    let response = client
+        .post(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=1&\
+            redirect_uri=http%3A%2F%example%3A3000%2F&\
+            scope=openid&\
+            state=ABCDEF&\
+            nonce=blabla",
+        )
+        .dispatch()
+        .await;
+    let location = response.headers().get_one("Location").unwrap();
+    assert!(location.contains("error"));
 
-    // // test wrong redirect uri
-    // let response = client
-    //     .post(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id=1&\
-    //         redirect_uri=http%3A%2F%example%3A3000%2F&\
-    //         scope=openid&\
-    //         state=ABCDEF&\
-    //         nonce=blabla",
-    //     )
-    //     .dispatch()
-    //     .await;
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.contains("error"));
-
-    // // test scope doesnt contain openid
+    // // test scope doesn't contain openid
     // let response = client
     //     .post(format!(
     //         "/api/v1/oauth/authorize?\
@@ -343,21 +329,21 @@ async fn test_openid_apps() {
     let fetched_client: OAuth2Client = response.into_json().await.unwrap();
     assert_eq!(fetched_client.name, "Test");
 
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=openid&\
-    //         state=ABCDEF&\
-    //         allow=true&\
-    //         nonce=blabla",
-    //         fetched_client.client_id
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response.status(), Status::Found);
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            scope=openid&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            fetched_client.client_id
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Found);
 
     // let location = response.headers().get_one("Location").unwrap();
     // let index = location.find("&state").unwrap();
@@ -521,11 +507,11 @@ async fn test_openid_authorization_code() {
 
     // obtain authorization code
     let uri = format!(
-        "{}?{}",
+        "{}?allow=true&{}",
         authorize_url.path(),
         authorize_url.query().unwrap()
     );
-    let response = client.get(uri).dispatch().await;
+    let response = client.post(uri).dispatch().await;
     assert_eq!(response.status(), Status::Found);
     let location = response.headers().get_one("Location").unwrap();
     let (location, query) = location.split_once('?').unwrap();
@@ -536,7 +522,7 @@ async fn test_openid_authorization_code() {
     let pool_clone_2 = pool.clone();
     let config_clone_2 = config.clone();
     let token_response = core_client
-        .exchange_code(AuthorizationCode::new(auth_response.code))
+        .exchange_code(AuthorizationCode::new(auth_response.code.into()))
         .request_async(move |r| http_client(r, pool_clone_2, config_clone_2))
         .await
         .unwrap();
@@ -620,11 +606,11 @@ async fn test_openid_authorization_code_with_pkce() {
 
     // obtain authorization code
     let uri = format!(
-        "{}?{}",
+        "{}?allow=true&{}",
         authorize_url.path(),
         authorize_url.query().unwrap()
     );
-    let response = client.get(uri).dispatch().await;
+    let response = client.post(uri).dispatch().await;
     assert_eq!(response.status(), Status::Found);
     let location = response.headers().get_one("Location").unwrap();
     let (location, query) = location.split_once('?').unwrap();
@@ -635,7 +621,7 @@ async fn test_openid_authorization_code_with_pkce() {
     let pool_clone_2 = pool.clone();
     let config_clone_2 = config.clone();
     let token_response = core_client
-        .exchange_code(AuthorizationCode::new(auth_response.code))
+        .exchange_code(AuthorizationCode::new(auth_response.code.into()))
         .set_pkce_verifier(pkce_verifier)
         .request_async(move |r| http_client(r, pool_clone_2, config_clone_2))
         .await

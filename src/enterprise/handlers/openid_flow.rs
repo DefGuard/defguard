@@ -134,8 +134,9 @@ impl<'r> FromRequest<'r> for OAuth2Client {
 //     })
 // }
 
-// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-#[derive(FromForm)]
+/// Authentication Request
+/// See https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+#[derive(FromForm, Serialize)]
 pub struct AuthenticationRequest<'r> {
     scope: &'r str,
     response_type: &'r str,
@@ -145,13 +146,13 @@ pub struct AuthenticationRequest<'r> {
     state: &'r str,
     // response_mode: Option<&'r str>,
     nonce: Option<&'r str>,
-    // display:
+    // display: Option<&'r str>,
     // prompt: Option<&'r str>,
-    // max_age:
-    // ui_locales:
-    // id_token_hint:
-    // login_hint:
-    // acr_values
+    // max_age: Option<&'r str>,
+    // ui_locales: Option<&'r str>,
+    // id_token_hint: Option<&'r str>,
+    // login_hint: Option<&'r str>,
+    // acr_values: Option<&'r str>,
     // PKCE
     code_challenge: Option<&'r str>,
     code_challenge_method: Option<&'r str>,
@@ -187,13 +188,10 @@ impl<'r> AuthenticationRequest<'r> {
             return Err(CoreErrorResponseType::InvalidGrant);
         }
 
-        // check PKCE
-        if let Some(code_challenge_method) = self.code_challenge_method {
-            // currently, only SHA-256 method is supported
-            // TODO: support `plain` which is the default is not specified
-            if self.code_challenge.is_some() && code_challenge_method != "S256" {
-                return Err(CoreErrorResponseType::InvalidRequest);
-            }
+        // check PKCE; currently, only SHA-256 method is supported
+        // TODO: support `plain` which is the default if not specified
+        if self.code_challenge.is_some() && self.code_challenge_method != Some("S256") {
+            return Err(CoreErrorResponseType::InvalidRequest);
         }
 
         Ok(())
@@ -203,73 +201,87 @@ impl<'r> AuthenticationRequest<'r> {
 // https://openid.net/specs/openid-connect-core-1_0.html#AuthResponse
 // FIXME: missing a proper struct from `openidconnect`; check CoreResponseType::Code
 #[derive(Deserialize, Serialize)]
-pub struct AuthenticationResponse {
-    pub code: String,
-    pub state: String,
+pub struct AuthenticationResponse<'r> {
+    pub code: &'r str,
+    pub state: &'r str,
 }
 
 /// Authorization Endpoint
-// https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+/// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 #[get("/authorize?<data..>")]
 pub async fn authorization(
     appstate: &State<AppState>,
     data: AuthenticationRequest<'_>,
 ) -> Result<Redirect, OriWebError> {
-    let err = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
+    let query = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(()) => {
-                let mut code = AuthCode::new(
-                    oauth2client.user_id,
-                    data.client_id.into(),
-                    data.redirect_uri.into(),
-                    data.scope.into(),
-                    data.nonce.map(str::to_owned),
-                    data.code_challenge.map(str::to_owned),
-                );
-                code.save(&appstate.pool).await?;
-                let response = AuthenticationResponse {
-                    code: code.code,
-                    state: data.state.into(),
-                };
                 return Ok(Redirect::found(format!(
-                    "{}?{}",
-                    data.redirect_uri,
-                    serde_qs::to_string(&response).unwrap()
+                    "/consent?{}",
+                    serde_urlencoded::to_string(data).unwrap()
                 )));
             }
-            Err(err) => err,
+            Err(err) => {
+                let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+                serde_qs::to_string(&response)?
+            }
         },
-        None => CoreErrorResponseType::InvalidClient,
+        None => {
+            let err = CoreErrorResponseType::InvalidClient;
+            let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+            serde_qs::to_string(&response)?
+        }
     };
 
-    let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-    Ok(Redirect::found(format!(
-        "{}?{}",
-        data.redirect_uri,
-        serde_qs::to_string(&response).unwrap()
-    )))
+    Ok(Redirect::found(format!("{}?{}", data.redirect_uri, query)))
 }
 
-// Login endpoint redirect with authorization code on success, or error if something failed
-// https://openid.net/specs/openid-connect-core-1_0.html#ImplicitAuthorizationEndpoint
-// Generate PKCE code challenge, store in the database
-// and return 302 redirect for given URL with state and code
-// #[post("/authorize?<data..>")]
-// pub async fn authentication_request(
-//     session: SessionInfo,
-//     data: Lenient<OpenIDRequest>,
-//     appstate: &State<AppState>,
-// ) -> Result<Redirect, Redirect> {
-//     let openid_request = data.into_inner();
-//     debug!("Verifying client: {}", openid_request.client_id);
-//     openid_request
-//         .create_code(
-//             &appstate.pool,
-//             &session.user.username,
-//             session.user.id.unwrap(),
-//         )
-//         .await
-// }
+/// Login Authorization Endpoint redirect with authorization code
+#[post("/authorize?<allow>&<data..>")]
+pub async fn secure_authorization(
+    _session_info: SessionInfo,
+    appstate: &State<AppState>,
+    allow: bool,
+    data: AuthenticationRequest<'_>,
+) -> Result<Redirect, OriWebError> {
+    let query = if allow {
+        match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
+            Some(oauth2client) => match data.validate_for_client(&oauth2client) {
+                Ok(()) => {
+                    let mut auth_code = AuthCode::new(
+                        oauth2client.user_id,
+                        data.client_id.into(),
+                        data.redirect_uri.into(),
+                        data.scope.into(),
+                        data.nonce.map(str::to_owned),
+                        data.code_challenge.map(str::to_owned),
+                    );
+                    auth_code.save(&appstate.pool).await?;
+                    let response = AuthenticationResponse {
+                        code: auth_code.code.as_str(),
+                        state: data.state,
+                    };
+                    serde_qs::to_string(&response)?
+                }
+                Err(err) => {
+                    let response =
+                        StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+                    serde_qs::to_string(&response)?
+                }
+            },
+            None => {
+                let err = CoreErrorResponseType::InvalidClient;
+                let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+                serde_qs::to_string(&response)?
+            }
+        }
+    } else {
+        let err = CoreErrorResponseType::UnauthorizedClient;
+        let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+        serde_qs::to_string(&response)?
+    };
+    Ok(Redirect::found(format!("{}?{}", data.redirect_uri, query)))
+}
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenRequest
 #[derive(FromForm)]
@@ -323,7 +335,7 @@ impl<'r> TokenRequest<'r> {
             }
 
             let access_token = AccessToken::new(token.access_token.clone());
-
+            // append ID token only when scope contains "openid"
             let id_token = if token.scope.split(' ').any(|scope| scope == "openid") {
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
@@ -448,7 +460,7 @@ pub async fn id_token(
         }
         "refresh_token" => {
             if let Some(refresh_token) = form.refresh_token {
-                if let Some(mut token) =
+                if let Ok(Some(mut token)) =
                     OAuth2Token::find_refresh_token(&appstate.pool, refresh_token).await
                 {
                     token.refresh_and_save(&appstate.pool).await?;
@@ -506,7 +518,7 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
         vec![CoreSubjectIdentifierType::Public],
         vec![
             CoreJwsSigningAlgorithm::HmacSha256, // required
-        ], // match with auth::Claims.encode()
+        ],
         EmptyAdditionalProviderMetadata {},
     )
     .set_token_endpoint(Some(TokenUrl::from_url(

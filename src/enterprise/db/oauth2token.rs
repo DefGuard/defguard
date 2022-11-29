@@ -68,7 +68,7 @@ impl OAuth2Token {
     }
 
     /// Delete token from the database.
-    pub async fn delete(&self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn delete(self, pool: &DbPool) -> Result<(), SqlxError> {
         query!(
             "DELETE FROM oauth2token WHERE access_token = $1 AND refresh_token = $2",
             self.access_token,
@@ -80,48 +80,56 @@ impl OAuth2Token {
     }
 
     /// Find by access token.
-    pub async fn find_access_token(pool: &DbPool, access_token: &str) -> Option<Self> {
+    pub async fn find_access_token(
+        pool: &DbPool,
+        access_token: &str,
+    ) -> Result<Option<Self>, SqlxError> {
         match query_as!(
             Self,
             "SELECT user_id, access_token, refresh_token, redirect_uri, scope, expires_in \
             FROM oauth2token WHERE access_token = $1",
             access_token
         )
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await
         {
-            Ok(token) => {
+            Ok(Some(token)) => {
                 if token.is_expired() {
-                    let _result = token.delete(pool).await;
-                    None
+                    token.delete(pool).await?;
+                    Ok(None)
                 } else {
-                    Some(token)
+                    Ok(Some(token))
                 }
             }
-            Err(_) => None,
+            Ok(None) => Ok(None),
+            Err(err) => Err(err),
         }
     }
 
     /// Find by refresh token.
-    pub async fn find_refresh_token(pool: &DbPool, refresh_token: &str) -> Option<Self> {
+    pub async fn find_refresh_token(
+        pool: &DbPool,
+        refresh_token: &str,
+    ) -> Result<Option<Self>, SqlxError> {
         match query_as!(
             Self,
             "SELECT user_id, access_token, refresh_token, redirect_uri, scope, expires_in \
             FROM oauth2token WHERE refresh_token = $1",
             refresh_token
         )
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await
         {
-            Ok(token) => {
+            Ok(Some(token)) => {
                 if token.is_expired() {
-                    let _result = token.delete(pool).await;
-                    None
+                    token.delete(pool).await?;
+                    Ok(None)
                 } else {
-                    Some(token)
+                    Ok(Some(token))
                 }
             }
-            Err(_) => None,
+            Ok(None) => Ok(None),
+            Err(err) => Err(err),
         }
     }
 }
