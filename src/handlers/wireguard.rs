@@ -19,7 +19,10 @@ use rocket::{
     },
     State,
 };
+use tokio::sync::Mutex;
 use std::str::FromStr;
+use std::sync::Arc;
+
 
 #[derive(Deserialize, Serialize)]
 pub struct WireguardNetworkData {
@@ -373,11 +376,11 @@ struct ConnectionInfo {
 pub async fn connection_info(
     _admin: AdminRole,
     appstate: &State<AppState>,
-    gateway_state: &State<GatewayState>,
+    gateway_state: &State<Arc<Mutex<GatewayState>>>,
 ) -> ApiResult {
     debug!("Checking gateway connection info");
     let info = ConnectionInfo {
-        connected: gateway_state.clients_connected(),
+        connected: gateway_state.lock().await.clients_connected(),
     };
     info!("Checked gateway connection info");
  

@@ -14,9 +14,13 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::Mutex as AsyncMutex;
-use tonic::transport::{Identity, Server, ServerTlsConfig};
+use tokio::{sync::mpsc::UnboundedReceiver, task::JoinHandle};
+use tonic::{
+    service::Interceptor,
+    transport::{Identity, Server, ServerTlsConfig},
+    Response, Status,
+};
 
 mod auth;
 #[cfg(feature = "wireguard")]
@@ -64,22 +68,15 @@ pub async fn run_grpc_server(
     Ok(())
 }
 
-
 pub struct GatewayState {
-    clients: Vec<String>,
+    pub connected: bool,
 }
 
 impl GatewayState {
-
     #[must_use]
     pub fn new() -> Self {
         Self {
-            clients: Vec::new(),
+            connected: false,
         }
     }
-
-    pub fn clients_connected(&self) -> bool {
-        !self.clients.is_empty()
-    }
 }
-

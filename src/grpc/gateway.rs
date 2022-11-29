@@ -3,11 +3,11 @@ use crate::db::{
     DbPool, Device, GatewayEvent,
 };
 use chrono::{NaiveDateTime, Utc};
-use std::sync::Arc;
+use std::{sync::Arc, pin::Pin, task::{Context, Poll}};
 use tokio::sync::{Mutex,
-    mpsc::{self, UnboundedReceiver},
+    mpsc::{self, UnboundedReceiver, Receiver},
 };
-use tokio_stream::wrappers::ReceiverStream;
+use tokio_stream::{wrappers::ReceiverStream, Stream};
 use tonic::{Request, Response, Status};
 
 use super::GatewayState;
@@ -180,9 +180,38 @@ impl From<PeerStats> for WireguardPeerStats {
     }
 }
 
+
+pub struct GatewayUpdatesStream {
+    rx: Receiver<Result<Update, Status>>,
+    gateway_state: Arc<Mutex<GatewayState>>,
+}
+
+impl GatewayUpdatesStream {
+
+    #[must_use]
+    pub fn new(rx: Receiver<Result<Update, Status>>, gateway_state: Arc<Mutex<GatewayState>>) -> Self {
+        Self {rx, gateway_state}
+    }
+}
+
+impl Stream for GatewayUpdatesStream {
+    type Item = Result<Update, Status>; // I guess this is alright
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Pin::new(&mut self.rx).poll_recv(cx)
+    }
+}
+
+impl Drop for GatewayUpdatesStream {
+    fn drop(&mut self) {
+        info!("Client disconnected");
+        self.gateway_state.lock().await.connected = false;
+    }
+}
+
 #[tonic::async_trait]
 impl gateway_service_server::GatewayService for GatewayServer {
-    type UpdatesStream = ReceiverStream<Result<Update, Status>>;
+    type UpdatesStream = GatewayUpdatesStream;
     /// Retrieve stats from gateway and save it to database
     async fn stats(
         &self,
@@ -253,9 +282,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
     async fn updates(&self, _: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
         let (tx, rx) = mpsc::channel(4);
         let events_rx = Arc::clone(&self.wireguard_rx);
-        self.state.lock().await.clients.push("test".to_string());
-        let state = Arc::clone(&self.state);
-        tokio::spawn(async move {
+        info!("New client connected");
+        let handle = tokio::spawn(async move {
             while let Some(update) = events_rx.lock().await.recv().await {
                 let result = match update {
                     GatewayEvent::NetworkCreated(network) => {
@@ -277,14 +305,14 @@ impl gateway_service_server::GatewayService for GatewayServer {
                         Self::send_peer_delete(&tx, &device_name).await
                     }
                 };
-                if let Err(err) = result {
-                    error!("Client stream disconnected: {}", err);
-                    state.lock().await.clients.clear();
+                if let Err(_) = result {
+                    error!("Client stream disconnected");
                     break;
                 }
             }
         });
-
-        Ok(Response::new(ReceiverStream::new(rx)))
+        self.state.lock().await.handles.push(handle);
+        Ok(Response::new(GatewayUpdatesStream {rx}))
     }
 }
+
