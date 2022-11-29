@@ -55,7 +55,7 @@ async fn main() -> Result<(), SetLoggerError> {
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
     let (wireguard_tx, wireguard_rx) = unbounded_channel::<GatewayEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new()));
+    let gateway_state = Arc::new(Mutex::new(GatewayState::default()));
     let pool = init_db(
         &config.database_host,
         config.database_port,

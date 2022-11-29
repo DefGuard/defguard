@@ -3,9 +3,14 @@ use crate::db::{
     DbPool, Device, GatewayEvent,
 };
 use chrono::{NaiveDateTime, Utc};
-use std::{sync::{Arc, Mutex}, pin::Pin, task::{Context, Poll}};
-use tokio::sync::{Mutex as AsyncMutex,
-    mpsc::{self, UnboundedReceiver, Receiver},
+use std::{
+    pin::Pin,
+    sync::{Arc, Mutex},
+    task::{Context, Poll},
+};
+use tokio::sync::{
+    mpsc::{self, Receiver, UnboundedReceiver},
+    Mutex as AsyncMutex,
 };
 use tokio_stream::Stream;
 use tonic::{Request, Response, Status};
@@ -180,17 +185,18 @@ impl From<PeerStats> for WireguardPeerStats {
     }
 }
 
-
 pub struct GatewayUpdatesStream {
     rx: Receiver<Result<Update, Status>>,
     gateway_state: Arc<Mutex<GatewayState>>,
 }
 
 impl GatewayUpdatesStream {
-
     #[must_use]
-    pub fn new(rx: Receiver<Result<Update, Status>>, gateway_state: Arc<Mutex<GatewayState>>) -> Self {
-        Self {rx, gateway_state}
+    pub fn new(
+        rx: Receiver<Result<Update, Status>>,
+        gateway_state: Arc<Mutex<GatewayState>>,
+    ) -> Self {
+        Self { rx, gateway_state }
     }
 }
 
@@ -280,9 +286,9 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn updates(&self, _: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
+        info!("New client connected to updates stream");
         let (tx, rx) = mpsc::channel(4);
         let events_rx = Arc::clone(&self.wireguard_rx);
-        info!("New client connected");
         self.state.lock().unwrap().connected = true;
         tokio::spawn(async move {
             while let Some(update) = events_rx.lock().await.recv().await {
@@ -306,13 +312,14 @@ impl gateway_service_server::GatewayService for GatewayServer {
                         Self::send_peer_delete(&tx, &device_name).await
                     }
                 };
-                if let Err(_) = result {
-                    error!("Client stream disconnected");
+                if result.is_err() {
                     break;
                 }
             }
         });
-        Ok(Response::new(GatewayUpdatesStream::new(rx, Arc::clone(&self.state))))
+        Ok(Response::new(GatewayUpdatesStream::new(
+            rx,
+            Arc::clone(&self.state),
+        )))
     }
 }
-

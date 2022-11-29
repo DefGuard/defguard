@@ -23,6 +23,11 @@ mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 
+#[derive(Default)]
+pub struct GatewayState {
+    pub connected: bool,
+}
+
 /// Runs gRPC server with core services.
 pub async fn run_grpc_server(
     grpc_port: u16,
@@ -61,17 +66,4 @@ pub async fn run_grpc_server(
     let router = router.add_service(worker_service);
     router.serve(addr).await?;
     Ok(())
-}
-
-pub struct GatewayState {
-    pub connected: bool,
-}
-
-impl GatewayState {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            connected: false,
-        }
-    }
 }

@@ -50,7 +50,8 @@ use handlers::{
     version::get_version,
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
-    }, wireguard::connection_info,
+    },
+    wireguard::connection_info,
 };
 use rocket::{
     config::Config,
@@ -260,7 +261,15 @@ pub async fn run_web_server(
     wireguard_tx: UnboundedSender<GatewayEvent>,
     pool: DbPool,
 ) -> Result<Rocket<Ignite>, RocketError> {
-    let webapp = build_webapp(config.clone(), webhook_tx, webhook_rx, wireguard_tx, gateway_state, pool).await;
+    let webapp = build_webapp(
+        config.clone(),
+        webhook_tx,
+        webhook_rx,
+        wireguard_tx,
+        gateway_state,
+        pool,
+    )
+    .await;
     #[cfg(feature = "worker")]
     let webapp = if License::decode(&config.license).validate(&Features::Worker) {
         info!("Worker feature is enabled");
