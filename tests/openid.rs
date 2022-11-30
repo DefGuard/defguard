@@ -24,8 +24,10 @@ use rocket::{
     http::{ContentType, Header, Status},
     local::asynchronous::Client,
 };
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::{
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;

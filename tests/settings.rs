@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use defguard::{
     build_webapp,
     db::{models::settings::Settings, AppEvent, GatewayEvent},
@@ -7,6 +5,7 @@ use defguard::{
     handlers::Auth,
 };
 use rocket::{http::Status, local::asynchronous::Client};
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;

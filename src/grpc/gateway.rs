@@ -276,8 +276,9 @@ impl gateway_service_server::GatewayService for GatewayServer {
     async fn updates(&self, _: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
         info!("New client connected to updates stream");
         let (tx, rx) = mpsc::channel(4);
-        let events_rx = Arc::clone(&self.state.lock().unwrap().wireguard_rx);
-        self.state.lock().unwrap().connected = true;
+        let mut state = self.state.lock().unwrap();
+        let events_rx = Arc::clone(&state.wireguard_rx);
+        state.connected = true;
         tokio::spawn(async move {
             while let Some(update) = events_rx.lock().await.recv().await {
                 let result = match update {

@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use defguard::{
     build_webapp,
     db::{AppEvent, GatewayEvent, User, UserInfo},
@@ -7,6 +5,7 @@ use defguard::{
     handlers::{AddUserData, Auth, PasswordChange, Username, WalletChallenge},
 };
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;

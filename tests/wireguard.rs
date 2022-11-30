@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     build_webapp,
@@ -19,6 +17,7 @@ use rocket::{
     local::asynchronous::Client,
     serde::json::{serde_json::json, Value},
 };
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;

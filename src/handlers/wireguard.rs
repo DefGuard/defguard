@@ -20,8 +20,10 @@ use rocket::{
     },
     State,
 };
-use std::sync::Arc;
-use std::{str::FromStr, sync::Mutex};
+use std::{
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
 #[derive(Deserialize, Serialize)]
 pub struct WireguardNetworkData {
