@@ -1,5 +1,3 @@
-#[cfg(feature = "oauth")]
-pub mod oauth;
 #[cfg(feature = "openid")]
 pub mod openid_clients;
 #[cfg(feature = "openid")]

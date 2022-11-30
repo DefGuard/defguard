@@ -10,8 +10,6 @@ pub mod webhook;
 pub mod wireguard;
 
 use super::{DbPool, Group};
-#[cfg(feature = "openid")]
-use crate::enterprise::db::openid::AuthorizedApp;
 use device::Device;
 use sqlx::{query_as, Error as SqlxError};
 use user::{MFAMethod, User};
@@ -45,9 +43,6 @@ pub struct UserInfo {
     pub groups: Vec<String>,
     #[serde(default)]
     pub devices: Vec<Device>,
-    #[cfg(feature = "openid")]
-    #[serde(default)]
-    pub authorized_apps: Vec<AuthorizedApp>,
     #[serde(default)]
     pub wallets: Vec<WalletInfo>,
     #[serde(default)]
@@ -62,9 +57,6 @@ impl UserInfo {
         let wallets = user.wallets(pool).await?;
         let security_keys = user.security_keys(pool).await?;
 
-        #[cfg(feature = "openid")]
-        let authorized_apps = AuthorizedApp::all_for_user(pool, &user).await?;
-
         Ok(Self {
             username: user.username,
             last_name: user.last_name,
@@ -78,8 +70,6 @@ impl UserInfo {
             totp_enabled: user.totp_enabled,
             groups,
             devices,
-            #[cfg(feature = "openid")]
-            authorized_apps,
             wallets,
             security_keys,
             mfa_method: user.mfa_method,
@@ -119,51 +109,8 @@ impl UserInfo {
         Ok(())
     }
 
-    /// Copy authorized apps to [`User`]. This function is safe to call by a non-admin user.
-    #[cfg(feature = "openid")]
-    async fn handle_user_authorized_apps(
-        &mut self,
-        pool: &DbPool,
-        user: &mut User,
-    ) -> Result<(), SqlxError> {
-        let mut present_apps = AuthorizedApp::all_for_user(pool, user).await?;
-
-        // create applications that don't already exist
-        for mut auth_app in &mut self.authorized_apps {
-            match present_apps
-                .iter()
-                .position(|app| app.client_id == auth_app.client_id)
-            {
-                Some(index) => {
-                    present_apps.swap_remove(index);
-                }
-                None => {
-                    if let Some(id) = user.id {
-                        auth_app.id = None;
-                        auth_app.user_id = id;
-                        auth_app.save(pool).await?;
-                    }
-                }
-            }
-        }
-
-        // remove from remaining applications
-        for app in present_apps {
-            app.delete(pool).await?;
-        }
-
-        Ok(())
-    }
-
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
-    pub async fn into_user_safe_fields(
-        mut self,
-        pool: &DbPool,
-        user: &mut User,
-    ) -> Result<(), SqlxError> {
-        #[cfg(feature = "openid")]
-        self.handle_user_authorized_apps(pool, user).await?;
-
+    pub async fn into_user_safe_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.ssh_key = self.ssh_key;
         user.pgp_key = self.pgp_key;
@@ -180,8 +127,6 @@ impl UserInfo {
         user: &mut User,
     ) -> Result<(), SqlxError> {
         self.handle_user_groups(pool, user).await?;
-        #[cfg(feature = "openid")]
-        self.handle_user_authorized_apps(pool, user).await?;
 
         user.phone = self.phone;
         user.ssh_key = self.ssh_key;

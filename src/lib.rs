@@ -1,9 +1,7 @@
 #![allow(clippy::derive_partial_eq_without_eq)]
-// oxide macro
+// Rocket macro
 #![allow(clippy::unnecessary_lazy_evaluations)]
 
-#[cfg(feature = "oauth")]
-use crate::enterprise::handlers::oauth::{authorize, authorize_consent, refresh, token};
 #[cfg(feature = "worker")]
 use crate::enterprise::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
@@ -12,18 +10,18 @@ use crate::enterprise::handlers::worker::{
 use crate::enterprise::handlers::{
     openid_clients::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-        delete_user_app, get_openid_client, get_user_apps, list_openid_clients, update_user_app,
+        get_openid_client, list_openid_clients,
     },
-    openid_flow::{authentication_request, check_authorized, id_token, openid_configuration},
+    openid_flow::{
+        authorization, discovery_keys, id_token, openid_configuration, secure_authorization,
+        userinfo,
+    },
 };
-#[cfg(feature = "oauth")]
-use crate::enterprise::oauth_state::OAuthState;
-use crate::enterprise::{db::openid::AuthorizedApp, grpc::WorkerState};
+use crate::enterprise::{db::OAuth2Client, grpc::WorkerState};
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
 use crate::license::License;
 use appstate::AppState;
-use chrono::Utc;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
 use grpc::GatewayState;
@@ -76,8 +74,7 @@ pub mod grpc;
 pub mod handlers;
 mod hex;
 pub mod license;
-#[cfg(feature = "oauth")]
-pub mod oxide_auth_rocket;
+pub(crate) mod random;
 
 #[macro_use]
 extern crate rocket;
@@ -203,37 +200,25 @@ pub async fn build_webapp(
     );
     #[cfg(feature = "openid")]
     let webapp = if license_decoded.validate(&Features::Openid) {
-        info!("Openid feature is enabled");
-        webapp.mount(
-            "/api/v1/openid",
-            routes![
-                add_openid_client,
-                delete_openid_client,
-                change_openid_client,
-                list_openid_clients,
-                get_openid_client,
-                authentication_request,
-                id_token,
-                change_openid_client_state,
-                openid_configuration,
-                check_authorized,
-                update_user_app,
-                delete_user_app,
-                get_user_apps
-            ],
-        )
-    } else {
+        info!("OpenID Connect feature is enabled");
         webapp
-    };
-
-    // initialize OAuth2
-    #[cfg(feature = "oauth")]
-    let webapp = if config.oauth_enabled && license_decoded.validate(&Features::Oauth) {
-        info!("OAuth2 feature is enabled");
-        webapp.manage(OAuthState::new(pool.clone()).await).mount(
-            "/api/oauth",
-            routes![authorize, authorize_consent, token, refresh],
-        )
+            .mount(
+                "/api/v1/oauth",
+                routes![
+                    discovery_keys,
+                    add_openid_client,
+                    list_openid_clients,
+                    delete_openid_client,
+                    change_openid_client,
+                    get_openid_client,
+                    authorization,
+                    secure_authorization,
+                    id_token,
+                    userinfo,
+                    change_openid_client_state,
+                ],
+            )
+            .mount("/.well-known", routes![openid_configuration])
     } else {
         webapp
     };
@@ -329,17 +314,13 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     );
     device.save(&pool).await.expect("Could not save device");
 
-    for app_id in &[1, 2, 3] {
-        let mut app = AuthorizedApp::new(
-            1,
-            format!("client-id-{}", app_id),
-            format!("https://app-{}.com", app_id),
-            Utc::now().naive_utc().to_string(),
+    for app_id in 1..=3 {
+        let mut app = OAuth2Client::new(
+            vec![format!("https://app-{}.com", app_id)],
+            vec!["openid".into(), "profile".into(), "email".into()],
             format!("app-{}", app_id),
         );
-        app.save(&pool)
-            .await
-            .expect("Could not save authorized app");
+        app.save(&pool).await.expect("Could not save oauth2client");
     }
-    log::info!("Dev environment initialized - TestNet, TestDevice, AuthorizedApps added");
+    info!("Dev environment initialized - TestNet, TestDevice, AuthorizedApps added");
 }

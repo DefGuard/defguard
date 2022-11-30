@@ -122,9 +122,7 @@ pub async fn modify_user(
             .into_user_all_fields(&appstate.pool, &mut user)
             .await?;
     } else {
-        user_info
-            .into_user_safe_fields(&appstate.pool, &mut user)
-            .await?;
+        user_info.into_user_safe_fields(&mut user).await?;
     }
     user.save(&appstate.pool).await?;
 
