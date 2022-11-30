@@ -352,17 +352,20 @@ pub async fn web3auth_end(
 /// Authenticate with a recovery code.
 #[post("/auth/recovery", format = "json", data = "<recovery_code>")]
 pub async fn recovery_code(
-    session_info: SessionInfo,
+    mut session: Session,
     appstate: &State<AppState>,
     recovery_code: Json<RecoveryCode>,
 ) -> ApiResult {
-    let mut user = session_info.user;
-    if user
-        .verify_recovery_code(&appstate.pool, &recovery_code.code)
-        .await?
-    {
-        Ok(ApiResponse::default())
-    } else {
-        Err(OriWebError::Http(Status::Unauthorized))
+    if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+        if user
+            .verify_recovery_code(&appstate.pool, &recovery_code.code)
+            .await?
+        {
+            session
+                .set_state(&appstate.pool, SessionState::MultiFactorVerified)
+                .await?;
+            return Ok(ApiResponse::default());
+        }
     }
+    Err(OriWebError::Http(Status::Unauthorized))
 }

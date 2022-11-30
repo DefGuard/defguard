@@ -119,7 +119,7 @@ async fn test_totp() {
 
     // check recovery codes
     let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
-    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
+    assert_eq!(recovery_codes.codes.as_ref().unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // enable MFA
     let response = client.put("/api/v1/auth/mfa").dispatch().await;
@@ -145,6 +145,43 @@ async fn test_totp() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Unauthorized);
+
+    // provide recovery code
+    let code = recovery_codes.codes.unwrap().first().unwrap().to_string();
+    let response = client
+        .post("/api/v1/auth/recovery")
+        .json(&json!({ "code": code }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // authorized
+    let response = client.get("/api/v1/me").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+
+    // reuse the same recovery code - shouldn't work
+    let response = client
+        .post("/api/v1/auth/recovery")
+        .json(&json!({ "code": code }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Unauthorized);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
 
     // provide correct TOTP code
     let code = totp_code(&auth_totp);
