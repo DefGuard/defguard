@@ -1,4 +1,3 @@
-use defguard::enterprise::grpc::WorkerState;
 #[cfg(feature = "worker")]
 use defguard::enterprise::handlers::worker::{create_job, job_status, list_workers, remove_worker};
 use defguard::{
@@ -7,6 +6,7 @@ use defguard::{
     handlers::Auth,
     license::{Features, License},
 };
+use defguard::{enterprise::grpc::WorkerState, grpc::GatewayState};
 use rocket::{http::Status, local::asynchronous::Client, routes};
 use std::{
     env,
@@ -23,9 +23,11 @@ async fn make_client(license: &str) -> Client {
     config.license = license.into();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
-    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let (webhook_tx, _webhook_rx) = unbounded_channel::<AppEvent>();
-    let webapp = build_webapp(config.clone(), tx, rx, wg_tx, pool).await;
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
+
+    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let license_decoded = License::decode(license);

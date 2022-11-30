@@ -24,14 +24,8 @@ pub struct GatewayServer {
 impl GatewayServer {
     /// Create new gateway server instance
     #[must_use]
-    pub fn new(
-        pool: DbPool,
-        state: Arc<Mutex<GatewayState>>,
-    ) -> Self {
-        Self {
-            pool,
-            state,
-        }
+    pub fn new(pool: DbPool, state: Arc<Mutex<GatewayState>>) -> Self {
+        Self { pool, state }
     }
     /// Sends updated network configuration
     async fn send_network_update(

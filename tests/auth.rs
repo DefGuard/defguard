@@ -2,12 +2,16 @@ use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     build_webapp,
     db::{AppEvent, GatewayEvent, User, UserInfo, Wallet},
+    grpc::GatewayState,
     handlers::{Auth, AuthCode, AuthTotp},
 };
 use otpauth::TOTP;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use serde::Deserialize;
-use std::time::SystemTime;
+use std::{
+    sync::{Arc, Mutex},
+    time::SystemTime,
+};
 use tokio::sync::mpsc::unbounded_channel;
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
@@ -43,9 +47,10 @@ async fn make_client() -> Client {
     wallet.save(&pool).await.unwrap();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
-    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
 }
 

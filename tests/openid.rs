@@ -1,7 +1,10 @@
+use std::sync::{Arc, Mutex};
+
 use defguard::{
     build_webapp,
     db::{AppEvent, GatewayEvent},
     enterprise::db::openid::{AuthorizedApp, NewOpenIDClient, OpenIDClient},
+    grpc::GatewayState,
     handlers::Auth,
 };
 use rocket::{
@@ -18,9 +21,11 @@ async fn make_client() -> Client {
     config.license = LICENSE_ENTERPRISE.into();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
-    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
+
+    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
 }
 
