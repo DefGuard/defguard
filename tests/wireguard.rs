@@ -8,6 +8,7 @@ use defguard::{
         },
         AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork, WireguardPeerStats,
     },
+    grpc::GatewayState,
     handlers::{wireguard::WireguardNetworkData, Auth},
 };
 use matches::assert_matches;
@@ -16,20 +17,19 @@ use rocket::{
     local::asynchronous::Client,
     serde::json::{serde_json::json, Value},
 };
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
+use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
 use common::init_test_db;
 
-async fn make_client(
-    pool: DbPool,
-    config: DefGuardConfig,
-) -> (Client, UnboundedReceiver<GatewayEvent>) {
+async fn make_client(pool: DbPool, config: DefGuardConfig) -> (Client, Arc<Mutex<GatewayState>>) {
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
-    (Client::tracked(webapp).await.unwrap(), wg_rx)
+    let webapp = build_webapp(config, tx, rx, wg_tx, Arc::clone(&gateway_state), pool).await;
+    (Client::tracked(webapp).await.unwrap(), gateway_state)
 }
 
 fn make_network() -> Value {
@@ -46,7 +46,8 @@ fn make_network() -> Value {
 #[rocket::async_test]
 async fn test_network() {
     let (pool, config) = init_test_db().await;
-    let (client, mut wg_rx) = make_client(pool, config).await;
+    let (client, gateway_state) = make_client(pool, config).await;
+    let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -61,7 +62,7 @@ async fn test_network() {
     assert_eq!(response.status(), Status::Created);
     let network: WireguardNetwork = response.into_json().await.unwrap();
     assert_eq!(network.name, "network");
-    let event = wg_rx.try_recv().unwrap();
+    let event = wg_rx.lock().await.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(_));
 
     // modify network
@@ -79,7 +80,7 @@ async fn test_network() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.try_recv().unwrap();
+    let event = wg_rx.lock().await.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkModified(_));
 
     // list networks
@@ -105,14 +106,15 @@ async fn test_network() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.try_recv().unwrap();
+    let event = wg_rx.lock().await.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkDeleted(_));
 }
 
 #[rocket::async_test]
 async fn test_device() {
     let (pool, config) = init_test_db().await;
-    let (client, mut wg_rx) = make_client(pool, config).await;
+    let (client, gateway_state) = make_client(pool, config).await;
+    let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -125,7 +127,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
-    let event = wg_rx.try_recv().unwrap();
+    let event = wg_rx.lock().await.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(_));
 
     // network details
@@ -144,7 +146,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
-    let event = wg_rx.try_recv().unwrap();
+    let event = wg_rx.lock().await.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceCreated(_));
 
     // list devices
@@ -183,7 +185,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.try_recv().unwrap();
+    let event = wg_rx.lock().await.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceModified(_));
 
     // device details
@@ -229,7 +231,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.try_recv().unwrap();
+    let event = wg_rx.lock().await.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkDeleted(_));
 
     // delete device
@@ -238,7 +240,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.try_recv().unwrap();
+    let event = wg_rx.lock().await.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceDeleted(_));
 
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
@@ -250,7 +252,8 @@ async fn test_device() {
 #[rocket::async_test]
 async fn test_device_pubkey() {
     let (pool, config) = init_test_db().await;
-    let (client, mut wg_rx) = make_client(pool, config).await;
+    let (client, gateway_state) = make_client(pool, config).await;
+    let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -263,7 +266,7 @@ async fn test_device_pubkey() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
-    let event = wg_rx.try_recv().unwrap();
+    let event = wg_rx.lock().await.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(_));
 
     // network details

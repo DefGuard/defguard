@@ -8,6 +8,7 @@ use crate::{
         models::wireguard::DateTimeAggregation, AddDevice, DbPool, Device, GatewayEvent,
         WireguardNetwork,
     },
+    grpc::GatewayState,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -19,7 +20,10 @@ use rocket::{
     },
     State,
 };
-use std::str::FromStr;
+use std::{
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
 #[derive(Deserialize, Serialize)]
 pub struct WireguardNetworkData {
@@ -39,6 +43,11 @@ impl WireguardNetworkData {
                 .collect()
         })
     }
+}
+
+#[derive(Serialize)]
+struct ConnectionInfo {
+    connected: bool,
 }
 
 #[post("/", format = "json", data = "<data>")]
@@ -360,6 +369,23 @@ pub async fn network_stats(
 
     Ok(ApiResponse {
         json: json!(stats),
+        status: Status::Ok,
+    })
+}
+
+#[get("/connection", format = "json")]
+pub async fn connection_info(
+    _admin: AdminRole,
+    gateway_state: &State<Arc<Mutex<GatewayState>>>,
+) -> ApiResult {
+    debug!("Checking gateway connection info");
+    let info = ConnectionInfo {
+        connected: gateway_state.lock().unwrap().connected,
+    };
+    info!("Checked gateway connection info");
+
+    Ok(ApiResponse {
+        json: json!(info),
         status: Status::Ok,
     })
 }

@@ -23,6 +23,7 @@ use crate::license::License;
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
+use grpc::GatewayState;
 #[cfg(feature = "wireguard")]
 use handlers::wireguard::{
     add_device, create_network, create_network_token, delete_device, delete_network,
@@ -47,6 +48,7 @@ use handlers::{
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
     },
+    wireguard::connection_info,
 };
 use rocket::{
     config::Config,
@@ -100,6 +102,7 @@ pub async fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: UnboundedSender<GatewayEvent>,
+    gateway_state: Arc<Mutex<GatewayState>>,
     pool: DbPool,
 ) -> Rocket<Build> {
     // configure Rocket webapp
@@ -166,7 +169,7 @@ pub async fn build_webapp(
             ],
         );
     #[cfg(feature = "wireguard")]
-    let webapp = webapp.mount(
+    let webapp = webapp.manage(gateway_state).mount(
         "/api/v1",
         routes![
             add_device,
@@ -176,6 +179,7 @@ pub async fn build_webapp(
             delete_device,
             list_devices,
             download_config,
+            connection_info,
         ],
     );
     // initialize webapp with network routes
@@ -235,12 +239,21 @@ pub async fn build_webapp(
 pub async fn run_web_server(
     config: DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
+    gateway_state: Arc<Mutex<GatewayState>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: UnboundedSender<GatewayEvent>,
     pool: DbPool,
 ) -> Result<Rocket<Ignite>, RocketError> {
-    let webapp = build_webapp(config.clone(), webhook_tx, webhook_rx, wireguard_tx, pool).await;
+    let webapp = build_webapp(
+        config.clone(),
+        webhook_tx,
+        webhook_rx,
+        wireguard_tx,
+        gateway_state,
+        pool,
+    )
+    .await;
     #[cfg(feature = "worker")]
     let webapp = if License::decode(&config.license).validate(&Features::Worker) {
         info!("Worker feature is enabled");
