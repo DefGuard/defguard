@@ -237,37 +237,37 @@ const useApi = (props?: HookProps): ApiHook => {
   const editWebhook = async ({ id, ...rest }: EditWebhookRequest) => {
     return client.put<EmptyApiResponse>(`/webhook/${id}`, rest);
   };
-  const getOpenidClients = () => client.get('/openid/').then((res) => res.data);
+  const getOpenidClients = () => client.get('/oauth/').then((res) => res.data);
 
   const getOpenidClient = async (id: string) =>
-    client.get<OpenidClient>(`/openid/${id}`).then((res) => res.data);
+    client.get<OpenidClient>(`/oauth/${id}`).then((res) => res.data);
 
   const addOpenidClient = async (data: AddOpenidClientRequest) => {
-    return client.post<EmptyApiResponse>('/openid/', data);
+    return client.post<EmptyApiResponse>('/oauth/', data);
   };
   const editOpenidClient = async ({ id, ...rest }: EditOpenidClientRequest) => {
-    return client.put<EmptyApiResponse>(`/openid/${id}`, rest);
+    return client.put<EmptyApiResponse>(`/oauth/${id}`, rest);
   };
   const changeOpenidClientState = async ({
     id,
     ...rest
   }: ChangeOpenidClientStateRequest) => {
-    return client.post<EmptyApiResponse>(`/openid/${id}`, rest);
+    return client.post<EmptyApiResponse>(`/oauth/${id}`, rest);
   };
   const deleteOpenidClient = async (id: string) =>
-    client.delete<EmptyApiResponse>(`/openid/${id}`).then((res) => res.data);
+    client.delete<EmptyApiResponse>(`/oauth/${id}`).then((res) => res.data);
 
   const verifyOpenidClient = async (data: VerifyOpenidClientRequest) =>
     client.post('openid/verify', data);
 
   const getUserClients = async (username: string) =>
     client
-      .get<AuthorizedClient[]>(`/openid/apps/${username}`)
+      .get<AuthorizedClient[]>(`/oauth/apps/${username}`)
       .then((res) => res.data);
 
   const removeUserClient = async (id: string) =>
     client
-      .delete<EmptyApiResponse>(`/openid/apps/${id}`)
+      .delete<EmptyApiResponse>(`/oauth/apps/${id}`)
       .then((res) => res.data);
 
   const oAuthConsent = (params: unknown) =>

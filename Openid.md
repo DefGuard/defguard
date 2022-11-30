@@ -38,13 +38,13 @@ code=SplxlOBeZQQYbYS6WxSbIA
 ### Exchange code for token
 
 After receiving code from previous step you need to exchange it for token
-on token endpoint defguard.tnt/api/v1/openid/token
+on token endpoint defguard.tnt/api/v1/oauth/token
 
 Request Header and Url:
 
 ```
 Content-Type: application/x-www-form-urlencoded
-POST defguard.tnt/api/v1/openid/token
+POST defguard.tnt/api/v1/oauth/token
 ```
 
 Request body:

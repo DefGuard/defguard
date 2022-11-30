@@ -44,7 +44,6 @@ export const LicenseCard = () => {
           <ul>
             <li>YubiBridge</li>
             <li>OpenID</li>
-            <li>Oauth2</li>
             <li>OpenLDAP</li>
           </ul>
           <br />

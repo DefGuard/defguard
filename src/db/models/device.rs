@@ -40,6 +40,7 @@ impl Device {
         self.wireguard_pubkey = other.wireguard_pubkey;
     }
     /// Create wireguard config for device
+    #[must_use]
     pub fn create_config(&self, network: WireguardNetwork) -> String {
         let dns = match network.dns {
             Some(dns) => {

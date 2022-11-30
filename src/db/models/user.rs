@@ -2,6 +2,7 @@ use super::{device::Device, group::Group, SecurityKey, WalletInfo};
 use crate::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{Wallet, WebAuthn},
+    random::gen_alphanumeric,
     DbPool,
 };
 use argon2::{
@@ -13,7 +14,7 @@ use argon2::{
 };
 use model_derive::Model;
 use otpauth::TOTP;
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use rand::{thread_rng, Rng};
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, Type};
 use std::time::SystemTime;
 
@@ -95,6 +96,10 @@ impl User {
         Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
     }
 
+    pub fn name(&self) -> String {
+        format!("{} {}", self.first_name, self.last_name)
+    }
+
     /// Generate new `secret`, save it, then return it as RFC 4648 base32-encoded string.
     pub async fn new_secret(&mut self, pool: &DbPool) -> Result<String, SqlxError> {
         let secret = thread_rng().gen::<[u8; 20]>().to_vec();
@@ -112,7 +117,7 @@ impl User {
         Ok(secret_base32)
     }
 
-    /// Update `mfa_method` only when it's set to `None`, or the new value is `None.
+    /// Update `mfa_method` only when it's set to `None`, or the new value is `None`.
     /// That way last preferred MFA method is conserved.
     pub async fn set_mfa_method(
         &mut self,
@@ -200,11 +205,7 @@ impl User {
         }
 
         for _ in 0..RECOVERY_CODES_COUNT {
-            let code = thread_rng()
-                .sample_iter(Alphanumeric)
-                .take(16)
-                .map(char::from)
-                .collect();
+            let code = gen_alphanumeric(16);
             self.recovery_codes.push(code);
         }
         if let Some(id) = self.id {
@@ -276,6 +277,7 @@ impl User {
     }
 
     /// Check if TOTP `code` is valid.
+    #[must_use]
     pub fn verify_code(&self, code: u32) -> bool {
         if let Some(totp_secret) = &self.totp_secret {
             let totp = TOTP::from_bytes(totp_secret);
