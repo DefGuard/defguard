@@ -3,7 +3,7 @@ use defguard::{
     build_webapp,
     db::{AppEvent, GatewayEvent, User, UserInfo, Wallet},
     grpc::GatewayState,
-    handlers::{Auth, AuthCode, AuthTotp, RecoveryCode},
+    handlers::{Auth, AuthCode, AuthTotp},
 };
 use otpauth::TOTP;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
@@ -146,11 +146,11 @@ async fn test_totp() {
         .await;
     assert_eq!(response.status(), Status::Unauthorized);
 
-    // provide correct TOTP code
-    let code = totp_code(&auth_totp);
+    // provide recovery code
+    let code = recovery_codes.codes.unwrap().first().unwrap().to_string();
     let response = client
-        .post("/api/v1/auth/totp/verify")
-        .json(&code)
+        .post("/api/v1/auth/recovery")
+        .json(&json!({ "code": code }))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
@@ -167,12 +167,26 @@ async fn test_totp() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Created);
 
-    // provide recovery code
-    let code = RecoveryCode {
-        code: recovery_codes.codes.unwrap().first().unwrap().to_string(),
-    };
+    // reuse the same recovery code - shouldn't work
     let response = client
         .post("/api/v1/auth/recovery")
+        .json(&json!({ "code": code }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Unauthorized);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+
+    // provide correct TOTP code
+    let code = totp_code(&auth_totp);
+    let response = client
+        .post("/api/v1/auth/totp/verify")
         .json(&code)
         .dispatch()
         .await;
