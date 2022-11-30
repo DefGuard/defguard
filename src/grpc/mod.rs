@@ -14,7 +14,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::{mpsc::UnboundedReceiver, Mutex as AsyncMutex};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 mod auth;
@@ -23,16 +23,25 @@ mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 
-#[derive(Default)]
 pub struct GatewayState {
     pub connected: bool,
+    pub wireguard_rx: Arc<AsyncMutex<UnboundedReceiver<GatewayEvent>>>,
+}
+
+impl GatewayState {
+    #[must_use]
+    pub fn new(wireguard_rx: UnboundedReceiver<GatewayEvent>) -> Self {
+        Self {
+            connected: false,
+            wireguard_rx: Arc::new(AsyncMutex::new(wireguard_rx)),
+        }
+    }
 }
 
 /// Runs gRPC server with core services.
 pub async fn run_grpc_server(
     grpc_port: u16,
     worker_state: Arc<Mutex<WorkerState>>,
-    wireguard_rx: UnboundedReceiver<GatewayEvent>,
     pool: DbPool,
     gateway_state: Arc<Mutex<GatewayState>>,
     grpc_cert: Option<String>,
@@ -47,7 +56,7 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(wireguard_rx, pool, gateway_state),
+        GatewayServer::new(pool, gateway_state),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
     // Run gRPC server

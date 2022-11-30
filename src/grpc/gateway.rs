@@ -8,10 +8,7 @@ use std::{
     sync::{Arc, Mutex},
     task::{Context, Poll},
 };
-use tokio::sync::{
-    mpsc::{self, Receiver, UnboundedReceiver},
-    Mutex as AsyncMutex,
-};
+use tokio::sync::mpsc::{self, Receiver};
 use tokio_stream::Stream;
 use tonic::{Request, Response, Status};
 
@@ -21,7 +18,6 @@ tonic::include_proto!("gateway");
 
 pub struct GatewayServer {
     pool: DbPool,
-    wireguard_rx: Arc<AsyncMutex<UnboundedReceiver<GatewayEvent>>>,
     state: Arc<Mutex<GatewayState>>,
 }
 
@@ -29,12 +25,10 @@ impl GatewayServer {
     /// Create new gateway server instance
     #[must_use]
     pub fn new(
-        wireguard_rx: UnboundedReceiver<GatewayEvent>,
         pool: DbPool,
         state: Arc<Mutex<GatewayState>>,
     ) -> Self {
         Self {
-            wireguard_rx: Arc::new(AsyncMutex::new(wireguard_rx)),
             pool,
             state,
         }
@@ -201,7 +195,7 @@ impl GatewayUpdatesStream {
 }
 
 impl Stream for GatewayUpdatesStream {
-    type Item = Result<Update, Status>; // I guess this is alright
+    type Item = Result<Update, Status>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         Pin::new(&mut self.rx).poll_recv(cx)
@@ -288,7 +282,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
     async fn updates(&self, _: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
         info!("New client connected to updates stream");
         let (tx, rx) = mpsc::channel(4);
-        let events_rx = Arc::clone(&self.wireguard_rx);
+        let events_rx = Arc::clone(&self.state.lock().unwrap().wireguard_rx);
         self.state.lock().unwrap().connected = true;
         tokio::spawn(async move {
             while let Some(update) = events_rx.lock().await.recv().await {
