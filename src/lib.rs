@@ -10,7 +10,7 @@ use crate::enterprise::handlers::worker::{
 use crate::enterprise::handlers::{
     openid_clients::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-        delete_user_app, get_openid_client, get_user_apps, list_openid_clients, update_user_app,
+        get_openid_client, list_openid_clients,
     },
     openid_flow::{
         authorization, discovery_keys, id_token, openid_configuration, secure_authorization,
@@ -212,9 +212,6 @@ pub async fn build_webapp(
                     id_token,
                     userinfo,
                     change_openid_client_state,
-                    update_user_app,
-                    delete_user_app,
-                    get_user_apps
                 ],
             )
             .mount("/.well-known", routes![openid_configuration])
@@ -306,7 +303,6 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
 
     for app_id in 1..=3 {
         let mut app = OAuth2Client::new(
-            1,
             vec![format!("https://app-{}.com", app_id)],
             vec!["openid".into(), "profile".into(), "email".into()],
             format!("app-{}", app_id),

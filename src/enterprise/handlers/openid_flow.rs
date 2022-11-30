@@ -239,7 +239,7 @@ pub async fn authorization(
 /// Login Authorization Endpoint redirect with authorization code
 #[post("/authorize?<allow>&<data..>")]
 pub async fn secure_authorization(
-    _session_info: SessionInfo,
+    session_info: SessionInfo,
     appstate: &State<AppState>,
     allow: bool,
     data: AuthenticationRequest<'_>,
@@ -249,7 +249,7 @@ pub async fn secure_authorization(
             Some(oauth2client) => match data.validate_for_client(&oauth2client) {
                 Ok(()) => {
                     let mut auth_code = AuthCode::new(
-                        oauth2client.user_id,
+                        session_info.user.id.unwrap(),
                         data.client_id.into(),
                         data.redirect_uri.into(),
                         data.scope.into(),

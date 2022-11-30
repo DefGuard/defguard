@@ -1,9 +1,8 @@
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::Session,
     enterprise::db::{NewOpenIDClient, OAuth2Client},
-    handlers::{user_for_admin_or_self, webhooks::ChangeStateData, ApiResponse, ApiResult},
+    handlers::{webhooks::ChangeStateData, ApiResponse, ApiResult},
 };
 use rocket::{
     http::Status,
@@ -13,11 +12,11 @@ use rocket::{
 
 #[post("/", format = "json", data = "<data>")]
 pub async fn add_openid_client(
-    session: Session,
+    _session: SessionInfo,
     appstate: &State<AppState>,
     data: Json<NewOpenIDClient>,
 ) -> ApiResult {
-    let mut client = OAuth2Client::from_new(data.into_inner(), session.user_id);
+    let mut client = OAuth2Client::from_new(data.into_inner());
     client.save(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(client),
@@ -26,8 +25,8 @@ pub async fn add_openid_client(
 }
 
 #[get("/", format = "json")]
-pub async fn list_openid_clients(session: Session, appstate: &State<AppState>) -> ApiResult {
-    let openid_clients = OAuth2Client::all_for_user(&appstate.pool, session.user_id).await?;
+pub async fn list_openid_clients(_session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+    let openid_clients = OAuth2Client::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(openid_clients),
         status: Status::Ok,
@@ -105,65 +104,6 @@ pub async fn delete_openid_client(
     let status = match OAuth2Client::find_by_client_id(&appstate.pool, client_id).await? {
         Some(openid_client) => {
             openid_client.delete(&appstate.pool).await?;
-            Status::Ok
-        }
-        None => Status::NotFound,
-    };
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
-}
-
-#[get("/apps/<username>")]
-pub async fn get_user_apps(
-    session_info: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
-) -> ApiResult {
-    let user = user_for_admin_or_self(&appstate.pool, &session_info, username).await?;
-    let apps = OAuth2Client::all_for_user(&appstate.pool, user.id.unwrap()).await?;
-    Ok(ApiResponse {
-        json: json!(apps),
-        status: Status::Ok,
-    })
-}
-
-#[put("/apps/<id>", format = "json", data = "<data>")]
-pub async fn update_user_app(
-    _session: SessionInfo,
-    appstate: &State<AppState>,
-    id: i64,
-    data: Json<NewOpenIDClient>,
-) -> ApiResult {
-    let status = match OAuth2Client::find_by_id(&appstate.pool, id).await? {
-        Some(mut app) => {
-            let update = data.into_inner();
-            app.redirect_uri = update.redirect_uri;
-            app.name = update.name;
-            app.scope = update.scope;
-            app.enabled = update.enabled;
-            app.save(&appstate.pool).await?;
-            Status::Ok
-        }
-        None => Status::NotFound,
-    };
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
-}
-
-#[delete("/apps/<id>")]
-pub async fn delete_user_app(
-    _session: SessionInfo,
-    appstate: &State<AppState>,
-    id: i64,
-) -> ApiResult {
-    debug!("Removing authorized app with id: {}", id);
-    let status = match OAuth2Client::find_by_id(&appstate.pool, id).await? {
-        Some(app) => {
-            app.delete(&appstate.pool).await?;
             Status::Ok
         }
         None => Status::NotFound,

@@ -306,69 +306,7 @@ async fn test_openid_flow() {
     // assert!(location.contains("error=user_unauthorized"));
 }
 
-#[rocket::async_test]
-async fn test_openid_apps() {
-    let client = make_client().await;
-
-    let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
-    let openid_client = NewOpenIDClient {
-        name: "Test".into(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
-        scope: vec!["openid".into()],
-        enabled: true,
-    };
-    let response = client
-        .post("/api/v1/oauth")
-        .json(&openid_client)
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Created);
-    let fetched_client: OAuth2Client = response.into_json().await.unwrap();
-    assert_eq!(fetched_client.name, "Test");
-
-    // fetch clients
-    let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let mut apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
-    assert_eq!(apps.len(), 1);
-
-    let mut app = apps.pop().unwrap();
-    assert_eq!(app.name, "Test");
-
-    // rename client
-    app.name = "My app".into();
-    let response = client
-        .put(format!("/api/v1/oauth/apps/{}", app.id.unwrap()))
-        .json(&app)
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
-
-    // fetch again to check if the name has been changed
-    let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
-    assert_eq!(apps.len(), 1);
-    assert_eq!(apps[0].name, "My app");
-
-    // delete client
-    let response = client
-        .delete(format!("/api/v1/oauth/apps/{}", app.id.unwrap()))
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
-
-    // fetch once more to check if the application has been deleted
-    let response = client.get("/api/v1/oauth/apps/admin").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
-    assert!(apps.is_empty());
-}
-
-/// Helper function for translating HTTP communication from `openidconnect` to `LocalClient`.
+/// Helper function for translating HTTP communication from `HttpRequest` to `LocalClient`.
 async fn http_client(
     request: HttpRequest,
     pool: DbPool,
