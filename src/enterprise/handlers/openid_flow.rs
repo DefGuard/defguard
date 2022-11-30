@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, SESSION_TIMEOUT},
@@ -22,7 +24,7 @@ use openidconnect::{
     StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
 use rocket::{
-    form::Form,
+    form::{self, Form, FromFormField, ValueField},
     http::Status,
     request::{FromRequest, Outcome},
     response::Redirect,
@@ -111,12 +113,44 @@ impl<'r> FromRequest<'r> for OAuth2Client {
     }
 }
 
+#[derive(Serialize)]
+struct FieldResponseTypes(Vec<CoreResponseType>);
+
+impl Deref for FieldResponseTypes {
+    type Target = Vec<CoreResponseType>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for FieldResponseTypes {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[rocket::async_trait]
+impl<'r> FromFormField<'r> for FieldResponseTypes {
+    fn from_value(field: ValueField<'r>) -> form::Result<'r, Self> {
+        let mut response_types = FieldResponseTypes(Vec::new());
+        for value in field.value.split(' ') {
+            match value {
+                "code" => response_types.push(CoreResponseType::Code),
+                "id_token" => response_types.push(CoreResponseType::IdToken),
+                "token" => response_types.push(CoreResponseType::Token),
+                _ => Err(form::Error::validation("invalid value for response type"))?,
+            }
+        }
+        Ok(response_types)
+    }
+}
+
 /// Authentication Request
 /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 #[derive(FromForm, Serialize)]
 pub struct AuthenticationRequest<'r> {
     scope: &'r str,
-    response_type: &'r str,
+    response_type: FieldResponseTypes,
     client_id: &'r str,
     // client_secret: Option<&'r str>,
     redirect_uri: &'r str,
@@ -150,7 +184,7 @@ impl<'r> AuthenticationRequest<'r> {
         }
 
         // currenly we support only "code" for `response_type`
-        if self.response_type != "code" {
+        if self.response_type.len() != 1 || !self.response_type.contains(&CoreResponseType::Code) {
             return Err(CoreErrorResponseType::InvalidRequest);
         }
 
