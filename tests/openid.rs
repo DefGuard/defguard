@@ -269,41 +269,23 @@ async fn test_openid_flow() {
     let location = response.headers().get_one("Location").unwrap();
     assert!(location.contains("error"));
 
-    // // test scope doesn't contain openid
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=blabla&\
-    //         state=ABCDEF&\
-    //         allow=true&\
-    //         nonce=blabla",
-    //         openid_client.client_id
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.contains("error=wrong_scope&error_description=scope_must_contain_openid"));
-
     // // test allow false
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=blabla&\
-    //         state=ABCDEF&\
-    //         allow=false&\
-    //         nonce=blabla",
-    //         openid_client.client_id
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.contains("error=user_unauthorized"));
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            scope=blabla&\
+            state=ABCDEF&\
+            allow=false&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .dispatch()
+        .await;
+    let location = response.headers().get_one("Location").unwrap();
+    assert!(location.contains("error=unauthorized_client"));
 }
 
 /// Helper function for translating HTTP communication from `HttpRequest` to `LocalClient`.

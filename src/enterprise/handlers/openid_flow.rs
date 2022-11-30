@@ -111,29 +111,6 @@ impl<'r> FromRequest<'r> for OAuth2Client {
     }
 }
 
-// Check if app is authorized, return 200 or 404
-// #[post("/verify", format = "json", data = "<data>")]
-// pub async fn check_authorized(
-//     session: Session,
-//     data: Json<OpenIDRequest>,
-//     appstate: &State<AppState>,
-// ) -> ApiResult {
-//     let status = match OAuth2Client::find_by_user_and_client_id(
-//         &appstate.pool,
-//         session.user_id,
-//         &data.client_id,
-//     )
-//     .await?
-//     {
-//         Some(_app) => Status::Ok,
-//         None => Status::NotFound,
-//     };
-//     Ok(ApiResponse {
-//         json: json!({}),
-//         status,
-//     })
-// }
-
 /// Authentication Request
 /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 #[derive(FromForm, Serialize)]
@@ -147,7 +124,7 @@ pub struct AuthenticationRequest<'r> {
     // response_mode: Option<&'r str>,
     nonce: Option<&'r str>,
     // display: Option<&'r str>,
-    // prompt: Option<&'r str>,
+    prompt: Option<&'r str>,
     // max_age: Option<&'r str>,
     // ui_locales: Option<&'r str>,
     // id_token_hint: Option<&'r str>,
@@ -216,10 +193,15 @@ pub async fn authorization(
     let query = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(()) => {
-                return Ok(Redirect::found(format!(
-                    "/consent?{}",
-                    serde_urlencoded::to_string(data).unwrap()
-                )));
+                if data.prompt != Some("none") {
+                    return Ok(Redirect::found(format!(
+                        "/consent?{}",
+                        serde_urlencoded::to_string(data).unwrap()
+                    )));
+                }
+                let err = CoreErrorResponseType::InvalidClient;
+                let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+                serde_qs::to_string(&response)?
             }
             Err(err) => {
                 let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
@@ -408,7 +390,7 @@ impl<'r> TokenRequest<'r> {
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
 #[post("/token", format = "form", data = "<form>")]
-pub async fn id_token(
+pub async fn token(
     form: Form<TokenRequest<'_>>,
     appstate: &State<AppState>,
     oauth2client: Option<OAuth2Client>,
@@ -498,7 +480,6 @@ pub async fn id_token(
 /// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
 #[get("/userinfo", format = "json")]
 pub fn userinfo(session_info: SessionInfo) -> ApiResult {
-    info!("Userinfo for user {}", session_info.user.username);
     let userclaims = StandardClaims::<CoreGenderClaim>::from(&session_info.user);
     Ok(ApiResponse {
         json: json!(userclaims),
