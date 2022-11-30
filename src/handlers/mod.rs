@@ -166,9 +166,9 @@ pub struct WebAuthnRegistration {
     pub rpkc: RegisterPublicKeyCredential,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct RecoveryCode {
-    code: String,
+    pub code: String,
 }
 
 #[derive(Serialize)]
