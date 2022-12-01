@@ -291,7 +291,7 @@ async fn test_openid_flow() {
         .dispatch()
         .await;
     let location = response.headers().get_one("Location").unwrap();
-    assert!(location.contains("error=unauthorized_client"));
+    assert!(location.contains("error=access_denied"));
 }
 
 /// Helper function for translating HTTP communication from `HttpRequest` to `LocalClient`.

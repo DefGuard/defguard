@@ -11,10 +11,10 @@ use crate::{
 use chrono::{Duration, Utc};
 use openidconnect::{
     core::{
-        CoreClaimName, CoreErrorResponseType, CoreGenderClaim, CoreGrantType, CoreHmacKey,
-        CoreIdToken, CoreIdTokenClaims, CoreIdTokenFields, CoreJsonWebKeySet,
-        CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType, CoreSubjectIdentifierType,
-        CoreTokenResponse, CoreTokenType,
+        CoreAuthErrorResponseType, CoreClaimName, CoreErrorResponseType, CoreGenderClaim,
+        CoreGrantType, CoreHmacKey, CoreIdToken, CoreIdTokenClaims, CoreIdTokenFields,
+        CoreJsonWebKeySet, CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
+        CoreSubjectIdentifierType, CoreTokenResponse, CoreTokenType,
     },
     url::Url,
     AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
@@ -113,7 +113,7 @@ impl<'r> FromRequest<'r> for OAuth2Client {
     }
 }
 
-#[derive(Serialize)]
+/// List of values for "response_type" field.
 struct FieldResponseTypes(Vec<CoreResponseType>);
 
 impl Deref for FieldResponseTypes {
@@ -126,6 +126,14 @@ impl Deref for FieldResponseTypes {
 impl DerefMut for FieldResponseTypes {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl serde::ser::Serialize for FieldResponseTypes {
+    // serialize to a string with values separated by space
+    fn serialize<S: serde::ser::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let types: Vec<&str> = self.iter().map(CoreResponseType::as_ref).collect();
+        serializer.serialize_str(&types.join(" "))
     }
 }
 
@@ -173,19 +181,19 @@ impl<'r> AuthenticationRequest<'r> {
     fn validate_for_client(
         &self,
         oauth2client: &OAuth2Client,
-    ) -> Result<(), CoreErrorResponseType> {
+    ) -> Result<(), CoreAuthErrorResponseType> {
         // check scope: it is valid if any requested scope exists in the `oauth2client`
         if self
             .scope
             .split(' ')
             .all(|scope| !oauth2client.scope.contains(&scope.to_owned()))
         {
-            return Err(CoreErrorResponseType::InvalidScope);
+            return Err(CoreAuthErrorResponseType::InvalidScope);
         }
 
         // currenly we support only "code" for `response_type`
         if self.response_type.len() != 1 || !self.response_type.contains(&CoreResponseType::Code) {
-            return Err(CoreErrorResponseType::InvalidRequest);
+            return Err(CoreAuthErrorResponseType::InvalidRequest);
         }
 
         // assume `client_id` is the same here and in `oauth2client`
@@ -196,13 +204,13 @@ impl<'r> AuthenticationRequest<'r> {
             .split(' ')
             .all(|uri| !oauth2client.redirect_uri.contains(&uri.to_owned()))
         {
-            return Err(CoreErrorResponseType::InvalidGrant);
+            return Err(CoreAuthErrorResponseType::AccessDenied);
         }
 
         // check PKCE; currently, only SHA-256 method is supported
         // TODO: support `plain` which is the default if not specified
         if self.code_challenge.is_some() && self.code_challenge_method != Some("S256") {
-            return Err(CoreErrorResponseType::InvalidRequest);
+            return Err(CoreAuthErrorResponseType::InvalidRequest);
         }
 
         Ok(())
@@ -224,7 +232,8 @@ pub async fn authorization(
     appstate: &State<AppState>,
     data: AuthenticationRequest<'_>,
 ) -> Result<Redirect, OriWebError> {
-    let query = match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
+    let error;
+    match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(()) => {
                 if data.prompt != Some("none") {
@@ -233,24 +242,37 @@ pub async fn authorization(
                         serde_urlencoded::to_string(data).unwrap()
                     )));
                 }
-                let err = CoreErrorResponseType::InvalidClient;
-                let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-                serde_qs::to_string(&response)?
+                error = CoreAuthErrorResponseType::LoginRequired;
             }
-            Err(err) => {
-                let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-                serde_qs::to_string(&response)?
-            }
+            Err(err) => error = err,
         },
-        None => {
-            let err = CoreErrorResponseType::InvalidClient;
-            let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-            serde_qs::to_string(&response)?
-        }
-    };
+        None => error = CoreAuthErrorResponseType::UnauthorizedClient,
+    }
 
-    Ok(Redirect::found(format!("{}?{}", data.redirect_uri, query)))
+    // TODO: https://www.rfc-editor.org/rfc/rfc6749#section-3.1.2
+    // The redirection endpoint URI MUST be an absolute URI as defined by
+    // [RFC3986] Section 4.3.  The endpoint URI MAY include an
+    // "application/x-www-form-urlencoded" formatted (per Appendix B) query
+    // component ([RFC3986] Section 3.4), which MUST be retained when adding
+    // additional query parameters.  The endpoint URI MUST NOT include a
+    // fragment component.
+    Ok(Redirect::found(format!(
+        "{}?error={}",
+        data.redirect_uri,
+        error.as_ref()
+    )))
 }
+
+// #[get("/authorize", rank = 2)]
+// pub async fn authorization()
+// ) -> Redirect {
+//     let error = CoreAuthErrorResponseType::InvalidRequest;
+//     Ok(Redirect::found(format!(
+//         "{}?error={}",
+//         data.redirect_uri,
+//         error.as_ref()
+//     )))
+// }
 
 /// Login Authorization Endpoint redirect with authorization code
 #[post("/authorize?<allow>&<data..>")]
@@ -260,7 +282,8 @@ pub async fn secure_authorization(
     allow: bool,
     data: AuthenticationRequest<'_>,
 ) -> Result<Redirect, OriWebError> {
-    let query = if allow {
+    let error;
+    if allow {
         match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
             Some(oauth2client) => match data.validate_for_client(&oauth2client) {
                 Ok(()) => {
@@ -277,26 +300,22 @@ pub async fn secure_authorization(
                         code: auth_code.code.as_str(),
                         state: data.state,
                     };
-                    serde_qs::to_string(&response)?
+                    let query = serde_qs::to_string(&response)?;
+                    return Ok(Redirect::found(format!("{}?{}", data.redirect_uri, query)));
                 }
-                Err(err) => {
-                    let response =
-                        StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-                    serde_qs::to_string(&response)?
-                }
+                Err(err) => error = err,
             },
-            None => {
-                let err = CoreErrorResponseType::InvalidClient;
-                let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-                serde_qs::to_string(&response)?
-            }
+            None => error = CoreAuthErrorResponseType::UnauthorizedClient,
         }
     } else {
-        let err = CoreErrorResponseType::UnauthorizedClient;
-        let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-        serde_qs::to_string(&response)?
-    };
-    Ok(Redirect::found(format!("{}?{}", data.redirect_uri, query)))
+        error = CoreAuthErrorResponseType::AccessDenied;
+    }
+
+    Ok(Redirect::found(format!(
+        "{}?error={}",
+        data.redirect_uri,
+        error.as_ref()
+    )))
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenRequest
@@ -317,6 +336,22 @@ pub struct TokenRequest<'r> {
 }
 
 impl<'r> TokenRequest<'r> {
+    /// Verify Proof Key for Code Exchange (PKCE) https://www.rfc-editor.org/rfc/rfc7636
+    fn verify_pkce(&self, code_challenge: Option<&String>) -> bool {
+        if let Some(challenge) = code_challenge {
+            if let Some(verifier) = self.code_verifier {
+                let pkce_challenge = PkceCodeChallenge::from_code_verifier_sha256(
+                    &PkceCodeVerifier::new(verifier.into()),
+                );
+                pkce_challenge.as_str() == challenge
+            } else {
+                false
+            }
+        } else {
+            true
+        }
+    }
+
     fn authorization_code_flow<T>(
         &self,
         auth_code: &AuthCode,
@@ -335,19 +370,8 @@ impl<'r> TokenRequest<'r> {
                 return Err(CoreErrorResponseType::UnauthorizedClient);
             }
 
-            // Proof Key for Code Exchange (PKCE) https://www.rfc-editor.org/rfc/rfc7636
-            if let Some(code_challenge) = &auth_code.code_challenge {
-                match self.code_verifier {
-                    Some(code_verifier) => {
-                        let pkce_code_challenge = PkceCodeChallenge::from_code_verifier_sha256(
-                            &PkceCodeVerifier::new(code_verifier.into()),
-                        );
-                        if pkce_code_challenge.as_str() != code_challenge {
-                            return Err(CoreErrorResponseType::InvalidRequest);
-                        }
-                    }
-                    None => return Err(CoreErrorResponseType::InvalidRequest),
-                }
+            if !self.verify_pkce(auth_code.code_challenge.as_ref()) {
+                return Err(CoreErrorResponseType::InvalidRequest);
             }
 
             let access_token = AccessToken::new(token.access_token.clone());
