@@ -1,14 +1,13 @@
-import React from 'react';
-
 import { Label } from '../../../../shared/components/layout/Label/Label';
 import { Tag } from '../../../../shared/components/layout/Tag/Tag';
 import { OpenidClient } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
+
 interface Props {
   client: OpenidClient;
 }
 
-const OpenidClientInfo: React.FC<Props> = ({ client }) => {
+const OpenidClientInfo = ({ client }: Props) => {
   return (
     <>
       <div className="row">

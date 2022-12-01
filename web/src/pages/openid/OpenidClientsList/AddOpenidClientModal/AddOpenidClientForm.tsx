@@ -44,9 +44,7 @@ const AddOpenidClientForm = ({ setIsOpen }: Props) => {
       yup
         .object()
         .shape({
-          url: yup
-            .string()
-            .required(t('form.errors.required'))
+          url: yup.string().required(t('form.errors.required')),
         })
         .required()
     ),
@@ -91,7 +89,7 @@ const AddOpenidClientForm = ({ setIsOpen }: Props) => {
     const payload = {
       name: data.name,
       redirect_uri: redirectUrls,
-      scope: scopes,
+      scope: scopes.filter((item) => item === ''),
       enabled: true,
     };
 
@@ -117,6 +115,7 @@ const AddOpenidClientForm = ({ setIsOpen }: Props) => {
           />
           {index !== 0 ? (
             <Button
+              key={field.id}
               className="big warning"
               type="submit"
               size={ButtonSize.BIG}
