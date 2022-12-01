@@ -82,6 +82,7 @@ async fn make_client_with_wallet(address: String) -> Client {
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
     let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
