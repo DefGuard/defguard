@@ -2,13 +2,11 @@ use defguard::{
     build_webapp,
     config::DefGuardConfig,
     db::{AppEvent, DbPool, GatewayEvent},
-    enterprise::{
-        db::{NewOpenIDClient, OAuth2Client},
-        handlers::openid_flow::AuthenticationResponse,
-    },
+    enterprise::db::{NewOpenIDClient, OAuth2Client},
     grpc::GatewayState,
     handlers::Auth,
 };
+
 use openidconnect::{
     core::{CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType},
     http::{
@@ -24,6 +22,7 @@ use rocket::{
     http::{ContentType, Header, Status},
     local::asynchronous::Client,
 };
+use serde::Deserialize;
 use std::{
     str::FromStr,
     sync::{Arc, Mutex},
@@ -53,6 +52,12 @@ async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> Client {
 
     let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
+}
+
+#[derive(Deserialize)]
+pub struct AuthenticationResponse<'r> {
+    pub code: &'r str,
+    pub state: &'r str,
 }
 
 #[rocket::async_test]
@@ -259,7 +264,7 @@ async fn test_openid_flow() {
     let location = response.headers().get_one("Location").unwrap();
     assert!(location.contains("error"));
 
-    // test wrong redirect uri
+    // test wrong invalid uri
     let response = client
         .post(
             "/api/v1/oauth/authorize?\
@@ -272,8 +277,26 @@ async fn test_openid_flow() {
         )
         .dispatch()
         .await;
+    assert_eq!(response.status(), Status::BadRequest);
+
+    // test wrong redirect uri
+    let response = client
+        .post(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=1&\
+            redirect_uri=http%3A%2F%2Fexample%3A3000%3Fvalue1=one%26value2=two&\
+            scope=openid&\
+            state=ABCDEF&\
+            nonce=blabla",
+        )
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Found);
     let location = response.headers().get_one("Location").unwrap();
-    assert!(location.contains("error"));
+    assert!(location.contains("error=access_denied"));
+    assert!(location.contains("value1="));
+    assert!(location.contains("value2="));
 
     // // test allow false
     let response = client
@@ -290,6 +313,7 @@ async fn test_openid_flow() {
         ))
         .dispatch()
         .await;
+    assert_eq!(response.status(), Status::Found);
     let location = response.headers().get_one("Location").unwrap();
     assert!(location.contains("error=access_denied"));
 }

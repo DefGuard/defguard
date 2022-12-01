@@ -217,14 +217,6 @@ impl<'r> AuthenticationRequest<'r> {
     }
 }
 
-// https://openid.net/specs/openid-connect-core-1_0.html#AuthResponse
-// FIXME: missing a proper struct from `openidconnect`; check CoreResponseType::Code
-#[derive(Deserialize, Serialize)]
-pub struct AuthenticationResponse<'r> {
-    pub code: &'r str,
-    pub state: &'r str,
-}
-
 /// Authorization Endpoint
 /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 #[get("/authorize?<data..>")]
@@ -256,11 +248,10 @@ pub async fn authorization(
     // component ([RFC3986] Section 3.4), which MUST be retained when adding
     // additional query parameters.  The endpoint URI MUST NOT include a
     // fragment component.
-    Ok(Redirect::found(format!(
-        "{}?error={}",
-        data.redirect_uri,
-        error.as_ref()
-    )))
+    let mut url =
+        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
+    url.query_pairs_mut().append_pair("error", error.as_ref());
+    Ok(Redirect::found(url.to_string()))
 }
 
 // #[get("/authorize", rank = 2)]
@@ -282,6 +273,8 @@ pub async fn secure_authorization(
     allow: bool,
     data: AuthenticationRequest<'_>,
 ) -> Result<Redirect, OriWebError> {
+    let mut url =
+        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
     let error;
     if allow {
         match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
@@ -296,12 +289,10 @@ pub async fn secure_authorization(
                         data.code_challenge.map(str::to_owned),
                     );
                     auth_code.save(&appstate.pool).await?;
-                    let response = AuthenticationResponse {
-                        code: auth_code.code.as_str(),
-                        state: data.state,
-                    };
-                    let query = serde_qs::to_string(&response)?;
-                    return Ok(Redirect::found(format!("{}?{}", data.redirect_uri, query)));
+                    url.query_pairs_mut()
+                        .append_pair("code", auth_code.code.as_str())
+                        .append_pair("state", data.state);
+                    return Ok(Redirect::found(url.to_string()));
                 }
                 Err(err) => error = err,
             },
@@ -311,11 +302,8 @@ pub async fn secure_authorization(
         error = CoreAuthErrorResponseType::AccessDenied;
     }
 
-    Ok(Redirect::found(format!(
-        "{}?error={}",
-        data.redirect_uri,
-        error.as_ref()
-    )))
+    url.query_pairs_mut().append_pair("error", error.as_ref());
+    Ok(Redirect::found(url.to_string()))
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenRequest
