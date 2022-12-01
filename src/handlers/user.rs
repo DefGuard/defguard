@@ -192,30 +192,31 @@ pub async fn wallet_challenge(
     let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
 
     // check if address already exists
-    let wallet =
-        match Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await? {
-            Some(wallet) => {
-                if wallet.validation_timestamp.is_some() {
-                    return Err(OriWebError::ObjectNotFound("wrong address".into()));
-                }
-                wallet
+    let wallet = match Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address)
+        .await?
+    {
+        Some(wallet) => {
+            if wallet.validation_timestamp.is_some() {
+                return Err(OriWebError::ObjectNotFound("wrong address".into()));
             }
-            None => {
-                let challenge_message = match Settings::find_by_id(&appstate.pool, 1).await? {
-                    Some(settings) => settings.challenge_template,
-                    None => return Err(OriWebError::DbError("cannot retrieve settings".into())),
-                };
-                let mut wallet = Wallet::new_for_user(
-                    user.id.unwrap(),
-                    address.into(),
-                    name.into(),
-                    chain_id,
-                    challenge_message,
-                );
-                wallet.save(&appstate.pool).await?;
-                wallet
-            }
-        };
+            wallet
+        }
+        None => {
+            let challenge_message = match Settings::find_by_id(&appstate.pool, 1).await? {
+                Some(settings) => Wallet::format_challenge(address, &settings.challenge_template),
+                None => return Err(OriWebError::DbError("cannot retrieve settings".into())),
+            };
+            let mut wallet = Wallet::new_for_user(
+                user.id.unwrap(),
+                address.into(),
+                name.into(),
+                chain_id,
+                challenge_message,
+            );
+            wallet.save(&appstate.pool).await?;
+            wallet
+        }
+    };
 
     Ok(ApiResponse {
         json: json!(WalletChallenge {

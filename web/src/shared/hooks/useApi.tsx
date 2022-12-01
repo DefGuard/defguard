@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { isNull } from 'lodash-es';
+import { add, isNull } from 'lodash-es';
 
 import {
   AddDeviceRequest,
@@ -330,8 +330,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const mfaTOTPVerify: ApiHook['auth']['mfa']['totp']['verify'] = (data) =>
     client.post('/auth/totp/verify', data).then(unpackRequest);
 
-  const mfaWeb3Start = () =>
-    client.post('/auth/web3/start').then(unpackRequest);
+  const mfaWeb3Start: ApiHook['auth']['mfa']['web3']['start'] = (data) =>
+    client.post('/auth/web3/start', data).then(unpackRequest);
 
   const mfaWeb3Finish: ApiHook['auth']['mfa']['web3']['finish'] = (data) =>
     client.post('/auth/web3', data).then(unpackRequest);

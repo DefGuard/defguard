@@ -303,7 +303,7 @@ export interface ApiHook {
         verify: (data: TOTPRequest) => Promise<User>;
       };
       web3: {
-        start: () => Promise<{ challenge: string }>;
+        start: (data: Web3StartRequest) => Promise<{ challenge: string }>;
         finish: (data: WalletSignature) => Promise<User>;
         updateWalletMFA: (
           data: EditWalletMFARequest
@@ -694,6 +694,10 @@ export interface WalletProvider {
 export interface WalletSignature {
   address: string;
   signature: string;
+}
+
+export interface Web3StartRequest {
+	address: string;
 }
 
 export interface TOTPRequest {

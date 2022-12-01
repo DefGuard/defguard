@@ -1,6 +1,6 @@
 use super::{
-    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, RecoveryCode, RecoveryCodes, WalletSignature,
-    WebAuthnRegistration,
+    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, RecoveryCode, RecoveryCodes, WalletAddress,
+    WalletSignature, WebAuthnRegistration,
 };
 use crate::{
     appstate::AppState,
@@ -293,17 +293,21 @@ pub async fn totp_code(
         Err(OriWebError::ObjectNotFound("Invalid user".into()))
     }
 }
-
 /// Start Web3 authentication
-#[post("/auth/web3/start")]
-pub async fn web3auth_start(mut session: Session, appstate: &State<AppState>) -> ApiResult {
+#[post("/auth/web3/start", format = "json", data = "<data>")]
+pub async fn web3auth_start(
+    mut session: Session,
+    appstate: &State<AppState>,
+    data: Json<WalletAddress>,
+) -> ApiResult {
     match Settings::find_by_id(&appstate.pool, 1).await? {
         Some(settings) => {
+            let challenge = Wallet::format_challenge(&data.address, &settings.challenge_template);
             session
-                .set_web3_challenge(&appstate.pool, settings.challenge_template.clone())
+                .set_web3_challenge(&appstate.pool, challenge.clone())
                 .await?;
             Ok(ApiResponse {
-                json: json!({"challenge": settings.challenge_template}),
+                json: json!({ "challenge": challenge }),
                 status: Status::Ok,
             })
         }

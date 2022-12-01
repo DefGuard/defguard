@@ -1,13 +1,18 @@
 use defguard::{
     build_webapp,
-    db::{AppEvent, GatewayEvent, User, UserInfo},
+    db::{
+        models::wallet::{hash_message, keccak256},
+        AppEvent, GatewayEvent, User, UserInfo,
+    },
     grpc::GatewayState,
     handlers::{AddUserData, Auth, PasswordChange, Username, WalletChallenge},
+    hex::to_lower_hex,
 };
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
+use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 mod common;
 use common::init_test_db;
 
@@ -228,31 +233,59 @@ async fn test_wallet() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    let address = "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e";
-    let challenge_query =
-        format!("/api/v1/user/hpotter/challenge?address={address}&name=portefeuille&chain_id=5");
+    let secp = Secp256k1::new();
+    let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
+
+    // create eth wallet address
+    let public_key = public_key.serialize_uncompressed();
+    let hash = keccak256(&public_key[1..]);
+    let addr = &hash[hash.len() - 20..];
+    let wallet_address = to_lower_hex(addr);
+
+    let challenge_query = format!(
+        "/api/v1/user/hpotter/challenge?address={wallet_address}&name=portefeuille&chain_id=5"
+    );
 
     // get challenge message
     let response = client.get(challenge_query.clone()).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     let challenge: WalletChallenge = response.into_json().await.unwrap();
     // see migrations for the default message
-    assert_eq!(
-        challenge.message,
-        "By signing this message you confirm that you're the owner of the wallet"
-    );
+    let message: String = format!(
+        "\
+        Please read this carefully:\n\n\
+        Click to sign to prove you are in possesion of your private key to the account.\n\
+        This request will not trigger a blockchain transaction or cost any gas fees.\n\
+        Wallet address:\n\
+        {}\n\
+        \n\
+        Nonce:\n\
+        {}",
+        wallet_address,
+        to_lower_hex(&keccak256(wallet_address.as_bytes()))
+    )
+    .into();
+    assert_eq!(challenge.message, message);
 
     let response = client.get("/api/v1/user/hpotter").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     let user_info: UserInfo = response.into_json().await.unwrap();
     assert!(user_info.wallets.is_empty());
+    // Sign message
+    let message = Message::from_slice(&hash_message(&challenge.message)).unwrap();
+    let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
+    let (rec_id, sig) = sig_r.serialize_compact();
 
+    // Create recoverable_signature array
+    let mut sig_arr = [0; 65];
+    sig_arr[0..64].copy_from_slice(&sig[0..64]);
+    sig_arr[64] = rec_id.to_i32() as u8;
     // send signature
     let response = client
         .put("/api/v1/user/hpotter/wallet")
         .json(&json!({
-            "address": address,
-            "signature": "0xcf9a650ed3dbb594f68a0614fc385363f17a150f0ced6e0e92f6cc40923ec0d86c70aa3a74e73216a57d6ae6a1e07e5951416491a2660a88d5d78a5ec7e4a9bd1c",
+            "address": wallet_address,
+            "signature": to_lower_hex(&sig_arr),
         }))
         .dispatch()
         .await;
@@ -264,7 +297,7 @@ async fn test_wallet() {
     let user_info: UserInfo = response.into_json().await.unwrap();
     assert_eq!(user_info.wallets.len(), 1);
     let wallet_info = &user_info.wallets[0];
-    assert_eq!(wallet_info.address, address);
+    assert_eq!(wallet_info.address, wallet_address);
     assert_eq!(wallet_info.name, "portefeuille");
     assert_eq!(wallet_info.chain_id, 5);
 
@@ -274,7 +307,7 @@ async fn test_wallet() {
 
     // delete wallet
     let response = client
-        .delete(format!("/api/v1/user/hpotter/wallet/{address}"))
+        .delete(format!("/api/v1/user/hpotter/wallet/{wallet_address}"))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
