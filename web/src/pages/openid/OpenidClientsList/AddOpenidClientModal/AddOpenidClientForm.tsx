@@ -13,7 +13,6 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import { CheckBox } from '../../../../shared/components/layout/Checkbox/CheckBox';
 import useApi from '../../../../shared/hooks/useApi';
-import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 
 interface Inputs {
@@ -48,7 +47,6 @@ const AddOpenidClientForm = ({ setIsOpen }: Props) => {
           url: yup
             .string()
             .required(t('form.errors.required'))
-            .matches(patternValidUrl, t('form.errors.invalidUrl')),
         })
         .required()
     ),
