@@ -11,8 +11,12 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { ReactNode, useMemo, useRef, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
+import useBreakpoint from 'use-breakpoint';
 
+import { deviceBreakpoints } from '../../../constants';
 import { IconInfo } from '../../svg';
+import Button, { ButtonSize, ButtonStyleVariant } from '../Button/Button';
+import Modal from '../Modal/Modal';
 
 interface PlacementMap {
   [key: string]: string;
@@ -24,7 +28,9 @@ interface Props {
 }
 
 export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [floatOpen, setFloatOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const arrowRef = useRef(null);
   const { x, y, strategy, floating, reference, placement, middlewareData } =
     useFloating({
@@ -52,13 +58,33 @@ export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
     <>
       <button
         className="helper"
-        onClick={() => setFloatOpen(true)}
+        onClick={() => {
+          if (breakpoint === 'desktop') {
+            setFloatOpen(true);
+          } else {
+            setModalOpen(true);
+          }
+        }}
         ref={reference}
       >
         <IconInfo />
       </button>
+      <Modal
+        className="helper"
+        isOpen={modalOpen}
+        setIsOpen={(val) => setModalOpen(val)}
+        backdrop
+      >
+        {children}
+        <Button
+          size={ButtonSize.BIG}
+          styleVariant={ButtonStyleVariant.STANDARD}
+          text="Close"
+          onClick={() => setModalOpen(false)}
+        />
+      </Modal>
       <AnimatePresence mode="wait">
-        {floatOpen && (
+        {floatOpen && breakpoint === 'desktop' && (
           <ClickAwayListener onClickAway={() => setFloatOpen(false)}>
             <motion.div
               className="helper-floating"

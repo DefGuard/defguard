@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { HTMLMotionProps, motion, Variants } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { ColorsRGB } from '../../../constants';
 import SvgAvatar01Blue from '../../svg/Avatar01Blue';
@@ -28,6 +28,7 @@ import SvgAvatar11Blue from '../../svg/Avatar11Blue';
 import SvgAvatar11Gray from '../../svg/Avatar11Gray';
 import SvgAvatar12Blue from '../../svg/Avatar12Blue';
 import SvgAvatar12Gray from '../../svg/Avatar12Gray';
+import { getDeviceAvatar } from './utils/getDeviceAvatar';
 
 export enum DeviceAvatarVariants {
   BLANK = 'blank',
@@ -37,6 +38,7 @@ export enum DeviceAvatarVariants {
 interface Props extends HTMLMotionProps<'div'> {
   active?: boolean;
   styleVariant?: DeviceAvatarVariants;
+  deviceId?: number;
 }
 
 // NOTE: This matter should be discussed later.
@@ -76,19 +78,35 @@ const gray: JSX.Element[] = [
  * Displays avatar for user devices.
  * @param active Determinate style variant.
  */
-export const DeviceAvatar: React.FC<Props> = ({
+export const DeviceAvatar = ({
   active = true,
   styleVariant = DeviceAvatarVariants.BLANK,
+  deviceId,
   ...props
-}) => {
-  const [avatar, setAvatar] = useState<JSX.Element[]>([]);
-  useEffect(() => {
-    if (active) {
-      setAvatar(blue);
-    } else {
-      setAvatar(gray);
+}: Props) => {
+  const deviceAvatar = useMemo(() => {
+    if (deviceId) {
+      const elements = getDeviceAvatar(deviceId);
+      const result: JSX.Element[] = blue.filter((el) => {
+        if (!elements.includes(Number(el.key))) {
+          return true;
+        }
+      });
+      return result as JSX.Element[];
     }
-  }, [active]);
+  }, [deviceId]);
+
+  const avatar = useMemo(() => {
+    if (active) {
+      if (deviceId && deviceAvatar) {
+        return deviceAvatar;
+      } else {
+        return blue;
+      }
+    } else {
+      return gray;
+    }
+  }, [active, deviceAvatar, deviceId]);
 
   const getClassName = useMemo(() => {
     const res = ['avatar-icon'];

@@ -1,9 +1,11 @@
 use defguard::{
     build_webapp,
     db::{AppEvent, GatewayEvent, WebHook},
+    grpc::GatewayState,
     handlers::Auth,
 };
 use rocket::{http::Status, local::asynchronous::Client};
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
@@ -14,9 +16,10 @@ async fn test_webhooks() {
     let (pool, config) = init_test_db().await;
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
-    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     let client = Client::tracked(webapp).await.unwrap();
 
     let auth = Auth::new("admin".into(), "pass123".into());

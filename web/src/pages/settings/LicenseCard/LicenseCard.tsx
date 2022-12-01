@@ -34,10 +34,7 @@ export const LicenseCard = () => {
             <>
               <p>
                 You have our community license. If you wish to get Enterprise
-                license for full features
-              </p>
-              <p>
-                set and support, please visit{' '}
+                license for full features set and support, please visit{' '}
                 <a href="https://defguard.net">https://defguard.net</a>
               </p>
               <br />
@@ -47,7 +44,6 @@ export const LicenseCard = () => {
           <ul>
             <li>YubiBridge</li>
             <li>OpenID</li>
-            <li>Oauth2</li>
             <li>OpenLDAP</li>
           </ul>
           <br />

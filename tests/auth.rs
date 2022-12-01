@@ -5,13 +5,17 @@ use defguard::{
         models::wallet::{hash_message, keccak256},
         AppEvent, GatewayEvent, User, UserInfo, Wallet,
     },
+    grpc::GatewayState,
     handlers::{Auth, AuthCode, AuthTotp},
 };
 use otpauth::TOTP;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde::Deserialize;
-use std::time::SystemTime;
+use std::{
+    sync::{Arc, Mutex},
+    time::SystemTime,
+};
 use tokio::sync::mpsc::unbounded_channel;
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
@@ -47,9 +51,10 @@ async fn make_client() -> Client {
     wallet.save(&pool).await.unwrap();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
-    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
 }
 
@@ -147,7 +152,7 @@ async fn test_totp() {
 
     // check recovery codes
     let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
-    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
+    assert_eq!(recovery_codes.codes.as_ref().unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // enable MFA
     let response = client.put("/api/v1/auth/mfa").dispatch().await;
@@ -173,6 +178,43 @@ async fn test_totp() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Unauthorized);
+
+    // provide recovery code
+    let code = recovery_codes.codes.unwrap().first().unwrap().to_string();
+    let response = client
+        .post("/api/v1/auth/recovery")
+        .json(&json!({ "code": code }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // authorized
+    let response = client.get("/api/v1/me").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+
+    // reuse the same recovery code - shouldn't work
+    let response = client
+        .post("/api/v1/auth/recovery")
+        .json(&json!({ "code": code }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Unauthorized);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
 
     // provide correct TOTP code
     let code = totp_code(&auth_totp);

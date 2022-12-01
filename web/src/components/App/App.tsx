@@ -36,6 +36,7 @@ import { QueryKeys } from '../../shared/queries';
 const App = () => {
   const toaster = useToaster();
   const {
+    getVersion,
     user: { getMe },
     settings: { getSettings },
     license: { getLicense },
@@ -65,6 +66,18 @@ const App = () => {
   );
 
   const setAppStore = useAppStore((state) => state.setAppStore);
+
+  useQuery([QueryKeys.FETCH_APP_VERSION], getVersion, {
+    onSuccess: (data) => {
+      setAppStore({ version: data.version });
+    },
+    onError: (err) => {
+      toaster.error('Failed to get application version.');
+      console.error(err);
+    },
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
   useQuery([QueryKeys.FETCH_SETTINGS], getSettings, {
     onSuccess: (settings) => {

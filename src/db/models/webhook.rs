@@ -22,6 +22,7 @@ pub struct HWKeyUserData {
 
 impl AppEvent {
     // Debug name
+    #[must_use]
     pub fn name(&self) -> &str {
         match self {
             Self::UserCreated(_) => "user created",
@@ -32,6 +33,7 @@ impl AppEvent {
     }
 
     /// Database column name.
+    #[must_use]
     pub fn column_name(&self) -> &str {
         match self {
             Self::UserCreated(_) => "on_user_created",

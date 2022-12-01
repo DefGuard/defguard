@@ -36,8 +36,8 @@ export const NetworkPage = () => {
 };
 
 const SaveFormButton = () => {
-  const [formValid, save, loading] = useNetworkPageStore(
-    (state) => [state.formValid, state.saveSubject, state.loading],
+  const [save, loading] = useNetworkPageStore(
+    (state) => [state.saveSubject, state.loading],
     shallow
   );
   return (
@@ -46,7 +46,6 @@ const SaveFormButton = () => {
       size={ButtonSize.SMALL}
       styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
       icon={<IconCheckmarkWhite />}
-      disabled={!formValid}
       loading={loading}
       onClick={() => save.next()}
     />

@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
-import AddComponentBox from '../../shared/components/AddComponentBox/AddComponentBox';
+import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { DeviceCard } from './DeviceCard/DeviceCard';
 
 export const UserDevices = () => {

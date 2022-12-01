@@ -1,4 +1,3 @@
-use defguard::enterprise::grpc::WorkerState;
 #[cfg(feature = "worker")]
 use defguard::enterprise::handlers::worker::{create_job, job_status, list_workers, remove_worker};
 use defguard::{
@@ -7,25 +6,24 @@ use defguard::{
     handlers::Auth,
     license::{Features, License},
 };
+use defguard::{enterprise::grpc::WorkerState, grpc::GatewayState};
 use rocket::{http::Status, local::asynchronous::Client, routes};
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
 use common::{init_test_db, LICENSE_ENTERPRISE, LICENSE_EXPIRED, LICENSE_WITHOUT_OPENID};
 
 async fn make_client(license: &str) -> Client {
-    env::set_var("DEFGUARD_OAUTH_ENABLED", "true");
     let (pool, mut config) = init_test_db().await;
     config.license = license.into();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
-    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let (webhook_tx, _webhook_rx) = unbounded_channel::<AppEvent>();
-    let webapp = build_webapp(config.clone(), tx, rx, wg_tx, pool).await;
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
+
+    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let license_decoded = License::decode(license);
@@ -47,13 +45,13 @@ async fn make_client(license: &str) -> Client {
     client
 }
 
-#[cfg(feature = "oauth")]
+#[cfg(feature = "openid")]
 #[rocket::async_test]
 async fn test_license_ok() {
     let client = make_client(LICENSE_ENTERPRISE).await;
 
     // Check if openid path exist
-    let response = client.get("/api/v1/openid").dispatch().await;
+    let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
     // check if worker path exist
@@ -61,18 +59,10 @@ async fn test_license_ok() {
     assert_eq!(response.status(), Status::Ok);
 
     let response = client
-        .get(
-            "/api/oauth/authorize?\
-            response_type=code&\
-            client_id=LocalClient&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-            scope=default-scope&\
-            state=ABCDEF",
-        )
+        .get("/.well-known/openid-configuration")
         .dispatch()
         .await;
-
-    assert_eq!(response.status(), Status::Found);
+    assert_eq!(response.status(), Status::Ok);
 }
 
 #[rocket::async_test]
@@ -80,48 +70,34 @@ async fn test_license_expired() {
     // test expired license
     let client = make_client(LICENSE_EXPIRED).await;
 
-    let response = client.get("/api/v1/openid").dispatch().await;
+    let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::NotFound);
 
     let response = client.get("/api/v1/worker").dispatch().await;
     assert_eq!(response.status(), Status::NotFound);
 
     let response = client
-        .get(
-            "/api/oauth/authorize?\
-            response_type=code&\
-            client_id=LocalClient&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-            scope=default-scope&\
-            state=ABCDEF",
-        )
+        .get("/.well-known/openid-configuration")
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::NotFound);
 }
 
-#[cfg(feature = "oauth")]
+#[cfg(feature = "openid")]
 #[rocket::async_test]
 async fn test_license_openid_disabled() {
-    // test expired license
+    // test license without OpenID
     let client = make_client(LICENSE_WITHOUT_OPENID).await;
 
-    let response = client.get("/api/v1/openid").dispatch().await;
+    let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::NotFound);
 
     let response = client.get("/api/v1/worker").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
     let response = client
-        .get(
-            "/api/oauth/authorize?\
-            response_type=code&\
-            client_id=LocalClient&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-            scope=default-scope&\
-            state=ABCDEF",
-        )
+        .get("/.well-known/openid-configuration")
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Found);
+    assert_eq!(response.status(), Status::NotFound);
 }

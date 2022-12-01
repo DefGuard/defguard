@@ -3,7 +3,10 @@ import './style.scss';
 import { HTMLMotionProps, motion } from 'framer-motion';
 import React from 'react';
 
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
+
 const ApplicationVersion: React.FC<HTMLMotionProps<'div'>> = (props) => {
+  const version = useAppStore((store) => store.version);
   return (
     <motion.div {...props} className="app-version">
       <p>
@@ -12,6 +15,7 @@ const ApplicationVersion: React.FC<HTMLMotionProps<'div'>> = (props) => {
           teonite
         </a>
       </p>
+      {version && <p>Application version: {version}</p>}
     </motion.div>
   );
 };

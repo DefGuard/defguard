@@ -20,9 +20,7 @@ ldap3 = "0.10"
 log = "0.4"
 md4 = "0.10"
 otpauth = "0.4"
-openidconnect = { version = "2.3", default-features = false, optional = true }
-oxide-auth = { version = "0.5", optional = true }
-oxide-auth-async = { version = "0.1", optional = true }
+openidconnect = { version = "2.4", default-features = false, optional = true }
 prost = "0.11"
 rand = "0.8"
 rand_core = { version = "0.5", default-features = false, features = [
@@ -35,6 +33,7 @@ secp256k1 = { version = "0.24", features = ["recovery", "rand-std", "global-cont
 serde = { version = "1.0", features = ["derive"] }
 # match version from webauthn-rs-core
 serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
+serde_qs = "0.10"
 serde_urlencoded = "0.7"
 sha-1 = "0.10"
 sqlx = { version = "0.6", features = [
@@ -71,14 +70,16 @@ tonic-build = "0.8"
 [features]
 default = ["openid", "wireguard", "worker"]
 mock-license-key = []
-oauth = ["dep:oxide-auth", "dep:oxide-auth-async"]
-openid = ["oauth", "dep:openidconnect"]
+openid = ["dep:openidconnect"]
 worker = []
 wireguard = []
+
+[profile.dev]
+strip = "debuginfo"
 
 [profile.dev.package.sqlx-macros]
 opt-level = 2
 
 [profile.release]
 lto = "thin"
-strip = "debuginfo"
+strip = "symbols"

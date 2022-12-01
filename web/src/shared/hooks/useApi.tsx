@@ -145,10 +145,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const fetchNetwork = async (id: string) =>
     client.get<Network>(`/network/${id}`).then((res) => res.data);
 
-  const modifyNetwork = async (network: Network) =>
-    client
-      .put<Network>(`/network/${network.id}`, network)
-      .then((res) => res.data);
+  // For now there is only one network
+  const modifyNetwork: ApiHook['network']['editNetwork'] = async (network) =>
+    client.put<Network>(`/network/1`, network).then((res) => res.data);
 
   const deleteNetwork = async (network: Network) =>
     client.delete<EmptyApiResponse>(`/network/${network.id}`);
@@ -238,37 +237,37 @@ const useApi = (props?: HookProps): ApiHook => {
   const editWebhook = async ({ id, ...rest }: EditWebhookRequest) => {
     return client.put<EmptyApiResponse>(`/webhook/${id}`, rest);
   };
-  const getOpenidClients = () => client.get('/openid/').then((res) => res.data);
+  const getOpenidClients = () => client.get('/oauth/').then((res) => res.data);
 
   const getOpenidClient = async (id: string) =>
-    client.get<OpenidClient>(`/openid/${id}`).then((res) => res.data);
+    client.get<OpenidClient>(`/oauth/${id}`).then((res) => res.data);
 
   const addOpenidClient = async (data: AddOpenidClientRequest) => {
-    return client.post<EmptyApiResponse>('/openid/', data);
+    return client.post<EmptyApiResponse>('/oauth/', data);
   };
   const editOpenidClient = async ({ id, ...rest }: EditOpenidClientRequest) => {
-    return client.put<EmptyApiResponse>(`/openid/${id}`, rest);
+    return client.put<EmptyApiResponse>(`/oauth/${id}`, rest);
   };
   const changeOpenidClientState = async ({
     id,
     ...rest
   }: ChangeOpenidClientStateRequest) => {
-    return client.post<EmptyApiResponse>(`/openid/${id}`, rest);
+    return client.post<EmptyApiResponse>(`/oauth/${id}`, rest);
   };
   const deleteOpenidClient = async (id: string) =>
-    client.delete<EmptyApiResponse>(`/openid/${id}`).then((res) => res.data);
+    client.delete<EmptyApiResponse>(`/oauth/${id}`).then((res) => res.data);
 
   const verifyOpenidClient = async (data: VerifyOpenidClientRequest) =>
     client.post('openid/verify', data);
 
   const getUserClients = async (username: string) =>
     client
-      .get<AuthorizedClient[]>(`/openid/apps/${username}`)
+      .get<AuthorizedClient[]>(`/oauth/apps/${username}`)
       .then((res) => res.data);
 
   const removeUserClient = async (id: string) =>
     client
-      .delete<EmptyApiResponse>(`/openid/apps/${id}`)
+      .delete<EmptyApiResponse>(`/oauth/apps/${id}`)
       .then((res) => res.data);
 
   const oAuthConsent = (params: unknown) =>
@@ -362,7 +361,10 @@ const useApi = (props?: HookProps): ApiHook => {
   const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
     client.post('/auth/recovery', data).then(unpackRequest);
 
+  const getVersion = () => client.get('/version').then(unpackRequest);
+
   return {
+    getVersion,
     oAuth: {
       consent: oAuthConsent,
     },

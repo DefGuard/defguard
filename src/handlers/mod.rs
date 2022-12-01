@@ -117,6 +117,7 @@ pub struct AuthCode {
 }
 
 impl AuthCode {
+    #[must_use]
     pub fn new(code: u32) -> Self {
         Self { code }
     }

@@ -2,11 +2,3 @@ pub mod db;
 pub mod grpc;
 pub mod handlers;
 pub mod ldap;
-#[cfg(feature = "oauth")]
-pub mod oauth_db;
-#[cfg(feature = "oauth")]
-pub mod oauth_state;
-#[cfg(feature = "openid")]
-pub mod openid_idtoken;
-#[cfg(feature = "openid")]
-pub mod openid_state;

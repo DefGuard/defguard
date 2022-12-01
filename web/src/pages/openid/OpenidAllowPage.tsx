@@ -53,7 +53,7 @@ const OpenidAllowPage: React.FC = () => {
       if (validateParams()) {
         const res = params;
         res.append('allow', String(allow));
-        return `/api/v1/openid/authorize?${res.toString()}`;
+        return `/api/v1/oauth/authorize?${res.toString()}`;
       }
       return '';
     },

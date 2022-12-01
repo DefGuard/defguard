@@ -26,6 +26,10 @@
     }
   }
 
+  & > .no-license-box {
+    margin-bottom: 1.5rem;
+  }
+
   & > .keys {
     display: flex;
     flex-flow: column nowrap;

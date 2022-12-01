@@ -6,18 +6,20 @@
     overflow-y: auto;
     display: grid;
     grid-template-areas:
-      'header'
       'left'
       'right';
+    grid-template-rows: repeat(2, auto);
     grid-template-columns: 1fr;
-    grid-template-rows: 60px repeat(2, auto);
+    position: relative;
+    padding: 3rem 1.5rem;
+    row-gap: 3rem;
 
     @include media-breakpoint-up(lg) {
       padding: 4rem 6rem;
       grid-template-areas:
         'header header'
         'left right';
-      grid-template-rows: 60px auto;
+      grid-template-rows: 60px repeat(2, auto);
       grid-template-columns: 1fr 1fr;
       column-gap: 6rem;
       row-gap: 5rem;
@@ -28,7 +30,12 @@
     }
 
     & > header {
-      grid-area: header;
+      display: none;
+
+      @include media-breakpoint-up(lg) {
+        display: flex;
+        grid-area: header;
+      }
     }
 
     & > .left {
@@ -57,12 +64,20 @@
       display: flex;
       flex-flow: column;
       width: 100%;
+
+      @include media-breakpoint-down(lg) {
+        row-gap: 3rem;
+      }
     }
 
     & > .right {
       display: flex;
       flex-flow: column;
-      row-gap: 2rem;
+      row-gap: 3rem;
+
+      @include media-breakpoint-up(lg) {
+        row-gap: 2rem;
+      }
     }
 
     & > .left,
@@ -76,7 +91,11 @@
             align-items: center;
             align-content: center;
             justify-content: flex-start;
-            margin-bottom: 2.5rem;
+            margin-bottom: 1.5rem;
+
+            @include media-breakpoint-up(lg) {
+              margin-bottom: 2.5rem;
+            }
           }
         }
       }

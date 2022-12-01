@@ -159,6 +159,7 @@ const DeviceRow = ({ data, dataMax }: DeviceRowProps) => {
         <SvgIconUserListElement />
         <DeviceAvatar
           styleVariant={DeviceAvatarVariants.GRAY_BOX}
+          deviceId={data.id}
           active={true}
         />
         <span className="name">{data.name}</span>

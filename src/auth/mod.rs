@@ -1,6 +1,7 @@
 use crate::{
     appstate::AppState,
     db::{Session, SessionState, User},
+    enterprise::db::OAuth2Token,
     error::OriWebError,
 };
 use jsonwebtoken::{
@@ -8,8 +9,8 @@ use jsonwebtoken::{
 };
 use rocket::{
     http::{Cookie, Status},
-    outcome::{try_outcome, Outcome},
-    request::{self, FromRequest, Request},
+    outcome::try_outcome,
+    request::{FromRequest, Outcome, Request},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -23,11 +24,6 @@ pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
 pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
 pub const SESSION_TIMEOUT: u64 = 3600 * 24 * 7;
 pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
-
-#[derive(Deserialize, PartialEq, Serialize)]
-pub enum ClaimRole {
-    Admin,
-}
 
 #[derive(Clone)]
 pub enum ClaimsType {
@@ -57,9 +53,6 @@ pub struct Claims {
     pub exp: u64,
     // not before
     pub nbf: u64,
-    // roles
-    #[serde(default)]
-    pub roles: Vec<ClaimRole>,
 }
 
 impl Claims {
@@ -77,17 +70,16 @@ impl Claims {
             .expect("valid timestamp")
             .as_secs();
         Self {
-            secret: Self::get_secret(claims_type),
+            secret: Self::get_secret(&claims_type),
             iss: JWT_ISSUER.to_string(),
             sub,
             client_id,
             exp,
             nbf,
-            roles: Vec::new(),
         }
     }
 
-    fn get_secret(claims_type: ClaimsType) -> String {
+    fn get_secret(claims_type: &ClaimsType) -> String {
         let env_var = match claims_type {
             ClaimsType::Auth => AUTH_SECRET_ENV,
             ClaimsType::Gateway => GATEWAY_SECRET_ENV,
@@ -107,7 +99,7 @@ impl Claims {
 
     /// Verify JWT and, if successful, convert it to claims.
     pub fn from_jwt(claims_type: ClaimsType, token: &str) -> Result<Self, JWTError> {
-        let secret = Self::get_secret(claims_type);
+        let secret = Self::get_secret(&claims_type);
         let mut validation = Validation::default();
         validation.validate_nbf = true;
         validation.set_issuer(&[JWT_ISSUER]);
@@ -119,18 +111,13 @@ impl Claims {
         )
         .map(|data| data.claims)
     }
-
-    #[must_use]
-    pub fn is_admin(&self) -> bool {
-        self.roles.contains(&ClaimRole::Admin)
-    }
 }
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Session {
     type Error = OriWebError;
 
-    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         if let Some(state) = request.rocket().state::<AppState>() {
             let cookies = request.cookies();
             if let Some(session_cookie) = cookies.get("session") {
@@ -180,7 +167,7 @@ impl SessionInfo {
 impl<'r> FromRequest<'r> for SessionInfo {
     type Error = OriWebError;
 
-    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         if let Some(state) = request.rocket().state::<AppState>() {
             let user = {
                 if let Some(token) = request
@@ -193,14 +180,20 @@ impl<'r> FromRequest<'r> for SessionInfo {
                             None
                         }
                     })
+                // TODO: #[cfg(feature = "openid")]
                 {
-                    match Claims::from_jwt(ClaimsType::Auth, token) {
-                        Ok(claims) => User::find_by_username(&state.pool, &claims.sub).await,
-                        Err(_) => {
+                    match OAuth2Token::find_access_token(&state.pool, token).await {
+                        Ok(Some(oauth2token)) => {
+                            User::find_by_id(&state.pool, oauth2token.user_id).await
+                        }
+                        Ok(None) => {
                             return Outcome::Failure((
                                 Status::Unauthorized,
                                 OriWebError::Authorization("Invalid token".into()),
                             ));
+                        }
+                        Err(err) => {
+                            return Outcome::Failure((Status::InternalServerError, err.into()));
                         }
                     }
                 } else {
@@ -246,7 +239,7 @@ pub struct AdminRole;
 impl<'r> FromRequest<'r> for AdminRole {
     type Error = OriWebError;
 
-    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let session_info = try_outcome!(request.guard::<SessionInfo>().await);
         if session_info.is_admin {
             Outcome::Success(AdminRole {})

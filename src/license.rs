@@ -3,19 +3,20 @@ use chrono::{NaiveDate, Utc};
 use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
 /// Decoded license information
+/// Important: order must be preserved for bincode.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct License {
     pub company: String,
     pub expiration: NaiveDate,
     pub ldap: bool,
     pub openid: bool,
-    pub oauth: bool,
+    pub oauth: bool, // obsolete, but needed for bincode
     pub worker: bool,
     pub enterprise: bool,
 }
 
 #[cfg(feature = "mock-license-key")]
-const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
+pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoowOenhBJnaS5C/W9kHX
 Vz6LQYUXczT1BasE+ehy53LWnj5nPD98J0/h3mUNrYcr28qKfj8MVNBDcvzRDCx2
 eVyXoEVffDLaMUU4rqNmIirOOm+Epwiln31Mwhi2G6RS+oHJsEprSoaZSa4GEtLk
@@ -27,7 +28,7 @@ jQIDAQAB
 ";
 
 #[cfg(not(feature = "mock-license-key"))]
-const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
+pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApI/JdghL3uSNqRbFwAv3
 s5tQQKfqL60srY6uaxng4dtpt0juWIhdzhoDEwUqJL8RA7mIRxJZ+FrgwrHm6Q7a
 GI1TCKL+7QEjgNRlemtb9LeVo1eK3SVpV3UnXLAOTXnWXZanYcPYDp4MpflTUAIN
@@ -43,7 +44,6 @@ pub enum Features {
     Ldap,
     Worker,
     Openid,
-    Oauth,
 }
 
 impl License {
@@ -53,10 +53,10 @@ impl License {
         Self {
             company: "community".into(),
             expiration: NaiveDate::from_ymd_opt(2100, 1, 1).unwrap_or_default(),
-            worker: false,
             ldap: false,
             oauth: false,
             openid: false,
+            worker: false,
             enterprise: false,
         }
     }
@@ -65,11 +65,11 @@ impl License {
         match feature {
             Features::Ldap => self.ldap,
             Features::Openid => self.openid,
-            Features::Oauth => self.oauth,
             Features::Worker => self.worker,
         }
     }
 
+    #[must_use]
     pub fn validate(&self, feature: &Features) -> bool {
         if self.expiration < Utc::now().naive_utc().date() {
             info!("License expired");
@@ -84,12 +84,12 @@ impl License {
         if self.enterprise {
             self.worker = true;
             self.ldap = true;
-            self.oauth = true;
             self.openid = true;
         }
     }
 
     /// decode encoded license string to License instance
+    #[must_use]
     pub fn decode(license: &str) -> Self {
         debug!("Checking license");
         if !license.is_empty() {

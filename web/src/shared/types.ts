@@ -83,11 +83,14 @@ export interface Network {
   port: number;
   endpoint: string;
   connected_at?: string;
-  allowed_ips?: string;
+  allowed_ips?: string[];
   dns?: string;
 }
 
-export type CreateNetworkRequest = Omit<Network, 'id' | 'connected_at'>;
+export interface ModifyNetworkRequest
+  extends Omit<Network, 'id' | 'connected_at' | 'allowed_ips'> {
+  allowed_ips: string;
+}
 
 export interface NetworkToken {
   token: string;
@@ -223,7 +226,12 @@ export interface RecoveryLoginRequest {
 
 export type MFARecoveryCodesResponse = Promise<void | RecoveryCodes>;
 
+export interface VersionResponse {
+  version: string;
+}
+
 export interface ApiHook {
+  getVersion: () => Promise<VersionResponse>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
@@ -255,10 +263,10 @@ export interface ApiHook {
     downloadDeviceConfig: (id: string) => Promise<string>;
   };
   network: {
-    addNetwork: (network: CreateNetworkRequest) => Promise<Network>;
+    addNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     getNetwork: (networkId: string) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
-    editNetwork: (network: Network) => Promise<Network>;
+    editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (network: Network) => EmptyApiResponse;
     getUsersStats: (
       data?: GetNetworkStatsRequest
@@ -516,6 +524,7 @@ export interface UseAppStore {
   backendVersion?: string;
   settings?: Settings;
   license?: License;
+  version?: string;
   setAppStore: (newValues: Partial<Omit<UseAppStore, 'setAppStore'>>) => void;
 }
 
