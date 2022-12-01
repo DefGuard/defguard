@@ -3,96 +3,18 @@
 @use '@shared/scss/helpers/bootstrap' as bs;
 
 .modal {
-  &.add-client {
-    padding: 0;
-
-    .modal-content {
-      @include bs.media-breakpoint-up(md) {
-        padding: 4rem 3rem;
-        border-radius: 0;
-        width: 430px;
-      }
-
-      & > header {
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        align-content: center;
-        justify-content: flex-start;
-        @include bs.media-breakpoint-down(md) {
-          margin-bottom: 3rem;
-          height: 70px;
-          box-sizing: border-box;
-          border-bottom: 1px solid v.$gray-border;
-          padding: 0 2rem;
-
-          & > button {
-            margin-left: auto;
-          }
-        }
-        @include bs.media-breakpoint-up(md) {
-          margin-bottom: 4rem;
-        }
-
-        h3 {
-          @include mix.header;
-
-          font-size: 2rem;
-          line-height: 3rem;
-          color: v.$text-main;
-        }
-      }
-
-      form {
-        max-width: 100%;
-        align-items: flex-start;
-        width: 100%;
-        @include bs.media-breakpoint-down(md) {
-          row-gap: 1rem;
-          margin-bottom: 5rem;
-          box-sizing: border-box;
-          padding: 0 2.1rem 0 2rem;
-        }
-        @include bs.media-breakpoint-up(md) {
-          gap: 1.5rem;
-          margin-bottom: 4rem;
-        }
-
-        & > div {
-          width: 100%;
-        }
-
-        label {
-          font-family: Poppins;
-          font-size: 1.5rem;
-          line-height: 2.3rem;
-          @include mix.text-weight(medium);
-
-          margin-bottom: 2rem;
-          display: block;
-          color: v.$text-main;
-        }
-
-        .input-container {
-          margin-bottom: 6rem;
-          width: 100%;
-
-          input {
-            width: 100%;
-          }
-        }
-
-        button {
-          width: 100%;
-        }
-      }
-
-      .close {
-        margin-top: auto;
-        width: 100%;
-        height: 50px;
+  .form-container {
+    #openid-client {
+      .scopes: {
+        display: inline-grid;
+	margin: 150rem;
       }
     }
+  }
+
+  .close {
+    margin-top: auto;
+    width: 100%;
+    height: 50px;
   }
 }

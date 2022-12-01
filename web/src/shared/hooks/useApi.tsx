@@ -245,8 +245,11 @@ const useApi = (props?: HookProps): ApiHook => {
   const addOpenidClient = async (data: AddOpenidClientRequest) => {
     return client.post<EmptyApiResponse>('/oauth/', data);
   };
-  const editOpenidClient = async ({ id, ...rest }: EditOpenidClientRequest) => {
-    return client.put<EmptyApiResponse>(`/oauth/${id}`, rest);
+  const editOpenidClient = async ({
+    client_id,
+    ...rest
+  }: EditOpenidClientRequest) => {
+    return client.put<EmptyApiResponse>(`/oauth/${client_id}`, rest);
   };
   const changeOpenidClientState = async ({
     clientId,

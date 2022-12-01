@@ -1,7 +1,6 @@
 import './style.scss';
 
 import { motion, Variants } from 'framer-motion';
-import React, { ComponentPropsWithoutRef } from 'react';
 import { Column, useTable } from 'react-table';
 
 import SvgIconUserListHover from '../../../../shared/components/svg/IconUserListHover';
@@ -40,9 +39,7 @@ const rowIconVariants: Variants = {
   },
 };
 
-const OpenidClientsListTable: React.FC<
-  ComponentPropsWithoutRef<'table'> & Props
-> = ({ data, columns, ...rest }) => {
+const OpenidClientsListTable = ({ data, columns, ...rest }: Props) => {
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     useTable({ columns, data });
   return (
@@ -55,7 +52,7 @@ const OpenidClientsListTable: React.FC<
               // eslint-disable-next-line react/jsx-key
               <th {...column.getHeaderProps()}>{column.render('Header')}</th>
             ))}
-            <th>Actions</th>
+            <th className="edit">Actions</th>
           </tr>
         ))}
       </thead>

@@ -1,163 +1,107 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/bootstrap' as bs;
-@use '@shared/scss/helpers/mixins' as mix;
+@use '../../../../shared/scss/helpers' as *;
 
-#client-profile {
-  .client-details {
-    & > header {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      align-content: center;
-      justify-content: flex-start;
-      width: 100%;
-      box-sizing: border-box;
-      padding: 0 calc(2.1rem - 1.6rem) 0 calc(2rem - 1.5rem);
+#client-details {
+  & > header {
+    margin-bottom: 2rem;
 
-      button {
-        height: 40px;
-        width: 40px;
-        margin-left: auto;
+    & > h2 {
+      @include card-header;
+    }
+  }
 
-        &.edit {
-          width: 125px;
-        }
+  & > .card {
+    padding: 2rem 1.5rem 3rem;
+    min-width: 370px;
 
-        &.confirm {
-          &.success {
-            width: 141px;
-          }
-        }
+    @include media-breakpoint-up(lg) {
+      padding: 3rem 3rem 5.5rem;
+
+      &.edit {
+        padding: 3rem;
       }
     }
 
-    & > .container {
-      border-radius: 1.5rem;
-      background-color: v.$white;
-      box-sizing: border-box;
-      @include bs.media-breakpoint-down(md) {
-        padding: 2rem 1.5rem 3rem;
-        width: 100%;
+    & > .row,
+    & > form > .row {
+      min-width: 100%;
+      display: grid;
+      grid-auto-flow: row;
+      grid-auto-rows: 1fr;
+      grid-auto-columns: 1fr;
+      row-gap: 3rem;
+
+      & > label {
+        margin-bottom: 7px;
       }
-      @include bs.media-breakpoint-up(md) {
-        padding: 3rem 3rem 4rem;
-        width: 100%;
+
+      @include media-breakpoint-up(lg) {
+        grid-auto-flow: column;
       }
 
-      .group-title {
-        @include mix.poppins;
-
-        font-size: 1.5rem;
-        line-height: 2.3rem;
-        color: v.$text-main;
-        @include mix.text-weight(medium);
-
+      &.tags {
         display: block;
-        width: 100%;
-        text-align: left;
-        @include bs.media-breakpoint-down(md) {
-          margin-bottom: 1.5rem;
+        max-width: 100%;
+
+        & > label {
+          display: block;
+          margin-bottom: 1.2rem;
         }
-        @include bs.media-breakpoint-up(md) {
-          margin-bottom: 2.2rem;
+
+        & > .tags {
+          display: flex;
+          flex-flow: row wrap;
+          column-gap: 1rem;
+          row-gap: 1.2rem;
+          min-height: 30px;
+          align-content: center;
+          align-items: center;
+          justify-content: flex-start;
+
+          .no-data {
+            width: 100%;
+            display: flex;
+            flex-flow: row nowrap;
+            align-content: center;
+            align-items: center;
+            justify-content: center;
+          }
         }
       }
 
       & > .info {
-        display: flex;
-        flex-direction: column;
-        align-content: flex-start;
-        align-items: flex-start;
-        justify-content: flex-start;
-        flex: 1 1 auto;
-        @include bs.media-breakpoint-down(md) {
-          row-gap: 3rem;
-        }
-        @include bs.media-breakpoint-up(md) {
-          row-gap: 4rem;
+        & > label {
+          margin-bottom: 0.7rem;
+          display: block;
         }
 
-        & > .detail-group {
-          width: 100%;
-          height: auto;
-
-          & > .details {
-            display: flex;
-            flex-direction: row;
-            align-content: flex-start;
-            align-items: flex-start;
-            justify-content: flex-start;
-            flex-wrap: wrap;
-            width: 100%;
-            @include bs.media-breakpoint-down(md) {
-              row-gap: 2rem;
-            }
-            @include bs.media-breakpoint-up(md) {
-              row-gap: 2rem;
-            }
-
-            & > .detail {
-              height: auto;
-              display: flex;
-              flex-direction: column;
-              flex-wrap: wrap;
-              @include bs.media-breakpoint-down(md) {
-                width: 100%;
-                row-gap: 0.6rem;
-              }
-              @include bs.media-breakpoint-up(md) {
-                width: 50%;
-                row-gap: 0.5rem;
-              }
-
-              label {
-                font-size: 1.2rem;
-                color: v.$gray-dark;
-                line-height: 1.4rem;
-                @include bs.media-breakpoint-down(md) {
-                  font-family: Roboto;
-                  @include mix.text-weight(medium);
-                }
-              }
-
-              span {
-                font-size: 1.5rem;
-                color: v.$text-main;
-                line-height: 2rem;
-                display: block;
-                text-align: left;
-
-                &.title-case {
-                  text-transform: capitalize;
-                }
-              }
-            }
-          }
+        & > p {
+          @include regular-text;
         }
       }
+    }
 
-      & > .settings {
-        .detail {
-          width: 50%;
-          height: auto;
-          display: flex;
-          flex-direction: column;
-          row-gap: 0.5rem;
-          flex-wrap: wrap;
+    & > .row {
+      &:not(:last-of-type) {
+        margin-bottom: 3rem;
 
-          label {
-            font-size: 1.2rem;
-            color: v.$gray-dark;
-            line-height: 1.4rem;
-          }
+        &.tags {
+          margin-bottom: 2.5rem;
+        }
+      }
+    }
 
-          span {
-            font-size: 1.5rem;
-            color: v.$text-main;
-            line-height: 2rem;
-            display: block;
-            text-align: left;
-          }
+    & > form {
+      .hidden {
+        @include visually-hidden;
+      }
+
+      & > .row {
+        column-gap: 1.5rem;
+        row-gap: 0;
+        margin-bottom: 0;
+
+        & > .item {
+          width: 100%;
         }
       }
     }

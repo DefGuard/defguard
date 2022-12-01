@@ -1,8 +1,5 @@
 import './style.scss';
 
-import { HTMLMotionProps, motion } from 'framer-motion';
-import React from 'react';
-
 import { OpenidClient } from '../../../../shared/types';
 import OpenidClientInfo from './OpenidClientInfo';
 
@@ -10,16 +7,16 @@ interface Props {
   client: OpenidClient;
 }
 
-const OpenidClientDetail: React.FC<HTMLMotionProps<'div'> & Props> = ({
-  client,
-  ...rest
-}) => {
+const OpenidClientDetail = ({ client }: Props) => {
   return (
-    <motion.div className="client-details container-with-title" {...rest}>
-      <div className="container">
+    <section id="client-details">
+      <header>
+        <h2>App Details</h2>
+      </header>
+      <div className="card">
         <OpenidClientInfo client={client} />
       </div>
-    </motion.div>
+    </section>
   );
 };
 

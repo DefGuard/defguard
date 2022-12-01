@@ -2,7 +2,7 @@
 @use '@shared/scss/helpers/bootstrap' as bs;
 @use '@shared/scss/helpers/mixins' as mix;
 
-#client-profile {
+#client-page {
   height: auto;
   min-height: 100%;
   width: 100%;
@@ -170,11 +170,6 @@
         padding: 3rem 3rem 4rem;
         width: inherit;
       }
-    }
-
-    .tabs-container {
-      height: auto;
-      width: clamp(400px, 768px, 100%);
     }
   }
 }

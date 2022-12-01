@@ -14,7 +14,6 @@ import Button, {
 } from '../../../shared/components/layout/Button/Button';
 import IconButton from '../../../shared/components/layout/IconButton/IconButton';
 import OptionsPopover from '../../../shared/components/layout/OptionsPopover/OptionsPopover';
-import Tabs, { Tab } from '../../../shared/components/layout/Tabs/Tabs';
 import SvgIconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconEdit from '../../../shared/components/svg/IconEdit';
 import SvgIconEditAlt from '../../../shared/components/svg/IconEditAlt';
@@ -28,7 +27,11 @@ import { OpenidClient } from '../../../shared/types';
 import OpenidClientForm from '../OpenidClientEdit/OpenidClientForm/OpenidClientForm';
 import OpenidClientDetail from './OpenidCLientDetails/OpenidClientDetails';
 
-const OpenIDClient = () => {
+interface Props {
+  clientData?: OpenidClient;
+}
+
+const OpenIDClient: React.FC<Props> = ({ clientData }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [editMode, setEditMode] = useOpenidClientStore(
@@ -51,7 +54,7 @@ const OpenIDClient = () => {
     Subject<unknown> | undefined
   >();
 
-  const { data: client } = useQuery(
+  const { data } = useQuery(
     [QueryKeys.FETCH_CLIENTS, id],
     () => {
       if (id) {
@@ -68,21 +71,13 @@ const OpenIDClient = () => {
     }
   );
 
+  const client = useMemo(() => (data ? data : clientData), [data, clientData]);
+
   useEffect(() => {
     if (!saveEditSubject) {
       setSaveEditSubject(new Subject());
     }
   }, [saveEditSubject]);
-
-  const getTabs: Tab[] = useMemo(
-    (): Tab[] => [
-      {
-        title: 'App details',
-        node: client ? <OpenidClientDetail client={client} /> : null,
-      },
-    ],
-    [client]
-  );
 
   const getHeaderText = useMemo(() => {
     if (editMode) {
@@ -97,7 +92,7 @@ const OpenIDClient = () => {
   if (!client || !saveEditSubject) return null;
 
   return (
-    <section id="client-profile">
+    <section id="client-page">
       <AnimatePresence mode="wait">
         <motion.header
           initial="hidden"
@@ -212,17 +207,7 @@ const OpenIDClient = () => {
               </motion.div>
             </motion.div>
           ) : null}
-          {!editMode ? (
-            <Tabs
-              tabs={getTabs}
-              motionUnderlineID="OpenidClientTabsUnderline"
-              key="profile-tabs"
-              initial="hidden"
-              animate="show"
-              exit="hidden"
-              variants={standardVariants}
-            />
-          ) : null}
+          {!editMode ? <OpenidClientDetail client={client} /> : null}
         </AnimatePresence>
       </div>
     </section>

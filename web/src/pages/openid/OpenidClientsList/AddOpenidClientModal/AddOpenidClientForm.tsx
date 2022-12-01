@@ -1,6 +1,6 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { SubmitHandler } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -13,12 +13,12 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import { CheckBox } from '../../../../shared/components/layout/Checkbox/CheckBox';
 import useApi from '../../../../shared/hooks/useApi';
-//import { patternValidUrl } from '../../../../shared/patterns';
+import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 
 interface Inputs {
   name: string;
-  redirect_uri: string[];
+  redirect_uri: [{ url: string }];
   enabled: string | number;
   scope: string[];
 }
@@ -27,31 +27,40 @@ interface Props {
   setIsOpen: (v: boolean) => void;
 }
 
-const AddOpenidClientForm: React.FC<Props> = ({ setIsOpen }) => {
+const AddOpenidClientForm = ({ setIsOpen }: Props) => {
   const { t } = useTranslation('en');
   const {
     openid: { addOpenidClient },
   } = useApi();
 
-  const [scopes, setScopes] = useState<string[]>([]);
+  const [scopes, setScopes] = useState<string[]>(['']);
 
-  const schema = yup
-    .object({
-      name: yup
-        .string()
-        .required(t('form.errors.required'))
-        .max(16, t('form.errors.maximumLength', { length: 16 })),
-      enabled: yup.boolean(),
-    })
-    .required();
+  const schema = yup.object({
+    name: yup
+      .string()
+      .required(t('form.errors.required'))
+      .max(16, t('form.errors.maximumLength', { length: 16 })),
+    enabled: yup.boolean(),
+    redirect_uri: yup.array().of(
+      yup
+        .object()
+        .shape({
+          url: yup
+            .string()
+            .required(t('form.errors.required'))
+            .matches(patternValidUrl, t('form.errors.invalidUrl')),
+        })
+        .required()
+    ),
+  });
 
-  const { handleSubmit, control, register } = useForm<Inputs>({
+  const { handleSubmit, control } = useForm<Inputs>({
     resolver: yupResolver(schema),
     mode: 'all',
     defaultValues: {
       name: '',
-      redirect_uri: [''],
-      scope: ['openid'],
+      redirect_uri: [{ url: '' }],
+      scope: [],
       enabled: 1,
     },
   });
@@ -59,7 +68,6 @@ const AddOpenidClientForm: React.FC<Props> = ({ setIsOpen }) => {
   const addOpenidClientMutation = useMutation(addOpenidClient, {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
-
       setIsOpen(false);
     },
   });
@@ -73,55 +81,86 @@ const AddOpenidClientForm: React.FC<Props> = ({ setIsOpen }) => {
       }
     }
   };
-  const { fields, append, prepend, remove, swap, move, insert } = useFieldArray(
-    {
-      control, // control props comes from useForm (optional: if you are using FormContext)
-      name: 'redirect_uri', // unique name for your Field Array
-    }
-  );
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'redirect_uri',
+  });
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
-		data.redirect_uri = [data.redirect_uri];
-    addOpenidClientMutation.mutate(data);
+    const redirectUrls = data.redirect_uri.map((el) => {
+      return el['url'];
+    });
+    const payload = {
+      name: data.name,
+      redirect_uri: redirectUrls,
+      scope: scopes,
+      enabled: true,
+    };
+
+    addOpenidClientMutation.mutate(payload);
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form id="openid-client" onSubmit={handleSubmit(onSubmit)}>
       <FormInput
         controller={{ control, name: 'name' }}
         outerLabel="Name"
         placeholder="Name"
         required
       />
-      <FormInput
-        outerLabel="Redirect Url"
-        controller={{ control, name: 'redirect_uri' }}
-        placeholder="https://example.com/redirect"
-        required
-      />
-      <label>Scopes:</label>
-      <CheckBox
-        label="OpenID"
-        value={scopes.includes('openid')}
-        onChange={(value) => handleScopeChange('openid', value)}
-      />
-      <CheckBox
-        label="Profile"
-        value={scopes.includes('profile')}
-        onChange={(value) => handleScopeChange('profile', value)}
-      />
-      <CheckBox
-        label="Email"
-        value={scopes.includes('email')}
-        onChange={(value) => handleScopeChange('email', value)}
-      />
-      <CheckBox
-        label="Phone"
-        value={scopes.includes('phone')}
-        onChange={(value) => handleScopeChange('phone', value)}
-      />
+      {fields.map((field, index) => (
+        <>
+          <FormInput
+            key={index}
+            outerLabel={`Redirect Url ${index + 1}`}
+            controller={{ control, name: `redirect_uri[${index}].name` }}
+            placeholder="https://example.com/redirect"
+            required
+          />
+          {index !== 0 ? (
+            <Button
+              className="big warning"
+              type="submit"
+              size={ButtonSize.BIG}
+              styleVariant={ButtonStyleVariant.WARNING}
+              text="Remove redirect uri"
+              onClick={() => remove(index)}
+            />
+          ) : null}
+        </>
+      ))}
       <Button
         className="big primary"
+        type="submit"
+        size={ButtonSize.BIG}
+        styleVariant={ButtonStyleVariant.PRIMARY}
+        text="Add redirect Url"
+        onClick={() => append({ url: '' })}
+      />
+      <label>Scopes:</label>
+      <div className="scopes">
+        <CheckBox
+          label="OpenID"
+          value={scopes.includes('openid')}
+          onChange={(value) => handleScopeChange('openid', value)}
+        />
+        <CheckBox
+          label="Profile"
+          value={scopes.includes('profile')}
+          onChange={(value) => handleScopeChange('profile', value)}
+        />
+        <CheckBox
+          label="Email"
+          value={scopes.includes('email')}
+          onChange={(value) => handleScopeChange('email', value)}
+        />
+        <CheckBox
+          label="Phone"
+          value={scopes.includes('phone')}
+          onChange={(value) => handleScopeChange('phone', value)}
+        />
+      </div>
+      <Button
         type="submit"
         size={ButtonSize.BIG}
         styleVariant={ButtonStyleVariant.PRIMARY}
