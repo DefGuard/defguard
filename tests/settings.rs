@@ -1,9 +1,11 @@
 use defguard::{
     build_webapp,
     db::{models::settings::Settings, AppEvent, GatewayEvent},
+    grpc::GatewayState,
     handlers::Auth,
 };
 use rocket::{http::Status, local::asynchronous::Client};
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
@@ -13,9 +15,10 @@ async fn make_client() -> Client {
     let (pool, config) = init_test_db().await;
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
-    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
 }
 
@@ -42,9 +45,12 @@ async fn test_settings() {
             wireguard_enabled: true,
             webhooks_enabled: true,
             worker_enabled: true,
-            challenge_template:
-                "By signing this message you confirm that you're the owner of the wallet"
-                    .to_string(),
+            challenge_template: "
+                Please read this carefully:\n\n\
+                Click to sign to prove you are in possesion of your private key to the account.\n\
+                This request will not trigger a blockchain transaction or cost any gas fees."
+                .trim_start()
+                .into(),
         }
     );
 

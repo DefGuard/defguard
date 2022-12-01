@@ -109,7 +109,9 @@ export const MFAWeb3 = () => {
           if (!isConnected) {
             setModalsState({ connectWalletModal: { visible: true } });
           } else {
-            mfaStartMutation();
+            if (address) {
+              mfaStartMutation({ address });
+            }
           }
         }}
       />

@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use defguard::{
     build_webapp,
     config::DefGuardConfig,
@@ -8,6 +6,7 @@ use defguard::{
         db::{NewOpenIDClient, OAuth2Client},
         handlers::openid_flow::AuthenticationResponse,
     },
+    grpc::GatewayState,
     handlers::Auth,
 };
 use openidconnect::{
@@ -25,6 +24,10 @@ use rocket::{
     http::{ContentType, Header, Status},
     local::asynchronous::Client,
 };
+use std::{
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
@@ -35,17 +38,20 @@ async fn make_client() -> Client {
     config.license = LICENSE_ENTERPRISE.into();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
-    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
+
+    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
 }
 
 async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> Client {
     let (tx, rx) = unbounded_channel::<AppEvent>();
-    let (wg_tx, _) = unbounded_channel::<GatewayEvent>();
+    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
+    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, pool).await;
+    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
 }
 

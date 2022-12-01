@@ -1,6 +1,6 @@
 use super::{
-    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, RecoveryCode, RecoveryCodes, WalletSignature,
-    WebAuthnRegistration,
+    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, RecoveryCode, RecoveryCodes, WalletAddress,
+    WalletSignature, WebAuthnRegistration,
 };
 use crate::{
     appstate::AppState,
@@ -293,17 +293,21 @@ pub async fn totp_code(
         Err(OriWebError::ObjectNotFound("Invalid user".into()))
     }
 }
-
 /// Start Web3 authentication
-#[post("/auth/web3/start")]
-pub async fn web3auth_start(mut session: Session, appstate: &State<AppState>) -> ApiResult {
+#[post("/auth/web3/start", format = "json", data = "<data>")]
+pub async fn web3auth_start(
+    mut session: Session,
+    appstate: &State<AppState>,
+    data: Json<WalletAddress>,
+) -> ApiResult {
     match Settings::find_by_id(&appstate.pool, 1).await? {
         Some(settings) => {
+            let challenge = Wallet::format_challenge(&data.address, &settings.challenge_template);
             session
-                .set_web3_challenge(&appstate.pool, settings.challenge_template.clone())
+                .set_web3_challenge(&appstate.pool, challenge.clone())
                 .await?;
             Ok(ApiResponse {
-                json: json!({"challenge": settings.challenge_template}),
+                json: json!({ "challenge": challenge }),
                 status: Status::Ok,
             })
         }
@@ -352,17 +356,20 @@ pub async fn web3auth_end(
 /// Authenticate with a recovery code.
 #[post("/auth/recovery", format = "json", data = "<recovery_code>")]
 pub async fn recovery_code(
-    session_info: SessionInfo,
+    mut session: Session,
     appstate: &State<AppState>,
     recovery_code: Json<RecoveryCode>,
 ) -> ApiResult {
-    let mut user = session_info.user;
-    if user
-        .verify_recovery_code(&appstate.pool, &recovery_code.code)
-        .await?
-    {
-        Ok(ApiResponse::default())
-    } else {
-        Err(OriWebError::Http(Status::Unauthorized))
+    if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+        if user
+            .verify_recovery_code(&appstate.pool, &recovery_code.code)
+            .await?
+        {
+            session
+                .set_state(&appstate.pool, SessionState::MultiFactorVerified)
+                .await?;
+            return Ok(ApiResponse::default());
+        }
     }
+    Err(OriWebError::Http(Status::Unauthorized))
 }
