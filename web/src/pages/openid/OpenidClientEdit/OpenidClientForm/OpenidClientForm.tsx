@@ -23,7 +23,7 @@ import { OpenidClient } from '../../../../shared/types';
 
 interface Inputs {
   name: string;
-  redirect_uri: [{ url: string }];
+  redirect_uri: { url: string }[];
   scopes: string[];
 }
 
@@ -45,14 +45,6 @@ const OpenidClientForm = ({
   const [scopes, setScopes] = useState<string[]>(client.scope ?? []);
 
   const submitButton = useRef<HTMLButtonElement | null>(null);
-
-  const defaultValues = {
-    name: client.name as string | undefined,
-    redirect_uri: client.redirect_uri.map((url) => {
-      return { url: url };
-    }),
-    scope: client.scope as string[] | undefined,
-  };
 
   const schema = yup.object({
     name: yup
@@ -78,6 +70,13 @@ const OpenidClientForm = ({
   } = useApi();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const defaultValues = {
+    name: client?.name,
+    redirect_uri: client?.redirect_uri.map((url) => {
+      return { url: url as string | undefined };
+    }),
+    scope: client.scope,
+  };
   const editOpenidClientMutation = useMutation(
     (clientData: OpenidClient) => editOpenidClient(clientData),
     {

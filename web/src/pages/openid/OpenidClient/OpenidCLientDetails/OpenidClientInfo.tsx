@@ -34,6 +34,12 @@ const OpenidClientInfo: React.FC<Props> = ({ client }) => {
             <Tag disposable={false} text={titleCase(url)} key={url} />
           ))}
         </div>
+        <Label>Scopes</Label>
+        <div className="tags">
+          {client.scope.map((scope) => (
+            <Tag disposable={false} text={titleCase(scope)} key={scope} />
+          ))}
+        </div>
       </div>
     </>
   );

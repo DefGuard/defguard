@@ -18,7 +18,7 @@ import { QueryKeys } from '../../../../shared/queries';
 
 interface Inputs {
   name: string;
-  redirect_uri: [{ url: string }];
+  redirect_uri: { url: string }[];
   enabled: string | number;
   scope: string[];
 }
@@ -111,9 +111,9 @@ const AddOpenidClientForm = ({ setIsOpen }: Props) => {
       {fields.map((field, index) => (
         <>
           <FormInput
-            key={index}
+            key={field.id}
             outerLabel={`Redirect Url ${index + 1}`}
-            controller={{ control, name: `redirect_uri[${index}].name` }}
+            controller={{ control, name: `redirect_uri.${index}.url` }}
             placeholder="https://example.com/redirect"
             required
           />
