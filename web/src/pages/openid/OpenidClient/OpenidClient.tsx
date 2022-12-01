@@ -28,11 +28,7 @@ import { OpenidClient } from '../../../shared/types';
 import OpenidClientForm from '../OpenidClientEdit/OpenidClientForm/OpenidClientForm';
 import OpenidClientDetail from './OpenidCLientDetails/OpenidClientDetails';
 
-interface Props {
-  clientData?: OpenidClient;
-}
-
-const OpenIDClient: React.FC<Props> = ({ clientData }) => {
+const OpenIDClient = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [editMode, setEditMode] = useOpenidClientStore(
@@ -55,7 +51,7 @@ const OpenIDClient: React.FC<Props> = ({ clientData }) => {
     Subject<unknown> | undefined
   >();
 
-  const { data } = useQuery(
+  const { data: client } = useQuery(
     [QueryKeys.FETCH_CLIENTS, id],
     () => {
       if (id) {
@@ -71,8 +67,6 @@ const OpenIDClient: React.FC<Props> = ({ clientData }) => {
       },
     }
   );
-
-  const client = useMemo(() => (data ? data : clientData), [data, clientData]);
 
   useEffect(() => {
     if (!saveEditSubject) {

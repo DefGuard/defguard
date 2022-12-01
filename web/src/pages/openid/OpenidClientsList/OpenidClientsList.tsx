@@ -59,7 +59,7 @@ const OpenidClientsList: React.FC = () => {
   );
   const navigateToClient = (client: OpenidClient) => {
     setNavigationOpenidClient(client);
-    navigate(`${client.id}`);
+    navigate(`${client.client_id}`);
   };
   const tableColumns: Column<OpenidClient>[] = useMemo(
     () => [

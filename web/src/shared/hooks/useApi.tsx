@@ -249,10 +249,10 @@ const useApi = (props?: HookProps): ApiHook => {
     return client.put<EmptyApiResponse>(`/oauth/${id}`, rest);
   };
   const changeOpenidClientState = async ({
-    id,
+    clientId,
     ...rest
   }: ChangeOpenidClientStateRequest) => {
-    return client.post<EmptyApiResponse>(`/oauth/${id}`, rest);
+    return client.post<EmptyApiResponse>(`/oauth/${clientId}`, rest);
   };
   const deleteOpenidClient = async (id: string) =>
     client.delete<EmptyApiResponse>(`/oauth/${id}`).then((res) => res.data);

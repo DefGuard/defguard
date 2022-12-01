@@ -74,7 +74,7 @@ const OpenidClientEditButton: React.FC<Props> = ({ client }) => {
 
   const changeClientStateMutation = useMutation(
     (client: OpenidClient) =>
-      changeOpenidClientState({ id: client.id, enabled: !client.enabled }),
+      changeOpenidClientState({ clientId: client.client_id, enabled: !client.enabled }),
     {
       onSuccess: () => {
         setEnableModalOpen(false);

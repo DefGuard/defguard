@@ -22,6 +22,13 @@ interface Inputs {
   description: string;
   redirect_uri: string;
   home_url: string;
+  scopes: Scope[];
+}
+
+enum Scope {
+  profile = 'profile',
+  email = 'email',
+  phone = 'phone',
 }
 
 interface Props {
