@@ -241,29 +241,11 @@ pub async fn authorization(
         None => error = CoreAuthErrorResponseType::UnauthorizedClient,
     }
 
-    // TODO: https://www.rfc-editor.org/rfc/rfc6749#section-3.1.2
-    // The redirection endpoint URI MUST be an absolute URI as defined by
-    // [RFC3986] Section 4.3.  The endpoint URI MAY include an
-    // "application/x-www-form-urlencoded" formatted (per Appendix B) query
-    // component ([RFC3986] Section 3.4), which MUST be retained when adding
-    // additional query parameters.  The endpoint URI MUST NOT include a
-    // fragment component.
     let mut url =
         Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
     url.query_pairs_mut().append_pair("error", error.as_ref());
     Ok(Redirect::found(url.to_string()))
 }
-
-// #[get("/authorize", rank = 2)]
-// pub async fn authorization()
-// ) -> Redirect {
-//     let error = CoreAuthErrorResponseType::InvalidRequest;
-//     Ok(Redirect::found(format!(
-//         "{}?error={}",
-//         data.redirect_uri,
-//         error.as_ref()
-//     )))
-// }
 
 /// Login Authorization Endpoint redirect with authorization code
 #[post("/authorize?<allow>&<data..>")]
