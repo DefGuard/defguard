@@ -44,9 +44,12 @@ interface HookProps {
   baseURL?: string;
 }
 
+const envBaseUrl = import.meta.env.API_BASE_URL;
+
 const client = axios.create({
-  baseURL: '/api/v1',
+  baseURL: envBaseUrl && String(envBaseUrl).length > 0 ? envBaseUrl : '/api/v1',
 });
+
 client.defaults.headers.common['Content-Type'] = 'application/json';
 
 const unpackRequest = <T,>(res: AxiosResponse<T>): T => res.data;
