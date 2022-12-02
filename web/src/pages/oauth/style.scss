@@ -92,7 +92,13 @@
       }
 
       .badge {
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        align-content: center;
+        justify-content: center;
         height: 2.5rem;
+        min-width: 45px;
 
         span {
           font-size: 1.4rem;

@@ -107,6 +107,8 @@ export interface AuthStore {
   setState: (newState: Partial<AuthStore>) => void;
   logIn: (user: User) => void;
   logOut: () => void;
+  // This is used in OAuth / OpenId flows to return into originally requested url after auth is completed.
+  authLocation?: string;
 }
 
 export interface DeleteUserModal {
