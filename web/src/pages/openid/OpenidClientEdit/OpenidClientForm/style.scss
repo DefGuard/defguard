@@ -14,6 +14,14 @@
     column-gap: 2rem;
   }
 
+  & > .scopes {
+    display: flex;
+    flex-flow: column;
+    box-sizing: border-box;
+    padding: 1.2rem 1.5rem 2rem;
+    row-gap: 1.5rem;
+  }
+
   .hidden {
     display: none;
   }

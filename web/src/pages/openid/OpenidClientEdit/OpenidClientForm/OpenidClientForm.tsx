@@ -55,9 +55,7 @@ const OpenidClientForm = ({
       yup
         .object()
         .shape({
-          url: yup
-            .string()
-            .required(t('form.errors.required'))
+          url: yup.string().required(t('form.errors.required')),
         })
         .required()
     ),

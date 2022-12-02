@@ -64,6 +64,7 @@ pub async fn change_openid_client(
             openid_client.name = data.name;
             openid_client.redirect_uri = data.redirect_uri;
             openid_client.enabled = data.enabled;
+            openid_client.scope = data.scope;
             openid_client.save(&appstate.pool).await?;
             Status::Ok
         }
@@ -85,7 +86,7 @@ pub async fn change_openid_client_state(
     let status = match OAuth2Client::find_by_client_id(&appstate.pool, client_id).await? {
         Some(mut openid_client) => {
             openid_client.enabled = data.enabled;
-            openid_client.save(&appstate.pool);
+            openid_client.save(&appstate.pool).await?;
             Status::Ok
         }
         None => Status::NotFound,

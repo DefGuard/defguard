@@ -12,6 +12,7 @@ import Button, {
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { CheckBox } from '../../../../shared/components/layout/Checkbox/CheckBox';
+import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../shared/queries';
 
@@ -22,17 +23,14 @@ interface Inputs {
   scope: string[];
 }
 
-interface Props {
-  setIsOpen: (v: boolean) => void;
-}
-
-const AddOpenidClientForm = ({ setIsOpen }: Props) => {
+const AddOpenidClientForm = () => {
   const { t } = useTranslation('en');
   const {
     openid: { addOpenidClient },
   } = useApi();
 
   const [scopes, setScopes] = useState<string[]>(['']);
+  const setModalState = useModalStore((state) => state.setAddOpenidClientModal);
 
   const schema = yup.object({
     name: yup
@@ -64,7 +62,7 @@ const AddOpenidClientForm = ({ setIsOpen }: Props) => {
   const addOpenidClientMutation = useMutation(addOpenidClient, {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
-      setIsOpen(false);
+      setModalState({ visible: false });
     },
   });
 
@@ -83,13 +81,13 @@ const AddOpenidClientForm = ({ setIsOpen }: Props) => {
   });
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
-    const redirectUrls = data.redirect_uri.map((el) => {
-      return el['url'];
+    const redirectUrls = data.redirect_uri.map((obj) => {
+      return obj['url'];
     });
     const payload = {
       name: data.name,
       redirect_uri: redirectUrls,
-      scope: scopes.filter((item) => item === ''),
+      scope: scopes,
       enabled: true,
     };
 
@@ -98,43 +96,47 @@ const AddOpenidClientForm = ({ setIsOpen }: Props) => {
 
   return (
     <form id="openid-client" onSubmit={handleSubmit(onSubmit)}>
-      <FormInput
-        controller={{ control, name: 'name' }}
-        outerLabel="Name"
-        placeholder="Name"
-        required
-      />
-      {fields.map((field, index) => (
-        <>
+      <div className="row">
+        <div className="item">
           <FormInput
-            key={field.id}
-            outerLabel={`Redirect Url ${index + 1}`}
-            controller={{ control, name: `redirect_uri.${index}.url` }}
-            placeholder="https://example.com/redirect"
+            controller={{ control, name: 'name' }}
+            outerLabel="Name"
+            placeholder="Name"
             required
           />
-          {index !== 0 ? (
-            <Button
-              key={field.id}
-              className="big warning"
-              type="submit"
-              size={ButtonSize.BIG}
-              styleVariant={ButtonStyleVariant.WARNING}
-              text="Remove redirect uri"
-              onClick={() => remove(index)}
-            />
-          ) : null}
-        </>
-      ))}
-      <Button
-        className="big primary"
-        type="submit"
-        size={ButtonSize.BIG}
-        styleVariant={ButtonStyleVariant.PRIMARY}
-        text="Add redirect Url"
-        onClick={() => append({ url: '' })}
-      />
-      <label>Scopes:</label>
+          {fields.map((field, index) => (
+            <>
+              <FormInput
+                key={field.id}
+                outerLabel={`Redirect Url ${index + 1}`}
+                controller={{ control, name: `redirect_uri.${index}.url` }}
+                placeholder="https://example.com/redirect"
+                required
+              />
+              {index !== 0 ? (
+                <Button
+                  key={field.id}
+                  className="big warning"
+                  type="submit"
+                  size={ButtonSize.BIG}
+                  styleVariant={ButtonStyleVariant.WARNING}
+                  text="Remove redirect uri"
+                  onClick={() => remove(index)}
+                />
+              ) : null}
+            </>
+          ))}
+          <Button
+            className="big primary"
+            type="submit"
+            size={ButtonSize.BIG}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            text="Add redirect Url"
+            onClick={() => append({ url: '' })}
+          />
+          <label>Scopes:</label>
+        </div>
+      </div>
       <div className="scopes">
         <CheckBox
           label="OpenID"
@@ -157,12 +159,21 @@ const AddOpenidClientForm = ({ setIsOpen }: Props) => {
           onChange={(value) => handleScopeChange('phone', value)}
         />
       </div>
-      <Button
-        type="submit"
-        size={ButtonSize.BIG}
-        styleVariant={ButtonStyleVariant.PRIMARY}
-        text="Add app"
-      />
+      <div className="controls">
+        <Button
+          size={ButtonSize.BIG}
+          text="Cancel"
+          className="cancel"
+          onClick={() => setModalState({ visible: false })}
+          type="button"
+        />
+        <Button
+          type="submit"
+          size={ButtonSize.BIG}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          text="Add app"
+        />
+      </div>
     </form>
   );
 };
