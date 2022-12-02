@@ -107,6 +107,8 @@ export interface AuthStore {
   setState: (newState: Partial<AuthStore>) => void;
   logIn: (user: User) => void;
   logOut: () => void;
+  // This is used in OAuth / OpenId flows to return into originally requested url after auth is completed.
+  authLocation?: string;
 }
 
 export interface DeleteUserModal {
@@ -230,6 +232,10 @@ export interface VersionResponse {
   version: string;
 }
 
+export interface ConnectionInfo {
+  connected: boolean;
+}
+
 export interface ApiHook {
   getVersion: () => Promise<VersionResponse>;
   oAuth: {
@@ -275,6 +281,7 @@ export interface ApiHook {
     getNetworkStats: (
       data?: GetNetworkStatsRequest
     ) => Promise<WireguardNetworkStats>;
+    getGatewayStatus: () => Promise<ConnectionInfo>;
   };
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;
@@ -303,7 +310,7 @@ export interface ApiHook {
         verify: (data: TOTPRequest) => Promise<User>;
       };
       web3: {
-        start: () => Promise<{ challenge: string }>;
+        start: (data: Web3StartRequest) => Promise<{ challenge: string }>;
         finish: (data: WalletSignature) => Promise<User>;
         updateWalletMFA: (
           data: EditWalletMFARequest
@@ -557,9 +564,8 @@ export interface OpenidClient {
   name: string;
   client_id: string;
   client_secret: string;
-  description: string;
-  home_url: string;
-  redirect_uri: string;
+  redirect_uri: string[];
+  scope: string[];
   enabled: boolean;
 }
 
@@ -568,18 +574,15 @@ export interface EditOpenidClientRequest {
   name: string;
   client_id: string;
   client_secret: string;
-  description: string;
-  home_url: string;
-  redirect_uri: string;
+  redirect_uri: string[];
   enabled: boolean;
 }
 
 export interface AddOpenidClientRequest {
   name: string;
-  description: string;
-  home_url: string;
-  redirect_uri: string;
-  enabled: string | number;
+  redirect_uri: string[];
+  enabled: boolean;
+  scope: string[];
 }
 
 export interface AddWebhookRequest {
@@ -611,7 +614,7 @@ export interface changeWebhookStateRequest {
 }
 
 export interface ChangeOpenidClientStateRequest {
-  id: string;
+  clientId: string;
   enabled: boolean;
 }
 
@@ -694,6 +697,10 @@ export interface WalletProvider {
 export interface WalletSignature {
   address: string;
   signature: string;
+}
+
+export interface Web3StartRequest {
+  address: string;
 }
 
 export interface TOTPRequest {

@@ -53,6 +53,21 @@ pub fn hex_decode<T: AsRef<[u8]>>(hex: T) -> Result<Vec<u8>, HexError> {
     Ok(bytes)
 }
 
+pub fn to_lower_hex(bytes: &[u8]) -> String {
+    let mut hex = String::with_capacity(bytes.len() + 1 * 2);
+    let to_char = |nibble: u8| -> char {
+        (match nibble {
+            0..=9 => b'0' + nibble,
+            _ => nibble + b'a' - 10,
+        }) as char
+    };
+    bytes.iter().for_each(|byte| {
+        hex.push(to_char(*byte >> 4));
+        hex.push(to_char(*byte & 0xf));
+    });
+    hex
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

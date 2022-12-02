@@ -71,7 +71,7 @@ pub mod enterprise;
 mod error;
 pub mod grpc;
 pub mod handlers;
-mod hex;
+pub mod hex;
 pub mod license;
 pub(crate) mod random;
 

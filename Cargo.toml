@@ -29,7 +29,7 @@ rand_core = { version = "0.5", default-features = false, features = [
 reqwest = { version = "0.11", features = ["json"] }
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 rsa = "*"
-secp256k1 = { version = "0.24", features = ["recovery"] }
+secp256k1 = { version = "0.24", features = ["recovery", "rand-std", "global-context"] }
 serde = { version = "1.0", features = ["derive"] }
 # match version from webauthn-rs-core
 serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }

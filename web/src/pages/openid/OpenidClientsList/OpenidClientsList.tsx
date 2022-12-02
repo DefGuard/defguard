@@ -3,7 +3,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { orderBy } from 'lodash-es';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import Select from 'react-select';
@@ -31,7 +31,7 @@ import AddOpenidClientModal from './AddOpenidClientModal/AddOpenidClientModal';
 import OpenidClientsListMobile from './OpenidClientsListMobile/OpenidClientsListMobile';
 import OpenidClientsListTable from './OpenidClientsListTable/OpenidClientsListTable';
 
-const OpenidClientsList: React.FC = () => {
+const OpenidClientsList = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const navigate = useNavigate();
   const {
@@ -59,7 +59,7 @@ const OpenidClientsList: React.FC = () => {
   );
   const navigateToClient = (client: OpenidClient) => {
     setNavigationOpenidClient(client);
-    navigate(`${client.id}`);
+    navigate(`${client.client_id}`);
   };
   const tableColumns: Column<OpenidClient>[] = useMemo(
     () => [
@@ -79,11 +79,6 @@ const OpenidClientsList: React.FC = () => {
             </div>
           );
         },
-      },
-      {
-        Header: 'Description',
-        accessor: 'description',
-        Cell: (cell) => <p className="description">{cell.value}</p>,
       },
       {
         Header: 'Status',
@@ -108,14 +103,10 @@ const OpenidClientsList: React.FC = () => {
     }
     let searched: OpenidClient[] = [];
     if (clients) {
-      searched = clients.filter(
-        (client) =>
-          client.name
-            .toLocaleLowerCase()
-            .includes(clientsSearchValue.toLocaleLowerCase()) ||
-          client.description
-            ?.toLocaleLowerCase()
-            .includes(clientsSearchValue.toLocaleLowerCase())
+      searched = clients.filter((client) =>
+        client.name
+          .toLocaleLowerCase()
+          .includes(clientsSearchValue.toLocaleLowerCase())
       );
     }
     if (searched.length) {
@@ -172,7 +163,6 @@ const OpenidClientsList: React.FC = () => {
             icon={<SvgIconPlusWhite />}
             text="Add new"
             disabled={!hasAccess}
-            // disabled={license?.openid || license?.enterprise ? true : false}
           />
         </div>
         {breakpoint === 'mobile' ? (

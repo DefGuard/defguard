@@ -4,61 +4,25 @@
 
 .client-edit-form {
   display: flex;
-  flex-direction: row;
+  flex-flow: column;
   justify-content: flex-start;
   align-content: flex-start;
   align-items: flex-start;
-  align-self: stretch;
   width: 100%;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
+  gap: 2rem;
   @include bs.media-breakpoint-up(md) {
     column-gap: 2rem;
   }
 
-  input {
-    &[type='submit'] {
-      display: none;
-    }
+  & > .scopes {
+    display: flex;
+    flex-flow: column;
+    box-sizing: border-box;
+    padding: 1.2rem 1.5rem 2rem;
+    row-gap: 1.5rem;
   }
 
-  & > .labeled-input {
-    @include bs.media-breakpoint-up(md) {
-      &.half {
-        width: calc(50% - 10px);
-      }
-
-      &.solo {
-        width: 100%;
-
-        .input-container {
-          width: calc(50% - 10px);
-        }
-      }
-    }
-  }
-
-  & > .input-group {
-    & > label {
-      @include mix.text-weight(medium);
-
-      color: v.$text-main;
-      @include bs.media-breakpoint-down(md) {
-        font-family: Roboto;
-        font-size: 1.2rem;
-        line-height: 1.4rem;
-      }
-      @include bs.media-breakpoint-up(md) {
-        font-family: Poppins;
-        font-size: 1.5rem;
-        line-height: 2.3rem;
-      }
-    }
-
-    & > .labeled-input {
-      &:nth-last-of-type(1) {
-        width: 150px;
-      }
-    }
+  .hidden {
+    display: none;
   }
 }

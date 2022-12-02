@@ -12,20 +12,24 @@ import { MFARoute } from './MFARoute/MFARoute';
 const AuthPage = () => {
   const navigate = useNavigate();
 
-  const [loggedUser, isAdmin] = useAuthStore(
-    (state) => [state.user, state.isAdmin],
+  const [loggedUser, isAdmin, authLocation] = useAuthStore(
+    (state) => [state.user, state.isAdmin, state.authLocation],
     shallow
   );
 
   useEffect(() => {
     if (loggedUser) {
-      if (loggedUser && isAdmin) {
-        navigate('/admin/overview', { replace: true });
+      if (authLocation) {
+        location.assign(authLocation);
       } else {
-        navigate('/me', { replace: true });
+        if (loggedUser && isAdmin) {
+          navigate('/admin/overview', { replace: true });
+        } else {
+          navigate('/me', { replace: true });
+        }
       }
     }
-  }, [isAdmin, loggedUser, navigate]);
+  }, [isAdmin, loggedUser, navigate, authLocation]);
 
   return (
     <div id="auth-container">

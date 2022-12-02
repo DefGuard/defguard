@@ -245,14 +245,17 @@ const useApi = (props?: HookProps): ApiHook => {
   const addOpenidClient = async (data: AddOpenidClientRequest) => {
     return client.post<EmptyApiResponse>('/oauth/', data);
   };
-  const editOpenidClient = async ({ id, ...rest }: EditOpenidClientRequest) => {
-    return client.put<EmptyApiResponse>(`/oauth/${id}`, rest);
+  const editOpenidClient = async ({
+    client_id,
+    ...rest
+  }: EditOpenidClientRequest) => {
+    return client.put<EmptyApiResponse>(`/oauth/${client_id}`, rest);
   };
   const changeOpenidClientState = async ({
-    id,
+    clientId,
     ...rest
   }: ChangeOpenidClientStateRequest) => {
-    return client.post<EmptyApiResponse>(`/oauth/${id}`, rest);
+    return client.post<EmptyApiResponse>(`/oauth/${clientId}`, rest);
   };
   const deleteOpenidClient = async (id: string) =>
     client.delete<EmptyApiResponse>(`/oauth/${id}`).then((res) => res.data);
@@ -330,8 +333,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const mfaTOTPVerify: ApiHook['auth']['mfa']['totp']['verify'] = (data) =>
     client.post('/auth/totp/verify', data).then(unpackRequest);
 
-  const mfaWeb3Start = () =>
-    client.post('/auth/web3/start').then(unpackRequest);
+  const mfaWeb3Start: ApiHook['auth']['mfa']['web3']['start'] = (data) =>
+    client.post('/auth/web3/start', data).then(unpackRequest);
 
   const mfaWeb3Finish: ApiHook['auth']['mfa']['web3']['finish'] = (data) =>
     client.post('/auth/web3', data).then(unpackRequest);
@@ -362,6 +365,8 @@ const useApi = (props?: HookProps): ApiHook => {
     client.post('/auth/recovery', data).then(unpackRequest);
 
   const getVersion = () => client.get('/version').then(unpackRequest);
+
+  const getGatewayStatus = () => client.get('/connection').then(unpackRequest);
 
   return {
     getVersion,
@@ -404,6 +409,7 @@ const useApi = (props?: HookProps): ApiHook => {
       getUsersStats,
       getNetworkToken,
       getNetworkStats,
+      getGatewayStatus,
     },
     auth: {
       login,

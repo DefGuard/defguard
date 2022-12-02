@@ -171,6 +171,11 @@ pub struct RecoveryCode {
     code: String,
 }
 
+#[derive(Deserialize)]
+pub struct WalletAddress {
+    address: String,
+}
+
 #[derive(Serialize)]
 pub struct RecoveryCodes {
     codes: Option<Vec<String>>,
