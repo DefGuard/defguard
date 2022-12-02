@@ -7,11 +7,12 @@ import { AuthStore } from '../../types';
 const storeDefaultValues = {
   user: undefined,
   isAdmin: undefined,
+  authLocation: undefined,
 };
 
 export const useAuthStore = create<
   AuthStore,
-  [['zustand/persist', Pick<AuthStore, 'user' | 'isAdmin'>]]
+  [['zustand/persist', Pick<AuthStore, 'user' | 'isAdmin' | 'authLocation'>]]
 >(
   persist(
     (set) => ({
