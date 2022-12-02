@@ -230,6 +230,10 @@ export interface VersionResponse {
   version: string;
 }
 
+export interface ConnectionInfo {
+  connected: boolean;
+}
+
 export interface ApiHook {
   getVersion: () => Promise<VersionResponse>;
   oAuth: {
@@ -275,6 +279,7 @@ export interface ApiHook {
     getNetworkStats: (
       data?: GetNetworkStatsRequest
     ) => Promise<WireguardNetworkStats>;
+    getGatewayStatus: () => Promise<ConnectionInfo>;
   };
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;
@@ -697,7 +702,7 @@ export interface WalletSignature {
 }
 
 export interface Web3StartRequest {
-	address: string;
+  address: string;
 }
 
 export interface TOTPRequest {

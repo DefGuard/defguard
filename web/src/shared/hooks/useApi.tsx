@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { add, isNull } from 'lodash-es';
+import { isNull } from 'lodash-es';
 
 import {
   AddDeviceRequest,
@@ -363,6 +363,8 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const getVersion = () => client.get('/version').then(unpackRequest);
 
+  const getGatewayStatus = () => client.get('/connection').then(unpackRequest);
+
   return {
     getVersion,
     oAuth: {
@@ -404,6 +406,7 @@ const useApi = (props?: HookProps): ApiHook => {
       getUsersStats,
       getNetworkToken,
       getNetworkStats,
+      getGatewayStatus,
     },
     auth: {
       login,
