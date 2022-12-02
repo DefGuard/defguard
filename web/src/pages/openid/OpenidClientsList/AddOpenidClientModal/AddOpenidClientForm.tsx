@@ -1,6 +1,6 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { SubmitHandler } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -32,21 +32,23 @@ const AddOpenidClientForm = () => {
   const [scopes, setScopes] = useState<string[]>(['']);
   const setModalState = useModalStore((state) => state.setAddOpenidClientModal);
 
-  const schema = yup.object({
-    name: yup
-      .string()
-      .required(t('form.errors.required'))
-      .max(16, t('form.errors.maximumLength', { length: 16 })),
-    enabled: yup.boolean(),
-    redirect_uri: yup.array().of(
-      yup
-        .object()
-        .shape({
-          url: yup.string().required(t('form.errors.required')),
-        })
-        .required()
-    ),
-  });
+  const schema = useMemo(() => {
+    return yup.object({
+      name: yup
+        .string()
+        .required(t('form.errors.required'))
+        .max(16, t('form.errors.maximumLength', { length: 16 })),
+      enabled: yup.boolean(),
+      redirect_uri: yup.array().of(
+        yup
+          .object()
+          .shape({
+            url: yup.string().required(t('form.errors.required')),
+          })
+          .required()
+      ),
+    });
+  }, [t]);
 
   const { handleSubmit, control } = useForm<Inputs>({
     resolver: yupResolver(schema),
@@ -128,7 +130,6 @@ const AddOpenidClientForm = () => {
           ))}
           <Button
             className="big primary"
-            type="submit"
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.PRIMARY}
             text="Add redirect Url"

@@ -2,7 +2,7 @@ import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useEffect } from 'react';
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -45,21 +45,23 @@ const OpenidClientForm = ({
 
   const submitButton = useRef<HTMLButtonElement | null>(null);
 
-  const schema = yup.object({
-    name: yup
-      .string()
-      .required(t('form.errors.required'))
-      .max(16, t('form.errors.maximumLength', { length: 16 })),
-    enabled: yup.boolean(),
-    redirect_uri: yup.array().of(
-      yup
-        .object()
-        .shape({
-          url: yup.string().required(t('form.errors.required')),
-        })
-        .required()
-    ),
-  });
+  const schema = useMemo(() => {
+    return yup.object({
+      name: yup
+        .string()
+        .required(t('form.errors.required'))
+        .max(16, t('form.errors.maximumLength', { length: 16 })),
+      enabled: yup.boolean(),
+      redirect_uri: yup.array().of(
+        yup
+          .object()
+          .shape({
+            url: yup.string().required(t('form.errors.required')),
+          })
+          .required()
+      ),
+    });
+  }, [t]);
 
   const {
     openid: { editOpenidClient },
@@ -153,7 +155,6 @@ const OpenidClientForm = ({
           {index !== 0 ? (
             <Button
               className="big warning"
-              type="submit"
               size={ButtonSize.BIG}
               styleVariant={ButtonStyleVariant.WARNING}
               text="Remove redirect uri"

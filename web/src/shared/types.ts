@@ -693,7 +693,7 @@ export interface WalletSignature {
 }
 
 export interface Web3StartRequest {
-	address: string;
+  address: string;
 }
 
 export interface TOTPRequest {

@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { add, isNull } from 'lodash-es';
+import { isNull } from 'lodash-es';
 
 import {
   AddDeviceRequest,

@@ -1,5 +1,6 @@
 import './style.scss';
 
+import { Card } from '../../../../shared/components/layout/Card/Card';
 import { OpenidClient } from '../../../../shared/types';
 import OpenidClientInfo from './OpenidClientInfo';
 
@@ -13,9 +14,9 @@ const OpenidClientDetail = ({ client }: Props) => {
       <header>
         <h2>App Details</h2>
       </header>
-      <div className="card">
+      <Card>
         <OpenidClientInfo client={client} />
-      </div>
+      </Card>
     </section>
   );
 };
