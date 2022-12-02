@@ -4,22 +4,15 @@
 
 @mixin tableSpacing($span: 0, $body: false) {
   &:nth-of-type(#{1 + $span}) {
-    width: 25%;
+    width: 30%;
   }
   &:nth-of-type(#{2 + $span}) {
-    width: 25%;
+    width: 30%;
     opacity: 1;
   }
   &:nth-of-type(#{3 + $span}) {
-    width: 25%;
+    width: 30%;
     opacity: 1;
-  }
-  &:nth-of-type(#{4 + $span}) {
-    width: 25%;
-    opacity: 1;
-    display: flex;
-    flex-direction: row;
-    align-content: center;
     justify-content: flex-end;
   }
 }
@@ -251,7 +244,7 @@
                 background-color: v.$bg-light;
                 border-radius: 1rem;
 
-                span {
+                name status actio span {
                   height: auto;
                   width: auto;
                   color: v.$gray-light;

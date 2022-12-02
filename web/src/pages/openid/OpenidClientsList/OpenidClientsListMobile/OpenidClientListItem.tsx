@@ -25,7 +25,7 @@ const OpenidClientListItem: React.FC<Props> = ({ client }) => {
 
   const navigateToOpenidClient = () => {
     setNavigationOpenidClient(client);
-    navigate(`/admin/openid/${client.id}`, { replace: true });
+    navigate(`/admin/openid/${client.client_id}`, { replace: true });
   };
 
   return (
@@ -37,12 +37,10 @@ const OpenidClientListItem: React.FC<Props> = ({ client }) => {
         >
           {expanded ? <SvgIconUserListExpanded /> : <SvgIconUserList />}
         </div>
-        <>
-          <DeviceAvatar active={client.enabled} />
-          <p className="name" onClick={navigateToOpenidClient}>
-            {client.name}
-          </p>
-        </>
+        <DeviceAvatar active={client.enabled} />
+        <p className="name" onClick={navigateToOpenidClient}>
+          {client.name}
+        </p>
         <OpenidClientEditButton client={client} />
       </section>
       {expanded ? (
@@ -59,8 +57,6 @@ const OpenidClientListItem: React.FC<Props> = ({ client }) => {
                 )}
                 <p>{client.enabled ? 'Enabled' : 'Disabled'}</p>
               </div>
-              <label>Description:</label>
-              <p>{client.description}</p>
             </div>
           </section>
         </>

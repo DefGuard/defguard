@@ -14,7 +14,6 @@ import Button, {
 } from '../../../shared/components/layout/Button/Button';
 import IconButton from '../../../shared/components/layout/IconButton/IconButton';
 import OptionsPopover from '../../../shared/components/layout/OptionsPopover/OptionsPopover';
-import Tabs, { Tab } from '../../../shared/components/layout/Tabs/Tabs';
 import SvgIconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconEdit from '../../../shared/components/svg/IconEdit';
 import SvgIconEditAlt from '../../../shared/components/svg/IconEditAlt';
@@ -80,16 +79,6 @@ const OpenIDClient: React.FC<Props> = ({ clientData }) => {
     }
   }, [saveEditSubject]);
 
-  const getTabs: Tab[] = useMemo(
-    (): Tab[] => [
-      {
-        title: 'App details',
-        node: client ? <OpenidClientDetail client={client} /> : null,
-      },
-    ],
-    [client]
-  );
-
   const getHeaderText = useMemo(() => {
     if (editMode) {
       return 'Edit app';
@@ -103,7 +92,7 @@ const OpenIDClient: React.FC<Props> = ({ clientData }) => {
   if (!client || !saveEditSubject) return null;
 
   return (
-    <section id="client-profile">
+    <section id="client-page">
       <AnimatePresence mode="wait">
         <motion.header
           initial="hidden"
@@ -218,17 +207,7 @@ const OpenIDClient: React.FC<Props> = ({ clientData }) => {
               </motion.div>
             </motion.div>
           ) : null}
-          {!editMode ? (
-            <Tabs
-              tabs={getTabs}
-              motionUnderlineID="OpenidClientTabsUnderline"
-              key="profile-tabs"
-              initial="hidden"
-              animate="show"
-              exit="hidden"
-              variants={standardVariants}
-            />
-          ) : null}
+          {!editMode ? <OpenidClientDetail client={client} /> : null}
         </AnimatePresence>
       </div>
     </section>

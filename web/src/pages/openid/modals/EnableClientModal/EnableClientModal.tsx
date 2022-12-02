@@ -27,7 +27,10 @@ const EnableClientModal: React.FC = () => {
 
   const { mutate, isLoading } = useMutation(
     (client: OpenidClient) =>
-      changeOpenidClientState({ id: client.id, enabled: !client.enabled }),
+      changeOpenidClientState({
+        clientId: client.client_id,
+        enabled: !client.enabled,
+      }),
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);

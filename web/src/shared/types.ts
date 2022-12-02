@@ -562,9 +562,8 @@ export interface OpenidClient {
   name: string;
   client_id: string;
   client_secret: string;
-  description: string;
-  home_url: string;
-  redirect_uri: string;
+  redirect_uri: string[];
+  scope: string[];
   enabled: boolean;
 }
 
@@ -573,18 +572,15 @@ export interface EditOpenidClientRequest {
   name: string;
   client_id: string;
   client_secret: string;
-  description: string;
-  home_url: string;
-  redirect_uri: string;
+  redirect_uri: string[];
   enabled: boolean;
 }
 
 export interface AddOpenidClientRequest {
   name: string;
-  description: string;
-  home_url: string;
-  redirect_uri: string;
-  enabled: string | number;
+  redirect_uri: string[];
+  enabled: boolean;
+  scope: string[];
 }
 
 export interface AddWebhookRequest {
@@ -616,7 +612,7 @@ export interface changeWebhookStateRequest {
 }
 
 export interface ChangeOpenidClientStateRequest {
-  id: string;
+  clientId: string;
   enabled: boolean;
 }
 
