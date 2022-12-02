@@ -1,8 +1,9 @@
 import './style.scss';
 
 import { motion } from 'framer-motion';
+import { cloneDeep } from 'lodash-es';
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import Badge, {
   BadgeStyleVariant,
@@ -34,19 +35,22 @@ const OAuthPage = () => {
   const currentUser = useAuthStore((state) => state.user);
   const setAuthStore = useAuthStore((state) => state.setState);
   const navigate = useNavigate();
-  const location = useLocation();
   const authLocation = useAuthStore((state) => state.authLocation);
 
   useEffect(() => {
     if (!currentUser) {
-      setAuthStore({ authLocation: location.pathname });
-      navigate('/auth', { replace: true });
+      const loc = String(cloneDeep(window.location.href));
+      setAuthStore({ authLocation: loc });
+      setTimeout(() => {
+        navigate('/auth', { replace: true });
+      }, 250);
     } else {
       if (authLocation) {
         setAuthStore({ authLocation: undefined });
       }
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setScope(params.get('scope'));
@@ -121,7 +125,7 @@ const OAuthPage = () => {
                   <Badge
                     key={s}
                     text={s}
-                    styleVariant={BadgeStyleVariant.INACTIVE}
+                    styleVariant={BadgeStyleVariant.PRIMARY}
                   />
                 ))
             : null}

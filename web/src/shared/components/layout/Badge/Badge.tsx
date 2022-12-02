@@ -10,6 +10,7 @@ export enum BadgeStyleVariant {
   WARNING = 'warning',
   INACTIVE = 'inactive',
   SUCCESS = 'success',
+  PRIMARY = 'primary',
 }
 
 interface Props {
@@ -56,6 +57,10 @@ const Badge: React.FC<Props & HTMLMotionProps<'span'>> = ({
 export default Badge;
 
 const badgeVariants: Variants = {
+  primary: {
+    backgroundColor: ColorsRGB.Primary,
+    color: ColorsRGB.White,
+  },
   standard: {
     backgroundColor: ColorsRGB.BgLight,
     color: ColorsRGB.GrayLight,

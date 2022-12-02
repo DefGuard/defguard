@@ -20,7 +20,7 @@ const AuthPage = () => {
   useEffect(() => {
     if (loggedUser) {
       if (authLocation) {
-        navigate(authLocation, { replace: true });
+        location.assign(authLocation);
       } else {
         if (loggedUser && isAdmin) {
           navigate('/admin/overview', { replace: true });
