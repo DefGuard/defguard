@@ -1,7 +1,13 @@
 import './style.scss';
 
+import { encode } from '@stablelib/base64';
+import { generateKeyPair } from '@stablelib/x25519';
 import { useMemo } from 'react';
 
+import Button, {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../shared/components/layout/Button/Button';
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../shared/components/layout/MessageBox/MessageBox';
@@ -25,6 +31,13 @@ export const UserDeviceModal = () => {
     return false;
   }, [modalState.device, modalState.username]);
 
+  const generateWGKeys = () => {
+    const keys = generateKeyPair();
+    const pub = encode(keys.publicKey);
+    const priv = encode(keys.secretKey);
+    console.log({ pub, priv });
+  };
+
   return (
     <ModalWithTitle
       title={editMode ? `Edit device ${modalState.device?.name}` : 'Add device'}
@@ -33,6 +46,12 @@ export const UserDeviceModal = () => {
       className="user-device-modal"
       backdrop
     >
+      <Button
+        text="Generate Keys ( to console)"
+        styleVariant={ButtonStyleVariant.PRIMARY}
+        size={ButtonSize.BIG}
+        onClick={generateWGKeys}
+      />
       <MessageBox type={MessageBoxType.INFO}>
         <p>
           You need to configure WireguardVPN on your device, please visit{' '}
