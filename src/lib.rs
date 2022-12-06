@@ -41,9 +41,9 @@ use handlers::{
     license::get_license,
     settings::{get_settings, update_settings},
     user::{
-        add_user, change_password, delete_security_key, delete_user, delete_wallet, get_user,
-        list_users, me, modify_user, set_wallet, update_wallet, username_available,
-        wallet_challenge,
+        add_user, change_password, delete_oauth_token, delete_security_key, delete_user,
+        delete_wallet, get_user, list_users, me, modify_user, set_wallet, update_wallet,
+        username_available, wallet_challenge,
     },
     version::get_version,
     webhooks::{
@@ -155,6 +155,7 @@ pub async fn build_webapp(
                 webauthn_end,
                 web3auth_start,
                 web3auth_end,
+                delete_oauth_token,
                 recovery_code
             ],
         )

@@ -422,6 +422,16 @@ pub async fn id_token(
                         if let Some(user) =
                             User::find_by_id(&appstate.pool, auth_code.user_id).await?
                         {
+                            // Remove existing token in case same client asks for new token
+                            if let Some(token) = OAuth2Token::find_by_user_and_client_id(
+                                &appstate.pool,
+                                user.id.unwrap(),
+                                client.id.unwrap(),
+                            )
+                            .await?
+                            {
+                                token.delete(&appstate.pool).await?;
+                            }
                             let token = OAuth2Token::new(
                                 user.id.unwrap(),
                                 client.id.unwrap(),

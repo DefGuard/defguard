@@ -107,6 +107,63 @@
     },
     "query": "INSERT INTO \"device\" (\"name\", \"wireguard_ip\", \"wireguard_pubkey\", \"user_id\", \"created\") VALUES ($1, $2, $3, $4, $5) RETURNING id"
   },
+  "06207c6b7b7637022c66cbe8e564a75bdaded2c1cac2393ebed55f36ac5996f6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "access_token",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "refresh_token",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "expires_in",
+          "ordinal": 6,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT user_id, client_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE user_id = $1 AND client_id = $2"
+  },
   "06be7b39c87c3a1d1465dfb007937b5b584f60e9094a18936b482c4dfb6b1aca": {
     "describe": {
       "columns": [
@@ -2615,19 +2672,6 @@
       }
     },
     "query": "UPDATE oauth2token SET access_token = $2, refresh_token = $3, expires_in = $4 WHERE access_token = $1"
-  },
-  "a430f0b5c69e252f114141b3e437917f488e9f5b8cdcf8962073ff9bb47c537f": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "DELETE FROM oauth2token WHERE user_id = $1 AND client_id = $2"
   },
   "a85ff25c6803ab54c4a297fa946e2f469a9599d734163613c7ea7fa125c25148": {
     "describe": {

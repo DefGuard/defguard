@@ -136,18 +136,31 @@ impl OAuth2Token {
         }
     }
     // Delete token by client id and user id
-    pub async fn delete_user_token(
+    pub async fn find_by_user_and_client_id(
         pool: &DbPool,
         user_id: i64,
         client_id: i64,
-    ) -> Result<(), SqlxError> {
-        query!(
-            "DELETE FROM oauth2token WHERE user_id = $1 AND client_id = $2",
+    ) -> Result<Option<Self>, SqlxError> {
+        match query_as!(
+            Self,
+            "SELECT user_id, client_id, access_token, refresh_token, redirect_uri, scope, expires_in \
+            FROM oauth2token WHERE user_id = $1 AND client_id = $2",
             user_id,
             client_id,
         )
-        .execute(pool)
-        .await?;
-        Ok(())
+        .fetch_optional(pool)
+        .await
+        {
+            Ok(Some(token)) => {
+                if token.is_expired() {
+                    token.delete(pool).await?;
+                    Ok(None)
+                } else {
+                    Ok(Some(token))
+                }
+            }
+            Ok(None) => Ok(None),
+            Err(err) => Err(err),
+        }
     }
 }
