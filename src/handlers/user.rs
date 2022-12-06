@@ -343,7 +343,7 @@ pub async fn me(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
     })
 }
 
-/// Delete wallet.
+/// Delete Oauth token.
 #[delete("/user/<username>/token/<client_id>")]
 pub async fn delete_oauth_token(
     session: SessionInfo,
