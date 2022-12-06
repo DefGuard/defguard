@@ -1,5 +1,3 @@
-use std::ops::{Deref, DerefMut};
-
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, SESSION_TIMEOUT},
@@ -14,14 +12,15 @@ use openidconnect::{
         CoreAuthErrorResponseType, CoreClaimName, CoreErrorResponseType, CoreGenderClaim,
         CoreGrantType, CoreHmacKey, CoreIdToken, CoreIdTokenClaims, CoreIdTokenFields,
         CoreJsonWebKeySet, CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
-        CoreSubjectIdentifierType, CoreTokenResponse, CoreTokenType,
+        CoreRsaPrivateSigningKey, CoreSubjectIdentifierType, CoreTokenResponse, CoreTokenType,
     },
     url::Url,
     AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
     EndUserGivenName, EndUserName, EndUserPhoneNumber, IssuerUrl, JsonWebKeySetUrl, LocalizedClaim,
-    Nonce, PkceCodeChallenge, PkceCodeVerifier, RefreshToken, ResponseTypes, Scope, StandardClaims,
-    StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
+    Nonce, PkceCodeChallenge, PkceCodeVerifier, PrivateSigningKey, RefreshToken, ResponseTypes,
+    Scope, StandardClaims, StandardErrorResponse, StandardTokenResponse, SubjectIdentifier,
+    TokenUrl, UserInfoUrl,
 };
 use rocket::{
     form::{self, Form, FromFormField, ValueField},
@@ -31,6 +30,7 @@ use rocket::{
     serde::json::serde_json::json,
     Request, State,
 };
+use std::ops::{Deref, DerefMut};
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 impl From<&User> for StandardClaims<CoreGenderClaim> {
@@ -56,17 +56,14 @@ impl From<&User> for StandardClaims<CoreGenderClaim> {
 }
 
 #[get("/discovery/keys")]
-pub async fn discovery_keys() -> ApiResult {
-    // let public_key = RsaPublicKey::from_public_key_pem(PUBLIC_KEY).unwrap();
-    // let jwks = CoreJsonWebKeySet::new(vec![CoreJsonWebKey::new_rsa(
-    //     public_key.n().to_bytes_be(),
-    //     public_key.e().to_bytes_be(),
-    //     None,
-    // )]);
-    let jwks = CoreJsonWebKeySet::new(Vec::new());
+pub async fn discovery_keys(appstate: &State<AppState>) -> ApiResult {
+    let mut keys = Vec::new();
+    if let Some(openid_key) = appstate.config.openid_key() {
+        keys.push(openid_key.as_verification_key());
+    };
 
     Ok(ApiResponse {
-        json: json!(jwks),
+        json: json!(CoreJsonWebKeySet::new(keys)),
         status: Status::Ok,
     })
 }
@@ -322,16 +319,17 @@ impl<'r> TokenRequest<'r> {
         }
     }
 
-    fn authorization_code_flow<T>(
+    fn authorization_code_flow(
         &self,
         auth_code: &AuthCode,
         token: &OAuth2Token,
         claims: StandardClaims<CoreGenderClaim>,
-        base_url: Url,
-        secret: T,
+        base_url: &Url,
+        // secret: T,
+        signing_key: CoreRsaPrivateSigningKey,
     ) -> Result<CoreTokenResponse, CoreErrorResponseType>
-    where
-        T: Into<Vec<u8>>,
+// where
+    //     T: Into<Vec<u8>>,
     {
         // assume self.grant_type == "authorization_code"
 
@@ -351,7 +349,7 @@ impl<'r> TokenRequest<'r> {
                 let issue_time = Utc::now();
                 let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
                 let id_token_claims = CoreIdTokenClaims::new(
-                    IssuerUrl::from_url(base_url),
+                    IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],
                     expiration,
                     issue_time,
@@ -359,11 +357,12 @@ impl<'r> TokenRequest<'r> {
                     EmptyAdditionalClaims {},
                 )
                 .set_nonce(auth_code.nonce.clone().map(Nonce::new));
-                let signing_key = CoreHmacKey::new(secret);
+                // let signing_key = CoreHmacKey::new(secret);
                 CoreIdToken::new(
                     id_token_claims,
                     &signing_key,
-                    CoreJwsSigningAlgorithm::HmacSha256,
+                    // CoreJwsSigningAlgorithm::HmacSha256,
+                    CoreJwsSigningAlgorithm::RsaSsaPkcs1V15Sha256,
                     Some(&access_token),
                     Some(&authorization_code),
                 )
@@ -437,13 +436,13 @@ pub async fn token(
                                 auth_code.redirect_uri.clone(),
                                 auth_code.scope.clone(),
                             );
-                            let base_url = Url::parse(&appstate.config.url).unwrap();
                             match form.authorization_code_flow(
                                 &auth_code,
                                 &token,
                                 (&user).into(),
-                                base_url,
-                                client.client_secret,
+                                &appstate.config.url,
+                                // client.client_secret,
+                                appstate.config.openid_key().unwrap(),
                             ) {
                                 Ok(response) => {
                                     token.save(&appstate.pool).await?;
@@ -518,20 +517,26 @@ pub fn userinfo(session_info: SessionInfo) -> ApiResult {
 // Must be served under /.well-known/openid-configuration
 #[get("/openid-configuration", format = "json")]
 pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
-    let base_url = Url::parse(&appstate.config.url).unwrap();
     let provider_metadata = CoreProviderMetadata::new(
-        IssuerUrl::from_url(base_url.clone()),
-        AuthUrl::from_url(base_url.join("api/v1/oauth/authorize").unwrap()),
-        JsonWebKeySetUrl::from_url(base_url.join("api/v1/oauth/discovery/keys").unwrap()),
+        IssuerUrl::from_url(appstate.config.url.clone()),
+        AuthUrl::from_url(appstate.config.url.join("api/v1/oauth/authorize").unwrap()),
+        JsonWebKeySetUrl::from_url(
+            appstate
+                .config
+                .url
+                .join("api/v1/oauth/discovery/keys")
+                .unwrap(),
+        ),
         vec![ResponseTypes::new(vec![CoreResponseType::Code])],
         vec![CoreSubjectIdentifierType::Public],
         vec![
-            CoreJwsSigningAlgorithm::HmacSha256, // required
+            CoreJwsSigningAlgorithm::HmacSha256,           // required
+            CoreJwsSigningAlgorithm::RsaSsaPkcs1V15Sha256, // recommended
         ],
         EmptyAdditionalProviderMetadata {},
     )
     .set_token_endpoint(Some(TokenUrl::from_url(
-        base_url.join("api/v1/oauth/token").unwrap(),
+        appstate.config.url.join("api/v1/oauth/token").unwrap(),
     )))
     .set_scopes_supported(Some(vec![
         Scope::new("openid".into()),
@@ -556,7 +561,7 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
         CoreGrantType::RefreshToken,
     ]))
     .set_userinfo_endpoint(Some(UserInfoUrl::from_url(
-        base_url.join("api/v1/oauth/userinfo").unwrap(),
+        appstate.config.url.join("api/v1/oauth/userinfo").unwrap(),
     )));
 
     Ok(ApiResponse {

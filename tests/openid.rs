@@ -13,7 +13,6 @@ use openidconnect::{
         header::{HeaderName, HeaderValue},
         HeaderMap, Method, StatusCode,
     },
-    url::Url,
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
     PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
@@ -370,7 +369,7 @@ async fn test_openid_authorization_code() {
     let (pool, mut config) = init_test_db().await;
     config.license = LICENSE_ENTERPRISE.into();
 
-    let issuer_url = IssuerUrl::from_url(Url::parse(&config.url).expect("Invalid issuer URL"));
+    let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
     let pool_clone = pool.clone();
     let config_clone = config.clone();
@@ -446,7 +445,7 @@ async fn test_openid_authorization_code() {
         .unwrap();
 
     // verify id token
-    let id_token_verifier = core_client.id_token_verifier().allow_any_alg();
+    let id_token_verifier = core_client.id_token_verifier();
     let _id_token_claims = token_response
         .extra_fields()
         .id_token()
@@ -469,7 +468,7 @@ async fn test_openid_authorization_code_with_pkce() {
     let (pool, mut config) = init_test_db().await;
     config.license = LICENSE_ENTERPRISE.into();
 
-    let issuer_url = IssuerUrl::from_url(Url::parse(&config.url).expect("Invalid issuer URL"));
+    let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
     let pool_clone = pool.clone();
     let config_clone = config.clone();
@@ -546,7 +545,7 @@ async fn test_openid_authorization_code_with_pkce() {
         .unwrap();
 
     // verify id token
-    let id_token_verifier = core_client.id_token_verifier().allow_any_alg();
+    let id_token_verifier = core_client.id_token_verifier();
     let _id_token_claims = token_response
         .extra_fields()
         .id_token()

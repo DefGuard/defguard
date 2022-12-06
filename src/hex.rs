@@ -54,7 +54,7 @@ pub fn hex_decode<T: AsRef<[u8]>>(hex: T) -> Result<Vec<u8>, HexError> {
 }
 
 pub fn to_lower_hex(bytes: &[u8]) -> String {
-    let mut hex = String::with_capacity(bytes.len() + 1 * 2);
+    let mut hex = String::with_capacity(bytes.len() + 2);
     let to_char = |nibble: u8| -> char {
         (match nibble {
             0..=9 => b'0' + nibble,

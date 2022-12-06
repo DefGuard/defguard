@@ -315,7 +315,7 @@ async fn test_web3() {
     let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
 
     pub fn to_lower_hex(bytes: &[u8]) -> String {
-        let mut hex = String::with_capacity(bytes.len() + 1 * 2);
+        let mut hex = String::with_capacity(bytes.len() + 2);
         let to_char = |nibble: u8| -> char {
             (match nibble {
                 0..=9 => b'0' + nibble,
@@ -385,8 +385,7 @@ async fn test_web3() {
         Nonce:\n\
         {}",
         to_lower_hex(&keccak256(wallet_address.as_bytes()))
-    )
-    .into();
+    );
     assert_eq!(data.challenge, message);
 
     // Sign message
