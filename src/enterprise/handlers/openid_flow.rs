@@ -415,7 +415,7 @@ pub async fn id_token(
 ) -> ApiResult {
     // TODO: cleanup branches
     match form.grant_type {
-        "authorization_code" => {
+        "authorization_code" | "code" => {
             if let Some(code) = form.code {
                 if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
@@ -424,6 +424,7 @@ pub async fn id_token(
                         {
                             let token = OAuth2Token::new(
                                 user.id.unwrap(),
+                                client.id.unwrap(),
                                 auth_code.redirect_uri.clone(),
                                 auth_code.scope.clone(),
                             );

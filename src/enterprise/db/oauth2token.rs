@@ -4,6 +4,7 @@ use sqlx::{query, query_as, Error as SqlxError};
 
 pub struct OAuth2Token {
     pub(crate) user_id: i64,
+    pub client_id: i64,
     pub access_token: String,
     pub refresh_token: String,
     pub redirect_uri: String,
@@ -13,10 +14,11 @@ pub struct OAuth2Token {
 
 impl OAuth2Token {
     #[must_use]
-    pub fn new(user_id: i64, redirect_uri: String, scope: String) -> Self {
+    pub fn new(user_id: i64, client_id: i64, redirect_uri: String, scope: String) -> Self {
         let expiration = Utc::now() + Duration::seconds(SESSION_TIMEOUT as i64);
         Self {
             user_id,
+            client_id,
             access_token: gen_alphanumeric(24),
             refresh_token: gen_alphanumeric(24),
             redirect_uri,
@@ -38,7 +40,7 @@ impl OAuth2Token {
             self.access_token,
             new_access_token,
             new_refresh_token,
-            self.expires_in
+            self.expires_in,
         )
         .execute(pool)
         .await?;
@@ -54,9 +56,10 @@ impl OAuth2Token {
     /// Store data in the database.
     pub async fn save(&self, pool: &DbPool) -> Result<(), SqlxError> {
         query!(
-            "INSERT INTO oauth2token (user_id, access_token, refresh_token, redirect_uri, scope, expires_in) \
-            VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO oauth2token (user_id, client_id, access_token, refresh_token, redirect_uri, scope, expires_in) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7)",
             self.user_id,
+            self.client_id,
             self.access_token,
             self.refresh_token,
             self.redirect_uri,
@@ -86,7 +89,7 @@ impl OAuth2Token {
     ) -> Result<Option<Self>, SqlxError> {
         match query_as!(
             Self,
-            "SELECT user_id, access_token, refresh_token, redirect_uri, scope, expires_in \
+            "SELECT user_id, client_id, access_token, refresh_token, redirect_uri, scope, expires_in \
             FROM oauth2token WHERE access_token = $1",
             access_token
         )
@@ -113,7 +116,7 @@ impl OAuth2Token {
     ) -> Result<Option<Self>, SqlxError> {
         match query_as!(
             Self,
-            "SELECT user_id, access_token, refresh_token, redirect_uri, scope, expires_in \
+            "SELECT user_id, client_id, access_token, refresh_token, redirect_uri, scope, expires_in \
             FROM oauth2token WHERE refresh_token = $1",
             refresh_token
         )
@@ -131,5 +134,20 @@ impl OAuth2Token {
             Ok(None) => Ok(None),
             Err(err) => Err(err),
         }
+    }
+    // Delete token by client id and user id
+    pub async fn delete_user_token(
+        pool: &DbPool,
+        user_id: i64,
+        client_id: i64,
+    ) -> Result<(), SqlxError> {
+        query!(
+            "DELETE FROM oauth2token WHERE user_id = $1 AND client_id = $2",
+            user_id,
+            client_id,
+        )
+        .execute(pool)
+        .await?;
+        Ok(())
     }
 }

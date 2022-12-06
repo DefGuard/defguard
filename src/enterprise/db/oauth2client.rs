@@ -94,4 +94,7 @@ impl OAuth2Client {
         .fetch_optional(pool)
         .await
     }
+    pub async fn find_by_token() {
+        todo!()
+    }
 }
