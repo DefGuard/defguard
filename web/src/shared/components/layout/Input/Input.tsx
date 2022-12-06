@@ -1,5 +1,6 @@
 import './style.scss';
 
+import classNames from 'classnames';
 import {
   AnimatePresence,
   HTMLMotionProps,
@@ -42,6 +43,7 @@ interface PlaceholderCustom {
 interface ContainerCustom {
   hovered: boolean;
   invalid: boolean;
+  disabled: boolean;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -55,6 +57,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       disposeHandler,
       placeholder,
       innerLabel = false,
+      disabled = false,
       errorMessage,
       outerLabel,
       disableOuterLabelColon,
@@ -66,26 +69,32 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const [focused, setFocused] = useState(false);
     const [hovered, setHovered] = useState(false);
     const componentId = useId();
+
     const getClassName = useMemo(() => {
-      const res = ['input-container'];
-      if (invalid) {
-        res.push('invalid');
-      }
-      if (disposable) {
-        res.push('disposable');
-      }
-      if (innerLabel) {
-        res.push('inner-label');
-      }
-      if (!isUndefined(errorMessage)) {
-        res.push('has-error-message');
-      }
-      return res.join(' ');
-    }, [disposable, errorMessage, innerLabel, invalid]);
+      const hasErrorMessage = !isUndefined(errorMessage);
+      return classNames('input-container', {
+        invalid,
+        disposable: disposable && !disabled,
+        'inner-label': innerLabel,
+        'has-error-message': hasErrorMessage && !disabled,
+        disabled,
+      });
+    }, [disabled, disposable, errorMessage, innerLabel, invalid]);
+
+    const getOuterLabelClassName = useMemo(
+      () =>
+        classNames('input-outer-label', {
+          disabled,
+        }),
+      [disabled]
+    );
 
     const getIconProp = useMemo(() => {
+      if (disabled) {
+        return 'idle';
+      }
       if (required && !invalid && !valid) {
-        return 'asterix';
+        return 'required';
       }
       if (invalid) {
         return 'invalid';
@@ -94,25 +103,46 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         return 'valid';
       }
       return 'idle';
-    }, [required, invalid, valid]);
+    }, [disabled, required, invalid, valid]);
+
+    const getContainerVariant = useMemo(() => {
+      if (disabled) {
+        return 'idle';
+      }
+      if (hovered || focused) {
+        return 'focused';
+      }
+      return 'idle';
+    }, [disabled, focused, hovered]);
 
     const getPlaceholderCustom: PlaceholderCustom = useMemo(
-      () => ({ focused, innerLabel }),
-      [focused, innerLabel]
+      () => ({ focused, innerLabel, disabled }),
+      [disabled, focused, innerLabel]
     );
 
     const getContainerCustom: ContainerCustom = useMemo(
-      () => ({ invalid: Boolean(invalid), hovered }),
-      [invalid, hovered]
+      () => ({ invalid: Boolean(invalid), disabled, hovered }),
+      [invalid, disabled, hovered]
     );
 
     return (
       <>
         {outerLabel && outerLabel.length > 0 && (
-          <label className="input-outer-label" htmlFor={componentId}>
+          <motion.label
+            className={getOuterLabelClassName}
+            htmlFor={componentId}
+            variants={outerLabelVariants}
+            custom={getContainerCustom}
+            initial={false}
+            onClick={() => {
+              if (innerInputRef) {
+                innerInputRef.current?.focus();
+              }
+            }}
+          >
             {outerLabel}
             {!disableOuterLabelColon && ':'}
-          </label>
+          </motion.label>
         )}
         <motion.div
           className={getClassName}
@@ -127,13 +157,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           }}
           variants={containerVariants}
           initial="idle"
-          animate={focused ? 'focused' : 'idle'}
+          animate={getContainerVariant}
           custom={getContainerCustom}
         >
           <motion.input
             variants={inputVariants}
             initial="idle"
-            animate={focused ? 'focused' : 'idle'}
+            animate={getContainerVariant}
             custom={getContainerCustom}
             ref={(r) => {
               innerInputRef.current = r;
@@ -149,6 +179,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             value={value}
             placeholder={placeholder}
             id={componentId}
+            disabled={disabled}
           />
           <AnimatePresence mode="wait">
             <motion.span
@@ -213,43 +244,45 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 const containerVariants: Variants = {
-  idle: ({ hovered }: ContainerCustom) => {
-    let res: Variant = {
+  idle: ({ hovered, disabled }: ContainerCustom) => {
+    const res: Variant = {
       boxShadow: inactiveBoxShadow,
       backgroundColor: ColorsRGB.White,
+      opacity: 1,
     };
+    if (disabled) {
+      res.opacity = 0.5;
+      return res;
+    }
     if (hovered) {
-      res = {
-        ...res,
-        boxShadow: buttonsBoxShadow,
-      };
+      res.boxShadow = buttonsBoxShadow;
     }
     return res;
   },
   focused: ({ invalid }: ContainerCustom) => {
-    let res = {
+    const res = {
       boxShadow: buttonsBoxShadow,
     };
     if (invalid) {
-      res = { ...res, boxShadow: buttonsBoxShadow };
+      res.boxShadow = buttonsBoxShadow;
     }
     return res;
   },
 };
 
 const inputVariants: Variants = {
-  idle: ({ hovered, invalid }: ContainerCustom) => {
-    let res: Variant = {
+  idle: ({ hovered, invalid, disabled }: ContainerCustom) => {
+    const res: Variant = {
       borderColor: ColorsRGB.GrayBorder,
     };
+    if (disabled) {
+      return res;
+    }
     if (hovered) {
-      res = {
-        ...res,
-        borderColor: ColorsRGB.GrayLighter,
-      };
+      res.borderColor = ColorsRGB.GrayLighter;
     }
     if (invalid) {
-      res = { ...res, borderColor: ColorsRGB.Error };
+      res.borderColor = ColorsRGB.Error;
     }
     return res;
   },
@@ -293,8 +326,20 @@ const placeholderVariants: Variants = {
   },
 };
 
+const outerLabelVariants: Variants = {
+  idle: ({ disabled }: ContainerCustom) => {
+    const res: Variant = {
+      opacity: 1,
+    };
+    if (disabled) {
+      res.opacity = 0.5;
+    }
+    return res;
+  },
+};
+
 const iconContainerVariants: Variants = {
-  asterix: {
+  required: {
     opacity: 1,
     width: '22px',
     height: '22px',
