@@ -24,7 +24,7 @@ import {
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
-import { AuthorizedClient } from '../../../../../shared/types';
+import { OAuthTokenInfo } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 
@@ -35,7 +35,7 @@ interface Inputs {
   phone: string;
   email: string;
   groups: SelectOption<string>[];
-  authorized_apps: SelectOption<AuthorizedClient>[];
+  oauth_tokens: SelectOption<OAuthTokenInfo>[];
 }
 
 const defaultValues: Inputs = {
@@ -45,7 +45,7 @@ const defaultValues: Inputs = {
   phone: '',
   email: '',
   groups: [],
-  authorized_apps: [],
+  oauth_tokens: [],
 };
 
 export const ProfileDetailsForm = () => {
@@ -110,16 +110,17 @@ export const ProfileDetailsForm = () => {
     } else {
       res.groups = [];
     }
-    if (ommited.authorized_apps) {
-      const appsOptions: SelectOption<AuthorizedClient>[] =
-        ommited.authorized_apps.map((a) => ({
-          key: a.id,
+    console.log(ommited);
+    if (ommited.oauth_tokens) {
+      const appsOptions: SelectOption<OAuthTokenInfo>[] =
+        ommited.oauth_tokens.map((a) => ({
+          key: a.client_id,
           value: a,
-          label: a.client_id,
+          label: a.name,
         }));
-      res.authorized_apps = appsOptions;
+      res.oauth_tokens = appsOptions;
     } else {
-      res.authorized_apps = [] as SelectOption<AuthorizedClient>[];
+      res.oauth_tokens = [];
     }
     return res as Inputs;
   }, [user]);
@@ -173,7 +174,7 @@ export const ProfileDetailsForm = () => {
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
     if (user) {
       const groups = values.groups.map((g) => g.value);
-      const apps = values.authorized_apps.map((a) => a.value);
+      const apps = values.oauth_tokens.map((a) => a.value);
       mutate({
         username: user.username,
         data: {
@@ -181,7 +182,7 @@ export const ProfileDetailsForm = () => {
           ...values,
           groups: groups,
           totp_enabled: user.totp_enabled,
-          authorized_apps: apps,
+          oauth_tokens: apps,
         },
       });
     }
@@ -270,19 +271,6 @@ export const ProfileDetailsForm = () => {
             searchable={true}
             multi={true}
             disabled={!isAdmin}
-          />
-        </div>
-      </div>
-      <div className="row">
-        <div className="item">
-          <FormSelect
-            styleVariant={SelectStyleVariant.WHITE}
-            outerLabel="Authorized apps"
-            controller={{ control, name: 'authorized_apps' }}
-            options={formDefaultValues.authorized_apps}
-            searchable={false}
-            multi={true}
-            disableOpen
           />
         </div>
       </div>

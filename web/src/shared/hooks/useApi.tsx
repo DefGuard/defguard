@@ -25,6 +25,7 @@ import {
   NetworkToken,
   NetworkUserStats,
   OpenidClient,
+  RemoveUserClientRequest,
   Settings,
   User,
   UserEditRequest,
@@ -239,8 +240,8 @@ const useApi = (props?: HookProps): ApiHook => {
   };
   const getOpenidClients = () => client.get('/oauth/').then((res) => res.data);
 
-  const getOpenidClient = async (id: string) =>
-    client.get<OpenidClient>(`/oauth/${id}`).then((res) => res.data);
+  const getOpenidClient = async (client_id: string) =>
+    client.get<OpenidClient>(`/oauth/${client_id}`).then((res) => res.data);
 
   const addOpenidClient = async (data: AddOpenidClientRequest) => {
     return client.post<EmptyApiResponse>('/oauth/', data);
@@ -268,9 +269,11 @@ const useApi = (props?: HookProps): ApiHook => {
       .get<AuthorizedClient[]>(`/oauth/apps/${username}`)
       .then((res) => res.data);
 
-  const removeUserClient = async (id: string) =>
+  const removeUserClient = async (data: RemoveUserClientRequest) =>
     client
-      .delete<EmptyApiResponse>(`/oauth/apps/${id}`)
+      .delete<EmptyApiResponse>(
+        `/user/${data.username}/token/${data.client_id}`
+      )
       .then((res) => res.data);
 
   const oAuthConsent = (params: unknown) =>

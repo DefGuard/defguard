@@ -40,6 +40,12 @@ export interface User {
   pgp_key?: string;
   ssh_key?: string;
   groups: string[];
+  oauth_tokens: OAuthTokenInfo[];
+}
+
+export interface OAuthTokenInfo {
+  client_id: string;
+  name: string;
 }
 
 export interface SecurityKey {
@@ -345,7 +351,7 @@ export interface ApiHook {
     deleteOpenidClient: (id: string) => EmptyApiResponse;
     verifyOpenidClient: (data: VerifyOpenidClientRequest) => EmptyApiResponse;
     getUserClients: (username: string) => Promise<AuthorizedClient[]>;
-    removeUserClient: (id: string) => EmptyApiResponse;
+    removeUserClient: (data: RemoveUserClientRequest) => EmptyApiResponse;
   };
   license: {
     getLicense: () => Promise<License>;
@@ -709,4 +715,8 @@ export interface TOTPRequest {
 export interface WebAuthnRegistrationRequest {
   name: string;
   rpkc: PublicKeyCredentialWithAttestationJSON;
+}
+export interface RemoveUserClientRequest {
+  username: string;
+  client_id: string;
 }

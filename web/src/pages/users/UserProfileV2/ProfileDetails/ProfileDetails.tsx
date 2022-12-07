@@ -1,5 +1,6 @@
 import './style.scss';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { useMemo } from 'react';
 
@@ -8,7 +9,10 @@ import { Label } from '../../../../shared/components/layout/Label/Label';
 import NoData from '../../../../shared/components/layout/NoData/NoData';
 import { Tag } from '../../../../shared/components/layout/Tag/Tag';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
-import { sortByDate } from '../../../../shared/utils/sortByDate';
+import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
+import { MutationKeys } from '../../../../shared/mutations';
+import { QueryKeys } from '../../../../shared/queries';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { ProfileDetailsForm } from './ProfileDetailsForm/ProfileDetailsForm';
 
@@ -25,8 +29,26 @@ export const ProfileDetails = () => {
     </section>
   );
 };
-
 const ViewMode = () => {
+  const {
+    openid: { removeUserClient },
+  } = useApi();
+
+  const toaster = useToaster();
+  const queryClient = useQueryClient();
+  const { mutate: deleteTokenMutation } = useMutation(
+    [MutationKeys.REMOVE_USER_CLIENT],
+    removeUserClient,
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        toaster.success('Token deleted');
+      },
+      onError: () => {
+        toaster.error('Token deletion failed');
+      },
+    }
+  );
   const user = useUserProfileV2Store((store) => store.user);
 
   const sortedGroups = useMemo(() => {
@@ -36,14 +58,8 @@ const ViewMode = () => {
     return [];
   }, [user?.groups]);
 
-  const sortedAuthorizedApps = useMemo(() => {
-    if (user && user.authorized_apps) {
-      return sortByDate(user.authorized_apps, (app) => app.date, true);
-    }
-    return [];
-  }, [user]);
-
   if (!user) return null;
+
   return (
     <>
       <div className="row">
@@ -84,10 +100,20 @@ const ViewMode = () => {
       <div className="row tags">
         <Label>Authorized apps</Label>
         <div className="tags">
-          {sortedAuthorizedApps.map((app) => (
-            <Tag disposable={false} text={app.client_id} key={app.id} />
+          {user?.oauth_tokens.map((app) => (
+            <Tag
+              disposable={true}
+              text={app.name}
+              key={app.client_id}
+              onDispose={() =>
+                deleteTokenMutation({
+                  username: user.username,
+                  client_id: app.client_id,
+                })
+              }
+            />
           ))}
-          {!sortedAuthorizedApps.length && (
+          {!user.oauth_tokens.length && (
             <NoData customMessage="No apps authorized." />
           )}
         </div>

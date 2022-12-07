@@ -89,7 +89,9 @@ const AddOpenidClientForm = () => {
     const payload = {
       name: data.name,
       redirect_uri: redirectUrls,
-      scope: scopes,
+      scope: scopes.filter((obj) => {
+        return obj !== '';
+      }),
       enabled: true,
     };
 
