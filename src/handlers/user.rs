@@ -6,8 +6,9 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{AppEvent, MFAMethod, Settings, User, UserInfo, Wallet, WebAuthn},
-    enterprise::ldap::utils::{
-        ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user,
+    enterprise::{
+        db::OAuth2Token,
+        ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     },
     error::OriWebError,
     license::Features,
@@ -340,4 +341,27 @@ pub async fn me(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
         json: json!(user_info),
         status: Status::Ok,
     })
+}
+
+/// Delete Oauth token.
+#[delete("/user/<username>/token/<client_id>")]
+pub async fn delete_oauth_token(
+    session: SessionInfo,
+    appstate: &State<AppState>,
+    username: &str,
+    client_id: i64,
+) -> ApiResult {
+    let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    if let Some(token) =
+        OAuth2Token::find_by_user_and_client_id(&appstate.pool, user.id.unwrap(), client_id).await?
+    {
+        if Some(token.user_id) == user.id {
+            token.delete(&appstate.pool).await?;
+            Ok(ApiResponse::default())
+        } else {
+            Err(OriWebError::ObjectNotFound("wrong token".into()))
+        }
+    } else {
+        Err(OriWebError::ObjectNotFound("Token not found".into()))
+    }
 }

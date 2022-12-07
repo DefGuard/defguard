@@ -768,23 +768,6 @@
     },
     "query": "SELECT address \"address!\", name, chain_id, use_for_mfa FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL"
   },
-  "31475f8d1e397a3c88e3a66ed96f96849ee6ddf90adb31fff0dfc868e0d4b10f": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Int8"
-        ]
-      }
-    },
-    "query": "INSERT INTO oauth2token (user_id, access_token, refresh_token, redirect_uri, scope, expires_in) VALUES ($1, $2, $3, $4, $5, $6)"
-  },
   "31b3fcaa8109121f985a2c740475f1d77fe8dcbcab76e64164be140ad361ab14": {
     "describe": {
       "columns": [],
@@ -1697,6 +1680,118 @@
       }
     },
     "query": "SELECT id \"id?\", \"device_id\", \"collected_at\", \"network\", \"endpoint\", \"upload\", \"download\", \"latest_handshake\", \"allowed_ips\" FROM \"wireguard_peer_stats\" WHERE id = $1"
+  },
+  "7310813c2d0af54571d6242853d17658208c94bd7312fa587faad9ec462e3d69": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "oauth2client_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "access_token",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "refresh_token",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "expires_in",
+          "ordinal": 6,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT user_id, oauth2client_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE access_token = $1"
+  },
+  "75113beae15290e4651fef0e388add55e4751d54a810de8917c30db8b8f887d7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "oauth2client_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "access_token",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "refresh_token",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "expires_in",
+          "ordinal": 6,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT user_id, oauth2client_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE refresh_token = $1"
   },
   "77532f50fc8765ac97323cd3df60df8ae443769670c459426d738ac8d4fab6f4": {
     "describe": {
@@ -2710,56 +2805,6 @@
     },
     "query": "SELECT id \"id?\", \"name\", \"wireguard_ip\", \"wireguard_pubkey\", \"user_id\", \"created\" FROM \"device\""
   },
-  "bc3c39b04622e66d5a6d4d3ebd296b248cec313c96a164799c52aaa96a1ba0a6": {
-    "describe": {
-      "columns": [
-        {
-          "name": "user_id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "access_token",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "refresh_token",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "redirect_uri",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "scope",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "expires_in",
-          "ordinal": 5,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT user_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE access_token = $1"
-  },
   "bd814a4cae35fce9b8a8967e800c889cdfb836834beb17974e0ee115bb7654b7": {
     "describe": {
       "columns": [
@@ -3093,55 +3138,49 @@
     },
     "query": "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE \"user\".username = $1"
   },
-  "ca2e8704acbda9ec6cfa4fd3456f2c8ac6d020ee875751d390ce86f48892cc2f": {
+  "ca14f7aea66fea98c9e12582dee85201c4f58e75a614548c9520f23e045e1415": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO oauth2token (user_id, oauth2client_id, access_token, refresh_token, redirect_uri, scope, expires_in) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+  },
+  "cb6818c8419d718343c2e999829dfc3677f863d06e6db07e921a79382422836a": {
     "describe": {
       "columns": [
         {
-          "name": "user_id",
+          "name": "oauth2client_id!",
           "ordinal": 0,
           "type_info": "Int8"
         },
         {
-          "name": "access_token",
+          "name": "oauth2client_name",
           "ordinal": 1,
           "type_info": "Text"
-        },
-        {
-          "name": "refresh_token",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "redirect_uri",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "scope",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "expires_in",
-          "ordinal": 5,
-          "type_info": "Int8"
         }
       ],
       "nullable": [
-        false,
-        false,
-        false,
-        false,
         false,
         false
       ],
       "parameters": {
         "Left": [
-          "Text"
+          "Int8"
         ]
       }
     },
-    "query": "SELECT user_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE refresh_token = $1"
+    "query": "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\" FROM oauth2token JOIN oauth2client ON oauth2client.id = oauth2token.oauth2client_id WHERE oauth2token.user_id = $1"
   },
   "cc2cc1d23dfcb6fb23cfa4631b2264e4542358d5aad1096bc998b33d949324eb": {
     "describe": {
@@ -3602,6 +3641,63 @@
       }
     },
     "query": "DELETE FROM session WHERE expires < now()"
+  },
+  "f08c431ec50485269238d66f6642c8feccde9f9e2f686d19b9e1abd9edc21aee": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "oauth2client_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "access_token",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "refresh_token",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "expires_in",
+          "ordinal": 6,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT user_id, oauth2client_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE user_id = $1 AND oauth2client_id = $2"
   },
   "f444433840871aff81db51bbf1b615e64018be82154fd655509a365ca91d3e65": {
     "describe": {
