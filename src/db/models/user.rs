@@ -378,7 +378,7 @@ impl User {
                 OauthTokenInfo,
                 "SELECT oauth2client.id \"client_id!\", oauth2client.name \
                 FROM oauth2token \
-                JOIN oauth2client ON oauth2client.id = oauth2token.client_id \
+                JOIN oauth2client ON oauth2client.id = oauth2token.oauth2client_id \
                 WHERE oauth2token.user_id = $1",
                 id
             )
