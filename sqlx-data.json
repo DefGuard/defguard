@@ -1320,32 +1320,6 @@
     },
     "query": "UPDATE \"wireguard_peer_stats\" SET \"device_id\" = $2, \"collected_at\" = $3, \"network\" = $4, \"endpoint\" = $5, \"upload\" = $6, \"download\" = $7, \"latest_handshake\" = $8, \"allowed_ips\" = $9 WHERE id = $1"
   },
-  "4fba87583cff891ab5a2d46884dd026934ae643c638b345f36cd88849b79968e": {
-    "describe": {
-      "columns": [
-        {
-          "name": "client_id!",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT oauth2client.id \"client_id!\", oauth2client.name FROM oauth2token INNER JOIN oauth2client ON oauth2client.id = oauth2token.client_id WHERE oauth2token.user_id = $1"
-  },
   "57c6333e11b68c1451f79047aa5449cad8a704aad2756239282738b04ff70fd7": {
     "describe": {
       "columns": [
@@ -2999,6 +2973,32 @@
       }
     },
     "query": "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, web3_challenge FROM session WHERE id = $1"
+  },
+  "be189cf1d110589d2d35c318303923c79a2cf93c91eaefd03abc787b5d2b4141": {
+    "describe": {
+      "columns": [
+        {
+          "name": "client_id!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT oauth2client.id \"client_id!\", oauth2client.name FROM oauth2token JOIN oauth2client ON oauth2client.id = oauth2token.client_id WHERE oauth2token.user_id = $1"
   },
   "c6bce4888a517be6fa0d6c9dd21c681f60bc711dfb0c6f85529a4eef62e6c165": {
     "describe": {
