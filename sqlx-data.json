@@ -1430,32 +1430,6 @@
     },
     "query": "UPDATE \"webauthn\" SET \"user_id\" = $2, \"name\" = $3, \"passkey\" = $4 WHERE id = $1"
   },
-  "5d52bfd1cdb82ac994c1e15eaaa9266aa69b99cbf2fb0b6ec6a1afa76fddeaa5": {
-    "describe": {
-      "columns": [
-        {
-          "name": "client_id!",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT oauth2client.id \"client_id!\", oauth2client.name FROM oauth2token JOIN oauth2client ON oauth2client.id = oauth2token.oauth2client_id WHERE oauth2token.user_id = $1"
-  },
   "5ecfb41255d2aa4cb98b509fc17122c4032c7b81db6645853c6dcdbcc596c0b6": {
     "describe": {
       "columns": [
@@ -3181,6 +3155,32 @@
       }
     },
     "query": "INSERT INTO oauth2token (user_id, oauth2client_id, access_token, refresh_token, redirect_uri, scope, expires_in) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+  },
+  "cb6818c8419d718343c2e999829dfc3677f863d06e6db07e921a79382422836a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "oauth2client_id!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "oauth2client_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\" FROM oauth2token JOIN oauth2client ON oauth2client.id = oauth2token.oauth2client_id WHERE oauth2token.user_id = $1"
   },
   "cc2cc1d23dfcb6fb23cfa4631b2264e4542358d5aad1096bc998b33d949324eb": {
     "describe": {

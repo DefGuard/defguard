@@ -24,8 +24,8 @@ pub struct WalletInfo {
 
 #[derive(Deserialize, Serialize)]
 pub struct OauthTokenInfo {
-    pub client_id: i64,
-    pub name: String,
+    pub oauth2client_id: i64,
+    pub oauth2client_name: String,
 }
 
 /// Only `id` and `name` from [`WebAuthn`].
