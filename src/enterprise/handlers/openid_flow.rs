@@ -319,17 +319,17 @@ impl<'r> TokenRequest<'r> {
         }
     }
 
-    fn authorization_code_flow(
+    fn authorization_code_flow<T>(
         &self,
         auth_code: &AuthCode,
         token: &OAuth2Token,
         claims: StandardClaims<CoreGenderClaim>,
         base_url: &Url,
-        // secret: T,
-        signing_key: CoreRsaPrivateSigningKey,
+        secret: T,
+        rsa_key: Option<CoreRsaPrivateSigningKey>,
     ) -> Result<CoreTokenResponse, CoreErrorResponseType>
-// where
-    //     T: Into<Vec<u8>>,
+    where
+        T: Into<Vec<u8>>,
     {
         // assume self.grant_type == "authorization_code"
 
@@ -357,16 +357,23 @@ impl<'r> TokenRequest<'r> {
                     EmptyAdditionalClaims {},
                 )
                 .set_nonce(auth_code.nonce.clone().map(Nonce::new));
-                // let signing_key = CoreHmacKey::new(secret);
-                CoreIdToken::new(
-                    id_token_claims,
-                    &signing_key,
-                    // CoreJwsSigningAlgorithm::HmacSha256,
-                    CoreJwsSigningAlgorithm::RsaSsaPkcs1V15Sha256,
-                    Some(&access_token),
-                    Some(&authorization_code),
-                )
-                .ok()
+                let id_token = match rsa_key {
+                    Some(key) => CoreIdToken::new(
+                        id_token_claims,
+                        &key,
+                        CoreJwsSigningAlgorithm::RsaSsaPkcs1V15Sha256,
+                        Some(&access_token),
+                        Some(&authorization_code),
+                    ),
+                    None => CoreIdToken::new(
+                        id_token_claims,
+                        &CoreHmacKey::new(secret),
+                        CoreJwsSigningAlgorithm::HmacSha256,
+                        Some(&access_token),
+                        Some(&authorization_code),
+                    ),
+                };
+                id_token.ok()
             } else {
                 None
             };
@@ -452,8 +459,8 @@ pub async fn token(
                                 &token,
                                 (&user).into(),
                                 &appstate.config.url,
-                                // client.client_secret,
-                                appstate.config.openid_key().unwrap(),
+                                client.client_secret,
+                                appstate.config.openid_key(),
                             ) {
                                 Ok(response) => {
                                     token.save(&appstate.pool).await?;

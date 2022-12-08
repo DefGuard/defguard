@@ -71,13 +71,8 @@ async fn make_client_with_wallet(address: String) -> Client {
     );
     user.save(&pool).await.unwrap();
 
-    let mut wallet = Wallet::new_for_user(
-        user.id.unwrap(),
-        address.into(),
-        "test".into(),
-        5,
-        String::new(),
-    );
+    let mut wallet =
+        Wallet::new_for_user(user.id.unwrap(), address, "test".into(), 5, String::new());
     wallet.save(&pool).await.unwrap();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();

@@ -21,6 +21,7 @@ use rocket::{
     http::{ContentType, Header, Status},
     local::asynchronous::Client,
 };
+use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use std::{
     str::FromStr,
@@ -445,7 +446,7 @@ async fn test_openid_authorization_code() {
         .unwrap();
 
     // verify id token
-    let id_token_verifier = core_client.id_token_verifier();
+    let id_token_verifier = core_client.id_token_verifier().allow_any_alg();
     let _id_token_claims = token_response
         .extra_fields()
         .id_token()
@@ -467,6 +468,8 @@ async fn test_openid_authorization_code() {
 async fn test_openid_authorization_code_with_pkce() {
     let (pool, mut config) = init_test_db().await;
     config.license = LICENSE_ENTERPRISE.into();
+    let mut rng = rand::thread_rng();
+    config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
