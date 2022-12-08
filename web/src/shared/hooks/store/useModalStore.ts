@@ -15,6 +15,7 @@ export const useModalStore = create<UseModalStore>((set) => ({
   },
   connectWalletModal: {
     visible: false,
+    onConnect: undefined,
   },
   registerTOTP: {
     visible: false,

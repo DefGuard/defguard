@@ -1,8 +1,8 @@
 import './style.scss';
 import './style.scss';
 
-import { ReactNode, useEffect } from 'react';
-import { useAccount, useConnect } from 'wagmi';
+import { ReactNode } from 'react';
+import { useConnect } from 'wagmi';
 
 import { useModalStore } from '../../../hooks/store/useModalStore';
 import { useToaster } from '../../../hooks/useToaster';
@@ -51,26 +51,37 @@ export const Web3ConnectModal = () => {
 };
 
 const WalletConnectorsList = () => {
-  const { isConnected } = useAccount();
   const modalState = useModalStore((state) => state.connectWalletModal);
   const setModalsStore = useModalStore((state) => state.setState);
-  const { connect, connectors, isLoading, pendingConnector } = useConnect();
+  const { connectAsync, connectors, isLoading, pendingConnector } =
+    useConnect();
   const toaster = useToaster();
-
-  useEffect(() => {
-    if (isConnected && modalState.visible) {
-      toaster.success('Wallet connected.');
-      setModalsStore({ connectWalletModal: { visible: false } });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected]);
 
   return (
     <div className="connectors">
       {connectors.map((connector) => (
         <RowBox
           key={connector.id}
-          onClick={() => connect({ connector })}
+          onClick={async () => {
+            try {
+              await connectAsync({ connector });
+            } catch (err) {
+              if (err) {
+                toaster.error('Failed to connect wallet.');
+                console.error(err);
+                return;
+              }
+            }
+
+            if (modalState.onConnect) {
+              modalState.onConnect();
+            }
+
+            toaster.success('Wallet connected.');
+            setModalsStore({
+              connectWalletModal: { visible: false, onConnect: undefined },
+            });
+          }}
           disabled={
             isLoading ||
             connector.id === pendingConnector?.id ||
