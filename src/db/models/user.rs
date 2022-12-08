@@ -1,4 +1,4 @@
-use super::{device::Device, group::Group, SecurityKey, WalletInfo};
+use super::{device::Device, group::Group, OauthTokenInfo, SecurityKey, WalletInfo};
 use crate::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{Wallet, WebAuthn},
@@ -363,6 +363,23 @@ impl User {
                 WalletInfo,
                 "SELECT address \"address!\", name, chain_id, use_for_mfa \
                 FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL",
+                id
+            )
+            .fetch_all(pool)
+            .await
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    pub async fn oauth_tokens(&self, pool: &DbPool) -> Result<Vec<OauthTokenInfo>, SqlxError> {
+        if let Some(id) = self.id {
+            query_as!(
+                OauthTokenInfo,
+                "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\" \
+                FROM oauth2token \
+                JOIN oauth2client ON oauth2client.id = oauth2token.oauth2client_id \
+                WHERE oauth2token.user_id = $1",
                 id
             )
             .fetch_all(pool)

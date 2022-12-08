@@ -94,6 +94,12 @@ export const MFAWeb3 = () => {
     }
   }, [navigate, web3Available]);
 
+  const handleSigning = () => {
+    if (address && isConnected) {
+      mfaStartMutation({ address });
+    }
+  };
+
   return (
     <>
       <p>
@@ -101,17 +107,17 @@ export const MFAWeb3 = () => {
         app or extension.
       </p>
       <Button
-        text={isConnected ? 'Use your wallet' : 'Connect your wallet'}
+        text="Use your wallet"
         styleVariant={ButtonStyleVariant.PRIMARY}
         size={ButtonSize.BIG}
         loading={finishLoading || startLoading || isConnecting || isSigning}
         onClick={() => {
           if (!isConnected) {
-            setModalsState({ connectWalletModal: { visible: true } });
+            setModalsState({
+              connectWalletModal: { visible: true, onConnect: handleSigning },
+            });
           } else {
-            if (address) {
-              mfaStartMutation({ address });
-            }
+            handleSigning();
           }
         }}
       />
