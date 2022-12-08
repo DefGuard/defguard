@@ -21,5 +21,4 @@ export const patternValidWireguardKey =
 
 export const patternBaseUrl = /:\/\/(.[^/]+)/;
 
-export const patternValidUrl = /^http:\/\/\w+(\.\w+)*(:[0-9]+)?\/?(\/[.\w]*)*$/;
-
+export const patternValidUrl = /^https?:\/\/([\w\d\-]+\.)+\w{2,}(\/.+)?$/;
