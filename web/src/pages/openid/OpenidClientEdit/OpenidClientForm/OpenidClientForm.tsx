@@ -16,7 +16,11 @@ import Button, {
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { CheckBox } from '../../../../shared/components/layout/Checkbox/CheckBox';
+import MessageBox, {
+  MessageBoxType,
+} from '../../../../shared/components/layout/MessageBox/MessageBox';
 import useApi from '../../../../shared/hooks/useApi';
+import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 import { OpenidClient } from '../../../../shared/types';
 
@@ -56,7 +60,10 @@ const OpenidClientForm = ({
         yup
           .object()
           .shape({
-            url: yup.string().required(t('form.errors.required')),
+            url: yup
+              .string()
+              .required(t('form.errors.required'))
+              .matches(patternValidUrl, t('form.errors.invalidUrl')),
           })
           .required()
       ),
@@ -105,7 +112,9 @@ const OpenidClientForm = ({
     const payload = {
       name: data.name,
       redirect_uri: redirectUrls,
-      scope: scopes,
+      scope: scopes.filter((obj) => {
+        return obj !== '';
+      }),
       enabled: true,
     };
 
@@ -194,8 +203,21 @@ const OpenidClientForm = ({
           onChange={(value) => handleScopeChange('phone', value)}
         />
       </div>
+      <div className="errors-container">
+        {!scopes.length ? (
+          <MessageBox
+            message="Select at least one scope"
+            type={MessageBoxType.ERROR}
+          />
+        ) : null}
+      </div>
 
-      <button type="submit" className="hidden" ref={submitButton} />
+      <button
+        type="submit"
+        className="hidden"
+        ref={submitButton}
+        disabled={!scopes.length}
+      />
     </form>
   );
 };
