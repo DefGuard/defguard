@@ -113,8 +113,8 @@ const ViewMode = () => {
               }
             />
           ))}
-          {!user.oauth_tokens.length && (
-            <NoData customMessage="No apps authorized." />
+          {!(user.oauth_tokens.length > 0) && (
+            <NoData customMessage="No authorized apps." />
           )}
         </div>
       </div>
