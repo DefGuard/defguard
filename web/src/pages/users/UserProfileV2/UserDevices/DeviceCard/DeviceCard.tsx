@@ -1,6 +1,5 @@
 import './style.scss';
 
-import saveAs from 'file-saver';
 import { useMemo, useState } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
@@ -100,8 +99,9 @@ export const DeviceCard = ({ device }: Props) => {
           onClick={() => {
             setUserDeviceModal({
               visible: true,
-              username: user.username,
-              device: device,
+              currentStep: 0,
+              config: undefined,
+              choice: undefined,
             });
           }}
         />

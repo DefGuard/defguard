@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { motion } from 'framer-motion';
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useMemo } from 'react';
 
 import SvgIconUserListExpanded from '../../svg/IconUserListExpanded';
 import SvgIconUserListHover from '../../svg/IconUserListHover';

@@ -2,7 +2,6 @@ import axios, { AxiosResponse } from 'axios';
 import { isNull } from 'lodash-es';
 
 import {
-  AddDeviceRequest,
   AddOpenidClientRequest,
   AddUserRequest,
   AddWalletRequest,
@@ -134,8 +133,10 @@ const useApi = (props?: HookProps): ApiHook => {
   const deleteDevice = async (device: Device) =>
     client.delete<EmptyApiResponse>(`/device/${device.id}`);
 
-  const addDevice = async ({ username, ...rest }: AddDeviceRequest) =>
-    client.post<Device>(`/device/${username}`, rest).then((res) => res.data);
+  const addDevice: ApiHook['device']['addDevice'] = async ({
+    username,
+    ...rest
+  }) => client.post(`/device/${username}`, rest).then((res) => res.data);
 
   const fetchUserDevices = async (username: string) =>
     client.get<Device[]>(`/device/user/${username}`).then((res) => res.data);

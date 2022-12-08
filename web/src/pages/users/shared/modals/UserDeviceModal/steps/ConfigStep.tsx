@@ -1,3 +1,5 @@
+import QRCode from 'react-qr-code';
+
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -18,6 +20,7 @@ export const ConfigStep = () => {
 
   return (
     <>
+      <p>{setupChoice?.valueOf()}</p>
       <MessageBox type={MessageBoxType.WARNING}>
         <p>
           Please be advised that you have to download the configuration now,
@@ -49,6 +52,7 @@ export const ConfigStep = () => {
           </p>
         </Helper>
       </div>
+      {config && <QRCode value={config} size={250} />}
       <div className="controls">
         <Button
           text="Close"
