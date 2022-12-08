@@ -26,7 +26,7 @@ const DeleteClientModal: React.FC = () => {
   );
 
   const { mutate, isLoading } = useMutation(
-    (client: OpenidClient) => deleteOpenidClient(client.id),
+    (client: OpenidClient) => deleteOpenidClient(client.client_id),
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
