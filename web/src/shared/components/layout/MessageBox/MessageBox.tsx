@@ -52,10 +52,12 @@ const MessageBox = ({
   }, [type]);
 
   return (
-    <div {...props} className={getClassName}>
-      {getIcon}
-      {message && !children ? <p>{message}</p> : null}
-      {children}
+    <div className="message-box-container">
+      <div {...props} className={getClassName}>
+        {getIcon}
+        {message && !children ? <p>{message}</p> : null}
+        {children}
+      </div>
     </div>
   );
 };

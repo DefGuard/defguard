@@ -9,7 +9,7 @@ import {
   Variants,
 } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
-import React, { useId, useMemo, useRef } from 'react';
+import React, { ReactNode, useId, useMemo, useRef } from 'react';
 import { useState } from 'react';
 
 import {
@@ -125,6 +125,22 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       [invalid, disabled, hovered]
     );
 
+    const getInputIcon: ReactNode = useMemo(() => {
+      if (disabled) {
+        return null;
+      }
+      if (invalid) {
+        return <SvgIconWarning />;
+      }
+      if (valid) {
+        return <SvgIconCheckmarkGreen />;
+      }
+      if (required) {
+        return <SvgIconAsterix />;
+      }
+      return null;
+    }, [disabled, invalid, required, valid]);
+
     return (
       <>
         {outerLabel && outerLabel.length > 0 && (
@@ -134,6 +150,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             variants={outerLabelVariants}
             custom={getContainerCustom}
             initial={false}
+            animate="idle"
             onClick={() => {
               if (innerInputRef) {
                 innerInputRef.current?.focus();
@@ -190,9 +207,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               exit="hidden"
               key={getIconProp}
             >
-              {required && !invalid && !valid ? <SvgIconAsterix /> : null}
-              {invalid ? <SvgIconWarning /> : null}
-              {valid ? <SvgIconCheckmarkGreen /> : null}
+              {getInputIcon}
             </motion.span>
           </AnimatePresence>
           {disposable && focused ? (

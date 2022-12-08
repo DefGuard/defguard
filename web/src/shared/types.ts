@@ -455,9 +455,16 @@ export interface EditWebhookModal {
   webhook?: Webhook;
 }
 
-export interface UserDeviceModal extends StandardModalState {
+interface ModalStepsState {
+  currentStep: number;
+  endStep: number;
+  nextStep: () => void;
+}
+
+export interface UserDeviceModal extends StandardModalState, ModalStepsState {
   device?: Device;
   username?: string;
+  config?: string;
 }
 
 export interface Provisioner {

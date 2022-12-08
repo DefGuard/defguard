@@ -1,20 +1,16 @@
 @use '../../../../../shared/scss/helpers' as *;
 
-.modal {
-  &.user-device-modal {
-    & > .modal-content {
-      & > .content {
-        .message-box {
-          margin-bottom: 2rem;
-          @include media-breakpoint-up(lg) {
-            margin: 0 2rem 2rem;
-            width: calc(100% - 4rem);
-          }
-          @include media-breakpoint-up(lg) {
-            margin: 0 3rem 2rem;
-            width: calc(100% - 6rem);
-          }
-        }
+#add-user-device-modal {
+  & > .step-0 {
+    & > form {
+      & > .toggle {
+        width: 100%;
+        margin-top: calc(3.2rem - 2.5rem);
+        margin-bottom: 2rem;
+      }
+
+      & > .controls {
+        margin-top: calc(3.2rem - 2.5rem);
       }
     }
   }

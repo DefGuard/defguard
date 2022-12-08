@@ -105,6 +105,7 @@ const ToggleOption = <T,>({
       disabled={disabled}
       custom={{ disabled }}
       animate={active ? 'active' : 'idle'}
+      type="button"
     >
       {text}
     </motion.button>
