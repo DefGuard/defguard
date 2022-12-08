@@ -110,13 +110,12 @@ export const ProfileDetailsForm = () => {
     } else {
       res.groups = [];
     }
-    console.log(ommited);
     if (ommited.oauth_tokens) {
       const appsOptions: SelectOption<OAuthTokenInfo>[] =
         ommited.oauth_tokens.map((a) => ({
-          key: a.client_id,
+          key: a.oauth2client_id,
           value: a,
-          label: a.name,
+          label: a.oauth2client_name,
         }));
       res.oauth_tokens = appsOptions;
     } else {

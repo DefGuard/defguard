@@ -41,7 +41,7 @@ const OpenidClientEditButton: React.FC<Props> = ({ client }) => {
   } = useApi();
   const queryClient = useQueryClient();
   const deleteClientMutation = useMutation(
-    (client: OpenidClient) => deleteOpenidClient(client.id),
+    (client: OpenidClient) => deleteOpenidClient(client.client_id),
     {
       onSuccess: () => {
         setEditOpen(false);
@@ -122,7 +122,7 @@ const OpenidClientEditButton: React.FC<Props> = ({ client }) => {
               key="edit"
               onClick={() => {
                 setOpenidClientViewEditMode(true);
-                navigate(`${client.id}`);
+                navigate(`${client.client_id}`);
               }}
             >
               Edit

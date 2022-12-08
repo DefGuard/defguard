@@ -12,8 +12,12 @@ import Button, {
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { CheckBox } from '../../../../shared/components/layout/Checkbox/CheckBox';
+import MessageBox, {
+  MessageBoxType,
+} from '../../../../shared/components/layout/MessageBox/MessageBox';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
+import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 
 interface Inputs {
@@ -29,7 +33,7 @@ const AddOpenidClientForm = () => {
     openid: { addOpenidClient },
   } = useApi();
 
-  const [scopes, setScopes] = useState<string[]>(['']);
+  const [scopes, setScopes] = useState<string[]>([]);
   const setModalState = useModalStore((state) => state.setAddOpenidClientModal);
 
   const schema = useMemo(() => {
@@ -43,7 +47,10 @@ const AddOpenidClientForm = () => {
         yup
           .object()
           .shape({
-            url: yup.string().required(t('form.errors.required')),
+            url: yup
+              .string()
+              .required(t('form.errors.required'))
+              .matches(patternValidUrl, t('form.errors.invalidUrl')),
           })
           .required()
       ),
@@ -162,6 +169,14 @@ const AddOpenidClientForm = () => {
           onChange={(value) => handleScopeChange('phone', value)}
         />
       </div>
+      <div className="errors-container">
+        {!scopes.length ? (
+          <MessageBox
+            message="Select at least one scope"
+            type={MessageBoxType.ERROR}
+          />
+        ) : null}
+      </div>
       <div className="controls">
         <Button
           size={ButtonSize.BIG}
@@ -173,6 +188,7 @@ const AddOpenidClientForm = () => {
         <Button
           type="submit"
           size={ButtonSize.BIG}
+          disabled={!scopes.length}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text="Add app"
         />

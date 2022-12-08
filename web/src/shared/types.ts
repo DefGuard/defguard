@@ -23,7 +23,7 @@ export interface User {
   username: string;
   last_name: string;
   first_name: string;
-  authorized_apps: AuthorizedClient[];
+  authorized_apps: OAuthTokenInfo[];
   devices: Device[];
   wallets: WalletInfo[];
   security_keys: SecurityKey[];
@@ -44,8 +44,8 @@ export interface User {
 }
 
 export interface OAuthTokenInfo {
-  client_id: string;
-  name: string;
+  oauth2client_id: string;
+  oauth2client_name: string;
 }
 
 export interface SecurityKey {
@@ -348,7 +348,7 @@ export interface ApiHook {
     changeOpenidClientState: (
       data: ChangeOpenidClientStateRequest
     ) => EmptyApiResponse;
-    deleteOpenidClient: (id: string) => EmptyApiResponse;
+    deleteOpenidClient: (client_id: string) => EmptyApiResponse;
     verifyOpenidClient: (data: VerifyOpenidClientRequest) => EmptyApiResponse;
     getUserClients: (username: string) => Promise<AuthorizedClient[]>;
     removeUserClient: (data: RemoveUserClientRequest) => EmptyApiResponse;

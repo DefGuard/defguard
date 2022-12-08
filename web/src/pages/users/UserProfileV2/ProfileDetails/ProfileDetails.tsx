@@ -103,12 +103,12 @@ const ViewMode = () => {
           {user?.oauth_tokens.map((app) => (
             <Tag
               disposable={true}
-              text={app.name}
-              key={app.client_id}
+              text={app.oauth2client_name}
+              key={app.oauth2client_id}
               onDispose={() =>
                 deleteTokenMutation({
                   username: user.username,
-                  client_id: app.client_id,
+                  client_id: app.oauth2client_id,
                 })
               }
             />
