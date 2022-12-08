@@ -25,7 +25,7 @@ export interface User {
   username: string;
   last_name: string;
   first_name: string;
-  authorized_apps: AuthorizedClient[];
+  authorized_apps: OAuthTokenInfo[];
   devices: Device[];
   wallets: WalletInfo[];
   security_keys: SecurityKey[];
@@ -42,6 +42,12 @@ export interface User {
   pgp_key?: string;
   ssh_key?: string;
   groups: string[];
+  oauth_tokens: OAuthTokenInfo[];
+}
+
+export interface OAuthTokenInfo {
+  oauth2client_id: string;
+  oauth2client_name: string;
 }
 
 export interface SecurityKey {
@@ -344,10 +350,10 @@ export interface ApiHook {
     changeOpenidClientState: (
       data: ChangeOpenidClientStateRequest
     ) => EmptyApiResponse;
-    deleteOpenidClient: (id: string) => EmptyApiResponse;
+    deleteOpenidClient: (client_id: string) => EmptyApiResponse;
     verifyOpenidClient: (data: VerifyOpenidClientRequest) => EmptyApiResponse;
     getUserClients: (username: string) => Promise<AuthorizedClient[]>;
-    removeUserClient: (id: string) => EmptyApiResponse;
+    removeUserClient: (data: RemoveUserClientRequest) => EmptyApiResponse;
   };
   license: {
     getLicense: () => Promise<License>;
@@ -718,4 +724,8 @@ export interface TOTPRequest {
 export interface WebAuthnRegistrationRequest {
   name: string;
   rpkc: PublicKeyCredentialWithAttestationJSON;
+}
+export interface RemoveUserClientRequest {
+  username: string;
+  client_id: string;
 }

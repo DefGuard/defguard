@@ -142,7 +142,7 @@ const OpenidClientsList = () => {
         <div className="clients-count">
           <span>All apps</span>
           <div className="count" data-test="clients-count">
-            <span>{clients && clients.length ? clients.length : 0}</span>
+            <span>{clients && clients.length > 0 ? clients.length : 0}</span>
           </div>
         </div>
         <div className="table-controls">
@@ -179,7 +179,7 @@ const OpenidClientsList = () => {
         <NoData customMessage="You don't have a license for this feature" />
       ) : (
         clients &&
-        clients.length &&
+        clients.length > 0 &&
         !isLoading &&
         (breakpoint === 'mobile' ? (
           <OpenidClientsListMobile clients={filteredClients} />

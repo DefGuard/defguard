@@ -24,10 +24,11 @@ use webauthn_rs::prelude::PublicKeyCredential;
 #[post("/auth", format = "json", data = "<data>")]
 pub async fn authenticate(
     appstate: &State<AppState>,
-    data: Json<Auth>,
+    mut data: Json<Auth>,
     cookies: &CookieJar<'_>,
 ) -> ApiResult {
     debug!("Authenticating user {}", data.username);
+    data.username = data.username.to_lowercase();
     let user = match User::find_by_username(&appstate.pool, &data.username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
             Ok(_) => user,
