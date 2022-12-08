@@ -70,11 +70,10 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
   },
   userDeviceModal: {
     visible: false,
-    device: undefined,
-    username: undefined,
     currentStep: 0,
     endStep: 1,
     config: undefined,
+    deviceName: undefined,
     nextStep: () => {
       const { currentStep, endStep } = get().userDeviceModal;
       if (!(currentStep < endStep)) {
@@ -84,6 +83,18 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
             currentStep: currentStep + 1,
           },
         }));
+      } else {
+        if (currentStep === endStep) {
+          set((state) => ({
+            userDeviceModal: {
+              ...state.userDeviceModal,
+              currentStep: 0,
+              config: undefined,
+              deviceName: undefined,
+              visible: false,
+            },
+          }));
+        }
       }
     },
   },

@@ -22,7 +22,7 @@
           width: 100%;
         }
 
-        & > .message-box {
+        & > .message-box-container {
           &:not(:last-child) {
             margin-bottom: 2.5rem;
           }

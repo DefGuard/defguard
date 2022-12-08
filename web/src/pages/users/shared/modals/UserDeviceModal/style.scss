@@ -2,6 +2,11 @@
 
 #add-user-device-modal {
   & > .step-0 {
+    & > .message-box-container {
+      margin-bottom: 3.2rem;
+      min-height: 70px;
+    }
+
     & > form {
       & > .toggle {
         width: 100%;

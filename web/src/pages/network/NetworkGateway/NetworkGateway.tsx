@@ -56,12 +56,12 @@ export const NetworkGatewaySetup = () => {
               }
             }}
           />
-          {!gatewayStatus && !statusLoading && (
+          {!gatewayStatus?.connected && !statusLoading && (
             <MessageBox type={MessageBoxType.ERROR}>
               <p>No connection established, please run provided command.</p>
             </MessageBox>
           )}
-          {gatewayStatus && !statusLoading && (
+          {gatewayStatus?.connected && !statusLoading && (
             <MessageBox type={MessageBoxType.SUCCESS}>
               <p>Gateway connected.</p>
             </MessageBox>

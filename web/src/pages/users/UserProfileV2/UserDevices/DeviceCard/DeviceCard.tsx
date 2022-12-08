@@ -17,6 +17,7 @@ import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUser
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { Device } from '../../../../../shared/types';
+import { downloadWGConfig } from '../../../../../shared/utils/downloadWGConfig';
 
 interface Props {
   device: Device;
@@ -38,10 +39,7 @@ export const DeviceCard = ({ device }: Props) => {
   const handleDownload = () => {
     downloadDeviceConfig(device.id)
       .then((res) => {
-        const blob = new Blob([res.replace(/^[^\S\r\n]+|[^\S\r\n]+$/gm, '')], {
-          type: 'text/plain;charset=utf-8',
-        });
-        saveAs(blob, `${device.name.toLowerCase()}.conf`);
+        downloadWGConfig(res, device.name);
       })
       .catch((err) => {
         console.error(err);

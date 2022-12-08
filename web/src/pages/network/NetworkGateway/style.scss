@@ -8,7 +8,8 @@
         padding: 3rem 4rem 5rem;
       }
 
-      & > .message-box {
+      & > .message-box-container {
+        min-height: 80px;
         margin-bottom: 2rem;
 
         @include media-breakpoint-up(lg) {
@@ -30,6 +31,15 @@
           align-items: center;
           justify-content: center;
           align-content: center;
+        }
+
+        & > .message-box-container {
+          height: 50px;
+          min-height: 50px;
+
+          & > .message-box {
+            padding: 1rem 2rem;
+          }
         }
 
         & > .btn {

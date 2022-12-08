@@ -15,7 +15,9 @@ export const UserDeviceModal = () => {
     <ModalWithTitle
       title="Add device"
       isOpen={modalState.visible}
-      setIsOpen={(visibility) => setModalState({ visible: visibility })}
+      setIsOpen={(visibility) =>
+        setModalState({ visible: visibility, currentStep: 0 })
+      }
       id="add-user-device-modal"
       steps={modalSteps}
       currentStep={modalState.currentStep}

@@ -229,7 +229,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </motion.span>
           ) : null}
           <AnimatePresence>
-            {invalid && errorMessage ? (
+            {invalid && errorMessage && !disabled ? (
               <motion.span
                 className="error-message"
                 initial={{
