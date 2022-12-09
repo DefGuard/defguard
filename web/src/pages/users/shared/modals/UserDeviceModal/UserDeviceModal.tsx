@@ -4,9 +4,10 @@ import { ReactNode } from 'react';
 
 import { ModalWithTitle } from '../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
+import { ConfigStep } from './steps/ConfigStep';
 import { SetupStep } from './steps/SetupStep';
 
-const modalSteps: ReactNode[] = [<SetupStep key={0} />];
+const modalSteps: ReactNode[] = [<SetupStep key={0} />, <ConfigStep key={1} />];
 
 export const UserDeviceModal = () => {
   const modalState = useModalStore((state) => state.userDeviceModal);

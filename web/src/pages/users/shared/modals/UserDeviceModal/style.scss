@@ -19,4 +19,80 @@
       }
     }
   }
+
+  & > .step-1 {
+    padding: 0 3rem 2.5rem;
+
+    & > .message-box-container {
+      padding: 0;
+      margin-bottom: 2.5rem;
+
+      .message-box {
+        p {
+          max-width: 100%;
+        }
+      }
+    }
+
+    & > .info {
+      display: flex;
+      flex-direction: row nowrap;
+      align-items: center;
+      align-content: center;
+      justify-content: center;
+      margin-bottom: 4.6rem;
+
+      p {
+        text-align: center;
+        max-width: 414px;
+
+        @include regular-text;
+
+        color: var(--gray-darker);
+      }
+    }
+
+    & > .card-label {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: 5px;
+      align-content: center;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: 1.2rem;
+    }
+
+    .input-container {
+      width: 100%;
+    }
+
+    & > .expandable-card {
+      margin-bottom: 2.7rem;
+
+      & > .expanded-content {
+        display: flex;
+        flex-direction: row nowrap;
+        align-items: center;
+        justify-content: center;
+        align-content: center;
+      }
+    }
+
+    & > .controls {
+      width: 100%;
+      display: flex;
+      flex-flow: row nowrap;
+      align-content: center;
+      align-items: center;
+      justify-content: center;
+
+      .btn {
+        width: 100%;
+
+        @include media-breakpoint-up(lg) {
+          max-width: 278px;
+        }
+      }
+    }
+  }
 }

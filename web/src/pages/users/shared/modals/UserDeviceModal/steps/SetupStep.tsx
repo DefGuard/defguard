@@ -126,8 +126,13 @@ export const SetupStep = () => {
         wireguard_pubkey: values.publicKey as string,
         username: user.username,
       }).then((config) => {
+        // This needs to be replaced with valid key so the wireguard mobile app can consume QRCode
+        const res = config.replace(
+          'YOUR_PRIVATE_KEY',
+          values.publicKey as string
+        );
         setModalState({
-          config,
+          config: res,
           deviceName: values.name,
           choice: values.choice,
         });

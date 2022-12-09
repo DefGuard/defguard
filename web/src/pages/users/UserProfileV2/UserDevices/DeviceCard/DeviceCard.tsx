@@ -7,7 +7,10 @@ import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/Ava
 import { Card } from '../../../../../shared/components/layout/Card/Card';
 import { DeviceAvatar } from '../../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
 import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
-import { EditButtonOption } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
+import {
+  EditButtonOption,
+  EditButtonOptionStyleVariant,
+} from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { displayDate } from '../../../../../shared/helpers/displayDate';
@@ -85,16 +88,6 @@ export const DeviceCard = ({ device }: Props) => {
       </div>
       <EditButton visible={editButtonVisible || breakpoint !== 'desktop'}>
         <EditButtonOption
-          text="Delete device"
-          onClick={() =>
-            setDeleteUserDeviceModal({ visible: true, device: device })
-          }
-        />
-        <EditButtonOption
-          text="Download config"
-          onClick={() => handleDownload()}
-        />
-        <EditButtonOption
           text="Edit device"
           onClick={() => {
             setUserDeviceModal({
@@ -104,6 +97,17 @@ export const DeviceCard = ({ device }: Props) => {
               choice: undefined,
             });
           }}
+        />
+        <EditButtonOption
+          text="Download config"
+          onClick={() => handleDownload()}
+        />
+        <EditButtonOption
+          styleVariant={EditButtonOptionStyleVariant.WARNING}
+          text="Delete device"
+          onClick={() =>
+            setDeleteUserDeviceModal({ visible: true, device: device })
+          }
         />
       </EditButton>
     </Card>
