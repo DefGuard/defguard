@@ -31,6 +31,8 @@ export const inactiveBoxShadow = '0px 6px 10px rgba(0, 0, 0, 0)';
 
 export const buttonsBoxShadow = `0px 6px 10px rgba(0,0,0,0.1)`;
 
+export const cardsShadow = '5px 5px 15px rgba(0,0,0,0.02)';
+
 export enum FramerMotionID {
   UserProfileTabUnderline = 'UserProfileTabUnderline',
 }

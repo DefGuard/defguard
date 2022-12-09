@@ -114,5 +114,6 @@ export { default as ImageRegularNetwork } from './ImageRegularNetwork';
 export { default as LogoDefguardWhite } from './LogoDefguardWhite';
 export { default as MetamaskIcon } from './MetamaskIcon';
 export { default as PhantomIcon } from './PhantomIcon';
+export { default as QrIconWhite } from './QrIconWhite';
 export { default as WalletconnectIcon } from './WalletconnectIcon';
 export { default as YubikeyProvisioningGraphic } from './YubikeyProvisioningGraphic';
