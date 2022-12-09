@@ -41,7 +41,7 @@ export const ModalWithTitle = ({
           </button>
         )}
       </div>
-      <div className="content">{children}</div>
+      {children && <div className="content">{children}</div>}
     </Modal>
   );
 };

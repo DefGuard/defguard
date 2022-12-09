@@ -6,6 +6,8 @@ import {
 } from '@github/webauthn-json';
 import { AxiosPromise } from 'axios';
 
+import { AddDeviceSetupChoice } from '../pages/users/shared/modals/UserDeviceModal/steps/SetupStep';
+
 export enum UserStatus {
   active = 'Active',
   inactive = 'Inactive',
@@ -266,7 +268,7 @@ export interface ApiHook {
     removeFromGroup: (data: UserGroupRequest) => EmptyApiResponse;
   };
   device: {
-    addDevice: (device: AddDeviceRequest) => Promise<Device>;
+    addDevice: (device: AddDeviceRequest) => Promise<string>;
     getDevice: (deviceId: string) => Promise<Device>;
     getDevices: () => Promise<Device[]>;
     getUserDevices: (username: string) => Promise<Device[]>;
@@ -461,9 +463,16 @@ export interface EditWebhookModal {
   webhook?: Webhook;
 }
 
-export interface UserDeviceModal extends StandardModalState {
-  device?: Device;
-  username?: string;
+interface ModalStepsState {
+  currentStep: number;
+  endStep: number;
+  nextStep: () => void;
+}
+
+export interface UserDeviceModal extends StandardModalState, ModalStepsState {
+  config?: string;
+  deviceName?: string;
+  choice?: AddDeviceSetupChoice;
 }
 
 export interface Provisioner {

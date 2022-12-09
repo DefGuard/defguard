@@ -102,7 +102,7 @@ const ModalContent = () => {
                 })
                 .catch((err) => {
                   console.error(err);
-                  toaster.error('Clipboard unaccessable');
+                  toaster.error('Clipboard unaccessible');
                 });
             }
           }}

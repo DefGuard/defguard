@@ -5,7 +5,7 @@ import { UseModalStore } from '../../types';
  * Store for modal states.
  * All modals use this store, it controls their visibility and provides extra values.
  */
-export const useModalStore = create<UseModalStore>((set) => ({
+export const useModalStore = create<UseModalStore>((set, get) => ({
   addWalletModal: {
     visible: false,
   },
@@ -70,8 +70,30 @@ export const useModalStore = create<UseModalStore>((set) => ({
   },
   userDeviceModal: {
     visible: false,
-    device: undefined,
-    username: undefined,
+    currentStep: 0,
+    endStep: 1,
+    config: undefined,
+    deviceName: undefined,
+    nextStep: () => {
+      const { currentStep, endStep } = get().userDeviceModal;
+      if (currentStep < endStep) {
+        return set((state) => ({
+          userDeviceModal: {
+            ...state.userDeviceModal,
+            currentStep: currentStep + 1,
+          },
+        }));
+      } else {
+        if (currentStep === endStep) {
+          return set((state) => ({
+            userDeviceModal: {
+              ...state.userDeviceModal,
+              visible: false,
+            },
+          }));
+        }
+      }
+    },
   },
   deleteUserDeviceModal: {
     visible: false,
@@ -83,9 +105,9 @@ export const useModalStore = create<UseModalStore>((set) => ({
   addSecurityKeyModal: {
     visible: false,
   },
-	licenseModal: {
-		visible: false,
-	},
+  licenseModal: {
+    visible: false,
+  },
   setState: (newState) => set((oldState) => ({ ...oldState, ...newState })),
   setRecoveryCodesModal: (newState) =>
     set((oldState) => ({

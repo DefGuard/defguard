@@ -2,4 +2,6 @@
 
 label {
   @include label-text;
+
+  user-select: none;
 }

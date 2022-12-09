@@ -1,6 +1,4 @@
-@use '../../../scss/base/variables' as v;
-@use '../../../scss/helpers/mixins' as mix;
-@use '../../../scss/helpers/bootstrap' as bs;
+@use '../../../scss/helpers' as *;
 
 .input-container {
   position: relative;
@@ -11,9 +9,11 @@
   margin-bottom: 2.5rem;
   border-radius: 1rem;
   z-index: 1;
+  opacity: 1;
 
   &.disabled {
     cursor: not-allowed;
+    opacity: 0.5;
   }
 
   & > .icon-container {
@@ -33,9 +33,9 @@
     font-size: 1.2rem;
     line-height: 1.4rem;
     font-family: Roboto;
-    @include mix.text-weight(medium);
+    @include text-weight(medium);
 
-    color: v.$error;
+    color: var(--error);
     z-index: -1;
   }
 
@@ -61,7 +61,7 @@
     box-sizing: border-box;
     border: 1px solid transparent;
     border-radius: 1rem;
-    @include mix.typography(15px, 18px, regular);
+    @include typography(15px, 18px, regular);
 
     &::placeholder {
       opacity: 0;
@@ -106,7 +106,7 @@
       justify-content: center;
       height: 30px;
       width: 30px;
-      background-color: v.$bg-light;
+      background-color: var(--bg-light);
       border-radius: 1rem;
       border: 0 solid transparent;
 
@@ -115,7 +115,7 @@
 
         path,
         rect {
-          fill: v.$gray-dark;
+          fill: var(--gray-dark);
           opacity: 1;
         }
       }
@@ -125,8 +125,13 @@
 
 label {
   &.input-outer-label {
-    @include mix.outer-label;
+    @include outer-label;
 
     user-select: none;
+    opacity: 1;
+
+    &.disabled {
+      opacity: 0.5;
+    }
   }
 }
