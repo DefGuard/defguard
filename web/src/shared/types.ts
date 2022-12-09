@@ -499,7 +499,12 @@ export interface ConnectWalletModal extends StandardModalState {
   onConnect?: () => void;
 }
 
+export interface EditUserDeviceModal extends StandardModalState {
+  device?: Device;
+}
+
 export interface UseModalStore {
+  editUserDeviceModal: EditUserDeviceModal;
   addWalletModal: StandardModalState;
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;

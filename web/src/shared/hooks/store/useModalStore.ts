@@ -6,6 +6,10 @@ import { UseModalStore } from '../../types';
  * All modals use this store, it controls their visibility and provides extra values.
  */
 export const useModalStore = create<UseModalStore>((set, get) => ({
+  editUserDeviceModal: {
+    visible: false,
+    device: undefined,
+  },
   addWalletModal: {
     visible: false,
   },

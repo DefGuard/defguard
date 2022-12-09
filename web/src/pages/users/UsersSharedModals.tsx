@@ -1,6 +1,7 @@
 import { ChangePasswordModal } from './shared/modals/ChangeUserPasswordModal/ChangeUserPasswordModal';
 import { DeleteUserDeviceModal } from './shared/modals/DeleteUserDeviceModal/DeleteUserDeviceModal';
 import DeleteUserModal from './shared/modals/DeleteUserModal/DeleteUserModal';
+import { EditUserDeviceModal } from './shared/modals/EditUserDeviceModal/EditUserDeviceModal';
 import KeyDetailsModal from './shared/modals/KeyDetailsModal/KeyDetailsModal';
 import KeyProvisioningModal from './shared/modals/KeyProvisioningModal/KeyProvisioningModal';
 import { UserDeviceModal } from './shared/modals/UserDeviceModal/UserDeviceModal';
@@ -17,6 +18,7 @@ export const UsersSharedModals = () => {
       <UserDeviceModal />
       <DeleteUserDeviceModal />
       <KeyDetailsModal />
+      <EditUserDeviceModal />
     </>
   );
 };
