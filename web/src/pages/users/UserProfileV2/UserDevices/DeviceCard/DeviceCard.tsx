@@ -33,7 +33,7 @@ export const DeviceCard = ({ device }: Props) => {
   const setDeleteUserDeviceModal = useModalStore(
     (state) => state.setDeleteUserDeviceModal
   );
-  const setUserDeviceModal = useModalStore((state) => state.setUserDeviceModal);
+  const setModalsState = useModalStore((state) => state.setState);
   const {
     device: { downloadDeviceConfig },
   } = useApi();
@@ -90,11 +90,8 @@ export const DeviceCard = ({ device }: Props) => {
         <EditButtonOption
           text="Edit device"
           onClick={() => {
-            setUserDeviceModal({
-              visible: true,
-              currentStep: 0,
-              config: undefined,
-              choice: undefined,
+            setModalsState({
+              editUserDeviceModal: { visible: true, device: device },
             });
           }}
         />

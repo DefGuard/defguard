@@ -1,5 +1,5 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/components/layout/Button/Button';
+import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
@@ -17,6 +18,7 @@ import {
   patternNoSpecialChars,
   patternValidWireguardKey,
 } from '../../../../../shared/patterns';
+import { QueryKeys } from '../../../../../shared/queries';
 
 interface Inputs {
   name: string;
@@ -27,8 +29,11 @@ const defaultFormValues: Inputs = {
   name: '',
   wireguard_pubkey: '',
 };
-export const UserDeviceModalForm = () => {
+
+export const EditUserDeviceForm = () => {
   const { t } = useTranslation('en');
+  const device = useModalStore((state) => state.editUserDeviceModal.device);
+  const setModalsState = useModalStore((state) => state.setState);
 
   const schema = useMemo(() => {
     return yup
@@ -50,29 +55,42 @@ export const UserDeviceModalForm = () => {
 
   const { control, handleSubmit } = useForm<Inputs>({
     resolver: yupResolver(schema),
-    defaultValues: defaultFormValues,
+    defaultValues: {
+      name: device?.name ?? defaultFormValues.name,
+      wireguard_pubkey:
+        device?.wireguard_pubkey ?? defaultFormValues.wireguard_pubkey,
+    },
     mode: 'all',
   });
-
-  const onSubmitSuccess: SubmitHandler<Inputs> = (values) => {
-    console.log(values);
-  };
 
   const {
     device: { editDevice },
   } = useApi();
 
   const toaster = useToaster();
+  const queryClient = useQueryClient();
 
-  const { isLoading: editDeviceLoading } = useMutation(
+  const { isLoading: editDeviceLoading, mutate } = useMutation(
     [MutationKeys.EDIT_USER_DEVICE],
     editDevice,
     {
       onSuccess: () => {
         toaster.success('Device updated.');
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        setModalsState({ editUserDeviceModal: { visible: false } });
+      },
+      onError: (err) => {
+        toaster.error('Error ocurred.');
+        console.error(err);
       },
     }
   );
+
+  const onSubmitSuccess: SubmitHandler<Inputs> = (values) => {
+    if (device) {
+      mutate({ ...device, ...values });
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmitSuccess)}>
@@ -91,6 +109,11 @@ export const UserDeviceModalForm = () => {
           styleVariant={ButtonStyleVariant.STANDARD}
           text="Cancel"
           className="cancel"
+          onClick={() =>
+            setModalsState({
+              editUserDeviceModal: { visible: false, device: undefined },
+            })
+          }
         />
         <Button
           type="submit"
