@@ -7,7 +7,7 @@ use rocket::{
 };
 
 #[get("/settings", format = "json")]
-pub async fn get_settings(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
+pub async fn get_settings(appstate: &State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
     let settings = Settings::find_by_id(&appstate.pool, 1).await?;
     info!("Retrieved settings");

@@ -49,6 +49,20 @@ async fn test_authorize() {
         .await;
     assert_eq!(response.status(), Status::Created);
 
+    // wrong response type
+    let response = client
+        .get(
+            "/api/v1/oauth/authorize?\
+            response_type=wrong&\
+            client_id=MyClient&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            scope=default-scope&\
+            state=ABCDEF",
+        )
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::NotFound);
+
     let response = client
         .get(
             "/api/v1/oauth/authorize?\

@@ -13,8 +13,7 @@ use crate::enterprise::handlers::{
         get_openid_client, list_openid_clients,
     },
     openid_flow::{
-        authorization, discovery_keys, id_token, openid_configuration, secure_authorization,
-        userinfo,
+        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
     },
 };
 use crate::enterprise::{db::OAuth2Client, grpc::WorkerState};
@@ -214,7 +213,7 @@ pub async fn build_webapp(
                     get_openid_client,
                     authorization,
                     secure_authorization,
-                    id_token,
+                    token,
                     userinfo,
                     change_openid_client_state,
                 ],
