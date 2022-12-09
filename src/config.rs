@@ -1,4 +1,7 @@
 use clap::Parser;
+use openidconnect::core::CoreRsaPrivateSigningKey;
+use reqwest::Url;
+use rsa::{pkcs1::ToRsaPrivateKey, pkcs8::FromPrivateKey, RsaPrivateKey};
 
 #[derive(Clone, Parser)]
 pub struct DefGuardConfig {
@@ -35,11 +38,14 @@ pub struct DefGuardConfig {
     #[clap(long, env = "DEFGUARD_ADMIN_GROUPNAME", default_value = "admin")]
     pub admin_groupname: String,
 
+    #[clap(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
+    pub openid_signing_key: Option<RsaPrivateKey>,
+
     // relying party id and relying party origin for WebAuthn
     #[clap(long, env = "DEFGUARD_WEBAUTHN_RP_ID", default_value = "localhost")]
     pub webauthn_rp_id: String,
-    #[clap(long, env = "DEFGUARD_URL", default_value = "http://localhost:8000")]
-    pub url: String,
+    #[clap(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
+    pub url: Url,
 
     #[clap(
         long,
@@ -134,5 +140,17 @@ impl DefGuardConfig {
             "{}={},{}",
             &self.ldap_groupname_attr, groupname, &self.ldap_group_search_base
         )
+    }
+
+    fn parse_openid_key(path: &str) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
+        RsaPrivateKey::read_pkcs8_pem_file(path)
+    }
+
+    pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
+        if let Ok(key) = self.openid_signing_key.as_ref()?.to_pkcs1_pem() {
+            CoreRsaPrivateSigningKey::from_pem(key.as_ref(), None).ok()
+        } else {
+            None
+        }
     }
 }

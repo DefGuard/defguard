@@ -70,9 +70,3 @@ impl From<ModelError> for OriWebError {
         Self::ModelError(error.to_string())
     }
 }
-
-impl From<serde_qs::Error> for OriWebError {
-    fn from(_error: serde_qs::Error) -> Self {
-        Self::Http(rocket::http::Status::InternalServerError)
-    }
-}
