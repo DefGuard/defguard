@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
@@ -27,6 +27,8 @@ import { OverviewStats } from './OverviewStats/OverviewStats';
 import { OverviewStatsFilterSelect } from './OverviewStatsFilterSelect/OverviewStatsFilterSelect';
 import { OverviewViewSelect } from './OverviewViewSelect/OverviewViewSelect';
 
+const STATUS_REFETCH_TIMEOUT = 15 * 1000;
+
 export const OverviewPage = () => {
   const navigate = useNavigate();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -34,6 +36,7 @@ export const OverviewPage = () => {
   const setOverViewStore = useOverviewStore((state) => state.setState);
   const statsFilter = useOverviewStore((state) => state.statsFilter);
   const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
+  const queryClient = useQueryClient();
 
   const setGatewaySetupModal = useModalStore(
     (state) => state.setGatewaySetupModal
@@ -44,7 +47,16 @@ export const OverviewPage = () => {
 
   const { data: networkStats } = useQuery(
     [QueryKeys.FETCH_NETWORK_STATS, statsFilter],
-    () => getNetworkStats({ from: getNetworkStatsFilterValue(statsFilter) })
+    () => getNetworkStats({ from: getNetworkStatsFilterValue(statsFilter) }),
+    {
+      onSuccess: async () => {
+        setTimeout(
+          () => queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_STATS]),
+          STATUS_REFETCH_TIMEOUT
+        );
+      },
+      refetchOnWindowFocus: false,
+    }
   );
 
   const { data: networkUsersStats } = useQuery(
@@ -52,20 +64,22 @@ export const OverviewPage = () => {
     () => getUsersStats({ from: getNetworkStatsFilterValue(statsFilter) }),
     {
       enabled: !isUndefined(statsFilter),
+      onSuccess: async () => {
+        setTimeout(
+          () =>
+            queryClient.invalidateQueries([
+              QueryKeys.FETCH_NETWORK_USERS_STATS,
+            ]),
+          STATUS_REFETCH_TIMEOUT
+        );
+      },
+      refetchOnWindowFocus: false,
     }
   );
 
   const { data: networks, isLoading: networksLoading } = useQuery(
     [QueryKeys.FETCH_NETWORKS],
-    getNetworks,
-    {
-      onSuccess: (data) => {
-        if (!data || (data && data.length === 0)) {
-          setNetworkPageStore({ network: undefined });
-          navigate('../network');
-        }
-      },
-    }
+    getNetworks
   );
 
   useEffect(() => {
