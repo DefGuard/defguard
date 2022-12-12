@@ -29,24 +29,11 @@ const defaultFormValues: Inputs = {
   name: '',
   wireguard_pubkey: '',
 };
-export const UserDeviceModalForm = () => {
-  const { t } = useTranslation('en');
-  const modalState = useModalStore((state) => state.userDeviceModal);
-  const setModalState = useModalStore((state) => state.setUserDeviceModal);
-  const queryClient = useQueryClient();
 
-  const editMode = useMemo(() => {
-    if (modalState.device) {
-      if (
-        modalState.device.name &&
-        modalState.device.wireguard_pubkey &&
-        modalState.username
-      ) {
-        return true;
-      }
-    }
-    return false;
-  }, [modalState.device, modalState.username]);
+export const EditUserDeviceForm = () => {
+  const { t } = useTranslation('en');
+  const device = useModalStore((state) => state.editUserDeviceModal.device);
+  const setModalsState = useModalStore((state) => state.setState);
 
   const schema = useMemo(() => {
     return yup
@@ -68,61 +55,42 @@ export const UserDeviceModalForm = () => {
 
   const { control, handleSubmit } = useForm<Inputs>({
     resolver: yupResolver(schema),
-    defaultValues: editMode
-      ? {
-          name: modalState.device?.name || '',
-          wireguard_pubkey: modalState.device?.wireguard_pubkey || '',
-        }
-      : defaultFormValues,
+    defaultValues: {
+      name: device?.name ?? defaultFormValues.name,
+      wireguard_pubkey:
+        device?.wireguard_pubkey ?? defaultFormValues.wireguard_pubkey,
+    },
     mode: 'all',
   });
 
-  const onSubmitSuccess: SubmitHandler<Inputs> = (values) => {
-    if (modalState.username) {
-      if (editMode && modalState.device) {
-        editDeviceMutation({ ...modalState.device, ...values });
-      } else {
-        addDeviceMutaion({
-          ...values,
-          username: modalState.username,
-        });
-      }
-    }
-  };
-
   const {
-    device: { addDevice, editDevice },
+    device: { editDevice },
   } = useApi();
 
   const toaster = useToaster();
+  const queryClient = useQueryClient();
 
-  const onMutationSuccess = () => {
-    queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-    setModalState({
-      visible: false,
-      device: undefined,
-      username: undefined,
-    });
-  };
-
-  const { isLoading: editDeviceLoading, mutate: editDeviceMutation } =
-    useMutation([MutationKeys.EDIT_USER_DEVICE], editDevice, {
-      onSuccess: () => {
-        toaster.success('Device updated.');
-        onMutationSuccess();
-      },
-    });
-
-  const { isLoading: addDeviceLoading, mutate: addDeviceMutaion } = useMutation(
-    [MutationKeys.ADD_DEVICE],
-    addDevice,
+  const { isLoading: editDeviceLoading, mutate } = useMutation(
+    [MutationKeys.EDIT_USER_DEVICE],
+    editDevice,
     {
       onSuccess: () => {
-        toaster.success('Device added.');
-        onMutationSuccess();
+        toaster.success('Device updated.');
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        setModalsState({ editUserDeviceModal: { visible: false } });
+      },
+      onError: (err) => {
+        toaster.error('Error ocurred.');
+        console.error(err);
       },
     }
   );
+
+  const onSubmitSuccess: SubmitHandler<Inputs> = (values) => {
+    if (device) {
+      mutate({ ...device, ...values });
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmitSuccess)}>
@@ -142,10 +110,8 @@ export const UserDeviceModalForm = () => {
           text="Cancel"
           className="cancel"
           onClick={() =>
-            setModalState({
-              visible: false,
-              username: undefined,
-              device: undefined,
+            setModalsState({
+              editUserDeviceModal: { visible: false, device: undefined },
             })
           }
         />
@@ -153,8 +119,8 @@ export const UserDeviceModalForm = () => {
           type="submit"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          text="Add device"
-          loading={addDeviceLoading || editDeviceLoading}
+          text="Edit device"
+          loading={editDeviceLoading}
         />
       </div>
     </form>

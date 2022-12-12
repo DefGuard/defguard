@@ -26,6 +26,20 @@ export const UserWallets = () => {
     return [];
   }, [user]);
 
+  const handleAddWallet = () => {
+    if (
+      isConnected &&
+      user &&
+      !isUndefined(user.wallets.find((w) => w.address === address))
+    ) {
+      toaster.warning(
+        'Connected wallet was already added. Wallet was disconnected !'
+      );
+    } else {
+      setModalsState({ addWalletModal: { visible: true } });
+    }
+  };
+
   return (
     <section id="user-wallets">
       <header>
@@ -44,23 +58,13 @@ export const UserWallets = () => {
         </div>
       )}
       <AddComponentBox
-        callback={async () => {
+        callback={() => {
           if (!isConnected) {
             setModalsState({
-              connectWalletModal: { visible: true },
+              connectWalletModal: { visible: true, onConnect: handleAddWallet },
             });
-            return;
-          }
-          if (
-            isConnected &&
-            user &&
-            !isUndefined(user.wallets.find((w) => w.address === address))
-          ) {
-            toaster.warning(
-              'Connected wallet was already added. Wallet was disconnected !'
-            );
           } else {
-            setModalsState({ addWalletModal: { visible: true } });
+            handleAddWallet();
           }
         }}
         text="Add new wallet"

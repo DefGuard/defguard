@@ -13,8 +13,7 @@ use crate::enterprise::handlers::{
         get_openid_client, list_openid_clients,
     },
     openid_flow::{
-        authorization, discovery_keys, id_token, openid_configuration, secure_authorization,
-        userinfo,
+        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
     },
 };
 use crate::enterprise::{db::OAuth2Client, grpc::WorkerState};
@@ -41,9 +40,9 @@ use handlers::{
     license::get_license,
     settings::{get_settings, update_settings},
     user::{
-        add_user, change_password, delete_security_key, delete_user, delete_wallet, get_user,
-        list_users, me, modify_user, set_wallet, update_wallet, username_available,
-        wallet_challenge,
+        add_user, change_password, delete_oauth_token, delete_security_key, delete_user,
+        delete_wallet, get_user, list_users, me, modify_user, set_wallet, update_wallet,
+        username_available, wallet_challenge,
     },
     version::get_version,
     webhooks::{
@@ -155,6 +154,7 @@ pub async fn build_webapp(
                 webauthn_end,
                 web3auth_start,
                 web3auth_end,
+                delete_oauth_token,
                 recovery_code
             ],
         )
@@ -213,7 +213,7 @@ pub async fn build_webapp(
                     get_openid_client,
                     authorization,
                     secure_authorization,
-                    id_token,
+                    token,
                     userinfo,
                     change_openid_client_state,
                 ],

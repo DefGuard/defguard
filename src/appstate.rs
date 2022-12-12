@@ -81,8 +81,7 @@ impl AppState {
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
-        let rp_origin = Url::parse(&config.url).expect("Invalid relying party origin");
-        let webauthn_builder = WebauthnBuilder::new(&config.webauthn_rp_id, &rp_origin)
+        let webauthn_builder = WebauthnBuilder::new(&config.webauthn_rp_id, &config.url)
             .expect("Invalid WebAuthn configuration");
         let webauthn = webauthn_builder
             .build()

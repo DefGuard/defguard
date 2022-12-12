@@ -181,8 +181,9 @@ pub async fn add_device(
             device.id.unwrap(),
             username
         );
+        let config = device.create_config(network);
         Ok(ApiResponse {
-            json: json!(device),
+            json: json!(config),
             status: Status::Created,
         })
     } else {
@@ -287,6 +288,7 @@ pub async fn download_config(
 ) -> Result<String, OriWebError> {
     let network = find_network(1, &appstate.pool).await?;
     let device = device_for_admin_or_self(&appstate.pool, &session, id).await?;
+
     Ok(device.create_config(network))
 }
 

@@ -1,0 +1,26 @@
+@use '../../../scss/helpers' as *;
+
+.action-button {
+  border: 0 solid transparent;
+  background-color: var(--bg-light);
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &.active {
+    background-color: var(--primary);
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+  }
+}

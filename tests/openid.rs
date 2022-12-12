@@ -2,20 +2,17 @@ use defguard::{
     build_webapp,
     config::DefGuardConfig,
     db::{AppEvent, DbPool, GatewayEvent},
-    enterprise::{
-        db::{NewOpenIDClient, OAuth2Client},
-        handlers::openid_flow::AuthenticationResponse,
-    },
+    enterprise::db::{NewOpenIDClient, OAuth2Client},
     grpc::GatewayState,
     handlers::Auth,
 };
+
 use openidconnect::{
     core::{CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType},
     http::{
         header::{HeaderName, HeaderValue},
         HeaderMap, Method, StatusCode,
     },
-    url::Url,
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
     PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
@@ -24,6 +21,8 @@ use rocket::{
     http::{ContentType, Header, Status},
     local::asynchronous::Client,
 };
+use rsa::RsaPrivateKey;
+use serde::Deserialize;
 use std::{
     str::FromStr,
     sync::{Arc, Mutex},
@@ -53,6 +52,12 @@ async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> Client {
 
     let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
+}
+
+#[derive(Deserialize)]
+pub struct AuthenticationResponse<'r> {
+    pub code: &'r str,
+    pub state: &'r str,
 }
 
 #[rocket::async_test]
@@ -259,7 +264,7 @@ async fn test_openid_flow() {
     let location = response.headers().get_one("Location").unwrap();
     assert!(location.contains("error"));
 
-    // test wrong redirect uri
+    // test wrong invalid uri
     let response = client
         .post(
             "/api/v1/oauth/authorize?\
@@ -272,44 +277,45 @@ async fn test_openid_flow() {
         )
         .dispatch()
         .await;
-    let location = response.headers().get_one("Location").unwrap();
-    assert!(location.contains("error"));
+    assert_eq!(response.status(), Status::BadRequest);
 
-    // // test scope doesn't contain openid
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=blabla&\
-    //         state=ABCDEF&\
-    //         allow=true&\
-    //         nonce=blabla",
-    //         openid_client.client_id
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.contains("error=wrong_scope&error_description=scope_must_contain_openid"));
+    // test wrong redirect uri
+    let response = client
+        .post(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=1&\
+            redirect_uri=http%3A%2F%2Fexample%3A3000%3Fvalue1=one%26value2=two&\
+            scope=openid&\
+            state=ABCDEF&\
+            nonce=blabla",
+        )
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Found);
+    let location = response.headers().get_one("Location").unwrap();
+    assert!(location.contains("error=access_denied"));
+    assert!(location.contains("value1="));
+    assert!(location.contains("value2="));
 
     // // test allow false
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-    //         scope=blabla&\
-    //         state=ABCDEF&\
-    //         allow=false&\
-    //         nonce=blabla",
-    //         openid_client.client_id
-    //     ))
-    //     .dispatch()
-    //     .await;
-    // let location = response.headers().get_one("Location").unwrap();
-    // assert!(location.contains("error=user_unauthorized"));
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            scope=blabla&\
+            state=ABCDEF&\
+            allow=false&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Found);
+    let location = response.headers().get_one("Location").unwrap();
+    assert!(location.contains("error=access_denied"));
 }
 
 /// Helper function for translating HTTP communication from `HttpRequest` to `LocalClient`.
@@ -364,7 +370,7 @@ async fn test_openid_authorization_code() {
     let (pool, mut config) = init_test_db().await;
     config.license = LICENSE_ENTERPRISE.into();
 
-    let issuer_url = IssuerUrl::from_url(Url::parse(&config.url).expect("Invalid issuer URL"));
+    let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
     let pool_clone = pool.clone();
     let config_clone = config.clone();
@@ -462,8 +468,10 @@ async fn test_openid_authorization_code() {
 async fn test_openid_authorization_code_with_pkce() {
     let (pool, mut config) = init_test_db().await;
     config.license = LICENSE_ENTERPRISE.into();
+    let mut rng = rand::thread_rng();
+    config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
 
-    let issuer_url = IssuerUrl::from_url(Url::parse(&config.url).expect("Invalid issuer URL"));
+    let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
     let pool_clone = pool.clone();
     let config_clone = config.clone();
@@ -540,7 +548,7 @@ async fn test_openid_authorization_code_with_pkce() {
         .unwrap();
 
     // verify id token
-    let id_token_verifier = core_client.id_token_verifier().allow_any_alg();
+    let id_token_verifier = core_client.id_token_verifier();
     let _id_token_claims = token_response
         .extra_fields()
         .id_token()

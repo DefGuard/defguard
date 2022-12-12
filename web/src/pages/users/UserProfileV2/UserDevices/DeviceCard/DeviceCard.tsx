@@ -1,6 +1,5 @@
 import './style.scss';
 
-import saveAs from 'file-saver';
 import { useMemo, useState } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
@@ -8,7 +7,10 @@ import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/Ava
 import { Card } from '../../../../../shared/components/layout/Card/Card';
 import { DeviceAvatar } from '../../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
 import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
-import { EditButtonOption } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
+import {
+  EditButtonOption,
+  EditButtonOptionStyleVariant,
+} from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { displayDate } from '../../../../../shared/helpers/displayDate';
@@ -17,6 +19,7 @@ import { useUserProfileV2Store } from '../../../../../shared/hooks/store/useUser
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { Device } from '../../../../../shared/types';
+import { downloadWGConfig } from '../../../../../shared/utils/downloadWGConfig';
 
 interface Props {
   device: Device;
@@ -30,7 +33,7 @@ export const DeviceCard = ({ device }: Props) => {
   const setDeleteUserDeviceModal = useModalStore(
     (state) => state.setDeleteUserDeviceModal
   );
-  const setUserDeviceModal = useModalStore((state) => state.setUserDeviceModal);
+  const setModalsState = useModalStore((state) => state.setState);
   const {
     device: { downloadDeviceConfig },
   } = useApi();
@@ -38,10 +41,7 @@ export const DeviceCard = ({ device }: Props) => {
   const handleDownload = () => {
     downloadDeviceConfig(device.id)
       .then((res) => {
-        const blob = new Blob([res.replace(/^[^\S\r\n]+|[^\S\r\n]+$/gm, '')], {
-          type: 'text/plain;charset=utf-8',
-        });
-        saveAs(blob, `${device.name.toLowerCase()}.conf`);
+        downloadWGConfig(res, device.name);
       })
       .catch((err) => {
         console.error(err);
@@ -88,24 +88,23 @@ export const DeviceCard = ({ device }: Props) => {
       </div>
       <EditButton visible={editButtonVisible || breakpoint !== 'desktop'}>
         <EditButtonOption
-          text="Delete device"
-          onClick={() =>
-            setDeleteUserDeviceModal({ visible: true, device: device })
-          }
+          text="Edit device"
+          onClick={() => {
+            setModalsState({
+              editUserDeviceModal: { visible: true, device: device },
+            });
+          }}
         />
         <EditButtonOption
           text="Download config"
           onClick={() => handleDownload()}
         />
         <EditButtonOption
-          text="Edit device"
-          onClick={() => {
-            setUserDeviceModal({
-              visible: true,
-              username: user.username,
-              device: device,
-            });
-          }}
+          styleVariant={EditButtonOptionStyleVariant.WARNING}
+          text="Delete device"
+          onClick={() =>
+            setDeleteUserDeviceModal({ visible: true, device: device })
+          }
         />
       </EditButton>
     </Card>

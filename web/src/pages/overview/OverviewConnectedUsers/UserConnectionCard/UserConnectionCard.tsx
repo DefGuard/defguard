@@ -334,11 +334,14 @@ const ActiveDevices = ({ data }: ActiveDevicesProps) => {
     </div>
   );
 };
+interface DeviceAvatarBoxProps {
+  id: number;
+}
 
-const DeviceAvatarBox = () => {
+const DeviceAvatarBox = ({ id }: DeviceAvatarBoxProps) => {
   return (
     <div className="avatar-box">
-      <DeviceAvatar />
+      <DeviceAvatar deviceId={id} />
     </div>
   );
 };
@@ -366,7 +369,7 @@ const ExpandedDeviceCard = ({ data, dataMax }: ExpandedDeviceCardProps) => {
       <div className="expanded-device-card">
         <div className="upper">
           <SvgIconUserListElement />
-          <DeviceAvatarBox />
+          <DeviceAvatarBox id={data.id} />
           <NameBox
             name={titleCase(data.name)}
             publicIp={data.public_ip}

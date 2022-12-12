@@ -2,6 +2,7 @@ import './style.scss';
 
 import classNames from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
+import { isUndefined } from 'lodash-es';
 import React, { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
@@ -15,6 +16,8 @@ export interface ModalProps {
   onClose?: () => void;
   id?: string;
   disableClose?: boolean;
+  currentStep?: number;
+  steps?: ReactNode[];
 }
 
 type MouseObserverState = {
@@ -35,6 +38,8 @@ const Modal = ({
   onClose,
   id,
   disableClose = false,
+  currentStep,
+  steps,
 }: ModalProps) => {
   const element = document.getElementById('modals-root');
 
@@ -97,6 +102,21 @@ const Modal = ({
 
   const cn = useMemo(() => classNames('modal', className), [className]);
 
+  const stepsEnabled = useMemo(
+    () => !isUndefined(steps) && !isUndefined(currentStep),
+    [currentStep, steps]
+  );
+
+  const [step, setStep] = useState(currentStep);
+
+  // This will be used for determining animation direction of modal-content
+  useEffect(() => {
+    if (steps && !isUndefined(currentStep) && currentStep <= steps?.length) {
+      setStep(currentStep);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep]);
+
   if (!element || !children) return null;
   return ReactDOM.createPortal(
     <AnimatePresence>
@@ -135,8 +155,14 @@ const Modal = ({
                 exit={{
                   opacity: 0,
                 }}
+                key={stepsEnabled ? `step-${step}` : 'content'}
               >
                 {children}
+                {stepsEnabled && steps && !isUndefined(step) ? (
+                  <div className={`step-content step-${step}`}>
+                    {steps[step]}
+                  </div>
+                ) : null}
               </motion.div>
             </motion.div>
           </motion.div>

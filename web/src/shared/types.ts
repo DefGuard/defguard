@@ -6,6 +6,8 @@ import {
 } from '@github/webauthn-json';
 import { AxiosPromise } from 'axios';
 
+import { AddDeviceSetupChoice } from '../pages/users/shared/modals/UserDeviceModal/steps/SetupStep';
+
 export enum UserStatus {
   active = 'Active',
   inactive = 'Inactive',
@@ -23,7 +25,7 @@ export interface User {
   username: string;
   last_name: string;
   first_name: string;
-  authorized_apps: AuthorizedClient[];
+  authorized_apps: OAuthTokenInfo[];
   devices: Device[];
   wallets: WalletInfo[];
   security_keys: SecurityKey[];
@@ -40,6 +42,12 @@ export interface User {
   pgp_key?: string;
   ssh_key?: string;
   groups: string[];
+  oauth_tokens: OAuthTokenInfo[];
+}
+
+export interface OAuthTokenInfo {
+  oauth2client_id: string;
+  oauth2client_name: string;
 }
 
 export interface SecurityKey {
@@ -260,7 +268,7 @@ export interface ApiHook {
     removeFromGroup: (data: UserGroupRequest) => EmptyApiResponse;
   };
   device: {
-    addDevice: (device: AddDeviceRequest) => Promise<Device>;
+    addDevice: (device: AddDeviceRequest) => Promise<string>;
     getDevice: (deviceId: string) => Promise<Device>;
     getDevices: () => Promise<Device[]>;
     getUserDevices: (username: string) => Promise<Device[]>;
@@ -342,10 +350,10 @@ export interface ApiHook {
     changeOpenidClientState: (
       data: ChangeOpenidClientStateRequest
     ) => EmptyApiResponse;
-    deleteOpenidClient: (id: string) => EmptyApiResponse;
+    deleteOpenidClient: (client_id: string) => EmptyApiResponse;
     verifyOpenidClient: (data: VerifyOpenidClientRequest) => EmptyApiResponse;
     getUserClients: (username: string) => Promise<AuthorizedClient[]>;
-    removeUserClient: (id: string) => EmptyApiResponse;
+    removeUserClient: (data: RemoveUserClientRequest) => EmptyApiResponse;
   };
   license: {
     getLicense: () => Promise<License>;
@@ -455,9 +463,16 @@ export interface EditWebhookModal {
   webhook?: Webhook;
 }
 
-export interface UserDeviceModal extends StandardModalState {
-  device?: Device;
-  username?: string;
+interface ModalStepsState {
+  currentStep: number;
+  endStep: number;
+  nextStep: () => void;
+}
+
+export interface UserDeviceModal extends StandardModalState, ModalStepsState {
+  config?: string;
+  deviceName?: string;
+  choice?: AddDeviceSetupChoice;
 }
 
 export interface Provisioner {
@@ -484,7 +499,12 @@ export interface ConnectWalletModal extends StandardModalState {
   onConnect?: () => void;
 }
 
+export interface EditUserDeviceModal extends StandardModalState {
+  device?: Device;
+}
+
 export interface UseModalStore {
+  editUserDeviceModal: EditUserDeviceModal;
   addWalletModal: StandardModalState;
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
@@ -709,4 +729,8 @@ export interface TOTPRequest {
 export interface WebAuthnRegistrationRequest {
   name: string;
   rpkc: PublicKeyCredentialWithAttestationJSON;
+}
+export interface RemoveUserClientRequest {
+  username: string;
+  client_id: string;
 }

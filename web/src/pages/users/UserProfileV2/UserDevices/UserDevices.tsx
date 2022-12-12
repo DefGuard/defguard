@@ -29,8 +29,9 @@ export const UserDevices = () => {
             callback={() =>
               setUserDeviceModalState({
                 visible: true,
-                device: undefined,
-                username: user.username,
+                currentStep: 0,
+                config: undefined,
+                deviceName: undefined,
               })
             }
           />

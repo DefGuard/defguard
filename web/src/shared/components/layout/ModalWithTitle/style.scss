@@ -85,7 +85,8 @@
             }
           }
 
-          & > .content {
+          & > .content,
+          & > .step-content {
             display: block;
             box-sizing: border-box;
             padding: 3rem 2rem;
@@ -95,6 +96,19 @@
             @include media-breakpoint-up(lg) {
               padding: 0 0 5.4rem;
               max-height: none;
+            }
+
+            & > .message-box-container {
+              min-height: 70px;
+              @include media-breakpoint-up(lg) {
+                padding: 0 3rem;
+              }
+
+              & > .message-box {
+                & > p {
+                  max-width: 434px;
+                }
+              }
             }
 
             & > form {

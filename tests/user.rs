@@ -263,8 +263,7 @@ async fn test_wallet() {
         {}",
         wallet_address,
         to_lower_hex(&keccak256(wallet_address.as_bytes()))
-    )
-    .into();
+    );
     assert_eq!(challenge.message, message);
 
     let response = client.get("/api/v1/user/hpotter").dispatch().await;

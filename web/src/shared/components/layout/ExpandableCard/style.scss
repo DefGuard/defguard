@@ -1,0 +1,70 @@
+@use '../../../scss/helpers' as *;
+
+.expandable-card {
+  border-radius: 15px;
+  border: 1px solid var(--gray-border);
+  background-color: var(--white);
+  box-sizing: border-box;
+  padding: 1rem 0;
+  box-shadow: var(--transparent);
+
+  &.expanded {
+    box-shadow: var(--card-shadow);
+  }
+
+  & > .top {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    padding: 0 1.5rem 0 2rem;
+
+    & > .expand-button {
+      display: flex;
+      flex-flow: row;
+      column-gap: 1rem;
+      height: 40px;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+      background-color: transparent;
+      border: 0 solid transparent;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+
+      & > span {
+        @include regular-text;
+        @include text-weight(medium);
+
+        display: block;
+
+      }
+    }
+
+    & > .actions {
+      display: inline-flex;
+      grid-auto-columns: 40px;
+      grid-template-rows: 1fr;
+      column-gap: 1rem;
+      margin-left: auto;
+      height: 40px;
+
+      & > * {
+        grid-row: 1;
+      }
+    }
+  }
+
+  & > .expanded-content {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2rem 2rem 1rem;
+    border-top: 1px solid var(--gray-border);
+    margin-top: 1rem;
+  }
+}
