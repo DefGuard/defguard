@@ -1,7 +1,7 @@
 use clap::Parser;
-use openidconnect::core::CoreRsaPrivateSigningKey;
+use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
-use rsa::{pkcs1::ToRsaPrivateKey, pkcs8::FromPrivateKey, RsaPrivateKey};
+use rsa::{pkcs1::ToRsaPrivateKey, pkcs8::FromPrivateKey, PublicKeyParts, RsaPrivateKey};
 
 #[derive(Clone, Parser)]
 pub struct DefGuardConfig {
@@ -147,8 +147,10 @@ impl DefGuardConfig {
     }
 
     pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
-        if let Ok(key) = self.openid_signing_key.as_ref()?.to_pkcs1_pem() {
-            CoreRsaPrivateSigningKey::from_pem(key.as_ref(), None).ok()
+        let key = self.openid_signing_key.as_ref()?;
+        if let Ok(pem) = key.to_pkcs1_pem() {
+            let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
+            CoreRsaPrivateSigningKey::from_pem(pem.as_ref(), Some(key_id)).ok()
         } else {
             None
         }
