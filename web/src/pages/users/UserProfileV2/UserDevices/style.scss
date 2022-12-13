@@ -31,5 +31,13 @@
 
   & > .add-component {
     height: 80px;
+
+    &:not(:last-of-type) {
+      margin-bottom: 1rem;
+
+      @include media-breakpoint-up(lg) {
+        margin-bottom: 1.5rem;
+      }
+    }
   }
 }

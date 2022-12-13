@@ -12,7 +12,10 @@
   },
   "tauri": {
     "allowlist": {
-      "all": false
+      "fs": {
+        "all": true,
+        "scope": ["$APPDATA/*"]
+      }
     },
     "bundle": {
       "active": true,
@@ -29,7 +32,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.defguard.app",
       "longDescription": "",
       "macOS": {
         "entitlements": null,

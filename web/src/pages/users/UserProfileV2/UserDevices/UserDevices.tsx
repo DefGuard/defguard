@@ -1,11 +1,25 @@
 import './style.scss';
 
+import { fs } from '@tauri-apps/api';
+import { isUndefined } from 'lodash-es';
+import { useMemo } from 'react';
+
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileV2Store } from '../../../../shared/hooks/store/useUserProfileV2Store';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { DeviceCard } from './DeviceCard/DeviceCard';
+import { AddDeviceModalDesktop } from './modals/AddDeviceModalDesktop/AddDeviceModalDesktop';
 
 export const UserDevices = () => {
+  const isDesktopApp = useMemo(() => !isUndefined(window.__TAURI__), []);
+  const isDeviceConfigPresent = useMemo(async () => {
+    if (isDesktopApp) {
+      const appDir = fs.BaseDirectory.AppData;
+      return await fs.exists('wg/device.conf', { dir: appDir });
+    }
+    return false;
+  }, [isDesktopApp]);
+  const setModalsState = useModalStore((state) => state.setState);
   const user = useUserProfileV2Store((state) => state.user);
   const setUserDeviceModalState = useModalStore(
     (state) => state.setUserDeviceModal
@@ -35,8 +49,17 @@ export const UserDevices = () => {
               })
             }
           />
+          {isDesktopApp && !isDeviceConfigPresent && (
+            <AddComponentBox
+              text="Add this device"
+              callback={() => {
+                setModalsState({ addDeviceDesktopModal: { visible: true } });
+              }}
+            />
+          )}
         </>
       )}
+      <AddDeviceModalDesktop />
     </section>
   );
 };

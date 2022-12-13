@@ -504,6 +504,7 @@ export interface EditUserDeviceModal extends StandardModalState {
 }
 
 export interface UseModalStore {
+  addDeviceDesktopModal: StandardModalState;
   editUserDeviceModal: EditUserDeviceModal;
   addWalletModal: StandardModalState;
   keyDetailModal: KeyDetailModal;

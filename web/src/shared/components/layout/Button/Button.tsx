@@ -53,6 +53,7 @@ const Button = ({
   icon,
   className,
   disabled = false,
+  type = 'button',
   ...props
 }: Props) => {
   const [hovered, setHovered] = useState(false);
@@ -114,6 +115,7 @@ const Button = ({
   return (
     <motion.button
       {...props}
+      type={type}
       className={getClassName}
       disabled={isDisabled}
       variants={buttonVariants}
