@@ -23,7 +23,7 @@ import { deviceBreakpoints } from '../../../shared/constants';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useNavigationStore } from '../../../shared/hooks/store/useNavigationStore';
-import { useUserProfileV2Store } from '../../../shared/hooks/store/useUserProfileV2Store';
+import { useUserProfileStore } from '../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import { User } from '../../../shared/types';
@@ -47,7 +47,7 @@ const UsersList: React.FC = () => {
   const setNavigationUser = useNavigationStore(
     (state) => state.setNavigationUser
   );
-  const setUserProfile = useUserProfileV2Store((state) => state.setState);
+  const setUserProfile = useUserProfileStore((state) => state.setState);
   const setUserAddModalState = useModalStore((state) => state.setAddUserModal);
   const currentUser = useAuthStore((state) => state.user);
 

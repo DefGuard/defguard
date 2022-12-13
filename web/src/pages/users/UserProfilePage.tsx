@@ -1,5 +1,5 @@
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
-import { UserProfileV2 } from './UserProfileV2/UserProfileV2';
+import { UserProfile } from './UserProfile/UserProfile';
 import { UsersSharedModals } from './UsersSharedModals';
 
 /***
@@ -8,7 +8,7 @@ import { UsersSharedModals } from './UsersSharedModals';
 export const UserProfilePage = () => {
   return (
     <PageContainer id="user-page">
-      <UserProfileV2 />
+      <UserProfile />
       <UsersSharedModals />
     </PageContainer>
   );
