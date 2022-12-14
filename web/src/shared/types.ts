@@ -6,7 +6,7 @@ import {
 } from '@github/webauthn-json';
 import { AxiosPromise } from 'axios';
 
-import { AddDeviceSetupChoice } from '../pages/users/shared/modals/UserDeviceModal/steps/SetupStep';
+import { AddDeviceSetupChoice } from '../pages/users/UserProfile/UserDevices/modals/AddUserDeviceModal/steps/SetupStep';
 
 export enum UserStatus {
   active = 'Active',
@@ -504,6 +504,7 @@ export interface EditUserDeviceModal extends StandardModalState {
 }
 
 export interface UseModalStore {
+  addDeviceDesktopModal: StandardModalState;
   editUserDeviceModal: EditUserDeviceModal;
   addWalletModal: StandardModalState;
   keyDetailModal: KeyDetailModal;
