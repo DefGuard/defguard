@@ -97,7 +97,8 @@ const OpenidAllowPage: React.FC = () => {
         setName(res.name);
       });
     }
-  }, [validateParams, clientId, getOpenidClient]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validateParams, clientId]);
 
   const scopes: Record<string, string> = {
     openid: 'Use your data for future logins.',
