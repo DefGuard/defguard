@@ -2,15 +2,15 @@
 @use '@shared/scss/helpers/bootstrap' as bs;
 @use '@shared/scss/helpers/mixins' as mix;
 
-
 #openid-consent {
   display: flex;
   flex-direction: row;
   align-items: center;
   align-content: center;
   justify-content: flex-start;
-  height: inherit;
   background-color: #70707080;
+  position: fixed;
+  height: inherit;
   width: 100%;
 
   & > form {
