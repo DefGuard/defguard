@@ -85,7 +85,6 @@ const App = () => {
     onError: () => {
       console.clear();
     },
-    enabled: !isUndefined(userMe),
     refetchOnWindowFocus: false,
   });
 
