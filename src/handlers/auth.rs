@@ -369,7 +369,10 @@ pub async fn recovery_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            return Ok(ApiResponse::default());
+            return Ok(ApiResponse {
+                json: json!(UserInfo::from_user(&appstate.pool, user).await?),
+                status: Status::Ok,
+            });
         }
     }
     Err(OriWebError::Http(Status::Unauthorized))
