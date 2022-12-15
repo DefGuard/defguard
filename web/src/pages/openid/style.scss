@@ -4,6 +4,7 @@
 
 .openid-page {
   background-color: v.$gray-dark;
+  width: 100%;
 }
 
 #openid-consent {
@@ -14,6 +15,7 @@
   justify-content: flex-start;
   height: inherit;
   background-color: #70707080;
+  width: 100%;
 
   & > form {
     display: none;

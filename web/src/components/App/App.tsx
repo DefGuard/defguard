@@ -16,7 +16,6 @@ import shallow from 'zustand/shallow';
 import AuthPage from '../../pages/auth/AuthPage';
 import LoaderPage from '../../pages/loader/LoaderPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
-import OAuthPage from '../../pages/oauth/OAuthPage';
 import OpenidAllowPage from '../../pages/openid/OpenidAllowPage';
 import OpenidPage from '../../pages/openid/OpenidPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
@@ -189,8 +188,7 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path="consent/*" element={<OAuthPage />} />
-            <Route path="openid/authorize/*" element={<OpenidAllowPage />} />
+            <Route path="consent/*" element={<OpenidAllowPage />} />
             <Route
               path="*"
               element={
