@@ -183,6 +183,10 @@ async fn test_totp() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
+    assert_eq!(
+        response.into_json::<UserInfo>().await.unwrap().username,
+        "hpotter"
+    );
 
     // authorized
     let response = client.get("/api/v1/me").dispatch().await;
