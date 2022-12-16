@@ -2,7 +2,6 @@
 import './style.scss';
 
 import { motion } from 'framer-motion';
-import { cloneDeep } from 'lodash-es';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -47,7 +46,7 @@ const OpenidAllowPage: React.FC = () => {
 
   useEffect(() => {
     if (!currentUser) {
-      const loc = String(cloneDeep(window.location.href));
+      const loc = window.location.href;
       setAuthStore({ authLocation: loc });
       setTimeout(() => {
         navigate('/auth', { replace: true });
