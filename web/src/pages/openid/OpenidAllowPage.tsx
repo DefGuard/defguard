@@ -1,12 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import './style.scss';
 
-import { AxiosResponse } from 'axios';
 import { motion } from 'framer-motion';
-import { isUndefined } from 'lodash-es';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import Button, {
   ButtonSize,
@@ -17,9 +14,7 @@ import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhit
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
-import { patternBaseUrl } from '../../shared/patterns';
 import { standardVariants } from '../../shared/variants';
-import LoaderPage from '../loader/LoaderPage';
 
 const OpenidAllowPage: React.FC = () => {
   const [params] = useSearchParams();
@@ -29,14 +24,15 @@ const OpenidAllowPage: React.FC = () => {
   const [nonce, setNonce] = useState<string | null>('');
   const [redirectUri, setRedirectUri] = useState<string | null>('');
   const [state, setState] = useState<string | null>('');
-  const [isLoading, setLoading] = useState<boolean>(true);
+  const [name, setName] = useState<string | null>('');
   const inputRef = useRef<HTMLInputElement | null>(null);
   const {
-    openid: { verifyOpenidClient },
+    openid: { getOpenidClient },
   } = useApi();
-  const location = useLocation();
-  const path = location.pathname + location.search;
   const currentUser = useAuthStore((state) => state.user);
+  const setAuthStore = useAuthStore((state) => state.setState);
+  const navigate = useNavigate();
+  const authLocation = useAuthStore((state) => state.authLocation);
 
   const validateParams = useCallback(() => {
     const check = [scope, responseType, clientId, nonce, redirectUri, state];
@@ -48,6 +44,20 @@ const OpenidAllowPage: React.FC = () => {
     return true;
   }, [scope, responseType, clientId, nonce, redirectUri, state]);
 
+  useEffect(() => {
+    if (!currentUser) {
+      const loc = window.location.href;
+      setAuthStore({ authLocation: loc });
+      setTimeout(() => {
+        navigate('/auth', { replace: true });
+      }, 250);
+    } else {
+      if (authLocation) {
+        setAuthStore({ authLocation: undefined });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
   const getFormAction = useCallback(
     (allow: boolean) => {
       if (validateParams()) {
@@ -82,42 +92,23 @@ const OpenidAllowPage: React.FC = () => {
 
   useEffect(() => {
     if (validateParams()) {
-      const verifyOpenidClientRequest = {
-        scope: params.get('scope')!,
-        response_type: params.get('response_type')!,
-        client_id: params.get('client_id')!,
-        nonce: params.get('nonce')!,
-        redirect_uri: params.get('redirect_uri')!,
-        state: params.get('state')!,
-        allow: false,
-      };
-      verifyOpenidClient(verifyOpenidClientRequest)
-        .then((res: AxiosResponse) => {
-          if (res.status == 200) {
-            handleSubmit(true);
-          }
-        })
-        .catch(() => setLoading(false));
+      getOpenidClient(clientId!).then((res) => {
+        setName(res.name);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validateParams, handleSubmit, params]);
-
-  if (isUndefined(currentUser)) {
-    return <Navigate replace to="/auth/login" state={{ path: path }} />;
-  }
+  }, [validateParams, clientId]);
 
   const scopes: Record<string, string> = {
+    openid: 'Use your data for future logins.',
     profile:
-      'Know basic information from your profile like first name and last name.',
-    email: 'Know your email adres.',
+      'Know basic information from your profile like name, profile picture etc.',
+    email: 'Know your email address.',
     phone: 'Know your phone number.',
   };
 
-  const domain = params.get('redirect_uri')?.match(patternBaseUrl)![1];
-
   return (
     <>
-      {isLoading ? <LoaderPage /> : null}
       <motion.section
         initial="hidden"
         animate="show"
@@ -128,22 +119,19 @@ const OpenidAllowPage: React.FC = () => {
           <div className="header">
             <SvgDefguadNavLogo />
           </div>
-          <h1>{domain} would like to:</h1>
+          <h1>{name} would like to:</h1>
           <div className="scopes-container">
             {scope && scope.length
-              ? scope
-                  .split(' ')
-                  .filter((scope) => scope != 'openid' && scope.length > 3)
-                  .map((s) => (
-                    <div className="scope" key={s}>
-                      <p className="text">{scopes[s]}</p>
-                    </div>
-                  ))
+              ? scope.split(' ').map((s) => (
+                  <div className="scope" key={s}>
+                    <p className="text">{scopes[s]}</p>
+                  </div>
+                ))
               : null}
           </div>
           <div className="footer">
             <p className="disclaimer">
-              By clicking accept button you&apos;re allowing {domain} to read
+              By clicking accept button you&apos;re allowing {name} to read
               above information from your Defguard account.
             </p>
             <div className="controls">
