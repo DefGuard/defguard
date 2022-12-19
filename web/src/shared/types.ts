@@ -25,7 +25,6 @@ export interface User {
   username: string;
   last_name: string;
   first_name: string;
-  authorized_apps: OAuthTokenInfo[];
   devices: Device[];
   wallets: WalletInfo[];
   security_keys: SecurityKey[];
@@ -42,12 +41,13 @@ export interface User {
   pgp_key?: string;
   ssh_key?: string;
   groups: string[];
-  oauth_tokens: OAuthTokenInfo[];
+	authorized_apps: OAuth2AuthorizedApps[];
 }
 
-export interface OAuthTokenInfo {
+export interface OAuth2AuthorizedApps {
   oauth2client_id: string;
   oauth2client_name: string;
+  user_id: string;
 }
 
 export interface SecurityKey {

@@ -2,7 +2,7 @@ use crate::{
     appstate::AppState,
     auth::{SessionInfo, SESSION_TIMEOUT},
     db::{DbPool, User},
-    enterprise::db::{AuthCode, OAuth2Client, OAuth2Token},
+    enterprise::db::{AuthCode, OAuth2AuthorizedApp, OAuth2Client, OAuth2Token},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
 };
@@ -225,7 +225,7 @@ pub async fn authorization(
     match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(()) => {
-                if data.prompt != Some("none") {
+                if data.prompt == Some("consent") {
                     return Ok(Redirect::found(format!(
                         "/consent?{}",
                         serde_urlencoded::to_string(data).unwrap()
@@ -438,46 +438,53 @@ pub async fn token(
                         if let Some(user) =
                             User::find_by_id(&appstate.pool, auth_code.user_id).await?
                         {
-                            // Remove existing token in case same client asks for new token
-                            if let Some(token) = OAuth2Token::find_by_user_and_client_id(
-                                &appstate.pool,
-                                user.id.unwrap(),
-                                client.id.unwrap(),
-                            )
-                            .await?
+                            if let Some(authorized_app) =
+                                OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+                                    &appstate.pool,
+                                    user.id.unwrap(),
+                                    client.id.unwrap(),
+                                )
+                                .await?
                             {
-                                token.delete(&appstate.pool).await?;
-                            }
-                            let token = OAuth2Token::new(
-                                user.id.unwrap(),
-                                client.id.unwrap(),
-                                auth_code.redirect_uri.clone(),
-                                auth_code.scope.clone(),
-                            );
-                            match form.authorization_code_flow(
-                                &auth_code,
-                                &token,
-                                (&user).into(),
-                                &appstate.config.url,
-                                client.client_secret,
-                                appstate.config.openid_key(),
-                            ) {
-                                Ok(response) => {
-                                    token.save(&appstate.pool).await?;
-                                    return Ok(ApiResponse {
-                                        json: json!(response),
-                                        status: Status::Ok,
-                                    });
+                                // Remove existing token in case same client asks for new token
+                                if let Some(token) = OAuth2Token::find_by_authorized_app_id(
+                                    &appstate.pool,
+                                    authorized_app.id.unwrap(),
+                                )
+                                .await?
+                                {
+                                    token.delete(&appstate.pool).await?;
                                 }
-                                Err(err) => {
-                                    let response =
-                                        StandardErrorResponse::<CoreErrorResponseType>::new(
-                                            err, None, None,
-                                        );
-                                    return Ok(ApiResponse {
-                                        json: json!(response),
-                                        status: Status::BadRequest,
-                                    });
+                                let token = OAuth2Token::new(
+                                    authorized_app.id.unwrap(),
+                                    auth_code.redirect_uri.clone(),
+                                    auth_code.scope.clone(),
+                                );
+                                match form.authorization_code_flow(
+                                    &auth_code,
+                                    &token,
+                                    (&user).into(),
+                                    &appstate.config.url,
+                                    client.client_secret,
+                                    appstate.config.openid_key(),
+                                ) {
+                                    Ok(response) => {
+                                        token.save(&appstate.pool).await?;
+                                        return Ok(ApiResponse {
+                                            json: json!(response),
+                                            status: Status::Ok,
+                                        });
+                                    }
+                                    Err(err) => {
+                                        let response =
+                                            StandardErrorResponse::<CoreErrorResponseType>::new(
+                                                err, None, None,
+                                            );
+                                        return Ok(ApiResponse {
+                                            json: json!(response),
+                                            status: Status::BadRequest,
+                                        });
+                                    }
                                 }
                             }
                         }
