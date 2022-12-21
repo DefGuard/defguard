@@ -344,18 +344,18 @@ pub async fn me(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
 }
 
 /// Delete Oauth token.
-#[delete("/user/<username>/token/<client_id>")]
+#[delete("/user/<username>/oauth_app/<oauth2client_id>")]
 pub async fn delete_authorized_app(
     session: SessionInfo,
     appstate: &State<AppState>,
     username: &str,
-    client_id: i64,
+    oauth2client_id: i64,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     if let Some(app) = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
         &appstate.pool,
         user.id.unwrap(),
-        client_id,
+        oauth2client_id,
     )
     .await?
     {

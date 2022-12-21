@@ -55,7 +55,7 @@ pub struct UserInfo {
     #[serde(default)]
     pub security_keys: Vec<SecurityKey>,
     pub mfa_method: MFAMethod,
-    pub oauth_tokens: Vec<OAuth2AuthorizedAppInfo>,
+    pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
 }
 
 impl UserInfo {
@@ -63,7 +63,7 @@ impl UserInfo {
         let groups = user.member_of(pool).await?;
         let devices = user.devices(pool).await?;
         let wallets = user.wallets(pool).await?;
-        let oauth_tokens = user.oauth2authorizedapps(pool).await?;
+        let authorized_apps = user.oauth2authorizedapps(pool).await?;
         let security_keys = user.security_keys(pool).await?;
 
         Ok(Self {
@@ -82,7 +82,7 @@ impl UserInfo {
             wallets,
             security_keys,
             mfa_method: user.mfa_method,
-            oauth_tokens,
+            authorized_apps,
         })
     }
 

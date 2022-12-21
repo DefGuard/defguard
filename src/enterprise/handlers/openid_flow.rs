@@ -1,7 +1,7 @@
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, SESSION_TIMEOUT},
-    db::{DbPool, User},
+    db::{DbPool, Session, User},
     enterprise::db::{AuthCode, OAuth2AuthorizedApp, OAuth2Client, OAuth2Token},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
@@ -24,12 +24,13 @@ use openidconnect::{
 };
 use rocket::{
     form::{self, Form, FromFormField, ValueField},
-    http::Status,
-    request::{FromRequest, Outcome},
+    http::{CookieJar, Status},
+    request::{FromRequest, Outcome, Request},
     response::Redirect,
     serde::json::serde_json::json,
-    Request, State,
+    State,
 };
+
 use std::ops::{Deref, DerefMut};
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
@@ -214,25 +215,111 @@ impl<'r> AuthenticationRequest<'r> {
     }
 }
 
+/// Creates authorization code and saves it to database
+/// Saves app as authorized to database
+/// Returns url with code and state
+async fn generate_auth_code_redirect(
+    appstate: &State<AppState>,
+    data: &AuthenticationRequest<'_>,
+    user_id: Option<i64>,
+    oauth2client: &OAuth2Client,
+) -> Result<String, OriWebError> {
+    let mut url =
+        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
+    let mut auth_code = AuthCode::new(
+        user_id.unwrap(),
+        data.client_id.into(),
+        data.redirect_uri.into(),
+        data.scope.into(),
+        data.nonce.map(str::to_owned),
+        data.code_challenge.map(str::to_owned),
+    );
+    auth_code.save(&appstate.pool).await?;
+    let mut authorized_app = OAuth2AuthorizedApp::new(user_id.unwrap(), oauth2client.id.unwrap());
+    authorized_app.save(&appstate.pool).await?;
+    url.query_pairs_mut()
+        .append_pair("code", auth_code.code.as_str())
+        .append_pair("state", data.state);
+    Ok(url.to_string())
+}
+
 /// Authorization Endpoint
 /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 #[get("/authorize?<data..>")]
 pub async fn authorization(
     appstate: &State<AppState>,
     data: AuthenticationRequest<'_>,
+    cookies: &CookieJar<'_>,
 ) -> Result<Redirect, OriWebError> {
     let error;
     match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
-            Ok(()) => {
-                if data.prompt == Some("consent") {
+            Ok(()) => match data.prompt {
+                Some("consent") => {
                     return Ok(Redirect::found(format!(
                         "/consent?{}",
                         serde_urlencoded::to_string(data).unwrap()
                     )));
                 }
-                error = CoreAuthErrorResponseType::LoginRequired;
-            }
+                Some("none") => {
+                    error = CoreAuthErrorResponseType::LoginRequired;
+                }
+                _ => {
+                    if let Some(session_cookie) = cookies.get("session") {
+                        match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
+                            Ok(Some(session)) => {
+                                // If session expired return login
+                                if session.expired() {
+                                    return Ok(Redirect::found(format!(
+                                        "/login?{}",
+                                        serde_urlencoded::to_string(data).unwrap()
+                                    )));
+                                } else {
+                                    match OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+                                        &appstate.pool,
+                                        session.user_id,
+                                        oauth2client.id.unwrap(),
+                                    )
+                                    .await
+                                    {
+                                        Ok(Some(_app)) => {
+                                            let location = generate_auth_code_redirect(
+                                                appstate,
+                                                &data,
+                                                Some(session.user_id),
+                                                &oauth2client,
+                                            )
+                                            .await?;
+                                            return Ok(Redirect::found(location));
+                                        }
+                                        // If app not authorized or error return consent
+                                        _ => {
+                                            return Ok(Redirect::found(format!(
+                                                "/consent?{}",
+                                                serde_urlencoded::to_string(data).unwrap()
+                                            )));
+                                        }
+                                    }
+                                }
+                            }
+                            // If no session return to login
+                            _ => {
+                                return Ok(Redirect::found(format!(
+                                    "/login?{}",
+                                    serde_urlencoded::to_string(data).unwrap()
+                                )));
+                            }
+                        }
+
+                        // If no session cookie return login
+                    } else {
+                        return Ok(Redirect::found(format!(
+                            "/login?{}",
+                            serde_urlencoded::to_string(data).unwrap()
+                        )));
+                    }
+                }
+            },
             Err(err) => error = err,
         },
         None => error = CoreAuthErrorResponseType::UnauthorizedClient,
@@ -259,19 +346,14 @@ pub async fn secure_authorization(
         match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
             Some(oauth2client) => match data.validate_for_client(&oauth2client) {
                 Ok(()) => {
-                    let mut auth_code = AuthCode::new(
-                        session_info.user.id.unwrap(),
-                        data.client_id.into(),
-                        data.redirect_uri.into(),
-                        data.scope.into(),
-                        data.nonce.map(str::to_owned),
-                        data.code_challenge.map(str::to_owned),
-                    );
-                    auth_code.save(&appstate.pool).await?;
-                    url.query_pairs_mut()
-                        .append_pair("code", auth_code.code.as_str())
-                        .append_pair("state", data.state);
-                    return Ok(Redirect::found(url.to_string()));
+                    let location = generate_auth_code_redirect(
+                        appstate,
+                        &data,
+                        session_info.user.id,
+                        &oauth2client,
+                    )
+                    .await?;
+                    return Ok(Redirect::found(location));
                 }
                 Err(err) => error = err,
             },
