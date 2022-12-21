@@ -267,6 +267,7 @@ pub async fn authorization(
                             Ok(Some(session)) => {
                                 // If session expired return login
                                 if session.expired() {
+                                    let _result = session.delete(&appstate.pool).await;
                                     return Ok(Redirect::found(format!(
                                         "/login?{}",
                                         serde_urlencoded::to_string(data).unwrap()
