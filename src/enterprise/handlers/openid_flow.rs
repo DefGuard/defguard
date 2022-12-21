@@ -222,7 +222,6 @@ async fn generate_auth_code_redirect(
     appstate: &State<AppState>,
     data: &AuthenticationRequest<'_>,
     user_id: Option<i64>,
-    oauth2client: &OAuth2Client,
 ) -> Result<String, OriWebError> {
     let mut url =
         Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
@@ -235,8 +234,6 @@ async fn generate_auth_code_redirect(
         data.code_challenge.map(str::to_owned),
     );
     auth_code.save(&appstate.pool).await?;
-    let mut authorized_app = OAuth2AuthorizedApp::new(user_id.unwrap(), oauth2client.id.unwrap());
-    authorized_app.save(&appstate.pool).await?;
     url.query_pairs_mut()
         .append_pair("code", auth_code.code.as_str())
         .append_pair("state", data.state);
@@ -275,25 +272,27 @@ pub async fn authorization(
                                         serde_urlencoded::to_string(data).unwrap()
                                     )));
                                 } else {
+                                    // If session is present check if app is in
+                                    // user authorized apps if yes
+                                    // return code and state else redirect to consent
                                     match OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                                         &appstate.pool,
                                         session.user_id,
                                         oauth2client.id.unwrap(),
                                     )
-                                    .await
+                                    .await?
                                     {
-                                        Ok(Some(_app)) => {
+                                        Some(_) => {
                                             let location = generate_auth_code_redirect(
                                                 appstate,
                                                 &data,
                                                 Some(session.user_id),
-                                                &oauth2client,
                                             )
                                             .await?;
                                             return Ok(Redirect::found(location));
                                         }
                                         // If app not authorized or error return consent
-                                        _ => {
+                                        None => {
                                             return Ok(Redirect::found(format!(
                                                 "/consent?{}",
                                                 serde_urlencoded::to_string(data).unwrap()
@@ -346,13 +345,24 @@ pub async fn secure_authorization(
         match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
             Some(oauth2client) => match data.validate_for_client(&oauth2client) {
                 Ok(()) => {
-                    let location = generate_auth_code_redirect(
-                        appstate,
-                        &data,
-                        session_info.user.id,
-                        &oauth2client,
+                    match OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+                        &appstate.pool,
+                        session_info.user.id.unwrap(),
+                        oauth2client.id.unwrap(),
                     )
-                    .await?;
+                    .await?
+                    {
+                        Some(_) => {}
+                        None => {
+                            let mut app = OAuth2AuthorizedApp::new(
+                                session_info.user.id.unwrap(),
+                                oauth2client.id.unwrap(),
+                            );
+                            app.save(&appstate.pool).await?;
+                        }
+                    }
+                    let location =
+                        generate_auth_code_redirect(appstate, &data, session_info.user.id).await?;
                     return Ok(Redirect::found(location));
                 }
                 Err(err) => error = err,
