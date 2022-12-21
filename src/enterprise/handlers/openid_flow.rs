@@ -215,9 +215,7 @@ impl<'r> AuthenticationRequest<'r> {
     }
 }
 
-/// Creates authorization code and saves it to database
-/// Saves app as authorized to database
-/// Returns url with code and state
+/// Helper function which creates redirect with authorization code
 async fn generate_auth_code_redirect(
     appstate: &State<AppState>,
     data: &AuthenticationRequest<'_>,
@@ -292,7 +290,7 @@ pub async fn authorization(
                                             .await?;
                                             return Ok(Redirect::found(location));
                                         }
-                                        // If app not authorized or error return consent
+                                        // If authorized app not found return consent
                                         None => {
                                             return Ok(Redirect::found(format!(
                                                 "/consent?{}",
