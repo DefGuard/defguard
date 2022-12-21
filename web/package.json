@@ -26,6 +26,13 @@
       "last 1 safari version"
     ]
   },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "react-native"
+      ]
+    }
+  },
   "dependencies": {
     "@ethersproject/providers": "^5.7.2",
     "@floating-ui/react-dom-interactions": "^0.12.0",
@@ -37,6 +44,8 @@
     "@stablelib/x25519": "^1.0.3",
     "@tanstack/query-core": "^4.19.0",
     "@tanstack/react-query": "^4.19.0",
+    "@tanstack/react-table": "^8.7.3",
+    "@tanstack/react-virtual": "3.0.0-beta.30",
     "@tauri-apps/api": "^1.2.0",
     "@tippyjs/react": "^4.2.6",
     "@types/react-virtualized-auto-sizer": "^1.0.1",
@@ -73,7 +82,6 @@
     "react-router": "^6.4.4",
     "react-router-dom": "^6.4.4",
     "react-select": "^5.6.0",
-    "react-table": "^7.8.0",
     "react-virtualized-auto-sizer": "^1.0.7",
     "react-window": "^1.8.8",
     "recharts": "^2.1.16",
@@ -99,7 +107,6 @@
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.9",
     "@types/react-router-dom": "^5.3.3",
-    "@types/react-table": "^7.7.12",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
     "autoprefixer": "^10.4.13",

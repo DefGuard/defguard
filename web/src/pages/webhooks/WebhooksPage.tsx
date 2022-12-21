@@ -3,31 +3,25 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { clone, orderBy } from 'lodash-es';
-import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'react-table';
+import { useEffect, useState } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
-import { DeviceAvatar } from '../../shared/components/layout/DeviceAvatar/DeviceAvatar';
 import NoData from '../../shared/components/layout/NoData/NoData';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
-import Search from '../../shared/components/layout/Search/Search';
-import { IconDeactivated } from '../../shared/components/svg';
-import SvgIconCheckmarkGreen from '../../shared/components/svg/IconCheckmarkGreen';
+import { Search } from '../../shared/components/layout/Search/Search';
 import SvgIconPlusWhite from '../../shared/components/svg/IconPlusWhite';
 import { deviceBreakpoints } from '../../shared/constants';
 import { useModalStore } from '../../shared/hooks/store/useModalStore';
 import useApi from '../../shared/hooks/useApi';
-import { patternBaseUrl } from '../../shared/patterns';
 import { QueryKeys } from '../../shared/queries';
 import { Webhook } from '../../shared/types';
 import { standardVariants } from '../../shared/variants';
 import AddWebhookModal from './modals/AddWebhookModal/AddWebhookModal';
 import WebhooksList from './WebhooksList/WebhooksList';
-import WebhooksTable from './WebhooksTable/WebhooksTable';
 
 const WebhooksPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -42,50 +36,6 @@ const WebhooksPage = () => {
   } = useApi();
 
   const { data: webhooks } = useQuery([QueryKeys.FETCH_WEBHOOKS], getWebhooks);
-
-  const tableColumns: Column<Webhook>[] = useMemo(
-    (): Column<Webhook>[] => [
-      {
-        Header: 'Url',
-        accessor: 'url',
-        Cell: ({ row, cell }) => {
-          const match = cell.value.match(patternBaseUrl);
-          return (
-            <div className="webhook-url">
-              <DeviceAvatar active={row.original.enabled} />
-              <span>{match ? match[1] : 'Pattern not found'}</span>
-            </div>
-          );
-        },
-      },
-      {
-        Header: 'Description',
-        accessor: 'description',
-        Cell: ({ cell }) => {
-          return (
-            <div className="webhook-description">
-              <span>{cell.value}</span>
-            </div>
-          );
-        },
-      },
-      {
-        Header: 'Status',
-        accessor: 'enabled',
-        Cell: ({ cell }) => {
-          return (
-            <div className="connection-status">
-              {cell.value ? <SvgIconCheckmarkGreen /> : <IconDeactivated />}
-              <span className={cell.value ? 'active' : undefined}>
-                {cell.value ? 'Enabled' : 'Disabled'}
-              </span>
-            </div>
-          );
-        },
-      },
-    ],
-    []
-  );
 
   useEffect(() => {
     if (webhooks) {
@@ -115,8 +65,8 @@ const WebhooksPage = () => {
           <h1>Webhooks</h1>
           <Search
             placeholder="Find"
-            value={searchValue}
-            onChange={(event) => setSearchValue(event.target.value)}
+            initialValue={searchValue}
+            onChange={(value) => setSearchValue(value)}
           />
         </motion.header>
       ) : null}
@@ -135,14 +85,9 @@ const WebhooksPage = () => {
         <div className="table-controls">
           {breakpoint === 'mobile' ? (
             <Search
-              containerMotionProps={{
-                variants: standardVariants,
-                initial: 'hidden',
-                animate: 'show',
-              }}
-              placeholder="Find"
-              value={searchValue}
-              onChange={(event) => setSearchValue(event.target.value)}
+              placeholder="Find webhooks"
+              onChange={(value) => setSearchValue(value)}
+              initialValue={searchValue}
             />
           ) : null}
           <Button
@@ -155,16 +100,13 @@ const WebhooksPage = () => {
           />
         </div>
       </motion.section>
-      {breakpoint !== 'mobile' ? (
-        filteredWebhooks && filteredWebhooks.length ? (
-          <WebhooksTable columns={tableColumns} data={filteredWebhooks} />
-        ) : (
-          <NoData customMessage="No webhooks registered" />
-        )
-      ) : null}
-      {filteredWebhooks && breakpoint === 'mobile' ? (
+      {filteredWebhooks && filteredWebhooks.length > 0 && (
         <WebhooksList webhooks={filteredWebhooks} />
-      ) : null}
+      )}
+      {!filteredWebhooks ||
+        (filteredWebhooks.length === 0 && (
+          <NoData customMessage="No webhooks registered" />
+        ))}
       <AddWebhookModal />
     </PageContainer>
   );

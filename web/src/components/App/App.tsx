@@ -22,9 +22,10 @@ import OpenidPage from '../../pages/openid/OpenidPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
-import { UserProfilePage } from '../../pages/users/UserProfilePage';
-import UsersPage from '../../pages/users/UsersPage';
+import { UserProfile } from '../../pages/users/UserProfile/UserProfile';
+import { UsersPage } from '../../pages/users/UsersPage';
 import WebhooksPage from '../../pages/webhooks/WebhooksPage';
+import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
@@ -185,7 +186,9 @@ const App = () => {
               path="me/*"
               element={
                 <ProtectedRoute>
-                  <UserProfilePage />
+                  <PageContainer>
+                    <UserProfile />
+                  </PageContainer>
                 </ProtectedRoute>
               }
             />

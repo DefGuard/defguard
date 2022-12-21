@@ -1,18 +1,17 @@
 import './style.scss';
 
-import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { UserProfile } from './UserProfile/UserProfile';
-import UsersList from './UsersList/UsersList';
+import { UsersOverview } from './UsersOverview/UsersOverview';
 import { UsersSharedModals } from './UsersSharedModals';
 
-const UsersPage: React.FC = () => {
+export const UsersPage = () => {
   return (
-    <PageContainer id="users">
+    <PageContainer id="users-page">
       <Routes>
-        <Route path="" element={<UsersList />} />
+        <Route path="" element={<UsersOverview />} />
         <Route path=":username/*" element={<UserProfile />} />
         <Route path="*" element={<Navigate replace to="" />} />
       </Routes>
@@ -20,5 +19,3 @@ const UsersPage: React.FC = () => {
     </PageContainer>
   );
 };
-
-export default UsersPage;

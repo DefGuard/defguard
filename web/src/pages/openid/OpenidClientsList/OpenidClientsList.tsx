@@ -2,23 +2,18 @@ import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { orderBy } from 'lodash-es';
 import { useState } from 'react';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import Select from 'react-select';
-import { Column } from 'react-table';
 import useBreakpoint from 'use-breakpoint';
 
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
-import { DeviceAvatar } from '../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
 import NoData from '../../../shared/components/layout/NoData/NoData';
-import Search from '../../../shared/components/layout/Search/Search';
-import { IconDeactivated } from '../../../shared/components/svg';
-import SvgIconCheckmarkGreen from '../../../shared/components/svg/IconCheckmarkGreen';
+import { Search } from '../../../shared/components/layout/Search/Search';
 import SvgIconPlusWhite from '../../../shared/components/svg/IconPlusWhite';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
@@ -28,10 +23,8 @@ import { QueryKeys } from '../../../shared/queries';
 import { OpenidClient } from '../../../shared/types';
 import { standardVariants } from '../../../shared/variants';
 import AddOpenidClientModal from './AddOpenidClientModal/AddOpenidClientModal';
-import OpenidClientsListMobile from './OpenidClientsListMobile/OpenidClientsListMobile';
-import OpenidClientsListTable from './OpenidClientsListTable/OpenidClientsListTable';
 
-const OpenidClientsList = () => {
+export const OpenidClientsList = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const navigate = useNavigate();
   const {
@@ -61,59 +54,6 @@ const OpenidClientsList = () => {
     setNavigationOpenidClient(client);
     navigate(`${client.client_id}`);
   };
-  const tableColumns: Column<OpenidClient>[] = useMemo(
-    () => [
-      {
-        Header: 'name',
-        accessor: 'name',
-        Cell: ({ row }) => {
-          return (
-            <div className="client-name">
-              <DeviceAvatar active={row.original.enabled} />
-              <p
-                className="name"
-                onClick={() => navigateToClient(row.original)}
-              >
-                {row.original.name}
-              </p>
-            </div>
-          );
-        },
-      },
-      {
-        Header: 'Status',
-        accessor: 'enabled',
-        Cell: (cell) => (
-          <div className="status">
-            {cell.value ? <SvgIconCheckmarkGreen /> : <IconDeactivated />}
-            <span className={cell.value ? 'active' : undefined}>
-              {cell.value ? 'Enabled' : 'Disabled'}
-            </span>
-          </div>
-        ),
-      },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
-  const filteredClients = useMemo(() => {
-    if (!clients || (clients && !clients.length)) {
-      return [];
-    }
-    let searched: OpenidClient[] = [];
-    if (clients) {
-      searched = clients.filter((client) =>
-        client.name
-          .toLocaleLowerCase()
-          .includes(clientsSearchValue.toLocaleLowerCase())
-      );
-    }
-    if (searched.length) {
-      return orderBy(searched, ['name'], ['asc']);
-    }
-    return searched;
-  }, [clients, clientsSearchValue]);
 
   return (
     <section id="clients-list">
@@ -125,11 +65,10 @@ const OpenidClientsList = () => {
         <h1>OpenID Apps</h1>
         {breakpoint !== 'mobile' ? (
           <Search
-            disabled={!hasAccess}
             placeholder="Find app"
             className="clients-search"
-            value={clientsSearchValue}
-            onChange={(e) => setClientsSearchValue(e.target.value)}
+            initialValue={clientsSearchValue}
+            onChange={(value) => setClientsSearchValue(value)}
           />
         ) : null}
       </motion.header>
@@ -169,8 +108,8 @@ const OpenidClientsList = () => {
           <Search
             placeholder="Find apps"
             className="clients-search"
-            value={clientsSearchValue}
-            onChange={(e) => setClientsSearchValue(e.target.value)}
+            initialValue={clientsSearchValue}
+            onChange={(value) => setClientsSearchValue(value)}
           />
         ) : null}
       </motion.section>
@@ -180,21 +119,9 @@ const OpenidClientsList = () => {
       ) : (
         clients &&
         clients.length > 0 &&
-        !isLoading &&
-        (breakpoint === 'mobile' ? (
-          <OpenidClientsListMobile clients={filteredClients} />
-        ) : (
-          <section className="clients-table">
-            <OpenidClientsListTable
-              data={filteredClients}
-              columns={tableColumns}
-            />
-          </section>
-        ))
+        !isLoading && <section className="clients-table"></section>
       )}
       <AddOpenidClientModal />
     </section>
   );
 };
-
-export default OpenidClientsList;

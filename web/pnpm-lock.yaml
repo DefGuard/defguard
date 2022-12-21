@@ -16,6 +16,8 @@ specifiers:
   '@svgr/cli': ^6.5.1
   '@tanstack/query-core': ^4.19.0
   '@tanstack/react-query': ^4.19.0
+  '@tanstack/react-table': ^8.7.3
+  '@tanstack/react-virtual': 3.0.0-beta.30
   '@tauri-apps/api': ^1.2.0
   '@tauri-apps/cli': ^1.2.2
   '@tippyjs/react': ^4.2.6
@@ -25,7 +27,6 @@ specifiers:
   '@types/react': ^18.0.26
   '@types/react-dom': ^18.0.9
   '@types/react-router-dom': ^5.3.3
-  '@types/react-table': ^7.7.12
   '@types/react-virtualized-auto-sizer': ^1.0.1
   '@types/react-window': ^1.8.5
   '@typescript-eslint/eslint-plugin': ^5.45.0
@@ -75,7 +76,6 @@ specifiers:
   react-router: ^6.4.4
   react-router-dom: ^6.4.4
   react-select: ^5.6.0
-  react-table: ^7.8.0
   react-virtualized-auto-sizer: ^1.0.7
   react-window: ^1.8.8
   recharts: ^2.1.16
@@ -111,6 +111,8 @@ dependencies:
   '@stablelib/x25519': 1.0.3
   '@tanstack/query-core': 4.19.0
   '@tanstack/react-query': 4.19.0_biqbaboplfbrettd7655fr4n2y
+  '@tanstack/react-table': 8.7.3_biqbaboplfbrettd7655fr4n2y
+  '@tanstack/react-virtual': 3.0.0-beta.30_react@18.2.0
   '@tauri-apps/api': 1.2.0
   '@tippyjs/react': 4.2.6_biqbaboplfbrettd7655fr4n2y
   '@types/react-virtualized-auto-sizer': 1.0.1
@@ -147,7 +149,6 @@ dependencies:
   react-router: 6.4.4_react@18.2.0
   react-router-dom: 6.4.4_biqbaboplfbrettd7655fr4n2y
   react-select: 5.6.0_bkycudvrb3j3gvocoupj7qjewi
-  react-table: 7.8.0_react@18.2.0
   react-virtualized-auto-sizer: 1.0.7_biqbaboplfbrettd7655fr4n2y
   react-window: 1.8.8_biqbaboplfbrettd7655fr4n2y
   recharts: 2.1.16_v2m5e27vhdewzwhryxwfaorcca
@@ -173,7 +174,6 @@ devDependencies:
   '@types/react': 18.0.26
   '@types/react-dom': 18.0.9
   '@types/react-router-dom': 5.3.3
-  '@types/react-table': 7.7.12
   '@typescript-eslint/eslint-plugin': 5.45.0_yjegg5cyoezm3fzsmuszzhetym
   '@typescript-eslint/parser': 5.45.0_s5ps7njkmjlaqajutnox5ntcla
   autoprefixer: 10.4.13_postcss@8.4.19
@@ -2813,6 +2813,36 @@ packages:
       use-sync-external-store: 1.2.0_react@18.2.0
     dev: false
 
+  /@tanstack/react-table/8.7.3_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-4hUSl10UGEp3DTS0sKe8ZEr0MYKEHXKXzAolzjs+w+vjVIimFICuyIjxisY6rLOvRVNXbwF5Pjyr+1YC6ptpZw==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      react: '>=16'
+      react-dom: '>=16'
+    dependencies:
+      '@tanstack/table-core': 8.7.3
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+    dev: false
+
+  /@tanstack/react-virtual/3.0.0-beta.30_react@18.2.0:
+    resolution: {integrity: sha512-Sn1SSbSjDwb++jVOtgiQ/OHFMdcXFg8Qx02/cn0eq9xxHIhm/SqrKDpywIeydgNdOsdfBomOfxm/4gqTLrY1gg==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      '@tanstack/virtual-core': 3.0.0-beta.30
+      react: 18.2.0
+    dev: false
+
+  /@tanstack/table-core/8.7.3:
+    resolution: {integrity: sha512-P+LKZuytLRUEKv0zMKFpYCLb9ZRiZ+kaFXh99HS6gOEX58tq41PltQ2BhTBe2UPlB8O6IQFsilKhx94/6w3ZMg==}
+    engines: {node: '>=12'}
+    dev: false
+
+  /@tanstack/virtual-core/3.0.0-beta.30:
+    resolution: {integrity: sha512-fewNoKiJeG5v0T4jg7UO99G+hUYDHig6AkiIeqvC1O2zEw96MlzR6DXw91aqxcsIPSVp83IPsgNa7su8yZWldw==}
+    dev: false
+
   /@tauri-apps/api/1.2.0:
     resolution: {integrity: sha512-lsI54KI6HGf7VImuf/T9pnoejfgkNoXveP14pVV7XarrQ46rOejIVJLFqHI9sRReJMGdh2YuCoI3cc/yCWCsrw==}
     engines: {node: '>= 14.6.0', npm: '>= 6.6.0', yarn: '>= 1.19.1'}
@@ -3061,7 +3091,7 @@ packages:
   /@types/pbkdf2/3.1.0:
     resolution: {integrity: sha512-Cf63Rv7jCQ0LaL8tNXmEyqTHuIJxRdlS5vMh1mj5voN4+QFhVZnlZruezqpWYDiJ8UTzhP0VmeLXCmBk66YrMQ==}
     dependencies:
-      '@types/node': 18.7.13
+      '@types/node': 18.11.14
     dev: false
 
   /@types/prop-types/15.7.5:
@@ -3085,12 +3115,6 @@ packages:
     resolution: {integrity: sha512-YYknwy0D0iOwKQgz9v8nOzt2J6l4gouBmDnWqUUznltOTaon+r8US8ky8HvN0tXvc38U9m6z/t2RsVsnd1zM0g==}
     dependencies:
       '@types/history': 4.7.11
-      '@types/react': 18.0.26
-    dev: true
-
-  /@types/react-table/7.7.12:
-    resolution: {integrity: sha512-bRUent+NR/WwtDGwI/BqhZ8XnHghwHw0HUKeohzB5xN3K2qKWYE5w19e7GCuOkL1CXD9Gi1HFy7TIm2AvgWUHg==}
-    dependencies:
       '@types/react': 18.0.26
     dev: true
 
@@ -3125,7 +3149,7 @@ packages:
   /@types/secp256k1/4.0.3:
     resolution: {integrity: sha512-Da66lEIFeIz9ltsdMZcpQvmrmmoqrfju8pm1BH8WbYjZSwUgCwXLb9C+9XYogwBITnbsSaMdVPb2ekf7TV+03w==}
     dependencies:
-      '@types/node': 18.7.13
+      '@types/node': 18.11.14
     dev: false
 
   /@types/semver/7.3.12:
@@ -8091,6 +8115,9 @@ packages:
     resolution: {integrity: sha512-w9JfSkvpqqlix9UjDvJjm1EjSt652zVQ6iwCIj1cVVkwXf4jQhQgTNXY6EVTwuAmUjg6BC6k9RHCBynoLFo3IQ==}
     peerDependencies:
       react-native: '*'
+    peerDependenciesMeta:
+      react-native:
+        optional: true
     dependencies:
       whatwg-url-without-unicode: 8.0.0-3
     dev: false
@@ -8204,14 +8231,6 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
       react-transition-group: 2.9.0_biqbaboplfbrettd7655fr4n2y
-    dev: false
-
-  /react-table/7.8.0_react@18.2.0:
-    resolution: {integrity: sha512-hNaz4ygkZO4bESeFfnfOft73iBUj8K5oKi1EcSHPAibEydfsX2MyU6Z8KCr3mv3C9Kqqh71U+DhZkFvibbnPbA==}
-    peerDependencies:
-      react: ^16.8.3 || ^17.0.0-0 || ^18.0.0
-    dependencies:
-      react: 18.2.0
     dev: false
 
   /react-transition-group/2.9.0_biqbaboplfbrettd7655fr4n2y:

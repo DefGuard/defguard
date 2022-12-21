@@ -1,14 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Divider from '../../../../shared/components/layout/Divider/Divider';
-import UserInitials from '../../../../shared/components/layout/UserInitials/UserInitials';
-import SvgIconUserList from '../../../../shared/components/svg/IconUserList';
-import SvgIconUserListExpanded from '../../../../shared/components/svg/IconUserListExpanded';
-import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
-import { useNavigationStore } from '../../../../shared/hooks/store/useNavigationStore';
-import { User } from '../../../../shared/types';
-import UserEditButton from '../UsersListTable/UserEditButton';
+import Divider from '../../../../../shared/components/layout/Divider/Divider';
+import UserInitials from '../../../../../shared/components/layout/UserInitials/UserInitials';
+import SvgIconUserList from '../../../../../shared/components/svg/IconUserList';
+import SvgIconUserListExpanded from '../../../../../shared/components/svg/IconUserListExpanded';
+import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
+import { useNavigationStore } from '../../../../../shared/hooks/store/useNavigationStore';
+import { User } from '../../../../../shared/types';
+import { UserEditButton } from '../UserEditButton/UserEditButton';
 
 interface Props {
   user: User;

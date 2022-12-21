@@ -1,0 +1,83 @@
+@use '../../../scss/helpers' as *;
+
+.virtualized-list-container {
+  display: grid;
+  overflow: hidden;
+  grid-template-rows: 28px 1fr;
+  grid-template-columns: 1fr;
+
+  & > .headers {
+    grid-row: 1;
+    grid-column: 1;
+    box-sizing: border-box;
+    width: 100%;
+    display: inline-grid;
+    grid-auto-columns: 1fr;
+    grid-template-rows: 22px;
+    margin-bottom: 6px;
+
+    & > * {
+      grid-row: 1;
+    }
+
+    & > .header {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: 5px;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+
+      &.clickable {
+        cursor: pointer;
+      }
+
+      & > span {
+        @include label-text;
+
+        color: var(--gray-light);
+      }
+
+      & > svg {
+        opacity: 0;
+      }
+
+      &.active {
+        & > span {
+          color: var(--text-main);
+        }
+
+        & > svg {
+          opacity: 1;
+
+          &.asc {
+            transform: rotateZ(180deg) translateZ(0);
+          }
+
+          &.desc {
+            transform: rotateZ(0deg) translateZ(0);
+          }
+        }
+      }
+    }
+  }
+
+  & > .scroll-container {
+    grid-row: 2;
+    grid-column: 1;
+    max-height: 100%;
+
+    & > .rows-container {
+      box-sizing: border-box;
+
+      .default-row {
+        height: 60px;
+        background-color: var(--white);
+        border-radius: 15px;
+        padding: 0 1.5rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+    }
+  }
+}

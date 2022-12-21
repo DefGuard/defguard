@@ -1,21 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 
-import { EditButton } from '../../../../shared/components/layout/EditButton/EditButton';
+import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
 import {
   EditButtonOption,
   EditButtonOptionStyleVariant,
-} from '../../../../shared/components/layout/EditButton/EditButtonOption';
-import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
-import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
-import { useNavigationStore } from '../../../../shared/hooks/store/useNavigationStore';
-import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
-import { User } from '../../../../shared/types';
+} from '../../../../../shared/components/layout/EditButton/EditButtonOption';
+import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
+import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
+import { useNavigationStore } from '../../../../../shared/hooks/store/useNavigationStore';
+import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
+import { User } from '../../../../../shared/types';
 
-interface Props {
+type Props = {
   user: User;
-}
+};
 
-const UserEditButton: React.FC<Props> = ({ user }) => {
+export const UserEditButton = ({ user }: Props) => {
   const navigate = useNavigate();
   const setProvisionKeyModal = useModalStore(
     (state) => state.setProvisionKeyModal
@@ -61,5 +61,3 @@ const UserEditButton: React.FC<Props> = ({ user }) => {
     </EditButton>
   );
 };
-
-export default UserEditButton;

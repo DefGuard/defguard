@@ -15,14 +15,14 @@ import {
 } from 'rxjs/operators';
 import * as yup from 'yup';
 
-import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
+import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/Button';
-import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
-import useApi from '../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../shared/hooks/useToaster';
+} from '../../../../../shared/components/layout/Button/Button';
+import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
+import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import {
   patternAtLeastOneDigit,
   patternAtLeastOneLowerCaseChar,
@@ -32,8 +32,8 @@ import {
   patternNoSpecialChars,
   patternValidEmail,
   patternValidPhoneNumber,
-} from '../../../../shared/patterns';
-import { QueryKeys } from '../../../../shared/queries';
+} from '../../../../../shared/patterns';
+import { QueryKeys } from '../../../../../shared/queries';
 
 interface Inputs {
   username: string;

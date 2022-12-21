@@ -1,5 +1,3 @@
-import './style.scss';
-
 import { motion } from 'framer-motion';
 import { clone, toInteger } from 'lodash-es';
 import React, {
@@ -12,9 +10,9 @@ import React, {
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { ListChildComponentProps, VariableSizeList } from 'react-window';
 
-import NoData from '../../../../shared/components/layout/NoData/NoData';
-import { User } from '../../../../shared/types';
-import { tableRowVariants } from '../../../../shared/variants';
+import NoData from '../../../../../shared/components/layout/NoData/NoData';
+import { User } from '../../../../../shared/types';
+import { tableRowVariants } from '../../../../../shared/variants';
 import UserListItem from './UserListItem';
 
 interface Props {

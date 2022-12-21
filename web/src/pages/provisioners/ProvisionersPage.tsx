@@ -4,21 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { clone, orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'react-table';
 import useBreakpoint from 'use-breakpoint';
 
 import NoData from '../../shared/components/layout/NoData/NoData';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
-import Search from '../../shared/components/layout/Search/Search';
-import { IconDeactivated } from '../../shared/components/svg';
-import SvgIconCheckmarkGreen from '../../shared/components/svg/IconCheckmarkGreen';
+import { Search } from '../../shared/components/layout/Search/Search';
 import { deviceBreakpoints } from '../../shared/constants';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { Provisioner } from '../../shared/types';
 import { standardVariants } from '../../shared/variants';
 import ProvisionersList from './ProvisionersList/ProvisionersList';
-import ProvisionersTable from './ProvisionersTable/ProvisionersTable';
 import ProvisioningStationSetup from './ProvisioningStationSetup';
 
 const ProvisionersPage = () => {
@@ -42,53 +38,6 @@ const ProvisionersPage = () => {
     [QueryKeys.FETCH_WORKERS],
     getWorkers,
     { enabled: hasAccess }
-  );
-
-  const tableColumns: Column<Provisioner>[] = useMemo(
-    (): Column<Provisioner>[] => [
-      {
-        Header: 'Name',
-        accessor: 'id',
-        Cell: ({ cell }) => {
-          return (
-            <div className="provisioner-id">
-              {/* <DeviceAvatar active={row.original.connected} /> */}
-              <span>{cell.value}</span>
-            </div>
-          );
-        },
-      },
-      {
-        Header: 'Status',
-        accessor: 'connected',
-        Cell: ({ cell }) => {
-          return (
-            <div className="connection-status">
-              {!cell.value ? <SvgIconCheckmarkGreen /> : <IconDeactivated />}
-              <span className={cell.value ? 'active' : undefined}>
-                {/* {cell.value ? 'Available' : 'Unavailable'} */}
-              </span>
-            </div>
-          );
-        },
-      },
-      {
-        Header: 'IP address',
-        accessor: 'ip',
-        Cell: ({ row, cell }) => {
-          return (
-            <span
-              className={
-                row.original.connected ? 'ip-address active' : 'ip-address'
-              }
-            >
-              {cell.value}
-            </span>
-          );
-        },
-      },
-    ],
-    []
   );
 
   useEffect(() => {
@@ -118,9 +67,9 @@ const ProvisionersPage = () => {
         >
           <h1>Provisioners</h1>
           <Search
-            placeholder="Find"
-            value={searchValue}
-            onChange={(event) => setSearchValue(event.target.value)}
+            placeholder="Find provisioners"
+            initialValue={searchValue}
+            onChange={(value) => setSearchValue(value)}
           />
         </motion.header>
       ) : null}
@@ -139,35 +88,24 @@ const ProvisionersPage = () => {
               </div>
             </div>
           </motion.div>
-          {breakpoint === 'mobile' ? (
+          {breakpoint !== 'desktop' ? (
             <Search
-              containerMotionProps={{
-                variants: standardVariants,
-                initial: 'hidden',
-                animate: 'show',
-              }}
-              placeholder="Find"
-              value={searchValue}
-              onChange={(event) => setSearchValue(event.target.value)}
+              placeholder="Find provisioners"
+              initialValue={searchValue}
+              onChange={(value) => setSearchValue(value)}
             />
           ) : null}
 
-          {hasAccess ? (
-            filteredProvisioners && filteredProvisioners.length ? (
-              breakpoint === 'mobile' || breakpoint === 'tablet' ? (
-                <ProvisionersList provisioners={filteredProvisioners} />
-              ) : (
-                <ProvisionersTable
-                  columns={tableColumns}
-                  data={filteredProvisioners}
-                />
-              )
-            ) : (
-              <NoData customMessage="Currently there are no YubiKey stations registered" />
-            )
-          ) : (
-            <NoData customMessage="No license for this feature" />
-          )}
+          {hasAccess &&
+            filteredProvisioners &&
+            filteredProvisioners.length > 0 && (
+              <ProvisionersList provisioners={filteredProvisioners} />
+            )}
+          {(hasAccess && !filteredProvisioners) ||
+          filteredProvisioners.length === 0 ? (
+            <NoData customMessage="No provisioners found" />
+          ) : null}
+          {!hasAccess && <NoData customMessage="No license for this feature" />}
         </div>
         <ProvisioningStationSetup hasAccess={hasAccess} />
       </div>

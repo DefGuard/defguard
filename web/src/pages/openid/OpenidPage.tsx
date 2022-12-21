@@ -7,7 +7,7 @@ import PageContainer from '../../shared/components/layout/PageContainer/PageCont
 import LoaderPage from '../loader/LoaderPage';
 import DeleteClientModal from './modals/DeleteClientModal/DeleteClientModal';
 import EnableClientModal from './modals/EnableClientModal/EnableClientModal';
-import OpenidClientsList from './OpenidClientsList/OpenidClientsList';
+import { OpenidClientsList } from './OpenidClientsList/OpenidClientsList';
 
 const OpenidClient = React.lazy(() => import('./OpenidClient/OpenidClient'));
 
