@@ -16,6 +16,22 @@
   & > form {
     display: none;
   }
+  .defguard-logo {
+    @include bs.media-breakpoint-down(lg) {
+      display: none;
+    }
+    @include bs.media-breakpoint-up(lg) {
+      display: flex;
+      width: 50%;
+      height: 100%;
+    }
+
+    flex-direction: column;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+    background-color: v.$primary;
+  }
 
   .header {
     display: flex;
@@ -54,13 +70,8 @@
     border-radius: 15px;
     box-sizing: border-box;
     margin: auto;
-    width: 45vh;
-    height: 80%;
-
-    @include bs.media-breakpoint-down(md) {
-      width: 70%;
-      height: 85%;
-    }
+    width: 490px;
+    height: 830px;
 
     h1 {
       font-family: Poppins;
@@ -84,7 +95,7 @@
 
     .scopes-container {
       background-color: #f8f9f8;
-      height: 50%;
+      height: calc(50vh - 100px);
       display: flex;
       margin-top: auto;
       flex-direction: row;
@@ -96,9 +107,6 @@
       row-gap: 1.5rem;
       width: 100%;
       overflow: auto;
-      @include bs.media-breakpoint-down(md) {
-        padding-top: 10vh;
-      }
 
       .scope {
         background-color: v.$white;

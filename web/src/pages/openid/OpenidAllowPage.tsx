@@ -10,6 +10,7 @@ import Button, {
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
 import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
+import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
@@ -115,6 +116,9 @@ const OpenidAllowPage: React.FC = () => {
         variants={standardVariants}
         id="openid-consent"
       >
+        <div className="defguard-logo">
+          <SvgDefguardLogoLogin />
+        </div>
         <div className="content">
           <div className="header">
             <SvgDefguadNavLogo />
