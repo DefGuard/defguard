@@ -276,7 +276,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const removeUserClient = async (data: RemoveUserClientRequest) =>
     client
       .delete<EmptyApiResponse>(
-        `/user/${data.username}/token/${data.client_id}`
+        `/user/${data.username}/oauth_app/${data.client_id}`
       )
       .then((res) => res.data);
 

@@ -1,8 +1,8 @@
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, SESSION_TIMEOUT},
-    db::{DbPool, User},
-    enterprise::db::{AuthCode, OAuth2Client, OAuth2Token},
+    db::{DbPool, Session, User},
+    enterprise::db::{AuthCode, OAuth2AuthorizedApp, OAuth2Client, OAuth2Token},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
 };
@@ -24,12 +24,13 @@ use openidconnect::{
 };
 use rocket::{
     form::{self, Form, FromFormField, ValueField},
-    http::Status,
-    request::{FromRequest, Outcome},
+    http::{CookieJar, Status},
+    request::{FromRequest, Outcome, Request},
     response::Redirect,
     serde::json::serde_json::json,
-    Request, State,
+    State,
 };
+
 use std::ops::{Deref, DerefMut};
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
@@ -214,25 +215,109 @@ impl<'r> AuthenticationRequest<'r> {
     }
 }
 
+/// Helper function which creates redirect with authorization code
+async fn generate_auth_code_redirect(
+    appstate: &State<AppState>,
+    data: &AuthenticationRequest<'_>,
+    user_id: Option<i64>,
+) -> Result<String, OriWebError> {
+    let mut url =
+        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
+    let mut auth_code = AuthCode::new(
+        user_id.unwrap(),
+        data.client_id.into(),
+        data.redirect_uri.into(),
+        data.scope.into(),
+        data.nonce.map(str::to_owned),
+        data.code_challenge.map(str::to_owned),
+    );
+    auth_code.save(&appstate.pool).await?;
+    url.query_pairs_mut()
+        .append_pair("code", auth_code.code.as_str())
+        .append_pair("state", data.state);
+    Ok(url.to_string())
+}
+
 /// Authorization Endpoint
 /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 #[get("/authorize?<data..>")]
 pub async fn authorization(
     appstate: &State<AppState>,
     data: AuthenticationRequest<'_>,
+    cookies: &CookieJar<'_>,
 ) -> Result<Redirect, OriWebError> {
     let error;
     match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
-            Ok(()) => {
-                if data.prompt != Some("none") {
+            Ok(()) => match data.prompt {
+                Some("consent") => {
                     return Ok(Redirect::found(format!(
                         "/consent?{}",
                         serde_urlencoded::to_string(data).unwrap()
                     )));
                 }
-                error = CoreAuthErrorResponseType::LoginRequired;
-            }
+                Some("none") => {
+                    error = CoreAuthErrorResponseType::LoginRequired;
+                }
+                _ => {
+                    if let Some(session_cookie) = cookies.get("session") {
+                        match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
+                            Ok(Some(session)) => {
+                                // If session expired return login
+                                if session.expired() {
+                                    let _result = session.delete(&appstate.pool).await;
+                                    return Ok(Redirect::found(format!(
+                                        "/login?{}",
+                                        serde_urlencoded::to_string(data).unwrap()
+                                    )));
+                                } else {
+                                    // If session is present check if app is in
+                                    // user authorized apps if yes
+                                    // return code and state else redirect to consent
+                                    match OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+                                        &appstate.pool,
+                                        session.user_id,
+                                        oauth2client.id.unwrap(),
+                                    )
+                                    .await?
+                                    {
+                                        Some(_) => {
+                                            let location = generate_auth_code_redirect(
+                                                appstate,
+                                                &data,
+                                                Some(session.user_id),
+                                            )
+                                            .await?;
+                                            return Ok(Redirect::found(location));
+                                        }
+                                        // If authorized app not found return consent
+                                        None => {
+                                            return Ok(Redirect::found(format!(
+                                                "/consent?{}",
+                                                serde_urlencoded::to_string(data).unwrap()
+                                            )));
+                                        }
+                                    }
+                                }
+                            }
+                            // If no session return to login
+                            _ => {
+                                return Ok(Redirect::found(format!(
+                                    "/login?{}",
+                                    serde_urlencoded::to_string(data).unwrap()
+                                )));
+                            }
+                        }
+
+                        // If no session cookie return login
+                    } else {
+                        return Ok(Redirect::found(format!(
+                            "/login?{}",
+                            serde_urlencoded::to_string(data).unwrap()
+                        )));
+                    }
+                }
+            },
             Err(err) => error = err,
         },
         None => error = CoreAuthErrorResponseType::UnauthorizedClient,
@@ -259,19 +344,25 @@ pub async fn secure_authorization(
         match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
             Some(oauth2client) => match data.validate_for_client(&oauth2client) {
                 Ok(()) => {
-                    let mut auth_code = AuthCode::new(
+                    match OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+                        &appstate.pool,
                         session_info.user.id.unwrap(),
-                        data.client_id.into(),
-                        data.redirect_uri.into(),
-                        data.scope.into(),
-                        data.nonce.map(str::to_owned),
-                        data.code_challenge.map(str::to_owned),
-                    );
-                    auth_code.save(&appstate.pool).await?;
-                    url.query_pairs_mut()
-                        .append_pair("code", auth_code.code.as_str())
-                        .append_pair("state", data.state);
-                    return Ok(Redirect::found(url.to_string()));
+                        oauth2client.id.unwrap(),
+                    )
+                    .await?
+                    {
+                        Some(_) => {}
+                        None => {
+                            let mut app = OAuth2AuthorizedApp::new(
+                                session_info.user.id.unwrap(),
+                                oauth2client.id.unwrap(),
+                            );
+                            app.save(&appstate.pool).await?;
+                        }
+                    }
+                    let location =
+                        generate_auth_code_redirect(appstate, &data, session_info.user.id).await?;
+                    return Ok(Redirect::found(location));
                 }
                 Err(err) => error = err,
             },
@@ -438,46 +529,53 @@ pub async fn token(
                         if let Some(user) =
                             User::find_by_id(&appstate.pool, auth_code.user_id).await?
                         {
-                            // Remove existing token in case same client asks for new token
-                            if let Some(token) = OAuth2Token::find_by_user_and_client_id(
-                                &appstate.pool,
-                                user.id.unwrap(),
-                                client.id.unwrap(),
-                            )
-                            .await?
+                            if let Some(authorized_app) =
+                                OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+                                    &appstate.pool,
+                                    user.id.unwrap(),
+                                    client.id.unwrap(),
+                                )
+                                .await?
                             {
-                                token.delete(&appstate.pool).await?;
-                            }
-                            let token = OAuth2Token::new(
-                                user.id.unwrap(),
-                                client.id.unwrap(),
-                                auth_code.redirect_uri.clone(),
-                                auth_code.scope.clone(),
-                            );
-                            match form.authorization_code_flow(
-                                &auth_code,
-                                &token,
-                                (&user).into(),
-                                &appstate.config.url,
-                                client.client_secret,
-                                appstate.config.openid_key(),
-                            ) {
-                                Ok(response) => {
-                                    token.save(&appstate.pool).await?;
-                                    return Ok(ApiResponse {
-                                        json: json!(response),
-                                        status: Status::Ok,
-                                    });
+                                // Remove existing token in case same client asks for new token
+                                if let Some(token) = OAuth2Token::find_by_authorized_app_id(
+                                    &appstate.pool,
+                                    authorized_app.id.unwrap(),
+                                )
+                                .await?
+                                {
+                                    token.delete(&appstate.pool).await?;
                                 }
-                                Err(err) => {
-                                    let response =
-                                        StandardErrorResponse::<CoreErrorResponseType>::new(
-                                            err, None, None,
-                                        );
-                                    return Ok(ApiResponse {
-                                        json: json!(response),
-                                        status: Status::BadRequest,
-                                    });
+                                let token = OAuth2Token::new(
+                                    authorized_app.id.unwrap(),
+                                    auth_code.redirect_uri.clone(),
+                                    auth_code.scope.clone(),
+                                );
+                                match form.authorization_code_flow(
+                                    &auth_code,
+                                    &token,
+                                    (&user).into(),
+                                    &appstate.config.url,
+                                    client.client_secret,
+                                    appstate.config.openid_key(),
+                                ) {
+                                    Ok(response) => {
+                                        token.save(&appstate.pool).await?;
+                                        return Ok(ApiResponse {
+                                            json: json!(response),
+                                            status: Status::Ok,
+                                        });
+                                    }
+                                    Err(err) => {
+                                        let response =
+                                            StandardErrorResponse::<CoreErrorResponseType>::new(
+                                                err, None, None,
+                                            );
+                                        return Ok(ApiResponse {
+                                            json: json!(response),
+                                            status: Status::BadRequest,
+                                        });
+                                    }
                                 }
                             }
                         }

@@ -1,7 +1,7 @@
 use crate::{
     appstate::AppState,
     db::{Session, SessionState, User},
-    enterprise::db::OAuth2Token,
+    enterprise::db::{OAuth2AuthorizedApp, OAuth2Token},
     error::OriWebError,
 };
 use jsonwebtoken::{
@@ -180,11 +180,35 @@ impl<'r> FromRequest<'r> for SessionInfo {
                             None
                         }
                     })
-                // TODO: #[cfg(feature = "openid")]
                 {
+                    // TODO: #[cfg(feature = "openid")]
                     match OAuth2Token::find_access_token(&state.pool, token).await {
                         Ok(Some(oauth2token)) => {
-                            User::find_by_id(&state.pool, oauth2token.user_id).await
+                            match OAuth2AuthorizedApp::find_by_id(
+                                &state.pool,
+                                oauth2token.oauth2authorizedapp_id,
+                            )
+                            .await
+                            {
+                                Ok(Some(authorized_app)) => {
+                                    User::find_by_id(&state.pool, authorized_app.user_id).await
+                                }
+                                Ok(None) => {
+                                    return Outcome::Failure((
+                                        Status::Unauthorized,
+                                        OriWebError::Authorization(
+                                            "Authorized app not found".into(),
+                                        ),
+                                    ));
+                                }
+
+                                Err(err) => {
+                                    return Outcome::Failure((
+                                        Status::InternalServerError,
+                                        err.into(),
+                                    ));
+                                }
+                            }
                         }
                         Ok(None) => {
                             return Outcome::Failure((

@@ -24,7 +24,7 @@ import {
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
-import { OAuthTokenInfo } from '../../../../../shared/types';
+import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 
@@ -35,7 +35,7 @@ interface Inputs {
   phone: string;
   email: string;
   groups: SelectOption<string>[];
-  oauth_tokens: SelectOption<OAuthTokenInfo>[];
+  oauth_tokens: SelectOption<OAuth2AuthorizedApps>[];
 }
 
 const defaultValues: Inputs = {
@@ -110,9 +110,9 @@ export const ProfileDetailsForm = () => {
     } else {
       res.groups = [];
     }
-    if (ommited.oauth_tokens) {
-      const appsOptions: SelectOption<OAuthTokenInfo>[] =
-        ommited.oauth_tokens.map((a) => ({
+    if (ommited.authorized_apps) {
+      const appsOptions: SelectOption<OAuth2AuthorizedApps>[] =
+        ommited.authorized_apps.map((a) => ({
           key: a.oauth2client_id,
           value: a,
           label: a.oauth2client_name,
@@ -181,7 +181,7 @@ export const ProfileDetailsForm = () => {
           ...values,
           groups: groups,
           totp_enabled: user.totp_enabled,
-          oauth_tokens: apps,
+          authorized_apps: apps,
         },
       });
     }

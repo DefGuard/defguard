@@ -1,4 +1,4 @@
-use super::{device::Device, group::Group, OauthTokenInfo, SecurityKey, WalletInfo};
+use super::{device::Device, group::Group, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo};
 use crate::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{Wallet, WebAuthn},
@@ -372,14 +372,18 @@ impl User {
         }
     }
 
-    pub async fn oauth_tokens(&self, pool: &DbPool) -> Result<Vec<OauthTokenInfo>, SqlxError> {
+    pub async fn oauth2authorizedapps(
+        &self,
+        pool: &DbPool,
+    ) -> Result<Vec<OAuth2AuthorizedAppInfo>, SqlxError> {
         if let Some(id) = self.id {
             query_as!(
-                OauthTokenInfo,
-                "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\" \
-                FROM oauth2token \
-                JOIN oauth2client ON oauth2client.id = oauth2token.oauth2client_id \
-                WHERE oauth2token.user_id = $1",
+                OAuth2AuthorizedAppInfo,
+                "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\", \
+                oauth2authorizedapp.user_id \"user_id\" \
+                FROM oauth2authorizedapp \
+                JOIN oauth2client ON oauth2client.id = oauth2authorizedapp.oauth2client_id \
+                WHERE oauth2authorizedapp.user_id = $1",
                 id
             )
             .fetch_all(pool)
