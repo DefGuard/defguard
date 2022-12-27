@@ -63,7 +63,11 @@ const Login = () => {
   const loginMutation = useMutation((data: LoginData) => login(data), {
     mutationKey: [MutationKeys.LOG_IN],
     onSuccess: (data) => {
-      const { user, mfa } = data;
+      const { url, user, mfa } = data;
+      if (url) {
+        window.location.replace(url);
+        return;
+      }
       if (!user && !mfa) {
         toaster.error('Unexpected error occured, contact administrator.');
         console.error('API returned unexpect result upon login.');

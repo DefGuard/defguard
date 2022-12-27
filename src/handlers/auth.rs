@@ -11,7 +11,7 @@ use crate::{
     license::Features,
 };
 use rocket::{
-    http::{Cookie, CookieJar, Status},
+    http::{Cookie, CookieJar, SameSite, Status},
     serde::json::{serde_json::json, Json},
     State,
 };
@@ -69,7 +69,12 @@ pub async fn authenticate(
     Session::delete_expired(&appstate.pool).await?;
     let session = Session::new(user.id.unwrap(), SessionState::PasswordVerified);
     session.save(&appstate.pool).await?;
-    cookies.add(Cookie::new("session", session.id));
+
+    let auth_cookie = Cookie::build("defguard_session", session.id)
+        .http_only(true)
+        .same_site(SameSite::None)
+        .finish();
+    cookies.add(auth_cookie);
 
     info!("Authenticated user {}", data.username);
     if user.mfa_enabled {
@@ -80,17 +85,24 @@ pub async fn authenticate(
         })
     } else {
         let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-        Ok(ApiResponse {
-            json: json!(user_info),
-            status: Status::Ok,
-        })
+        if let Some(openid_cookie) = cookies.get("known_sign_in") {
+            Ok(ApiResponse {
+                json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                status: Status::Ok,
+            })
+        } else {
+            Ok(ApiResponse {
+                json: json!({ "user": user_info }),
+                status: Status::Ok,
+            })
+        }
     }
 }
 
 /// Logout - forget the session cookie.
 #[post("/auth/logout")]
 pub fn logout(cookies: &CookieJar<'_>) -> ApiResult {
-    cookies.remove(Cookie::named("session"));
+    cookies.remove(Cookie::named("defguard_session"));
     Ok(ApiResponse::default())
 }
 
