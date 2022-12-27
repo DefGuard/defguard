@@ -209,6 +209,7 @@ pub async fn webauthn_end(
     mut session: Session,
     appstate: &State<AppState>,
     pubkey: Json<PublicKeyCredential>,
+    cookies: &CookieJar<'_>,
 ) -> ApiResult {
     if let Some(passkey_auth) = session.get_passkey_authentication() {
         if let Ok(auth_result) = appstate
@@ -228,10 +229,17 @@ pub async fn webauthn_end(
                 .await?;
             return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
                 let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-                Ok(ApiResponse {
-                    json: json!(user_info),
-                    status: Status::Ok,
-                })
+                if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                    Ok(ApiResponse {
+                        json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                        status: Status::Ok,
+                    })
+                } else {
+                    Ok(ApiResponse {
+                        json: json!({ "user": user_info }),
+                        status: Status::Ok,
+                    })
+                }
             } else {
                 Ok(ApiResponse::default())
             };
@@ -288,6 +296,7 @@ pub async fn totp_code(
     mut session: Session,
     appstate: &State<AppState>,
     data: Json<AuthCode>,
+    cookies: &CookieJar<'_>,
 ) -> ApiResult {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         if user.totp_enabled && user.verify_code(data.code) {
@@ -295,10 +304,17 @@ pub async fn totp_code(
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-            Ok(ApiResponse {
-                json: json!(user_info),
-                status: Status::Ok,
-            })
+            if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                Ok(ApiResponse {
+                    json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                    status: Status::Ok,
+                })
+            } else {
+                Ok(ApiResponse {
+                    json: json!({ "user": user_info }),
+                    status: Status::Ok,
+                })
+            }
         } else {
             Err(OriWebError::Authorization("Invalid TOTP code".into()))
         }
@@ -334,6 +350,7 @@ pub async fn web3auth_end(
     mut session: Session,
     appstate: &State<AppState>,
     signature: Json<WalletSignature>,
+    cookies: &CookieJar<'_>,
 ) -> ApiResult {
     if let Some(ref challenge) = session.web3_challenge {
         if let Some(wallet) =
@@ -350,10 +367,17 @@ pub async fn web3auth_end(
                             User::find_by_id(&appstate.pool, session.user_id).await?
                         {
                             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-                            Ok(ApiResponse {
-                                json: json!(user_info),
-                                status: Status::Ok,
-                            })
+                            if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                                Ok(ApiResponse {
+                                    json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                                    status: Status::Ok,
+                                })
+                            } else {
+                                Ok(ApiResponse {
+                                    json: json!({ "user": user_info }),
+                                    status: Status::Ok,
+                                })
+                            }
                         } else {
                             Ok(ApiResponse::default())
                         }

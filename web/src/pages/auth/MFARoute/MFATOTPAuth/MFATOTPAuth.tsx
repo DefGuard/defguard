@@ -56,8 +56,15 @@ export const MFATOTPAuth = () => {
     verify,
     {
       onSuccess: (data) => {
+        const { user, url } = data;
         clearMFAStore();
-        logIn(data);
+        if (url) {
+          window.location.replace(url);
+          return;
+        }
+        if (user) {
+          logIn(user);
+        }
       },
       onError: (err) => {
         console.error(err);

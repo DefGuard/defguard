@@ -43,9 +43,16 @@ export const MFAWeb3 = () => {
     finish,
     {
       onSuccess: (data) => {
+        const { user, url } = data;
         resetMFAStore();
         toaster.success('Logged in.');
-        logIn(data);
+        if (url) {
+          window.location.replace(url);
+          return;
+        }
+        if (user) {
+          logIn(user);
+        }
       },
       onError: (err) => {
         console.error(err);
