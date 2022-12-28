@@ -1,6 +1,6 @@
 use super::{
-    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, RecoveryCode, RecoveryCodes, WalletAddress,
-    WalletSignature, WebAuthnRegistration,
+    ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
+    WalletAddress, WalletSignature, WebAuthnRegistration,
 };
 use crate::{
     appstate::AppState,
@@ -87,12 +87,18 @@ pub async fn authenticate(
         let user_info = UserInfo::from_user(&appstate.pool, user).await?;
         if let Some(openid_cookie) = cookies.get("known_sign_in") {
             Ok(ApiResponse {
-                json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                json: json!(AuthResponse {
+                    user: user_info,
+                    url: Some(openid_cookie.value().to_string())
+                }),
                 status: Status::Ok,
             })
         } else {
             Ok(ApiResponse {
-                json: json!({ "user": user_info }),
+                json: json!(AuthResponse {
+                    user: user_info,
+                    url: None,
+                }),
                 status: Status::Ok,
             })
         }
@@ -231,12 +237,18 @@ pub async fn webauthn_end(
                 let user_info = UserInfo::from_user(&appstate.pool, user).await?;
                 if let Some(openid_cookie) = cookies.get("known_sign_in") {
                     Ok(ApiResponse {
-                        json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: Some(openid_cookie.value().to_string())
+                        }),
                         status: Status::Ok,
                     })
                 } else {
                     Ok(ApiResponse {
-                        json: json!({ "user": user_info }),
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: None,
+                        }),
                         status: Status::Ok,
                     })
                 }
@@ -306,12 +318,18 @@ pub async fn totp_code(
             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
             if let Some(openid_cookie) = cookies.get("known_sign_in") {
                 Ok(ApiResponse {
-                    json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: Some(openid_cookie.value().to_string())
+                    }),
                     status: Status::Ok,
                 })
             } else {
                 Ok(ApiResponse {
-                    json: json!({ "user": user_info }),
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
                     status: Status::Ok,
                 })
             }
@@ -369,12 +387,18 @@ pub async fn web3auth_end(
                             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
                             if let Some(openid_cookie) = cookies.get("known_sign_in") {
                                 Ok(ApiResponse {
-                                    json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                                    json: json!(AuthResponse {
+                                        user: user_info,
+                                        url: Some(openid_cookie.value().to_string())
+                                    }),
                                     status: Status::Ok,
                                 })
                             } else {
                                 Ok(ApiResponse {
-                                    json: json!({ "user": user_info }),
+                                    json: json!(AuthResponse {
+                                        user: user_info,
+                                        url: None,
+                                    }),
                                     status: Status::Ok,
                                 })
                             }
@@ -409,12 +433,18 @@ pub async fn recovery_code(
             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
             if let Some(openid_cookie) = cookies.get("known_sign_in") {
                 return Ok(ApiResponse {
-                    json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: Some(openid_cookie.value().to_string())
+                    }),
                     status: Status::Ok,
                 });
             } else {
                 return Ok(ApiResponse {
-                    json: json!({ "user": user_info }),
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
                     status: Status::Ok,
                 });
             }

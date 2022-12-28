@@ -65,7 +65,6 @@ const mockData = (): User[] => {
       totp_enabled: false,
       groups: [],
       wallets: [],
-      oauth_tokens: [],
     });
   }
   return res;
