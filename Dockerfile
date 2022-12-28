@@ -35,7 +35,7 @@ WORKDIR /app
 COPY web/package.json .
 COPY web/pnpm-lock.yaml .
 COPY web/.npmrc .
-RUN npm i -g pnpm@7.19
+RUN npm i -g pnpm
 RUN pnpm install --ignore-scripts
 COPY web/ .
 RUN pnpm build
