@@ -396,6 +396,7 @@ pub async fn recovery_code(
     mut session: Session,
     appstate: &State<AppState>,
     recovery_code: Json<RecoveryCode>,
+    cookies: &CookieJar<'_>,
 ) -> ApiResult {
     if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         if user
@@ -405,10 +406,18 @@ pub async fn recovery_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            return Ok(ApiResponse {
-                json: json!(UserInfo::from_user(&appstate.pool, user).await?),
-                status: Status::Ok,
-            });
+            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+            if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                return Ok(ApiResponse {
+                    json: json!({ "user": user_info, "url": openid_cookie.value()}),
+                    status: Status::Ok,
+                });
+            } else {
+                return Ok(ApiResponse {
+                    json: json!({ "user": user_info }),
+                    status: Status::Ok,
+                });
+            }
         }
     }
     Err(OriWebError::Http(Status::Unauthorized))

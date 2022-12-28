@@ -303,7 +303,7 @@ export interface ApiHook {
     mfa: {
       disable: () => EmptyApiResponse;
       enable: () => EmptyApiResponse;
-      recovery: (data: RecoveryLoginRequest) => Promise<User>;
+      recovery: (data: RecoveryLoginRequest) => Promise<MFAFinishResponse>;
       webauthn: {
         register: {
           start: (data: {

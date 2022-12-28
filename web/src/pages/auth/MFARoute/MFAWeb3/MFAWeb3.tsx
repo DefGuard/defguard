@@ -44,14 +44,15 @@ export const MFAWeb3 = () => {
     {
       onSuccess: (data) => {
         const { user, url } = data;
-        resetMFAStore();
         toaster.success('Logged in.');
         if (user && url) {
+          resetMFAStore();
           logIn(user);
           window.location.replace(url);
           return;
         }
         if (user) {
+          resetMFAStore();
           logIn(user);
         }
       },

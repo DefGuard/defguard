@@ -57,13 +57,14 @@ export const MFATOTPAuth = () => {
     {
       onSuccess: (data) => {
         const { user, url } = data;
-        clearMFAStore();
         if (user && url) {
+          clearMFAStore();
           logIn(user);
           window.location.replace(url);
           return;
         }
         if (user) {
+          clearMFAStore();
           logIn(user);
         }
       },
