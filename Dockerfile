@@ -35,7 +35,7 @@ WORKDIR /app
 COPY web/package.json .
 COPY web/pnpm-lock.yaml .
 COPY web/.npmrc .
-RUN npm i -g pnpm
+RUN npm i -g pnpm@7.19
 RUN pnpm install --ignore-scripts
 COPY web/ .
 RUN pnpm build
@@ -48,4 +48,5 @@ RUN apt-get update -y && \
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
 COPY --from=web /app/dist ./web/dist
+COPY openid.pem ./
 ENTRYPOINT ["./defguard"]
