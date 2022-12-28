@@ -190,7 +190,7 @@ const App = () => {
             <Route
               path="consent/*"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute moduleRequired="openid_enabled">
                   <OpenidAllowPage />
                 </ProtectedRoute>
               }

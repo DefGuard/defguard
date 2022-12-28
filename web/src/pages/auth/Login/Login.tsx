@@ -64,7 +64,8 @@ const Login = () => {
     mutationKey: [MutationKeys.LOG_IN],
     onSuccess: (data) => {
       const { url, user, mfa } = data;
-      if (url) {
+      if (user && url) {
+        logIn(user);
         window.location.replace(url);
         return;
       }

@@ -46,8 +46,9 @@ export const MFAWebAuthN = () => {
     {
       onSuccess: (data) => {
         const { user, url } = data;
-        if (url) {
+        if (user && url) {
           clearMFAStore();
+          logIn(user);
           window.location.replace(url);
           return;
         }
