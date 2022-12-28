@@ -24,7 +24,7 @@ use openidconnect::{
 };
 use rocket::{
     form::{self, Form, FromFormField, ValueField},
-    http::{Cookie, CookieJar, Status},
+    http::{CookieJar, Status},
     request::{FromRequest, Outcome, Request},
     response::Redirect,
     serde::json::serde_json::json,
@@ -215,7 +215,7 @@ impl<'r> AuthenticationRequest<'r> {
     }
 }
 
-/// Helper function which creates redirect Uri with authorization code
+/// Helper function which creates redirect with authorization code
 async fn generate_auth_code_redirect(
     appstate: &State<AppState>,
     data: &AuthenticationRequest<'_>,
@@ -236,25 +236,6 @@ async fn generate_auth_code_redirect(
         .append_pair("code", auth_code.code.as_str())
         .append_pair("state", data.state);
     Ok(url.to_string())
-}
-
-/// Helper function to redirect unauthroized user to login page
-/// and store information about OpenID authorize url in cookie to redirect later
-async fn login_redirect(
-    appstate: &State<AppState>,
-    data: &AuthenticationRequest<'_>,
-    cookies: &CookieJar<'_>,
-) -> Result<Redirect, OriWebError> {
-    let base_url = appstate.config.url.join("api/v1/oauth/authorize").unwrap();
-    cookies.add(Cookie::new(
-        "known_sign_in",
-        format!(
-            "{}?{}",
-            base_url,
-            serde_urlencoded::to_string(data).unwrap()
-        ),
-    ));
-    Ok(Redirect::found("/login".to_string()))
 }
 
 /// Authorization Endpoint
@@ -279,13 +260,16 @@ pub async fn authorization(
                     error = CoreAuthErrorResponseType::LoginRequired;
                 }
                 _ => {
-                    if let Some(session_cookie) = cookies.get("defguard_session") {
+                    if let Some(session_cookie) = cookies.get("session") {
                         match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
                             Ok(Some(session)) => {
                                 // If session expired return login
                                 if session.expired() {
                                     let _result = session.delete(&appstate.pool).await;
-                                    return login_redirect(appstate, &data, cookies).await;
+                                    return Ok(Redirect::found(format!(
+                                        "/login?{}",
+                                        serde_urlencoded::to_string(data).unwrap()
+                                    )));
                                 } else {
                                     // If session is present check if app is in
                                     // user authorized apps if yes
@@ -298,7 +282,6 @@ pub async fn authorization(
                                     .await?
                                     {
                                         Some(_) => {
-                                            cookies.remove(Cookie::named("known_sign_in"));
                                             let location = generate_auth_code_redirect(
                                                 appstate,
                                                 &data,
@@ -318,12 +301,20 @@ pub async fn authorization(
                                 }
                             }
                             // If no session return to login
-                            _ => return login_redirect(appstate, &data, cookies).await,
+                            _ => {
+                                return Ok(Redirect::found(format!(
+                                    "/login?{}",
+                                    serde_urlencoded::to_string(data).unwrap()
+                                )));
+                            }
                         }
 
                         // If no session cookie return login
                     } else {
-                        return login_redirect(appstate, &data, cookies).await;
+                        return Ok(Redirect::found(format!(
+                            "/login?{}",
+                            serde_urlencoded::to_string(data).unwrap()
+                        )));
                     }
                 }
             },

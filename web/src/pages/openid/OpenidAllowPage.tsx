@@ -3,7 +3,7 @@ import './style.scss';
 
 import { motion } from 'framer-motion';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import Button, {
   ButtonSize,
@@ -12,6 +12,7 @@ import Button, {
 import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
+import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { standardVariants } from '../../shared/variants';
 
@@ -28,6 +29,10 @@ const OpenidAllowPage: React.FC = () => {
   const {
     openid: { getOpenidClient },
   } = useApi();
+  const currentUser = useAuthStore((state) => state.user);
+  const setAuthStore = useAuthStore((state) => state.setState);
+  const navigate = useNavigate();
+  const authLocation = useAuthStore((state) => state.authLocation);
 
   const validateParams = useCallback(() => {
     const check = [scope, responseType, clientId, nonce, redirectUri, state];
@@ -39,6 +44,20 @@ const OpenidAllowPage: React.FC = () => {
     return true;
   }, [scope, responseType, clientId, nonce, redirectUri, state]);
 
+  useEffect(() => {
+    if (!currentUser) {
+      const loc = window.location.href;
+      setAuthStore({ authLocation: loc });
+      setTimeout(() => {
+        navigate('/auth', { replace: true });
+      }, 250);
+    } else {
+      if (authLocation) {
+        setAuthStore({ authLocation: undefined });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
   const getFormAction = useCallback(
     (allow: boolean) => {
       if (validateParams()) {
