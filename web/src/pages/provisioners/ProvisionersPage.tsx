@@ -1,10 +1,8 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { clone, isUndefined, orderBy } from 'lodash-es';
-import { useEffect, useMemo, useState } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { orderBy } from 'lodash-es';
+import { useMemo, useState } from 'react';
 
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
@@ -14,11 +12,9 @@ import {
   Select,
   SelectOption,
 } from '../../shared/components/layout/Select/Select';
-import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
-import { Provisioner } from '../../shared/types';
 import { ProvisionersList } from './ProvisionersList/ProvisionersList';
 import { ProvisioningStationSetup } from './ProvisioningStationSetup';
 
@@ -26,7 +22,6 @@ const ProvisionersPage = () => {
   const [selectedFilterOption, setSelectedFilterOption] = useState(
     filterSelectOptions[0]
   );
-  const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [searchValue, setSearchValue] = useState<string>('');
 
   const {

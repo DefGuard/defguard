@@ -54,6 +54,7 @@
           @include text-weight(medium);
 
           color: var(--gray-dark);
+
           &.connected {
             color: var(--text-main);
           }

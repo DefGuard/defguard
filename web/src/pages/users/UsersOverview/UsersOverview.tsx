@@ -23,7 +23,6 @@ import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import { User } from '../../../shared/types';
-import { standardVariants } from '../../../shared/variants';
 import { UsersList } from './components/UsersList/UsersList';
 import AddUserModal from './modals/AddUserModal/AddUserModal';
 

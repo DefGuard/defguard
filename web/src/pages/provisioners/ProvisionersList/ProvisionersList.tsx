@@ -4,11 +4,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { useEffect, useMemo, useState } from 'react';
 
-import { AvatarBox } from '../../../shared/components/layout/AvatarBox/AvatarBox';
 import ConfirmModal, {
   ConfirmModalType,
 } from '../../../shared/components/layout/ConfirmModal/ConfirmModal';
-import { DeviceAvatar } from '../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
 import { EditButton } from '../../../shared/components/layout/EditButton/EditButton';
 import {
   EditButtonOption,
@@ -26,7 +24,7 @@ import {
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
-import { Provisioner, SelectOption } from '../../../shared/types';
+import { Provisioner } from '../../../shared/types';
 
 interface Props {
   provisioners: Provisioner[];

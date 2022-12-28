@@ -131,10 +131,6 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
     })),
   setAddUserModal: (v) =>
     set((state) => ({ addUserModal: { ...state.addUserModal, ...v } })),
-  setAddWebhookModal: (v) =>
-    set((state) => ({ addWebhookModal: { ...state.addWebhookModal, ...v } })),
-  setEditWebhookModal: (v) =>
-    set((state) => ({ editWebhookModal: { ...state.editWebhookModal, ...v } })),
   setKeyDeleteModal: (v) =>
     set((state) => ({ keyDeleteModal: { ...state.keyDeleteModal, ...v } })),
   setKeyDetailModal: (v) =>

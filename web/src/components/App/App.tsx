@@ -24,6 +24,7 @@ import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
 import { UserProfile } from '../../pages/users/UserProfile/UserProfile';
 import { UsersPage } from '../../pages/users/UsersPage';
+import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
@@ -32,7 +33,6 @@ import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { QueryKeys } from '../../shared/queries';
-import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 
 const App = () => {
   const toaster = useToaster();

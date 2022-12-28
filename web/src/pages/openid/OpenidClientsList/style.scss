@@ -160,6 +160,7 @@
         & > button {
           min-width: 110px;
           width: auto;
+
           svg {
             g, path, rect {
               fill: var(--white);
@@ -220,6 +221,7 @@
         @include media-breakpoint-up(lg) {
           @include list-layout;
         }
+
         :nth-child(3) {
           justify-content: center;
         }
@@ -269,9 +271,11 @@
           align-items: center;
           align-content: center;
           justify-content: flex-start;
+
           &:nth-child(2) {
             column-gap: 1rem;
           }
+
           &:nth-child(3) {
             justify-content: center;
           }
