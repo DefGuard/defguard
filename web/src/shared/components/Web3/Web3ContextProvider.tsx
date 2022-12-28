@@ -1,19 +1,15 @@
 import { ReactNode } from 'react';
-import {
-  configureChains,
-  createClient,
-  defaultChains,
-  WagmiConfig,
-} from 'wagmi';
+import { configureChains, createClient, mainnet, WagmiConfig } from 'wagmi';
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
 import { publicProvider } from 'wagmi/providers/public';
 
 import { Web3ConnectModal } from './Web3ConnectModal/Web3ConnectModal';
 
-const { chains, provider, webSocketProvider } = configureChains(defaultChains, [
-  publicProvider(),
-]);
+const { chains, provider, webSocketProvider } = configureChains(
+  [mainnet],
+  [publicProvider()]
+);
 
 const wagmiClient = createClient({
   provider,

@@ -1,3 +1,4 @@
+import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import {
   FieldValues,
@@ -19,16 +20,22 @@ export const FormSelect = <T extends FieldValues, Y>({
   const {
     field,
     fieldState: { isDirty, isTouched, error },
+    formState: { isSubmitted },
   } = useController(controller);
 
-  const isInvalid = useMemo(
-    () => error && (isDirty || isTouched),
-    [error, isDirty, isTouched]
-  );
+  const isInvalid = useMemo(() => {
+    if (
+      (!isUndefined(error) && (isDirty || isTouched)) ||
+      (!isUndefined(error) && isSubmitted)
+    ) {
+      return true;
+    }
+    return false;
+  }, [error, isDirty, isSubmitted, isTouched]);
 
   const isValid = useMemo(
-    () => !isInvalid && (isTouched || isDirty),
-    [isDirty, isInvalid, isTouched]
+    () => !isInvalid && (isTouched || isDirty || isSubmitted),
+    [isDirty, isInvalid, isSubmitted, isTouched]
   );
 
   return (
