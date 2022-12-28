@@ -1,15 +1,16 @@
-import GlobalsPolyfills from '@esbuild-plugins/node-globals-polyfill';
-import NodeModulesPolyfills from '@esbuild-plugins/node-modules-polyfill';
 import react from '@vitejs/plugin-react';
 import autoprefixer from 'autoprefixer';
 import * as path from 'path';
-import nodePolyfills from 'rollup-plugin-polyfill-node';
 import { defineConfig } from 'vite';
-import LoadVersion from 'vite-plugin-package-version';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
-  envDir: './env',
-  plugins: [react(), LoadVersion()],
+  plugins: [
+    react(),
+    nodePolyfills({
+      protocolImports: true,
+    }),
+  ],
   server: {
     port: 3000,
     proxy: {
@@ -32,23 +33,6 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 10000,
-    rollupOptions: {
-      plugins: [nodePolyfills()],
-    },
-  },
-  optimizeDeps: {
-    esbuildOptions: {
-      plugins: [
-        NodeModulesPolyfills(),
-        GlobalsPolyfills({
-          process: true,
-          buffer: true,
-        }),
-      ],
-      define: {
-        global: 'globalThis',
-      },
-    },
   },
   css: {
     postcss: {
