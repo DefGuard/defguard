@@ -1,15 +1,13 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/mixins' as mix;
-@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@scss/helpers' as *;
 
 .page-container {
-  @include bs.media-breakpoint-down(xl) {
+  @include media-breakpoint-down(lg) {
     height: 100%;
     max-height: inherit;
     box-sizing: border-box;
     position: relative;
 
-    .page-content {
+    & > .page-content {
       overflow-y: auto;
       box-sizing: border-box;
       margin-top: 7rem;
@@ -25,8 +23,9 @@
       scrollbar-width: none; /* Firefox */
     }
   }
-  @include bs.media-breakpoint-up(xl) {
-    transition-duration: v.$nav-collapse-duration;
+
+  @include media-breakpoint-up(lg) {
+    transition-duration: var(--nav-collapse-duration);
     transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
     transition-property: transform, margin-left, margin-right;
     margin-left: 0;
@@ -34,8 +33,8 @@
     height: inherit;
     max-height: inherit;
 
-    .page-content {
-      transition-duration: v.$nav-collapse-duration;
+    & > .page-content {
+      transition-duration: var(--nav-collapse-duration);
       transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
       transition-property: transform, margin-left, margin-right, width;
       width: calc(100% - 104px);

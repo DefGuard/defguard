@@ -94,7 +94,7 @@ const KeyProvisioningModal: React.FC = () => {
               toaster.success('Keys provisioned.');
             } else {
               toaster.error(
-                'Unexpected error occured.',
+                'Unexpected error occurred.',
                 'Please contact administrator.'
               );
             }

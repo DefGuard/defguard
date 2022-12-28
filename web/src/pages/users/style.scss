@@ -1,6 +1,3 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/bootstrap' as bs;
-
-.users-page {
-  background-color: v.$bg-light;
+#users-page {
+  background-color: var(--bg-light);
 }

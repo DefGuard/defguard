@@ -346,9 +346,9 @@ export interface ApiHook {
   webhook: {
     getWebhooks: () => Promise<Webhook[]>;
     deleteWebhook: (id: string) => EmptyApiResponse;
-    addWebhook: (data: AddWebhookRequest) => EmptyApiResponse;
+    addWebhook: (data: Omit<Webhook, 'id'>) => EmptyApiResponse;
     changeWebhookState: (data: changeWebhookStateRequest) => EmptyApiResponse;
-    editWebhook: (data: EditWebhookRequest) => EmptyApiResponse;
+    editWebhook: (data: Webhook) => EmptyApiResponse;
   };
   openid: {
     getOpenidClients: () => Promise<OpenidClient[]>;
@@ -511,6 +511,10 @@ export interface EditUserDeviceModal extends StandardModalState {
   device?: Device;
 }
 
+export interface WebhookModal extends StandardModalState {
+  webhook?: Webhook;
+}
+
 export interface UseModalStore {
   addDeviceDesktopModal: StandardModalState;
   editUserDeviceModal: EditUserDeviceModal;
@@ -523,8 +527,7 @@ export interface UseModalStore {
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
-  addWebhookModal: AddWebhookModal;
-  editWebhookModal: EditWebhookModal;
+  webhookModal: WebhookModal;
   addOpenidClientModal: StandardModalState;
   deleteOpenidClientModal: DeleteOpenidClientModal;
   enableOpenidClientModal: EnableOpenidClientModal;
@@ -537,6 +540,7 @@ export interface UseModalStore {
   connectWalletModal: ConnectWalletModal;
   recoveryCodesModal: RecoveryCodesModal;
   setState: (data: Partial<UseModalStore>) => void;
+  setWebhookModal: ModalSetter<WebhookModal>;
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
   setDeleteUserDeviceModal: ModalSetter<DeleteUserDeviceModal>;
   setUserDeviceModal: ModalSetter<UserDeviceModal>;
@@ -547,8 +551,6 @@ export interface UseModalStore {
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
-  setAddWebhookModal: ModalSetter<AddWebhookModal>;
-  setEditWebhookModal: ModalSetter<EditWebhookModal>;
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
@@ -612,29 +614,6 @@ export interface AddOpenidClientRequest {
   redirect_uri: string[];
   enabled: boolean;
   scope: string[];
-}
-
-export interface AddWebhookRequest {
-  url: string;
-  description: string;
-  token: string;
-  enabled: string | number;
-  on_user_created: string | number;
-  on_user_deleted: string | number;
-  on_user_modified: string | number;
-  on_hwkey_provision: string | number;
-}
-
-export interface EditWebhookRequest {
-  id: string;
-  url: string;
-  description: string;
-  token: string;
-  enabled: string | number;
-  on_user_created: string | number;
-  on_user_deleted: string | number;
-  on_user_modified: string | number;
-  on_hwkey_provision: string | number;
 }
 
 export interface changeWebhookStateRequest {

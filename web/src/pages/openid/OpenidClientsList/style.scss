@@ -1,188 +1,302 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/bootstrap' as bs;
-@use '@shared/scss/helpers/mixins' as mix;
 
-#clients-list {
-  position: relative;
-  overflow: hidden;
-  height: inherit;
-  @include bs.media-breakpoint-down(md) {
-    overflow-y: auto;
-    max-height: inherit;
-  }
-  @include bs.media-breakpoint-up(md) {
-    align-self: stretch;
-    width: 100%;
-    box-sizing: border-box;
-    client-select: none;
+@use '@scss/helpers' as *;
+
+@mixin list-layout {
+  display: inline-grid;
+  grid-template-columns: 1fr 40px;
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: minmax(250px, 1fr) 1fr 60px;
   }
 
-  header {
-    display: flex;
-    @include bs.media-breakpoint-down(md) {
-      flex-direction: column;
-    }
-    @include bs.media-breakpoint-up(md) {
-      flex-direction: row;
-      align-content: center;
-      align-items: center;
-      justify-content: flex-start;
-      width: 100%;
-      gap: 3rem;
-      padding: 4rem 6rem 4.6rem;
-      box-sizing: border-box;
-    }
-
-    h1 {
-      @include bs.media-breakpoint-down(md) {
-        display: none;
-      }
-      @include bs.media-breakpoint-up(md) {
-        font-size: 4.1rem;
-        line-height: 6.1rem;
-        font-family: Poppins;
-        color: v.$text-main;
-        @include mix.text-weight(semiBold);
-      }
-    }
-
-    .search {
-      width: auto;
-      min-width: 36rem;
-
-      input {
-        &:disabled {
-          cursor: not-allowed;
-        }
-      }
+  @for $i from 1 through 3 {
+    :nth-child(#{$i}) {
+      grid-column: $i;
     }
   }
 
-  .actions {
-    width: 100%;
-    height: auto;
-    display: flex;
-    @include bs.media-breakpoint-down(md) {
-      flex-direction: row;
-      flex-wrap: wrap;
-      row-gap: 1.5rem;
-      margin: 1.5rem 0;
-      box-sizing: border-box;
-      padding: 0 2rem;
+  & > * {
+    grid-row: 1;
+  }
+}
+
+
+#openid-clients-list {
+  & > .page-content {
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    @include media-breakpoint-down(lg) {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: 125px 1fr;
     }
-    @include bs.media-breakpoint-up(md) {
-      flex-direction: row;
-      align-items: center;
-      align-content: center;
-      justify-content: flex-start;
-      padding: 0 6rem 2.7rem;
+    @include media-breakpoint-up(lg) {
+      align-self: stretch;
       box-sizing: border-box;
+      user-select: none;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: 147px 67px 1fr;
+      max-height: 100%;
+      overflow: hidden;
     }
-
-    .clients-count {
-      display: flex;
-      flex-direction: row;
-      align-content: center;
-      align-items: center;
-      justify-content: flex-start;
-      width: auto;
-      height: auto;
-      gap: 1rem;
-
-      span {
-        @include mix.text-weight(semiBold);
-        @include mix.poppins;
-
-        color: v.$text-main;
-        @include bs.media-breakpoint-down(md) {
-          font-size: 1.5rem;
-          line-height: 2.1rem;
-          text-transform: uppercase;
-        }
-        @include bs.media-breakpoint-up(md) {
-          font-size: 2rem;
-          line-height: 3rem;
-        }
-      }
-
-      .count {
+  
+    header {
+      display: none;
+      @include media-breakpoint-up(lg) {
         display: flex;
+        grid-row: 1;
+        flex-flow: row;
+        align-content: center;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        gap: 3rem;
+        padding: 4rem 6rem 4.6rem;
+        box-sizing: border-box;
+      }
+  
+      h1 {
+        @include media-breakpoint-up(lg) {
+          font-size: 4.1rem;
+          line-height: 6.1rem;
+          font-family: Poppins;
+          color: var(--text-main);
+          @include text-weight(semiBold);
+        }
+      }
+  
+      .search {
+        width: auto;
+        min-width: 36rem;
+      }
+    }
+  
+    .actions {
+      width: 100%;
+      height: auto;
+      display: flex;
+      @include media-breakpoint-down(lg) {
+        grid-row: 1;
+        grid-column: 1;
+        flex-direction: row;
+        flex-wrap: wrap;
+        row-gap: 1.5rem;
+        margin: 1.5rem 0;
+        box-sizing: border-box;
+        padding: 0 2rem;
+      }
+      @include media-breakpoint-up(lg) {
+        grid-row: 2;
         flex-direction: row;
         align-items: center;
         align-content: center;
-        justify-content: center;
-        width: 30px;
-        height: 30px;
-        background-color: v.$gray-light;
-        border-radius: 1rem;
-
-        span {
-          @include mix.text-weight(semiBold);
-          @include mix.poppins;
-
-          color: v.$white;
-          font-size: 1.2rem;
-          text-align: center;
-          line-height: 1.8rem;
-        }
+        justify-content: flex-start;
+        padding: 0 6rem 2.7rem;
+        box-sizing: border-box;
       }
-    }
-
-    .table-controls {
-      display: flex;
-      flex-direction: row;
-      align-content: center;
-      align-items: center;
-      justify-content: center;
-      margin-left: auto;
-
-      & > .add-client {
-        min-width: 110px;
+  
+      .clients-count {
+        display: flex;
+        flex-direction: row;
+        align-content: center;
+        align-items: center;
+        justify-content: flex-start;
         width: auto;
-      }
-      @include bs.media-breakpoint-down(md) {
-        column-gap: 1rem;
-
-        & > button {
-          width: 40px;
-          height: 40px;
-
-          span {
-            display: none;
+        height: auto;
+        gap: 1rem;
+  
+        span {
+          @include text-weight(semiBold);
+          @include poppins;
+  
+          color: var(--text-main);
+          @include media-breakpoint-down(lg) {
+            font-size: 1.5rem;
+            line-height: 2.1rem;
+            text-transform: uppercase;
+          }
+          @include media-breakpoint-up(lg) {
+            font-size: 2rem;
+            line-height: 3rem;
           }
         }
-
-        & > .add-client {
-          min-width: 0;
-          padding: 0;
-          width: 40px;
+  
+        .count {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          align-content: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          background-color: var(--gray-light);
+          border-radius: 1rem;
+  
+          span {
+            @include text-weight(semiBold);
+            @include poppins;
+  
+            color: var(--white);
+            font-size: 1.2rem;
+            text-align: center;
+            line-height: 1.8rem;
+          }
+        }
+      }
+  
+      & > .controls {
+        display: flex;
+        flex-direction: row;
+        align-content: center;
+        align-items: center;
+        justify-content: center;
+        margin-left: auto;
+  
+        & > .select {
           height: 40px;
         }
+  
+        & > button {
+          min-width: 110px;
+          width: auto;
+
+          svg {
+            g, path, rect {
+              fill: var(--white);
+            }
+          }
+        }
+  
+        @include media-breakpoint-down(lg) {
+          column-gap: 1rem;
+  
+          & > button {
+            width: 40px;
+            height: 40px;
+  
+            span {
+              display: none;
+            }
+          }
+  
+          & > .add-user {
+            min-width: 0;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+          }
+        }
+        @include media-breakpoint-up(lg) {
+          gap: 2rem;
+  
+          & > div {
+            width: 180px;
+          }
+  
+          .btn {
+            min-width: 110px;
+          }
+        }
       }
-      @include bs.media-breakpoint-up(md) {
-        gap: 2rem;
+  
+      .clients-search {
+        width: 100%;
+      }
+    }
+  
+    .clients-list {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr;
+      @include media-breakpoint-down(lg) {
+        grid-row: 2;
+        grid-column: 1;
+      }
+      @include media-breakpoint-up(lg) {
+        grid-template-rows: 28px 1fr;
+      }
+  
+      .headers {
+        display: none;
+        @include media-breakpoint-up(lg) {
+          @include list-layout;
+        }
+
+        :nth-child(3) {
+          justify-content: center;
+        }
+      }
+  
+      .scroll-container {
+        padding: 0;
+        padding-bottom: 40px;
+        margin-right: 5px;
+        grid-row: 1;
+        grid-column: 1;
+  
+        @include media-breakpoint-up(lg) {
+          grid-row: 2;
+        }
+      }
+  
+      .default-row {
+        @include list-layout;
+  
+        align-items: center;
+        grid-template-rows: 1fr;
+        height: 60px;
+        cursor: pointer;
+        
+        @include media-breakpoint-up(lg) {
+          padding-left: 50px;
+        }
+  
+        span {
+          @include regular-text;
+          @include text-weight(medium);
+        }
+  
+        .name {
+          display: flex;
+          flex-flow: row nowrap;
+          column-gap: 1rem;
+          align-content: center;
+          align-items: center;
+          justify-content: flex-start;
+        }
 
         & > div {
-          width: 180px;
-        }
+          display: flex;
+          flex-flow: row nowrap;
+          align-items: center;
+          align-content: center;
+          justify-content: flex-start;
 
-        .btn {
-          min-width: 110px;
+          &:nth-child(2) {
+            column-gap: 1rem;
+          }
+
+          &:nth-child(3) {
+            justify-content: center;
+          }
         }
       }
     }
-
-    .icon-plus-white_svg__a,
-    .icon-plus-white_svg__c {
-      fill: white;
-    }
-
-    .clients-search {
+  
+    .clients-list-loader {
+      grid-row: 2;
+      grid-column: 1;
       width: 100%;
-
-      &:disabled {
-        cursor: not-allowed;
+      height: 100%;
+      display: flex;
+      flex-flow: row nowrap;
+      align-content: center;
+      justify-content: center;
+      align-items: center;
+      @include media-breakpoint-up(lg) {
+        grid-row: 3;
       }
     }
+
   }
 }

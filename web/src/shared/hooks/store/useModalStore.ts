@@ -52,13 +52,14 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
   addUserModal: {
     visible: false,
   },
-  addWebhookModal: {
-    visible: false,
-  },
-  editWebhookModal: {
+  webhookModal: {
     visible: false,
     webhook: undefined,
   },
+  setWebhookModal: (newState) =>
+    set((oldState) => ({
+      webhookModal: { ...oldState.webhookModal, ...newState },
+    })),
   deleteOpenidClientModal: {
     visible: false,
     client: undefined,
@@ -130,10 +131,6 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
     })),
   setAddUserModal: (v) =>
     set((state) => ({ addUserModal: { ...state.addUserModal, ...v } })),
-  setAddWebhookModal: (v) =>
-    set((state) => ({ addWebhookModal: { ...state.addWebhookModal, ...v } })),
-  setEditWebhookModal: (v) =>
-    set((state) => ({ editWebhookModal: { ...state.editWebhookModal, ...v } })),
   setKeyDeleteModal: (v) =>
     set((state) => ({ keyDeleteModal: { ...state.keyDeleteModal, ...v } })),
   setKeyDetailModal: (v) =>
