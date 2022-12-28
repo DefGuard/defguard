@@ -543,8 +543,6 @@ export interface UseModalStore {
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
-  setAddWebhookModal: ModalSetter<AddWebhookModal>;
-  setEditWebhookModal: ModalSetter<EditWebhookModal>;
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
