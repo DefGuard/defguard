@@ -183,8 +183,18 @@ async fn test_totp() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
+
+    #[derive(Deserialize)]
+    struct MFAResponse {
+        user: UserInfo,
+    }
     assert_eq!(
-        response.into_json::<UserInfo>().await.unwrap().username,
+        response
+            .into_json::<MFAResponse>()
+            .await
+            .unwrap()
+            .user
+            .username,
         "hpotter"
     );
 
