@@ -65,6 +65,7 @@ export const UsersList = ({ users }: Props) => {
       {
         text: 'Actions',
         key: 'actions',
+        sortable: false,
       },
     ];
   }, [breakpoint]);
@@ -135,7 +136,7 @@ export const UsersList = ({ users }: Props) => {
       cells={listCells}
       headerPadding={{
         left: 15,
-        right: 25,
+        right: 15,
       }}
       padding={getListPadding}
     />

@@ -1,32 +1,38 @@
 import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import React, { useEffect, useState } from 'react';
+import classNames from 'classnames';
+import { useEffect, useMemo, useState } from 'react';
 
-import Badge from '../../../shared/components/layout/Badge/Badge';
+import { AvatarBox } from '../../../shared/components/layout/AvatarBox/AvatarBox';
 import ConfirmModal, {
   ConfirmModalType,
 } from '../../../shared/components/layout/ConfirmModal/ConfirmModal';
 import { DeviceAvatar } from '../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
-import IconButton from '../../../shared/components/layout/IconButton/IconButton';
-import OptionsPopover from '../../../shared/components/layout/OptionsPopover/OptionsPopover';
-import SvgIconCheckmarkGreen from '../../../shared/components/svg/IconCheckmarkGreen';
-import SvgIconDisconnected from '../../../shared/components/svg/IconDisconnected';
-import SvgIconEditAlt from '../../../shared/components/svg/IconEditAlt';
-import SvgIconUserList from '../../../shared/components/svg/IconUserList';
-import SvgIconUserListExpanded from '../../../shared/components/svg/IconUserListExpanded';
+import { EditButton } from '../../../shared/components/layout/EditButton/EditButton';
+import {
+  EditButtonOption,
+  EditButtonOptionStyleVariant,
+} from '../../../shared/components/layout/EditButton/EditButtonOption';
+import {
+  ListHeader,
+  ListSortDirection,
+  VirtualizedList,
+} from '../../../shared/components/layout/VirtualizedList/VirtualizedList';
+import {
+  IconCheckmarkGreen,
+  IconDeactivated,
+} from '../../../shared/components/svg';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
-import { Provisioner } from '../../../shared/types';
-import { tableRowVariants } from '../../../shared/variants';
+import { Provisioner, SelectOption } from '../../../shared/types';
 
 interface Props {
   provisioners: Provisioner[];
 }
 
-const ProvisionersList: React.FC<Props> = ({ provisioners }) => {
+export const ProvisionersList = ({ provisioners }: Props) => {
   const {
     provisioning: { deleteWorker },
   } = useApi();
@@ -61,18 +67,108 @@ const ProvisionersList: React.FC<Props> = ({ provisioners }) => {
     }
   }, [deleteModalOpen]);
 
+  const listCells = useMemo(
+    () => [
+      {
+        key: 'name',
+        render: (value: Provisioner) => (
+          <>
+            <span className={classNames({ connected: value.connected })}>
+              {value.id}
+            </span>
+          </>
+        ),
+      },
+      {
+        key: 'status',
+        render: (value: Provisioner) => (
+          <>
+            {value.connected ? (
+              <>
+                <IconCheckmarkGreen />
+                <span className={classNames({ connected: value.connected })}>
+                  Available
+                </span>
+              </>
+            ) : (
+              <>
+                <IconDeactivated />
+                <span className={classNames({ connected: value.connected })}>
+                  Unavailable
+                </span>
+              </>
+            )}
+          </>
+        ),
+      },
+      {
+        key: 'ip',
+        render: (value: Provisioner) => (
+          <span className={classNames({ connected: value.connected })}>
+            {value.ip}
+          </span>
+        ),
+      },
+      {
+        key: 'edit',
+        render: (value: Provisioner) => (
+          <EditButton>
+            <EditButtonOption
+              styleVariant={EditButtonOptionStyleVariant.WARNING}
+              onClick={() => openDelete(value.id)}
+              text="Remove provisioner"
+            />
+          </EditButton>
+        ),
+      },
+    ],
+    []
+  );
+
+  const getListHeaders = useMemo(() => {
+    const res: ListHeader[] = [
+      {
+        key: 'name',
+        text: 'Name',
+        active: true,
+        sortDirection: ListSortDirection.ASC,
+      },
+      {
+        key: 'status',
+        text: 'Status',
+        active: false,
+      },
+      {
+        key: 'ip',
+        text: 'IP address',
+        active: false,
+      },
+      {
+        key: 'actions',
+        text: 'Actions',
+        active: false,
+      },
+    ];
+    return res;
+  }, []);
+
   return (
     <>
-      <ul className="provisioners-list">
-        {provisioners.map((provisioner, index) => (
-          <ProvisionerListItem
-            index={index}
-            key={provisioner.id}
-            provisioner={provisioner}
-            openDelete={openDelete}
-          />
-        ))}
-      </ul>
+      <VirtualizedList
+        className="provisioners-list"
+        rowSize={70}
+        data={provisioners}
+        headers={getListHeaders}
+        cells={listCells}
+        padding={{
+          left: 60,
+          right: 40,
+        }}
+        headerPadding={{
+          right: 25,
+          left: 20,
+        }}
+      />
       <ConfirmModal
         isOpen={deleteModalOpen}
         setIsOpen={setDeleteModalOpen}
@@ -85,92 +181,3 @@ const ProvisionersList: React.FC<Props> = ({ provisioners }) => {
     </>
   );
 };
-
-interface ListItemProps {
-  provisioner: Provisioner;
-  openDelete: (id: string) => void;
-  index: number;
-}
-
-const ProvisionerListItem: React.FC<ListItemProps> = ({
-  provisioner,
-  openDelete,
-  index,
-}) => {
-  const [open, setOpen] = useState(false);
-  const [editElement, setEditElement] = useState<HTMLButtonElement | null>(
-    null
-  );
-  const [editOpen, setEditOpen] = useState(false);
-
-  return (
-    <motion.li
-      custom={index}
-      variants={tableRowVariants}
-      initial="hidden"
-      animate="idle"
-    >
-      <div className={open ? 'provisioner open' : 'provisioner'}>
-        <div className="top">
-          <div className="expand" onClick={() => setOpen((state) => !state)}>
-            {open ? <SvgIconUserListExpanded /> : <SvgIconUserList />}
-            <DeviceAvatar active={provisioner.connected} />
-          </div>
-          <div className="info">
-            <p className="id">{provisioner.id}</p>
-            <div className="badges">
-              <Badge text={provisioner.ip} />
-            </div>
-          </div>
-          <IconButton
-            className="blank"
-            ref={setEditElement}
-            onClick={() => setEditOpen(true)}
-          >
-            <SvgIconEditAlt />
-          </IconButton>
-          {editElement ? (
-            <OptionsPopover
-              referenceElement={editElement}
-              isOpen={editOpen}
-              setIsOpen={setEditOpen}
-              popperOptions={{ position: 'left' }}
-              items={[
-                <button
-                  key="delete-provisioner"
-                  className="warning"
-                  onClick={() => {
-                    openDelete(provisioner.id);
-                    setEditOpen(false);
-                  }}
-                >
-                  Delete
-                </button>,
-              ]}
-            />
-          ) : null}
-        </div>
-        {open ? <div className="divider"></div> : null}
-        {open ? (
-          <div className="collapsible">
-            <div className="labeled-group">
-              <label>Status:</label>
-              <div className="status">
-                {provisioner.connected ? (
-                  <SvgIconCheckmarkGreen />
-                ) : (
-                  <SvgIconDisconnected />
-                )}
-                <span>
-                  {provisioner.connected ? 'Available' : 'Unavailable'}
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </motion.li>
-  );
-};
-
-export default ProvisionersList;

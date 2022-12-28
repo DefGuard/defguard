@@ -84,6 +84,7 @@ export const DeviceAvatar = ({
   deviceId,
   ...props
 }: Props) => {
+
   const deviceAvatar = useMemo(() => {
     if (deviceId) {
       const elements = getDeviceAvatar(deviceId);

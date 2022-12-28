@@ -85,7 +85,8 @@ export const VirtualizedList = <T extends object>({
             paddingBottom: headerPadding?.bottom || 0,
             paddingTop: headerPadding?.top || 0,
             paddingLeft: (padding?.left || 0) + (headerPadding?.left || 0),
-            paddingRight: (padding?.right || 0) + (headerPadding?.right || 0),
+            paddingRight:
+              (padding?.right || 0) + (headerPadding?.right || 0) + 4,
           }}
         >
           {headers.map((header) => (
@@ -136,7 +137,13 @@ export const VirtualizedList = <T extends object>({
   );
 };
 
-const ListHeader = ({ text, onClick, sortDirection, active }: ListHeader) => {
+const ListHeader = ({
+  text,
+  onClick,
+  sortDirection,
+  active = false,
+  sortable = true,
+}: ListHeader) => {
   const getIconAnimate = useMemo(() => {
     if (active) {
       switch (sortDirection) {
@@ -158,8 +165,9 @@ const ListHeader = ({ text, onClick, sortDirection, active }: ListHeader) => {
       classNames('header', {
         active,
         clickable,
+        sortable,
       }),
-    [active, clickable]
+    [active, clickable, sortable]
   );
 
   return (
@@ -249,6 +257,7 @@ export type ListHeader = {
   text: string;
   key: string;
   active?: boolean;
+  sortable?: boolean;
   sortDirection?: ListSortDirection;
   onClick?: () => void;
 };

@@ -111,11 +111,7 @@ export const UsersOverview = () => {
   return (
     <section id="users-overview">
       {breakpoint === 'desktop' && (
-        <motion.header
-          variants={standardVariants}
-          initial="hidden"
-          animate="show"
-        >
+        <motion.header>
           <h1>Users</h1>
           <Search
             placeholder="Find users"
@@ -126,19 +122,14 @@ export const UsersOverview = () => {
           />
         </motion.header>
       )}
-      <motion.section
-        className="actions"
-        variants={standardVariants}
-        initial="hidden"
-        animate="show"
-      >
-        <div className="users-count">
+      <motion.section className="actions">
+        <div className="items-count">
           <span>All users</span>
           <div className="count" data-test="users-count">
             <span>{users && users.length ? users.length : 0}</span>
           </div>
         </div>
-        <div className="table-controls">
+        <div className="controls">
           {breakpoint === 'desktop' && (
             <Select
               multi={false}
@@ -153,7 +144,7 @@ export const UsersOverview = () => {
             />
           )}
           <Button
-            className="add-user"
+            className="add-item"
             onClick={() => setUserAddModalState({ visible: true })}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
@@ -175,7 +166,7 @@ export const UsersOverview = () => {
         <UsersList users={filteredUsers} />
       )}
       {isLoading && (
-        <div className="users-list-loader">
+        <div className="list-loader">
           <LoaderSpinner size={180} />
         </div>
       )}

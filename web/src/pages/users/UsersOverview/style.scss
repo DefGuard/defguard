@@ -76,7 +76,7 @@
       box-sizing: border-box;
     }
 
-    .users-count {
+    .items-count {
       display: flex;
       flex-direction: row;
       align-content: center;
@@ -125,7 +125,7 @@
       }
     }
 
-    .table-controls {
+    .controls {
       display: flex;
       flex-direction: row;
       align-content: center;
@@ -185,7 +185,7 @@
     }
   }
 
-  .users-list-loader {
+  .list-loader {
     grid-row: 2;
     grid-column: 1;
     width: 100%;

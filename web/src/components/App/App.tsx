@@ -18,13 +18,12 @@ import LoaderPage from '../../pages/loader/LoaderPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import OAuthPage from '../../pages/oauth/OAuthPage';
 import OpenidAllowPage from '../../pages/openid/OpenidAllowPage';
-import OpenidPage from '../../pages/openid/OpenidPage';
+import { OpenidClientsList } from '../../pages/openid/OpenidClientsList/OpenidClientsList';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
 import { UserProfile } from '../../pages/users/UserProfile/UserProfile';
 import { UsersPage } from '../../pages/users/UsersPage';
-import WebhooksPage from '../../pages/webhooks/WebhooksPage';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
@@ -33,6 +32,7 @@ import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { QueryKeys } from '../../shared/queries';
+import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 
 const App = () => {
   const toaster = useToaster();
@@ -157,7 +157,7 @@ const App = () => {
                     allowedGroups={['admin']}
                     moduleRequired="webhooks_enabled"
                   >
-                    <WebhooksPage />
+                    <WebhooksListPage />
                   </ProtectedRoute>
                 }
               />
@@ -168,7 +168,7 @@ const App = () => {
                     allowedGroups={['admin']}
                     moduleRequired="openid_enabled"
                   >
-                    <OpenidPage />
+                    <OpenidClientsList />
                   </ProtectedRoute>
                 }
               />

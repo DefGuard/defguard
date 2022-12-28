@@ -52,13 +52,14 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
   addUserModal: {
     visible: false,
   },
-  addWebhookModal: {
-    visible: false,
-  },
-  editWebhookModal: {
+  webhookModal: {
     visible: false,
     webhook: undefined,
   },
+  setWebhookModal: (newState) =>
+    set((oldState) => ({
+      webhookModal: { ...oldState.webhookModal, ...newState },
+    })),
   deleteOpenidClientModal: {
     visible: false,
     client: undefined,

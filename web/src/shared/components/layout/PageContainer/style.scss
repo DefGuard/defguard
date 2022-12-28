@@ -7,7 +7,7 @@
     box-sizing: border-box;
     position: relative;
 
-    .page-content {
+    & > .page-content {
       overflow-y: auto;
       box-sizing: border-box;
       margin-top: 7rem;
@@ -23,6 +23,7 @@
       scrollbar-width: none; /* Firefox */
     }
   }
+
   @include media-breakpoint-up(lg) {
     transition-duration: var(--nav-collapse-duration);
     transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -32,7 +33,7 @@
     height: inherit;
     max-height: inherit;
 
-    .page-content {
+    & > .page-content {
       transition-duration: var(--nav-collapse-duration);
       transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
       transition-property: transform, margin-left, margin-right, width;

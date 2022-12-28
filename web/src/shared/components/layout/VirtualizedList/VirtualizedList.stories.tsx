@@ -29,7 +29,7 @@ const headers: ListHeader[] = [
   },
 ];
 
-export const ListStory: Story = () => {
+export const VirtualizedListStory: Story = () => {
   const data = useMemo(() => mockData(), []);
   return (
     <VirtualizedList
