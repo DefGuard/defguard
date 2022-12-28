@@ -41,7 +41,7 @@ export interface User {
   pgp_key?: string;
   ssh_key?: string;
   groups: string[];
-  authorized_apps: OAuth2AuthorizedApps[];
+	authorized_apps: OAuth2AuthorizedApps[];
 }
 
 export interface OAuth2AuthorizedApps {
@@ -217,7 +217,6 @@ export interface MFALoginResponse {
 }
 
 export interface LoginResponse {
-  url?: string;
   user?: User;
   mfa?: MFALoginResponse;
 }
@@ -243,11 +242,6 @@ export interface VersionResponse {
 
 export interface ConnectionInfo {
   connected: boolean;
-}
-
-export interface MFAFinishResponse {
-  url?: string;
-  user?: User;
 }
 
 export interface ApiHook {
@@ -303,7 +297,7 @@ export interface ApiHook {
     mfa: {
       disable: () => EmptyApiResponse;
       enable: () => EmptyApiResponse;
-      recovery: (data: RecoveryLoginRequest) => Promise<MFAFinishResponse>;
+      recovery: (data: RecoveryLoginRequest) => Promise<User>;
       webauthn: {
         register: {
           start: (data: {
@@ -314,20 +308,18 @@ export interface ApiHook {
           ) => MFARecoveryCodesResponse;
         };
         start: () => Promise<CredentialRequestOptionsJSON>;
-        finish: (
-          data: PublicKeyCredentialWithAssertionJSON
-        ) => Promise<MFAFinishResponse>;
+        finish: (data: PublicKeyCredentialWithAssertionJSON) => Promise<User>;
         deleteKey: (data: DeleteWebAuthNKeyRequest) => EmptyApiResponse;
       };
       totp: {
         init: () => Promise<{ secret: string }>;
         enable: (data: TOTPRequest) => MFARecoveryCodesResponse;
         disable: () => EmptyApiResponse;
-        verify: (data: TOTPRequest) => Promise<MFAFinishResponse>;
+        verify: (data: TOTPRequest) => Promise<User>;
       };
       web3: {
         start: (data: Web3StartRequest) => Promise<{ challenge: string }>;
-        finish: (data: WalletSignature) => Promise<MFAFinishResponse>;
+        finish: (data: WalletSignature) => Promise<User>;
         updateWalletMFA: (
           data: EditWalletMFARequest
         ) => MFARecoveryCodesResponse;

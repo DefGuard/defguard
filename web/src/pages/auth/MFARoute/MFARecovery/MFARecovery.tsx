@@ -49,17 +49,8 @@ export const MFARecovery = () => {
     recovery,
     {
       onSuccess: (data) => {
-        const { url, user } = data;
-        if (user && url) {
-          clearMFAStore();
-          logIn(user);
-          window.location.replace(url);
-          return;
-        }
-        if (user) {
-          clearMFAStore();
-          logIn(user);
-        }
+        clearMFAStore();
+        logIn(data);
       },
       onError: (err) => {
         console.error(err);

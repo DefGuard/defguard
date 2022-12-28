@@ -42,10 +42,10 @@ const ViewMode = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        toaster.success('App and all tokens deleted');
+        toaster.success('Token deleted');
       },
       onError: () => {
-        toaster.error('App deletion failed');
+        toaster.error('Token deletion failed');
       },
     }
   );
