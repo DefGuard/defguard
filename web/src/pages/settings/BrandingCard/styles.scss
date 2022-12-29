@@ -1,14 +1,15 @@
 @use '../../../shared/scss/helpers' as *;
 
 #settings-page {
-  .web3-settings {
-    @include media-breakpoint-up(lg) {
-      margin-bottom: 5rem;
-    }
-
+  .branding {
     & > .card {
       box-sizing: border-box;
       padding: 2.5rem 2rem 2.5rem 1.5rem;
+
+      & > form {
+        align-items: stretch;
+        justify-content: flex-start;
+      }
 
       & > header {
         display: flex;
@@ -26,21 +27,6 @@
         & > .controls {
           margin-left: auto;
         }
-      }
-
-      & > textarea {
-        resize: none;
-        width: 100%;
-        max-width: 100%;
-        overflow-x: hidden;
-        height: 147px;
-        margin: 0;
-        box-sizing: border-box;
-        padding: 2rem 1.5rem;
-        border-radius: 10px;
-        border: 1px solid var(--gray-lighter);
-
-        @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
       }
     }
   }

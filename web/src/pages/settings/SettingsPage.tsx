@@ -1,6 +1,7 @@
 import './style.scss';
 
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
+import { BrandingCard } from './BrandingCard/BrandingCard';
 import { BuiltByCard } from './BuiltByCard/BuiltByCard';
 import { DefaultNetworkSelect } from './DefaultNetworkSelect/DefaultNetworkSelect';
 import { LicenseCard } from './LicenseCard/LicenseCard';
@@ -19,6 +20,7 @@ export const SettingsPage = () => {
         <ModulesCard />
         <DefaultNetworkSelect />
         <Web3Settings />
+        <BrandingCard />
       </div>
       <div className="right">
         <LicenseCard />

@@ -576,6 +576,8 @@ export interface Settings {
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;
   worker_enabled: boolean;
+  logo_url?: string;
+  instance_name: string;
 }
 
 export interface Webhook {
