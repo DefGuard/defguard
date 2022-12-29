@@ -13,11 +13,11 @@ import {
 } from 'react-router-dom';
 import shallow from 'zustand/shallow';
 
+import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import AuthPage from '../../pages/auth/AuthPage';
 import LoaderPage from '../../pages/loader/LoaderPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
-import OpenidAllowPage from '../../pages/openid/OpenidAllowPage';
-import { OpenidClientsList } from '../../pages/openid/OpenidClientsList/OpenidClientsList';
+import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
@@ -166,7 +166,7 @@ const App = () => {
                     allowedGroups={['admin']}
                     moduleRequired="openid_enabled"
                   >
-                    <OpenidClientsList />
+                    <OpenidClientsListPage />
                   </ProtectedRoute>
                 }
               />

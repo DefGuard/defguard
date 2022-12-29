@@ -1,0 +1,71 @@
+@use '@scss/helpers' as *;
+
+#openid-client-modal {
+  & > .content {
+    & > form {
+      & > .urls {
+        width: 100%;
+        display: flex;
+        flex-flow: column;
+        align-items: flex-start;
+        align-content: flex-start;
+        justify-content: flex-start;
+        margin-bottom: 2.5rem;
+
+        & > .input-container {
+          width: 100%;
+        }
+
+        & > button {
+          width: 100%;
+        }
+      }
+
+      & > h3 {
+        @include card-header;
+
+        margin-bottom: 2.5rem;
+      }
+
+      & > .client-info {
+        display: flex;
+        flex-flow: column;
+        align-content: center;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        row-gap: 2.5rem;
+        margin-top: 2.5rem;
+
+        & > * {
+          width: 100%;
+        }
+
+        .expanded-content {
+          p {
+            @include regular-text;
+          }
+        }
+      }
+
+      & > .scopes {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-gap: 1rem;
+
+        & > * {
+          width: 100%;
+        }
+      }
+
+      & > .controls {
+        &.view-mode {
+          & > button {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+}

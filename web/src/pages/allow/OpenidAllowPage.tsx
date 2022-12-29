@@ -1,22 +1,21 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import './style.scss';
 
-import { motion } from 'framer-motion';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
+import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
-import { standardVariants } from '../../shared/variants';
 
-const OpenidAllowPage: React.FC = () => {
+export const OpenidAllowPage = () => {
   const [params] = useSearchParams();
   const [scope, setScope] = useState<string | null>('');
   const [responseType, setResponseType] = useState<string | null>('');
@@ -108,56 +107,47 @@ const OpenidAllowPage: React.FC = () => {
   };
 
   return (
-    <>
-      <motion.section
-        initial="hidden"
-        animate="show"
-        variants={standardVariants}
-        id="openid-consent"
-      >
-        <div className="content">
-          <div className="header">
-            <SvgDefguadNavLogo />
-          </div>
-          <h1>{name} would like to:</h1>
-          <div className="scopes-container">
-            {scope && scope.length
-              ? scope.split(' ').map((s) => (
-                  <div className="scope" key={s}>
-                    <p className="text">{scopes[s]}</p>
-                  </div>
-                ))
-              : null}
-          </div>
-          <div className="footer">
-            <p className="disclaimer">
-              By clicking accept button you&apos;re allowing {name} to read
-              above information from your Defguard account.
-            </p>
-            <div className="controls">
-              <Button
-                size={ButtonSize.SMALL}
-                styleVariant={ButtonStyleVariant.STANDARD}
-                icon={<SvgIconDelete />}
-                text="Cancel"
-                onClick={() => handleSubmit(false)}
-              />
-              <Button
-                size={ButtonSize.SMALL}
-                styleVariant={ButtonStyleVariant.PRIMARY}
-                icon={<SvgIconCheckmarkWhite />}
-                text="Accept"
-                onClick={() => handleSubmit(true)}
-              />
-            </div>
+    <PageContainer id="openid-consent">
+      <div className="content">
+        <div className="header">
+          <SvgDefguadNavLogo />
+        </div>
+        <h1>{name} would like to:</h1>
+        <div className="scopes-container">
+          {scope && scope.length
+            ? scope.split(' ').map((s) => (
+                <div className="scope" key={s}>
+                  <p className="text">{scopes[s]}</p>
+                </div>
+              ))
+            : null}
+        </div>
+        <div className="footer">
+          <p className="disclaimer">
+            By clicking accept button you&apos;re allowing {name} to read above
+            information from your Defguard account.
+          </p>
+          <div className="controls">
+            <Button
+              size={ButtonSize.SMALL}
+              styleVariant={ButtonStyleVariant.STANDARD}
+              icon={<SvgIconDelete />}
+              text="Cancel"
+              onClick={() => handleSubmit(false)}
+            />
+            <Button
+              size={ButtonSize.SMALL}
+              styleVariant={ButtonStyleVariant.PRIMARY}
+              icon={<SvgIconCheckmarkWhite />}
+              text="Accept"
+              onClick={() => handleSubmit(true)}
+            />
           </div>
         </div>
-        <form method="post">
-          <input type="submit" ref={inputRef} />
-        </form>
-      </motion.section>
-    </>
+      </div>
+      <form method="post">
+        <input type="submit" ref={inputRef} />
+      </form>
+    </PageContainer>
   );
 };
-
-export default OpenidAllowPage;

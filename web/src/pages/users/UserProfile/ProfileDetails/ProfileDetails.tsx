@@ -100,7 +100,7 @@ const ViewMode = () => {
       <div className="row tags">
         <Label>Authorized apps</Label>
         <div className="tags">
-          {user?.authorized_apps.map((app) => (
+          {user?.authorized_apps?.map((app) => (
             <Tag
               disposable={true}
               text={app.oauth2client_name}
@@ -113,9 +113,11 @@ const ViewMode = () => {
               }
             />
           ))}
-          {!(user.authorized_apps.length > 0) && (
-            <NoData customMessage="No authorized apps." />
-          )}
+          {!(
+            user.authorized_apps &&
+            user?.authorized_apps.length &&
+            user?.authorized_apps?.length > 0
+          ) && <NoData customMessage="No authorized apps." />}
         </div>
       </div>
     </>

@@ -6,6 +6,15 @@ import { UseModalStore } from '../../types';
  * All modals use this store, it controls their visibility and provides extra values.
  */
 export const useModalStore = create<UseModalStore>((set, get) => ({
+  openIdClientModal: {
+    client: undefined,
+    viewMode: false,
+    visible: false,
+  },
+  setOpenIdClientModal: (newState) =>
+    set((oldState) => ({
+      openIdClientModal: { ...oldState.openIdClientModal, ...newState },
+    })),
   addDeviceDesktopModal: {
     visible: false,
   },
