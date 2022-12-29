@@ -190,7 +190,7 @@ impl RecoveryCodes {
 
 /// Return type needed to know if user came from openid flow
 /// with optional url to redirect him later if yes
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct AuthResponse {
     user: UserInfo,
     url: Option<String>,
