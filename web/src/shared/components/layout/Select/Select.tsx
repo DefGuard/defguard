@@ -127,6 +127,7 @@ export const Select = <T,>({
         return [option];
       }
     } else {
+      setOpen(false);
       onChange(option);
     }
   };

@@ -1,0 +1,29 @@
+@use '@scss/helpers' as *;
+
+#webhook-modal {
+  & > .content {
+    & > form {
+      & > h3 {
+        @include small-header;
+
+        margin-bottom: 2rem;
+      }
+
+      & > .events {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: repeat(2, 18px);
+        column-gap: 1rem;
+        row-gap: 1rem;
+      }
+
+      & > .controls {
+        margin-top: 2.5rem;
+        @include media-breakpoint-up(lg) {
+          margin-top: 6.5rem;
+        }
+      }
+    }
+  }
+}

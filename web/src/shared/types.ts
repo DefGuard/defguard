@@ -41,7 +41,7 @@ export interface User {
   pgp_key?: string;
   ssh_key?: string;
   groups: string[];
-	authorized_apps: OAuth2AuthorizedApps[];
+  authorized_apps: OAuth2AuthorizedApps[];
 }
 
 export interface OAuth2AuthorizedApps {
@@ -217,6 +217,7 @@ export interface MFALoginResponse {
 }
 
 export interface LoginResponse {
+  url?: string;
   user?: User;
   mfa?: MFALoginResponse;
 }
@@ -242,6 +243,11 @@ export interface VersionResponse {
 
 export interface ConnectionInfo {
   connected: boolean;
+}
+
+export interface MFAFinishResponse {
+  url?: string;
+  user?: User;
 }
 
 export interface ApiHook {
@@ -297,7 +303,7 @@ export interface ApiHook {
     mfa: {
       disable: () => EmptyApiResponse;
       enable: () => EmptyApiResponse;
-      recovery: (data: RecoveryLoginRequest) => Promise<User>;
+      recovery: (data: RecoveryLoginRequest) => Promise<MFAFinishResponse>;
       webauthn: {
         register: {
           start: (data: {
@@ -308,18 +314,20 @@ export interface ApiHook {
           ) => MFARecoveryCodesResponse;
         };
         start: () => Promise<CredentialRequestOptionsJSON>;
-        finish: (data: PublicKeyCredentialWithAssertionJSON) => Promise<User>;
+        finish: (
+          data: PublicKeyCredentialWithAssertionJSON
+        ) => Promise<MFAFinishResponse>;
         deleteKey: (data: DeleteWebAuthNKeyRequest) => EmptyApiResponse;
       };
       totp: {
         init: () => Promise<{ secret: string }>;
         enable: (data: TOTPRequest) => MFARecoveryCodesResponse;
         disable: () => EmptyApiResponse;
-        verify: (data: TOTPRequest) => Promise<User>;
+        verify: (data: TOTPRequest) => Promise<MFAFinishResponse>;
       };
       web3: {
         start: (data: Web3StartRequest) => Promise<{ challenge: string }>;
-        finish: (data: WalletSignature) => Promise<User>;
+        finish: (data: WalletSignature) => Promise<MFAFinishResponse>;
         updateWalletMFA: (
           data: EditWalletMFARequest
         ) => MFARecoveryCodesResponse;
@@ -338,9 +346,9 @@ export interface ApiHook {
   webhook: {
     getWebhooks: () => Promise<Webhook[]>;
     deleteWebhook: (id: string) => EmptyApiResponse;
-    addWebhook: (data: AddWebhookRequest) => EmptyApiResponse;
+    addWebhook: (data: Omit<Webhook, 'id'>) => EmptyApiResponse;
     changeWebhookState: (data: changeWebhookStateRequest) => EmptyApiResponse;
-    editWebhook: (data: EditWebhookRequest) => EmptyApiResponse;
+    editWebhook: (data: Webhook) => EmptyApiResponse;
   };
   openid: {
     getOpenidClients: () => Promise<OpenidClient[]>;
@@ -503,6 +511,10 @@ export interface EditUserDeviceModal extends StandardModalState {
   device?: Device;
 }
 
+export interface WebhookModal extends StandardModalState {
+  webhook?: Webhook;
+}
+
 export interface UseModalStore {
   addDeviceDesktopModal: StandardModalState;
   editUserDeviceModal: EditUserDeviceModal;
@@ -515,8 +527,7 @@ export interface UseModalStore {
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
-  addWebhookModal: AddWebhookModal;
-  editWebhookModal: EditWebhookModal;
+  webhookModal: WebhookModal;
   addOpenidClientModal: StandardModalState;
   deleteOpenidClientModal: DeleteOpenidClientModal;
   enableOpenidClientModal: EnableOpenidClientModal;
@@ -529,6 +540,7 @@ export interface UseModalStore {
   connectWalletModal: ConnectWalletModal;
   recoveryCodesModal: RecoveryCodesModal;
   setState: (data: Partial<UseModalStore>) => void;
+  setWebhookModal: ModalSetter<WebhookModal>;
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
   setDeleteUserDeviceModal: ModalSetter<DeleteUserDeviceModal>;
   setUserDeviceModal: ModalSetter<UserDeviceModal>;
@@ -539,8 +551,6 @@ export interface UseModalStore {
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
-  setAddWebhookModal: ModalSetter<AddWebhookModal>;
-  setEditWebhookModal: ModalSetter<EditWebhookModal>;
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
@@ -604,29 +614,6 @@ export interface AddOpenidClientRequest {
   redirect_uri: string[];
   enabled: boolean;
   scope: string[];
-}
-
-export interface AddWebhookRequest {
-  url: string;
-  description: string;
-  token: string;
-  enabled: string | number;
-  on_user_created: string | number;
-  on_user_deleted: string | number;
-  on_user_modified: string | number;
-  on_hwkey_provision: string | number;
-}
-
-export interface EditWebhookRequest {
-  id: string;
-  url: string;
-  description: string;
-  token: string;
-  enabled: string | number;
-  on_user_created: string | number;
-  on_user_deleted: string | number;
-  on_user_modified: string | number;
-  on_hwkey_provision: string | number;
 }
 
 export interface changeWebhookStateRequest {

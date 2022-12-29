@@ -24,8 +24,8 @@ import { useOpenidClientStore } from '../../../shared/hooks/store/useOpenidClien
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import { OpenidClient } from '../../../shared/types';
-import OpenidClientForm from '../OpenidClientEdit/OpenidClientForm/OpenidClientForm';
 import OpenidClientDetail from './OpenidCLientDetails/OpenidClientDetails';
+import OpenidClientForm from './OpenidClientForm/OpenidClientForm';
 
 interface Props {
   clientData?: OpenidClient;

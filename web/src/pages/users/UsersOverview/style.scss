@@ -1,0 +1,202 @@
+@use '@scss/helpers' as *;
+
+#users-overview {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  @include media-breakpoint-down(lg) {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 125px 1fr;
+  }
+  @include media-breakpoint-up(lg) {
+    align-self: stretch;
+    width: 100%;
+    box-sizing: border-box;
+    user-select: none;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 147px 67px 1fr;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  header {
+    display: none;
+    @include media-breakpoint-up(lg) {
+      display: flex;
+      grid-row: 1;
+      flex-flow: row;
+      align-content: center;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      gap: 3rem;
+      padding: 4rem 6rem 4.6rem;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      @include media-breakpoint-up(lg) {
+        font-size: 4.1rem;
+        line-height: 6.1rem;
+        font-family: Poppins;
+        color: var(--text-main);
+        @include text-weight(semiBold);
+      }
+    }
+
+    .search {
+      width: auto;
+      min-width: 36rem;
+    }
+  }
+
+  .actions {
+    width: 100%;
+    height: auto;
+    display: flex;
+    @include media-breakpoint-down(lg) {
+      grid-row: 1;
+      grid-column: 1;
+      flex-direction: row;
+      flex-wrap: wrap;
+      row-gap: 1.5rem;
+      margin: 1.5rem 0;
+      box-sizing: border-box;
+      padding: 0 2rem;
+    }
+    @include media-breakpoint-up(lg) {
+      grid-row: 2;
+      flex-direction: row;
+      align-items: center;
+      align-content: center;
+      justify-content: flex-start;
+      padding: 0 6rem 2.7rem;
+      box-sizing: border-box;
+    }
+
+    .items-count {
+      display: flex;
+      flex-direction: row;
+      align-content: center;
+      align-items: center;
+      justify-content: flex-start;
+      width: auto;
+      height: auto;
+      gap: 1rem;
+
+      span {
+        @include text-weight(semiBold);
+        @include poppins;
+
+        color: var(--text-main);
+        @include media-breakpoint-down(lg) {
+          font-size: 1.5rem;
+          line-height: 2.1rem;
+          text-transform: uppercase;
+        }
+        @include media-breakpoint-up(lg) {
+          font-size: 2rem;
+          line-height: 3rem;
+        }
+      }
+
+      .count {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        align-content: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        background-color: var(--gray-light);
+        border-radius: 1rem;
+
+        span {
+          @include text-weight(semiBold);
+          @include poppins;
+
+          color: var(--white);
+          font-size: 1.2rem;
+          text-align: center;
+          line-height: 1.8rem;
+        }
+      }
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: row;
+      align-content: center;
+      align-items: center;
+      justify-content: center;
+      margin-left: auto;
+
+      & > .select {
+        height: 40px;
+      }
+
+      & > .add-user {
+        min-width: 110px;
+        width: auto;
+      }
+      @include media-breakpoint-down(lg) {
+        column-gap: 1rem;
+
+        & > button {
+          width: 40px;
+          height: 40px;
+
+          span {
+            display: none;
+          }
+        }
+
+        & > .add-user {
+          min-width: 0;
+          padding: 0;
+          width: 40px;
+          height: 40px;
+        }
+      }
+      @include media-breakpoint-up(lg) {
+        gap: 2rem;
+
+        & > div {
+          width: 180px;
+        }
+
+        .btn {
+          min-width: 110px;
+        }
+      }
+    }
+
+    .users-search {
+      width: 100%;
+    }
+  }
+
+  .users-list {
+    @include media-breakpoint-down(lg) {
+      grid-row: 2;
+      grid-column: 1;
+    }
+  }
+
+  .list-loader {
+    grid-row: 2;
+    grid-column: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-flow: row nowrap;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    @include media-breakpoint-up(lg) {
+      grid-row: 3;
+    }
+  }
+}

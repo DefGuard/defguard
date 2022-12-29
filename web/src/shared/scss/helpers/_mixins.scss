@@ -81,9 +81,11 @@
 }
 
 @mixin regular-text($color: text-main) {
-  @include typography(15px, 18px, regular, var(--text-main), 'Roboto');
+  @include typography(15px, 18px, regular, var(--#{$color}), 'Roboto');
+}
 
-  color: var(--#{$color});
+@mixin list-text() {
+  @include typography(15px, 18px, medium, var(--text-main), 'Roboto');
 }
 
 @mixin small-text($color: text-main) {

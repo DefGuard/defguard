@@ -1,6 +1,6 @@
 use super::{
-    ApiResponse, ApiResult, Auth, AuthCode, AuthTotp, RecoveryCode, RecoveryCodes, WalletAddress,
-    WalletSignature, WebAuthnRegistration,
+    ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
+    WalletAddress, WalletSignature, WebAuthnRegistration,
 };
 use crate::{
     appstate::AppState,
@@ -11,7 +11,7 @@ use crate::{
     license::Features,
 };
 use rocket::{
-    http::{Cookie, CookieJar, Status},
+    http::{Cookie, CookieJar, SameSite, Status},
     serde::json::{serde_json::json, Json},
     State,
 };
@@ -69,7 +69,12 @@ pub async fn authenticate(
     Session::delete_expired(&appstate.pool).await?;
     let session = Session::new(user.id.unwrap(), SessionState::PasswordVerified);
     session.save(&appstate.pool).await?;
-    cookies.add(Cookie::new("session", session.id));
+
+    let auth_cookie = Cookie::build("defguard_session", session.id)
+        .http_only(true)
+        .same_site(SameSite::None)
+        .finish();
+    cookies.add(auth_cookie);
 
     info!("Authenticated user {}", data.username);
     if user.mfa_enabled {
@@ -80,17 +85,30 @@ pub async fn authenticate(
         })
     } else {
         let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-        Ok(ApiResponse {
-            json: json!(user_info),
-            status: Status::Ok,
-        })
+        if let Some(openid_cookie) = cookies.get("known_sign_in") {
+            Ok(ApiResponse {
+                json: json!(AuthResponse {
+                    user: user_info,
+                    url: Some(openid_cookie.value().to_string())
+                }),
+                status: Status::Ok,
+            })
+        } else {
+            Ok(ApiResponse {
+                json: json!(AuthResponse {
+                    user: user_info,
+                    url: None,
+                }),
+                status: Status::Ok,
+            })
+        }
     }
 }
 
 /// Logout - forget the session cookie.
 #[post("/auth/logout")]
 pub fn logout(cookies: &CookieJar<'_>) -> ApiResult {
-    cookies.remove(Cookie::named("session"));
+    cookies.remove(Cookie::named("defguard_session"));
     Ok(ApiResponse::default())
 }
 
@@ -197,6 +215,7 @@ pub async fn webauthn_end(
     mut session: Session,
     appstate: &State<AppState>,
     pubkey: Json<PublicKeyCredential>,
+    cookies: &CookieJar<'_>,
 ) -> ApiResult {
     if let Some(passkey_auth) = session.get_passkey_authentication() {
         if let Ok(auth_result) = appstate
@@ -216,10 +235,23 @@ pub async fn webauthn_end(
                 .await?;
             return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
                 let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-                Ok(ApiResponse {
-                    json: json!(user_info),
-                    status: Status::Ok,
-                })
+                if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                    Ok(ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: Some(openid_cookie.value().to_string())
+                        }),
+                        status: Status::Ok,
+                    })
+                } else {
+                    Ok(ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: None,
+                        }),
+                        status: Status::Ok,
+                    })
+                }
             } else {
                 Ok(ApiResponse::default())
             };
@@ -276,6 +308,7 @@ pub async fn totp_code(
     mut session: Session,
     appstate: &State<AppState>,
     data: Json<AuthCode>,
+    cookies: &CookieJar<'_>,
 ) -> ApiResult {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         if user.totp_enabled && user.verify_code(data.code) {
@@ -283,10 +316,23 @@ pub async fn totp_code(
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-            Ok(ApiResponse {
-                json: json!(user_info),
-                status: Status::Ok,
-            })
+            if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: Some(openid_cookie.value().to_string())
+                    }),
+                    status: Status::Ok,
+                })
+            } else {
+                Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
+                    status: Status::Ok,
+                })
+            }
         } else {
             Err(OriWebError::Authorization("Invalid TOTP code".into()))
         }
@@ -322,6 +368,7 @@ pub async fn web3auth_end(
     mut session: Session,
     appstate: &State<AppState>,
     signature: Json<WalletSignature>,
+    cookies: &CookieJar<'_>,
 ) -> ApiResult {
     if let Some(ref challenge) = session.web3_challenge {
         if let Some(wallet) =
@@ -338,10 +385,23 @@ pub async fn web3auth_end(
                             User::find_by_id(&appstate.pool, session.user_id).await?
                         {
                             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-                            Ok(ApiResponse {
-                                json: json!(user_info),
-                                status: Status::Ok,
-                            })
+                            if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                                Ok(ApiResponse {
+                                    json: json!(AuthResponse {
+                                        user: user_info,
+                                        url: Some(openid_cookie.value().to_string())
+                                    }),
+                                    status: Status::Ok,
+                                })
+                            } else {
+                                Ok(ApiResponse {
+                                    json: json!(AuthResponse {
+                                        user: user_info,
+                                        url: None,
+                                    }),
+                                    status: Status::Ok,
+                                })
+                            }
                         } else {
                             Ok(ApiResponse::default())
                         }
@@ -360,6 +420,7 @@ pub async fn recovery_code(
     mut session: Session,
     appstate: &State<AppState>,
     recovery_code: Json<RecoveryCode>,
+    cookies: &CookieJar<'_>,
 ) -> ApiResult {
     if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         if user
@@ -369,10 +430,24 @@ pub async fn recovery_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            return Ok(ApiResponse {
-                json: json!(UserInfo::from_user(&appstate.pool, user).await?),
-                status: Status::Ok,
-            });
+            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+            if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                return Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: Some(openid_cookie.value().to_string())
+                    }),
+                    status: Status::Ok,
+                });
+            } else {
+                return Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
+                    status: Status::Ok,
+                });
+            }
         }
     }
     Err(OriWebError::Http(Status::Unauthorized))

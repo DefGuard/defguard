@@ -5,7 +5,6 @@ import {
   AddOpenidClientRequest,
   AddUserRequest,
   AddWalletRequest,
-  AddWebhookRequest,
   ApiHook,
   AuthorizedClient,
   ChangeOpenidClientStateRequest,
@@ -13,7 +12,6 @@ import {
   changeWebhookStateRequest,
   Device,
   EditOpenidClientRequest,
-  EditWebhookRequest,
   EmptyApiResponse,
   GetNetworkStatsRequest,
   GroupsResponse,
@@ -163,9 +161,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const login: ApiHook['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
       if (response.status === 200) {
-        return {
-          user: response.data as User,
-        };
+        return response.data;
       }
       if (response.status === 201) {
         return {
@@ -236,10 +232,13 @@ const useApi = (props?: HookProps): ApiHook => {
   const changeWebhookState = ({ id, ...rest }: changeWebhookStateRequest) =>
     client.post<EmptyApiResponse>(`/webhook/${id}`, rest);
 
-  const addWebhook = async (data: AddWebhookRequest) => {
+  const addWebhook: ApiHook['webhook']['addWebhook'] = async (data) => {
     return client.post<EmptyApiResponse>('/webhook/', data);
   };
-  const editWebhook = async ({ id, ...rest }: EditWebhookRequest) => {
+  const editWebhook: ApiHook['webhook']['editWebhook'] = async ({
+    id,
+    ...rest
+  }) => {
     return client.put<EmptyApiResponse>(`/webhook/${id}`, rest);
   };
   const getOpenidClients = () => client.get('/oauth/').then((res) => res.data);

@@ -17,13 +17,14 @@ import AuthPage from '../../pages/auth/AuthPage';
 import LoaderPage from '../../pages/loader/LoaderPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import OpenidAllowPage from '../../pages/openid/OpenidAllowPage';
-import OpenidPage from '../../pages/openid/OpenidPage';
+import { OpenidClientsList } from '../../pages/openid/OpenidClientsList/OpenidClientsList';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
-import { UserProfilePage } from '../../pages/users/UserProfilePage';
-import UsersPage from '../../pages/users/UsersPage';
-import WebhooksPage from '../../pages/webhooks/WebhooksPage';
+import { UserProfile } from '../../pages/users/UserProfile/UserProfile';
+import { UsersPage } from '../../pages/users/UsersPage';
+import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
+import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
@@ -154,7 +155,7 @@ const App = () => {
                     allowedGroups={['admin']}
                     moduleRequired="webhooks_enabled"
                   >
-                    <WebhooksPage />
+                    <WebhooksListPage />
                   </ProtectedRoute>
                 }
               />
@@ -165,7 +166,7 @@ const App = () => {
                     allowedGroups={['admin']}
                     moduleRequired="openid_enabled"
                   >
-                    <OpenidPage />
+                    <OpenidClientsList />
                   </ProtectedRoute>
                 }
               />
@@ -183,11 +184,20 @@ const App = () => {
               path="me/*"
               element={
                 <ProtectedRoute>
-                  <UserProfilePage />
+                  <PageContainer>
+                    <UserProfile />
+                  </PageContainer>
                 </ProtectedRoute>
               }
             />
-            <Route path="consent/*" element={<OpenidAllowPage />} />
+            <Route
+              path="consent/*"
+              element={
+                <ProtectedRoute moduleRequired="openid_enabled">
+                  <OpenidAllowPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="*"
               element={

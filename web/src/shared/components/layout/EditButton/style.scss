@@ -32,6 +32,7 @@ button {
   background-color: var(--white);
   display: flex;
   flex-flow: column nowrap;
+  min-width: 112px;
 
   & > button {
     height: 30px;

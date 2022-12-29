@@ -2,7 +2,7 @@
 use crate::db::Device;
 use crate::{
     auth::SessionInfo,
-    db::{DbPool, User},
+    db::{DbPool, User, UserInfo},
     error::OriWebError,
 };
 use rocket::{
@@ -186,6 +186,14 @@ impl RecoveryCodes {
     pub fn new(codes: Option<Vec<String>>) -> Self {
         Self { codes }
     }
+}
+
+/// Return type needed to know if user came from openid flow
+/// with optional url to redirect him later if yes
+#[derive(Serialize, Deserialize)]
+pub struct AuthResponse {
+    pub user: UserInfo,
+    pub url: Option<String>,
 }
 
 /// Try to fetch [`User`] if the username is of the currently logged in user, or

@@ -1,12 +1,13 @@
 @use '../../../scss/base/variables/' as v;
 
 .loader-spinner {
-  content: '';
+  content: ' ';
   box-sizing: border-box;
   border-radius: 50%;
   position: relative;
   background-color: transparent;
   user-select: none;
+  display: block;
 
   &::before {
     content: '';
