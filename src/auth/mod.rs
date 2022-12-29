@@ -120,13 +120,13 @@ impl<'r> FromRequest<'r> for Session {
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         if let Some(state) = request.rocket().state::<AppState>() {
             let cookies = request.cookies();
-            if let Some(session_cookie) = cookies.get("session") {
+            if let Some(session_cookie) = cookies.get("defguard_session") {
                 return {
                     match Session::find_by_id(&state.pool, session_cookie.value()).await {
                         Ok(Some(session)) => {
                             if session.expired() {
                                 let _result = session.delete(&state.pool).await;
-                                cookies.remove(Cookie::named("session"));
+                                cookies.remove(Cookie::named("defguard_session"));
                                 Outcome::Failure((
                                     Status::Unauthorized,
                                     OriWebError::Authorization("Session expired".into()),
