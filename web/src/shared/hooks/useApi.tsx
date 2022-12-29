@@ -161,9 +161,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const login: ApiHook['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
       if (response.status === 200) {
-        return {
-          user: response.data as User,
-        };
+        return response.data;
       }
       if (response.status === 201) {
         return {

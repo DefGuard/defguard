@@ -6,6 +6,7 @@ use defguard::{
         AppEvent, GatewayEvent, User, UserInfo, Wallet,
     },
     grpc::GatewayState,
+    handlers::AuthResponse,
     handlers::{Auth, AuthCode, AuthTotp},
 };
 use otpauth::TOTP;
@@ -183,8 +184,14 @@ async fn test_totp() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
+
     assert_eq!(
-        response.into_json::<UserInfo>().await.unwrap().username,
+        response
+            .into_json::<AuthResponse>()
+            .await
+            .unwrap()
+            .user
+            .username,
         "hpotter"
     );
 
