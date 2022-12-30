@@ -2,6 +2,7 @@ import './style.scss';
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
+import { detect } from 'detect-browser';
 import { motion, Variants } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
 import { ReactNode, useMemo, useRef, useState } from 'react';
@@ -36,6 +37,29 @@ export const VirtualizedList = <T extends object>({
   );
 
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
+  /**
+   *  Chromium based browsers are injecting scroll onto elements that overflow and that scrollbar is making layout shift by scroll width.
+   *  While firefox and safari make their scrolls float above website.
+   *  Padding on scroll-container is handled by css rule scroll-gutter: stable but it only affects chromium browsers so there should be no 4px padding on header when site is outside of chromium.
+   *  **/
+  const shouldAddScrollPadding = useMemo(() => {
+    const browser = detect(navigator.userAgent);
+    if (!browser) return false;
+    switch (browser.name) {
+      case 'ios':
+        return false;
+      case 'ios-webview':
+        return false;
+      case 'chrome':
+        return true;
+      case 'chromium-webview':
+        return true;
+      case 'edge-chromium':
+        return true;
+      default:
+        return false;
+    }
+  }, []);
 
   const renderRow = (value: T) => {
     if (breakpoint !== 'desktop' && mobile?.enabled && mobile.renderer) {
@@ -86,7 +110,9 @@ export const VirtualizedList = <T extends object>({
             paddingTop: headerPadding?.top || 0,
             paddingLeft: (padding?.left || 0) + (headerPadding?.left || 0),
             paddingRight:
-              (padding?.right || 0) + (headerPadding?.right || 0) + 4,
+              (padding?.right || 0) +
+              (headerPadding?.right || 0) +
+              (shouldAddScrollPadding ? 4 : 0),
           }}
         >
           {headers.map((header) => (
