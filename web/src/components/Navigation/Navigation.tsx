@@ -186,7 +186,7 @@ const Navigation = () => {
             layout
           >
             <section className="logo-container">
-              <img src={settings?.logo_url} alt="logo" />
+              <img src={settings?.nav_logo_url} alt="logo" />
               <SvgDefguadNavLogo /> <SvgDefguadNavLogoCollapsed />
             </section>
             <span className="divider"></span>

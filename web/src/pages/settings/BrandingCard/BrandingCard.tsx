@@ -66,7 +66,8 @@ export const BrandingCard = () => {
       yup
         .object()
         .shape({
-          logo_url: yup.string().required('Url is required.'),
+          main_logo_url: yup.string().required('Url is required.'),
+          nav_logo_url: yup.string().required('Url is required.'),
           instance_name: yup
             .string()
             .min(3, 'Should be at least 4 characters long.')
@@ -82,7 +83,7 @@ export const BrandingCard = () => {
     mode: 'all',
   });
 
-	console.log(settings);
+  console.log(settings);
 
   if (!settings) return null;
 
@@ -114,11 +115,7 @@ export const BrandingCard = () => {
               icon={<IconCheckmarkWhite />}
               styleVariant={ButtonStyleVariant.PRIMARY}
               loading={isLoading}
-              onClick={() => {
-                if (settings) {
-                  setDefaultBrandingMutation('1');
-                }
-              }}
+              onClick={() => setDefaultBrandingMutation('1')}
             />
             <Button
               form="branding-form"
@@ -139,8 +136,15 @@ export const BrandingCard = () => {
             required
           />
           <FormInput
-            outerLabel="Logo url"
-            controller={{ control, name: 'logo_url' }}
+            outerLabel="Login logo url"
+            controller={{ control, name: 'main_logo_url' }}
+            placeholder="https://example.com/logo.jpg"
+            required
+          />
+
+          <FormInput
+            outerLabel="Nav Logo url"
+            controller={{ control, name: 'nav_logo_url' }}
             placeholder="https://example.com/logo.jpg"
             required
           />

@@ -4,10 +4,11 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import shallow from 'zustand/shallow';
 
-import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import Login from './Login/Login';
 import { MFARoute } from './MFARoute/MFARoute';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
+import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const AuthPage = () => {
     (state) => [state.user, state.isAdmin, state.authLocation],
     shallow
   );
+  const settings = useAppStore((state) => state.settings);
 
   useEffect(() => {
     if (loggedUser) {
@@ -34,7 +36,11 @@ const AuthPage = () => {
   return (
     <div id="auth-container">
       <div className="logo-container">
-        <SvgDefguardLogoLogin />
+        {settings ? (
+          <img src={settings?.main_logo_url} />
+        ) : (
+          <SvgDefguardLogoLogin />
+        )}
       </div>
       <Routes>
         <Route index element={<Navigate to="login" />} />

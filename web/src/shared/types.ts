@@ -584,7 +584,8 @@ export interface Settings {
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;
   worker_enabled: boolean;
-  logo_url: string;
+  main_logo_url: string;
+  nav_logo_url: string;
   instance_name: string;
 }
 

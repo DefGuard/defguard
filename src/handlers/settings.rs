@@ -41,7 +41,8 @@ pub async fn set_default_branding(
     match settings {
         Some(mut settings) => {
             settings.instance_name = "Defguard".into();
-            settings.logo_url = "/src/shared/images/svg/defguad-nav-logo.svg".into();
+            settings.nav_logo_url = "/svg/defguard-nav-logo.svg".into();
+            settings.main_logo_url = "/svg/logo-defguard-white.svg".into();
             settings.save(&appstate.pool).await?;
             info!("Restored default branding settings");
             return Ok(ApiResponse::default());
