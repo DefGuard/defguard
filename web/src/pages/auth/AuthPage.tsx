@@ -37,7 +37,7 @@ const AuthPage = () => {
     <div id="auth-container">
       <div className="logo-container">
         {settings ? (
-          <img src={settings?.main_logo_url} />
+          <img src={settings?.main_logo_url} alt="login_logo" />
         ) : (
           <SvgDefguardLogoLogin />
         )}
