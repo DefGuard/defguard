@@ -8,8 +8,7 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
-import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
-import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
+import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
@@ -99,7 +98,7 @@ export const OpenidAllowPage = () => {
   }, [validateParams, clientId]);
 
   const scopes: Record<string, string> = {
-    openid: 'Use your data for future logins.',
+    openid: 'Use your profile data for future logins.',
     profile:
       'Know basic information from your profile like name, profile picture etc.',
     email: 'Know your email address.',
@@ -107,47 +106,41 @@ export const OpenidAllowPage = () => {
   };
 
   return (
-    <PageContainer id="openid-consent">
-      <div className="content">
-        <div className="header">
-          <SvgDefguadNavLogo />
-        </div>
+    <section id="openid-consent">
+      <div className="logo-container">
+        <SvgDefguardLogoLogin />
+      </div>
+      <div className="consent">
         <h1>{name} would like to:</h1>
-        <div className="scopes-container">
+        <ul className="scopes-list">
           {scope && scope.length
             ? scope.split(' ').map((s) => (
-                <div className="scope" key={s}>
-                  <p className="text">{scopes[s]}</p>
-                </div>
+                <li className="scope" key={s}>
+                  {scopes[s]}
+                </li>
               ))
             : null}
-        </div>
-        <div className="footer">
-          <p className="disclaimer">
-            By clicking accept button you&apos;re allowing {name} to read above
-            information from your Defguard account.
-          </p>
-          <div className="controls">
-            <Button
-              size={ButtonSize.SMALL}
-              styleVariant={ButtonStyleVariant.STANDARD}
-              icon={<SvgIconDelete />}
-              text="Cancel"
-              onClick={() => handleSubmit(false)}
-            />
-            <Button
-              size={ButtonSize.SMALL}
-              styleVariant={ButtonStyleVariant.PRIMARY}
-              icon={<SvgIconCheckmarkWhite />}
-              text="Accept"
-              onClick={() => handleSubmit(true)}
-            />
-          </div>
+        </ul>
+        <div className="controls">
+          <Button
+            size={ButtonSize.BIG}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            icon={<SvgIconCheckmarkWhite />}
+            text="Accept"
+            onClick={() => handleSubmit(true)}
+          />
+          <Button
+            size={ButtonSize.BIG}
+            styleVariant={ButtonStyleVariant.STANDARD}
+            icon={<SvgIconDelete />}
+            text="Cancel"
+            onClick={() => handleSubmit(false)}
+          />
         </div>
       </div>
       <form method="post">
         <input type="submit" ref={inputRef} />
       </form>
-    </PageContainer>
+    </section>
   );
 };
