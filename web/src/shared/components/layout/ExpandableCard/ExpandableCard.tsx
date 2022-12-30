@@ -2,6 +2,7 @@ import './style.scss';
 
 import classNames from 'classnames';
 import { motion, Variant, Variants } from 'framer-motion';
+import { isUndefined } from 'lodash-es';
 import { ReactNode, useMemo, useState } from 'react';
 
 import { cardsShadow, inactiveBoxShadow } from '../../../constants';
@@ -19,10 +20,10 @@ interface Props {
 
 export const ExpandableCard = ({
   children,
-  expanded,
   title,
   actions,
   onChange,
+  expanded,
   disableExpand = false,
 }: Props) => {
   const cn = useMemo(
@@ -33,6 +34,9 @@ export const ExpandableCard = ({
     [expanded]
   );
 
+  const controlledOutside = useMemo(() => !isUndefined(expanded), [expanded]);
+
+  const [localExpanded, setLocalExpanded] = useState(false);
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -48,8 +52,11 @@ export const ExpandableCard = ({
         <button
           type="button"
           onClick={() => {
-            if (!disableExpand && onChange) {
+            if (!disableExpand && controlledOutside && onChange) {
               onChange();
+            }
+            if (!disableExpand && !controlledOutside) {
+              setLocalExpanded((state) => !state);
             }
           }}
           className="expand-button"
@@ -59,7 +66,7 @@ export const ExpandableCard = ({
         </button>
         {actions && <div className="actions">{actions}</div>}
       </div>
-      {children && expanded ? (
+      {children && (controlledOutside ? expanded : localExpanded) ? (
         <div className="expanded-content">{children}</div>
       ) : null}
     </motion.div>

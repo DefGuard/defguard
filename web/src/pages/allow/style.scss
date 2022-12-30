@@ -3,6 +3,7 @@
 @use '@shared/scss/helpers/mixins' as mix;
 
 #openid-consent {
+  & > .page-content {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -11,7 +12,6 @@
   background-color: #70707080;
   position: fixed;
   height: inherit;
-  width: 100%;
 
   & > form {
     display: none;
@@ -184,5 +184,6 @@
         }
       }
     }
+  }
   }
 }

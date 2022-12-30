@@ -41,7 +41,7 @@ export interface User {
   pgp_key?: string;
   ssh_key?: string;
   groups: string[];
-  authorized_apps: OAuth2AuthorizedApps[];
+  authorized_apps?: OAuth2AuthorizedApps[];
 }
 
 export interface OAuth2AuthorizedApps {
@@ -516,7 +516,14 @@ export interface WebhookModal extends StandardModalState {
   webhook?: Webhook;
 }
 
+export interface OpenIdClientModal extends StandardModalState {
+  client?: OpenidClient;
+  viewMode: boolean;
+}
+
 export interface UseModalStore {
+  openIdClientModal: OpenIdClientModal;
+  setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
   addDeviceDesktopModal: StandardModalState;
   editUserDeviceModal: EditUserDeviceModal;
   addWalletModal: StandardModalState;

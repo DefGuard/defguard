@@ -43,9 +43,9 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import { OpenidClient } from '../../../shared/types';
-import AddOpenidClientModal from './AddOpenidClientModal/AddOpenidClientModal';
+import { OpenIdClientModal } from '../modals/OpenIdClientModal/OpenIdClientModal';
 
-export const OpenidClientsList = () => {
+export const OpenidClientsListPage = () => {
   const toaster = useToaster();
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -59,6 +59,9 @@ export const OpenidClientsList = () => {
     openid: { getOpenidClients, changeOpenidClientState },
     license: { getLicense },
   } = useApi();
+  const setOpenIdClientModalState = useModalStore(
+    (state) => state.setOpenIdClientModal
+  );
 
   const { data: license } = useQuery([QueryKeys.FETCH_LICENSE], getLicense);
 
@@ -92,10 +95,6 @@ export const OpenidClientsList = () => {
     [QueryKeys.FETCH_CLIENTS],
     getOpenidClients,
     { enabled: hasAccess, refetchOnWindowFocus: false, refetchInterval: 15000 }
-  );
-
-  const setOpenidClientAddModalState = useModalStore(
-    (state) => state.setAddOpenidClientModal
   );
 
   const filteredClients = useMemo(() => {
@@ -143,6 +142,8 @@ export const OpenidClientsList = () => {
       {
         key: 'name',
         render: (client) => <span>{client.name}</span>,
+        onClick: (client) =>
+          setOpenIdClientModalState({ visible: true, client, viewMode: true }),
       },
       {
         key: 'status',
@@ -161,12 +162,19 @@ export const OpenidClientsList = () => {
         key: 'actions',
         render: (client) => (
           <EditButton>
-            <EditButtonOption text="Edit (placeholder)" />
+            <EditButtonOption
+              text="Edit"
+              onClick={() =>
+                setOpenIdClientModalState({
+                  visible: true,
+                  viewMode: false,
+                  client,
+                })
+              }
+            />
             <EditButtonOption
               text={client.enabled ? 'Disable' : 'Enable'}
-              onClick={() => {
-                editClientStatusMutation(client);
-              }}
+              onClick={() => editClientStatusMutation(client)}
             />
             <EditButtonOption
               styleVariant={EditButtonOptionStyleVariant.WARNING}
@@ -181,7 +189,7 @@ export const OpenidClientsList = () => {
       },
     ];
     return res;
-  }, [editClientStatusMutation]);
+  }, [editClientStatusMutation, setOpenIdClientModalState]);
 
   const getListPadding = useMemo(() => {
     if (breakpoint === 'desktop') {
@@ -229,7 +237,13 @@ export const OpenidClientsList = () => {
           )}
           <Button
             className="add-client"
-            onClick={() => setOpenidClientAddModalState({ visible: true })}
+            onClick={() =>
+              setOpenIdClientModalState({
+                visible: true,
+                client: undefined,
+                viewMode: false,
+              })
+            }
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconPlusWhite />}
@@ -261,7 +275,7 @@ export const OpenidClientsList = () => {
           }}
         />
       )}
-      <AddOpenidClientModal />
+      <OpenIdClientModal />
       <ConfirmModal
         type={ConfirmModalType.WARNING}
         title="Delete client"

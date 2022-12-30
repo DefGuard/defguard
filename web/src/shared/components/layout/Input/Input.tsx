@@ -210,8 +210,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               {getInputIcon}
             </motion.span>
           </AnimatePresence>
-          {disposable && focused ? (
-            <div className="dispose" onClick={disposeHandler}>
+          {!disabled && disposable && hovered ? (
+            <div
+              className="dispose"
+              onClick={() => {
+                if (disposeHandler) {
+                  disposeHandler();
+                }
+              }}
+            >
               <div>
                 <SvgIconPopupClose />
               </div>
