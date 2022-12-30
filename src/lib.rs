@@ -116,6 +116,14 @@ pub async fn build_webapp(
         .mount("/", routes![smart_index])
         .mount("/", FileServer::new("./web/dist", Options::Missing).rank(3))
         .mount(
+            "/defguard-nav-logo.svg",
+            FileServer::new(
+                "./web/src/shared/images/svg/defguad-nav-logo.svg",
+                Options::IndexFile,
+            )
+            .rank(1),
+        )
+        .mount(
             "/api/v1",
             routes![
                 health_check,

@@ -82,6 +82,8 @@ export const BrandingCard = () => {
     mode: 'all',
   });
 
+	console.log(settings);
+
   if (!settings) return null;
 
   const onSubmit: SubmitHandler<Settings> = (data) => {
@@ -112,7 +114,11 @@ export const BrandingCard = () => {
               icon={<IconCheckmarkWhite />}
               styleVariant={ButtonStyleVariant.PRIMARY}
               loading={isLoading}
-              onClick={() => setDefaultBrandingMutation(settings.id)}
+              onClick={() => {
+                if (settings) {
+                  setDefaultBrandingMutation('1');
+                }
+              }}
             />
             <Button
               form="branding-form"
@@ -129,13 +135,13 @@ export const BrandingCard = () => {
           <FormInput
             outerLabel="Instance name"
             controller={{ control, name: 'instance_name' }}
-            placeholder="dnioqwndqwioqdnoqwdiqwd"
+            placeholder="Example"
             required
           />
           <FormInput
             outerLabel="Logo url"
             controller={{ control, name: 'logo_url' }}
-            placeholder="dnioqwndqwioqdnoqwdiqwd"
+            placeholder="https://example.com/logo.jpg"
             required
           />
         </form>
