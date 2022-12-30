@@ -429,10 +429,6 @@ export interface KeyDetailModal {
   user?: User;
 }
 
-export interface GatewaySetupModal {
-  visible: boolean;
-}
-
 export interface KeyDeleteModal {
   visible: boolean;
 }
@@ -538,7 +534,6 @@ export interface UseModalStore {
   addOpenidClientModal: StandardModalState;
   deleteOpenidClientModal: DeleteOpenidClientModal;
   enableOpenidClientModal: EnableOpenidClientModal;
-  gatewaySetupModal: GatewaySetupModal;
   userDeviceModal: UserDeviceModal;
   deleteUserDeviceModal: DeleteUserDeviceModal;
   manageWebAuthNKeysModal: StandardModalState;
@@ -561,7 +556,6 @@ export interface UseModalStore {
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
-  setGatewaySetupModal: ModalSetter<GatewaySetupModal>;
   setLicenseModal: ModalSetter<StandardModalState>;
 }
 

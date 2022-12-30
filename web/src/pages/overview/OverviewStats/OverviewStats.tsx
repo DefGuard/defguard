@@ -59,7 +59,7 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
               <span className="info-value">{networkStats.active_devices}</span>
             </div>
           </div>
-          {breakpoint !== 'mobile' && (
+          {breakpoint === 'desktop' && (
             <div className="info network-usage" data-test="network-usage">
               <span className="info-title">Total transfer:</span>
               <div className="content">
