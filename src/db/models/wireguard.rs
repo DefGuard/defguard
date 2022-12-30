@@ -364,6 +364,29 @@ impl WireguardNetwork {
         .await?;
         Ok(activity_stats)
     }
+    /// Retrievies currently connected users
+    async fn current_activity(conn: &DbPool) -> Result<WireguardNetworkActivityStats, SqlxError> {
+        // Add 2 minutes margin because gateway sends stats in 1 minute period
+        let from = Utc::now()
+            .naive_utc()
+            .checked_sub_signed(Duration::minutes(2));
+        let activity_stats = query_as!(
+            WireguardNetworkActivityStats,
+            r#"
+            SELECT
+                COALESCE(COUNT(DISTINCT(u.id)), 0) as "active_users!",
+                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as "active_devices!"
+            FROM "user" u
+                JOIN device d ON d.user_id = u.id
+                JOIN wireguard_peer_stats s ON s.device_id = d.id
+                WHERE latest_handshake >= $1
+            "#,
+            from,
+        )
+        .fetch_one(conn)
+        .await?;
+        Ok(activity_stats)
+    }
 
     /// Retrieves network upload & download time series since `from` timestamp
     /// using `aggregation` (hour/minute) aggregation level
@@ -399,11 +422,14 @@ impl WireguardNetwork {
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<WireguardNetworkStats, SqlxError> {
-        let activity = Self::total_activity(conn, from).await?;
+        let total_activity = Self::total_activity(conn, from).await?;
+        let current_activity = Self::current_activity(conn).await?;
         let transfer_series = Self::transfer_series(conn, from, aggregation).await?;
         Ok(WireguardNetworkStats {
-            active_users: activity.active_users,
-            active_devices: activity.active_devices,
+            current_active_users: current_activity.active_users,
+            current_active_devices: current_activity.active_devices,
+            active_users: total_activity.active_users,
+            active_devices: total_activity.active_devices,
             upload: transfer_series.iter().filter_map(|t| t.upload).sum(),
             download: transfer_series.iter().filter_map(|t| t.download).sum(),
             transfer_series,
@@ -488,6 +514,8 @@ pub struct WireguardNetworkTransferStats {
 
 #[derive(Serialize, Deserialize)]
 pub struct WireguardNetworkStats {
+    pub current_active_users: i64,
+    pub current_active_devices: i64,
     pub active_users: i64,
     pub active_devices: i64,
     pub upload: i64,
