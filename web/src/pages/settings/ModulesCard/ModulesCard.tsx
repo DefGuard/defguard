@@ -40,7 +40,10 @@ export const ModulesCard = () => {
   );
 
   const handleChange = (
-    key: keyof Omit<Settings, 'id' | 'challenge_template'>
+    key: keyof Omit<
+      Settings,
+      'id' | 'challenge_template' | 'logo_url' | 'instance_name'
+    >
   ) => {
     if (settings && !isLoading) {
       const cloned = cloneDeep(settings) as Settings;

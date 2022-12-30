@@ -369,6 +369,7 @@ export interface ApiHook {
   settings: {
     getSettings: () => Promise<Settings>;
     editSettings: (data: Settings) => EmptyApiResponse;
+    setDefaultBranding: (id: string) => EmptyApiResponse;
   };
 }
 
@@ -576,7 +577,7 @@ export interface Settings {
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;
   worker_enabled: boolean;
-  logo_url?: string;
+  logo_url: string;
   instance_name: string;
 }
 

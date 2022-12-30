@@ -45,6 +45,11 @@ const App = () => {
     (state) => [state.user, state.logOut, state.logIn, state.isAdmin],
     shallow
   );
+  const settings = useAppStore((state) => state.settings);
+
+  if (settings) {
+    document.title = settings.instance_name;
+  }
 
   const { isLoading: currentUserLoading, data: userMe } = useQuery(
     [QueryKeys.FETCH_ME],

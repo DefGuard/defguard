@@ -25,7 +25,10 @@
         }
 
         & > .controls {
+	  display: flex;
+	  flex-flow: row;
           margin-left: auto;
+	  gap: 1rem;
         }
       }
     }

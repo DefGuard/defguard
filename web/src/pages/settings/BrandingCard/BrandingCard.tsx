@@ -20,14 +20,13 @@ import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
-import { patternValidUrl } from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
 
 export const BrandingCard = () => {
   const toaster = useToaster();
   const {
-    settings: { editSettings },
+    settings: { editSettings, setDefaultBranding },
   } = useApi();
 
   const settings = useAppStore((state) => state.settings);
@@ -48,20 +47,30 @@ export const BrandingCard = () => {
       },
     }
   );
+  const { mutate: setDefaultBrandingMutation } = useMutation(
+    [MutationKeys.EDIT_SETTINGS],
+    setDefaultBranding,
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+        toaster.success('Settings changed.');
+      },
+      onError: () => {
+        toaster.error('Error occured!', 'Please contact administrator');
+      },
+    }
+  );
 
   const formSchema = useMemo(
     () =>
       yup
         .object()
         .shape({
-          logo_url: yup
-            .string()
-            .required('Url is required.')
-            .matches(patternValidUrl, 'Enter a valid url'),
+          logo_url: yup.string().required('Url is required.'),
           instance_name: yup
             .string()
-            .min(4, 'Should be at least 4 characters long.')
-            .max(65, 'Maximum length exceeded.')
+            .min(3, 'Should be at least 4 characters long.')
+            .max(12, 'Maximum length exceeded.')
             .required(),
         })
         .required(),
@@ -97,6 +106,14 @@ export const BrandingCard = () => {
         <header>
           <h3>Name & Logo:</h3>
           <div className="controls">
+            <Button
+              text={breakpoint !== 'mobile' ? 'Restore default' : undefined}
+              size={ButtonSize.SMALL}
+              icon={<IconCheckmarkWhite />}
+              styleVariant={ButtonStyleVariant.PRIMARY}
+              loading={isLoading}
+              onClick={() => setDefaultBrandingMutation(settings.id)}
+            />
             <Button
               form="branding-form"
               text={breakpoint !== 'mobile' ? 'Save changes' : undefined}

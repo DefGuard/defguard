@@ -14,5 +14,5 @@ pub struct Settings {
     pub worker_enabled: bool,
     pub challenge_template: String,
     pub instance_name: String,
-    pub logo_url: Option<String>,
+    pub logo_url: String,
 }

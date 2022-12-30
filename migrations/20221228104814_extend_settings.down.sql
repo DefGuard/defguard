@@ -1,1 +1,2 @@
--- Add down migration script here
+ALTER TABLE settings DROP COLUMN instance_name;
+ALTER TABLE settings DROP COLUMN logo_url;
