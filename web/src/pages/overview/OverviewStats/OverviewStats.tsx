@@ -11,7 +11,6 @@ import {
 import {
   Icon24HConnections,
   IconActiveConnections,
-  IconNetworkLoad,
   IconPacketsIn,
   IconPacketsOut,
 } from '../../../shared/components/svg';
@@ -19,6 +18,7 @@ import { deviceBreakpoints } from '../../../shared/constants';
 import { NetworkUserStats, WireguardNetworkStats } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { NetworkUsageChart } from '../OverviewConnectedUsers/shared/components/NetworkUsageChart/NetworkUsageChart';
+
 interface Props {
   usersStats?: NetworkUserStats[];
   networkStats: WireguardNetworkStats;
@@ -31,29 +31,32 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
     return (
       <div className="overview-network-stats" ref={ref}>
         <div className="summary">
-          <div className="info" data-test="active-users">
-            <span className="info-title">Active users</span>
+          <div className="info">
+            <span className="info-title">Currently active users</span>
             <div className="content">
               <Icon24HConnections />
               <span className="info-value">{networkStats.active_users}</span>
             </div>
           </div>
-          <div className="info" data-test="active-devices">
-            <span className="info-title">Active devices in {filterValue}h</span>
+          <div className="info">
+            <span className="info-title">Currently active devices</span>
             <div className="content">
               <IconActiveConnections />
-              <span className="info-value" data-test="daily-connections">
-                {networkStats.active_devices}
-              </span>
+              <span className="info-value">{networkStats.active_devices}</span>
             </div>
           </div>
           <div className="info">
-            <span className="info-title">Network load</span>
+            <span className="info-title">Active users in {filterValue}H</span>
             <div className="content">
-              <IconNetworkLoad />
-              <span className="info-value" data-test="network-load">
-                11%
-              </span>
+              <Icon24HConnections />
+              <span className="info-value">{networkStats.active_users}</span>
+            </div>
+          </div>
+          <div className="info">
+            <span className="info-title">Active devices in {filterValue}H</span>
+            <div className="content">
+              <Icon24HConnections />
+              <span className="info-value">{networkStats.active_devices}</span>
             </div>
           </div>
           {breakpoint !== 'mobile' && (
@@ -86,7 +89,7 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
         </div>
         <div className="activity-graph">
           <header>
-            <h3>Activity</h3>
+            <h3>Activity in {filterValue}H</h3>
             <div className="peaks">
               <span>Total transfer:</span>
               <div className="network-speed">

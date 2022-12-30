@@ -121,25 +121,21 @@ export const OverviewPage = () => {
         {breakpoint === 'desktop' && (
           <header>
             <h1>Network overview</h1>
-            <OverviewViewSelect />
-            <OverviewStatsFilterSelect />
-            <Action
-              onClick={() => setGatewaySetupModal({ visible: true })}
-              className="docker-command"
-            >
-              Docker run command
-            </Action>
-            <Button
-              styleVariant={ButtonStyleVariant.STANDARD}
-              text={
-                isUndefined(networks) || !networks?.length
-                  ? 'Configure network settings'
-                  : 'Edit network settings'
-              }
-              icon={<IconEditNetwork />}
-              disabled={networksLoading}
-              onClick={handleNetworkAction}
-            />
+            <div className="controls">
+              <OverviewViewSelect />
+              <OverviewStatsFilterSelect />
+              <Button
+                styleVariant={ButtonStyleVariant.STANDARD}
+                text={
+                  isUndefined(networks) || !networks?.length
+                    ? 'Configure network settings'
+                    : 'Edit network settings'
+                }
+                icon={<IconEditNetwork />}
+                disabled={networksLoading}
+                onClick={handleNetworkAction}
+              />
+            </div>
           </header>
         )}
         {networkStats && networkUsersStats && (
@@ -153,7 +149,6 @@ export const OverviewPage = () => {
           <OverviewActivityStream />
         </div>
       </PageContainer>
-      <GatewaySetupModal />
     </>
   );
 };
