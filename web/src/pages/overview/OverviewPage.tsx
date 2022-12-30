@@ -6,19 +6,16 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import useBreakpoint from 'use-breakpoint';
 
-import { Action } from '../../shared/components/layout/Action/Action';
 import Button, {
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
-import { useModalStore } from '../../shared/hooks/store/useModalStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { OverviewLayoutType } from '../../shared/types';
 import { useNetworkPageStore } from '../network/hooks/useNetworkPageStore';
-import GatewaySetupModal from '../vpn/modals/GatewaySetupModal/GatewaySetupModal';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
 import { OverviewActivityStream } from './OverviewActivityStream/OverviewActivityStream';
@@ -38,9 +35,6 @@ export const OverviewPage = () => {
   const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
   const queryClient = useQueryClient();
 
-  const setGatewaySetupModal = useModalStore(
-    (state) => state.setGatewaySetupModal
-  );
   const {
     network: { getNetworks, getUsersStats, getNetworkStats },
   } = useApi();
@@ -121,25 +115,21 @@ export const OverviewPage = () => {
         {breakpoint === 'desktop' && (
           <header>
             <h1>Network overview</h1>
-            <OverviewViewSelect />
-            <OverviewStatsFilterSelect />
-            <Action
-              onClick={() => setGatewaySetupModal({ visible: true })}
-              className="docker-command"
-            >
-              Docker run command
-            </Action>
-            <Button
-              styleVariant={ButtonStyleVariant.STANDARD}
-              text={
-                isUndefined(networks) || !networks?.length
-                  ? 'Configure network settings'
-                  : 'Edit network settings'
-              }
-              icon={<IconEditNetwork />}
-              disabled={networksLoading}
-              onClick={handleNetworkAction}
-            />
+            <div className="controls">
+              <OverviewViewSelect />
+              <OverviewStatsFilterSelect />
+              <Button
+                styleVariant={ButtonStyleVariant.STANDARD}
+                text={
+                  isUndefined(networks) || !networks?.length
+                    ? 'Configure network settings'
+                    : 'Edit network settings'
+                }
+                icon={<IconEditNetwork />}
+                disabled={networksLoading}
+                onClick={handleNetworkAction}
+              />
+            </div>
           </header>
         )}
         {networkStats && networkUsersStats && (
@@ -153,7 +143,6 @@ export const OverviewPage = () => {
           <OverviewActivityStream />
         </div>
       </PageContainer>
-      <GatewaySetupModal />
     </>
   );
 };

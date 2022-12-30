@@ -82,9 +82,6 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
   addOpenidClientModal: {
     visible: false,
   },
-  gatewaySetupModal: {
-    visible: false,
-  },
   userDeviceModal: {
     visible: false,
     currentStep: 0,
@@ -175,9 +172,5 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
   setEnableOpenidClientModal: (data) =>
     set((state) => ({
       enableOpenidClientModal: { ...state.enableOpenidClientModal, ...data },
-    })),
-  setGatewaySetupModal: (v) =>
-    set((state) => ({
-      gatewaySetupModal: { ...state.gatewaySetupModal, ...v },
     })),
 }));
