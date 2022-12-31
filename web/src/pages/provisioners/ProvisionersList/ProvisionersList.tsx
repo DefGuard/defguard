@@ -3,6 +3,7 @@ import './style.scss';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { useEffect, useMemo, useState } from 'react';
+import { useBreakpoint } from 'use-breakpoint';
 
 import ConfirmModal, {
   ConfirmModalType,
@@ -21,6 +22,7 @@ import {
   IconCheckmarkGreen,
   IconDeactivated,
 } from '../../../shared/components/svg';
+import { deviceBreakpoints } from '../../../shared/constants';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
@@ -31,6 +33,7 @@ interface Props {
 }
 
 export const ProvisionersList = ({ provisioners }: Props) => {
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const {
     provisioning: { deleteWorker },
   } = useApi();
@@ -65,8 +68,8 @@ export const ProvisionersList = ({ provisioners }: Props) => {
     }
   }, [deleteModalOpen]);
 
-  const listCells = useMemo(
-    () => [
+  const listCells = useMemo(() => {
+    const res = [
       {
         key: 'name',
         render: (value: Provisioner) => (
@@ -119,9 +122,12 @@ export const ProvisionersList = ({ provisioners }: Props) => {
           </EditButton>
         ),
       },
-    ],
-    []
-  );
+    ];
+    if (breakpoint !== 'desktop') {
+      res.splice(1, 1);
+    }
+    return res;
+  }, [breakpoint]);
 
   const getListHeaders = useMemo(() => {
     const res: ListHeader[] = [
@@ -145,10 +151,14 @@ export const ProvisionersList = ({ provisioners }: Props) => {
         key: 'actions',
         text: 'Actions',
         active: false,
+        sortable: false,
       },
     ];
+    if (breakpoint !== 'desktop') {
+      res.splice(1, 1);
+    }
     return res;
-  }, []);
+  }, [breakpoint]);
 
   return (
     <>
@@ -159,11 +169,11 @@ export const ProvisionersList = ({ provisioners }: Props) => {
         headers={getListHeaders}
         cells={listCells}
         padding={{
-          left: 60,
-          right: 40,
+          left: breakpoint === 'desktop' ? 60 : 20,
+          right: 20,
         }}
         headerPadding={{
-          right: 25,
+          right: 20,
           left: 20,
         }}
       />

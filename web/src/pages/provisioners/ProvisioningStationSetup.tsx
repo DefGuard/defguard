@@ -62,7 +62,9 @@ export const ProvisioningStationSetup = ({ hasAccess = false }: Props) => {
         physical machine with USB slot. Run provided command on your chosen
         machine to register it and start provisioning your keys.
       </p>
-      <YubikeyProvisioningGraphic />
+      <div className="image-row">
+        <YubikeyProvisioningGraphic />
+      </div>
       <ExpandableCard
         title="Provisioning station setup command"
         disableExpand={true}

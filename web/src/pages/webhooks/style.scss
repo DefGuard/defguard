@@ -126,7 +126,9 @@
           align-items: center;
           align-content: center;
           justify-content: center;
-          width: 30px;
+          min-width: 30px;
+          box-sizing: border-box;
+          padding: 0 5px;
           height: 30px;
           background-color: var(--gray-light);
           border-radius: 1rem;

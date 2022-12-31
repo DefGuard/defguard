@@ -108,7 +108,9 @@
         align-items: center;
         align-content: center;
         justify-content: center;
-        width: 30px;
+        min-width: 30px;
+        box-sizing: border-box;
+        padding: 0 5px;
         height: 30px;
         background-color: var(--gray-light);
         border-radius: 1rem;
@@ -137,30 +139,27 @@
         height: 40px;
       }
 
-      & > .add-user {
-        min-width: 110px;
-        width: auto;
-      }
       @include media-breakpoint-down(lg) {
         column-gap: 1rem;
 
-        & > button {
+        & > .add-item {
           width: 40px;
           height: 40px;
+
+          &.with-icon {
+            padding: 0;
+          }
 
           span {
             display: none;
           }
         }
-
-        & > .add-user {
-          min-width: 0;
-          padding: 0;
-          width: 40px;
-          height: 40px;
-        }
       }
       @include media-breakpoint-up(lg) {
+        & > .add-item {
+          min-width: 110px;
+        }
+
         gap: 2rem;
 
         & > div {
