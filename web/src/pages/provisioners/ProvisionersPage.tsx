@@ -2,7 +2,8 @@ import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import { orderBy } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useBreakpoint } from 'use-breakpoint';
 
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
@@ -12,13 +13,15 @@ import {
   Select,
   SelectOption,
 } from '../../shared/components/layout/Select/Select';
+import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { ProvisionersList } from './ProvisionersList/ProvisionersList';
 import { ProvisioningStationSetup } from './ProvisioningStationSetup';
 
-const ProvisionersPage = () => {
+export const ProvisionersPage = () => {
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [selectedFilterOption, setSelectedFilterOption] = useState(
     filterSelectOptions[0]
   );
@@ -40,7 +43,7 @@ const ProvisionersPage = () => {
   const { data: provisioners, isLoading } = useQuery(
     [QueryKeys.FETCH_WORKERS],
     getWorkers,
-    { enabled: hasAccess, refetchOnWindowFocus: false, refetchInterval: 10000 }
+    { enabled: hasAccess, refetchOnWindowFocus: false, refetchInterval: 5000 }
   );
 
   const filteredProvisioners = useMemo(() => {
@@ -61,6 +64,15 @@ const ProvisionersPage = () => {
     return res;
   }, [provisioners, searchValue, selectedFilterOption.value]);
 
+  useEffect(() => {
+    if (
+      breakpoint !== 'desktop' &&
+      selectedFilterOption.value === FilterOptions.ALL
+    ) {
+      setSelectedFilterOption(filterSelectOptions[0]);
+    }
+  }, [breakpoint, selectedFilterOption.value]);
+
   return (
     <PageContainer id="provisioners-page">
       <header>
@@ -80,17 +92,19 @@ const ProvisionersPage = () => {
               <span>{provisioners?.length ?? 0}</span>
             </div>
           </div>
-          <Select
-            options={filterSelectOptions}
-            selected={selectedFilterOption}
-            multi={false}
-            searchable={false}
-            onChange={(val) => {
-              if (val && !Array.isArray(val)) {
-                setSelectedFilterOption(val);
-              }
-            }}
-          />
+          {breakpoint === 'desktop' && (
+            <Select
+              options={filterSelectOptions}
+              selected={selectedFilterOption}
+              multi={false}
+              searchable={false}
+              onChange={(val) => {
+                if (val && !Array.isArray(val)) {
+                  setSelectedFilterOption(val);
+                }
+              }}
+            />
+          )}
         </div>
         {!isLoading &&
           hasAccess &&
@@ -98,14 +112,23 @@ const ProvisionersPage = () => {
           filteredProvisioners.length > 0 && (
             <ProvisionersList provisioners={filteredProvisioners} />
           )}
-        {(hasAccess && !filteredProvisioners) ||
-        filteredProvisioners.length === 0 ? (
-          <NoData customMessage="No provisioners found" />
-        ) : null}
-        {!hasAccess && <NoData customMessage="No license for this feature" />}
-        {isLoading && <LoaderSpinner size={200} />}
+        {!isLoading &&
+          ((hasAccess && !filteredProvisioners) ||
+          filteredProvisioners.length === 0 ? (
+            <NoData customMessage="No provisioners found" />
+          ) : null)}
+        {!isLoading && !hasAccess && (
+          <NoData customMessage="No license for this feature" />
+        )}
+        {isLoading && (
+          <div className="loader">
+            <LoaderSpinner size={130} />
+          </div>
+        )}
       </div>
-      <ProvisioningStationSetup hasAccess={hasAccess} />
+      <div className="setup-container">
+        <ProvisioningStationSetup hasAccess={hasAccess} />
+      </div>
     </PageContainer>
   );
 };
@@ -133,5 +156,3 @@ const filterSelectOptions: SelectOption<FilterOptions>[] = [
     value: FilterOptions.UNAVAILABLE,
   },
 ];
-
-export default ProvisionersPage;

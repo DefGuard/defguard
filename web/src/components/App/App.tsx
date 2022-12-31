@@ -19,7 +19,6 @@ import LoaderPage from '../../pages/loader/LoaderPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
-import ProvisionersPage from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
 import { UserProfile } from '../../pages/users/UserProfile/UserProfile';
 import { UsersPage } from '../../pages/users/UsersPage';
@@ -32,6 +31,7 @@ import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { QueryKeys } from '../../shared/queries';
+import { ProvisionersPage } from '../../pages/provisioners/ProvisionersPage';
 
 const App = () => {
   const toaster = useToaster();

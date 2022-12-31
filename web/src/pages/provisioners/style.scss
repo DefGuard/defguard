@@ -7,66 +7,61 @@
     overflow-y: auto;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 40px auto auto;
-
-    & > header {
-      grid-row: 1;
-      grid-column: 1;
-    }
-
-    & > .provisioners-container {
-      grid-column: 1;
-      grid-row: 2;
-    }
-
-    & > .provisioning-setup {
-      grid-row: 3;
-      grid-column: 1;
-    }
-
+    grid-template-rows: 40px auto 100vh;
+    padding: 2rem 0;
     box-sizing: border-box;
+    row-gap: 2rem;
 
     @include media-breakpoint-up(lg) {
+      padding-top: 2rem;
+      row-gap: 0;
+      grid-template-columns: 1fr;
+      grid-template-rows: 104px auto 100vh;
+    }
+
+    @include media-breakpoint-up(xxl) {
       padding: 4rem 7rem 0 0;
       grid-template-columns: minmax(880px, 1fr) minmax(400px, 700px);
       grid-template-rows: 105px 1fr;
-
-      & > header {
-        grid-row: 1;
-        grid-column: 1/3;
-      }
-
-      & > .provisioners-container {
-        grid-column: 1 / 2;
-        grid-row: 2;
-      }
-
-      & > .provisioning-setup {
-        grid-row: 2;
-        grid-column: 2 / 3;
-      }
     }
 
     & > header {
+      grid-row: 1;
+      grid-column: 1 / 2;
       box-sizing: border-box;
-      padding: 0 0 0 6rem;
       display: flex;
       flex-flow: row nowrap;
       align-items: center;
       align-content: center;
-      column-gap: 3rem;
+      padding: 0 2rem;
+
+      @include media-breakpoint-up(lg) {
+        padding: 0 0 0 6rem;
+        column-gap: 3rem;
+      }
 
       & > h1 {
+        display: none;
+
         @include page-header;
+        @include media-breakpoint-up(lg) {
+          display: block;
+        }
       }
 
       & > .search {
         height: 40px;
-        width: clamp(200px, 360px, 360px);
+        width: 100%;
+
+        @include media-breakpoint-up(lg) {
+          width: clamp(200px, 360px, 360px);
+        }
       }
     }
 
     & > .provisioners-container {
+      grid-column: 1;
+      grid-row: 3;
       display: grid;
       row-gap: 1.8rem;
       grid-template-rows: 40px 1fr;
@@ -76,10 +71,14 @@
         grid-row: 1;
         grid-column: 1;
         box-sizing: border-box;
-        padding: 0 4rem 0 6rem;
         display: flex;
         flex-flow: row nowrap;
         width: 100%;
+        padding: 0 2rem;
+
+        @include media-breakpoint-up(lg) {
+          padding: 0 4rem 0 6rem;
+        }
 
         & > .select {
           margin-left: auto;
@@ -103,7 +102,9 @@
             display: flex;
             flex-flow: row;
             height: 30px;
-            width: 30px;
+            min-width: 30px;
+            box-sizing: border-box;
+            padding: 0 5px;
             align-items: center;
             align-content: center;
             justify-content: center;
@@ -120,9 +121,19 @@
 
       & > .provisioners-list,
       & > .no-data,
-      & > .loader-spinner {
+      & > .loader {
         grid-row: 2;
         grid-column: 1;
+      }
+
+      & > .loader {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-flow: column;
+        align-items: center;
+        justify-content: center;
+        align-content: center;
       }
 
       & > .no-data {
@@ -131,54 +142,103 @@
       }
     }
 
-    & > .provisioning-setup {
-      box-sizing: border-box;
-      padding: 4rem;
-      height: clamp(480px, 480px, 100%);
-      display: flex;
-      flex-flow: column;
-      align-items: center;
-      align-content: center;
-      justify-content: flex-start;
+    & > .setup-container {
+      grid-column: 1;
+      grid-row: 2;
 
-      & > h4 {
-        @include modal-header;
+      & > .provisioning-setup {
+        box-sizing: border-box;
+        padding: 1.5rem;
 
-        text-align: center;
-        margin-bottom: 2rem;
-      }
+        @include media-breakpoint-down(lg) {
+          margin: 0 2rem;
+          width: calc(100% - 4rem);
+        }
 
-      & > svg {
-        margin-bottom: 4rem;
-        height: 75px;
-      }
+        @include media-breakpoint-up(lg) {
+          padding: 4rem;
+          margin: 0 4rem 2.5rem;
+          width: calc(100% - 8rem);
+        }
 
-      & > p {
-        word-break: normal;
-        text-align: center;
-        max-width: 600px;
-        margin-bottom: 2.5rem;
-        @include regular-text;
+        @include media-breakpoint-up(xxl) {
+          margin: 0;
+          width: 100%;
+        }
 
-        color: var(--gray-dark);
-        font-size: 12px;
-      }
+        & > h4 {
+          @include modal-header;
 
-      & > .expandable-card {
-        & > .expanded-content {
-          overflow: hidden;
-
-          & > p {
-            max-width: 100%;
-            text-overflow: ellipsis;
-            text-align: left;
-            word-break: break-all;
-            white-space: normal;
-            @include small-text;
-
-            line-height: 22px;
+          text-align: center;
+          margin-bottom: 1.5rem;
+          @include media-breakpoint-up(lg) {
+            margin-bottom: 2rem;
           }
         }
+
+        & > .image-row {
+          height: 75px;
+          display: flex;
+          flex-flow: row;
+          align-items: center;
+          justify-content: center;
+          align-content: center;
+        }
+
+        & > p {
+          word-break: normal;
+          text-align: center;
+          @include regular-text;
+
+          margin-bottom: 1.5rem;
+          max-width: 100%;
+          color: var(--gray-dark);
+          font-size: 12px;
+
+          @include media-breakpoint-up(lg) {
+            margin-bottom: 2.5rem;
+          }
+        }
+
+        & > .expandable-card {
+          width: 100%;
+          margin-top: 2rem;
+          @include media-breakpoint-up(lg) {
+            margin-top: 4rem;
+          }
+
+          & > .expanded-content {
+            overflow: hidden;
+
+            & > p {
+              max-width: 100%;
+              text-overflow: ellipsis;
+              text-align: left;
+              word-break: break-all;
+              white-space: normal;
+              @include small-text;
+
+              line-height: 22px;
+            }
+          }
+        }
+      }
+    }
+
+    @include media-breakpoint-up(xxl) {
+      & > header {
+        grid-row: 1;
+        grid-column: 1/3;
+      }
+
+      & > .provisioners-container {
+        grid-column: 1 / 2;
+        grid-row: 2;
+      }
+
+      & > .setup-container {
+        grid-row: 2;
+        grid-column: 2 / 3;
       }
     }
   }
