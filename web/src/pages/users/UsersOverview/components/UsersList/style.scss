@@ -39,13 +39,13 @@
 
     .scroll-container {
       padding: 0;
-      padding-bottom: 40px;
       margin-right: 5px;
       grid-row: 1;
       grid-column: 1;
-
+      padding-bottom: 1.5rem;
       @include media-breakpoint-up(lg) {
         grid-row: 2;
+        padding-bottom: 40px;
       }
     }
 
@@ -58,7 +58,8 @@
       cursor: pointer;
 
       .username,
-      .name, .phone {
+      .name,
+      .phone {
         @include regular-text;
         @include text-weight(medium);
       }

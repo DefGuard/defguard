@@ -86,19 +86,47 @@ export const VirtualizedList = <T extends object>({
       </DefaultRowRender>
     );
   };
+
+  const getRowPadding = useMemo(() => {
+    let rightPadding = padding?.right || 0;
+    if (shouldAddScrollPadding) {
+      if (rightPadding > 9) {
+        rightPadding = rightPadding - 9;
+      } else {
+        rightPadding = 0;
+      }
+    } else {
+      if (rightPadding > 5) {
+        rightPadding = rightPadding - 5;
+      } else {
+        rightPadding = 0;
+      }
+    }
+    const res = {
+      paddingBottom: padding?.bottom || 0,
+      paddingTop: padding?.top || 0,
+      paddingLeft: padding?.left || 0,
+      paddingRight: rightPadding,
+    };
+    return res;
+  }, [
+    padding?.bottom,
+    padding?.left,
+    padding?.right,
+    padding?.top,
+    shouldAddScrollPadding,
+  ]);
+
   const rowWidth = useMemo(() => {
-    if (padding && (padding.left || padding.right)) {
+    const { paddingLeft, paddingRight } = getRowPadding;
+    if (paddingLeft || paddingRight) {
       let res = 0;
-      if (padding.left) {
-        res += padding.left;
-      }
-      if (padding.right) {
-        res += padding.right;
-      }
+      res = +paddingLeft;
+      res += paddingRight;
       return `calc(100% - ${res}px)`;
     }
     return '100%';
-  }, [padding]);
+  }, [getRowPadding]);
 
   return (
     <div className={cn} id={id}>
@@ -108,9 +136,10 @@ export const VirtualizedList = <T extends object>({
           style={{
             paddingBottom: headerPadding?.bottom || 0,
             paddingTop: headerPadding?.top || 0,
-            paddingLeft: (padding?.left || 0) + (headerPadding?.left || 0),
+            paddingLeft:
+              (getRowPadding.paddingLeft || 0) + (headerPadding?.left || 0),
             paddingRight:
-              (padding?.right || 0) +
+              (getRowPadding?.paddingRight || 0) +
               (headerPadding?.right || 0) +
               (shouldAddScrollPadding ? 4 : 0),
           }}
@@ -125,6 +154,7 @@ export const VirtualizedList = <T extends object>({
         ref={listRef}
         style={{
           overflow: 'auto',
+          marginRight: 5,
         }}
       >
         <div
@@ -133,10 +163,7 @@ export const VirtualizedList = <T extends object>({
             height: `${rowVirtualizer.getTotalSize()}px`,
             width: '100%',
             position: 'relative',
-            paddingBottom: padding?.bottom || 0,
-            paddingTop: padding?.top || 0,
-            paddingLeft: padding?.left || 0,
-            paddingRight: padding?.right || 0,
+            ...getRowPadding,
           }}
         >
           {rowVirtualizer.getVirtualItems().map((virtualItem) => (

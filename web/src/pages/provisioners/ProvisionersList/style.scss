@@ -33,8 +33,11 @@
 
     .scroll-container {
       box-sizing: border-box;
-      padding-bottom: 4rem;
+      padding-bottom: 1.5rem;
       margin-right: 5px;
+      @include media-breakpoint-up(lg) {
+        padding-bottom: 4rem;
+      }
     }
 
     .default-row {

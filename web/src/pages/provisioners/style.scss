@@ -7,7 +7,7 @@
     overflow-y: auto;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 40px auto 100vh;
+    grid-template-rows: auto 40px 100vh;
     padding: 2rem 0;
     box-sizing: border-box;
     row-gap: 2rem;
@@ -26,8 +26,8 @@
     }
 
     & > header {
-      grid-row: 1;
-      grid-column: 1 / 2;
+      grid-row: 2;
+      grid-column: 1;
       box-sizing: border-box;
       display: flex;
       flex-flow: row nowrap;
@@ -38,6 +38,8 @@
       @include media-breakpoint-up(lg) {
         padding: 0 0 0 6rem;
         column-gap: 3rem;
+        grid-column: 1;
+        grid-row: 1;
       }
 
       & > h1 {
@@ -144,7 +146,11 @@
 
     & > .setup-container {
       grid-column: 1;
-      grid-row: 2;
+      grid-row: 1;
+
+      @include media-breakpoint-up(lg) {
+        grid-row: 2;
+      }
 
       & > .provisioning-setup {
         box-sizing: border-box;
