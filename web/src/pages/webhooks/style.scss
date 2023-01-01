@@ -22,13 +22,16 @@
   & > .page-content {
     position: relative;
     overflow: hidden;
-    height: 100%;
-    @include media-breakpoint-down(lg) {
-      display: grid;
-      grid-template-columns: 1fr;
-      grid-template-rows: 125px 1fr;
-    }
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 40px 40px 1fr;
+    box-sizing: border-box;
+    padding-top: 1.5rem;
+    row-gap: 2rem;
+
     @include media-breakpoint-up(lg) {
+      row-gap: 0;
+      padding: 0;
       align-self: stretch;
       box-sizing: border-box;
       user-select: none;
@@ -40,10 +43,13 @@
     }
 
     header {
-      display: none;
+      grid-column: 1;
+      grid-row: 1;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 0 2rem;
       @include media-breakpoint-up(lg) {
         display: flex;
-        grid-row: 1;
         flex-flow: row;
         align-content: center;
         align-items: center;
@@ -51,11 +57,12 @@
         width: 100%;
         gap: 3rem;
         padding: 4rem 6rem 4.6rem;
-        box-sizing: border-box;
       }
 
       h1 {
+        display: none;
         @include media-breakpoint-up(lg) {
+          display: block;
           font-size: 4.1rem;
           line-height: 6.1rem;
           font-family: Poppins;
@@ -65,33 +72,30 @@
       }
 
       .search {
-        width: auto;
-        min-width: 36rem;
+        width: 100%;
+        height: 40px;
+        @include media-breakpoint-up(lg) {
+          width: 400px;
+        }
       }
     }
 
     .actions {
+      grid-row: 2;
+      grid-column: 1;
       width: 100%;
-      height: auto;
+      height: 100%;
       display: flex;
-      @include media-breakpoint-down(lg) {
-        grid-row: 1;
-        grid-column: 1;
-        flex-direction: row;
-        flex-wrap: wrap;
-        row-gap: 1.5rem;
-        margin: 1.5rem 0;
-        box-sizing: border-box;
-        padding: 0 2rem;
-      }
+      flex-flow: row nowrap;
+      box-sizing: border-box;
+      padding: 0 2rem;
+      align-content: center;
+      align-items: center;
+      justify-content: flex-start;
+
       @include media-breakpoint-up(lg) {
-        grid-row: 2;
-        flex-direction: row;
-        align-items: center;
-        align-content: center;
-        justify-content: flex-start;
+        height: auto;
         padding: 0 6rem 2.7rem;
-        box-sizing: border-box;
       }
 
       .items-count {
@@ -181,7 +185,7 @@
             }
           }
 
-          & > .add-user {
+          & > .add-item {
             min-width: 0;
             padding: 0;
             width: 40px;
@@ -200,35 +204,28 @@
           }
         }
       }
+    }
 
-      .users-search {
-        width: 100%;
-      }
+    .list-loader,
+    .virtualized-list-container,
+    .no-data {
+      grid-column: 1;
+      grid-row: 3;
     }
 
     .list-loader {
-      grid-row: 2;
-      grid-column: 1;
       width: 100%;
       height: 100%;
       display: flex;
-      flex-flow: row nowrap;
-      align-content: center;
-      justify-content: center;
+      flex-flow: column;
       align-items: center;
-      @include media-breakpoint-up(lg) {
-        grid-row: 3;
-      }
+      justify-content: center;
+      align-content: center;
     }
 
     .virtualized-list-container {
       grid-template-columns: 1fr;
       grid-template-rows: 1fr;
-
-      @include media-breakpoint-down(lg) {
-        grid-row: 2;
-        grid-column: 1;
-      }
 
       @include media-breakpoint-up(lg) {
         grid-template-rows: 28px 1fr;
@@ -247,12 +244,13 @@
 
       .scroll-container {
         padding: 0;
-        padding-bottom: 40px;
         margin-right: 5px;
         grid-row: 1;
         grid-column: 1;
+        padding-bottom: 1.5rem;
 
         @include media-breakpoint-up(lg) {
+          padding-bottom: 4rem;
           grid-row: 2;
         }
       }
@@ -263,7 +261,10 @@
         align-items: center;
         grid-template-rows: 1fr;
         height: 60px;
-        padding: 0 1.5rem 0 5rem;
+        padding: 0 1.5rem;
+        @include media-breakpoint-up(lg) {
+          padding: 0 1.5rem 0 5rem;
+        }
 
         span {
           @include list-text;

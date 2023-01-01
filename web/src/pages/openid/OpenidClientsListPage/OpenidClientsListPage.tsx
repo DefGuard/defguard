@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined, orderBy } from 'lodash-es';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMemo } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
@@ -204,6 +204,12 @@ export const OpenidClientsListPage = () => {
     };
   }, [breakpoint]);
 
+  useEffect(() => {
+    if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOption.ALL) {
+      setSelectedFilter(selectOptions[0]);
+    }
+  }, [breakpoint, selectedFilter.value]);
+
   return (
     <PageContainer id="openid-clients-list">
       <header>
@@ -256,7 +262,9 @@ export const OpenidClientsListPage = () => {
         <NoData customMessage="You don't have a license for this feature." />
       )}
       {(isLoading || isUndefined(clients)) && hasAccess && (
-        <LoaderSpinner className="clients-list-loader" size={180} />
+        <div className="list-loader">
+          <LoaderSpinner size={180} />
+        </div>
       )}
       {!isLoading && hasAccess && filteredClients.length === 0 && (
         <NoData customMessage="No results found." />

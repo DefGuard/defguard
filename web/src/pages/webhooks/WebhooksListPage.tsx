@@ -20,6 +20,10 @@ import NoData from '../../shared/components/layout/NoData/NoData';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { Search } from '../../shared/components/layout/Search/Search';
 import {
+  Select,
+  SelectOption,
+} from '../../shared/components/layout/Select/Select';
+import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
@@ -47,6 +51,7 @@ export const WebhooksListPage = () => {
   );
   const [searchValue, setSearchValue] = useState<string>('');
   const [filteredWebhooks, setFilteredWebhooks] = useState<Webhook[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState(filterOptions[0]);
   const setWebhookModalState = useModalStore((state) => state.setWebhookModal);
 
   const {
@@ -97,8 +102,11 @@ export const WebhooksListPage = () => {
         sortable: false,
       },
     ];
+    if (breakpoint !== 'desktop') {
+      res.splice(1, 2);
+    }
     return res;
-  }, []);
+  }, [breakpoint]);
 
   const getCells = useMemo(() => {
     const res: ListRowCell<Webhook>[] = [
@@ -143,25 +151,43 @@ export const WebhooksListPage = () => {
         ),
       },
     ];
+    if (breakpoint !== 'desktop') {
+      res.splice(1, 2);
+    }
     return res;
-  }, [setWebhookModalState]);
+  }, [breakpoint, setWebhookModalState]);
 
   useEffect(() => {
+    let res: Webhook[] = [];
     if (webhooks) {
-      const c = clone(webhooks);
+      res = clone(webhooks);
       if (searchValue && searchValue.length) {
-        const filtered = c.filter((webhook) =>
+        res = res.filter((webhook) =>
           webhook.url.toLowerCase().includes(searchValue.toLowerCase())
         );
-        const ordered = orderBy(filtered, ['id'], ['desc']);
-        setFilteredWebhooks(ordered);
-      } else {
-        setFilteredWebhooks(webhooks);
       }
-    } else {
-      setFilteredWebhooks([]);
+      res = orderBy(res, ['url'], ['asc']);
+      switch (selectedFilter.value) {
+        case FilterOption.ALL:
+          break;
+        case FilterOption.ENABLED:
+          res = res.filter((r) => r.enabled);
+          break;
+        case FilterOption.DISABLED:
+          res = res.filter((r) => !r.enabled);
+          break;
+        default:
+          break;
+      }
     }
-  }, [webhooks, searchValue]);
+    setFilteredWebhooks(res);
+  }, [webhooks, searchValue, selectedFilter.value]);
+
+  useEffect(() => {
+    if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOption.ALL) {
+      setSelectedFilter(filterOptions[0]);
+    }
+  }, [breakpoint, selectedFilter.value]);
 
   const getListPadding = useMemo(() => {
     if (breakpoint === 'desktop') {
@@ -195,13 +221,17 @@ export const WebhooksListPage = () => {
           </div>
         </div>
         <div className="controls">
-          {breakpoint === 'mobile' ? (
-            <Search
-              placeholder="Find webhooks"
-              onChange={(value) => setSearchValue(value)}
-              initialValue={searchValue}
+          {breakpoint === 'desktop' && (
+            <Select
+              options={filterOptions}
+              selected={selectedFilter}
+              onChange={(o) => {
+                if (o && !Array.isArray(o)) {
+                  setSelectedFilter(o);
+                }
+              }}
             />
-          ) : null}
+          )}
           <Button
             className="add-item"
             onClick={() =>
@@ -214,7 +244,12 @@ export const WebhooksListPage = () => {
           />
         </div>
       </section>
-      {isLoading || (isUndefined(webhooks) && <LoaderSpinner size={180} />)}
+      {isLoading ||
+        (isUndefined(webhooks) && (
+          <div className="list-loader">
+            <LoaderSpinner size={180} />
+          </div>
+        ))}
       {!isLoading && filteredWebhooks && filteredWebhooks.length === 0 && (
         <NoData customMessage="No webhooks found." />
       )}
@@ -248,3 +283,27 @@ export const WebhooksListPage = () => {
     </PageContainer>
   );
 };
+
+enum FilterOption {
+  ALL = 'all',
+  ENABLED = 'enabled',
+  DISABLED = 'disabled',
+}
+
+const filterOptions: SelectOption<FilterOption>[] = [
+  {
+    value: FilterOption.ALL,
+    label: 'All',
+    key: 1,
+  },
+  {
+    value: FilterOption.ENABLED,
+    label: 'Enabled',
+    key: 2,
+  },
+  {
+    value: FilterOption.DISABLED,
+    label: 'Disabled',
+    key: 3,
+  },
+];
