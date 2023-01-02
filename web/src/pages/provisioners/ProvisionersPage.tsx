@@ -7,6 +7,7 @@ import { useBreakpoint } from 'use-breakpoint';
 
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
+import { NoLicenseBox } from '../../shared/components/layout/NoLicenseBox/NoLicenseBox';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { Search } from '../../shared/components/layout/Search/Search';
 import {
@@ -43,7 +44,11 @@ export const ProvisionersPage = () => {
   const { data: provisioners, isLoading } = useQuery(
     [QueryKeys.FETCH_WORKERS],
     getWorkers,
-    { enabled: hasAccess, refetchOnWindowFocus: false, refetchInterval: 5000 }
+    {
+      enabled: hasAccess,
+      refetchOnWindowFocus: false,
+      refetchInterval: 5000,
+    }
   );
 
   const filteredProvisioners = useMemo(() => {
@@ -117,17 +122,26 @@ export const ProvisionersPage = () => {
           filteredProvisioners.length === 0 ? (
             <NoData customMessage="No provisioners found" />
           ) : null)}
-        {!isLoading && !hasAccess && (
-          <NoData customMessage="No license for this feature" />
-        )}
-        {isLoading && (
+        {!hasAccess && <NoData customMessage="No license for this feature" />}
+        {isLoading && hasAccess && (
           <div className="loader">
             <LoaderSpinner size={130} />
           </div>
         )}
       </div>
       <div className="setup-container">
-        <ProvisioningStationSetup hasAccess={hasAccess} />
+        {hasAccess ? (
+          <ProvisioningStationSetup hasAccess={hasAccess} />
+        ) : (
+          <NoLicenseBox>
+            <p>
+              <strong>YubiKey module</strong>
+            </p>
+            <br />
+            <p>This is enterprise module for YubiKey</p>
+            <p>management and provisioning.</p>
+          </NoLicenseBox>
+        )}
       </div>
     </PageContainer>
   );
