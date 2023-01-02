@@ -4,7 +4,15 @@ import * as path from 'path';
 import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
+let buildTarget = 'modules';
+
+if (process.env.TAURI_PLATFORM) {
+  buildTarget =
+    process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13';
+}
+
 export default defineConfig({
+  clearScreen: false,
   plugins: [
     react(),
     nodePolyfills({
@@ -12,6 +20,7 @@ export default defineConfig({
     }),
   ],
   server: {
+    strictPort: true,
     port: 3000,
     proxy: {
       '/api': {
@@ -27,6 +36,7 @@ export default defineConfig({
       allow: ['.'],
     },
   },
+  envPrefix: ['VITE_', 'TAURI_'],
   assetsInclude: ['./src/shared/fonts/**/*', './src/shared/assets/**/*'],
   resolve: {
     alias: {
@@ -37,6 +47,12 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 10000,
+    // Tauri uses Chromium on Windows and WebKit on macOS and Linux
+    target: buildTarget,
+    // don't minify for debug builds
+    minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
+    // produce sourcemaps for debug builds
+    sourcemap: !!process.env.TAURI_DEBUG,
   },
   css: {
     postcss: {

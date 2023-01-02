@@ -59,10 +59,8 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
         "resizable": true,
-        "title": "defguard",
-        "width": 800
+        "title": "Defguard"
       }
     ]
   }
