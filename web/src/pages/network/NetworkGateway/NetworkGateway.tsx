@@ -1,12 +1,19 @@
 import './style.scss';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import clipboard from 'clipboardy';
+import { useMemo } from 'react';
 
+import {
+  ActionButton,
+  ActionButtonVariant,
+} from '../../../shared/components/layout/ActionButton/ActionButton';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
 import { Card } from '../../../shared/components/layout/Card/Card';
+import { ExpandableCard } from '../../../shared/components/layout/ExpandableCard/ExpandableCard';
 import MessageBox, {
   MessageBoxType,
 } from '../../../shared/components/layout/MessageBox/MessageBox';
@@ -17,7 +24,7 @@ import { QueryKeys } from '../../../shared/queries';
 export const NetworkGatewaySetup = () => {
   const toaster = useToaster();
   const {
-    network: { getGatewayStatus },
+    network: { getGatewayStatus, getNetworkToken },
   } = useApi();
   const queryClient = useQueryClient();
   const { data: gatewayStatus, isLoading: statusLoading } = useQuery(
@@ -30,6 +37,33 @@ export const NetworkGatewaySetup = () => {
       },
       refetchOnWindowFocus: false,
     }
+  );
+
+  const { data: networkToken } = useQuery([QueryKeys.FETCH_NETWORK_TOKEN], () =>
+    getNetworkToken('1')
+  );
+
+  const command = `docker run -e DEFGUARD_TOKEN=${networkToken?.token} registry.teonite.net/defguard/wireguard:latest`;
+
+  const getActions = useMemo(
+    () => [
+      <ActionButton
+        key={1}
+        variant={ActionButtonVariant.COPY}
+        onClick={() => {
+          clipboard
+            .write(command)
+            .then(() => {
+              toaster.success('Command copied.');
+            })
+            .catch((err) => {
+              toaster.error('Clipboard is not accessible.');
+              console.error(err);
+            });
+        }}
+      />,
+    ],
+    [command, toaster]
   );
   return (
     <section className="gateway">
@@ -44,6 +78,14 @@ export const NetworkGatewaySetup = () => {
             <a>detailed documentation page</a>.
           </p>
         </MessageBox>
+        <ExpandableCard
+          title="Gateway setup command"
+          disableExpand={true}
+          expanded={true}
+          actions={getActions}
+        >
+          <p>{command}</p>
+        </ExpandableCard>
         <div className="status">
           <Button
             size={ButtonSize.BIG}
