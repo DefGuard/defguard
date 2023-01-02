@@ -1,5 +1,6 @@
 import './style.scss';
 
+import numbro from 'numbro';
 import { forwardRef } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import useBreakpoint from 'use-breakpoint';
@@ -24,6 +25,13 @@ interface Props {
   networkStats: WireguardNetworkStats;
 }
 
+const formatStats = (value: number): string =>
+  numbro(value).format({
+    average: false,
+    spaceSeparated: false,
+    mantissa: 0,
+  });
+
 export const OverviewStats = forwardRef<HTMLDivElement, Props>(
   ({ networkStats }, ref) => {
     const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -35,14 +43,18 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
             <span className="info-title">Currently active users</span>
             <div className="content">
               <Icon24HConnections />
-              <span className="info-value">{networkStats.active_users}</span>
+              <span className="info-value">
+                {formatStats(networkStats.current_active_users)}
+              </span>
             </div>
           </div>
           <div className="info">
             <span className="info-title">Currently active devices</span>
             <div className="content">
               <IconActiveConnections />
-              <span className="info-value">{networkStats.active_devices}</span>
+              <span className="info-value">
+                {formatStats(networkStats.current_active_devices)}
+              </span>
             </div>
           </div>
           <div className="info">
@@ -56,7 +68,9 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
             <span className="info-title">Active devices in {filterValue}H</span>
             <div className="content">
               <Icon24HConnections />
-              <span className="info-value">{networkStats.active_devices}</span>
+              <span className="info-value">
+                {formatStats(networkStats.active_devices)}
+              </span>
             </div>
           </div>
           {breakpoint === 'desktop' && (

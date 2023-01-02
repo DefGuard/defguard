@@ -51,9 +51,7 @@
           justify-content: flex-start;
           flex-flow: row nowrap;
           height: 104px;
-        }
-        @include media-breakpoint-up(lg) {
-          max-width: 800px;
+          width: 820px;
         }
 
         & > .info {
