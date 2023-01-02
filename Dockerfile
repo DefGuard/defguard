@@ -49,4 +49,5 @@ RUN apt-get update -y && \
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
 COPY --from=web /app/dist ./web/dist
+COPY web/src/shared/images/svg ./web/src/shared/images/svg
 ENTRYPOINT ["./defguard"]
