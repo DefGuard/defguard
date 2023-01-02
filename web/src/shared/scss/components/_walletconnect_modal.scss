@@ -5,7 +5,7 @@
 }
 .walletconnect-modal__footer {
   overflow: auto;
-  @include media-breakpoint-down(lg) {
+  @include media-breakpoint-down(sm) {
     padding-left: 180px;
   }
 }
