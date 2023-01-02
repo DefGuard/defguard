@@ -17,6 +17,25 @@
         }
       }
 
+      & > .expandable-card {
+        & > .expanded-content {
+          overflow: hidden;
+
+          & > p {
+            max-width: 100%;
+            text-overflow: ellipsis;
+            text-align: left;
+            word-break: break-all;
+            white-space: normal;
+            @include small-text;
+
+            line-height: 22px;
+          }
+        }
+
+        margin-bottom: 3rem;
+      }
+
       & > .status {
         width: 100%;
         display: flex;
