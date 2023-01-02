@@ -1,6 +1,11 @@
+@use '../helpers' as *;
+
 .walletconnect-modal__base {
   overflow: hidden;
 }
 .walletconnect-modal__footer {
   overflow: auto;
+  @include media-breakpoint-down(sm) {
+    padding-left: 180px;
+  }
 }
