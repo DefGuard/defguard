@@ -42,8 +42,9 @@ export const BrandingCard = () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
         toaster.success('Settings changed.');
       },
-      onError: () => {
+      onError: (err) => {
         toaster.error('Error occured!', 'Please contact administrator');
+        console.error(err);
       },
     }
   );
@@ -55,8 +56,9 @@ export const BrandingCard = () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
         toaster.success('Settings changed.');
       },
-      onError: () => {
+      onError: (err) => {
         toaster.error('Error occured!', 'Please contact administrator');
+        console.error(err);
       },
     }
   );
@@ -72,7 +74,7 @@ export const BrandingCard = () => {
             .string()
             .min(3, 'Should be at least 4 characters long.')
             .max(12, 'Maximum length exceeded.')
-            .required(),
+            .required('Name is required.'),
         })
         .required(),
     []
@@ -82,8 +84,6 @@ export const BrandingCard = () => {
     resolver: yupResolver(formSchema),
     mode: 'all',
   });
-
-  console.log(settings);
 
   if (!settings) return null;
 
