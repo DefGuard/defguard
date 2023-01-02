@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import clipboard from 'clipboardy';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import {
   ActionButton,
@@ -43,7 +43,9 @@ export const NetworkGatewaySetup = () => {
     getNetworkToken('1')
   );
 
-  const command = `docker run -e DEFGUARD_TOKEN=${networkToken?.token} registry.teonite.net/defguard/wireguard:latest`;
+  const command = useCallback(() => {
+    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} registry.teonite.net/defguard/wireguard:latest`;
+  }, [networkToken]);
 
   const getActions = useMemo(
     () => [
@@ -52,7 +54,7 @@ export const NetworkGatewaySetup = () => {
         variant={ActionButtonVariant.COPY}
         onClick={() => {
           clipboard
-            .write(command)
+            .write(command())
             .then(() => {
               toaster.success('Command copied.');
             })
@@ -84,7 +86,7 @@ export const NetworkGatewaySetup = () => {
           expanded={true}
           actions={getActions}
         >
-          <p>{command}</p>
+          <p>{command()}</p>
         </ExpandableCard>
         <div className="status">
           <Button
