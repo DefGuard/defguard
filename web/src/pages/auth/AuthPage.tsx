@@ -4,11 +4,11 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import shallow from 'zustand/shallow';
 
+import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import Login from './Login/Login';
 import { MFARoute } from './MFARoute/MFARoute';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
-import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 
 const AuthPage = () => {
   const navigate = useNavigate();

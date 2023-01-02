@@ -42,8 +42,11 @@ export const ModulesCard = () => {
   const handleChange = (
     key: keyof Omit<
       Settings,
-      'id' | 'challenge_template' | 'main_logo_url' | 'instance_name' 
-			| 'nav_logo_url'
+      | 'id'
+      | 'challenge_template'
+      | 'main_logo_url'
+      | 'instance_name'
+      | 'nav_logo_url'
     >
   ) => {
     if (settings && !isLoading) {

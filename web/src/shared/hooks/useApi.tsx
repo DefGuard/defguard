@@ -374,8 +374,9 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const getGatewayStatus = () => client.get('/connection').then(unpackRequest);
 
-  const setDefaultBranding = (id: string) =>
-    client.get(`/settings/${id}`).then((res) => res.data);
+  const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (
+    id: string
+  ) => client.get(`/settings/${id}`).then((res) => res.data);
 
   return {
     getVersion,

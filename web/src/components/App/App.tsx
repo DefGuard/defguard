@@ -5,6 +5,7 @@ import './App.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
+import { useEffect } from 'react';
 import {
   BrowserRouter as Router,
   Navigate,
@@ -47,9 +48,11 @@ const App = () => {
   );
   const settings = useAppStore((state) => state.settings);
 
-  if (settings) {
-    document.title = settings.instance_name;
-  }
+  useEffect(() => {
+    if (!document.title && settings) {
+      document.title = settings.instance_name;
+    }
+  }, [settings]);
 
   const { isLoading: currentUserLoading, data: userMe } = useQuery(
     [QueryKeys.FETCH_ME],
