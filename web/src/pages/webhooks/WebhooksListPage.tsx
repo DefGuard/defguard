@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clone, isUndefined, orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
 import useBreakpoint from 'use-breakpoint';
@@ -44,6 +44,7 @@ import { Webhook } from '../../shared/types';
 import { WebhookModal } from './modals/WebhookModal/WebhookModal';
 
 export const WebhooksListPage = () => {
+  const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [webhookToDelete, setWebhookToDelete] = useState<Webhook | undefined>(
@@ -55,7 +56,7 @@ export const WebhooksListPage = () => {
   const setWebhookModalState = useModalStore((state) => state.setWebhookModal);
 
   const {
-    webhook: { getWebhooks, deleteWebhook },
+    webhook: { getWebhooks, deleteWebhook, changeWebhookState },
   } = useApi();
 
   const toaster = useToaster();
@@ -65,10 +66,23 @@ export const WebhooksListPage = () => {
       onSuccess: () => {
         toaster.success('Webhook deleted.');
         setDeleteModalOpen(false);
+        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
       },
       onError: (err) => {
         toaster.error('Error has occurred.');
         setDeleteModalOpen(false);
+        console.error(err);
+      },
+    });
+
+  const { mutate: changeWebhookMutation, isLoading: changeWebhookIsLoading } =
+    useMutation([MutationKeys.CHANGE_WEBHOOK_STATE], changeWebhookState, {
+      onSuccess: () => {
+        toaster.success('Webhook changed.');
+        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
+      },
+      onError: (err) => {
+        toaster.error('Error has occurred.');
         console.error(err);
       },
     });
@@ -141,11 +155,23 @@ export const WebhooksListPage = () => {
                 setWebhookModalState({ visible: true, webhook: context })
               }
             />
-            <EditButtonOption text={context.enabled ? 'Disable' : 'Enable'} />
+            <EditButtonOption
+              disabled={changeWebhookIsLoading}
+              text={context.enabled ? 'Disable' : 'Enable'}
+              onClick={() => {
+                if (!changeWebhookIsLoading) {
+                  changeWebhookMutation({
+                    id: context.id,
+                    enabled: !context.enabled,
+                  });
+                }
+              }}
+            />
             <EditButtonOption
               text="Delete"
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               onClick={() => setWebhookToDelete(context)}
+              disabled={deleteWebhookIsLoading}
             />
           </EditButton>
         ),
@@ -155,7 +181,13 @@ export const WebhooksListPage = () => {
       res.splice(1, 2);
     }
     return res;
-  }, [breakpoint, setWebhookModalState]);
+  }, [
+    breakpoint,
+    changeWebhookIsLoading,
+    changeWebhookMutation,
+    deleteWebhookIsLoading,
+    setWebhookModalState,
+  ]);
 
   useEffect(() => {
     let res: Webhook[] = [];

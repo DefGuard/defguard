@@ -684,6 +684,8 @@ export interface NetworkUserStats {
 export interface WireguardNetworkStats {
   active_users: number;
   active_devices: number;
+  current_active_users: number;
+  current_active_devices: number;
   upload: number;
   download: number;
   transfer_series: NetworkSpeedStats[];
