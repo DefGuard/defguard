@@ -82,6 +82,10 @@
     transition: none;
     position: relative;
 
+    img {
+      display: none;
+    }
+
     svg {
       position: absolute;
       top: 50%;
@@ -232,8 +236,20 @@
   &.visible {
     width: 234px;
 
+    img {
+      max-width: 100px;
+      max-height: 100px;
+      display: unset;
+      position: absolute;
+      top: 50%;
+      left: 4rem;
+      transform: translateY(-50%);
+    }
+
     .logo-container {
       svg {
+        display: none;
+
         &:nth-of-type(1) {
           opacity: 1;
         }

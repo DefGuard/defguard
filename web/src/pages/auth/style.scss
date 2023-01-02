@@ -26,6 +26,11 @@
     width: 100%;
     height: 100%;
 
+    img {
+	width: 250px;
+	height: 100px;
+    }
+
     @include media-breakpoint-up(lg) {
       display: flex;
     }

@@ -1,5 +1,5 @@
 use super::{ApiResponse, ApiResult};
-use crate::{auth::AdminRole, db::Settings, AppState};
+use crate::{auth::AdminRole, db::Settings, error::OriWebError, AppState};
 use rocket::{
     http::Status,
     serde::json::{serde_json::json, Json},
@@ -28,4 +28,25 @@ pub async fn update_settings(
     data.save(&appstate.pool).await?;
     info!("Settings updated");
     Ok(ApiResponse::default())
+}
+
+#[get("/settings/<id>", format = "json")]
+pub async fn set_default_branding(
+    _admin: AdminRole,
+    appstate: &State<AppState>,
+    id: i64,
+) -> ApiResult {
+    debug!("Restoring default branding settings");
+    let settings = Settings::find_by_id(&appstate.pool, id).await?;
+    match settings {
+        Some(mut settings) => {
+            settings.instance_name = "Defguard".into();
+            settings.nav_logo_url = "/svg/defguard-nav-logo.svg".into();
+            settings.main_logo_url = "/svg/logo-defguard-white.svg".into();
+            settings.save(&appstate.pool).await?;
+            info!("Restored default branding settings");
+            return Ok(ApiResponse::default());
+        }
+        None => return Err(OriWebError::DbError("Cannot restore settings".into())),
+    }
 }

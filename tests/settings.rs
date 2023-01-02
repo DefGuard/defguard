@@ -45,6 +45,9 @@ async fn test_settings() {
             wireguard_enabled: true,
             webhooks_enabled: true,
             worker_enabled: true,
+            main_logo_url: "/svg/logo-defguard-white.svg".into(),
+            nav_logo_url: "/svg/defguard-nav-logo.svg".into(),
+            instance_name: "Defguard".into(),
             challenge_template: "
                 Please read this carefully:\n\n\
                 Click to sign to prove you are in possesion of your private key to the account.\n\

@@ -13,4 +13,7 @@ pub struct Settings {
     pub webhooks_enabled: bool,
     pub worker_enabled: bool,
     pub challenge_template: String,
+    pub instance_name: String,
+    pub main_logo_url: String,
+    pub nav_logo_url: String,
 }

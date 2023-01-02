@@ -1353,74 +1353,6 @@
     },
     "query": "UPDATE \"wireguard_peer_stats\" SET \"device_id\" = $2, \"collected_at\" = $3, \"network\" = $4, \"endpoint\" = $5, \"upload\" = $6, \"download\" = $7, \"latest_handshake\" = $8, \"allowed_ips\" = $9 WHERE id = $1"
   },
-  "57c6333e11b68c1451f79047aa5449cad8a704aad2756239282738b04ff70fd7": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "web3_enabled",
-          "ordinal": 1,
-          "type_info": "Bool"
-        },
-        {
-          "name": "openid_enabled",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "oauth_enabled",
-          "ordinal": 3,
-          "type_info": "Bool"
-        },
-        {
-          "name": "ldap_enabled",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "wireguard_enabled",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "webhooks_enabled",
-          "ordinal": 6,
-          "type_info": "Bool"
-        },
-        {
-          "name": "worker_enabled",
-          "ordinal": 7,
-          "type_info": "Bool"
-        },
-        {
-          "name": "challenge_template",
-          "ordinal": 8,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"web3_enabled\", \"openid_enabled\", \"oauth_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\" FROM \"settings\" WHERE id = $1"
-  },
   "57f9cef4b6b89be730168450c5dfe5bac9d102aecdb8c82f940b4f34e2b9ccd2": {
     "describe": {
       "columns": [
@@ -1513,72 +1445,6 @@
     },
     "query": "SELECT id \"id?\", \"name\", \"address\" \"address: _\", \"port\", \"pubkey\", \"prvkey\", \"endpoint\", \"dns\", \"allowed_ips\" \"allowed_ips: _\", \"connected_at\" FROM \"wireguard_network\""
   },
-  "5988d5bb9167f4b7a0695b6efccce0051fcf2267fd095256f482029b3f5a63d5": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "web3_enabled",
-          "ordinal": 1,
-          "type_info": "Bool"
-        },
-        {
-          "name": "openid_enabled",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "oauth_enabled",
-          "ordinal": 3,
-          "type_info": "Bool"
-        },
-        {
-          "name": "ldap_enabled",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "wireguard_enabled",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "webhooks_enabled",
-          "ordinal": 6,
-          "type_info": "Bool"
-        },
-        {
-          "name": "worker_enabled",
-          "ordinal": 7,
-          "type_info": "Bool"
-        },
-        {
-          "name": "challenge_template",
-          "ordinal": 8,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"web3_enabled\", \"openid_enabled\", \"oauth_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\" FROM \"settings\""
-  },
   "59c1b85f37143a9573d61d440485bda5dd3b550011fa2486c7003a7f00743255": {
     "describe": {
       "columns": [],
@@ -1659,26 +1525,6 @@
       }
     },
     "query": "SELECT id \"id?\", \"device_id\", \"collected_at\", \"network\", \"endpoint\", \"upload\", \"download\", \"latest_handshake\", \"allowed_ips\" FROM \"wireguard_peer_stats\""
-  },
-  "5f7c021999ce61f8b550d62709c458e2f769c6feec5a7168a0f17f1a7f187e58": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE \"settings\" SET \"web3_enabled\" = $2, \"openid_enabled\" = $3, \"oauth_enabled\" = $4, \"ldap_enabled\" = $5, \"wireguard_enabled\" = $6, \"webhooks_enabled\" = $7, \"worker_enabled\" = $8, \"challenge_template\" = $9 WHERE id = $1"
   },
   "627ec688631de93ef949e41777f0ea076dcef5e9007466f0553dd1f1df45174a": {
     "describe": {
@@ -1776,6 +1622,92 @@
       }
     },
     "query": "INSERT INTO \"oauth2client\" (\"client_id\", \"client_secret\", \"redirect_uri\", \"scope\", \"name\", \"enabled\") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+  },
+  "70b5b63584104574a50adab52f16af095b8c20883075d038f82aa623ea839153": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "web3_enabled",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "openid_enabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "oauth_enabled",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "ldap_enabled",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "wireguard_enabled",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "webhooks_enabled",
+          "ordinal": 6,
+          "type_info": "Bool"
+        },
+        {
+          "name": "worker_enabled",
+          "ordinal": 7,
+          "type_info": "Bool"
+        },
+        {
+          "name": "challenge_template",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "instance_name",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "main_logo_url",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "nav_logo_url",
+          "ordinal": 11,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"web3_enabled\", \"openid_enabled\", \"oauth_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\" FROM \"settings\" WHERE id = $1"
   },
   "72d23351a50aab914232b485b109ffaaf3abe58e73f8180f9dc0211dd4aa5f53": {
     "describe": {
@@ -2765,6 +2697,36 @@
     },
     "query": "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, web3_challenge) VALUES ($1, $2, $3, $4, $5, $6, $7)"
   },
+  "aab1efd3aaf0ce869f2723f5fbc5d2620807ca2d7a3ea09de8b530f92ab6889f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Text",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"settings\" (\"web3_enabled\", \"openid_enabled\", \"oauth_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id"
+  },
   "aae8d76f39d8a5149050df73b145963cc83bb2bcef4f137bb032e1f46704984d": {
     "describe": {
       "columns": [
@@ -2918,6 +2880,90 @@
       }
     },
     "query": "UPDATE \"user\" SET totp_secret = $1 WHERE id = $2"
+  },
+  "baf10838a974477c6dcce6eae6777b2da57590d22d3b343c1e479aaec385bbff": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "web3_enabled",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "openid_enabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "oauth_enabled",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "ldap_enabled",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "wireguard_enabled",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "webhooks_enabled",
+          "ordinal": 6,
+          "type_info": "Bool"
+        },
+        {
+          "name": "worker_enabled",
+          "ordinal": 7,
+          "type_info": "Bool"
+        },
+        {
+          "name": "challenge_template",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "instance_name",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "main_logo_url",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "nav_logo_url",
+          "ordinal": 11,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"web3_enabled\", \"openid_enabled\", \"oauth_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\" FROM \"settings\""
   },
   "bb793a93f5810f6c1e6bfbada1b5d5d9ffab7c248d2b484ef471d67914a7fb72": {
     "describe": {
@@ -3300,33 +3346,6 @@
     },
     "query": "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE \"user\".username = $1"
   },
-  "cc2cc1d23dfcb6fb23cfa4631b2264e4542358d5aad1096bc998b33d949324eb": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"settings\" (\"web3_enabled\", \"openid_enabled\", \"oauth_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
-  },
   "cc4916bf8d6978021e9d9531c0f34fb71f41bb4a674d7080b983023316b5496f": {
     "describe": {
       "columns": [
@@ -3609,6 +3628,29 @@
       }
     },
     "query": "DELETE FROM \"device\" WHERE id = $1"
+  },
+  "e387a419176272c7d91377e22aacaa26045032497bf7168041fe3744da88792d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Text",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE \"settings\" SET \"web3_enabled\" = $2, \"openid_enabled\" = $3, \"oauth_enabled\" = $4, \"ldap_enabled\" = $5, \"wireguard_enabled\" = $6, \"webhooks_enabled\" = $7, \"worker_enabled\" = $8, \"challenge_template\" = $9, \"instance_name\" = $10, \"main_logo_url\" = $11, \"nav_logo_url\" = $12 WHERE id = $1"
   },
   "e5624c65ab8248f1fcf973c0c7501792d53748dbd5d227e492527f07ca194fc6": {
     "describe": {

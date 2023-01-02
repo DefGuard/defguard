@@ -38,7 +38,7 @@ use handlers::{
     },
     group::{add_group_member, get_group, list_groups, remove_group_member},
     license::get_license,
-    settings::{get_settings, update_settings},
+    settings::{get_settings, set_default_branding, update_settings},
     user::{
         add_user, change_password, delete_authorized_app, delete_security_key, delete_user,
         delete_wallet, get_user, list_users, me, modify_user, set_wallet, update_wallet,
@@ -116,6 +116,10 @@ pub async fn build_webapp(
         .mount("/", routes![smart_index])
         .mount("/", FileServer::new("./web/dist", Options::Missing).rank(3))
         .mount(
+            "/svg",
+            FileServer::new("./web/src/shared/images/svg", Options::Index).rank(1),
+        )
+        .mount(
             "/api/v1",
             routes![
                 health_check,
@@ -142,6 +146,7 @@ pub async fn build_webapp(
                 get_version,
                 get_settings,
                 update_settings,
+                set_default_branding,
                 mfa_enable,
                 mfa_disable,
                 totp_secret,
