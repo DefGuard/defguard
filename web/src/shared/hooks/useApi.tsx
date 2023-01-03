@@ -376,7 +376,7 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (
     id: string
-  ) => client.get(`/settings/${id}`).then((res) => res.data);
+  ) => client.get(`/settings/${id}`).then(unpackRequest);
 
   return {
     getVersion,
