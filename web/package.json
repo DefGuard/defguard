@@ -1,18 +1,18 @@
 {
   "name": "web",
-  "version": "0.2",
-  "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "npm-run-all --parallel vite typesafe-i18n",
     "build": "tsc && vite build",
     "serve": "vite preview",
+    "generate-translation-types": "typesafe-i18n --no-watch",
     "lint": "tsc && eslint ./*.ts ./src/**/*.ts ./src/**/*.tsx && prettier --check ./src/**/*.ts ./src/**/*.tsx",
     "eslint-fix": "eslint --fix ./src/**/*.ts ./src/**/*.tsx",
     "lint-ci": "tsc && eslint --quiet ./src/**/*.ts ./src/**/*.tsx",
     "prettier-fix": "prettier -w ./src/**/*.scss ./src/**/*.ts ./src/**/*.tsx",
     "parse-svgs": "svgr --ignore-existing --svgo-config ./svgo.config.js --prettier-config ./.prettierrc --jsx-runtime classic --out-dir ./src/shared/components/svg/ --typescript ./src/shared/images/svg/",
     "fix-lint": "eslint --fix ./*.ts ./src/**/*.ts ./src/**/*.tsx && prettier -w ./src/**/*.ts ./src/**/*.tsx && stylelint --fix --quiet ./src/**/*.scss ",
-    "build-doc-ci": "typedoc --readme ./docs/README.md --out ./docs --entryPointStrategy expand --tsconfig ./tsconfig.json ./src/shared/components/layout ./src/shared/components/modals ./src/shared/components/Router ./src/shared/components/Toasts"
+    "build-doc-ci": "typedoc --readme ./docs/README.md --out ./docs --entryPointStrategy expand --tsconfig ./tsconfig.json ./src/shared/components/layout ./src/shared/components/modals ./src/shared/components/Router ./src/shared/components/Toasts",
+    "typesafe-i18n": "typesafe-i18n"
   },
   "browserslist": {
     "production": [
@@ -65,7 +65,6 @@
     "file-saver": "^2.0.5",
     "framer-motion": "^8.1.0",
     "hex-rgb": "^5.0.0",
-    "i18next": "21.9.2",
     "itertools": "^1.7.1",
     "lodash-es": "^4.17.21",
     "numbro": "^2.3.6",
@@ -75,7 +74,6 @@
     "react-click-away-listener": "^2.2.2",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.41.3",
-    "react-i18next": "11.18.6",
     "react-idle-timer": "^5.4.2",
     "react-is": "^18.2.0",
     "react-markdown": "^8.0.4",
@@ -91,6 +89,7 @@
     "rxjs": "^7.8.0",
     "terser": "^5.16.1",
     "tippy.js": "^6.3.7",
+    "typesafe-i18n": "^5.18.1",
     "use-breakpoint": "^3.0.6",
     "vite-plugin-node-polyfills": "^0.6.0",
     "wagmi": "^0.10.2",

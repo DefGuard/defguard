@@ -19,7 +19,6 @@
     "jsx": "react-jsx",
     "types": [
       "vite/client",
-      "react-i18next"
     ],
     "rootDir": "src",
     "watch": false,

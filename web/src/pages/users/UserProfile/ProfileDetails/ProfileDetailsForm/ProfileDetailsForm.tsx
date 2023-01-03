@@ -3,10 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../../shared/components/Form/FormSelect/FormSelect';
 import {
@@ -49,8 +49,7 @@ const defaultValues: Inputs = {
 };
 
 export const ProfileDetailsForm = () => {
-  const { t } = useTranslation('en');
-
+  const { LL, locale } = useI18nContext();
   const user = useUserProfileStore((state) => state.user);
   const submitSubject = useUserProfileStore((state) => state.submitSubject);
   const setUserProfile = useUserProfileStore((state) => state.setState);
@@ -71,30 +70,31 @@ export const ProfileDetailsForm = () => {
         .object({
           username: yup
             .string()
-            .required(t('form.errors.required'))
-            .matches(patternNoSpecialChars, t('form.errors.noSpecialChars'))
-            .max(32, t('form.errors.maximumLength', { length: 32 })),
+            .required(LL.form.error.required())
+            .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
+            .max(32, LL.form.error.maximumLength()),
           first_name: yup
             .string()
-            .required(t('form.errors.required'))
-            .min(4, t('form.errors.minimumLength', { length: 4 })),
+            .required(LL.form.error.required())
+            .min(4, LL.form.error.minimumLength()),
           last_name: yup
             .string()
-            .required(t('form.errors.required'))
-            .min(4, t('form.errors.minimumLength', { length: 4 })),
+            .required(LL.form.error.required())
+            .min(4, LL.form.error.minimumLength()),
           phone: yup
             .string()
-            .required(t('form.errors.required'))
-            .matches(patternValidPhoneNumber, t('form.errors.phoneNumber')),
+            .required(LL.form.error.required())
+            .matches(patternValidPhoneNumber, LL.form.error.invalid()),
           email: yup
             .string()
-            .required(t('form.errors.required'))
-            .matches(patternValidEmail, t('form.errors.email')),
+            .required(LL.form.error.required())
+            .matches(patternValidEmail, LL.form.error.invalid()),
           groups: yup.array(),
           authorized_apps: yup.array(),
         })
         .required(),
-    [t]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale]
   );
 
   const formDefaultValues = useMemo((): Inputs => {

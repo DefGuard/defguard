@@ -1,10 +1,9 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosResponse } from 'axios';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useController, useForm } from 'react-hook-form';
 import { SubmitHandler } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import { BehaviorSubject, Subject } from 'rxjs';
 import {
   debounceTime,
@@ -15,6 +14,7 @@ import {
 } from 'rxjs/operators';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
@@ -45,7 +45,7 @@ interface Inputs {
 }
 
 const AddUserForm = () => {
-  const { t } = useTranslation('en');
+  const { LL, locale } = useI18nContext();
   const {
     user: { addUser, usernameAvailable },
   } = useApi();
@@ -59,53 +59,45 @@ const AddUserForm = () => {
         .object({
           username: yup
             .string()
-            .required(t('form.errors.required'))
-            .matches(patternNoSpecialChars, t('form.errors.noSpecialChars'))
-            .matches(patternDigitOrLowercase, t('form.errors.digitOrLowercase'))
-            .min(4, t('form.errors.minimumLength', { length: 4 }))
+            .required(LL.form.error.required())
+            .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
+            .matches(patternDigitOrLowercase, LL.form.error.invalid())
+            .min(4, LL.form.error.minimumLength)
             .test(
               'username-available',
-              t('users.form.errors.usernameTaken'),
+              LL.form.error.usernameTaken(),
               (value?: string) =>
                 value ? !usernamesTaken.getValue().includes(value) : false
             ),
           password: yup
             .string()
-            .min(8, t('form.errors.minimumLength', { length: 8 }))
-            .max(32, t('form.errors.maximumLength', { length: 32 }))
-            .matches(patternAtLeastOneDigit, t('form.errors.atLeastOneDigit'))
-            .matches(
-              patternAtLeastOneSpecialChar,
-              t('form.errors.atLeastOneSpecialChar')
-            )
-            .matches(
-              patternAtLeastOneUpperCaseChar,
-              t('form.errors.atLeastOneUpperCaseChar')
-            )
-            .matches(
-              patternAtLeastOneLowerCaseChar,
-              t('form.errors.atLeastOneLowerCaseChar')
-            )
+            .min(8, LL.form.error.minimumLength())
+            .max(32, LL.form.error.maximumLength())
+            .matches(patternAtLeastOneDigit, LL.form.error.invalid())
+            .matches(patternAtLeastOneSpecialChar, LL.form.error.invalid())
+            .matches(patternAtLeastOneUpperCaseChar, LL.form.error.invalid())
+            .matches(patternAtLeastOneLowerCaseChar, LL.form.error.invalid())
             .required(),
           email: yup
             .string()
-            .required(t('form.errors.required'))
-            .matches(patternValidEmail, t('form.errors.email')),
+            .required(LL.form.error.required())
+            .matches(patternValidEmail, LL.form.error.invalid()),
           last_name: yup
             .string()
-            .required(t('form.errors.required'))
-            .min(4, t('form.errors.minimumLength', { length: 4 })),
+            .required(LL.form.error.required())
+            .min(4, LL.form.error.minimumLength()),
           first_name: yup
             .string()
-            .required(t('form.errors.required'))
-            .min(4, t('form.errors.minimumLength', { length: 4 })),
+            .required(LL.form.error.required())
+            .min(4, LL.form.error.minimumLength()),
           phone: yup
             .string()
-            .required(t('form.errors.required'))
-            .matches(patternValidPhoneNumber, t('form.errors.phoneNumber')),
+            .required(LL.form.error.required())
+            .matches(patternValidPhoneNumber, LL.form.error.invalid()),
         })
         .required(),
-    [t, usernamesTaken]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale, usernamesTaken]
   );
   const {
     handleSubmit,
@@ -139,7 +131,7 @@ const AddUserForm = () => {
     onError: (err) => {
       console.error(err);
       setModalState({ visible: false });
-      toaster.error('Error occured.');
+      toaster.error('Error occurred.');
     },
   });
 
@@ -180,7 +172,7 @@ const AddUserForm = () => {
         if (!available) {
           setError(
             'username',
-            { message: t('users.form.errors.usernameTaken') },
+            { message: LL.form.error.usernameTaken() },
             { shouldFocus: true }
           );
         }
@@ -189,7 +181,7 @@ const AddUserForm = () => {
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usernameSubject]);
+  }, [usernameSubject, locale]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>

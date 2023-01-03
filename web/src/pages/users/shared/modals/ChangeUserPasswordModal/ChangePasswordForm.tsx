@@ -2,9 +2,9 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
@@ -29,35 +29,32 @@ interface Inputs {
 export const ChangePasswordForm = () => {
   const logout = useAuthStore((state) => state.logOut);
   const currentUser = useAuthStore((state) => state.user);
-  const { t } = useTranslation('en');
   const setModalState = useModalStore((state) => state.setChangePasswordModal);
   const modalState = useModalStore((state) => state.changePasswordModal);
   const toaster = useToaster();
+  const { LL, locale } = useI18nContext();
   const schema = useMemo(
     () =>
       yup
         .object({
           new_password: yup
             .string()
-            .min(8, t('form.errors.minimumLength', { length: 8 }))
-            .max(32, t('form.errors.maximumLength', { length: 32 }))
-            .matches(patternAtLeastOneDigit, t('form.errors.atLeastOneDigit'))
-            .matches(
-              patternAtLeastOneSpecialChar,
-              t('form.errors.atLeastOneSpecialChar')
-            )
+            .min(8, LL.form.error.minimumLength())
+            .max(32, LL.form.error.maximumLength())
+            .matches(patternAtLeastOneDigit, LL.form.error.oneDigit())
+            .matches(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
             .matches(
               patternAtLeastOneUpperCaseChar,
-              t('form.errors.atLeastOneUpperCaseChar')
+              LL.form.error.oneUppercase()
             )
             .matches(
               patternAtLeastOneLowerCaseChar,
-              t('form.errors.atLeastOneLowerCaseChar')
+              LL.form.error.oneLowercase()
             )
-            .required(t('form.errors.required')),
+            .required(LL.form.error.required()),
           repeat: yup
             .string()
-            .required(t('form.errors.required'))
+            .required(LL.form.error.required())
             .test(
               'password-match',
               'Does not match with new password',
@@ -65,7 +62,8 @@ export const ChangePasswordForm = () => {
             ),
         })
         .required(),
-    [t]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale]
   );
 
   const {
@@ -89,7 +87,7 @@ export const ChangePasswordForm = () => {
     },
     onError: (err) => {
       console.error(err);
-      toaster.error('Error occured.');
+      toaster.error('Error occurred.');
       setModalState({ user: undefined, visible: false });
     },
   });

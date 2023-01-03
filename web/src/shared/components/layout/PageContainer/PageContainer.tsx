@@ -2,7 +2,7 @@ import './style.scss';
 
 import { ComponentPropsWithoutRef, forwardRef } from 'react';
 
-import Navigation from '../../../../components/Navigation/Navigation';
+import { Navigation } from '../../../../components/Navigation/Navigation';
 import { useNavigationStore } from '../../../hooks/store/useNavigationStore';
 
 /**

@@ -2,9 +2,9 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
@@ -31,27 +31,28 @@ const defaultFormValues: Inputs = {
 };
 
 export const EditUserDeviceForm = () => {
-  const { t } = useTranslation('en');
   const device = useModalStore((state) => state.editUserDeviceModal.device);
   const setModalsState = useModalStore((state) => state.setState);
+  const { LL, locale } = useI18nContext();
 
   const schema = useMemo(() => {
     return yup
       .object({
         name: yup
           .string()
-          .min(4, t('form.errors.minimumLength', { length: 4 }))
-          .matches(patternNoSpecialChars, t('form.errors.noSpecialChars'))
-          .required(t('form.errors.required')),
+          .min(4, LL.form.error.minimumLength())
+          .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
+          .required(LL.form.error.required()),
         wireguard_pubkey: yup
           .string()
-          .min(44, t('form.errors.invalidKey'))
-          .max(44, t('form.errors.invalidKey'))
-          .required(t('form.errors.required'))
-          .matches(patternValidWireguardKey, t('form.errors.invalidKey')),
+          .min(44, LL.form.error.invalidKey())
+          .max(44, LL.form.error.invalidKey())
+          .required(LL.form.error.required())
+          .matches(patternValidWireguardKey, LL.form.error.invalidKey()),
       })
       .required();
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
 
   const { control, handleSubmit } = useForm<Inputs>({
     resolver: yupResolver(schema),

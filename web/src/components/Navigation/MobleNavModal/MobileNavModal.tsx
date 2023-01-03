@@ -1,8 +1,5 @@
 import './style.scss';
 
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-
 import Divider from '../../../shared/components/layout/Divider/Divider';
 import Modal from '../../../shared/components/layout/Modal/Modal';
 import SvgDefguadNavLogo from '../../../shared/components/svg/DefguadNavLogo';
@@ -11,7 +8,7 @@ import SvgIconHamburgerClose from '../../../shared/components/svg/IconHamburgerC
 import SvgIconNavLogout from '../../../shared/components/svg/IconNavLogout';
 import ApplicationVersion from '../ApplicationVersion/ApplicationVersion';
 import { NavigationItem } from '../Navigation';
-import NavigationLink from '../NavigationLink';
+import { NavigationLink } from '../NavigationLink';
 
 interface Props {
   isOpen: boolean;
@@ -20,13 +17,12 @@ interface Props {
   onLogOut: () => void;
 }
 
-const MobileNavModal: React.FC<Props> = ({
+export const MobileNavModal = ({
   isOpen,
   setIsOpen,
   links,
   onLogOut,
-}) => {
-  const { t } = useTranslation('en');
+}: Props) => {
   return (
     <Modal
       className="mobile-nav"
@@ -53,7 +49,7 @@ const MobileNavModal: React.FC<Props> = ({
         <NavigationLink
           key={'/admin/settings'}
           item={{
-            title: t('navigation.template.links.settings'),
+            title: 'Settings',
             linkPath: '/admin/settings',
             icon: <SvgIconEdit />,
             allowedToView: ['admin'],
@@ -62,7 +58,7 @@ const MobileNavModal: React.FC<Props> = ({
         />
       </div>
       <button className="log-out" onClick={() => onLogOut()}>
-        <SvgIconNavLogout /> <span>{t('navigation.template.logOut')}</span>
+        <SvgIconNavLogout /> <span>Log out</span>
       </button>
       <Divider key="app-version-divider" />
       <ApplicationVersion
@@ -89,5 +85,3 @@ const MobileNavModal: React.FC<Props> = ({
     </Modal>
   );
 };
-
-export default MobileNavModal;

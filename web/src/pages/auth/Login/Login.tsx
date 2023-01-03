@@ -3,13 +3,13 @@ import './style.scss';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { SubmitHandler } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
@@ -29,19 +29,24 @@ type Inputs = {
 };
 
 const Login = () => {
-  const { t } = useTranslation('en');
-  const schema = yup
-    .object({
-      username: yup
-        .string()
-        .required(t('auth.login.form.required.username'))
-        .matches(patternNoSpecialChars, t('form.errors.noSpecialChars')),
-      password: yup
-        .string()
-        .required(t('auth.login.form.required.password'))
-        .max(32, t('form.errors.maximumLength', { length: 32 })),
-    })
-    .required();
+  const { LL, locale } = useI18nContext();
+  const schema = useMemo(
+    () =>
+      yup
+        .object({
+          username: yup
+            .string()
+            .required(LL.form.error.required())
+            .matches(patternNoSpecialChars, LL.form.error.noSpecialChars()),
+          password: yup
+            .string()
+            .required(LL.form.error.required())
+            .max(32, LL.form.error.maximumLength()),
+        })
+        .required(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale]
+  );
   const {
     auth: { login },
   } = useApi();
@@ -70,8 +75,8 @@ const Login = () => {
         return;
       }
       if (!user && !mfa) {
-        toaster.error('Unexpected error occured, contact administrator.');
-        console.error('API returned unexpect result upon login.');
+        toaster.error('Unexpected error occurred, contact administrator.');
+        console.error('API returned unexpected result upon login.');
       } else {
         if (user) {
           logIn(user);
@@ -89,8 +94,10 @@ const Login = () => {
               navigate('../mfa/totp');
               break;
             default:
-              toaster.error('Unexpected error occured, contact administrator.');
-              console.error('API returned unexpect result upon login.');
+              toaster.error(
+                'Unexpected error occurred, contact administrator.'
+              );
+              console.error('API returned unexpected result upon login.');
               break;
           }
         }
@@ -128,13 +135,13 @@ const Login = () => {
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormInput
           controller={{ control, name: 'username' }}
-          placeholder={t('auth.login.form.placeholder.username')}
+          placeholder={LL.form.placeholders.username()}
           innerLabel
           required
         />
         <FormInput
           controller={{ control, name: 'password' }}
-          placeholder={t('auth.login.form.placeholder.password')}
+          placeholder={LL.form.placeholders.password()}
           type="password"
           innerLabel
           required
@@ -145,7 +152,7 @@ const Login = () => {
           disabled={loginMutation.isLoading}
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          text={t('auth.login.form.template.login')}
+          text={LL.form.submit()}
         />
       </form>
     </section>

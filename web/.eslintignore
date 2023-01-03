@@ -5,3 +5,4 @@
 /node_modules
 /build
 *.js
+/src/i18n/formatters.ts

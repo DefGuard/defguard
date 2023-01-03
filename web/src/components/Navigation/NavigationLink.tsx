@@ -1,5 +1,4 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import React from 'react';
 import { Link, useMatch } from 'react-router-dom';
 
 import { NavigationItem } from './Navigation';
@@ -9,7 +8,7 @@ interface NavigationLinkProps {
   callback?: () => void;
 }
 
-const NavigationLink: React.FC<NavigationLinkProps> = ({ item, callback }) => {
+export const NavigationLink = ({ item, callback }: NavigationLinkProps) => {
   const match = useMatch(item.linkPath);
   return (
     <Link
@@ -40,5 +39,3 @@ const NavigationLink: React.FC<NavigationLinkProps> = ({ item, callback }) => {
     </Link>
   );
 };
-
-export default NavigationLink;

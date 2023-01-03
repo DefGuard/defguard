@@ -54,7 +54,6 @@ specifiers:
   file-saver: ^2.0.5
   framer-motion: ^8.1.0
   hex-rgb: ^5.0.0
-  i18next: 21.9.2
   itertools: ^1.7.1
   lodash-es: ^4.17.21
   numbro: ^2.3.6
@@ -67,7 +66,6 @@ specifiers:
   react-click-away-listener: ^2.2.2
   react-dom: ^18.2.0
   react-hook-form: ^7.41.3
-  react-i18next: 11.18.6
   react-idle-timer: ^5.4.2
   react-is: ^18.2.0
   react-markdown: ^8.0.4
@@ -90,6 +88,7 @@ specifiers:
   terser: ^5.16.1
   tippy.js: ^6.3.7
   typedoc: ^0.23.23
+  typesafe-i18n: ^5.18.1
   typescript: ~4.9.4
   use-breakpoint: ^3.0.6
   vite: ^4.0.3
@@ -132,7 +131,6 @@ dependencies:
   file-saver: 2.0.5
   framer-motion: 8.1.0_biqbaboplfbrettd7655fr4n2y
   hex-rgb: 5.0.0
-  i18next: 21.9.2
   itertools: 1.7.1
   lodash-es: 4.17.21
   numbro: 2.3.6
@@ -142,7 +140,6 @@ dependencies:
   react-click-away-listener: 2.2.2_biqbaboplfbrettd7655fr4n2y
   react-dom: 18.2.0_react@18.2.0
   react-hook-form: 7.41.3_react@18.2.0
-  react-i18next: 11.18.6_ulhmqqxshznzmtuvahdi5nasbq
   react-idle-timer: 5.4.2_biqbaboplfbrettd7655fr4n2y
   react-is: 18.2.0
   react-markdown: 8.0.4_kzbn2opkn2327fwg5yzwzya5o4
@@ -158,6 +155,7 @@ dependencies:
   rxjs: 7.8.0
   terser: 5.16.1
   tippy.js: 6.3.7
+  typesafe-i18n: 5.18.1_typescript@4.9.4
   use-breakpoint: 3.0.6_biqbaboplfbrettd7655fr4n2y
   vite-plugin-node-polyfills: 0.6.0_rollup@3.9.0+vite@4.0.3
   wagmi: 0.10.2_3caei3uamv6ztaacq4om3jbw2i
@@ -7028,12 +7026,6 @@ packages:
       lru-cache: 6.0.0
     dev: true
 
-  /html-parse-stringify/3.0.1:
-    resolution: {integrity: sha512-KknJ50kTInJ7qIScF3jeaFRpMpE8/lfiTdzf/twXyPBLAGrLRTmkz3AdTnKeh40X8k9L2fdYwEp/42WGXIRGcg==}
-    dependencies:
-      void-elements: 3.1.0
-    dev: false
-
   /html-tags/3.2.0:
     resolution: {integrity: sha512-vy7ClnArOZwCnqZgvv+ddgHgJiAFXe3Ge9ML5/mBctVJoUoYPCdxVucOywjDARn6CVoh3dRSFdPHy2sX80L0Wg==}
     engines: {node: '>=8'}
@@ -7063,12 +7055,6 @@ packages:
     resolution: {integrity: sha512-Fl70vYtsAFb/C06PTS9dZBo7ihau+Tu/DNCk/OyHhea07S+aeMWpFFkUaXRa8fI+ScZbEI8dfSxwY7gxZ9SAVQ==}
     dependencies:
       ms: 2.1.3
-    dev: false
-
-  /i18next/21.9.2:
-    resolution: {integrity: sha512-00fVrLQOwy45nm3OtC9l1WiLK3nJlIYSljgCt0qzTaAy65aciMdRy9GsuW+a2AtKtdg9/njUGfRH30LRupV7ZQ==}
-    dependencies:
-      '@babel/runtime': 7.18.9
     dev: false
 
   /iconv-lite/0.4.24:
@@ -8890,26 +8876,6 @@ packages:
       react: 18.2.0
     dev: false
 
-  /react-i18next/11.18.6_ulhmqqxshznzmtuvahdi5nasbq:
-    resolution: {integrity: sha512-yHb2F9BiT0lqoQDt8loZ5gWP331GwctHz9tYQ8A2EIEUu+CcEdjBLQWli1USG3RdWQt3W+jqQLg/d4rrQR96LA==}
-    peerDependencies:
-      i18next: '>= 19.0.0'
-      react: '>= 16.8.0'
-      react-dom: '*'
-      react-native: '*'
-    peerDependenciesMeta:
-      react-dom:
-        optional: true
-      react-native:
-        optional: true
-    dependencies:
-      '@babel/runtime': 7.18.9
-      html-parse-stringify: 3.0.1
-      i18next: 21.9.2
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
-    dev: false
-
   /react-idle-timer/5.4.2_biqbaboplfbrettd7655fr4n2y:
     resolution: {integrity: sha512-ofCS/qpFjm6ZguEyePvtf9YMDnLj7zZfeLXRWGRpsC6Ga47H4dm7EvoUW8MsozGEGy8zCvPK0Sk6YuAnwLEzRQ==}
     peerDependencies:
@@ -10313,6 +10279,15 @@ packages:
       typescript: 4.9.4
     dev: true
 
+  /typesafe-i18n/5.18.1_typescript@4.9.4:
+    resolution: {integrity: sha512-piqmgTwN1RFHKXgADSRs8otzcGsRh/bZkAfXKs0hvMiJ7QyK8fRsOn0xXgu3MHWre37PJAbcEZt9ps0CN3NokA==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=3.5.1'
+    dependencies:
+      typescript: 4.9.4
+    dev: false
+
   /typescript/4.9.4:
     resolution: {integrity: sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==}
     engines: {node: '>=4.2.0'}
@@ -10684,11 +10659,6 @@ packages:
 
   /vm-browserify/1.1.2:
     resolution: {integrity: sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==}
-    dev: false
-
-  /void-elements/3.1.0:
-    resolution: {integrity: sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==}
-    engines: {node: '>=0.10.0'}
     dev: false
 
   /vscode-oniguruma/1.6.2:
