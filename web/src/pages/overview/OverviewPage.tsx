@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import useBreakpoint from 'use-breakpoint';
 
@@ -14,7 +14,8 @@ import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
-import { OverviewLayoutType } from '../../shared/types';
+import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
+import { sortByDate } from '../../shared/utils/sortByDate';
 import { useNetworkPageStore } from '../network/hooks/useNetworkPageStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
@@ -75,6 +76,21 @@ export const OverviewPage = () => {
     [QueryKeys.FETCH_NETWORKS],
     getNetworks
   );
+
+  const getNetworkUsers = useMemo(() => {
+    let res: NetworkUserStats[] = [];
+    if (!isUndefined(networkUsersStats)) {
+      res = sortByDate(
+        networkUsersStats,
+        (i) => {
+          const devices = sortByDate(i.devices, (d) => d.connected_at, false);
+          return devices[0].connected_at;
+        },
+        false
+      );
+    }
+    return res;
+  }, [networkUsersStats]);
 
   useEffect(() => {
     if (breakpoint === 'mobile' && viewMode === OverviewLayoutType.LIST) {
@@ -139,7 +155,7 @@ export const OverviewPage = () => {
           />
         )}
         <div className="bottom-row">
-          <OverviewConnectedUsers stats={networkUsersStats} />
+          <OverviewConnectedUsers stats={getNetworkUsers} />
           <OverviewActivityStream />
         </div>
       </PageContainer>
