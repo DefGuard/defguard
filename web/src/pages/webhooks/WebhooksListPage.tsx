@@ -9,7 +9,9 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
-import ConfirmModal from '../../shared/components/layout/ConfirmModal/ConfirmModal';
+import ConfirmModal, {
+  ConfirmModalType,
+} from '../../shared/components/layout/ConfirmModal/ConfirmModal';
 import { EditButton } from '../../shared/components/layout/EditButton/EditButton';
 import {
   EditButtonOption,
@@ -170,7 +172,10 @@ export const WebhooksListPage = () => {
             <EditButtonOption
               text="Delete"
               styleVariant={EditButtonOptionStyleVariant.WARNING}
-              onClick={() => setWebhookToDelete(context)}
+              onClick={() => {
+                setWebhookToDelete(context);
+                setDeleteModalOpen(true);
+              }}
               disabled={deleteWebhookIsLoading}
             />
           </EditButton>
@@ -304,8 +309,9 @@ export const WebhooksListPage = () => {
         subTitle="Selected webhook will be deleted."
         isOpen={deleteModalOpen}
         setIsOpen={setDeleteModalOpen}
+        type={ConfirmModalType.WARNING}
         onSubmit={() => {
-          if (webhookToDelete) {
+          if (!isUndefined(webhookToDelete)) {
             deleteWebhookMutation(webhookToDelete.id);
           }
         }}
