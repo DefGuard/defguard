@@ -29,10 +29,19 @@ export const BrandingCard = () => {
     settings: { editSettings, setDefaultBranding },
   } = useApi();
 
-  const settings = useAppStore((state) => state.settings);
+  const [settings, setAppStore] = useAppStore((state) => [
+    state.settings,
+    state.setAppStore,
+  ]);
 
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
+
+  const defaultSettings = {
+    instance_name: 'Defguard',
+    main_logo_url: '/svg/logo-defguard-white.svg',
+    nav_logo_url: '/svg/defguard-nav-logo.svg',
+  };
 
   const { mutate, isLoading } = useMutation(
     [MutationKeys.EDIT_SETTINGS],
@@ -52,7 +61,9 @@ export const BrandingCard = () => {
     [MutationKeys.EDIT_SETTINGS],
     setDefaultBranding,
     {
-      onSuccess: () => {
+      onSuccess: (settings) => {
+        setAppStore({ settings });
+        reset();
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
         toaster.success('Settings changed.');
       },
@@ -79,8 +90,18 @@ export const BrandingCard = () => {
         .required(),
     []
   );
-  const { control, handleSubmit } = useForm<Settings>({
-    defaultValues: settings,
+  const { control, handleSubmit, reset } = useForm<Settings>({
+    defaultValues: {
+      instance_name: settings?.instance_name,
+      main_logo_url:
+        settings?.main_logo_url === defaultSettings.main_logo_url
+          ? ''
+          : settings?.main_logo_url,
+      nav_logo_url:
+        settings?.nav_logo_url === defaultSettings.nav_logo_url
+          ? ''
+          : settings?.nav_logo_url,
+    },
     resolver: yupResolver(formSchema),
     mode: 'all',
   });
@@ -88,7 +109,22 @@ export const BrandingCard = () => {
   if (!settings) return null;
 
   const onSubmit: SubmitHandler<Settings> = (data) => {
-    mutate(data);
+    settings.instance_name = data.instance_name;
+    settings.main_logo_url = data.main_logo_url;
+    settings.nav_logo_url = data.nav_logo_url;
+    mutate(settings);
+  };
+
+  const disableRestoreDefault = () => {
+    if (
+      settings.instance_name === defaultSettings.instance_name &&
+      settings.nav_logo_url === defaultSettings.nav_logo_url &&
+      settings.main_logo_url === defaultSettings.main_logo_url
+    ) {
+      return true;
+    } else {
+      return false;
+    }
   };
 
   return (
@@ -115,6 +151,7 @@ export const BrandingCard = () => {
               icon={<IconCheckmarkWhite />}
               styleVariant={ButtonStyleVariant.PRIMARY}
               loading={isLoading}
+              disabled={disableRestoreDefault()}
               onClick={() => setDefaultBrandingMutation('1')}
             />
             <Button
@@ -138,14 +175,14 @@ export const BrandingCard = () => {
           <FormInput
             outerLabel="Login logo url"
             controller={{ control, name: 'main_logo_url' }}
-            placeholder="https://example.com/logo.jpg"
+            placeholder="Default image"
             required
           />
 
           <FormInput
             outerLabel="Nav Logo url"
             controller={{ control, name: 'nav_logo_url' }}
-            placeholder="https://example.com/logo.jpg"
+            placeholder="Default image"
             required
           />
         </form>

@@ -369,7 +369,7 @@ export interface ApiHook {
   settings: {
     getSettings: () => Promise<Settings>;
     editSettings: (data: Settings) => EmptyApiResponse;
-    setDefaultBranding: (id: string) => EmptyApiResponse;
+    setDefaultBranding: (id: string) => Promise<Settings>;
   };
 }
 
