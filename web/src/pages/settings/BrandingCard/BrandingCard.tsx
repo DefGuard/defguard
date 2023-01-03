@@ -91,17 +91,19 @@ export const BrandingCard = () => {
     []
   );
   const { control, handleSubmit, reset } = useForm<Settings>({
-    defaultValues: {
-      instance_name: settings?.instance_name,
-      main_logo_url:
-        settings?.main_logo_url === defaultSettings.main_logo_url
-          ? ''
-          : settings?.main_logo_url,
-      nav_logo_url:
-        settings?.nav_logo_url === defaultSettings.nav_logo_url
-          ? ''
-          : settings?.nav_logo_url,
-    },
+    defaultValues: useMemo(() => {
+      return {
+        instance_name: settings?.instance_name,
+        main_logo_url:
+          settings?.main_logo_url === defaultSettings.main_logo_url
+            ? ''
+            : settings?.main_logo_url,
+        nav_logo_url:
+          settings?.nav_logo_url === defaultSettings.nav_logo_url
+            ? ''
+            : settings?.nav_logo_url,
+      };
+    }, [settings]),
     resolver: yupResolver(formSchema),
     mode: 'all',
   });
