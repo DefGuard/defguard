@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { clone } from 'lodash-es';
-import React, { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 
 import Button, { ButtonSize, ButtonStyleVariant } from '../Button/Button';
 import Modal from '../Modal/Modal';
@@ -27,16 +27,8 @@ const baseClass = 'modal middle confirm';
 
 /**
  * Reusable modal configuration for modals confirming an action.
- * @param isOpen Visibility state, passed to `Modal` component.
- * @param setIsOpen Setter for `isOpen`
- * @param type Style variant
- * @param title Displayed title in modal
- * @param loading Passed into `Button` loading param
- * @param cancelText Text inside of cancel button
- * @param submitText Text inside of submit / confirmation button
- * @param subTitle Optional text under modal's title
  */
-const ConfirmModal: React.FC<Props> = ({
+const ConfirmModal = ({
   isOpen,
   setIsOpen,
   type,
@@ -46,7 +38,7 @@ const ConfirmModal: React.FC<Props> = ({
   submitText,
   onSubmit,
   subTitle,
-}) => {
+}: Props) => {
   const getMainClass = useMemo(() => {
     let res = clone(baseClass);
     if (type === ConfirmModalType.WARNING) {
@@ -54,6 +46,8 @@ const ConfirmModal: React.FC<Props> = ({
     }
     return res;
   }, [type]);
+
+  console.log(onSubmit);
 
   return (
     <Modal

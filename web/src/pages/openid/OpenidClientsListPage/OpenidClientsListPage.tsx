@@ -41,6 +41,7 @@ import { deviceBreakpoints } from '../../../shared/constants';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
+import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { OpenidClient } from '../../../shared/types';
 import { OpenIdClientModal } from '../modals/OpenIdClientModal/OpenIdClientModal';
@@ -56,7 +57,7 @@ export const OpenidClientsListPage = () => {
   );
   const [searchValue, setSearchValue] = useState('');
   const {
-    openid: { getOpenidClients, changeOpenidClientState },
+    openid: { getOpenidClients, changeOpenidClientState, deleteOpenidClient },
     license: { getLicense },
   } = useApi();
   const setOpenIdClientModalState = useModalStore(
@@ -64,6 +65,20 @@ export const OpenidClientsListPage = () => {
   );
 
   const { data: license } = useQuery([QueryKeys.FETCH_LICENSE], getLicense);
+
+  const { mutate: deleteClientMutation, isLoading: deleteClientLoading } =
+    useMutation([MutationKeys.DELETE_OPENID_CLIENT], deleteOpenidClient, {
+      onSuccess: () => {
+        toaster.success('Client removed.');
+        queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
+        setDeleteClientModalOpen(false);
+      },
+      onError: (err) => {
+        toaster.error('Error has occurred.');
+        setDeleteClientModalOpen(false);
+        console.error(err);
+      },
+    });
 
   const { mutate: editClientStatusMutation } = useMutation(
     (client: OpenidClient) =>
@@ -290,9 +305,11 @@ export const OpenidClientsListPage = () => {
         submitText="Delete"
         subTitle={`Are you sure you want to delete ${deleteClient?.name}`}
         onSubmit={() => {
-          if (deleteClient) {
+          if (!isUndefined(deleteClient)) {
+            deleteClientMutation(deleteClient.client_id);
           }
         }}
+        loading={deleteClientLoading}
         isOpen={deleteClientModalOpen}
         setIsOpen={setDeleteClientModalOpen}
       />
