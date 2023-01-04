@@ -1,23 +1,20 @@
 import './style.scss';
 
-import { HTMLMotionProps, motion } from 'framer-motion';
-import React from 'react';
-
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 
-const ApplicationVersion: React.FC<HTMLMotionProps<'div'>> = (props) => {
+export const ApplicationVersion = () => {
   const version = useAppStore((store) => store.version);
+  const { LL } = useI18nContext();
   return (
-    <motion.div {...props} className="app-version">
+    <div className="app-version">
       <p>
-        Copyright &copy; 2022{' '}
+        {LL.navigation.copyright()}{' '}
         <a href="https://www.teonite.com" target="_blank" rel="noreferrer">
           teonite
         </a>
       </p>
-      {version && <p>Application version: {version}</p>}
-    </motion.div>
+      {version && <p>{LL.navigation.version({ version })}</p>}
+    </div>
   );
 };
-
-export default ApplicationVersion;

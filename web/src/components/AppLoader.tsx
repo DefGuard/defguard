@@ -7,6 +7,7 @@ import shallow from 'zustand/shallow';
 import { useI18nContext } from '../i18n/i18n-react';
 import { detectLocale } from '../i18n/i18n-util';
 import { loadLocaleAsync } from '../i18n/i18n-util.async';
+import { loadLocale } from '../i18n/i18n-util.sync';
 import LoaderPage from '../pages/loader/LoaderPage';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
@@ -100,11 +101,9 @@ export const AppLoader = () => {
       const lang = detectLocale(navigatorDetector);
       setAppStore({ language: lang });
     } else {
-      if (locale !== localLanguage) {
-        loadLocaleAsync(localLanguage).then(() => {
-          setLocale(localLanguage);
-        });
-      }
+      loadLocaleAsync(localLanguage).then(() => {
+        setLocale(localLanguage);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localLanguage]);

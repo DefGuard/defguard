@@ -6,7 +6,7 @@ import SvgDefguadNavLogo from '../../../shared/components/svg/DefguadNavLogo';
 import SvgIconEdit from '../../../shared/components/svg/IconEditAlt';
 import SvgIconHamburgerClose from '../../../shared/components/svg/IconHamburgerClose';
 import SvgIconNavLogout from '../../../shared/components/svg/IconNavLogout';
-import ApplicationVersion from '../ApplicationVersion/ApplicationVersion';
+import { ApplicationVersion } from '../ApplicationVersion/ApplicationVersion';
 import { NavigationItem } from '../Navigation';
 import { NavigationLink } from '../NavigationLink';
 

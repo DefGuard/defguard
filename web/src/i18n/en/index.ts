@@ -1,8 +1,29 @@
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
-  // TODO: your translations go here
-  HI: 'Hi {name:string}! Please leave a star if you like this project: https://github.com/ivanhofer/typesafe-i18n',
+  navigation: {
+    bar: {
+      overview: 'Overview',
+      users: 'Users',
+      provisioners: 'Provisioners',
+      webhooks: 'Webhooks',
+      openId: 'OpenID Apps',
+      myProfile: 'My Profile',
+      settings: 'Settings',
+    },
+    mobileTitles: {
+      users: 'Users',
+      settings: 'Defguard Global Settings',
+      user: 'User Profile',
+      provisioners: 'Provisioners',
+      webhooks: 'Webhooks',
+      openId: 'OpenId Apps',
+      overview: 'Network Overview',
+      networkSettings: 'Network Settings',
+    },
+    copyright: 'Copyright \u00A9 2023',
+    version: 'Application version: {version: string}',
+  },
   form: {
     submit: 'Submit',
     cancel: 'Cancel',

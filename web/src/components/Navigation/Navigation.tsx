@@ -25,7 +25,7 @@ import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
-import ApplicationVersion from './ApplicationVersion/ApplicationVersion';
+import { ApplicationVersion } from './ApplicationVersion/ApplicationVersion';
 import { MobileNavModal } from './MobleNavModal/MobileNavModal';
 import { NavigationLink } from './NavigationLink';
 
@@ -195,7 +195,7 @@ export const Navigation = () => {
                 <NavigationLink key={item.linkPath} item={item} />
               ))}
             </section>
-            <motion.section className="links">
+            <section className="links">
               <NavigationLink
                 key={'/admin/settings'}
                 item={{
@@ -213,35 +213,9 @@ export const Navigation = () => {
                 <SvgIconNavLogout />
                 <span>Logout</span>
               </button>
-              <AnimatePresence>
-                {isNavigationOpen ? (
-                  <Divider key="app-version-divider" />
-                ) : null}
-                {isNavigationOpen ? (
-                  <ApplicationVersion
-                    key="app-version"
-                    initial="hidden"
-                    animate="show"
-                    exit="hidden"
-                    variants={{
-                      hidden: {
-                        opacity: 0,
-                        transition: {
-                          duration: 0.0,
-                        },
-                      },
-                      show: {
-                        opacity: 1,
-                        transition: {
-                          delay: 0.25,
-                        },
-                      },
-                    }}
-                    layout
-                  />
-                ) : null}
-              </AnimatePresence>
-            </motion.section>
+              {isNavigationOpen ? <Divider key="app-version-divider" /> : null}
+              {isNavigationOpen ? <ApplicationVersion /> : null}
+            </section>
           </motion.nav>
         </>
       ) : null}
