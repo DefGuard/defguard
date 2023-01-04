@@ -13,6 +13,7 @@ export const useAppStore = create<
       settings: undefined,
       license: undefined,
       version: undefined,
+      language: undefined,
       setAppStore: (data) => set((state) => ({ ...state, ...data })),
     }),
     {
