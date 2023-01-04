@@ -1,4 +1,3 @@
-import './i18n';
 import './shared/scss/styles.scss';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,6 +8,7 @@ import LoaderPage from './pages/loader/LoaderPage';
 import { Web3ContextProvider } from './shared/components/Web3/Web3ContextProvider';
 
 const App = lazy(() => import('./components/App/App'));
+const TypesafeI18n = lazy(() => import('./i18n/i18n-react'));
 
 const queryClient = new QueryClient();
 const root = createRoot(document.getElementById('root') as HTMLElement);
@@ -17,7 +17,11 @@ root.render(
     <QueryClientProvider client={queryClient}>
       <Web3ContextProvider>
         <Suspense fallback={<LoaderPage />}>
-          <App />
+          <TypesafeI18n locale="en">
+            <Suspense fallback={<LoaderPage />}>
+              <App />
+            </Suspense>
+          </TypesafeI18n>
         </Suspense>
       </Web3ContextProvider>
     </QueryClientProvider>

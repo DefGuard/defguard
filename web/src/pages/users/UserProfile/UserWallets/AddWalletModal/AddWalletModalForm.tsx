@@ -2,10 +2,10 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import { useAccount, useDisconnect, useNetwork, useSignMessage } from 'wagmi';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
@@ -34,7 +34,7 @@ export const AddWalletModalForm = () => {
   const {
     user: { walletChallenge, setWallet },
   } = useApi();
-  const { t } = useTranslation('en');
+  const { LL, locale } = useI18nContext();
 
   const { signMessageAsync } = useSignMessage();
   const { address, isConnected } = useAccount();
@@ -80,11 +80,12 @@ export const AddWalletModalForm = () => {
   const schema = useMemo(() => {
     return yup
       .object({
-        name: yup.string().required(t('form.errors.required')),
-        address: yup.string().required(t('form.errors.required')),
+        name: yup.string().required(LL.form.error.required()),
+        address: yup.string().required(LL.form.error.required()),
       })
       .required();
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
 
   const defaultFormValues = useMemo((): FormValues => {
     if (address && chain?.id) {

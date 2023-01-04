@@ -3,7 +3,6 @@ import './style.scss';
 import { useMutation } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
@@ -27,8 +26,8 @@ import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
 import ApplicationVersion from './ApplicationVersion/ApplicationVersion';
-import MobileNavModal from './MobleNavModal/MobileNavModal';
-import NavigationLink from './NavigationLink';
+import { MobileNavModal } from './MobleNavModal/MobileNavModal';
+import { NavigationLink } from './NavigationLink';
 
 export interface NavigationItem {
   title: string;
@@ -38,8 +37,7 @@ export interface NavigationItem {
   enabled: boolean | undefined;
 }
 
-const Navigation = () => {
-  const { t } = useTranslation('en');
+export const Navigation = () => {
   const [currentUser, storeLogOut] = useAuthStore(
     (state) => [state.user, state.logOut],
     shallow
@@ -101,35 +99,35 @@ const Navigation = () => {
         enabled: settings?.wireguard_enabled,
       },
       {
-        title: t('navigation.template.links.users'),
+        title: 'Users',
         linkPath: '/admin/users',
         icon: <SvgIconNavUsers />,
         allowedToView: ['admin'],
         enabled: true,
       },
       {
-        title: t('navigation.template.links.Provisioners'),
+        title: 'Provisioners',
         linkPath: '/admin/provisioners',
         icon: <SvgIconNavOverview />,
         allowedToView: ['admin'],
         enabled: settings?.worker_enabled,
       },
       {
-        title: t('navigation.template.links.Webhooks'),
+        title: 'Webhooks',
         linkPath: '/admin/webhooks',
         icon: <SvgIconNavSettings />,
         allowedToView: ['admin'],
         enabled: settings?.webhooks_enabled,
       },
       {
-        title: t('navigation.template.links.OpenIDApps'),
+        title: 'OpenID Apps',
         linkPath: '/admin/openid',
         icon: <SvgIconNavOpenId />,
         allowedToView: ['admin'],
         enabled: settings?.openid_enabled,
       },
       {
-        title: t('navigation.template.links.myProfile'),
+        title: 'My profile',
         linkPath: `/me`,
         icon: <SvgIconNavProfile />,
         allowedToView: [],
@@ -155,7 +153,7 @@ const Navigation = () => {
     base = base.filter((item) => item.enabled);
 
     return base;
-  }, [currentUser, t, settings]);
+  }, [currentUser, settings]);
 
   return (
     <>
@@ -201,7 +199,7 @@ const Navigation = () => {
               <NavigationLink
                 key={'/admin/settings'}
                 item={{
-                  title: t('navigation.template.links.settings'),
+                  title: 'Settings',
                   linkPath: '/admin/settings',
                   icon: <SvgIconEdit />,
                   allowedToView: ['admin'],
@@ -212,8 +210,8 @@ const Navigation = () => {
                 className="log-out"
                 onClick={() => logOutMutation.mutate()}
               >
-                <SvgIconNavLogout />{' '}
-                <span>{t('navigation.template.logOut')}</span>
+                <SvgIconNavLogout />
+                <span>Logout</span>
               </button>
               <AnimatePresence>
                 {isNavigationOpen ? (
@@ -256,5 +254,3 @@ const Navigation = () => {
     </>
   );
 };
-
-export default Navigation;

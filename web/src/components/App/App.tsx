@@ -102,7 +102,7 @@ const App = () => {
       setAppStore({ license: data });
     },
     onError: () => {
-      toaster.error('Failed to fetch licence');
+      toaster.error('Failed to fetch license');
     },
     refetchOnWindowFocus: false,
     enabled: !isUndefined(userMe),
