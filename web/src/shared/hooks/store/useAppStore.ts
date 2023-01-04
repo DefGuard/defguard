@@ -1,5 +1,5 @@
 import create from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { UseAppStore } from '../../types';
 
@@ -17,7 +17,7 @@ export const useAppStore = create<
     }),
     {
       name: 'app-store',
-      getStorage: () => sessionStorage,
+      storage: createJSONStorage(() => sessionStorage),
     }
   )
 );

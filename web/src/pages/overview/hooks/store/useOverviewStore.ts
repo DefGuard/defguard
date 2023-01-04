@@ -1,5 +1,5 @@
 import create from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { OverviewLayoutType, OverviewStore } from '../../../../shared/types';
 
@@ -19,6 +19,6 @@ export const useOverviewStore = create<
       statsFilter: 1,
       setState: (newValues) => set((state) => ({ ...state, ...newValues })),
     }),
-    { name: 'overview-store', getStorage: () => sessionStorage }
+    { name: 'overview-store', storage: createJSONStorage(() => sessionStorage) }
   )
 );
