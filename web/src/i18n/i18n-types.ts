@@ -13,11 +13,233 @@ export type Translation = RootTranslation
 export type Translations = RootTranslation
 
 type RootTranslation = {
-	/**
-	 * H​i​ ​{​n​a​m​e​}​!​ ​P​l​e​a​s​e​ ​l​e​a​v​e​ ​a​ ​s​t​a​r​ ​i​f​ ​y​o​u​ ​l​i​k​e​ ​t​h​i​s​ ​p​r​o​j​e​c​t​:​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​i​v​a​n​h​o​f​e​r​/​t​y​p​e​s​a​f​e​-​i​1​8​n
-	 * @param {string} name
-	 */
-	HI: RequiredParams<'name'>
+	modals: {
+		addUser: {
+			/**
+			 * A​d​d​ ​n​e​w​ ​u​s​e​r
+			 */
+			title: string
+			form: {
+				/**
+				 * A​d​d​ ​u​s​e​r
+				 */
+				submit: string
+				fields: {
+					username: {
+						/**
+						 * l​o​g​i​n
+						 */
+						placeholder: string
+						/**
+						 * L​o​g​i​n
+						 */
+						label: string
+					}
+					password: {
+						/**
+						 * P​a​s​s​w​o​r​d
+						 */
+						placeholder: string
+						/**
+						 * P​a​s​s​w​o​r​d
+						 */
+						label: string
+					}
+					email: {
+						/**
+						 * U​s​e​r​ ​e​-​m​a​i​l
+						 */
+						placeholder: string
+						/**
+						 * U​s​e​r​ ​e​-​m​a​i​l
+						 */
+						label: string
+					}
+					firstName: {
+						/**
+						 * F​i​r​s​t​ ​n​a​m​e
+						 */
+						placeholder: string
+						/**
+						 * F​i​r​s​t​ ​n​a​m​e
+						 */
+						label: string
+					}
+					lastName: {
+						/**
+						 * L​a​s​t​ ​n​a​m​e
+						 */
+						placeholder: string
+						/**
+						 * L​a​s​t​ ​n​a​m​e
+						 */
+						label: string
+					}
+					phone: {
+						/**
+						 * P​h​o​n​e
+						 */
+						placeholder: string
+						/**
+						 * P​h​o​n​e
+						 */
+						label: string
+					}
+				}
+			}
+		}
+	}
+	usersOverview: {
+		/**
+		 * U​s​e​r​s
+		 */
+		pageTitle: string
+		search: {
+			/**
+			 * F​i​n​d​ ​u​s​e​r​s
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l​ ​u​s​e​r​s
+			 */
+			all: string
+			/**
+			 * A​d​m​i​n​s​ ​o​n​l​y
+			 */
+			admin: string
+			/**
+			 * U​s​e​r​s​ ​o​n​l​y
+			 */
+			users: string
+		}
+		/**
+		 * A​l​l​ ​u​s​e​r​s
+		 */
+		usersCount: string
+		/**
+		 * A​d​d​ ​n​e​w
+		 */
+		addNewUser: string
+		list: {
+			headers: {
+				/**
+				 * U​s​e​r​ ​n​a​m​e
+				 */
+				name: string
+				/**
+				 * L​o​g​i​n
+				 */
+				username: string
+				/**
+				 * P​h​o​n​e
+				 */
+				phone: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
+				 */
+				changePassword: string
+				/**
+				 * E​d​i​t​ ​a​c​c​o​u​n​t
+				 */
+				edit: string
+				/**
+				 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​K​e​y
+				 */
+				provision: string
+				/**
+				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
+				 */
+				'delete': string
+			}
+		}
+	}
+	navigation: {
+		bar: {
+			/**
+			 * O​v​e​r​v​i​e​w
+			 */
+			overview: string
+			/**
+			 * U​s​e​r​s
+			 */
+			users: string
+			/**
+			 * P​r​o​v​i​s​i​o​n​e​r​s
+			 */
+			provisioners: string
+			/**
+			 * W​e​b​h​o​o​k​s
+			 */
+			webhooks: string
+			/**
+			 * O​p​e​n​I​D​ ​A​p​p​s
+			 */
+			openId: string
+			/**
+			 * M​y​ ​P​r​o​f​i​l​e
+			 */
+			myProfile: string
+			/**
+			 * S​e​t​t​i​n​g​s
+			 */
+			settings: string
+			/**
+			 * L​o​g​ ​o​u​t
+			 */
+			logOut: string
+		}
+		mobileTitles: {
+			/**
+			 * U​s​e​r​s
+			 */
+			users: string
+			/**
+			 * D​e​f​g​u​a​r​d​ ​G​l​o​b​a​l​ ​S​e​t​t​i​n​g​s
+			 */
+			settings: string
+			/**
+			 * U​s​e​r​ ​P​r​o​f​i​l​e
+			 */
+			user: string
+			/**
+			 * P​r​o​v​i​s​i​o​n​e​r​s
+			 */
+			provisioners: string
+			/**
+			 * W​e​b​h​o​o​k​s
+			 */
+			webhooks: string
+			/**
+			 * O​p​e​n​I​d​ ​A​p​p​s
+			 */
+			openId: string
+			/**
+			 * N​e​t​w​o​r​k​ ​O​v​e​r​v​i​e​w
+			 */
+			overview: string
+			/**
+			 * N​e​t​w​o​r​k​ ​S​e​t​t​i​n​g​s
+			 */
+			networkSettings: string
+		}
+		/**
+		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3
+		 */
+		copyright: string
+		/**
+		 * A​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​:​ ​{​v​e​r​s​i​o​n​}
+		 * @param {string} version
+		 */
+		version: RequiredParams<'version'>
+	}
 	form: {
 		/**
 		 * S​u​b​m​i​t
@@ -91,10 +313,232 @@ type RootTranslation = {
 }
 
 export type TranslationFunctions = {
-	/**
-	 * Hi {name}! Please leave a star if you like this project: https://github.com/ivanhofer/typesafe-i18n
-	 */
-	HI: (arg: { name: string }) => LocalizedString
+	modals: {
+		addUser: {
+			/**
+			 * Add new user
+			 */
+			title: () => LocalizedString
+			form: {
+				/**
+				 * Add user
+				 */
+				submit: () => LocalizedString
+				fields: {
+					username: {
+						/**
+						 * login
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Login
+						 */
+						label: () => LocalizedString
+					}
+					password: {
+						/**
+						 * Password
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Password
+						 */
+						label: () => LocalizedString
+					}
+					email: {
+						/**
+						 * User e-mail
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * User e-mail
+						 */
+						label: () => LocalizedString
+					}
+					firstName: {
+						/**
+						 * First name
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * First name
+						 */
+						label: () => LocalizedString
+					}
+					lastName: {
+						/**
+						 * Last name
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Last name
+						 */
+						label: () => LocalizedString
+					}
+					phone: {
+						/**
+						 * Phone
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Phone
+						 */
+						label: () => LocalizedString
+					}
+				}
+			}
+		}
+	}
+	usersOverview: {
+		/**
+		 * Users
+		 */
+		pageTitle: () => LocalizedString
+		search: {
+			/**
+			 * Find users
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All users
+			 */
+			all: () => LocalizedString
+			/**
+			 * Admins only
+			 */
+			admin: () => LocalizedString
+			/**
+			 * Users only
+			 */
+			users: () => LocalizedString
+		}
+		/**
+		 * All users
+		 */
+		usersCount: () => LocalizedString
+		/**
+		 * Add new
+		 */
+		addNewUser: () => LocalizedString
+		list: {
+			headers: {
+				/**
+				 * User name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Login
+				 */
+				username: () => LocalizedString
+				/**
+				 * Phone
+				 */
+				phone: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Change password
+				 */
+				changePassword: () => LocalizedString
+				/**
+				 * Edit account
+				 */
+				edit: () => LocalizedString
+				/**
+				 * Provision YubiKey
+				 */
+				provision: () => LocalizedString
+				/**
+				 * Delete account
+				 */
+				'delete': () => LocalizedString
+			}
+		}
+	}
+	navigation: {
+		bar: {
+			/**
+			 * Overview
+			 */
+			overview: () => LocalizedString
+			/**
+			 * Users
+			 */
+			users: () => LocalizedString
+			/**
+			 * Provisioners
+			 */
+			provisioners: () => LocalizedString
+			/**
+			 * Webhooks
+			 */
+			webhooks: () => LocalizedString
+			/**
+			 * OpenID Apps
+			 */
+			openId: () => LocalizedString
+			/**
+			 * My Profile
+			 */
+			myProfile: () => LocalizedString
+			/**
+			 * Settings
+			 */
+			settings: () => LocalizedString
+			/**
+			 * Log out
+			 */
+			logOut: () => LocalizedString
+		}
+		mobileTitles: {
+			/**
+			 * Users
+			 */
+			users: () => LocalizedString
+			/**
+			 * Defguard Global Settings
+			 */
+			settings: () => LocalizedString
+			/**
+			 * User Profile
+			 */
+			user: () => LocalizedString
+			/**
+			 * Provisioners
+			 */
+			provisioners: () => LocalizedString
+			/**
+			 * Webhooks
+			 */
+			webhooks: () => LocalizedString
+			/**
+			 * OpenId Apps
+			 */
+			openId: () => LocalizedString
+			/**
+			 * Network Overview
+			 */
+			overview: () => LocalizedString
+			/**
+			 * Network Settings
+			 */
+			networkSettings: () => LocalizedString
+		}
+		/**
+		 * Copyright © 2023
+		 */
+		copyright: () => LocalizedString
+		/**
+		 * Application version: {version}
+		 */
+		version: (arg: { version: string }) => LocalizedString
+	}
 	form: {
 		/**
 		 * Submit

@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useMemo } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -32,22 +33,32 @@ enum FilterOptions {
   USERS = 'users',
 }
 
-const filterSelectOptions: SelectOption<FilterOptions>[] = [
-  {
-    label: 'All users',
-    value: FilterOptions.ALL,
-    key: 1,
-  },
-  {
-    label: 'Admins only',
-    value: FilterOptions.ADMIN,
-    key: 2,
-  },
-  { label: 'Users only', value: FilterOptions.USERS, key: 3 },
-];
-
 export const UsersOverview = () => {
+  const { LL, locale } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
+
+  const filterSelectOptions = useMemo(() => {
+    const res: SelectOption<FilterOptions>[] = [
+      {
+        label: LL.usersOverview.filterLabels.all(),
+        value: FilterOptions.ALL,
+        key: 1,
+      },
+      {
+        label: LL.usersOverview.filterLabels.admin(),
+        value: FilterOptions.ADMIN,
+        key: 2,
+      },
+      {
+        label: LL.usersOverview.filterLabels.users(),
+        value: FilterOptions.USERS,
+        key: 3,
+      },
+    ];
+    return res;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
+
   const [selectedFilter, setSelectedFilter] = useState(filterSelectOptions[0]);
 
   const {
@@ -110,20 +121,20 @@ export const UsersOverview = () => {
   return (
     <section id="users-overview">
       {breakpoint === 'desktop' && (
-        <motion.header>
-          <h1>Users</h1>
+        <header>
+          <h1>{LL.usersOverview.pageTitle()}</h1>
           <Search
-            placeholder="Find users"
+            placeholder={LL.usersOverview.search.placeholder()}
             className="users-search"
             initialValue={usersSearchValue}
             debounceTiming={500}
             onDebounce={(value: string) => setUsersSearchValue(value)}
           />
-        </motion.header>
+        </header>
       )}
       <motion.section className="actions">
         <div className="items-count">
-          <span>All users</span>
+          <span>{LL.usersOverview.usersCount()}</span>
           <div className="count" data-test="users-count">
             <span>{users && users.length ? users.length : 0}</span>
           </div>
@@ -148,12 +159,12 @@ export const UsersOverview = () => {
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconUserAddNew />}
-            text="Add new"
+            text={LL.usersOverview.addNewUser()}
           />
         </div>
         {breakpoint !== 'desktop' ? (
           <Search
-            placeholder="Find users"
+            placeholder={LL.usersOverview.search.placeholder()}
             className="users-search"
             debounceTiming={500}
             onDebounce={(value) => setUsersSearchValue(value)}

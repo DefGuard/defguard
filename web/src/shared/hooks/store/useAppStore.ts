@@ -1,5 +1,5 @@
 import create from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { UseAppStore } from '../../types';
 
@@ -13,11 +13,12 @@ export const useAppStore = create<
       settings: undefined,
       license: undefined,
       version: undefined,
+      language: undefined,
       setAppStore: (data) => set((state) => ({ ...state, ...data })),
     }),
     {
       name: 'app-store',
-      getStorage: () => sessionStorage,
+      storage: createJSONStorage(() => sessionStorage),
     }
   )
 );

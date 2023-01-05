@@ -8,23 +8,23 @@ import { Subject, switchMap, timer } from 'rxjs';
 import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
 
-import IconButton from '../../../../../../shared/components/layout/IconButton/IconButton';
-import LoaderSpinner from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import IconButton from '../../../../../shared/components/layout/IconButton/IconButton';
+import LoaderSpinner from '../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
   MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
-import Modal from '../../../../../../shared/components/layout/Modal/Modal';
-import { IconHamburgerClose } from '../../../../../../shared/components/svg';
-import SvgIconCancel from '../../../../../../shared/components/svg/IconCancel';
-import { deviceBreakpoints } from '../../../../../../shared/constants';
-import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
-import useApi from '../../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../../shared/hooks/useToaster';
-import { QueryKeys } from '../../../../../../shared/queries';
+} from '../../../../../shared/components/layout/MessageBox/MessageBox';
+import Modal from '../../../../../shared/components/layout/Modal/Modal';
+import { IconHamburgerClose } from '../../../../../shared/components/svg';
+import SvgIconCancel from '../../../../../shared/components/svg/IconCancel';
+import { deviceBreakpoints } from '../../../../../shared/constants';
+import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
+import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { QueryKeys } from '../../../../../shared/queries';
 import {
   WorkerJobStatus,
   WorkerJobStatusError,
-} from '../../../../../../shared/types';
+} from '../../../../../shared/types';
 import WorkerLoader from './WorkerLoader/WorkerLoader';
 import WorkerSelectionForm from './WorkerSelectionForm/WorkerSelectionForm';
 

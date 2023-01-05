@@ -1,5 +1,5 @@
 import create from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { MFALoginResponse, UserMFAMethod } from '../../../../shared/types';
 
@@ -24,7 +24,7 @@ export const useMFAStore = create<MFAStore, [['zustand/persist', MFAStore]]>(
     }),
     {
       name: 'mfa-storage',
-      getStorage: () => sessionStorage,
+      storage: createJSONStorage(() => sessionStorage),
     }
   )
 );

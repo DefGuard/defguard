@@ -3,20 +3,15 @@ import 'tippy.js/dist/tippy.css';
 import 'tippy.js/animations/scale.css';
 import './App.scss';
 
-import { useQuery } from '@tanstack/react-query';
-import { isUndefined } from 'lodash-es';
-import { useEffect } from 'react';
 import {
   BrowserRouter as Router,
   Navigate,
   Route,
   Routes,
 } from 'react-router-dom';
-import shallow from 'zustand/shallow';
 
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import AuthPage from '../../pages/auth/AuthPage';
-import LoaderPage from '../../pages/loader/LoaderPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
@@ -28,88 +23,11 @@ import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
-import useApi from '../../shared/hooks/useApi';
-import { useToaster } from '../../shared/hooks/useToaster';
-import { QueryKeys } from '../../shared/queries';
 
 const App = () => {
-  const toaster = useToaster();
-  const {
-    getVersion,
-    user: { getMe },
-    settings: { getSettings },
-    license: { getLicense },
-  } = useApi();
-  const [currentUser, logOut, logIn, isAdmin] = useAuthStore(
-    (state) => [state.user, state.logOut, state.logIn, state.isAdmin],
-    shallow
-  );
-  const settings = useAppStore((state) => state.settings);
-
-  useEffect(() => {
-    if (!document.title && settings) {
-      document.title = settings.instance_name;
-    }
-  }, [settings]);
-
-  const { isLoading: currentUserLoading, data: userMe } = useQuery(
-    [QueryKeys.FETCH_ME],
-    getMe,
-    {
-      onSuccess: (user) => {
-        logIn(user);
-      },
-      onError: () => {
-        if (currentUser) {
-          logOut();
-        }
-        console.clear();
-      },
-      refetchOnMount: true,
-      refetchOnWindowFocus: false,
-      retry: false,
-    }
-  );
-
-  const setAppStore = useAppStore((state) => state.setAppStore);
-
-  useQuery([QueryKeys.FETCH_APP_VERSION], getVersion, {
-    onSuccess: (data) => {
-      setAppStore({ version: data.version });
-    },
-    onError: (err) => {
-      toaster.error('Failed to get application version.');
-      console.error(err);
-    },
-    refetchOnWindowFocus: false,
-    retry: false,
-  });
-
-  useQuery([QueryKeys.FETCH_SETTINGS], getSettings, {
-    onSuccess: (settings) => {
-      setAppStore({ settings });
-    },
-    onError: () => {
-      console.clear();
-    },
-    refetchOnWindowFocus: false,
-  });
-
-  useQuery([QueryKeys.FETCH_LICENSE], getLicense, {
-    onSuccess: (data) => {
-      setAppStore({ license: data });
-    },
-    onError: () => {
-      toaster.error('Failed to fetch license');
-    },
-    refetchOnWindowFocus: false,
-    enabled: !isUndefined(userMe),
-  });
-
-  if (currentUserLoading && !userMe && !currentUser) return <LoaderPage />;
-
+  const currentUser = useAuthStore((state) => state.user);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
   return (
     <>
       <div id="app">

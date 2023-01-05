@@ -9,10 +9,10 @@ import * as yup from 'yup';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/Button';
-import { useModalStore } from '../../../../../../../shared/hooks/store/useModalStore';
-import useApi from '../../../../../../../shared/hooks/useApi';
-import { Provisioner } from '../../../../../../../shared/types';
+} from '../../../../../../shared/components/layout/Button/Button';
+import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
+import useApi from '../../../../../../shared/hooks/useApi';
+import { Provisioner } from '../../../../../../shared/types';
 import WorkerSelectItem from './WorkerSelectItem';
 
 interface Props {

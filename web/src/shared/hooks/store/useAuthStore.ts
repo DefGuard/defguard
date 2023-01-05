@@ -1,5 +1,5 @@
 import create from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { isUserAdmin } from '../../helpers/isUserAdmin';
 import { AuthStore } from '../../types';
@@ -28,7 +28,7 @@ export const useAuthStore = create<
     }),
     {
       name: 'auth-store',
-      getStorage: () => sessionStorage,
+      storage: createJSONStorage(() => sessionStorage),
     }
   )
 );

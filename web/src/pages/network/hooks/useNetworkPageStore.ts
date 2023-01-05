@@ -1,6 +1,6 @@
 import { Subject } from 'rxjs';
 import create from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { Network } from '../../../shared/types';
 
@@ -20,7 +20,7 @@ export const useNetworkPageStore = create<NetworkPageStore>()(
     }),
     {
       name: 'network-page',
-      getStorage: () => sessionStorage,
+      storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({ network: state.network }),
     }
   )

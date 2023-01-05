@@ -1,6 +1,4 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/bootstrap' as bs;
-@use '@shared/scss/helpers/_mixins' as mix;
+@use '@scss/helpers' as *;
 
 .modal {
   &.key-provisioning {
@@ -9,7 +7,7 @@
         width: 100%;
         align-items: flex-start;
         row-gap: 0;
-        @include bs.media-breakpoint-down(xl) {
+        @include media-breakpoint-down(xl) {
           box-sizing: border-box;
           padding: 0 2rem;
         }
@@ -18,19 +16,19 @@
           display: block;
           line-height: 18px;
           font-size: 15px;
-          font-weight: map-get($map: v.$text-weights, $key: 'medium');
-          color: v.$gray-darker;
+          color: var(--gray-darker);
           margin-bottom: 2rem;
+          @include text-weight(medium);
         }
 
         ul {
           list-style: none;
           box-sizing: border-box;
           width: 100%;
-          @include bs.media-breakpoint-down(xl) {
+          @include media-breakpoint-down(xl) {
             margin-bottom: 2rem;
           }
-          @include bs.media-breakpoint-up(xl) {
+          @include media-breakpoint-up(xl) {
             margin-bottom: 4rem;
             max-height: 340px;
             overflow: auto;
@@ -54,7 +52,7 @@
               padding: 1rem;
               user-select: none;
               border-radius: 15px;
-              border: 1px solid v.$gray-border;
+              border: 1px solid var(--gray-border);
               cursor: pointer;
 
               input {
@@ -85,12 +83,12 @@
 
                   svg {
                     path {
-                      fill: v.$white;
+                      fill: var(--white);
                     }
 
                     g {
                       rect {
-                        fill: v.$white;
+                        fill: var(--white);
                       }
                     }
                   }
@@ -99,9 +97,10 @@
 
               .name {
                 font-size: 15px;
-                font-weight: map-get($map: v.$text-weights, $key: 'medium');
-                color: v.$text-main;
+                color: var(--text-main);
                 margin-left: 1.1rem;
+
+                @include text-weight(medium);
               }
 
               .status {
@@ -114,8 +113,8 @@
 
                 span {
                   font-size: 12px;
-                  font-weight: map-get($map: v.$text-weights, $key: 'medium');
                   line-height: 14px;
+                  @include text-weight(medium);
                 }
               }
             }
@@ -133,10 +132,10 @@
 
           button {
             &.primary {
-              color: v.$white;
+              color: var(--white);
             }
           }
-          @include bs.media-breakpoint-down(xl) {
+          @include media-breakpoint-down(xl) {
             flex-wrap: wrap-reverse;
             width: 100%;
             row-gap: 1rem;
@@ -145,7 +144,7 @@
               width: 100%;
             }
           }
-          @include bs.media-breakpoint-up(xl) {
+          @include media-breakpoint-up(xl) {
             column-gap: 2rem;
 
             button {

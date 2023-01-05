@@ -7,14 +7,14 @@ import React from 'react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/Button';
-import LoaderSpinner from '../../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+} from '../../../../../../shared/components/layout/Button/Button';
+import LoaderSpinner from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
   MessageBoxType,
-} from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
-import { useModalStore } from '../../../../../../../shared/hooks/store/useModalStore';
-import { WorkerJobStatus } from '../../../../../../../shared/types';
-import KeyBox from '../../../../../shared/components/KeyBox/KeyBox';
+} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
+import { WorkerJobStatus } from '../../../../../../shared/types';
+import KeyBox from '../../../components/KeyBox/KeyBox';
 
 interface Props {
   setIsOpen: (v: boolean) => void;

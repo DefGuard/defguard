@@ -3,9 +3,10 @@ import './style.scss';
 import React from 'react';
 import shallow from 'zustand/shallow';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { ModalWithTitle } from '../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
-import AddUserForm from './AddUserForm';
+import { AddUserForm } from './AddUserForm';
 
 const AddUserModal: React.FC = () => {
   const [{ visible: isOpen }, setModalState] = useModalStore(
@@ -14,11 +15,12 @@ const AddUserModal: React.FC = () => {
   );
 
   const setIsOpen = (v: boolean) => setModalState({ visible: v });
+  const { LL } = useI18nContext();
 
   return (
     <ModalWithTitle
       backdrop
-      title="New user"
+      title={LL.modals.addUser.title()}
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       id="add-user-modal"
