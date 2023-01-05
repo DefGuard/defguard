@@ -44,7 +44,7 @@ impl AppEvent {
     }
 }
 
-#[derive(Deserialize, Model, Serialize, FromRow)]
+#[derive(Deserialize, Model, Serialize, FromRow, Debug)]
 pub struct WebHook {
     #[serde(default)]
     pub id: Option<i64>,
@@ -63,7 +63,7 @@ impl WebHook {
     pub async fn all_enabled(pool: &DbPool, trigger: &AppEvent) -> Result<Vec<Self>, SqlxError> {
         let column_name = trigger.column_name();
         let query = format!(
-            "SELECT id \"id?\", url, description, token, enabled, on_user_created, \
+            "SELECT id, url, description, token, enabled, on_user_created, \
             on_user_deleted, on_user_modified, on_hwkey_provision FROM webhook \
             WHERE enabled AND {}",
             column_name,
