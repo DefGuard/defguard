@@ -10,6 +10,7 @@ const en: BaseTranslation = {
       openId: 'OpenID Apps',
       myProfile: 'My Profile',
       settings: 'Settings',
+      logOut: 'Log out',
     },
     mobileTitles: {
       users: 'Users',

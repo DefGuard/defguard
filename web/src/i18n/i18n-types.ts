@@ -43,6 +43,10 @@ type RootTranslation = {
 			 * S​e​t​t​i​n​g​s
 			 */
 			settings: string
+			/**
+			 * L​o​g​ ​o​u​t
+			 */
+			logOut: string
 		}
 		mobileTitles: {
 			/**
@@ -191,6 +195,10 @@ export type TranslationFunctions = {
 			 * Settings
 			 */
 			settings: () => LocalizedString
+			/**
+			 * Log out
+			 */
+			logOut: () => LocalizedString
 		}
 		mobileTitles: {
 			/**

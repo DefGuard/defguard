@@ -7,7 +7,6 @@ import shallow from 'zustand/shallow';
 import { useI18nContext } from '../i18n/i18n-react';
 import { detectLocale } from '../i18n/i18n-util';
 import { loadLocaleAsync } from '../i18n/i18n-util.async';
-import { loadLocale } from '../i18n/i18n-util.sync';
 import LoaderPage from '../pages/loader/LoaderPage';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
@@ -31,7 +30,7 @@ export const AppLoader = () => {
     settings: { getSettings },
     license: { getLicense },
   } = useApi();
-  const { locale, setLocale } = useI18nContext();
+  const { setLocale } = useI18nContext();
   const localLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setAppStore);
   const license = useAppStore((state) => state.license);

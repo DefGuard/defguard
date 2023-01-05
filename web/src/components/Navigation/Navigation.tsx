@@ -1,12 +1,13 @@
 import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import React, { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import Divider from '../../shared/components/layout/Divider/Divider';
 import IconButton from '../../shared/components/layout/IconButton/IconButton';
 import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
@@ -38,6 +39,7 @@ export interface NavigationItem {
 }
 
 export const Navigation = () => {
+  const { LL, locale } = useI18nContext();
   const [currentUser, storeLogOut] = useAuthStore(
     (state) => [state.user, state.logOut],
     shallow
@@ -63,71 +65,72 @@ export const Navigation = () => {
 
   const getPageTitle = useMemo(() => {
     if (pathname === '/admin/settings') {
-      return 'Defguard global settings';
+      return LL.navigation.mobileTitles.settings();
     }
     if (pathname === '/admin/users' || pathname === '/admin/users/') {
-      return 'Users';
+      return LL.navigation.mobileTitles.users();
     }
     if (pathname.includes('/admin/users/') || pathname.includes('/me')) {
-      return 'User profile';
+      return LL.navigation.mobileTitles.user();
     }
     if (pathname.includes('/admin/provisioners')) {
-      return 'Provisioners';
+      return LL.navigation.mobileTitles.provisioners();
     }
     if (pathname.includes('/admin/webhooks')) {
-      return 'Webhooks';
+      return LL.navigation.mobileTitles.webhooks();
     }
     if (pathname.includes('/admin/openid')) {
-      return 'OpenID Apps';
+      return LL.navigation.mobileTitles.openId();
     }
     if (pathname.includes('/admin/overview')) {
-      return 'Network overview';
+      return LL.navigation.mobileTitles.overview();
     }
     if (pathname.includes('/admin/network')) {
-      return 'Network settings';
+      return LL.navigation.mobileTitles.networkSettings();
     }
     return '';
-  }, [pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, locale]);
 
   const navItems: NavigationItem[] = useMemo(() => {
     let base: NavigationItem[] = [
       {
-        title: 'Overview',
+        title: LL.navigation.bar.overview(),
         linkPath: '/admin/overview',
         icon: <SvgIconNavOverview />,
         allowedToView: ['admin'],
         enabled: settings?.wireguard_enabled,
       },
       {
-        title: 'Users',
+        title: LL.navigation.bar.users(),
         linkPath: '/admin/users',
         icon: <SvgIconNavUsers />,
         allowedToView: ['admin'],
         enabled: true,
       },
       {
-        title: 'Provisioners',
+        title: LL.navigation.bar.provisioners(),
         linkPath: '/admin/provisioners',
         icon: <SvgIconNavOverview />,
         allowedToView: ['admin'],
         enabled: settings?.worker_enabled,
       },
       {
-        title: 'Webhooks',
+        title: LL.navigation.bar.webhooks(),
         linkPath: '/admin/webhooks',
         icon: <SvgIconNavSettings />,
         allowedToView: ['admin'],
         enabled: settings?.webhooks_enabled,
       },
       {
-        title: 'OpenID Apps',
+        title: LL.navigation.bar.openId(),
         linkPath: '/admin/openid',
         icon: <SvgIconNavOpenId />,
         allowedToView: ['admin'],
         enabled: settings?.openid_enabled,
       },
       {
-        title: 'My profile',
+        title: LL.navigation.bar.myProfile(),
         linkPath: `/me`,
         icon: <SvgIconNavProfile />,
         allowedToView: [],
@@ -153,7 +156,8 @@ export const Navigation = () => {
     base = base.filter((item) => item.enabled);
 
     return base;
-  }, [currentUser, settings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, settings, locale]);
 
   return (
     <>
@@ -211,7 +215,7 @@ export const Navigation = () => {
                 onClick={() => logOutMutation.mutate()}
               >
                 <SvgIconNavLogout />
-                <span>Logout</span>
+                <span>{LL.navigation.bar.logOut()}</span>
               </button>
               {isNavigationOpen ? <Divider key="app-version-divider" /> : null}
               {isNavigationOpen ? <ApplicationVersion /> : null}

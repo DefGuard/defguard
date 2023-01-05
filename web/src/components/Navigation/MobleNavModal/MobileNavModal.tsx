@@ -1,5 +1,6 @@
 import './style.scss';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import Divider from '../../../shared/components/layout/Divider/Divider';
 import Modal from '../../../shared/components/layout/Modal/Modal';
 import SvgDefguadNavLogo from '../../../shared/components/svg/DefguadNavLogo';
@@ -23,6 +24,7 @@ export const MobileNavModal = ({
   links,
   onLogOut,
 }: Props) => {
+  const { LL } = useI18nContext();
   return (
     <Modal
       className="mobile-nav"
@@ -49,7 +51,7 @@ export const MobileNavModal = ({
         <NavigationLink
           key={'/admin/settings'}
           item={{
-            title: 'Settings',
+            title: LL.navigation.bar.settings(),
             linkPath: '/admin/settings',
             icon: <SvgIconEdit />,
             allowedToView: ['admin'],
@@ -58,30 +60,10 @@ export const MobileNavModal = ({
         />
       </div>
       <button className="log-out" onClick={() => onLogOut()}>
-        <SvgIconNavLogout /> <span>Log out</span>
+        <SvgIconNavLogout /> <span>{LL.navigation.bar.logOut()}</span>
       </button>
       <Divider key="app-version-divider" />
-      <ApplicationVersion
-        key="app-version"
-        initial="hidden"
-        animate="show"
-        exit="hidden"
-        variants={{
-          hidden: {
-            opacity: 0,
-            transition: {
-              duration: 0.0,
-            },
-          },
-          show: {
-            opacity: 1,
-            transition: {
-              delay: 0.25,
-            },
-          },
-        }}
-        layout
-      />
+      <ApplicationVersion />
     </Modal>
   );
 };
