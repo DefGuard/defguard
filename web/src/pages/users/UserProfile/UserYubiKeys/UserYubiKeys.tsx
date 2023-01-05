@@ -12,7 +12,6 @@ import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfi
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import KeyBox from '../../shared/components/KeyBox/KeyBox';
 import KeyDetailsModal from './modals/KeyDetailsModal/KeyDetailsModal';
-import KeyProvisioningModal from './modals/KeyProvisioningModal/KeyProvisioningModal';
 
 export const UserYubiKeys = () => {
   const license = useAppStore((state) => state.license);
@@ -83,7 +82,6 @@ export const UserYubiKeys = () => {
         />
       )}
       <KeyDetailsModal />
-      <KeyProvisioningModal />
     </section>
   );
 };

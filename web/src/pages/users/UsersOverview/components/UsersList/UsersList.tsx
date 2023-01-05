@@ -4,6 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import useBreakpoint from 'use-breakpoint';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import UserInitials from '../../../../../shared/components/layout/UserInitials/UserInitials';
 import {
   ListHeader,
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export const UsersList = ({ users }: Props) => {
+  const { LL, locale } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const navigate = useNavigate();
   const setNavigationUser = useNavigationStore(
@@ -49,26 +51,27 @@ export const UsersList = ({ users }: Props) => {
     }
     return [
       {
-        text: 'User name',
+        text: LL.usersOverview.list.headers.name(),
         key: 'first_name',
       },
       {
-        text: 'Login',
+        text: LL.usersOverview.list.headers.username(),
         key: 'username',
         sortDirection: ListSortDirection.ASC,
         active: true,
       },
       {
-        text: 'Phone',
+        text: LL.usersOverview.list.headers.phone(),
         key: 'phone',
       },
       {
-        text: 'Actions',
+        text: LL.usersOverview.list.headers.actions(),
         key: 'actions',
         sortable: false,
       },
     ];
-  }, [breakpoint]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [breakpoint, locale]);
 
   const onCellClick = useCallback(
     (user: User) => navigateToUser(user),

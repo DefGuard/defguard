@@ -44,7 +44,7 @@ interface Inputs {
   phone: string;
 }
 
-const AddUserForm = () => {
+export const AddUserForm = () => {
   const { LL, locale } = useI18nContext();
   const {
     user: { addUser, usernameAvailable },
@@ -188,42 +188,42 @@ const AddUserForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            placeholder="User name"
+            placeholder={LL.modals.addUser.form.fields.username.placeholder()}
             controller={{ control, name: 'username' }}
-            outerLabel="User name"
+            outerLabel={LL.modals.addUser.form.fields.username.label()}
             required
           />
           <FormInput
-            outerLabel="Password"
-            placeholder="Password"
+            outerLabel={LL.modals.addUser.form.fields.password.label()}
+            placeholder={LL.modals.addUser.form.fields.password.placeholder()}
             controller={{ control, name: 'password' }}
             type="password"
             required
           />
           <FormInput
-            outerLabel="User e-mail"
+            outerLabel={LL.modals.addUser.form.fields.email.label()}
+            placeholder={LL.modals.addUser.form.fields.email.placeholder()}
             controller={{ control, name: 'email' }}
-            placeholder="User e-mail"
             required
           />
         </div>
         <div className="item">
           <FormInput
-            outerLabel="First name"
+            outerLabel={LL.modals.addUser.form.fields.firstName.label()}
             controller={{ control, name: 'first_name' }}
-            placeholder="First name"
+            placeholder={LL.modals.addUser.form.fields.firstName.placeholder()}
             required
           />
           <FormInput
-            outerLabel="Last name"
+            outerLabel={LL.modals.addUser.form.fields.lastName.label()}
             controller={{ control, name: 'last_name' }}
-            placeholder="Last name"
+            placeholder={LL.modals.addUser.form.fields.lastName.placeholder()}
             required
           />
           <FormInput
             controller={{ control, name: 'phone' }}
-            outerLabel="Phone"
-            placeholder="Phone"
+            outerLabel={LL.modals.addUser.form.fields.phone.label()}
+            placeholder={LL.modals.addUser.form.fields.phone.placeholder()}
             required
           />
         </div>
@@ -231,7 +231,7 @@ const AddUserForm = () => {
       <div className="controls">
         <Button
           size={ButtonSize.BIG}
-          text="Cancel"
+          text={LL.form.cancel()}
           className="cancel"
           onClick={() => setModalState({ visible: false })}
           tabIndex={4}
@@ -242,7 +242,7 @@ const AddUserForm = () => {
           type="submit"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          text="Add user"
+          text={LL.modals.addUser.form.submit()}
           disabled={!isValid}
           loading={addUserMutation.isLoading}
         />
@@ -251,4 +251,3 @@ const AddUserForm = () => {
   );
 };
 
-export default AddUserForm;

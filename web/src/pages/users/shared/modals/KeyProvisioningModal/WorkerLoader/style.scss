@@ -1,5 +1,4 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@scss/helpers' as *;
 
 .modal {
   &.key-provisioning {
@@ -12,39 +11,39 @@
         align-items: center;
         align-content: center;
         justify-content: center;
-        @include bs.media-breakpoint-down(xl) {
+        @include media-breakpoint-down(xl) {
           overflow-y: hidden;
           min-height: 100vh;
         }
 
         & > .loader-spinner {
-          @include bs.media-breakpoint-down(xl) {
+          @include media-breakpoint-down(xl) {
             margin-bottom: 4rem;
           }
-          @include bs.media-breakpoint-up(xl) {
+          @include media-breakpoint-up(xl) {
             margin-bottom: 4rem;
             margin-top: 5rem;
           }
         }
 
         & > .title {
-          color: v.$text-main;
+          color: var(--text-main);
           font-size: 20px;
           line-height: 30px;
-          @include v.poppins;
-
-          font-weight: map-get($map: v.$text-weights, $key: 'semiBold');
           margin-bottom: 1rem;
           user-select: none;
+
+          @include poppins;
+          @include text-weight(semiBold);
         }
 
         & > .sub-title {
-          color: v.$gray-dark;
+          color: var(--gray-dark);
           font-size: 15px;
           line-height: 24px;
           user-select: none;
           margin-bottom: 4rem;
-          @include bs.media-breakpoint-down(xl) {
+          @include media-breakpoint-down(xl) {
             text-align: center;
           }
         }
@@ -53,7 +52,7 @@
           list-style: none;
           width: 100%;
           margin-bottom: auto;
-          @include bs.media-breakpoint-down(xl) {
+          @include media-breakpoint-down(xl) {
             box-sizing: border-box;
             margin-bottom: 2rem;
             padding: 0 2.1rem 0 2rem;
@@ -84,7 +83,7 @@
           justify-content: flex-start;
           width: 100%;
           column-gap: 1rem;
-          @include bs.media-breakpoint-down(xl) {
+          @include media-breakpoint-down(xl) {
             padding: 0 2.1rem 0 2rem;
             box-sizing: border-box;
             flex-wrap: wrap-reverse;

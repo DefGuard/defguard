@@ -1,11 +1,11 @@
 import { AnimatePresence, motion, Variants } from 'framer-motion';
 import React, { useMemo } from 'react';
 
-import { DeviceAvatar } from '../../../../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
-import SvgIconCheckmarkGreen from '../../../../../../../shared/components/svg/IconCheckmarkGreen';
-import SvgIconConnected from '../../../../../../../shared/components/svg/IconConnected';
-import SvgIconDisconnected from '../../../../../../../shared/components/svg/IconDisconnected';
-import { ColorsRGB } from '../../../../../../../shared/constants';
+import { DeviceAvatar } from '../../../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
+import SvgIconCheckmarkGreen from '../../../../../../shared/components/svg/IconCheckmarkGreen';
+import SvgIconConnected from '../../../../../../shared/components/svg/IconConnected';
+import SvgIconDisconnected from '../../../../../../shared/components/svg/IconDisconnected';
+import { ColorsRGB } from '../../../../../../shared/constants';
 
 interface Props {
   onChange: (v: string) => void;

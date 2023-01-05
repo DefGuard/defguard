@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
 import {
   EditButtonOption,
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export const UserEditButton = ({ user }: Props) => {
+  const { LL } = useI18nContext();
   const navigate = useNavigate();
   const setProvisionKeyModal = useModalStore(
     (state) => state.setProvisionKeyModal
@@ -33,12 +35,12 @@ export const UserEditButton = ({ user }: Props) => {
     <EditButton>
       <EditButtonOption
         key="change-password"
-        text="Change password"
+        text={LL.usersOverview.list.editButton.changePassword()}
         onClick={() => setChangePasswordModal({ visible: true, user: user })}
       />
       <EditButtonOption
         key="edit-user"
-        text="Edit account"
+        text={LL.usersOverview.list.editButton.edit()}
         onClick={() => {
           navigate(`/admin/users/${user.username}/edit`, { replace: true });
           setUserProfile({ user: user });
@@ -47,13 +49,13 @@ export const UserEditButton = ({ user }: Props) => {
       />
       <EditButtonOption
         key="provision-yubi-key"
-        text="Provision YubiKey"
+        text={LL.usersOverview.list.editButton.provision()}
         onClick={() => setProvisionKeyModal({ visible: true, user: user })}
       />
       {user.username !== currentUser?.username && (
         <EditButtonOption
           key="delete-user"
-          text="Delete account"
+          text={LL.usersOverview.list.editButton.delete()}
           onClick={() => setDeleteUserModal({ visible: true, user: user })}
           styleVariant={EditButtonOptionStyleVariant.WARNING}
         />
