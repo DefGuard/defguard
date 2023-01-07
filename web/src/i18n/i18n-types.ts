@@ -13,7 +13,113 @@ export type Translation = RootTranslation
 export type Translations = RootTranslation
 
 type RootTranslation = {
+	messages: {
+		/**
+		 * E​r​r​o​r​ ​h​a​s​ ​o​c​c​u​r​r​e​d​.
+		 */
+		error: string
+		/**
+		 * O​p​e​r​a​t​i​o​n​ ​s​u​c​c​e​e​d​e​d
+		 */
+		success: string
+	}
 	modals: {
+		deleteUser: {
+			/**
+			 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​ ​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​d​e​l​e​t​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
+		changeUserPassword: {
+			messages: {
+				/**
+				 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d​.
+				 */
+				success: string
+			}
+			/**
+			 * C​h​a​n​g​e​ ​u​s​e​r​ ​p​a​s​s​w​o​r​d
+			 */
+			title: string
+			form: {
+				controls: {
+					/**
+					 * S​a​v​e​ ​n​e​w​ ​p​a​s​s​w​o​r​d
+					 */
+					submit: string
+				}
+				fields: {
+					newPassword: {
+						/**
+						 * N​e​w​ ​p​a​s​s​w​o​r​d
+						 */
+						label: string
+					}
+					confirmPassword: {
+						/**
+						 * R​e​p​e​a​t​ ​p​a​s​s​w​o​r​d
+						 */
+						label: string
+					}
+				}
+			}
+		}
+		provisionKeys: {
+			/**
+			 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g​:
+			 */
+			title: string
+			/**
+			 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​o​v​i​s​i​o​n​e​r​ ​m​u​s​t​ ​h​a​v​e​ ​a​ ​<​b​>​c​l​e​a​n​<​/​b​>​ ​Y​u​b​i​K​e​y​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​l​u​g​g​e​d​ ​i​n​ ​b​e​ ​p​r​o​v​i​s​i​o​n​e​d​.​ ​T​o​ ​c​l​e​a​n​ ​a​ ​u​s​e​d​ ​Y​u​b​i​K​e​y​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​>​g​p​g​-​c​a​r​d​ ​f​a​c​t​o​r​y​ ​r​e​s​e​t​<​/​b​>​ ​b​e​f​o​r​e​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
+			 */
+			infoBox: string
+			/**
+			 * S​e​l​e​c​t​ ​o​n​e​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y​:
+			 */
+			selectionLabel: string
+			noData: {
+				/**
+				 * N​o​ ​w​o​r​k​e​r​s​ ​f​o​u​n​d​,​ ​w​a​i​t​i​n​g​.​.​.
+				 */
+				workers: string
+			}
+			controls: {
+				/**
+				 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​K​e​y
+				 */
+				submit: string
+			}
+			messages: {
+				/**
+				 * K​e​y​s​ ​p​r​o​v​i​s​i​o​n​e​d
+				 */
+				success: string
+				/**
+				 * E​r​r​o​r​ ​w​h​i​l​e​ ​g​e​t​t​i​n​g​ ​w​o​r​k​e​r​ ​s​t​a​t​u​s​.
+				 */
+				errorStatus: string
+			}
+		}
 		addUser: {
 			/**
 			 * A​d​d​ ​n​e​w​ ​u​s​e​r
@@ -313,7 +419,111 @@ type RootTranslation = {
 }
 
 export type TranslationFunctions = {
+	messages: {
+		/**
+		 * Error has occurred.
+		 */
+		error: () => LocalizedString
+		/**
+		 * Operation succeeded
+		 */
+		success: () => LocalizedString
+	}
 	modals: {
+		deleteUser: {
+			/**
+			 * Delete account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Delete account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to delete {username} account permanently ?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} deleted.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
+		changeUserPassword: {
+			messages: {
+				/**
+				 * Password changed.
+				 */
+				success: () => LocalizedString
+			}
+			/**
+			 * Change user password
+			 */
+			title: () => LocalizedString
+			form: {
+				controls: {
+					/**
+					 * Save new password
+					 */
+					submit: () => LocalizedString
+				}
+				fields: {
+					newPassword: {
+						/**
+						 * New password
+						 */
+						label: () => LocalizedString
+					}
+					confirmPassword: {
+						/**
+						 * Repeat password
+						 */
+						label: () => LocalizedString
+					}
+				}
+			}
+		}
+		provisionKeys: {
+			/**
+			 * Yubikey provisioning:
+			 */
+			title: () => LocalizedString
+			/**
+			 * The selected provisioner must have a <b>clean</b> YubiKey
+		                plugged in be provisioned. To clean a used YubiKey
+		                <b>gpg-card factory reset</b> before provisioning.
+			 */
+			infoBox: () => LocalizedString
+			/**
+			 * Select one of the following provisioners to provision a YubiKey:
+			 */
+			selectionLabel: () => LocalizedString
+			noData: {
+				/**
+				 * No workers found, waiting...
+				 */
+				workers: () => LocalizedString
+			}
+			controls: {
+				/**
+				 * Provision YubiKey
+				 */
+				submit: () => LocalizedString
+			}
+			messages: {
+				/**
+				 * Keys provisioned
+				 */
+				success: () => LocalizedString
+				/**
+				 * Error while getting worker status.
+				 */
+				errorStatus: () => LocalizedString
+			}
+		}
 		addUser: {
 			/**
 			 * Add new user

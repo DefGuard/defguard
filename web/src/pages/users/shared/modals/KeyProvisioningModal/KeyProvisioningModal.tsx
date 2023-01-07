@@ -3,11 +3,12 @@ import './style.scss';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { motion } from 'framer-motion';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Subject, switchMap, timer } from 'rxjs';
 import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconButton from '../../../../../shared/components/layout/IconButton/IconButton';
 import LoaderSpinner from '../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
@@ -26,9 +27,10 @@ import {
   WorkerJobStatusError,
 } from '../../../../../shared/types';
 import WorkerLoader from './WorkerLoader/WorkerLoader';
-import WorkerSelectionForm from './WorkerSelectionForm/WorkerSelectionForm';
+import { WorkerSelectionForm } from './WorkerSelectionForm/WorkerSelectionForm';
 
-const KeyProvisioningModal: React.FC = () => {
+export const KeyProvisioningModal = () => {
+  const { LL } = useI18nContext();
   const [{ visible: isOpen, user: selectedUser }, setModalState] =
     useModalStore(
       (state) => [state.provisionKeyModal, state.setProvisionKeyModal],
@@ -72,8 +74,10 @@ const KeyProvisioningModal: React.FC = () => {
           }
         }
       },
-      onError: () => {
+      onError: (err) => {
         setIsOpen(false);
+        toaster.error(LL.messages.error());
+        console.error(err);
       },
       enabled: isOpen,
     }
@@ -91,12 +95,9 @@ const KeyProvisioningModal: React.FC = () => {
             if (success === true) {
               setJobSucceeded(true);
               setKeysData(rest);
-              toaster.success('Keys provisioned.');
+              toaster.success(LL.modals.provisionKeys.messages.success());
             } else {
-              toaster.error(
-                'Unexpected error occurred.',
-                'Please contact administrator.'
-              );
+              toaster.error(LL.messages.error());
             }
           }
         } else {
@@ -109,7 +110,7 @@ const KeyProvisioningModal: React.FC = () => {
           setJobSucceeded(true);
           setErrorData(data.message);
         } else {
-          setErrorData('Unexpected error');
+          setErrorData(LL.modals.provisionKeys.messages.errorStatus());
         }
       },
     }
@@ -171,7 +172,7 @@ const KeyProvisioningModal: React.FC = () => {
           <section className="provisioning-top">
             <header>
               <p>
-                Yubikey provisioning:
+                {LL.modals.provisionKeys.title()}
                 <span className="user"> {selectedUser?.username}</span>
               </p>
               <IconButton
@@ -184,17 +185,17 @@ const KeyProvisioningModal: React.FC = () => {
               </IconButton>
             </header>
             <MessageBox type={MessageBoxType.INFO}>
-              <p>
-                The selected provisioner must have a <b>clean</b> YubiKey
-                plugged in be provisioned. To clean a used YubiKey use&nbsp;
-                <b>gpg-card factory reset</b> before provisioning.
-              </p>
+              <p
+                dangerouslySetInnerHTML={{
+                  __html: LL.modals.provisionKeys.infoBox(),
+                }}
+              ></p>
             </MessageBox>
           </section>
           {isLoading || !workers || (workers && !workers.length) ? (
             <div className="loader">
               <LoaderSpinner size={80} />
-              <p>No workers found, waiting...</p>
+              <p>{LL.modals.provisionKeys.noData.workers()}</p>
             </div>
           ) : (
             <WorkerSelectionForm
@@ -222,5 +223,3 @@ const KeyProvisioningModal: React.FC = () => {
     </Modal>
   );
 };
-
-export default KeyProvisioningModal;

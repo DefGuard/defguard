@@ -78,17 +78,17 @@ export const ChangePasswordForm = () => {
         modalState.user.username === currentUser?.username
       ) {
         logout();
+        toaster.success(LL.modals.changeUserPassword.messages.success());
         setModalState({ user: undefined, visible: false });
-        toaster.success('Password changed.');
       } else {
+        toaster.success(LL.modals.changeUserPassword.messages.success());
         setModalState({ user: undefined, visible: false });
       }
-      toaster.success('Password changed.');
     },
     onError: (err) => {
-      console.error(err);
-      toaster.error('Error occurred.');
+      toaster.error(LL.messages.error());
       setModalState({ user: undefined, visible: false });
+      console.error(err);
     },
   });
 
@@ -117,12 +117,12 @@ export const ChangePasswordForm = () => {
   return (
     <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
-        outerLabel="New password"
+        outerLabel={LL.modals.changeUserPassword.form.fields.newPassword.label()}
         controller={{ control, name: 'new_password' }}
         type="password"
       />
       <FormInput
-        outerLabel="Repeat password"
+        outerLabel={LL.modals.changeUserPassword.form.fields.confirmPassword.label()}
         controller={{ control, name: 'repeat' }}
         type="password"
       />
@@ -130,7 +130,7 @@ export const ChangePasswordForm = () => {
       <section className="controls">
         <Button
           size={ButtonSize.BIG}
-          text="Cancel"
+          text={LL.form.cancel()}
           className="cancel"
           onClick={() => setModalState({ user: undefined, visible: false })}
           tabIndex={4}
@@ -143,7 +143,7 @@ export const ChangePasswordForm = () => {
           disabled={!isValid}
           loading={changePasswordMutation.isLoading}
           tabIndex={5}
-          text="Save new password"
+          text={LL.modals.changeUserPassword.form.controls.submit()}
         />
       </section>
     </form>

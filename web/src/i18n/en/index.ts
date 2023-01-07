@@ -1,7 +1,58 @@
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
+  messages: {
+    error: 'Error has occurred.',
+    success: 'Operation succeeded',
+  },
   modals: {
+    deleteUser: {
+      title: 'Delete account',
+      controls: {
+        submit: 'Delete account',
+      },
+      message: 'Do you want to delete {username: string} account permanently ?',
+      messages: {
+        success: '{username: string} deleted.',
+      },
+    },
+    changeUserPassword: {
+      messages: {
+        success: 'Password changed.',
+      },
+      title: 'Change user password',
+      form: {
+        controls: {
+          submit: 'Save new password',
+        },
+        fields: {
+          newPassword: {
+            label: 'New password',
+          },
+          confirmPassword: {
+            label: 'Repeat password',
+          },
+        },
+      },
+    },
+    provisionKeys: {
+      title: 'Yubikey provisioning:',
+      infoBox: `The selected provisioner must have a <b>clean</b> YubiKey
+                plugged in be provisioned. To clean a used YubiKey
+                <b>gpg-card factory reset</b> before provisioning.`,
+      selectionLabel:
+        'Select one of the following provisioners to provision a YubiKey:',
+      noData: {
+        workers: 'No workers found, waiting...',
+      },
+      controls: {
+        submit: 'Provision YubiKey',
+      },
+      messages: {
+        success: 'Keys provisioned',
+        errorStatus: 'Error while getting worker status.',
+      },
+    },
     addUser: {
       title: 'Add new user',
       form: {
