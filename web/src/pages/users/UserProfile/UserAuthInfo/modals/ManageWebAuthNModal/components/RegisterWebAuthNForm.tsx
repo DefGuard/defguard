@@ -4,10 +4,11 @@ import {
 } from '@github/webauthn-json/browser-ponyfill';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
@@ -23,17 +24,8 @@ interface FormInputs {
   name: string;
 }
 
-const formSchema = yup
-  .object()
-  .shape({
-    name: yup
-      .string()
-      .required('Name is required')
-      .min(4, 'Minimum 4 characters required.'),
-  })
-  .required();
-
 export const RegisterWebAuthNForm = () => {
+  const { LL, locale } = useI18nContext();
   const toaster = useToaster();
   const setModalState = useModalStore((state) => state.setState);
   const [waitingForSecurityKey, setWaitingForSecurityKey] = useState(false);
@@ -51,7 +43,7 @@ export const RegisterWebAuthNForm = () => {
   const { mutate: registerKeyFinish, isLoading: registerKeyFinishLoading } =
     useMutation([MutationKeys.REGISTER_SECURITY_KEY_FINISH], finish, {
       onSuccess: (data) => {
-        toaster.success('Security key added.');
+        toaster.success(LL.modals.manageWebAuthNKeys.form.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
         reset();
         if (data && data.codes) {
@@ -61,11 +53,27 @@ export const RegisterWebAuthNForm = () => {
           });
         }
       },
-      onError: () => {
-        toaster.error('Key registration failed.');
+      onError: (err) => {
+        toaster.error(LL.messages.error());
         setModalState({ manageWebAuthNKeysModal: { visible: false } });
+        console.error(err);
       },
     });
+
+  const formSchema = useMemo(
+    () =>
+      yup
+        .object()
+        .shape({
+          name: yup
+            .string()
+            .required(LL.form.error.required())
+            .min(4, LL.form.error.minimumLength()),
+        })
+        .required(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale]
+  );
 
   const {
     handleSubmit,
@@ -91,7 +99,7 @@ export const RegisterWebAuthNForm = () => {
       <FormInput
         controller={{ control, name: 'name' }}
         disabled={registerKeyFinishLoading || waitingForSecurityKey}
-        outerLabel="New key name"
+        outerLabel={LL.modals.manageWebAuthNKeys.form.fields.name.label()}
       />
       <div className="controls">
         <Button
@@ -99,7 +107,7 @@ export const RegisterWebAuthNForm = () => {
           styleVariant={ButtonStyleVariant.STANDARD}
           className="cancel"
           type="button"
-          text="Close"
+          text={LL.form.close()}
           onClick={() =>
             setModalState({ manageWebAuthNKeysModal: { visible: false } })
           }
@@ -109,7 +117,7 @@ export const RegisterWebAuthNForm = () => {
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
           loading={registerKeyFinishLoading || waitingForSecurityKey}
-          text="Add new key"
+          text={LL.modals.manageWebAuthNKeys.form.controls.submit()}
           onClick={async () => {
             if (isValid) {
               setWaitingForSecurityKey(true);
@@ -118,9 +126,7 @@ export const RegisterWebAuthNForm = () => {
                 name: formValues.name,
               }).catch((err) => {
                 console.error(err);
-                toaster.error(
-                  'Error occured while initiating key registration.'
-                );
+                toaster.error(LL.messages.error());
               });
               if (!responseData) {
                 setWaitingForSecurityKey(false);
@@ -141,7 +147,7 @@ export const RegisterWebAuthNForm = () => {
                   rpkc: response.toJSON(),
                 });
               } else {
-                toaster.error('Failed to get key response, please try again.');
+                toaster.error(LL.messages.error());
                 setModalState({ manageWebAuthNKeysModal: { visible: false } });
               }
             }

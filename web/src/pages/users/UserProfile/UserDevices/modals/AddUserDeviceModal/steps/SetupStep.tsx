@@ -1,8 +1,11 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import parser from 'html-react-parser';
+import { useMemo } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../../shared/components/Form/FormInput/FormInput';
 import { FormToggle } from '../../../../../../../shared/components/Form/FormToggle/FormToggle';
 import Button, {
@@ -33,45 +36,55 @@ interface FormValues {
   publicKey?: string;
 }
 
-const toggleOptions: ToggleOption<number>[] = [
-  {
-    text: 'Generate key pair',
-    value: AddDeviceSetupChoice.AUTO_CONFIG,
-  },
-  {
-    text: 'Use my own public key',
-    value: AddDeviceSetupChoice.MANUAL_CONFIG,
-  },
-];
-
-const schema = yup
-  .object()
-  .shape({
-    choice: yup.number().required(),
-    name: yup
-      .string()
-      .min(4, 'Min. 4 characters.')
-      .required('Name is required.'),
-    publicKey: yup.string().when('choice', (choice, schema) => {
-      if (choice === AddDeviceSetupChoice.MANUAL_CONFIG) {
-        return schema
-          .min(44, 'Key is invalid.')
-          .max(44, 'Key is invalid.')
-          .required('Key is required.')
-          .matches(patternValidWireguardKey, 'Key is invalid.');
-      }
-      return schema.optional();
-    }),
-  })
-  .required();
-
 export const SetupStep = () => {
+  const { LL, locale } = useI18nContext();
   const toaster = useToaster();
   const setModalState = useModalStore((state) => state.setUserDeviceModal);
   const nextStep = useModalStore((state) => state.userDeviceModal.nextStep);
   const {
     device: { addDevice },
   } = useApi();
+
+  const toggleOptions = useMemo(() => {
+    const res: ToggleOption<number>[] = [
+      {
+        text: LL.modals.addDevice.web.steps.setup.options.auto(),
+        value: AddDeviceSetupChoice.AUTO_CONFIG,
+      },
+      {
+        text: LL.modals.addDevice.web.steps.setup.options.manual(),
+        value: AddDeviceSetupChoice.MANUAL_CONFIG,
+      },
+    ];
+    return res;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
+
+  const schema = useMemo(
+    () =>
+      yup
+        .object()
+        .shape({
+          choice: yup.number().required(),
+          name: yup
+            .string()
+            .min(4, LL.form.error.minimumLength())
+            .required(LL.form.error.required()),
+          publicKey: yup.string().when('choice', (choice, schema) => {
+            if (choice === AddDeviceSetupChoice.MANUAL_CONFIG) {
+              return schema
+                .min(44, LL.form.error.minimumLength())
+                .max(44, LL.form.error.maximumLength())
+                .required(LL.form.error.required())
+                .matches(patternValidWireguardKey, LL.form.error.invalid());
+            }
+            return schema.optional();
+          }),
+        })
+        .required(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale]
+  );
 
   const {
     handleSubmit,
@@ -93,10 +106,10 @@ export const SetupStep = () => {
     useMutation([MutationKeys.ADD_DEVICE], addDevice, {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        toaster.success('Device added');
+        toaster.success(LL.modals.addDevice.messages.success());
       },
       onError: (err) => {
-        toaster.error('Adding device failed');
+        toaster.error(LL.messages.error());
         console.error(err);
       },
     });
@@ -126,7 +139,7 @@ export const SetupStep = () => {
         wireguard_pubkey: values.publicKey as string,
         username: user.username,
       }).then((config) => {
-        // This needs to be replaced with valid key so the wireguard mobile app can consume QRCode
+        // This needs to be replaced with valid key so the wireguard mobile app can consume QRCode without errors
         const res = config.replace(
           'YOUR_PRIVATE_KEY',
           values.publicKey as string
@@ -148,14 +161,11 @@ export const SetupStep = () => {
   return (
     <>
       <MessageBox type={MessageBoxType.INFO}>
-        <p>
-          You need to configure WireguardVPN on your device, please visit{' '}
-          <a href="">documentation</a> if you don&apos;t know how to do it.
-        </p>
+        {parser(LL.modals.addDevice.web.steps.setup.infoMessage())}
       </MessageBox>
       <form onSubmit={handleSubmit(validSubmitHandler)}>
         <FormInput
-          outerLabel="Device Name"
+          outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.name.label()}
           controller={{ control, name: 'name' }}
         />
         <FormToggle
@@ -163,7 +173,7 @@ export const SetupStep = () => {
           controller={{ control, name: 'choice' }}
         />
         <FormInput
-          outerLabel="Provide Your Public Key"
+          outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
           controller={{ control, name: 'publicKey' }}
           disabled={choiceValue === AddDeviceSetupChoice.AUTO_CONFIG}
         />
@@ -171,7 +181,7 @@ export const SetupStep = () => {
           <Button
             className="cancel"
             type="button"
-            text="Cancel"
+            text={LL.form.cancel()}
             styleVariant={ButtonStyleVariant.STANDARD}
             size={ButtonSize.BIG}
             onClick={() =>
@@ -183,7 +193,7 @@ export const SetupStep = () => {
           />
           <Button
             type="submit"
-            text="Generate Config"
+            text={LL.modals.addDevice.web.steps.setup.form.submit()}
             styleVariant={ButtonStyleVariant.PRIMARY}
             size={ButtonSize.BIG}
             disabled={!isValid}

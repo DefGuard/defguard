@@ -22,8 +22,366 @@ type RootTranslation = {
 		 * O​p​e​r​a​t​i​o​n​ ​s​u​c​c​e​e​d​e​d
 		 */
 		success: string
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
+		 */
+		errorVersion: string
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​l​i​c​e​n​s​e​.
+		 */
+		errorLicense: string
+		/**
+		 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
+		 */
+		clipboardError: string
 	}
 	modals: {
+		manageWebAuthNKeys: {
+			/**
+			 * S​e​c​u​r​i​t​y​ ​k​e​y​s
+			 */
+			title: string
+			messages: {
+				/**
+				 * W​e​b​A​u​t​h​N​ ​k​e​y​ ​d​e​l​e​t​e​d​.
+				 */
+				deleted: string
+			}
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​e​c​u​r​i​t​y​ ​k​e​y​s​ ​c​a​n​ ​b​e​ ​u​s​e​d​ ​a​s​ ​y​o​u​r​ ​s​e​c​o​n​d​ ​f​a​c​t​o​r​ ​o​f​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​e​a​d​ ​o​f​ ​a​ ​v​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​.​ ​L​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​c​o​n​f​i​g​u​r​i​n​g​ ​a​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​e​c​u​r​i​t​y​ ​k​e​y​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+	
+			 */
+			infoMessage: string
+			form: {
+				messages: {
+					/**
+					 * S​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d​.
+					 */
+					success: string
+				}
+				fields: {
+					name: {
+						/**
+						 * N​e​w​ ​k​e​y​ ​n​a​m​e
+						 */
+						label: string
+					}
+				}
+				controls: {
+					/**
+					 * A​d​d​ ​n​e​w​ ​K​e​y
+					 */
+					submit: string
+				}
+			}
+		}
+		recoveryCodes: {
+			/**
+			 * R​e​c​o​v​e​r​y​ ​c​o​d​e​s
+			 */
+			title: string
+			/**
+			 * I​ ​h​a​v​e​ ​s​a​v​e​d​ ​m​y​ ​c​o​d​e​s
+			 */
+			submit: string
+			messages: {
+				/**
+				 * C​o​d​e​s​ ​c​o​p​i​e​d​.
+				 */
+				copied: string
+			}
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​r​e​a​t​ ​y​o​u​r​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​w​i​t​h​ ​t​h​e​ ​s​a​m​e​ ​l​e​v​e​l​ ​o​f​ ​a​t​t​e​n​t​i​o​n​ ​a​s​ ​y​o​u​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​w​o​u​l​d​ ​y​o​u​r​ ​p​a​s​s​w​o​r​d​!​ ​W​e​ ​r​e​c​o​m​m​e​n​d​ ​s​a​v​i​n​g​ ​t​h​e​m​ ​w​i​t​h​ ​a​ ​p​a​s​s​w​o​r​d​ ​m​a​n​a​g​e​r​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​u​c​h​ ​a​s​ ​L​a​s​t​p​a​s​s​,​ ​b​i​t​w​a​r​d​e​n​ ​o​r​ ​K​e​e​p​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+	
+			 */
+			infoMessage: string
+		}
+		registerTOTP: {
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​A​p​p​ ​S​e​t​u​p
+			 */
+			title: string
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​,​ ​s​c​a​n​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​,​ ​t​h​e​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​i​n​ ​t​h​e​ ​f​i​e​l​d​ ​b​e​l​o​w​:​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+	
+			 */
+			infoMessage: string
+			messages: {
+				/**
+				 * T​O​T​P​ ​p​a​t​h​ ​c​o​p​i​e​d​.
+				 */
+				totpCopied: string
+				/**
+				 * T​O​T​P​ ​E​n​a​b​l​e​d
+				 */
+				success: string
+			}
+			/**
+			 * C​o​p​y​ ​T​O​T​P​ ​p​a​t​h
+			 */
+			copyPath: string
+			form: {
+				fields: {
+					code: {
+						/**
+						 * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
+						 */
+						label: string
+						/**
+						 * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
+						 */
+						error: string
+					}
+				}
+				controls: {
+					/**
+					 * V​e​r​i​f​y​ ​c​o​d​e
+					 */
+					submit: string
+				}
+			}
+		}
+		editDevice: {
+			/**
+			 * E​d​i​t​ ​d​e​v​i​c​e
+			 */
+			title: string
+			messages: {
+				/**
+				 * D​e​v​i​c​e​ ​u​p​d​a​t​e​d​.
+				 */
+				success: string
+			}
+			form: {
+				fields: {
+					name: {
+						/**
+						 * D​e​v​i​c​e​ ​N​a​m​e
+						 */
+						label: string
+					}
+					publicKey: {
+						/**
+						 * D​e​v​i​c​e​ ​P​u​b​l​i​c​ ​K​e​y​ ​(​W​i​r​e​g​u​a​r​d​)
+						 */
+						label: string
+					}
+				}
+				controls: {
+					/**
+					 * E​d​i​t​ ​d​e​v​i​c​e
+					 */
+					submit: string
+				}
+			}
+		}
+		deleteDevice: {
+			/**
+			 * D​e​l​e​t​e​ ​d​e​v​i​c​e
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​d​e​v​i​c​e​N​a​m​e​}​ ​d​e​v​i​c​e​ ​?
+			 * @param {string} deviceName
+			 */
+			message: RequiredParams<'deviceName'>
+			/**
+			 * D​e​l​e​t​e​ ​d​e​v​i​c​e
+			 */
+			submit: string
+			messages: {
+				/**
+				 * D​e​v​i​c​e​ ​d​e​l​e​t​e​d​.
+				 */
+				success: string
+			}
+		}
+		addDevice: {
+			messages: {
+				/**
+				 * D​e​v​i​c​e​ ​a​d​d​e​d​.
+				 */
+				success: string
+			}
+			web: {
+				/**
+				 * A​d​d​ ​d​e​v​i​c​e
+				 */
+				title: string
+				steps: {
+					config: {
+						messages: {
+							/**
+							 * C​o​n​f​i​g​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
+							 */
+							copyConfig: string
+						}
+						/**
+						 * D​e​v​i​c​e​ ​N​a​m​e
+						 */
+						inputNameLabel: string
+						/**
+						 * 
+					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​i​a​l​o​g​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+				
+						 */
+						warningMessage: string
+						/**
+						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
+						 */
+						qrInfo: string
+						/**
+						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
+						 */
+						qrLabel: string
+						/**
+						 * 
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​i​s​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​c​a​n​ ​b​e​ ​s​c​a​n​n​e​d​,​ ​c​o​p​i​e​d​ ​o​r​ ​d​o​w​n​l​o​a​d​e​d​,​ ​b​u​t​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​n​e​e​d​s​ ​t​o​ ​b​e​ ​u​s​e​d​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​s​t​r​o​n​g​>​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​t​h​a​t​ ​y​o​u​ ​a​r​e​ ​a​d​d​i​n​g​ ​n​o​w​.​<​/​s​t​r​o​n​g​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​>​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​<​/​a​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+						 */
+						qrHelper: string
+						/**
+						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g
+						 */
+						qrCardTitle: string
+					}
+					setup: {
+						/**
+						 * 
+					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​g​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+				
+						 */
+						infoMessage: string
+						options: {
+							/**
+							 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
+							 */
+							auto: string
+							/**
+							 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
+							 */
+							manual: string
+						}
+						form: {
+							/**
+							 * G​e​n​e​r​a​t​e​ ​C​o​n​f​i​g
+							 */
+							submit: string
+							fields: {
+								name: {
+									/**
+									 * D​e​v​i​c​e​ ​N​a​m​e
+									 */
+									label: string
+								}
+								publicKey: {
+									/**
+									 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
+									 */
+									label: string
+								}
+							}
+						}
+					}
+				}
+			}
+			desktop: {
+				/**
+				 * A​d​d​ ​c​u​r​r​e​n​t​ ​d​e​v​i​c​e
+				 */
+				title: string
+				form: {
+					/**
+					 * A​d​d​ ​t​h​i​s​ ​d​e​v​i​c​e
+					 */
+					submit: string
+					fields: {
+						name: {
+							/**
+							 * N​a​m​e
+							 */
+							label: string
+						}
+					}
+				}
+			}
+		}
+		addWallet: {
+			/**
+			 * A​d​d​ ​w​a​l​l​e​t
+			 */
+			title: string
+			/**
+			 * I​n​ ​o​r​d​e​r​ ​t​o​ ​a​d​d​ ​a​ ​E​T​H​ ​w​a​l​l​e​t​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​s​i​g​n​ ​m​e​s​s​a​g​e​.
+			 */
+			infoBox: string
+			form: {
+				fields: {
+					name: {
+						/**
+						 * W​a​l​l​e​t​ ​n​a​m​e
+						 */
+						placeholder: string
+						/**
+						 * N​a​m​e
+						 */
+						label: string
+					}
+					address: {
+						/**
+						 * W​a​l​l​e​t​ ​a​d​d​r​e​s​s
+						 */
+						placeholder: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						label: string
+					}
+				}
+				controls: {
+					/**
+					 * A​d​d​ ​w​a​l​l​e​t
+					 */
+					submit: string
+				}
+			}
+		}
+		keyDetails: {
+			/**
+			 * Y​u​b​i​K​e​y​ ​d​e​t​a​i​l​s
+			 */
+			title: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​a​l​l​ ​k​e​y​s
+			 */
+			downloadAll: string
+		}
 		deleteUser: {
 			/**
 			 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
@@ -195,6 +553,362 @@ type RootTranslation = {
 			}
 		}
 	}
+	userPage: {
+		title: {
+			/**
+			 * U​s​e​r​ ​P​r​o​f​i​l​e
+			 */
+			view: string
+			/**
+			 * E​d​i​t​ ​U​s​e​r​ ​P​r​o​f​i​l​e
+			 */
+			edit: string
+		}
+		messages: {
+			/**
+			 * U​s​e​r​ ​u​p​d​a​t​e​d​.
+			 */
+			editSuccess: string
+		}
+		userDetails: {
+			/**
+			 * P​r​o​f​i​l​e​ ​D​e​t​a​i​l​s
+			 */
+			header: string
+			messages: {
+				/**
+				 * A​p​p​ ​a​n​d​ ​a​l​l​ ​t​o​k​e​n​s​ ​d​e​l​e​t​e​d​.
+				 */
+				deleteApp: string
+			}
+			fields: {
+				username: {
+					/**
+					 * U​s​e​r​n​a​m​e
+					 */
+					label: string
+				}
+				firstName: {
+					/**
+					 * F​i​r​s​t​ ​n​a​m​e
+					 */
+					label: string
+				}
+				lastName: {
+					/**
+					 * L​a​s​t​ ​n​a​m​e
+					 */
+					label: string
+				}
+				phone: {
+					/**
+					 * P​h​o​n​e​ ​n​u​m​b​e​r
+					 */
+					label: string
+				}
+				email: {
+					/**
+					 * E​-​m​a​i​l
+					 */
+					label: string
+				}
+				groups: {
+					/**
+					 * U​s​e​r​ ​g​r​o​u​p​s
+					 */
+					label: string
+					/**
+					 * N​o​ ​g​r​o​u​p​s
+					 */
+					noData: string
+				}
+				apps: {
+					/**
+					 * A​u​t​h​o​r​i​z​e​d​ ​a​p​p​s
+					 */
+					label: string
+					/**
+					 * N​o​ ​a​u​t​h​o​r​i​z​e​d​ ​a​p​p​s
+					 */
+					noData: string
+				}
+			}
+		}
+		userAuthInfo: {
+			/**
+			 * P​a​s​s​w​o​r​d​ ​a​n​d​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
+			 */
+			header: string
+			password: {
+				/**
+				 * P​a​s​s​w​o​r​d​ ​s​e​t​t​i​n​g​s
+				 */
+				header: string
+				/**
+				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
+				 */
+				changePassword: string
+			}
+			recovery: {
+				/**
+				 * R​e​c​o​v​e​r​y​ ​o​p​t​i​o​n​s
+				 */
+				header: string
+				codes: {
+					/**
+					 * R​e​c​o​v​e​r​y​ ​C​o​d​e​s
+					 */
+					label: string
+					/**
+					 * V​i​e​w​e​d
+					 */
+					viewed: string
+				}
+			}
+			mfa: {
+				/**
+				 * T​w​o​-​f​a​c​t​o​r​ ​m​e​t​h​o​d​s
+				 */
+				header: string
+				edit: {
+					/**
+					 * D​i​s​a​b​l​e​ ​M​F​A
+					 */
+					disable: string
+				}
+				messages: {
+					/**
+					 * M​F​A​ ​d​i​s​a​b​l​e​d​.
+					 */
+					mfaDisabled: string
+					/**
+					 * O​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​ ​d​i​s​a​b​l​e​d​.
+					 */
+					OTPDisabled: string
+					/**
+					 * M​F​A​ ​m​e​t​h​o​d​ ​c​h​a​n​g​e​d
+					 */
+					changeMFAMethod: string
+				}
+				securityKey: {
+					/**
+					 * s​e​c​u​r​i​t​y​ ​k​e​y
+					 */
+					singular: string
+					/**
+					 * s​e​c​u​r​i​t​y​ ​k​e​y​s
+					 */
+					plural: string
+				}
+				/**
+				 * d​e​f​a​u​l​t
+				 */
+				'default': string
+				/**
+				 * E​n​a​b​l​e​d
+				 */
+				enabled: string
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+				wallet: {
+					/**
+					 * W​a​l​l​e​t
+					 */
+					singular: string
+					/**
+					 * W​a​l​l​e​t​s
+					 */
+					plural: string
+				}
+				labels: {
+					/**
+					 * T​i​m​e​ ​b​a​s​e​d​ ​o​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​s
+					 */
+					totp: string
+					/**
+					 * S​e​c​u​r​i​t​y​ ​k​e​y​s
+					 */
+					webauth: string
+					/**
+					 * W​a​l​l​e​t​s
+					 */
+					wallets: string
+				}
+				editMode: {
+					/**
+					 * E​n​a​b​l​e
+					 */
+					enable: string
+					/**
+					 * D​i​s​a​b​l​e
+					 */
+					disable: string
+					/**
+					 * M​a​k​e​ ​d​e​f​a​u​l​t
+					 */
+					makeDefault: string
+					webauth: {
+						/**
+						 * M​a​n​a​g​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​s
+						 */
+						manage: string
+					}
+				}
+			}
+		}
+		controls: {
+			/**
+			 * E​d​i​t​ ​p​r​o​f​i​l​e
+			 */
+			editButton: string
+			/**
+			 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
+			 */
+			deleteAccount: string
+		}
+		devices: {
+			/**
+			 * U​s​e​r​ ​d​e​v​i​c​e​s
+			 */
+			header: string
+			addDevice: {
+				/**
+				 * A​d​d​ ​n​e​w​ ​d​e​v​i​c​e
+				 */
+				web: string
+				/**
+				 * A​d​d​ ​t​h​i​s​ ​d​e​v​i​c​e
+				 */
+				desktop: string
+			}
+			card: {
+				labels: {
+					/**
+					 * L​a​s​t​ ​l​o​c​a​t​i​o​n
+					 */
+					location: string
+					/**
+					 * L​a​s​t​ ​I​P​ ​a​d​d​r​e​s​s
+					 */
+					lastIpAddress: string
+					/**
+					 * D​a​t​e​ ​a​d​d​e​d
+					 */
+					date: string
+				}
+				edit: {
+					/**
+					 * E​d​i​t​ ​d​e​v​i​c​e
+					 */
+					edit: string
+					/**
+					 * D​o​w​n​l​o​a​d​ ​c​o​n​f​i​g
+					 */
+					download: string
+					/**
+					 * D​e​l​e​t​e​ ​d​e​v​i​c​e
+					 */
+					'delete': string
+				}
+			}
+		}
+		wallets: {
+			messages: {
+				duplicate: {
+					/**
+					 * C​o​n​n​e​c​t​e​d​ ​w​a​l​l​e​t​ ​i​s​ ​a​l​r​e​a​d​y​ ​r​e​g​i​s​t​e​r​e​d
+					 */
+					primary: string
+					/**
+					 * P​l​e​a​s​e​ ​c​o​n​n​e​c​t​ ​u​n​u​s​e​d​ ​w​a​l​l​e​t​.
+					 */
+					sub: string
+				}
+			}
+			/**
+			 * U​s​e​r​ ​w​a​l​l​e​t​s
+			 */
+			header: string
+			/**
+			 * A​d​d​ ​n​e​w​ ​w​a​l​l​e​t
+			 */
+			addWallet: string
+			card: {
+				/**
+				 * A​d​d​r​e​s​s
+				 */
+				address: string
+				/**
+				 * M​F​A
+				 */
+				mfaBadge: string
+				edit: {
+					/**
+					 * E​n​a​b​l​e​ ​M​F​A
+					 */
+					enableMFA: string
+					/**
+					 * D​i​s​a​b​l​e​ ​M​F​A
+					 */
+					disableMFA: string
+					/**
+					 * D​e​l​e​t​e
+					 */
+					'delete': string
+				}
+				messages: {
+					/**
+					 * W​a​l​l​e​t​ ​d​e​l​e​t​e​d
+					 */
+					deleteSuccess: string
+					/**
+					 * W​a​l​l​e​t​ ​M​F​A​ ​e​n​a​b​l​e​d
+					 */
+					enableMFA: string
+					/**
+					 * W​a​l​l​e​t​ ​M​F​A​ ​d​i​s​a​b​l​e​d
+					 */
+					disableMFA: string
+				}
+			}
+		}
+		yubiKey: {
+			/**
+			 * U​s​e​r​ ​Y​u​b​i​K​e​y
+			 */
+			header: string
+			/**
+			 * P​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
+			 */
+			provision: string
+			keys: {
+				/**
+				 * P​G​P​ ​k​e​y
+				 */
+				pgp: string
+				/**
+				 * S​S​H​ ​k​e​y
+				 */
+				ssh: string
+			}
+			noLicense: {
+				/**
+				 * Y​u​b​i​K​e​y​ ​m​o​d​u​l​e
+				 */
+				moduleName: string
+				/**
+				 * T​h​i​s​ ​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​m​o​d​u​l​e​ ​f​o​r​ ​Y​u​b​i​K​e​y
+				 */
+				line1: string
+				/**
+				 * m​a​n​a​g​e​m​e​n​t​ ​a​n​d​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
+				 */
+				line2: string
+			}
+		}
+	}
 	usersOverview: {
 		/**
 		 * U​s​e​r​s
@@ -348,6 +1062,18 @@ type RootTranslation = {
 	}
 	form: {
 		/**
+		 * D​o​w​n​l​o​a​d
+		 */
+		download: string
+		/**
+		 * C​o​p​y
+		 */
+		copy: string
+		/**
+		 * S​a​v​e​ ​c​h​a​n​g​e​s
+		 */
+		saveChanges: string
+		/**
 		 * S​u​b​m​i​t
 		 */
 		submit: string
@@ -416,6 +1142,20 @@ type RootTranslation = {
 			oneLowercase: string
 		}
 	}
+	components: {
+		noLicenseBox: {
+			footer: {
+				/**
+				 * G​e​t​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e
+				 */
+				get: string
+				/**
+				 * b​y​ ​c​o​n​t​a​c​t​i​n​g​:
+				 */
+				contact: string
+			}
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -428,8 +1168,365 @@ export type TranslationFunctions = {
 		 * Operation succeeded
 		 */
 		success: () => LocalizedString
+		/**
+		 * Failed to get application version.
+		 */
+		errorVersion: () => LocalizedString
+		/**
+		 * Failed to get license.
+		 */
+		errorLicense: () => LocalizedString
+		/**
+		 * Clipboard is not accessible.
+		 */
+		clipboardError: () => LocalizedString
 	}
 	modals: {
+		manageWebAuthNKeys: {
+			/**
+			 * Security keys
+			 */
+			title: () => LocalizedString
+			messages: {
+				/**
+				 * WebAuthN key deleted.
+				 */
+				deleted: () => LocalizedString
+			}
+			/**
+			 * 
+		        <p>
+		          Security keys can be used as your second factor of authentication
+		          instead of a verification code. Learn more about configuring a
+		          security key.
+		        </p>
+	
+			 */
+			infoMessage: () => LocalizedString
+			form: {
+				messages: {
+					/**
+					 * Security key added.
+					 */
+					success: () => LocalizedString
+				}
+				fields: {
+					name: {
+						/**
+						 * New key name
+						 */
+						label: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Add new Key
+					 */
+					submit: () => LocalizedString
+				}
+			}
+		}
+		recoveryCodes: {
+			/**
+			 * Recovery codes
+			 */
+			title: () => LocalizedString
+			/**
+			 * I have saved my codes
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * Codes copied.
+				 */
+				copied: () => LocalizedString
+			}
+			/**
+			 * 
+		        <p>
+		          Treat your recovery codes with the same level of attention as you
+		          would your password! We recommend saving them with a password manager
+		          such as Lastpass, bitwarden or Keeper.
+		        </p>
+	
+			 */
+			infoMessage: () => LocalizedString
+		}
+		registerTOTP: {
+			/**
+			 * Authenticator App Setup
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		        <p>
+		          To setup your MFA, scan this QR code with your authenticator app, then
+		          enter the code in the field below:
+		        </p>
+	
+			 */
+			infoMessage: () => LocalizedString
+			messages: {
+				/**
+				 * TOTP path copied.
+				 */
+				totpCopied: () => LocalizedString
+				/**
+				 * TOTP Enabled
+				 */
+				success: () => LocalizedString
+			}
+			/**
+			 * Copy TOTP path
+			 */
+			copyPath: () => LocalizedString
+			form: {
+				fields: {
+					code: {
+						/**
+						 * Authenticator code
+						 */
+						label: () => LocalizedString
+						/**
+						 * Code is invalid
+						 */
+						error: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Verify code
+					 */
+					submit: () => LocalizedString
+				}
+			}
+		}
+		editDevice: {
+			/**
+			 * Edit device
+			 */
+			title: () => LocalizedString
+			messages: {
+				/**
+				 * Device updated.
+				 */
+				success: () => LocalizedString
+			}
+			form: {
+				fields: {
+					name: {
+						/**
+						 * Device Name
+						 */
+						label: () => LocalizedString
+					}
+					publicKey: {
+						/**
+						 * Device Public Key (Wireguard)
+						 */
+						label: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Edit device
+					 */
+					submit: () => LocalizedString
+				}
+			}
+		}
+		deleteDevice: {
+			/**
+			 * Delete device
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to delete {deviceName} device ?
+			 */
+			message: (arg: { deviceName: string }) => LocalizedString
+			/**
+			 * Delete device
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * Device deleted.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		addDevice: {
+			messages: {
+				/**
+				 * Device added.
+				 */
+				success: () => LocalizedString
+			}
+			web: {
+				/**
+				 * Add device
+				 */
+				title: () => LocalizedString
+				steps: {
+					config: {
+						messages: {
+							/**
+							 * Config copied to clipboard
+							 */
+							copyConfig: () => LocalizedString
+						}
+						/**
+						 * Device Name
+						 */
+						inputNameLabel: () => LocalizedString
+						/**
+						 * 
+					        <p>
+					          Please be advised that you have to download the configuration now,
+					          since <strong>we do not</strong> store your private key. After this
+					          dialog is closed, you <strong>will not be able</strong> to get your
+					          full configuration file (with private keys, only blank template).
+					        </p>
+				
+						 */
+						warningMessage: () => LocalizedString
+						/**
+						 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
+						 */
+						qrInfo: () => LocalizedString
+						/**
+						 * WireGuard Config File
+						 */
+						qrLabel: () => LocalizedString
+						/**
+						 * 
+					          <p>
+					            This configuration file can be scanned, copied or downloaded, but
+					            needs to be used
+					            <strong>on your device that you are adding now.</strong>
+					            <a>Read more in documentation.</a>
+					          </p>
+						 */
+						qrHelper: () => LocalizedString
+						/**
+						 * WireGuard Config
+						 */
+						qrCardTitle: () => LocalizedString
+					}
+					setup: {
+						/**
+						 * 
+					        <p>
+					          You need to configure WireguardVPN on your device, please visit&nbsp;
+					          <a href="">documentation</a> if you don&apos;t know how to do it.
+					        </p>
+				
+						 */
+						infoMessage: () => LocalizedString
+						options: {
+							/**
+							 * Generate key pair
+							 */
+							auto: () => LocalizedString
+							/**
+							 * Use my own public key
+							 */
+							manual: () => LocalizedString
+						}
+						form: {
+							/**
+							 * Generate Config
+							 */
+							submit: () => LocalizedString
+							fields: {
+								name: {
+									/**
+									 * Device Name
+									 */
+									label: () => LocalizedString
+								}
+								publicKey: {
+									/**
+									 * Provide Your Public Key
+									 */
+									label: () => LocalizedString
+								}
+							}
+						}
+					}
+				}
+			}
+			desktop: {
+				/**
+				 * Add current device
+				 */
+				title: () => LocalizedString
+				form: {
+					/**
+					 * Add this device
+					 */
+					submit: () => LocalizedString
+					fields: {
+						name: {
+							/**
+							 * Name
+							 */
+							label: () => LocalizedString
+						}
+					}
+				}
+			}
+		}
+		addWallet: {
+			/**
+			 * Add wallet
+			 */
+			title: () => LocalizedString
+			/**
+			 * In order to add a ETH wallet you will need to sign message.
+			 */
+			infoBox: () => LocalizedString
+			form: {
+				fields: {
+					name: {
+						/**
+						 * Wallet name
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Name
+						 */
+						label: () => LocalizedString
+					}
+					address: {
+						/**
+						 * Wallet address
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Address
+						 */
+						label: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Add wallet
+					 */
+					submit: () => LocalizedString
+				}
+			}
+		}
+		keyDetails: {
+			/**
+			 * YubiKey details
+			 */
+			title: () => LocalizedString
+			/**
+			 * Download all keys
+			 */
+			downloadAll: () => LocalizedString
+		}
 		deleteUser: {
 			/**
 			 * Delete account
@@ -599,6 +1696,362 @@ export type TranslationFunctions = {
 			}
 		}
 	}
+	userPage: {
+		title: {
+			/**
+			 * User Profile
+			 */
+			view: () => LocalizedString
+			/**
+			 * Edit User Profile
+			 */
+			edit: () => LocalizedString
+		}
+		messages: {
+			/**
+			 * User updated.
+			 */
+			editSuccess: () => LocalizedString
+		}
+		userDetails: {
+			/**
+			 * Profile Details
+			 */
+			header: () => LocalizedString
+			messages: {
+				/**
+				 * App and all tokens deleted.
+				 */
+				deleteApp: () => LocalizedString
+			}
+			fields: {
+				username: {
+					/**
+					 * Username
+					 */
+					label: () => LocalizedString
+				}
+				firstName: {
+					/**
+					 * First name
+					 */
+					label: () => LocalizedString
+				}
+				lastName: {
+					/**
+					 * Last name
+					 */
+					label: () => LocalizedString
+				}
+				phone: {
+					/**
+					 * Phone number
+					 */
+					label: () => LocalizedString
+				}
+				email: {
+					/**
+					 * E-mail
+					 */
+					label: () => LocalizedString
+				}
+				groups: {
+					/**
+					 * User groups
+					 */
+					label: () => LocalizedString
+					/**
+					 * No groups
+					 */
+					noData: () => LocalizedString
+				}
+				apps: {
+					/**
+					 * Authorized apps
+					 */
+					label: () => LocalizedString
+					/**
+					 * No authorized apps
+					 */
+					noData: () => LocalizedString
+				}
+			}
+		}
+		userAuthInfo: {
+			/**
+			 * Password and authentication
+			 */
+			header: () => LocalizedString
+			password: {
+				/**
+				 * Password settings
+				 */
+				header: () => LocalizedString
+				/**
+				 * Change password
+				 */
+				changePassword: () => LocalizedString
+			}
+			recovery: {
+				/**
+				 * Recovery options
+				 */
+				header: () => LocalizedString
+				codes: {
+					/**
+					 * Recovery Codes
+					 */
+					label: () => LocalizedString
+					/**
+					 * Viewed
+					 */
+					viewed: () => LocalizedString
+				}
+			}
+			mfa: {
+				/**
+				 * Two-factor methods
+				 */
+				header: () => LocalizedString
+				edit: {
+					/**
+					 * Disable MFA
+					 */
+					disable: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * MFA disabled.
+					 */
+					mfaDisabled: () => LocalizedString
+					/**
+					 * One time password disabled.
+					 */
+					OTPDisabled: () => LocalizedString
+					/**
+					 * MFA method changed
+					 */
+					changeMFAMethod: () => LocalizedString
+				}
+				securityKey: {
+					/**
+					 * security key
+					 */
+					singular: () => LocalizedString
+					/**
+					 * security keys
+					 */
+					plural: () => LocalizedString
+				}
+				/**
+				 * default
+				 */
+				'default': () => LocalizedString
+				/**
+				 * Enabled
+				 */
+				enabled: () => LocalizedString
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+				wallet: {
+					/**
+					 * Wallet
+					 */
+					singular: () => LocalizedString
+					/**
+					 * Wallets
+					 */
+					plural: () => LocalizedString
+				}
+				labels: {
+					/**
+					 * Time based one time passwords
+					 */
+					totp: () => LocalizedString
+					/**
+					 * Security keys
+					 */
+					webauth: () => LocalizedString
+					/**
+					 * Wallets
+					 */
+					wallets: () => LocalizedString
+				}
+				editMode: {
+					/**
+					 * Enable
+					 */
+					enable: () => LocalizedString
+					/**
+					 * Disable
+					 */
+					disable: () => LocalizedString
+					/**
+					 * Make default
+					 */
+					makeDefault: () => LocalizedString
+					webauth: {
+						/**
+						 * Manage security keys
+						 */
+						manage: () => LocalizedString
+					}
+				}
+			}
+		}
+		controls: {
+			/**
+			 * Edit profile
+			 */
+			editButton: () => LocalizedString
+			/**
+			 * Delete account
+			 */
+			deleteAccount: () => LocalizedString
+		}
+		devices: {
+			/**
+			 * User devices
+			 */
+			header: () => LocalizedString
+			addDevice: {
+				/**
+				 * Add new device
+				 */
+				web: () => LocalizedString
+				/**
+				 * Add this device
+				 */
+				desktop: () => LocalizedString
+			}
+			card: {
+				labels: {
+					/**
+					 * Last location
+					 */
+					location: () => LocalizedString
+					/**
+					 * Last IP address
+					 */
+					lastIpAddress: () => LocalizedString
+					/**
+					 * Date added
+					 */
+					date: () => LocalizedString
+				}
+				edit: {
+					/**
+					 * Edit device
+					 */
+					edit: () => LocalizedString
+					/**
+					 * Download config
+					 */
+					download: () => LocalizedString
+					/**
+					 * Delete device
+					 */
+					'delete': () => LocalizedString
+				}
+			}
+		}
+		wallets: {
+			messages: {
+				duplicate: {
+					/**
+					 * Connected wallet is already registered
+					 */
+					primary: () => LocalizedString
+					/**
+					 * Please connect unused wallet.
+					 */
+					sub: () => LocalizedString
+				}
+			}
+			/**
+			 * User wallets
+			 */
+			header: () => LocalizedString
+			/**
+			 * Add new wallet
+			 */
+			addWallet: () => LocalizedString
+			card: {
+				/**
+				 * Address
+				 */
+				address: () => LocalizedString
+				/**
+				 * MFA
+				 */
+				mfaBadge: () => LocalizedString
+				edit: {
+					/**
+					 * Enable MFA
+					 */
+					enableMFA: () => LocalizedString
+					/**
+					 * Disable MFA
+					 */
+					disableMFA: () => LocalizedString
+					/**
+					 * Delete
+					 */
+					'delete': () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Wallet deleted
+					 */
+					deleteSuccess: () => LocalizedString
+					/**
+					 * Wallet MFA enabled
+					 */
+					enableMFA: () => LocalizedString
+					/**
+					 * Wallet MFA disabled
+					 */
+					disableMFA: () => LocalizedString
+				}
+			}
+		}
+		yubiKey: {
+			/**
+			 * User YubiKey
+			 */
+			header: () => LocalizedString
+			/**
+			 * Provision a YubiKey
+			 */
+			provision: () => LocalizedString
+			keys: {
+				/**
+				 * PGP key
+				 */
+				pgp: () => LocalizedString
+				/**
+				 * SSH key
+				 */
+				ssh: () => LocalizedString
+			}
+			noLicense: {
+				/**
+				 * YubiKey module
+				 */
+				moduleName: () => LocalizedString
+				/**
+				 * This is enterprise module for YubiKey
+				 */
+				line1: () => LocalizedString
+				/**
+				 * management and provisioning.
+				 */
+				line2: () => LocalizedString
+			}
+		}
+	}
 	usersOverview: {
 		/**
 		 * Users
@@ -751,6 +2204,18 @@ export type TranslationFunctions = {
 	}
 	form: {
 		/**
+		 * Download
+		 */
+		download: () => LocalizedString
+		/**
+		 * Copy
+		 */
+		copy: () => LocalizedString
+		/**
+		 * Save changes
+		 */
+		saveChanges: () => LocalizedString
+		/**
 		 * Submit
 		 */
 		submit: () => LocalizedString
@@ -817,6 +2282,20 @@ export type TranslationFunctions = {
 			 * One lowercase character required.
 			 */
 			oneLowercase: () => LocalizedString
+		}
+	}
+	components: {
+		noLicenseBox: {
+			footer: {
+				/**
+				 * Get an enterprise license
+				 */
+				get: () => LocalizedString
+				/**
+				 * by contacting:
+				 */
+				contact: () => LocalizedString
+			}
 		}
 	}
 }

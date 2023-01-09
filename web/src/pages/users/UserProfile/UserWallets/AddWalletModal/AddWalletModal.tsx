@@ -1,5 +1,6 @@
 import './style.scss';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../shared/components/layout/MessageBox/MessageBox';
@@ -8,13 +9,14 @@ import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { AddWalletModalForm } from './AddWalletModalForm';
 
 export const AddWalletModal = () => {
+  const { LL } = useI18nContext();
   const open = useModalStore((state) => state.addWalletModal.visible);
   const setModalsState = useModalStore((state) => state.setState);
 
   return (
     <ModalWithTitle
       id="add-wallet-modal"
-      title="Add wallet"
+      title={LL.modals.addWallet.title()}
       isOpen={open}
       setIsOpen={(visibility) =>
         setModalsState({ addWalletModal: { visible: visibility } })
@@ -22,7 +24,7 @@ export const AddWalletModal = () => {
       backdrop
     >
       <MessageBox type={MessageBoxType.INFO}>
-        <p>In order to add a ETH wallet you will need to sign message.</p>
+        <p>{LL.modals.addWallet.infoBox()}</p>
       </MessageBox>
       <AddWalletModalForm />
     </ModalWithTitle>

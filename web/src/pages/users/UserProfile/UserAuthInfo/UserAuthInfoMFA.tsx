@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cloneDeep, isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import {
   ActivityStatus,
   ActivityType,
@@ -21,6 +22,7 @@ import { QueryKeys } from '../../../../shared/queries';
 import { UserMFAMethod } from '../../../../shared/types';
 
 export const UserAuthInfoMFA = () => {
+  const { LL, locale } = useI18nContext();
   const user = useUserProfileStore((store) => store.user);
   const isMe = useUserProfileStore((store) => store.isMe);
   const editMode = useUserProfileStore((store) => store.editMode);
@@ -59,11 +61,11 @@ export const UserAuthInfoMFA = () => {
     {
       onSuccess: () => {
         refreshUserQueries();
-        toaster.success('MFA disabled');
+        toaster.success(LL.userPage.userAuthInfo.mfa.messages.mfaDisabled());
       },
       onError: (err) => {
+        toaster.error(LL.messages.error());
         console.error(err);
-        toaster.error('Disabling MFA failed');
       },
     }
   );
@@ -74,11 +76,11 @@ export const UserAuthInfoMFA = () => {
     {
       onSuccess: () => {
         refreshUserQueries();
-        toaster.success('One time password disabled');
+        toaster.success(LL.userPage.userAuthInfo.mfa.messages.OTPDisabled());
       },
       onError: (err) => {
+        toaster.error(LL.messages.error());
         console.error(err);
-        toaster.error('Disabling one time password failed');
       },
     }
   );
@@ -88,11 +90,13 @@ export const UserAuthInfoMFA = () => {
     editUser,
     {
       onSuccess: () => {
-        toaster.success('User updated');
+        toaster.success(
+          LL.userPage.userAuthInfo.mfa.messages.changeMFAMethod()
+        );
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
       },
       onError: () => {
-        toaster.error('User update failed');
+        toaster.error(LL.messages.error());
       },
     }
   );
@@ -110,50 +114,58 @@ export const UserAuthInfoMFA = () => {
 
   const getTOTPInfoText = useMemo(() => {
     if (user?.totp_enabled) {
-      const res = ['Enabled'];
+      const res: string[] = [LL.userPage.userAuthInfo.mfa.enabled()];
       if (user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD) {
-        res.push('(default)');
+        const defaultStr = `(${LL.userPage.userAuthInfo.mfa.default()})`;
+        res.push(defaultStr);
       }
       return res.join(' ');
     }
-    return 'Disabled';
-  }, [user]);
+    return LL.userPage.userAuthInfo.mfa.disabled();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, locale]);
 
   const getWebAuthNInfoText = useMemo(() => {
     if (user) {
       if (user.security_keys && user.security_keys.length) {
         const res = [
-          `${user.security_keys.length} security key${
-            user.security_keys.length > 1 ? 's' : ''
+          `${user.security_keys.length} ${
+            user.security_keys.length > 1
+              ? LL.userPage.userAuthInfo.mfa.securityKey.plural()
+              : LL.userPage.userAuthInfo.mfa.securityKey.singular()
           }`,
         ];
         if (user.mfa_method === UserMFAMethod.WEB_AUTH_N) {
-          res.push('(default)');
+          res.push(`(${LL.userPage.userAuthInfo.mfa.default()})`);
         }
         return res.join(' ');
       }
     }
-    return 'Disabled';
-  }, [user]);
+    return LL.userPage.userAuthInfo.mfa.disabled();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, locale]);
 
   const getWalletsInfoText = useMemo(() => {
     if (user) {
       const userAuthorizedWallets = user.wallets.filter((w) => w.use_for_mfa);
       if (userAuthorizedWallets && userAuthorizedWallets.length) {
         const res = [
-          `${userAuthorizedWallets.length} Wallet${
-            userAuthorizedWallets.length > 1 ? 's' : ''
+          `${userAuthorizedWallets.length} ${
+            userAuthorizedWallets.length > 1
+              ? LL.userPage.userAuthInfo.mfa.wallet.plural()
+              : LL.userPage.userAuthInfo.mfa.wallet.singular()
           }`,
         ];
         if (user.mfa_method === UserMFAMethod.WEB3) {
-          res.push('(default)');
+          res.push(`(${LL.userPage.userAuthInfo.mfa.default()})`);
         }
         return res.join(' ');
       }
-      return 'Disabled';
+      return LL.userPage.userAuthInfo.mfa.disabled();
     }
     return '';
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, locale]);
 
   return (
     <section className="mfa">
@@ -161,19 +173,23 @@ export const UserAuthInfoMFA = () => {
         {editMode && isMe && (
           <EditButton className="edit-mfa" visible={user?.mfa_enabled}>
             <EditButtonOption
-              text="Disable MFA"
+              text={LL.userPage.userAuthInfo.mfa.edit.disable()}
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               onClick={() => disableMFA()}
             />
           </EditButton>
         )}
-        <h3>Two-factor methods</h3>
+        <h3>{LL.userPage.userAuthInfo.mfa.header()}</h3>
         <span className="status">
           <ActivityStatus
             connectionStatus={
               user?.mfa_enabled ? ActivityType.CONNECTED : ActivityType.ALERT
             }
-            customMessage={user?.mfa_enabled ? 'Enabled' : 'Disabled'}
+            customMessage={
+              user?.mfa_enabled
+                ? LL.userPage.userAuthInfo.mfa.enabled()
+                : LL.userPage.userAuthInfo.mfa.disabled()
+            }
           />
         </span>
       </header>
@@ -187,13 +203,13 @@ export const UserAuthInfoMFA = () => {
                 {user?.totp_enabled && (
                   <EditButtonOption
                     onClick={() => disableTOTPMutation()}
-                    text="Disable"
+                    text={LL.userPage.userAuthInfo.mfa.editMode.disable()}
                     styleVariant={EditButtonOptionStyleVariant.WARNING}
                   />
                 )}
                 {!user?.totp_enabled && (
                   <EditButtonOption
-                    text="Enable"
+                    text={LL.userPage.userAuthInfo.mfa.editMode.enable()}
                     onClick={() =>
                       setModalsState({ registerTOTP: { visible: true } })
                     }
@@ -204,7 +220,7 @@ export const UserAuthInfoMFA = () => {
                     !user?.totp_enabled ||
                     user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD
                   }
-                  text="Make default"
+                  text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
                   onClick={() =>
                     changeDefaultMFAMethod(UserMFAMethod.ONE_TIME_PASSWORD)
                   }
@@ -218,7 +234,7 @@ export const UserAuthInfoMFA = () => {
               <span>{getWebAuthNInfoText}</span>
               <EditButton>
                 <EditButtonOption
-                  text="Manage security keys"
+                  text={LL.userPage.userAuthInfo.mfa.editMode.webauth.manage()}
                   onClick={() =>
                     setModalsState({
                       manageWebAuthNKeysModal: { visible: true },
@@ -230,7 +246,7 @@ export const UserAuthInfoMFA = () => {
                     user?.mfa_method === UserMFAMethod.WEB_AUTH_N ||
                     !mfaWebAuthNEnabled
                   }
-                  text="Make default"
+                  text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
                   onClick={() =>
                     changeDefaultMFAMethod(UserMFAMethod.WEB_AUTH_N)
                   }
@@ -247,7 +263,7 @@ export const UserAuthInfoMFA = () => {
                   disabled={
                     user?.mfa_method === UserMFAMethod.WEB3 || !mfaWeb3Enabled
                   }
-                  text="Make default"
+                  text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
                   onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB3)}
                 />
               </EditButton>
@@ -257,15 +273,15 @@ export const UserAuthInfoMFA = () => {
       ) : (
         <>
           <div className="row">
-            <p>Authentication method</p>
+            <p>{LL.userPage.userAuthInfo.mfa.labels.totp()}</p>
             <p className="info">{getTOTPInfoText}</p>
           </div>
           <div className="row">
-            <p>Security keys</p>
+            <p>{LL.userPage.userAuthInfo.mfa.labels.webauth()}</p>
             <p className="info">{getWebAuthNInfoText}</p>
           </div>
           <div className="row">
-            <p>Wallets</p>
+            <p>{LL.userPage.userAuthInfo.mfa.labels.wallets()}</p>
             <p className="info">{getWalletsInfoText}</p>
           </div>
         </>

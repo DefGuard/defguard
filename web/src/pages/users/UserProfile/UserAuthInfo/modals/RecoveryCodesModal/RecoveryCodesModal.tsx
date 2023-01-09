@@ -3,7 +3,9 @@ import './style.scss';
 import { useMutation } from '@tanstack/react-query';
 import clipboard from 'clipboardy';
 import { saveAs } from 'file-saver';
+import parse from 'html-react-parser';
 
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -23,13 +25,14 @@ import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
 
 export const RecoveryCodesModal = () => {
+  const { LL } = useI18nContext();
   const modalState = useModalStore((state) => state.recoveryCodesModal);
   const setModalState = useModalStore((state) => state.setRecoveryCodesModal);
 
   return (
     <ModalWithTitle
       id="view-recovery-codes"
-      title="Recovery codes"
+      title={LL.modals.recoveryCodes.title()}
       isOpen={modalState.visible}
       setIsOpen={(visible) => setModalState({ visible, codes: undefined })}
       disableClose={true}
@@ -41,6 +44,7 @@ export const RecoveryCodesModal = () => {
 };
 
 const ModalContent = () => {
+  const { LL } = useI18nContext();
   const codes = useModalStore((state) => state.recoveryCodesModal.codes);
   const setModalState = useModalStore((state) => state.setRecoveryCodesModal);
   const {
@@ -62,11 +66,7 @@ const ModalContent = () => {
   return (
     <>
       <MessageBox type={MessageBoxType.INFO}>
-        <p>
-          Treat your recovery codes with the same level of attention as you
-          would your password! We recommend saving them with a password manager
-          such as Lastpass, bitwarden or Keeper.
-        </p>
+        {parse(LL.modals.recoveryCodes.infoMessage())}
       </MessageBox>
       <div className="codes">
         {codes.map((code) => (
@@ -78,7 +78,7 @@ const ModalContent = () => {
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.STANDARD}
           icon={<IconDownload />}
-          text="Download"
+          text={LL.form.download()}
           onClick={() => {
             if (codes) {
               const blob = new Blob([codes.join('\n')], {
@@ -92,17 +92,17 @@ const ModalContent = () => {
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.STANDARD}
           icon={<IconCopy />}
-          text="Copy"
+          text={LL.form.copy()}
           onClick={() => {
             if (codes) {
               clipboard
                 .write(codes.join('\n'))
                 .then(() => {
-                  toaster.success('Codes copied');
+                  toaster.success(LL.modals.recoveryCodes.messages.copied());
                 })
                 .catch((err) => {
+                  toaster.error(LL.messages.clipboardError());
                   console.error(err);
-                  toaster.error('Clipboard unaccessible');
                 });
             }
           }}
@@ -110,7 +110,7 @@ const ModalContent = () => {
       </div>
       <div className="controls">
         <Button
-          text="I have saved my codes."
+          text={LL.modals.recoveryCodes.submit()}
           onClick={() => mutate()}
           styleVariant={ButtonStyleVariant.WARNING}
           size={ButtonSize.BIG}

@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
 import Badge, {
   BadgeStyleVariant,
@@ -36,6 +37,7 @@ export const WalletCard = ({
   connected = false,
   showMFA = false,
 }: Props) => {
+  const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const setModalsState = useModalStore((state) => state.setState);
   const toaster = useToaster();
@@ -57,10 +59,11 @@ export const WalletCard = ({
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        toaster.success('Wallet deleted');
+        toaster.success(LL.userPage.wallets.card.messages.deleteSuccess());
       },
-      onError: () => {
-        toaster.error('Wallet deletion failed');
+      onError: (err) => {
+        toaster.error(LL.messages.error());
+        console.error(err);
       },
     }
   );
@@ -72,9 +75,9 @@ export const WalletCard = ({
       onSuccess: (data, props) => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
         if (props.use_for_mfa) {
-          toaster.success('Wallet MFA enabled');
+          toaster.success(LL.userPage.wallets.card.messages.enableMFA());
         } else {
-          toaster.success('Wallet MFA disabled');
+          toaster.success(LL.userPage.wallets.card.messages.disableMFA());
         }
         if (data && data.codes) {
           setModalsState({
@@ -83,8 +86,8 @@ export const WalletCard = ({
         }
       },
       onError: (err) => {
+        toaster.error(LL.messages.error());
         console.error(err);
-        toaster.error('Wallet change failed');
       },
     }
   );
@@ -98,7 +101,7 @@ export const WalletCard = ({
       <EditButton visible={hovered || breakpoint !== 'desktop'}>
         {!wallet.use_for_mfa && showMFA && (
           <EditButtonOption
-            text="Enable MFA"
+            text={LL.userPage.wallets.card.edit.enableMFA()}
             onClick={() => {
               if (user) {
                 updateWalletMFAMutation({
@@ -112,7 +115,7 @@ export const WalletCard = ({
         )}
         {wallet.use_for_mfa && showMFA && (
           <EditButtonOption
-            text="Disable MFA"
+            text={LL.userPage.wallets.card.edit.disableMFA()}
             styleVariant={EditButtonOptionStyleVariant.WARNING}
             onClick={() => {
               if (user) {
@@ -126,7 +129,7 @@ export const WalletCard = ({
           />
         )}
         <EditButtonOption
-          text="Delete"
+          text={LL.userPage.wallets.card.edit.delete()}
           styleVariant={EditButtonOptionStyleVariant.WARNING}
           onClick={() => {
             if (user) {
@@ -149,11 +152,14 @@ export const WalletCard = ({
           <Badge text="Connected" styleVariant={BadgeStyleVariant.STANDARD} />
         )}
         {wallet.use_for_mfa && (
-          <Badge text="MFA" styleVariant={BadgeStyleVariant.STANDARD} />
+          <Badge
+            text={LL.userPage.wallets.card.mfaBadge()}
+            styleVariant={BadgeStyleVariant.STANDARD}
+          />
         )}
       </div>
       <div className="bottom">
-        <Label>Address</Label>
+        <Label>{LL.userPage.wallets.card.address()}</Label>
         <p data-test="wallet-address">{wallet.address}</p>
       </div>
     </Card>

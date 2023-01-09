@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import ConfirmModal, {
   ConfirmModalType,
 } from '../../../../../../shared/components/layout/ConfirmModal/ConfirmModal';
@@ -11,6 +12,7 @@ import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
 
 export const DeleteUserDeviceModal = () => {
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const modalState = useModalStore((state) => state.deleteUserDeviceModal);
   const setModalState = useModalStore(
@@ -28,22 +30,24 @@ export const DeleteUserDeviceModal = () => {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
         setModalState({ visible: false, device: undefined });
-        toaster.success('Device deleted.');
+        toaster.success(LL.modals.deleteDevice.messages.success());
       },
       onError: (err: AxiosError) => {
+        toaster.error(LL.messages.error());
         console.error(err);
-        toaster.error('Error ocurred. Please contact with administrator.');
       },
     }
   );
 
   return (
     <ConfirmModal
-      title="Delete device"
+      title={LL.modals.deleteDevice.title()}
       type={ConfirmModalType.WARNING}
-      subTitle={`Do you want to delete ${modalState.device?.name} device ?`}
-      cancelText="Cancel"
-      submitText="Delete device"
+      subTitle={LL.modals.deleteDevice.message({
+        deviceName: modalState.device?.name || '',
+      })}
+      cancelText={LL.form.cancel()}
+      submitText={LL.modals.deleteDevice.submit()}
       loading={isLoading || !modalState.device}
       isOpen={modalState.visible}
       setIsOpen={(visibility) => setModalState({ visible: visibility })}

@@ -34,6 +34,7 @@ export const AppLoader = () => {
   const localLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setAppStore);
   const license = useAppStore((state) => state.license);
+  const { LL } = useI18nContext();
 
   const { isLoading: currentUserLoading, data: userMe } = useQuery(
     [QueryKeys.FETCH_ME],
@@ -59,7 +60,7 @@ export const AppLoader = () => {
       setAppStore({ version: data.version });
     },
     onError: (err) => {
-      toaster.error('Failed to get application version.');
+      toaster.error(LL.messages.errorVersion());
       console.error(err);
     },
     refetchOnWindowFocus: false,
@@ -88,7 +89,7 @@ export const AppLoader = () => {
         setAppStore({ license: data });
       },
       onError: () => {
-        toaster.error('Failed to fetch license');
+        toaster.error(LL.messages.errorLicense());
       },
       refetchOnWindowFocus: false,
       enabled: !isUndefined(userMe),
@@ -130,5 +131,3 @@ export const AppLoader = () => {
 };
 
 const App = lazy(() => import('./App/App'));
-
-export type AvailableLocales = 'en';
