@@ -3,6 +3,7 @@ import './style.scss';
 import { useMemo, useState } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
 import { Card } from '../../../../../shared/components/layout/Card/Card';
 import { DeviceAvatar } from '../../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export const DeviceCard = ({ device }: Props) => {
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const user = useUserProfileStore((state) => state.user);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -44,8 +46,8 @@ export const DeviceCard = ({ device }: Props) => {
         downloadWGConfig(res, device.name);
       })
       .catch((err) => {
+        toaster.error(LL.messages.clipboardError());
         console.error(err);
-        toaster.error('Clipboard is not accessible.');
       });
   };
 
@@ -74,21 +76,21 @@ export const DeviceCard = ({ device }: Props) => {
       </header>
       <div className="content">
         <div className="info">
-          <Label>Last location</Label>
+          <Label>{LL.userPage.devices.card.labels.location()}</Label>
           <p data-text="device-location">Szczecin</p>
         </div>
         <div className="info">
-          <Label>Last IP address</Label>
+          <Label>{LL.userPage.devices.card.labels.lastIpAddress()}</Label>
           <p>{device.wireguard_ip}</p>
         </div>
         <div className="info">
-          <Label>Date added</Label>
+          <Label>{LL.userPage.devices.card.labels.date()}</Label>
           <p>{formattedCreationDate}</p>
         </div>
       </div>
       <EditButton visible={editButtonVisible || breakpoint !== 'desktop'}>
         <EditButtonOption
-          text="Edit device"
+          text={LL.userPage.devices.card.edit.edit()}
           onClick={() => {
             setModalsState({
               editUserDeviceModal: { visible: true, device: device },
@@ -96,12 +98,12 @@ export const DeviceCard = ({ device }: Props) => {
           }}
         />
         <EditButtonOption
-          text="Download config"
+          text={LL.userPage.devices.card.edit.download()}
           onClick={() => handleDownload()}
         />
         <EditButtonOption
           styleVariant={EditButtonOptionStyleVariant.WARNING}
-          text="Delete device"
+          text={LL.userPage.devices.card.edit.delete()}
           onClick={() =>
             setDeleteUserDeviceModal({ visible: true, device: device })
           }

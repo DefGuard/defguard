@@ -2,10 +2,10 @@ import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
-import React from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -25,11 +25,12 @@ interface FormValues {
   worker: string;
 }
 
-const WorkerSelectionForm: React.FC<Props> = ({
+export const WorkerSelectionForm = ({
   setIsOpen,
   afterSubmit,
   workers,
-}) => {
+}: Props) => {
+  const { LL } = useI18nContext();
   const {
     provisioning: { provisionYubiKey },
   } = useApi();
@@ -71,9 +72,7 @@ const WorkerSelectionForm: React.FC<Props> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <label>
-        Select one of the following provisioners to provision a YubiKey:
-      </label>
+      <label>{LL.modals.provisionKeys.selectionLabel()}</label>
       <ul>
         {workers.map((worker) => (
           <li key={worker.id}>
@@ -103,7 +102,7 @@ const WorkerSelectionForm: React.FC<Props> = ({
         <Button
           styleVariant={ButtonStyleVariant.STANDARD}
           size={ButtonSize.BIG}
-          text="Cancel"
+          text={LL.form.cancel()}
           className="close"
           onClick={() => {
             resetField('worker');
@@ -114,12 +113,10 @@ const WorkerSelectionForm: React.FC<Props> = ({
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
           disabled={!isValid}
-          text="Provision YubiKey"
+          text={LL.modals.provisionKeys.controls.submit()}
           type="submit"
         />
       </div>
     </form>
   );
 };
-
-export default WorkerSelectionForm;

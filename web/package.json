@@ -66,6 +66,7 @@
     "file-saver": "^2.0.5",
     "framer-motion": "^8.1.7",
     "hex-rgb": "^5.0.0",
+    "html-react-parser": "^3.0.7",
     "itertools": "^1.7.1",
     "lodash-es": "^4.17.21",
     "numbro": "^2.3.6",

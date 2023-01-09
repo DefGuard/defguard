@@ -1,8 +1,12 @@
 import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import parse from 'html-react-parser';
 
-import MessageBox from '../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import MessageBox, {
+  MessageBoxType,
+} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
 import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';
@@ -14,6 +18,7 @@ import { RegisterWebAuthNForm } from './components/RegisterWebAuthNForm';
 import { WebAuthNKeyRow } from './components/WebAuthNKeyRow';
 
 export const ManageWebAuthNKeysModal = () => {
+  const { LL } = useI18nContext();
   const user = useUserProfileStore((state) => state.user);
   const modalState = useModalStore((state) => state.manageWebAuthNKeysModal);
   const setModalState = useModalStore((state) => state.setState);
@@ -30,12 +35,12 @@ export const ManageWebAuthNKeysModal = () => {
   const { mutate: deleteKeyMutation, isLoading: deleteKeyLoading } =
     useMutation([MutationKeys.WEBUAUTHN_DELETE_KEY], deleteKey, {
       onSuccess: () => {
-        toaster.success('WebAuthN key deleted.');
+        toaster.success(LL.modals.manageWebAuthNKeys.messages.deleted());
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
       },
       onError: (err) => {
+        toaster.error(LL.messages.error());
         console.error(err);
-        toaster.error('Key deletion failed.');
       },
     });
 
@@ -43,18 +48,14 @@ export const ManageWebAuthNKeysModal = () => {
     <ModalWithTitle
       backdrop
       id="manage-webauthn-modal"
-      title="Security keys"
+      title={LL.modals.manageWebAuthNKeys.title()}
       isOpen={modalState.visible}
       setIsOpen={(visibility) =>
         setModalState({ manageWebAuthNKeysModal: { visible: visibility } })
       }
     >
-      <MessageBox>
-        <p>
-          Security keys can be used as your second factor of authentication
-          instead of a verification code. Learn more about configuring a
-          security key.
-        </p>
+      <MessageBox type={MessageBoxType.INFO}>
+        {parse(LL.modals.manageWebAuthNKeys.infoMessage())}
       </MessageBox>
       {user && user.security_keys.length > 0 && (
         <div className="current-keys">

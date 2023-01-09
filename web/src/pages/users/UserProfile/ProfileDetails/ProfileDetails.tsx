@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { useMemo } from 'react';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Card } from '../../../../shared/components/layout/Card/Card';
 import { Label } from '../../../../shared/components/layout/Label/Label';
 import NoData from '../../../../shared/components/layout/NoData/NoData';
@@ -17,11 +18,12 @@ import { titleCase } from '../../../../shared/utils/titleCase';
 import { ProfileDetailsForm } from './ProfileDetailsForm/ProfileDetailsForm';
 
 export const ProfileDetails = () => {
+  const { LL } = useI18nContext();
   const editMode = useUserProfileStore((state) => state.editMode);
   return (
     <section id="profile-details">
       <header>
-        <h2>Profile Details</h2>
+        <h2>{LL.userPage.userDetails.header()}</h2>
       </header>
       <Card className={classNames({ edit: editMode })}>
         {editMode ? <ProfileDetailsForm /> : <ViewMode />}
@@ -30,6 +32,7 @@ export const ProfileDetails = () => {
   );
 };
 const ViewMode = () => {
+  const { LL } = useI18nContext();
   const {
     openid: { removeUserClient },
   } = useApi();
@@ -42,10 +45,10 @@ const ViewMode = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        toaster.success('App and all tokens deleted');
+        toaster.success(LL.userPage.userDetails.messages.deleteApp());
       },
       onError: () => {
-        toaster.error('App deletion failed');
+        toaster.error(LL.messages.error());
       },
     }
   );
@@ -64,41 +67,45 @@ const ViewMode = () => {
     <>
       <div className="row">
         <div className="info">
-          <Label>Username</Label>
+          <Label>{LL.userPage.userDetails.fields.username.label()}</Label>
           <p>{user.username}</p>
         </div>
       </div>
       <div className="row">
         <div className="info">
-          <Label>First name</Label>
+          <Label>{LL.userPage.userDetails.fields.firstName.label()}</Label>
           <p>{user.first_name}</p>
         </div>
         <div className="info">
-          <Label>Last name</Label>
+          <Label>{LL.userPage.userDetails.fields.lastName.label()}</Label>
           <p>{user.last_name}</p>
         </div>
       </div>
       <div className="row">
         <div className="info">
-          <Label>Phone number</Label>
+          <Label>{LL.userPage.userDetails.fields.phone.label()}</Label>
           <p>{user.phone}</p>
         </div>
         <div className="info">
-          <Label>E-mail</Label>
+          <Label>{LL.userPage.userDetails.fields.phone.label()}</Label>
           <p>{user.email}</p>
         </div>
       </div>
       <div className="row tags">
-        <Label>User groups</Label>
+        <Label>{LL.userPage.userDetails.fields.groups.label()}</Label>
         <div className="tags">
           {sortedGroups.map((group) => (
             <Tag disposable={false} text={titleCase(group)} key={group} />
           ))}
-          {!sortedGroups.length && <NoData customMessage="No groups found." />}
+          {!sortedGroups.length && (
+            <NoData
+              customMessage={LL.userPage.userDetails.fields.groups.noData()}
+            />
+          )}
         </div>
       </div>
       <div className="row tags">
-        <Label>Authorized apps</Label>
+        <Label>{LL.userPage.userDetails.fields.apps.label()}</Label>
         <div className="tags">
           {user?.authorized_apps?.map((app) => (
             <Tag
@@ -117,7 +124,11 @@ const ViewMode = () => {
             user.authorized_apps &&
             user?.authorized_apps.length &&
             user?.authorized_apps?.length > 0
-          ) && <NoData customMessage="No authorized apps." />}
+          ) && (
+            <NoData
+              customMessage={LL.userPage.userDetails.fields.apps.noData()}
+            />
+          )}
         </div>
       </div>
     </>

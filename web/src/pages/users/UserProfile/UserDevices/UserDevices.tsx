@@ -4,6 +4,7 @@ import { fs } from '@tauri-apps/api';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
@@ -14,6 +15,7 @@ import { DeleteUserDeviceModal } from './modals/DeleteUserDeviceModal/DeleteUser
 import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDeviceModal';
 
 export const UserDevices = () => {
+  const { LL } = useI18nContext();
   const isDesktopApp = useMemo(() => !isUndefined(window.__TAURI__), []);
   const isDeviceConfigPresent = useMemo(async () => {
     if (isDesktopApp) {
@@ -30,7 +32,7 @@ export const UserDevices = () => {
   return (
     <section id="user-devices">
       <header>
-        <h2>User devices</h2>
+        <h2>{LL.userPage.devices.header()}</h2>
       </header>
       {user && (
         <>
@@ -42,7 +44,7 @@ export const UserDevices = () => {
             </div>
           )}
           <AddComponentBox
-            text="Add new device"
+            text={LL.userPage.devices.addDevice.web()}
             callback={() =>
               setUserDeviceModalState({
                 visible: true,
@@ -54,7 +56,7 @@ export const UserDevices = () => {
           />
           {isDesktopApp && !isDeviceConfigPresent && (
             <AddComponentBox
-              text="Add this device"
+              text={LL.userPage.devices.addDevice.desktop()}
               callback={() => {
                 setModalsState({ addDeviceDesktopModal: { visible: true } });
               }}

@@ -2,9 +2,9 @@ import './style.scss';
 
 import { saveAs } from 'file-saver';
 import { motion } from 'framer-motion';
-import React from 'react';
 import shallow from 'zustand/shallow';
 
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -13,7 +13,8 @@ import Modal from '../../../../../../shared/components/layout/Modal/Modal';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import KeyBox from '../../../../shared/components/KeyBox/KeyBox';
 
-const KeyDetailsModal: React.FC = () => {
+export const KeyDetailsModal = () => {
+  const { LL } = useI18nContext();
   const [{ visible: isOpen, user }, setModalValues] = useModalStore(
     (state) => [state.keyDetailModal, state.setKeyDetailModal],
     shallow
@@ -44,21 +45,26 @@ const KeyDetailsModal: React.FC = () => {
       isOpen={isOpen}
     >
       <div className="header">
-        <p>YubiKey details</p>
-        {/* <Button className="small warning">
-            <span>Delete YubiKey</span>
-          </Button> */}
+        <p>{LL.modals.keyDetails.title()}</p>
       </div>
       {user ? (
         <motion.ul layout className="keys-list">
           {user.pgp_key && user.pgp_key !== '-' ? (
             <motion.li layout>
-              <KeyBox collapsible keyValue={user.pgp_key} title="PGP key" />
+              <KeyBox
+                collapsible
+                keyValue={user.pgp_key}
+                title={LL.userPage.yubiKey.keys.pgp()}
+              />
             </motion.li>
           ) : null}
           {user.ssh_key && user.ssh_key !== '-' ? (
             <motion.li layout>
-              <KeyBox collapsible keyValue={user.ssh_key} title="SSH key" />
+              <KeyBox
+                collapsible
+                keyValue={user.ssh_key}
+                title={LL.userPage.yubiKey.keys.ssh()}
+              />
             </motion.li>
           ) : null}
         </motion.ul>
@@ -68,7 +74,7 @@ const KeyDetailsModal: React.FC = () => {
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.STANDARD}
           className="cancel"
-          text="Close"
+          text={LL.form.cancel()}
           onClick={() => setIsOpen(false)}
         />
         <Button
@@ -76,11 +82,9 @@ const KeyDetailsModal: React.FC = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           className="big primary"
           onClick={() => handleDownloadAll()}
-          text="Download all keys"
+          text={LL.modals.keyDetails.downloadAll()}
         />
       </div>
     </Modal>
   );
 };
-
-export default KeyDetailsModal;

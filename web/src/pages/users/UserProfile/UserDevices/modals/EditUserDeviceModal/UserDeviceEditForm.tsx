@@ -76,12 +76,12 @@ export const EditUserDeviceForm = () => {
     editDevice,
     {
       onSuccess: () => {
-        toaster.success('Device updated.');
+        toaster.success(LL.modals.editDevice.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
         setModalsState({ editUserDeviceModal: { visible: false } });
       },
       onError: (err) => {
-        toaster.error('Error ocurred.');
+        toaster.error(LL.messages.error());
         console.error(err);
       },
     }
@@ -96,11 +96,11 @@ export const EditUserDeviceForm = () => {
   return (
     <form onSubmit={handleSubmit(onSubmitSuccess)}>
       <FormInput
-        outerLabel="Device Name"
+        outerLabel={LL.modals.editDevice.form.fields.name.label()}
         controller={{ control, name: 'name' }}
       />
       <FormInput
-        outerLabel="Device Public Key (Wireguard)"
+        outerLabel={LL.modals.editDevice.form.fields.publicKey.label()}
         controller={{ control, name: 'wireguard_pubkey' }}
       />
       <div className="controls">
@@ -108,7 +108,7 @@ export const EditUserDeviceForm = () => {
           type="button"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.STANDARD}
-          text="Cancel"
+          text={LL.form.cancel()}
           className="cancel"
           onClick={() =>
             setModalsState({
@@ -120,7 +120,7 @@ export const EditUserDeviceForm = () => {
           type="submit"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          text="Edit device"
+          text={LL.modals.editDevice.form.controls.submit()}
           loading={editDeviceLoading}
         />
       </div>

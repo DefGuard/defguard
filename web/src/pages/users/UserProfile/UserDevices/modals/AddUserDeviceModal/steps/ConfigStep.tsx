@@ -1,7 +1,9 @@
 import clipboard from 'clipboardy';
+import parse from 'html-react-parser';
 import { useMemo } from 'react';
 import QRCode from 'react-qr-code';
 
+import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import {
   ActionButton,
   ActionButtonVariant,
@@ -22,6 +24,7 @@ import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import { downloadWGConfig } from '../../../../../../../shared/utils/downloadWGConfig';
 
 export const ConfigStep = () => {
+  const { LL, locale } = useI18nContext();
   const config = useModalStore((state) => state.userDeviceModal.config);
   const deviceName = useModalStore((state) => state.userDeviceModal.deviceName);
   const nextStep = useModalStore((state) => state.userDeviceModal.nextStep);
@@ -42,13 +45,12 @@ export const ConfigStep = () => {
             clipboard
               .write(config)
               .then(() => {
-                toaster.success('Config copied to clipboard.');
+                toaster.success(
+                  LL.modals.addDevice.web.steps.config.messages.copyConfig()
+                );
               })
               .catch(() => {
-                toaster.error(
-                  'Clipboard is not available.',
-                  'Make sure you are in secure context.'
-                );
+                toaster.error(LL.messages.clipboardError());
               });
           }
         }}
@@ -63,20 +65,16 @@ export const ConfigStep = () => {
         }}
       />,
     ];
-  }, [config, deviceName, toaster]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config, deviceName, toaster, locale]);
 
   return (
     <>
       <MessageBox type={MessageBoxType.WARNING}>
-        <p>
-          Please be advised that you have to download the configuration now,
-          since <strong>we do not</strong> store your private key. After this
-          dialog is closed, you <strong>will not be able</strong> to get your
-          full configuration file (with private keys, only blank template).
-        </p>
+        {parse(LL.modals.addDevice.web.steps.config.warningMessage())}
       </MessageBox>
       <Input
-        outerLabel="Device Name"
+        outerLabel={LL.modals.addDevice.web.steps.config.inputNameLabel()}
         value={deviceName ?? ''}
         onChange={() => {
           return;
@@ -84,25 +82,17 @@ export const ConfigStep = () => {
         disabled={true}
       />
       <div className="info">
-        <p>
-          Use provided configuration file below by scanning QR Code or importing
-          it as file on your devices WireGuard instance.
-        </p>
+        <p>{LL.modals.addDevice.web.steps.config.qrInfo()}</p>
       </div>
       <div className="card-label">
-        <Label>WireGuard Config File</Label>
+        <Label>{LL.modals.addDevice.web.steps.config.qrLabel()}</Label>
         <Helper initialPlacement="right">
-          <p>
-            This configuration file can be scanned, copied or downloaded, but
-            needs to be used
-            <strong>on your device that you are adding now.</strong>
-            <a>Read more in documentation.</a>
-          </p>
+          {parse(LL.modals.addDevice.web.steps.config.qrHelper())}
         </Helper>
       </div>
       {config && config.length > 0 && (
         <ExpandableCard
-          title="WireGuard Config"
+          title={LL.modals.addDevice.web.steps.config.qrCardTitle()}
           actions={expandableCardActions}
           expanded
         >
@@ -111,7 +101,7 @@ export const ConfigStep = () => {
       )}
       <div className="controls">
         <Button
-          text="Close"
+          text={LL.form.close()}
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.STANDARD}
           onClick={() => nextStep()}

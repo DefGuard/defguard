@@ -6,7 +6,7 @@ import {
 } from '@github/webauthn-json';
 import { AxiosPromise } from 'axios';
 
-import { AvailableLocales } from '../components/AppLoader';
+import { Locales } from '../i18n/i18n-types';
 import { AddDeviceSetupChoice } from '../pages/users/UserProfile/UserDevices/modals/AddUserDeviceModal/steps/SetupStep';
 
 export enum UserStatus {
@@ -566,7 +566,7 @@ export interface UseAppStore {
   settings?: Settings;
   license?: License;
   version?: string;
-  language?: AvailableLocales;
+  language?: Locales;
   setAppStore: (newValues: Partial<Omit<UseAppStore, 'setAppStore'>>) => void;
 }
 

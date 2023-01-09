@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import useBreakpoint from 'use-breakpoint';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -30,6 +31,7 @@ import { UserWallets } from './UserWallets/UserWallets';
 import { UserYubiKeys } from './UserYubiKeys/UserYubiKeys';
 
 export const UserProfile = () => {
+  const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const location = useLocation();
   const { username } = useParams();
@@ -77,7 +79,9 @@ export const UserProfile = () => {
     <section id="user-profile-v2">
       <header className={classNames({ edit: editMode })}>
         {breakpoint === 'desktop' && (
-          <h1>{editMode ? 'Edit User Profile' : 'User Profile'}</h1>
+          <h1>
+            {editMode ? LL.userPage.title.edit() : LL.userPage.title.view()}
+          </h1>
         )}
         <div className={classNames('controls', { edit: editMode })}>
           {editMode ? <EditModeControls /> : <ViewModeControls />}
@@ -103,11 +107,16 @@ export const UserProfile = () => {
 const ViewModeControls = () => {
   const setUserProfileState = useUserProfileStore((state) => state.setState);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
+  const { LL } = useI18nContext();
   return (
     <>
       <div className="right">
         <Button
-          text={breakpoint === 'desktop' ? 'Edit profile' : undefined}
+          text={
+            breakpoint === 'desktop'
+              ? LL.userPage.controls.editButton()
+              : undefined
+          }
           icon={<IconEdit />}
           styleVariant={
             breakpoint === 'desktop'
@@ -122,6 +131,7 @@ const ViewModeControls = () => {
 };
 
 const EditModeControls = () => {
+  const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const location = useLocation();
   const navigate = useNavigate();
@@ -157,7 +167,7 @@ const EditModeControls = () => {
         {breakpoint !== 'desktop' && isAdmin && (
           <EditButton visible={isAdmin}>
             <EditButtonOption
-              text="Delete account"
+              text={LL.userPage.controls.deleteAccount()}
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               disabled={!isAdmin || isMe}
               onClick={handleDeleteUser}
@@ -165,7 +175,7 @@ const EditModeControls = () => {
           </EditButton>
         )}
         <Button
-          text="Cancel"
+          text={LL.form.cancel()}
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.STANDARD}
           onClick={() => {
@@ -177,7 +187,7 @@ const EditModeControls = () => {
           }}
         />
         <Button
-          text="Save Changes"
+          text={LL.form.saveChanges()}
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
           icon={<IconCheckmarkWhite />}

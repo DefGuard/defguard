@@ -3,12 +3,14 @@ import './style.scss';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clipboard from 'clipboardy';
+import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import QRCode from 'react-qr-code';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
@@ -30,22 +32,20 @@ import { QueryKeys } from '../../../../../../shared/queries';
 export const RegisterTOTPModal = () => {
   const modalState = useModalStore((state) => state.registerTOTP);
   const setModalsState = useModalStore((state) => state.setState);
+  const { LL } = useI18nContext();
 
   return (
     <ModalWithTitle
       id="register-totp-modal"
       backdrop
-      title="Authenticator App Setup"
+      title={LL.modals.registerTOTP.title()}
       isOpen={modalState.visible}
       setIsOpen={(visibility) =>
         setModalsState({ registerTOTP: { visible: visibility } })
       }
     >
       <MessageBox type={MessageBoxType.INFO}>
-        <p>
-          To setup your MFA, scan this QR code with your authenticator app, then
-          enter the code in the field below:
-        </p>
+        {parse(LL.modals.registerTOTP.infoMessage())}
       </MessageBox>
       <div className="qr-container">
         <DelayRender delay={1000} fallback={<LoaderSpinner size={250} />}>
@@ -66,14 +66,15 @@ const TOTPRegisterQRCode = () => {
     },
   } = useApi();
   const toaster = useToaster();
+  const { LL } = useI18nContext();
 
   const { data, isLoading } = useQuery([MutationKeys.ENABLE_TOTP_INIT], init, {
     suspense: true,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     onError: (err) => {
+      toaster.error(LL.messages.error());
       console.error(err);
-      toaster.error('TOTP Initialization failed');
     },
   });
 
@@ -87,9 +88,10 @@ const TOTPRegisterQRCode = () => {
       clipboard
         .write(qrData)
         .then(() => {
-          toaster.success('TOTP path copied');
+          toaster.success(LL.modals.registerTOTP.messages.totpCopied());
         })
         .catch((e) => {
+          toaster.error(LL.messages.clipboardError());
           console.error(e);
         });
     }
@@ -104,7 +106,7 @@ const TOTPRegisterQRCode = () => {
         <Button
           icon={<IconCopy />}
           size={ButtonSize.BIG}
-          text="Copy TOTP path"
+          text={LL.modals.registerTOTP.copyPath()}
           onClick={handleCopy}
           loading={isUndefined(qrData)}
         />
@@ -117,13 +119,6 @@ interface Inputs {
   code: string;
 }
 
-const schema = yup
-  .object()
-  .shape({
-    code: yup.string().required('Code is required').min(6, 'Code is to short'),
-  })
-  .required();
-
 const TOTPRegisterForm = () => {
   const toaster = useToaster();
   const {
@@ -135,12 +130,25 @@ const TOTPRegisterForm = () => {
   } = useApi();
   const setModalsState = useModalStore((state) => state.setState);
   const queryClient = useQueryClient();
+  const { LL, locale } = useI18nContext();
+  const schema = useMemo(() => {
+    return yup
+      .object()
+      .shape({
+        code: yup
+          .string()
+          .required(LL.form.error.required())
+          .min(6, LL.form.error.minimumLength()),
+      })
+      .required();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
   const { mutate, isLoading } = useMutation(
     [MutationKeys.ENABLE_TOTP_FINISH],
     enable,
     {
       onSuccess: (data) => {
-        toaster.success('TOTP Enabled');
+        toaster.success(LL.modals.registerTOTP.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
         if (data && data.codes) {
           setModalsState({
@@ -150,10 +158,9 @@ const TOTPRegisterForm = () => {
         setModalsState({ registerTOTP: { visible: false } });
       },
       onError: () => {
-        toaster.error('Provided code is invalid');
         setValue('code', '');
         setError('code', {
-          message: 'Code is invalid',
+          message: LL.modals.registerTOTP.form.fields.code.error(),
         });
       },
     }
@@ -174,7 +181,7 @@ const TOTPRegisterForm = () => {
     <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
         controller={{ control, name: 'code' }}
-        outerLabel="Authenticator code"
+        outerLabel={LL.modals.registerTOTP.form.fields.code.label()}
         autoComplete="one-time-code"
         required
       />
@@ -182,7 +189,7 @@ const TOTPRegisterForm = () => {
         <Button
           styleVariant={ButtonStyleVariant.STANDARD}
           size={ButtonSize.BIG}
-          text="Cancel"
+          text={LL.form.cancel()}
           className="cancel"
           onClick={() => setModalsState({ registerTOTP: { visible: false } })}
         />
@@ -191,7 +198,7 @@ const TOTPRegisterForm = () => {
           loading={isLoading}
           size={ButtonSize.BIG}
           type="submit"
-          text="Verify code"
+          text={LL.modals.registerTOTP.form.controls.submit()}
         />
       </div>
     </form>

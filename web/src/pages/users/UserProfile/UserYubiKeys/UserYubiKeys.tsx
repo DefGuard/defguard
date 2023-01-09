@@ -2,6 +2,7 @@ import './style.scss';
 
 import { useMemo } from 'react';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { EditButton } from '../../../../shared/components/layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../shared/components/layout/EditButton/EditButtonOption';
 import { NoLicenseBox } from '../../../../shared/components/layout/NoLicenseBox/NoLicenseBox';
@@ -11,9 +12,10 @@ import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import KeyBox from '../../shared/components/KeyBox/KeyBox';
-import KeyDetailsModal from './modals/KeyDetailsModal/KeyDetailsModal';
+import { KeyDetailsModal } from './modals/KeyDetailsModal/KeyDetailsModal';
 
 export const UserYubiKeys = () => {
+  const { LL } = useI18nContext();
   const license = useAppStore((state) => state.license);
   const user = useUserProfileStore((state) => state.user);
   const isAdmin = useAuthStore((state) => state.isAdmin);
@@ -51,23 +53,23 @@ export const UserYubiKeys = () => {
             <KeyBox
               collapsible={false}
               keyValue={user?.pgp_key}
-              title="PGP key"
+              title={LL.userPage.yubiKey.keys.pgp()}
             />
             <KeyBox
               collapsible={false}
               keyValue={user?.ssh_key}
-              title="SSH key"
+              title={LL.userPage.yubiKey.keys.ssh()}
             />
           </div>
         ) : null
       ) : (
         <NoLicenseBox>
           <p>
-            <strong>YubiKey module</strong>
+            <strong>{LL.userPage.yubiKey.noLicense.moduleName()}</strong>
           </p>
           <br />
-          <p>This is enterprise module for YubiKey</p>
-          <p>management and provisioning.</p>
+          <p>{LL.userPage.yubiKey.noLicense.line1()}</p>
+          <p>{LL.userPage.yubiKey.noLicense.line2()}</p>
         </NoLicenseBox>
       )}
       {isAdmin && !enableEdit && (
@@ -78,7 +80,7 @@ export const UserYubiKeys = () => {
               setProvisioningModal({ visible: true, user: user });
             }
           }}
-          text="Provision a Yubikey"
+          text={LL.userPage.yubiKey.provision()}
         />
       )}
       <KeyDetailsModal />

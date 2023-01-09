@@ -5,6 +5,7 @@ import { alphabetical } from 'radash';
 import { useMemo } from 'react';
 import { useAccount } from 'wagmi';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { useToaster } from '../../../../shared/hooks/useToaster';
@@ -13,6 +14,7 @@ import { AddWalletModal } from './AddWalletModal/AddWalletModal';
 import { WalletCard } from './WalletCard/WalletCard';
 
 export const UserWallets = () => {
+  const { LL } = useI18nContext();
   const { isConnected, address } = useAccount();
   const user = useUserProfileStore((state) => state.user);
   const isMe = useUserProfileStore((state) => state.isMe);
@@ -33,7 +35,8 @@ export const UserWallets = () => {
       !isUndefined(user.wallets.find((w) => w.address === address))
     ) {
       toaster.warning(
-        'Connected wallet was already added. Wallet was disconnected !'
+        LL.userPage.wallets.messages.duplicate.primary(),
+        LL.userPage.wallets.messages.duplicate.sub()
       );
     } else {
       setModalsState({ addWalletModal: { visible: true } });
@@ -43,7 +46,7 @@ export const UserWallets = () => {
   return (
     <section id="user-wallets">
       <header>
-        <h2>User wallets</h2>
+        <h2>{LL.userPage.wallets.header()}</h2>
       </header>
       {sortedWallet && sortedWallet.length > 0 && (
         <div className="wallets">
@@ -67,7 +70,7 @@ export const UserWallets = () => {
             handleAddWallet();
           }
         }}
-        text="Add new wallet"
+        text={LL.userPage.wallets.addWallet()}
       />
       <AddWalletModal />
     </section>

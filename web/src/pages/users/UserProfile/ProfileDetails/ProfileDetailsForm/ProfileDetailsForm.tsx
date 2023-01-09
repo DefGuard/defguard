@@ -143,18 +143,18 @@ export const ProfileDetailsForm = () => {
     [MutationKeys.EDIT_USER],
     editUser,
     {
-      onSuccess: (_, request) => {
+      onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USERS]);
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        toaster.success(`User ${request.username} modified.`);
+        toaster.success(LL.userPage.messages.editSuccess());
         setUserProfile({ editMode: false });
         if (location.pathname.includes('/edit')) {
           navigate('../');
         }
       },
       onError: (err) => {
+        toaster.error(LL.messages.error());
         console.error(err);
-        toaster.error('Error occured!', 'Please contact administrator');
       },
     }
   );
@@ -217,7 +217,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel="Username"
+            outerLabel={LL.userPage.userDetails.fields.username.label()}
             controller={{ control, name: 'username' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -227,7 +227,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel="First name"
+            outerLabel={LL.userPage.userDetails.fields.firstName.label()}
             controller={{ control, name: 'first_name' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -235,7 +235,7 @@ export const ProfileDetailsForm = () => {
         </div>
         <div className="item">
           <FormInput
-            outerLabel="Last name"
+            outerLabel={LL.userPage.userDetails.fields.lastName.label()}
             controller={{ control, name: 'last_name' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -245,14 +245,14 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel="Phone number"
+            outerLabel={LL.userPage.userDetails.fields.phone.label()}
             controller={{ control, name: 'phone' }}
             disabled={userEditLoading}
           />
         </div>
         <div className="item">
           <FormInput
-            outerLabel="E-Mail"
+            outerLabel={LL.userPage.userDetails.fields.email.label()}
             controller={{ control, name: 'email' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -265,7 +265,7 @@ export const ProfileDetailsForm = () => {
             styleVariant={SelectStyleVariant.WHITE}
             options={groupsOptions}
             controller={{ control, name: 'groups' }}
-            outerLabel="Groups"
+            outerLabel={LL.userPage.userDetails.fields.groups.label()}
             loading={groupsLoading || userEditLoading}
             searchable={true}
             multi={true}

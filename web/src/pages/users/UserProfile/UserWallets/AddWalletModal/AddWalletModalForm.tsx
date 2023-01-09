@@ -124,22 +124,22 @@ export const AddWalletModalForm = () => {
     <form onSubmit={handleSubmit(onSubmit, (e) => console.error(e))}>
       <FormInput
         controller={{ control, name: 'name' }}
-        placeholder="Wallet name"
-        outerLabel="Name"
+        placeholder={LL.modals.addWallet.form.fields.name.placeholder()}
+        outerLabel={LL.modals.addWallet.form.fields.name.label()}
       />
       <FormInput
         controller={{
           control,
           name: 'address',
         }}
-        placeholder="Wallet address"
-        outerLabel="Address"
+        placeholder={LL.modals.addWallet.form.fields.address.placeholder()}
+        outerLabel={LL.modals.addWallet.form.fields.address.label()}
         disabled={true}
       />
       <section className="controls">
         <Button
           size={ButtonSize.BIG}
-          text="Cancel"
+          text={LL.form.cancel()}
           className="cancel"
           onClick={async () => {
             await disconnectAsync();
@@ -153,7 +153,7 @@ export const AddWalletModalForm = () => {
             styleVariant={ButtonStyleVariant.PRIMARY}
             type="submit"
             disabled={!isValid || isSubmitted}
-            text="Add wallet"
+            text={LL.modals.addWallet.form.controls.submit()}
           />
         )}
       </section>
