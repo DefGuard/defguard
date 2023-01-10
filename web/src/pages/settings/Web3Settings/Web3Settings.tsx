@@ -17,8 +17,10 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
+import { useI18nContext } from '../../../i18n/i18n-react';
 
 export const Web3Settings = () => {
+  const { LL } = useI18nContext();
   const [signMessage, setSignMessage] = useState('');
   const settings = useAppStore((state) => state.settings);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -55,12 +57,12 @@ export const Web3Settings = () => {
   return (
     <section className="web3-settings">
       <header>
-        <h2>Web3 / Wallet connect</h2>
+        <h2>{LL.settingsPage.web3Settings.header()}</h2>
         <Helper initialPlacement="right">PLACEHOLDER</Helper>
       </header>
       <Card>
         <header>
-          <h3>Default sign message template:</h3>
+          <h3>{LL.settingsPage.web3Settings.fields.signMessage.label()}</h3>
           <div className="controls">
             <Button
               text={breakpoint !== 'mobile' ? 'Save changes' : undefined}

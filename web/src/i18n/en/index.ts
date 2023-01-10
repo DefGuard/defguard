@@ -506,6 +506,147 @@ const en: BaseTranslation = {
       },
     },
   },
+  settingsPage: {
+    title: 'Global Settings',
+    messages: {
+      editSuccess: 'Settings updated',
+    },
+    modulesVisibility: {
+      header: 'Modules Visibility',
+			helper: `<p>
+            If your not using some modules you can disable their visibility.
+          </p>
+          <a href="defguard.gitbook.io" target="_blank">
+            Read more in documentation.
+          </a>`,
+      fields: {
+        wireguard_enabled: {
+          label: 'Wireguard VPN',
+        },
+        webhooks_enabled: {
+          label: 'Webhooks',
+        },
+        web3_enabled: {
+          label: 'Web3',
+        },
+        worker_enabled: {
+          label: 'YubiBridge',
+        },
+        openid_enabled: {
+          label: 'OpenID connect',
+        },
+        oauth_enabled: {
+          label: 'OAuth2',
+        },
+      },
+    },
+
+    defaultNetworkSelect: {
+      header: 'Default network view',
+      helper: `<p>Here you can change your default network view.</p>
+          <a href="defguard.gitbook.io" target="_blank">
+            Read more in documentation.
+          </a>`,
+    },
+    web3Settings: {
+      header: 'Web3 / Wallet connect',
+      fields: {
+        signMessage: {
+          label: 'Default sign message template',
+        },
+      },
+    },
+    instanceBranding: {
+      header: 'Instance Branding',
+      form: {
+        title: 'Name & Logo:',
+        fields: {
+          instanceName: {
+            label: 'Instance name',
+            placeholder: 'Defguard',
+          },
+          mainLogoUrl: {
+            label: 'Login logo url',
+            placeholder: 'Default image',
+          },
+          navLogoUrl: {
+            label: 'Navigation Logo url',
+            placeholder: 'Default image',
+          },
+        },
+        controls: {
+          restoreDefault: 'Restore default',
+          submit: 'Save changes',
+        },
+      },
+      helper: `
+			      <p>
+            Here you can add url of your logo and name for your defguard
+            instance it will be displayed instead of defguard.
+          </p>
+          <a href="defguard.gitbook.io" target="_blank">
+            Read more in documentation.
+          </a>
+			`,
+    },
+    licenseCard: {
+      header: 'License & Support Information',
+      licenseCardTitles: {
+        community: 'Community',
+        enterprise: 'Enterprise',
+        license: 'license',
+      },
+      body: {
+        enterprise: `
+				<p> Thank you for purchasing enterprise license!</p>
+				<br />
+				<p>This includes following modules:</p>`,
+        community: `
+              <p>
+                You have our community license. If you wish to get Enterprise
+                license for full features set and support, please visit
+                <a href="https://defguard.net">https://defguard.net</a>
+              </p>
+              <br />
+              <p>Enterprise license includes:</p>
+				`,
+        agreement: 'read license agreement',
+        modules: `
+          <ul>
+            <li>YubiBridge</li>
+            <li>OpenID</li>
+            <li>OpenLDAP</li>
+          </ul>
+          <br />`,
+      },
+      footer: {
+        company: 'licensed to: {company: string}',
+        expiration: 'expiration date: {expiration: string}',
+      },
+    },
+    supportCard: {
+      title: 'Support',
+      body: {
+        enterprise: `
+			<p>For Enterprise support</p>
+      <p>
+        Please contact: 
+        <a href="mailto:support@defguard.net">support@defguard.net</a>
+      </p>
+			<br/>
+      <p>You can also visit our Community support:</p>
+      <a href="https://github.com/Defguard/defguard">
+        https://github.com/Defguard/defguard
+      </a>
+			`,
+        community: `<p>For Community support Please visit:</p>
+      <a href="https://github.com/Defguard/defguard">
+        https://github.com/Defguard/defguard
+      </a>
+			`,
+      },
+    },
+  },
 };
 
 export default en;

@@ -1,55 +1,52 @@
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { ContentCard } from '../../../shared/components/layout/ContentCard/ContentCard';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
+import parse from 'html-react-parser';
 
 export const LicenseCard = () => {
+  const { LL } = useI18nContext();
   const setLicenseModal = useModalStore((state) => state.setLicenseModal);
   const license = useAppStore((state) => state.license);
   if (!license) return null;
   return (
     <section>
       <header>
-        <h2>License & Support Information</h2>
+        <h2>{LL.settingsPage.licenseCard.header()}</h2>
       </header>
       <ContentCard
         className="license-card"
         header={
-          <h3>{license?.enterprise ? 'Enterprice' : 'Community'} license</h3>
+          <h3>
+            {license?.enterprise
+              ? LL.settingsPage.licenseCard.licenseCardTitles.enterprise()
+              : LL.settingsPage.licenseCard.licenseCardTitles.community()}{' '}
+            {LL.settingsPage.licenseCard.licenseCardTitles.license()}
+          </h3>
         }
         footer={
           <>
-            <p>{`licensed to: ${license?.company}`}</p>
-            <p>{`expiration date: ${license?.expiration}`}</p>
+            <p>
+              {LL.settingsPage.licenseCard.footer.company({
+                company: license?.company,
+              })}
+            </p>
+            <p>
+              {LL.settingsPage.licenseCard.footer.expiration({
+                expiration: String(license?.expiration),
+              })}
+            </p>
           </>
         }
       >
         <div>
-          {license.enterprise ? (
-            <>
-              <p> Thank you for purchasing enterprise license!</p>
-              <br />
-              <p>This includes following modules:</p>
-            </>
-          ) : (
-            <>
-              <p>
-                You have our community license. If you wish to get Enterprise
-                license for full features set and support, please visit{' '}
-                <a href="https://defguard.net">https://defguard.net</a>
-              </p>
-              <br />
-              <p>Enterprise license includes:</p>
-            </>
-          )}
-          <ul>
-            <li>YubiBridge</li>
-            <li>OpenID</li>
-            <li>OpenLDAP</li>
-          </ul>
-          <br />
+          {license.enterprise
+            ? parse(LL.settingsPage.licenseCard.body.enterprise())
+            : parse(LL.settingsPage.licenseCard.body.community())}
+          {parse(LL.settingsPage.licenseCard.body.modules())}
         </div>
         <a onClick={() => setLicenseModal({ visible: true })}>
-          read license agreement
+          {LL.settingsPage.licenseCard.body.agreement()}
         </a>
       </ContentCard>
     </section>

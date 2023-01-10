@@ -22,8 +22,11 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
+import { useI18nContext } from '../../../i18n/i18n-react';
+import parse from 'html-react-parser';
 
 export const BrandingCard = () => {
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     settings: { editSettings, setDefaultBranding },
@@ -133,22 +136,18 @@ export const BrandingCard = () => {
     <section className="branding">
       <header>
         <h2>Instance Branding</h2>
-        <Helper>
-          <p>
-            Here you can add url of your logo and name for your defguard
-            instance it will be displayed instead of defguard.
-          </p>{' '}
-          <a href="defguard.gitbook.io" target="_blank">
-            Read more in documentation.
-          </a>
-        </Helper>
+        <Helper>{parse(LL.settingsPage.instanceBranding.helper())}</Helper>
       </header>
       <Card>
         <header>
-          <h3>Name & Logo:</h3>
+          <h3>{LL.settingsPage.instanceBranding.form.title()}</h3>
           <div className="controls">
             <Button
-              text={breakpoint !== 'mobile' ? 'Restore default' : undefined}
+              text={
+                breakpoint !== 'mobile'
+                  ? LL.settingsPage.instanceBranding.form.controls.restoreDefault()
+                  : undefined
+              }
               size={ButtonSize.SMALL}
               icon={<IconCheckmarkWhite />}
               styleVariant={ButtonStyleVariant.PRIMARY}
@@ -158,7 +157,11 @@ export const BrandingCard = () => {
             />
             <Button
               form="branding-form"
-              text={breakpoint !== 'mobile' ? 'Save changes' : undefined}
+              text={
+                breakpoint !== 'mobile'
+                  ? LL.settingsPage.instanceBranding.form.controls.submit()
+                  : undefined
+              }
               icon={<IconCheckmarkWhite />}
               size={ButtonSize.SMALL}
               styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
@@ -169,22 +172,22 @@ export const BrandingCard = () => {
         </header>
         <form id="branding-form" onSubmit={handleSubmit(onSubmit)}>
           <FormInput
-            outerLabel="Instance name"
+            outerLabel={LL.settingsPage.instanceBranding.form.fields.instanceName.label()}
             controller={{ control, name: 'instance_name' }}
-            placeholder="Example"
+            placeholder={LL.settingsPage.instanceBranding.form.fields.instanceName.placeholder()}
             required
           />
           <FormInput
-            outerLabel="Login logo url"
+            outerLabel={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.label()}
             controller={{ control, name: 'main_logo_url' }}
-            placeholder="Default image"
+            placeholder={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.placeholder()}
             required
           />
 
           <FormInput
-            outerLabel="Nav Logo url"
+            outerLabel={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.label()}
             controller={{ control, name: 'nav_logo_url' }}
-            placeholder="Default image"
+            placeholder={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.placeholder()}
             required
           />
         </form>

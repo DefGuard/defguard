@@ -2,6 +2,8 @@ import './style.scss';
 
 import { ContentCard } from '../../../shared/components/layout/ContentCard/ContentCard';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
+import { useI18nContext } from '../../../i18n/i18n-react';
+import parse from 'html-react-parser';
 
 export const SupportCard = () => {
   const licence = useAppStore((state) => state.license);
@@ -14,32 +16,11 @@ export const SupportCard = () => {
 };
 
 const CommunityContent = () => {
-  return (
-    <div>
-      <p>For Community support Please visit:</p>
-      <a href="https://github.com/Defguard/defguard">
-        https://github.com/Defguard/defguard
-      </a>
-    </div>
-  );
+  const { LL } = useI18nContext();
+  return <div>{parse(LL.settingsPage.supportCard.body.community())}</div>;
 };
 
 const EnterpriceContent = () => {
-  return (
-    <>
-      <div>
-        <p>For Enterprise support</p>
-        <p>
-          Please contact:{''}
-          <a href="mailto:support@defguard.net">support@defguard.net</a>
-        </p>
-      </div>
-      <div>
-        <p>You can also visit our Community support:</p>
-        <a href="https://github.com/Defguard/defguard">
-          https://github.com/Defguard/defguard
-        </a>
-      </div>
-    </>
-  );
+  const { LL } = useI18nContext();
+  return <>{parse(LL.settingsPage.supportCard.body.enterprise())}</>;
 };
