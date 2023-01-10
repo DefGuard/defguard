@@ -1163,6 +1163,10 @@ type RootTranslation = {
 		title: string
 		messages: {
 			/**
+			 * E​r​r​o​r​ ​o​c​c​u​r​e​d​!​ ​P​l​e​a​s​e​ ​c​o​n​t​a​c​t​ ​a​d​m​i​n​i​s​t​r​a​t​o​r
+			 */
+			error: string
+			/**
 			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
 			 */
 			editSuccess: string
@@ -1246,6 +1250,12 @@ type RootTranslation = {
 					label: string
 				}
 			}
+			controls: {
+				/**
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
+				 */
+				save: string
+			}
 		}
 		instanceBranding: {
 			/**
@@ -1288,6 +1298,20 @@ type RootTranslation = {
 						 */
 						placeholder: string
 					}
+				}
+				error: {
+					/**
+					 * F​i​e​l​d​ ​i​s​ ​r​e​q​u​i​r​e​d
+					 */
+					required: string
+					/**
+					 * M​a​x​i​m​u​m​ ​l​e​n​g​t​h​ ​e​x​c​e​e​d​e​d
+					 */
+					maximumLength: string
+					/**
+					 * S​h​o​u​l​d​ ​b​e​ ​a​t​ ​l​e​a​s​t​ ​3​ ​c​h​a​r​a​c​t​e​r​s​ ​l​o​n​g
+					 */
+					minimumLength: string
 				}
 				controls: {
 					/**
@@ -2561,6 +2585,10 @@ export type TranslationFunctions = {
 		title: () => LocalizedString
 		messages: {
 			/**
+			 * Error occured! Please contact administrator
+			 */
+			error: () => LocalizedString
+			/**
 			 * Settings updated
 			 */
 			editSuccess: () => LocalizedString
@@ -2644,6 +2672,12 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 				}
 			}
+			controls: {
+				/**
+				 * Save changes
+				 */
+				save: () => LocalizedString
+			}
 		}
 		instanceBranding: {
 			/**
@@ -2686,6 +2720,20 @@ export type TranslationFunctions = {
 						 */
 						placeholder: () => LocalizedString
 					}
+				}
+				error: {
+					/**
+					 * Field is required
+					 */
+					required: () => LocalizedString
+					/**
+					 * Maximum length exceeded
+					 */
+					maximumLength: () => LocalizedString
+					/**
+					 * Should be at least 3 characters long
+					 */
+					minimumLength: () => LocalizedString
 				}
 				controls: {
 					/**

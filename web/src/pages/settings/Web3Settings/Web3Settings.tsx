@@ -65,7 +65,11 @@ export const Web3Settings = () => {
           <h3>{LL.settingsPage.web3Settings.fields.signMessage.label()}</h3>
           <div className="controls">
             <Button
-              text={breakpoint !== 'mobile' ? 'Save changes' : undefined}
+              text={
+                breakpoint !== 'mobile'
+                  ? LL.settingsPage.web3Settings.controls.save()
+                  : undefined
+              }
               icon={<IconCheckmarkWhite />}
               size={ButtonSize.SMALL}
               styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}

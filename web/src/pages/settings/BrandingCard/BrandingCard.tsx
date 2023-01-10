@@ -52,10 +52,10 @@ export const BrandingCard = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-        toaster.success('Settings changed.');
+        toaster.success(LL.settingsPage.messages.editSuccess());
       },
       onError: (err) => {
-        toaster.error('Error occured!', 'Please contact administrator');
+        toaster.error(LL.settingsPage.messages.error());
         console.error(err);
       },
     }
@@ -68,10 +68,10 @@ export const BrandingCard = () => {
         setAppStore({ settings });
         reset();
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-        toaster.success('Settings changed.');
+        toaster.success(LL.settingsPage.messages.editSuccess());
       },
       onError: (err) => {
-        toaster.error('Error occured!', 'Please contact administrator');
+        toaster.error(LL.settingsPage.messages.error());
         console.error(err);
       },
     }
@@ -82,13 +82,17 @@ export const BrandingCard = () => {
       yup
         .object()
         .shape({
-          main_logo_url: yup.string().required('Url is required.'),
-          nav_logo_url: yup.string().required('Url is required.'),
+          main_logo_url: yup
+            .string()
+            .required(LL.settingsPage.instanceBranding.form.error.required()),
+          nav_logo_url: yup
+            .string()
+            .required(LL.settingsPage.instanceBranding.form.error.required()),
           instance_name: yup
             .string()
-            .min(3, 'Should be at least 4 characters long.')
-            .max(12, 'Maximum length exceeded.')
-            .required('Name is required.'),
+            .min(3, LL.settingsPage.instanceBranding.form.error.minimumLength())
+            .max(12, LL.settingsPage.instanceBranding.form.error.maximumLength())
+            .required(LL.settingsPage.instanceBranding.form.error.required()),
         })
         .required(),
     []
@@ -135,7 +139,7 @@ export const BrandingCard = () => {
   return (
     <section className="branding">
       <header>
-        <h2>Instance Branding</h2>
+        <h2>{LL.settingsPage.instanceBranding.header()}</h2>
         <Helper>{parse(LL.settingsPage.instanceBranding.helper())}</Helper>
       </header>
       <Card>
