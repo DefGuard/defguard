@@ -92,7 +92,6 @@ export const AppLoader = () => {
         toaster.error(LL.messages.errorLicense());
       },
       refetchOnWindowFocus: false,
-      enabled: !isUndefined(userMe),
     }
   );
 
