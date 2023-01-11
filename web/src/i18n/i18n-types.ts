@@ -1156,6 +1156,272 @@ type RootTranslation = {
 			}
 		}
 	}
+	settingsPage: {
+		/**
+		 * G​l​o​b​a​l​ ​S​e​t​t​i​n​g​s
+		 */
+		title: string
+		messages: {
+			/**
+			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
+			 */
+			editSuccess: string
+			/**
+			 * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
+			 */
+			challengeSuccess: string
+		}
+		modulesVisibility: {
+			/**
+			 * M​o​d​u​l​e​s​ ​V​i​s​i​b​i​l​i​t​y
+			 */
+			header: string
+			/**
+			 * <​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
+			 */
+			helper: string
+			fields: {
+				wireguard_enabled: {
+					/**
+					 * W​i​r​e​g​u​a​r​d​ ​V​P​N
+					 */
+					label: string
+				}
+				webhooks_enabled: {
+					/**
+					 * W​e​b​h​o​o​k​s
+					 */
+					label: string
+				}
+				web3_enabled: {
+					/**
+					 * W​e​b​3
+					 */
+					label: string
+				}
+				worker_enabled: {
+					/**
+					 * Y​u​b​i​B​r​i​d​g​e
+					 */
+					label: string
+				}
+				openid_enabled: {
+					/**
+					 * O​p​e​n​I​D​ ​c​o​n​n​e​c​t
+					 */
+					label: string
+				}
+				oauth_enabled: {
+					/**
+					 * O​A​u​t​h​2
+					 */
+					label: string
+				}
+			}
+		}
+		defaultNetworkSelect: {
+			/**
+			 * D​e​f​a​u​l​t​ ​n​e​t​w​o​r​k​ ​v​i​e​w
+			 */
+			header: string
+			/**
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​y​o​u​r​ ​d​e​f​a​u​l​t​ ​n​e​t​w​o​r​k​ ​v​i​e​w​.​<​/​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
+			 */
+			helper: string
+		}
+		web3Settings: {
+			/**
+			 * W​e​b​3​ ​/​ ​W​a​l​l​e​t​ ​c​o​n​n​e​c​t
+			 */
+			header: string
+			fields: {
+				signMessage: {
+					/**
+					 * D​e​f​a​u​l​t​ ​s​i​g​n​ ​m​e​s​s​a​g​e​ ​t​e​m​p​l​a​t​e
+					 */
+					label: string
+				}
+			}
+			controls: {
+				/**
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
+				 */
+				save: string
+			}
+		}
+		instanceBranding: {
+			/**
+			 * I​n​s​t​a​n​c​e​ ​B​r​a​n​d​i​n​g
+			 */
+			header: string
+			form: {
+				/**
+				 * N​a​m​e​ ​&​ ​L​o​g​o​:
+				 */
+				title: string
+				fields: {
+					instanceName: {
+						/**
+						 * I​n​s​t​a​n​c​e​ ​n​a​m​e
+						 */
+						label: string
+						/**
+						 * D​e​f​g​u​a​r​d
+						 */
+						placeholder: string
+					}
+					mainLogoUrl: {
+						/**
+						 * L​o​g​i​n​ ​l​o​g​o​ ​u​r​l
+						 */
+						label: string
+						/**
+						 * D​e​f​a​u​l​t​ ​i​m​a​g​e
+						 */
+						placeholder: string
+					}
+					navLogoUrl: {
+						/**
+						 * N​a​v​i​g​a​t​i​o​n​ ​L​o​g​o​ ​u​r​l
+						 */
+						label: string
+						/**
+						 * D​e​f​a​u​l​t​ ​i​m​a​g​e
+						 */
+						placeholder: string
+					}
+				}
+				controls: {
+					/**
+					 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
+					 */
+					restoreDefault: string
+					/**
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
+					 */
+					submit: string
+				}
+			}
+			/**
+			 * 
+		​	​	​	​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​u​r​l​ ​o​f​ ​y​o​u​r​ ​l​o​g​o​ ​a​n​d​ ​n​a​m​e​ ​f​o​r​ ​y​o​u​r​ ​d​e​f​g​u​a​r​d​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​a​n​c​e​ ​i​t​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​i​n​s​t​e​a​d​ ​o​f​ ​d​e​f​g​u​a​r​d​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>​
+		​	​	​
+			 */
+			helper: string
+		}
+		licenseCard: {
+			/**
+			 * L​i​c​e​n​s​e​ ​&​ ​S​u​p​p​o​r​t​ ​I​n​f​o​r​m​a​t​i​o​n
+			 */
+			header: string
+			licenseCardTitles: {
+				/**
+				 * C​o​m​m​u​n​i​t​y
+				 */
+				community: string
+				/**
+				 * E​n​t​e​r​p​r​i​s​e
+				 */
+				enterprise: string
+				/**
+				 * l​i​c​e​n​s​e
+				 */
+				license: string
+			}
+			body: {
+				/**
+				 * 
+			​	​	​	​	​<​p​>​ ​T​h​a​n​k​ ​y​o​u​ ​f​o​r​ ​p​u​r​c​h​a​s​i​n​g​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​!​<​/​p​>​
+			​	​	​	​	​<​b​r​ ​/​>​
+			​	​	​	​	​<​p​>​T​h​i​s​ ​i​n​c​l​u​d​e​s​ ​f​o​l​l​o​w​i​n​g​ ​m​o​d​u​l​e​s​:​<​/​p​>
+				 */
+				enterprise: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​o​u​r​ ​c​o​m​m​u​n​i​t​y​ ​l​i​c​e​n​s​e​.​ ​I​f​ ​y​o​u​ ​w​i​s​h​ ​t​o​ ​g​e​t​ ​E​n​t​e​r​p​r​i​s​e​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​f​u​l​l​ ​f​e​a​t​u​r​e​s​ ​s​e​t​ ​a​n​d​ ​s​u​p​p​o​r​t​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​"​>​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​<​/​a​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​n​c​l​u​d​e​s​:​<​/​p​>​
+			​	​	​	​
+				 */
+				community: string
+				/**
+				 * r​e​a​d​ ​l​i​c​e​n​s​e​ ​a​g​r​e​e​m​e​n​t
+				 */
+				agreement: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​Y​u​b​i​B​r​i​d​g​e​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​O​p​e​n​I​D​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​O​p​e​n​L​D​A​P​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>
+				 */
+				modules: string
+			}
+			footer: {
+				/**
+				 * l​i​c​e​n​s​e​d​ ​t​o​:​ ​{​c​o​m​p​a​n​y​}
+				 * @param {string} company
+				 */
+				company: RequiredParams<'company'>
+				/**
+				 * e​x​p​i​r​a​t​i​o​n​ ​d​a​t​e​:​ ​{​e​x​p​i​r​a​t​i​o​n​}
+				 * @param {string} expiration
+				 */
+				expiration: RequiredParams<'expiration'>
+			}
+		}
+		supportCard: {
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			title: string
+			body: {
+				/**
+				 * 
+			​	​	​	​<​p​>​F​o​r​ ​E​n​t​e​r​p​r​i​s​e​ ​s​u​p​p​o​r​t​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​<​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​c​o​n​t​a​c​t​:​ ​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​m​a​i​l​t​o​:​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​"​>​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​<​/​a​>​
+			​ ​ ​ ​ ​ ​ ​<​/​p​>​
+			​	​	​	​<​b​r​/​>​
+			​ ​ ​ ​ ​ ​ ​<​p​>​Y​o​u​ ​c​a​n​ ​a​l​s​o​ ​v​i​s​i​t​ ​o​u​r​ ​C​o​m​m​u​n​i​t​y​ ​s​u​p​p​o​r​t​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​g​u​a​r​d​/​d​e​f​g​u​a​r​d​"​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​g​u​a​r​d​/​d​e​f​g​u​a​r​d​
+			​ ​ ​ ​ ​ ​ ​<​/​a​>​
+			​	​	​
+				 */
+				enterprise: string
+				/**
+				 * <​p​>​F​o​r​ ​C​o​m​m​u​n​i​t​y​ ​s​u​p​p​o​r​t​ ​P​l​e​a​s​e​ ​v​i​s​i​t​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​g​u​a​r​d​/​d​e​f​g​u​a​r​d​"​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​g​u​a​r​d​/​d​e​f​g​u​a​r​d​
+			​ ​ ​ ​ ​ ​ ​<​/​a​>​
+			​	​	​
+				 */
+				community: string
+			}
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -2295,6 +2561,270 @@ export type TranslationFunctions = {
 				 * by contacting:
 				 */
 				contact: () => LocalizedString
+			}
+		}
+	}
+	settingsPage: {
+		/**
+		 * Global Settings
+		 */
+		title: () => LocalizedString
+		messages: {
+			/**
+			 * Settings updated
+			 */
+			editSuccess: () => LocalizedString
+			/**
+			 * Challenge message changed
+			 */
+			challengeSuccess: () => LocalizedString
+		}
+		modulesVisibility: {
+			/**
+			 * Modules Visibility
+			 */
+			header: () => LocalizedString
+			/**
+			 * <p>
+		            If your not using some modules you can disable their visibility.
+		          </p>
+		          <a href="defguard.gitbook.io" target="_blank">
+		            Read more in documentation.
+		          </a>
+			 */
+			helper: () => LocalizedString
+			fields: {
+				wireguard_enabled: {
+					/**
+					 * Wireguard VPN
+					 */
+					label: () => LocalizedString
+				}
+				webhooks_enabled: {
+					/**
+					 * Webhooks
+					 */
+					label: () => LocalizedString
+				}
+				web3_enabled: {
+					/**
+					 * Web3
+					 */
+					label: () => LocalizedString
+				}
+				worker_enabled: {
+					/**
+					 * YubiBridge
+					 */
+					label: () => LocalizedString
+				}
+				openid_enabled: {
+					/**
+					 * OpenID connect
+					 */
+					label: () => LocalizedString
+				}
+				oauth_enabled: {
+					/**
+					 * OAuth2
+					 */
+					label: () => LocalizedString
+				}
+			}
+		}
+		defaultNetworkSelect: {
+			/**
+			 * Default network view
+			 */
+			header: () => LocalizedString
+			/**
+			 * <p>Here you can change your default network view.</p>
+		          <a href="defguard.gitbook.io" target="_blank">
+		            Read more in documentation.
+		          </a>
+			 */
+			helper: () => LocalizedString
+		}
+		web3Settings: {
+			/**
+			 * Web3 / Wallet connect
+			 */
+			header: () => LocalizedString
+			fields: {
+				signMessage: {
+					/**
+					 * Default sign message template
+					 */
+					label: () => LocalizedString
+				}
+			}
+			controls: {
+				/**
+				 * Save changes
+				 */
+				save: () => LocalizedString
+			}
+		}
+		instanceBranding: {
+			/**
+			 * Instance Branding
+			 */
+			header: () => LocalizedString
+			form: {
+				/**
+				 * Name & Logo:
+				 */
+				title: () => LocalizedString
+				fields: {
+					instanceName: {
+						/**
+						 * Instance name
+						 */
+						label: () => LocalizedString
+						/**
+						 * Defguard
+						 */
+						placeholder: () => LocalizedString
+					}
+					mainLogoUrl: {
+						/**
+						 * Login logo url
+						 */
+						label: () => LocalizedString
+						/**
+						 * Default image
+						 */
+						placeholder: () => LocalizedString
+					}
+					navLogoUrl: {
+						/**
+						 * Navigation Logo url
+						 */
+						label: () => LocalizedString
+						/**
+						 * Default image
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Restore default
+					 */
+					restoreDefault: () => LocalizedString
+					/**
+					 * Save changes
+					 */
+					submit: () => LocalizedString
+				}
+			}
+			/**
+			 * 
+					      <p>
+		            Here you can add url of your logo and name for your defguard
+		            instance it will be displayed instead of defguard.
+		          </p>
+		          <a href="defguard.gitbook.io" target="_blank">
+		            Read more in documentation.
+		          </a>
+				
+			 */
+			helper: () => LocalizedString
+		}
+		licenseCard: {
+			/**
+			 * License & Support Information
+			 */
+			header: () => LocalizedString
+			licenseCardTitles: {
+				/**
+				 * Community
+				 */
+				community: () => LocalizedString
+				/**
+				 * Enterprise
+				 */
+				enterprise: () => LocalizedString
+				/**
+				 * license
+				 */
+				license: () => LocalizedString
+			}
+			body: {
+				/**
+				 * 
+							<p> Thank you for purchasing enterprise license!</p>
+							<br />
+							<p>This includes following modules:</p>
+				 */
+				enterprise: () => LocalizedString
+				/**
+				 * 
+			              <p>
+			                You have our community license. If you wish to get Enterprise
+			                license for full features set and support, please visit
+			                <a href="https://defguard.net">https://defguard.net</a>
+			              </p>
+			              <br />
+			              <p>Enterprise license includes:</p>
+						
+				 */
+				community: () => LocalizedString
+				/**
+				 * read license agreement
+				 */
+				agreement: () => LocalizedString
+				/**
+				 * 
+			          <ul>
+			            <li>YubiBridge</li>
+			            <li>OpenID</li>
+			            <li>OpenLDAP</li>
+			          </ul>
+			          <br />
+				 */
+				modules: () => LocalizedString
+			}
+			footer: {
+				/**
+				 * licensed to: {company}
+				 */
+				company: (arg: { company: string }) => LocalizedString
+				/**
+				 * expiration date: {expiration}
+				 */
+				expiration: (arg: { expiration: string }) => LocalizedString
+			}
+		}
+		supportCard: {
+			/**
+			 * Support
+			 */
+			title: () => LocalizedString
+			body: {
+				/**
+				 * 
+						<p>For Enterprise support</p>
+			      <p>
+			        Please contact: 
+			        <a href="mailto:support@defguard.net">support@defguard.net</a>
+			      </p>
+						<br/>
+			      <p>You can also visit our Community support:</p>
+			      <a href="https://github.com/Defguard/defguard">
+			        https://github.com/Defguard/defguard
+			      </a>
+					
+				 */
+				enterprise: () => LocalizedString
+				/**
+				 * <p>For Community support Please visit:</p>
+			      <a href="https://github.com/Defguard/defguard">
+			        https://github.com/Defguard/defguard
+			      </a>
+					
+				 */
+				community: () => LocalizedString
 			}
 		}
 	}
