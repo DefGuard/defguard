@@ -35,15 +35,12 @@ export const Web3Settings = () => {
     editSettings,
     {
       onSuccess: () => {
-        toaster.success('Sign message changed.');
+        toaster.success(LL.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       },
       onError: (err) => {
         console.error(err);
-        toaster.error(
-          'Unexpected error occured',
-          'Please contact administrator.'
-        );
+        toaster.error(LL.messages.error());
       },
     }
   );

@@ -34,10 +34,10 @@ export const ModulesCard = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-        toaster.success('Settings changed.');
+        toaster.success(LL.messages.success());
       },
       onError: () => {
-        toaster.error('Error occured!', 'Please contact administrator');
+        toaster.error(LL.messages.error());
       },
     }
   );

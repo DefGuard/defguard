@@ -509,7 +509,6 @@ const en: BaseTranslation = {
   settingsPage: {
     title: 'Global Settings',
     messages: {
-      error: 'Error occured! Please contact administrator',
       editSuccess: 'Settings updated',
     },
     modulesVisibility: {
@@ -577,11 +576,6 @@ const en: BaseTranslation = {
             label: 'Navigation Logo url',
             placeholder: 'Default image',
           },
-        },
-        error: {
-          required: 'Field is required',
-					maximumLength: 'Maximum length exceeded',
-					minimumLength: 'Should be at least 3 characters long'
         },
         controls: {
           restoreDefault: 'Restore default',

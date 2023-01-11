@@ -26,7 +26,7 @@ import { useI18nContext } from '../../../i18n/i18n-react';
 import parse from 'html-react-parser';
 
 export const BrandingCard = () => {
-  const { LL } = useI18nContext();
+  const { LL, locale } = useI18nContext();
   const toaster = useToaster();
   const {
     settings: { editSettings, setDefaultBranding },
@@ -55,7 +55,7 @@ export const BrandingCard = () => {
         toaster.success(LL.settingsPage.messages.editSuccess());
       },
       onError: (err) => {
-        toaster.error(LL.settingsPage.messages.error());
+        toaster.error(LL.messages.error());
         console.error(err);
       },
     }
@@ -71,7 +71,7 @@ export const BrandingCard = () => {
         toaster.success(LL.settingsPage.messages.editSuccess());
       },
       onError: (err) => {
-        toaster.error(LL.settingsPage.messages.error());
+        toaster.error(LL.messages.error());
         console.error(err);
       },
     }
@@ -84,18 +84,18 @@ export const BrandingCard = () => {
         .shape({
           main_logo_url: yup
             .string()
-            .required(LL.settingsPage.instanceBranding.form.error.required()),
+            .required(LL.form.error.required()),
           nav_logo_url: yup
             .string()
-            .required(LL.settingsPage.instanceBranding.form.error.required()),
+            .required(LL.form.error.required()),
           instance_name: yup
             .string()
-            .min(3, LL.settingsPage.instanceBranding.form.error.minimumLength())
-            .max(12, LL.settingsPage.instanceBranding.form.error.maximumLength())
-            .required(LL.settingsPage.instanceBranding.form.error.required()),
+            .min(3, LL.form.error.minimumLength())
+            .max(12, LL.form.error.maximumLength())
+            .required(LL.form.error.required()),
         })
         .required(),
-    []
+    [locale]
   );
   const { control, handleSubmit, reset } = useForm<Settings>({
     defaultValues: useMemo(() => {
