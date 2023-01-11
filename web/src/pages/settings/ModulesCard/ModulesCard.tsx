@@ -14,8 +14,11 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
+import { useI18nContext } from '../../../i18n/i18n-react';
+import parse from 'html-react-parser';
 
 export const ModulesCard = () => {
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     settings: { editSettings },
@@ -31,10 +34,10 @@ export const ModulesCard = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-        toaster.success('Settings changed.');
+        toaster.success(LL.settingsPage.messages.editSuccess());
       },
       onError: () => {
-        toaster.error('Error occured!', 'Please contact administrator');
+        toaster.error(LL.messages.error());
       },
     }
   );
@@ -61,49 +64,54 @@ export const ModulesCard = () => {
   return (
     <section className="modules">
       <header>
-        <h2>Modules Visibility</h2>
-        <Helper>
-          <p>
-            If your not using some modules you can disable their visibility.
-          </p>{' '}
-          <a href="defguard.gitbook.io" target="_blank">
-            Read more in documentation.
-          </a>
-        </Helper>
+        <h2>{LL.settingsPage.modulesVisibility.header()}</h2>
+        <Helper>{parse(LL.settingsPage.modulesVisibility.helper())}</Helper>
       </header>
       <Card>
         <CheckBox
-          label="WireGuard VPN"
+          label={LL.settingsPage.modulesVisibility.fields.wireguard_enabled.label()}
           value={settings.wireguard_enabled}
           disabled={isLoading}
           onChange={() => handleChange('wireguard_enabled')}
         />
         <CheckBox
-          label="Webhooks"
+          label={LL.settingsPage.modulesVisibility.fields.webhooks_enabled.label()}
           value={settings.webhooks_enabled}
           disabled={isLoading}
           onChange={() => handleChange('webhooks_enabled')}
         />
         <CheckBox
-          label="Web3"
+          label={LL.settingsPage.modulesVisibility.fields.web3_enabled.label()}
           value={settings.web3_enabled}
           disabled={isLoading}
           onChange={() => handleChange('web3_enabled')}
         />
         <CheckBox
-          label={<EnterPriceLabel>YubiBridge</EnterPriceLabel>}
+          label={
+            <EnterPriceLabel>
+              {LL.settingsPage.modulesVisibility.fields.worker_enabled.label()}
+            </EnterPriceLabel>
+          }
           value={settings.worker_enabled}
           disabled={isLoading}
           onChange={() => handleChange('worker_enabled')}
         />
         <CheckBox
           disabled={isLoading}
-          label={<EnterPriceLabel>OpenID connect</EnterPriceLabel>}
+          label={
+            <EnterPriceLabel>
+              {LL.settingsPage.modulesVisibility.fields.openid_enabled.label()}
+            </EnterPriceLabel>
+          }
           value={settings.openid_enabled}
           onChange={() => handleChange('openid_enabled')}
         />
         <CheckBox
-          label={<EnterPriceLabel>OAuth2</EnterPriceLabel>}
+          label={
+            <EnterPriceLabel>
+              {LL.settingsPage.modulesVisibility.fields.oauth_enabled.label()}
+            </EnterPriceLabel>
+          }
           value={settings.oauth_enabled}
           disabled={isLoading}
           onChange={() => handleChange('oauth_enabled')}

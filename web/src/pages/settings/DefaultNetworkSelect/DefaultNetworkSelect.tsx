@@ -12,8 +12,11 @@ import {
 import { deviceBreakpoints } from '../../../shared/constants';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../../overview/hooks/store/useOverviewStore';
+import { useI18nContext } from '../../../i18n/i18n-react';
+import parse from 'html-react-parser';
 
 export const DefaultNetworkSelect = () => {
+  const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const defaultViewMode = useOverviewStore((state) => state.defaultViewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
@@ -62,13 +65,8 @@ export const DefaultNetworkSelect = () => {
   return (
     <section className="network-view">
       <header>
-        <h2>Default network view</h2>
-        <Helper>
-          <p>Here you can change your default network view.</p>{' '}
-          <a href="defguard.gitbook.io" target="_blank">
-            Read more in documentation.
-          </a>
-        </Helper>
+        <h2>{LL.settingsPage.defaultNetworkSelect.header()}</h2>
+        <Helper>{parse(LL.settingsPage.defaultNetworkSelect.helper())}</Helper>
       </header>
       <Select
         styleVariant={SelectStyleVariant.WHITE}
