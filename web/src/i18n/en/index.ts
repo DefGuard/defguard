@@ -510,7 +510,7 @@ const en: BaseTranslation = {
     title: 'Global Settings',
     messages: {
       editSuccess: 'Settings updated',
-			challengeSuccess: 'Challenge message changed',
+      challengeSuccess: 'Challenge message changed',
     },
     modulesVisibility: {
       header: 'Modules Visibility',
@@ -648,6 +648,203 @@ const en: BaseTranslation = {
         https://github.com/Defguard/defguard
       </a>
 			`,
+      },
+    },
+  },
+  openidOverview: {
+    pageTitle: 'OpenID Apps',
+    search: {
+      placeholder: 'Find apps',
+    },
+    filterLabels: {
+      all: 'All apps',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+    },
+    clientCount: 'All apps',
+    addNewApp: 'Add new',
+    list: {
+      headers: {
+        name: 'Name',
+        status: 'Status',
+        actions: 'Actions',
+      },
+      editButton: {
+        edit: 'Edit app',
+        delete: 'Delete app',
+        disable: 'Disable',
+        enable: 'Enable',
+      },
+      status: {
+        enabled: 'Enabled',
+        disabled: 'Disabled',
+      },
+    },
+    messages: {
+      noLicenseMessage: "You don't have a license for this feature.",
+      noClientsFound: 'No results found.',
+    },
+    deleteApp: {
+      title: 'Delete app',
+      message: 'Do you want to delete {appName: string} app ?',
+      submit: 'Delete app',
+      messages: {
+        success: 'App deleted.',
+      },
+    },
+    enableApp: {
+      messages: {
+        success: 'App enabled.',
+      },
+    },
+    disableApp: {
+      messages: {
+        success: 'App disabled.',
+      },
+    },
+    modals: {
+      openidClientModal: {
+        title: {
+          addApp: 'Add app.',
+          editApp: 'Edit {appName: string} app',
+        },
+        scopes: 'Scopes:',
+        messages: {
+          clientIdCopy: 'Client ID copied.',
+          clientSecretCopy: 'Client secret copied.',
+        },
+        form: {
+          messages: {
+            successAdd: 'App created.',
+            successModify: 'App modified.',
+          },
+          error: {
+            urlRequired: 'URL is required.',
+            validUrl: 'Must be a valid URL.',
+            scopeValidation: 'Must have at least one scope.',
+          },
+          fields: {
+            name: {
+              label: 'App name',
+            },
+            redirectUri: {
+              label: 'Redirect URL {count: number}',
+              placeholder: 'https://example.com/redirect',
+            },
+            openid: {
+              label: 'OpenID',
+            },
+            profile: {
+              label: 'Profile',
+            },
+            email: {
+              label: 'Email',
+            },
+            phone: {
+              label: 'Phone',
+            },
+          },
+          controls: {
+            addUrl: 'Add URL',
+          },
+        },
+        clientId: 'Client ID',
+        clientSecret: 'Client secret',
+      },
+    },
+  },
+  webhooksOverview: {
+    pageTitle: 'Webhooks',
+    search: {
+      placeholder: 'Find webhooks by url',
+    },
+    filterLabels: {
+      all: 'All webhooks',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+    },
+    webhooksCount: 'All webhooks',
+    addNewWebhook: 'Add new',
+    noWebhooksFound: 'No webhooks found.',
+    list: {
+      headers: {
+        name: 'Name',
+        description: 'Description',
+        status: 'Status',
+        actions: 'Actions',
+      },
+      editButton: {
+        edit: 'Edit',
+        delete: 'Delete webhook',
+        disable: 'Disable',
+        enable: 'Enable',
+      },
+      status: {
+        enabled: 'Enabled',
+        disabled: 'Disabled',
+      },
+    },
+    deleteWebhook: {
+      title: 'Delete webhook',
+      message: 'Do you want to delete {name: string} webhook ?',
+      submit: 'Delete',
+      messages: {
+        success: 'Webhook deleted.',
+      },
+    },
+    changeWebhook: {
+      messages: {
+        success: 'Webhook changed.',
+      },
+    },
+    modals: {
+      webhookModal: {
+        title: {
+          addWebhook: 'Add webhook.',
+          editWebhook: 'Edit webhook',
+        },
+        messages: {
+          clientIdCopy: 'Client ID copied.',
+          clientSecretCopy: 'Client secret copied.',
+        },
+        form: {
+          triggers: 'Trigger events:',
+          messages: {
+            successAdd: 'Webhook created.',
+            successModify: 'Webhook modified.',
+          },
+          error: {
+            urlRequired: 'URL is required.',
+            validUrl: 'Must be a valid URL.',
+            scopeValidation: 'Must have at least one scope.',
+          },
+          fields: {
+            description: {
+              label: 'description',
+              placeholder: 'Webhook to create gmail account on new user',
+            },
+            token: {
+              label: 'Secret token',
+							placeholder: 'Authorization token'
+            },
+            url: {
+              label: 'Webhook URL',
+              placeholder: 'https://example.com/webhook',
+            },
+            userCreated: {
+              label: 'New user Created',
+            },
+            userDeleted: {
+              label: 'User deleted',
+            },
+            userModified: {
+              label: 'User modified',
+            },
+            hwkeyProvision: {
+              label: 'User Yubikey provision',
+            },
+          },
+        },
       },
     },
   },

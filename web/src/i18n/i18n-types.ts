@@ -1422,6 +1422,468 @@ type RootTranslation = {
 			}
 		}
 	}
+	openidOverview: {
+		/**
+		 * O​p​e​n​I​D​ ​A​p​p​s
+		 */
+		pageTitle: string
+		search: {
+			/**
+			 * F​i​n​d​ ​a​p​p​s
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l​ ​a​p​p​s
+			 */
+			all: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+		}
+		/**
+		 * A​l​l​ ​a​p​p​s
+		 */
+		clientCount: string
+		/**
+		 * A​d​d​ ​n​e​w
+		 */
+		addNewApp: string
+		list: {
+			headers: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * E​d​i​t​ ​a​p​p
+				 */
+				edit: string
+				/**
+				 * D​e​l​e​t​e​ ​a​p​p
+				 */
+				'delete': string
+				/**
+				 * D​i​s​a​b​l​e
+				 */
+				disable: string
+				/**
+				 * E​n​a​b​l​e
+				 */
+				enable: string
+			}
+			status: {
+				/**
+				 * E​n​a​b​l​e​d
+				 */
+				enabled: string
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+			}
+		}
+		messages: {
+			/**
+			 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
+			 */
+			noLicenseMessage: string
+			/**
+			 * N​o​ ​r​e​s​u​l​t​s​ ​f​o​u​n​d​.
+			 */
+			noClientsFound: string
+		}
+		deleteApp: {
+			/**
+			 * D​e​l​e​t​e​ ​a​p​p
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p​ ​?
+			 * @param {string} appName
+			 */
+			message: RequiredParams<'appName'>
+			/**
+			 * D​e​l​e​t​e​ ​a​p​p
+			 */
+			submit: string
+			messages: {
+				/**
+				 * A​p​p​ ​d​e​l​e​t​e​d​.
+				 */
+				success: string
+			}
+		}
+		enableApp: {
+			messages: {
+				/**
+				 * A​p​p​ ​e​n​a​b​l​e​d​.
+				 */
+				success: string
+			}
+		}
+		disableApp: {
+			messages: {
+				/**
+				 * A​p​p​ ​d​i​s​a​b​l​e​d​.
+				 */
+				success: string
+			}
+		}
+		modals: {
+			openidClientModal: {
+				title: {
+					/**
+					 * A​d​d​ ​a​p​p​.
+					 */
+					addApp: string
+					/**
+					 * E​d​i​t​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p
+					 * @param {string} appName
+					 */
+					editApp: RequiredParams<'appName'>
+				}
+				/**
+				 * S​c​o​p​e​s​:
+				 */
+				scopes: string
+				messages: {
+					/**
+					 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+					 */
+					clientIdCopy: string
+					/**
+					 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
+					 */
+					clientSecretCopy: string
+				}
+				form: {
+					messages: {
+						/**
+						 * A​p​p​ ​c​r​e​a​t​e​d​.
+						 */
+						successAdd: string
+						/**
+						 * A​p​p​ ​m​o​d​i​f​i​e​d​.
+						 */
+						successModify: string
+					}
+					error: {
+						/**
+						 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+						 */
+						urlRequired: string
+						/**
+						 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
+						 */
+						validUrl: string
+						/**
+						 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​s​c​o​p​e​.
+						 */
+						scopeValidation: string
+					}
+					fields: {
+						name: {
+							/**
+							 * A​p​p​ ​n​a​m​e
+							 */
+							label: string
+						}
+						redirectUri: {
+							/**
+							 * R​e​d​i​r​e​c​t​ ​U​R​L​ ​{​c​o​u​n​t​}
+							 * @param {number} count
+							 */
+							label: RequiredParams<'count'>
+							/**
+							 * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​r​e​d​i​r​e​c​t
+							 */
+							placeholder: string
+						}
+						openid: {
+							/**
+							 * O​p​e​n​I​D
+							 */
+							label: string
+						}
+						profile: {
+							/**
+							 * P​r​o​f​i​l​e
+							 */
+							label: string
+						}
+						email: {
+							/**
+							 * E​m​a​i​l
+							 */
+							label: string
+						}
+						phone: {
+							/**
+							 * P​h​o​n​e
+							 */
+							label: string
+						}
+					}
+					controls: {
+						/**
+						 * A​d​d​ ​U​R​L
+						 */
+						addUrl: string
+					}
+				}
+				/**
+				 * C​l​i​e​n​t​ ​I​D
+				 */
+				clientId: string
+				/**
+				 * C​l​i​e​n​t​ ​s​e​c​r​e​t
+				 */
+				clientSecret: string
+			}
+		}
+	}
+	webhooksOverview: {
+		/**
+		 * W​e​b​h​o​o​k​s
+		 */
+		pageTitle: string
+		search: {
+			/**
+			 * F​i​n​d​ ​w​e​b​h​o​o​k​s​ ​b​y​ ​u​r​l
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l​ ​w​e​b​h​o​o​k​s
+			 */
+			all: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+		}
+		/**
+		 * A​l​l​ ​w​e​b​h​o​o​k​s
+		 */
+		webhooksCount: string
+		/**
+		 * A​d​d​ ​n​e​w
+		 */
+		addNewWebhook: string
+		/**
+		 * N​o​ ​w​e​b​h​o​o​k​s​ ​f​o​u​n​d​.
+		 */
+		noWebhooksFound: string
+		list: {
+			headers: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * D​e​s​c​r​i​p​t​i​o​n
+				 */
+				description: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * E​d​i​t
+				 */
+				edit: string
+				/**
+				 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
+				 */
+				'delete': string
+				/**
+				 * D​i​s​a​b​l​e
+				 */
+				disable: string
+				/**
+				 * E​n​a​b​l​e
+				 */
+				enable: string
+			}
+			status: {
+				/**
+				 * E​n​a​b​l​e​d
+				 */
+				enabled: string
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+			}
+		}
+		deleteWebhook: {
+			/**
+			 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​n​a​m​e​}​ ​w​e​b​h​o​o​k​ ​?
+			 * @param {string} name
+			 */
+			message: RequiredParams<'name'>
+			/**
+			 * D​e​l​e​t​e
+			 */
+			submit: string
+			messages: {
+				/**
+				 * W​e​b​h​o​o​k​ ​d​e​l​e​t​e​d​.
+				 */
+				success: string
+			}
+		}
+		changeWebhook: {
+			messages: {
+				/**
+				 * W​e​b​h​o​o​k​ ​c​h​a​n​g​e​d​.
+				 */
+				success: string
+			}
+		}
+		modals: {
+			webhookModal: {
+				title: {
+					/**
+					 * A​d​d​ ​w​e​b​h​o​o​k​.
+					 */
+					addWebhook: string
+					/**
+					 * E​d​i​t​ ​w​e​b​h​o​o​k
+					 */
+					editWebhook: string
+				}
+				messages: {
+					/**
+					 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+					 */
+					clientIdCopy: string
+					/**
+					 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
+					 */
+					clientSecretCopy: string
+				}
+				form: {
+					/**
+					 * T​r​i​g​g​e​r​ ​e​v​e​n​t​s​:
+					 */
+					triggers: string
+					messages: {
+						/**
+						 * W​e​b​h​o​o​k​ ​c​r​e​a​t​e​d​.
+						 */
+						successAdd: string
+						/**
+						 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d​.
+						 */
+						successModify: string
+					}
+					error: {
+						/**
+						 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+						 */
+						urlRequired: string
+						/**
+						 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
+						 */
+						validUrl: string
+						/**
+						 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​s​c​o​p​e​.
+						 */
+						scopeValidation: string
+					}
+					fields: {
+						description: {
+							/**
+							 * d​e​s​c​r​i​p​t​i​o​n
+							 */
+							label: string
+							/**
+							 * W​e​b​h​o​o​k​ ​t​o​ ​c​r​e​a​t​e​ ​g​m​a​i​l​ ​a​c​c​o​u​n​t​ ​o​n​ ​n​e​w​ ​u​s​e​r
+							 */
+							placeholder: string
+						}
+						token: {
+							/**
+							 * S​e​c​r​e​t​ ​t​o​k​e​n
+							 */
+							label: string
+							/**
+							 * A​u​t​h​o​r​i​z​a​t​i​o​n​ ​t​o​k​e​n
+							 */
+							placeholder: string
+						}
+						url: {
+							/**
+							 * W​e​b​h​o​o​k​ ​U​R​L
+							 */
+							label: string
+							/**
+							 * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​w​e​b​h​o​o​k
+							 */
+							placeholder: string
+						}
+						userCreated: {
+							/**
+							 * N​e​w​ ​u​s​e​r​ ​C​r​e​a​t​e​d
+							 */
+							label: string
+						}
+						userDeleted: {
+							/**
+							 * U​s​e​r​ ​d​e​l​e​t​e​d
+							 */
+							label: string
+						}
+						userModified: {
+							/**
+							 * U​s​e​r​ ​m​o​d​i​f​i​e​d
+							 */
+							label: string
+						}
+						hwkeyProvision: {
+							/**
+							 * U​s​e​r​ ​Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n
+							 */
+							label: string
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -2825,6 +3287,464 @@ export type TranslationFunctions = {
 					
 				 */
 				community: () => LocalizedString
+			}
+		}
+	}
+	openidOverview: {
+		/**
+		 * OpenID Apps
+		 */
+		pageTitle: () => LocalizedString
+		search: {
+			/**
+			 * Find apps
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All apps
+			 */
+			all: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+		}
+		/**
+		 * All apps
+		 */
+		clientCount: () => LocalizedString
+		/**
+		 * Add new
+		 */
+		addNewApp: () => LocalizedString
+		list: {
+			headers: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Edit app
+				 */
+				edit: () => LocalizedString
+				/**
+				 * Delete app
+				 */
+				'delete': () => LocalizedString
+				/**
+				 * Disable
+				 */
+				disable: () => LocalizedString
+				/**
+				 * Enable
+				 */
+				enable: () => LocalizedString
+			}
+			status: {
+				/**
+				 * Enabled
+				 */
+				enabled: () => LocalizedString
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+			}
+		}
+		messages: {
+			/**
+			 * You don't have a license for this feature.
+			 */
+			noLicenseMessage: () => LocalizedString
+			/**
+			 * No results found.
+			 */
+			noClientsFound: () => LocalizedString
+		}
+		deleteApp: {
+			/**
+			 * Delete app
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to delete {appName} app ?
+			 */
+			message: (arg: { appName: string }) => LocalizedString
+			/**
+			 * Delete app
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * App deleted.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		enableApp: {
+			messages: {
+				/**
+				 * App enabled.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		disableApp: {
+			messages: {
+				/**
+				 * App disabled.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		modals: {
+			openidClientModal: {
+				title: {
+					/**
+					 * Add app.
+					 */
+					addApp: () => LocalizedString
+					/**
+					 * Edit {appName} app
+					 */
+					editApp: (arg: { appName: string }) => LocalizedString
+				}
+				/**
+				 * Scopes:
+				 */
+				scopes: () => LocalizedString
+				messages: {
+					/**
+					 * Client ID copied.
+					 */
+					clientIdCopy: () => LocalizedString
+					/**
+					 * Client secret copied.
+					 */
+					clientSecretCopy: () => LocalizedString
+				}
+				form: {
+					messages: {
+						/**
+						 * App created.
+						 */
+						successAdd: () => LocalizedString
+						/**
+						 * App modified.
+						 */
+						successModify: () => LocalizedString
+					}
+					error: {
+						/**
+						 * URL is required.
+						 */
+						urlRequired: () => LocalizedString
+						/**
+						 * Must be a valid URL.
+						 */
+						validUrl: () => LocalizedString
+						/**
+						 * Must have at least one scope.
+						 */
+						scopeValidation: () => LocalizedString
+					}
+					fields: {
+						name: {
+							/**
+							 * App name
+							 */
+							label: () => LocalizedString
+						}
+						redirectUri: {
+							/**
+							 * Redirect URL {count}
+							 */
+							label: (arg: { count: number }) => LocalizedString
+							/**
+							 * https://example.com/redirect
+							 */
+							placeholder: () => LocalizedString
+						}
+						openid: {
+							/**
+							 * OpenID
+							 */
+							label: () => LocalizedString
+						}
+						profile: {
+							/**
+							 * Profile
+							 */
+							label: () => LocalizedString
+						}
+						email: {
+							/**
+							 * Email
+							 */
+							label: () => LocalizedString
+						}
+						phone: {
+							/**
+							 * Phone
+							 */
+							label: () => LocalizedString
+						}
+					}
+					controls: {
+						/**
+						 * Add URL
+						 */
+						addUrl: () => LocalizedString
+					}
+				}
+				/**
+				 * Client ID
+				 */
+				clientId: () => LocalizedString
+				/**
+				 * Client secret
+				 */
+				clientSecret: () => LocalizedString
+			}
+		}
+	}
+	webhooksOverview: {
+		/**
+		 * Webhooks
+		 */
+		pageTitle: () => LocalizedString
+		search: {
+			/**
+			 * Find webhooks by url
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All webhooks
+			 */
+			all: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+		}
+		/**
+		 * All webhooks
+		 */
+		webhooksCount: () => LocalizedString
+		/**
+		 * Add new
+		 */
+		addNewWebhook: () => LocalizedString
+		/**
+		 * No webhooks found.
+		 */
+		noWebhooksFound: () => LocalizedString
+		list: {
+			headers: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Description
+				 */
+				description: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Edit
+				 */
+				edit: () => LocalizedString
+				/**
+				 * Delete webhook
+				 */
+				'delete': () => LocalizedString
+				/**
+				 * Disable
+				 */
+				disable: () => LocalizedString
+				/**
+				 * Enable
+				 */
+				enable: () => LocalizedString
+			}
+			status: {
+				/**
+				 * Enabled
+				 */
+				enabled: () => LocalizedString
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+			}
+		}
+		deleteWebhook: {
+			/**
+			 * Delete webhook
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to delete {name} webhook ?
+			 */
+			message: (arg: { name: string }) => LocalizedString
+			/**
+			 * Delete
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * Webhook deleted.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		changeWebhook: {
+			messages: {
+				/**
+				 * Webhook changed.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		modals: {
+			webhookModal: {
+				title: {
+					/**
+					 * Add webhook.
+					 */
+					addWebhook: () => LocalizedString
+					/**
+					 * Edit webhook
+					 */
+					editWebhook: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Client ID copied.
+					 */
+					clientIdCopy: () => LocalizedString
+					/**
+					 * Client secret copied.
+					 */
+					clientSecretCopy: () => LocalizedString
+				}
+				form: {
+					/**
+					 * Trigger events:
+					 */
+					triggers: () => LocalizedString
+					messages: {
+						/**
+						 * Webhook created.
+						 */
+						successAdd: () => LocalizedString
+						/**
+						 * Webhook modified.
+						 */
+						successModify: () => LocalizedString
+					}
+					error: {
+						/**
+						 * URL is required.
+						 */
+						urlRequired: () => LocalizedString
+						/**
+						 * Must be a valid URL.
+						 */
+						validUrl: () => LocalizedString
+						/**
+						 * Must have at least one scope.
+						 */
+						scopeValidation: () => LocalizedString
+					}
+					fields: {
+						description: {
+							/**
+							 * description
+							 */
+							label: () => LocalizedString
+							/**
+							 * Webhook to create gmail account on new user
+							 */
+							placeholder: () => LocalizedString
+						}
+						token: {
+							/**
+							 * Secret token
+							 */
+							label: () => LocalizedString
+							/**
+							 * Authorization token
+							 */
+							placeholder: () => LocalizedString
+						}
+						url: {
+							/**
+							 * Webhook URL
+							 */
+							label: () => LocalizedString
+							/**
+							 * https://example.com/webhook
+							 */
+							placeholder: () => LocalizedString
+						}
+						userCreated: {
+							/**
+							 * New user Created
+							 */
+							label: () => LocalizedString
+						}
+						userDeleted: {
+							/**
+							 * User deleted
+							 */
+							label: () => LocalizedString
+						}
+						userModified: {
+							/**
+							 * User modified
+							 */
+							label: () => LocalizedString
+						}
+						hwkeyProvision: {
+							/**
+							 * User Yubikey provision
+							 */
+							label: () => LocalizedString
+						}
+					}
+				}
 			}
 		}
 	}

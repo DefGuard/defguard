@@ -5,8 +5,10 @@ import { useMemo } from 'react';
 import { ModalWithTitle } from '../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { OpenIdClientModalForm } from './OpenIdClientModalForm';
+import { useI18nContext } from '../../../../i18n/i18n-react';
 
 export const OpenIdClientModal = () => {
+  const { LL } = useI18nContext();
   const modalState = useModalStore((state) => state.openIdClientModal);
   const setModalState = useModalStore((state) => state.setOpenIdClientModal);
 
@@ -15,9 +17,11 @@ export const OpenIdClientModal = () => {
       return modalState.client.name;
     }
     if (modalState.client) {
-      return `Edit ${modalState.client.name} client`;
+      return LL.openidOverview.modals.openidClientModal.title.editApp({
+        appName: modalState.client.name,
+      });
     }
-    return 'Add client';
+    return LL.openidOverview.modals.openidClientModal.title.addApp();
   }, [modalState.client, modalState.viewMode]);
 
   return (

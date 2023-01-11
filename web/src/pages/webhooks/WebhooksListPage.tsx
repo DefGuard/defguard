@@ -44,8 +44,10 @@ import { MutationKeys } from '../../shared/mutations';
 import { QueryKeys } from '../../shared/queries';
 import { Webhook } from '../../shared/types';
 import { WebhookModal } from './modals/WebhookModal/WebhookModal';
+import { useI18nContext } from '../../i18n/i18n-react';
 
 export const WebhooksListPage = () => {
+  const { LL, locale } = useI18nContext();
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -54,7 +56,6 @@ export const WebhooksListPage = () => {
   );
   const [searchValue, setSearchValue] = useState<string>('');
   const [filteredWebhooks, setFilteredWebhooks] = useState<Webhook[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState(filterOptions[0]);
   const setWebhookModalState = useModalStore((state) => state.setWebhookModal);
 
   const {
@@ -62,16 +63,34 @@ export const WebhooksListPage = () => {
   } = useApi();
 
   const toaster = useToaster();
+  const filterOptions: SelectOption<FilterOption>[] = [
+    {
+      value: FilterOption.ALL,
+      label: LL.webhooksOverview.filterLabels.all(),
+      key: 1,
+    },
+    {
+      value: FilterOption.ENABLED,
+      label: LL.webhooksOverview.filterLabels.enabled(),
+      key: 2,
+    },
+    {
+      value: FilterOption.DISABLED,
+      label: LL.webhooksOverview.filterLabels.disabled(),
+      key: 3,
+    },
+  ];
 
+  const [selectedFilter, setSelectedFilter] = useState(filterOptions[0]);
   const { mutate: deleteWebhookMutation, isLoading: deleteWebhookIsLoading } =
     useMutation([MutationKeys.DELETE_WEBHOOK], deleteWebhook, {
       onSuccess: () => {
-        toaster.success('Webhook deleted.');
+        toaster.success(LL.webhooksOverview.deleteWebhook.messages.success());
         setDeleteModalOpen(false);
         queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
       },
       onError: (err) => {
-        toaster.error('Error has occurred.');
+        toaster.error(LL.messages.error());
         setDeleteModalOpen(false);
         console.error(err);
       },
@@ -80,11 +99,11 @@ export const WebhooksListPage = () => {
   const { mutate: changeWebhookMutation, isLoading: changeWebhookIsLoading } =
     useMutation([MutationKeys.CHANGE_WEBHOOK_STATE], changeWebhookState, {
       onSuccess: () => {
-        toaster.success('Webhook changed.');
+        toaster.success(LL.webhooksOverview.changeWebhook.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
       },
       onError: (err) => {
-        toaster.error('Error has occurred.');
+        toaster.error(LL.messages.error());
         console.error(err);
       },
     });
@@ -98,23 +117,23 @@ export const WebhooksListPage = () => {
     const res: ListHeader[] = [
       {
         key: 'url',
-        text: 'Url',
+        text: LL.webhooksOverview.list.headers.name(),
         active: true,
         sortDirection: ListSortDirection.ASC,
       },
       {
         key: 'description',
-        text: 'Description',
+        text: LL.webhooksOverview.list.headers.description(),
         sortable: false,
       },
       {
         key: 'status',
-        text: 'Status',
+        text: LL.webhooksOverview.list.headers.status(),
         sortable: false,
       },
       {
         key: 'actions',
-        text: 'Actions',
+        text: LL.webhooksOverview.list.headers.actions(),
         sortable: false,
       },
     ];
@@ -122,7 +141,7 @@ export const WebhooksListPage = () => {
       res.splice(1, 2);
     }
     return res;
-  }, [breakpoint]);
+  }, [breakpoint, locale]);
 
   const getCells = useMemo(() => {
     const res: ListRowCell<Webhook>[] = [
@@ -139,11 +158,13 @@ export const WebhooksListPage = () => {
         render: (context) =>
           context.enabled ? (
             <>
-              <IconCheckmarkGreen /> <span>Enabled</span>
+              <IconCheckmarkGreen />
+              <span>{LL.webhooksOverview.list.status.enabled()}</span>
             </>
           ) : (
             <>
-              <IconDeactivated /> <span>Disabled</span>
+              <IconDeactivated />
+              <span>{LL.webhooksOverview.list.status.disabled()}</span>
             </>
           ),
       },
@@ -159,7 +180,11 @@ export const WebhooksListPage = () => {
             />
             <EditButtonOption
               disabled={changeWebhookIsLoading}
-              text={context.enabled ? 'Disable' : 'Enable'}
+              text={
+                context.enabled
+                  ? LL.webhooksOverview.list.editButton.disable()
+                  : LL.webhooksOverview.list.editButton.enable()
+              }
               onClick={() => {
                 if (!changeWebhookIsLoading) {
                   changeWebhookMutation({
@@ -170,7 +195,7 @@ export const WebhooksListPage = () => {
               }}
             />
             <EditButtonOption
-              text="Delete"
+              text={LL.webhooksOverview.list.editButton.delete()}
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               onClick={() => {
                 setWebhookToDelete(context);
@@ -242,9 +267,9 @@ export const WebhooksListPage = () => {
   return (
     <PageContainer id="webhooks-list-page">
       <header>
-        <h1>Webhooks</h1>
+        <h1>{LL.webhooksOverview.pageTitle()}</h1>
         <Search
-          placeholder="Find webhook by url"
+          placeholder={LL.webhooksOverview.search.placeholder()}
           initialValue={searchValue}
           debounceTiming={500}
           onDebounce={setSearchValue}
@@ -252,7 +277,7 @@ export const WebhooksListPage = () => {
       </header>
       <section className="actions">
         <div className="items-count">
-          <span>All webhooks</span>
+          <span>{LL.webhooksOverview.webhooksCount()}</span>
           <div className="count">
             <span>{webhooks?.length ?? 0}</span>
           </div>
@@ -288,7 +313,7 @@ export const WebhooksListPage = () => {
           </div>
         ))}
       {!isLoading && filteredWebhooks && filteredWebhooks.length === 0 && (
-        <NoData customMessage="No webhooks found." />
+        <NoData customMessage={LL.webhooksOverview.noWebhooksFound()} />
       )}
       {!isLoading && filteredWebhooks && filteredWebhooks.length > 0 && (
         <VirtualizedList
@@ -305,8 +330,10 @@ export const WebhooksListPage = () => {
       )}
       <WebhookModal />
       <ConfirmModal
-        title="Delete webhook"
-        subTitle="Selected webhook will be deleted."
+        title={LL.webhooksOverview.deleteWebhook.title()}
+        subTitle={LL.webhooksOverview.deleteWebhook.message({
+          name: webhookToDelete?.url || '',
+        })}
         isOpen={deleteModalOpen}
         setIsOpen={setDeleteModalOpen}
         type={ConfirmModalType.WARNING}
@@ -327,21 +354,3 @@ enum FilterOption {
   ENABLED = 'enabled',
   DISABLED = 'disabled',
 }
-
-const filterOptions: SelectOption<FilterOption>[] = [
-  {
-    value: FilterOption.ALL,
-    label: 'All',
-    key: 1,
-  },
-  {
-    value: FilterOption.ENABLED,
-    label: 'Enabled',
-    key: 2,
-  },
-  {
-    value: FilterOption.DISABLED,
-    label: 'Disabled',
-    key: 3,
-  },
-];

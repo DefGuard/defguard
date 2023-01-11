@@ -45,12 +45,13 @@ import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { OpenidClient } from '../../../shared/types';
 import { OpenIdClientModal } from '../modals/OpenIdClientModal/OpenIdClientModal';
+import { useI18nContext } from '../../../i18n/i18n-react';
 
 export const OpenidClientsListPage = () => {
+  const { LL, locale } = useI18nContext();
   const toaster = useToaster();
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const [selectedFilter, setSelectedFilter] = useState(selectOptions[0]);
   const [deleteClientModalOpen, setDeleteClientModalOpen] = useState(false);
   const [deleteClient, setDeleteClient] = useState<OpenidClient | undefined>(
     undefined
@@ -66,15 +67,35 @@ export const OpenidClientsListPage = () => {
 
   const { data: license } = useQuery([QueryKeys.FETCH_LICENSE], getLicense);
 
+  const selectOptions: SelectOption<FilterOption>[] = [
+    {
+      key: 1,
+      label: LL.openidOverview.filterLabels.all(),
+      value: FilterOption.ALL,
+    },
+    {
+      key: 3,
+      label: LL.openidOverview.filterLabels.enabled(),
+      value: FilterOption.ENABLED,
+    },
+    {
+      key: 2,
+      label: LL.openidOverview.filterLabels.disabled(),
+      value: FilterOption.DISABLED,
+    },
+  ];
+
+  const [selectedFilter, setSelectedFilter] = useState(selectOptions[0]);
+
   const { mutate: deleteClientMutation, isLoading: deleteClientLoading } =
     useMutation([MutationKeys.DELETE_OPENID_CLIENT], deleteOpenidClient, {
       onSuccess: () => {
-        toaster.success('Client removed.');
+        toaster.success(LL.openidOverview.deleteApp.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
         setDeleteClientModalOpen(false);
       },
       onError: (err) => {
-        toaster.error('Error has occurred.');
+        toaster.error(LL.messages.error());
         setDeleteClientModalOpen(false);
         console.error(err);
       },
@@ -89,14 +110,14 @@ export const OpenidClientsListPage = () => {
     {
       onSuccess: (_, client) => {
         if (client.enabled) {
-          toaster.success('Client disabled.');
+          toaster.success(LL.openidOverview.disableApp.messages.success());
         } else {
-          toaster.success('Client enabled.');
+          toaster.success(LL.openidOverview.enableApp.messages.success());
         }
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
       },
       onError: (err) => {
-        toaster.error('Error occurred.');
+        toaster.error(LL.messages.error());
         console.error(err);
       },
     }
@@ -135,22 +156,22 @@ export const OpenidClientsListPage = () => {
     const res: ListHeader[] = [
       {
         key: 'name',
-        text: 'Name',
+        text: LL.openidOverview.list.headers.name(),
         active: true,
         sortDirection: ListSortDirection.ASC,
       },
       {
         key: 'status',
-        text: 'Status',
+        text: LL.openidOverview.list.headers.status(),
       },
       {
         key: 'actions',
-        text: 'Actions',
+        text: LL.openidOverview.list.headers.actions(),
         sortable: false,
       },
     ];
     return res;
-  }, []);
+  }, [locale]);
 
   const listCells = useMemo(() => {
     const res: ListRowCell<OpenidClient>[] = [
@@ -165,11 +186,13 @@ export const OpenidClientsListPage = () => {
         render: (client) =>
           client.enabled ? (
             <>
-              <IconCheckmarkGreen /> <span>Enabled</span>
+              <IconCheckmarkGreen />{' '}
+              <span>{LL.openidOverview.list.status.enabled()}</span>
             </>
           ) : (
             <>
-              <IconDeactivated /> <span>Disabled</span>
+              <IconDeactivated />{' '}
+              <span>{LL.openidOverview.list.status.disabled()}</span>
             </>
           ),
       },
@@ -178,7 +201,7 @@ export const OpenidClientsListPage = () => {
         render: (client) => (
           <EditButton>
             <EditButtonOption
-              text="Edit"
+              text={LL.openidOverview.list.editButton.edit()}
               onClick={() =>
                 setOpenIdClientModalState({
                   visible: true,
@@ -193,7 +216,7 @@ export const OpenidClientsListPage = () => {
             />
             <EditButtonOption
               styleVariant={EditButtonOptionStyleVariant.WARNING}
-              text="Delete"
+              text={LL.openidOverview.list.editButton.delete()}
               onClick={() => {
                 setDeleteClient(client);
                 setDeleteClientModalOpen(true);
@@ -228,9 +251,9 @@ export const OpenidClientsListPage = () => {
   return (
     <PageContainer id="openid-clients-list">
       <header>
-        <h1>OpenID Apps</h1>
+        <h1>{LL.openidOverview.pageTitle()}</h1>
         <Search
-          placeholder="Find app"
+          placeholder={LL.openidOverview.search.placeholder()}
           className="clients-search"
           initialValue={searchValue}
           debounceTiming={500}
@@ -239,7 +262,7 @@ export const OpenidClientsListPage = () => {
       </header>
       <section className="actions">
         <div className="clients-count">
-          <span>All apps</span>
+          <span>{LL.openidOverview.clientCount()}</span>
           <div className="count" data-test="clients-count">
             <span>{clients && clients.length > 0 ? clients.length : 0}</span>
           </div>
@@ -268,13 +291,13 @@ export const OpenidClientsListPage = () => {
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconPlusWhite />}
-            text="Add new"
+            text={LL.openidOverview.addNewApp()}
             disabled={!hasAccess}
           />
         </div>
       </section>
       {!hasAccess && (
-        <NoData customMessage="You don't have a license for this feature." />
+        <NoData customMessage={LL.openidOverview.messages.noLicenseMessage()} />
       )}
       {(isLoading || isUndefined(clients)) && hasAccess && (
         <div className="list-loader">
@@ -282,7 +305,7 @@ export const OpenidClientsListPage = () => {
         </div>
       )}
       {!isLoading && hasAccess && filteredClients.length === 0 && (
-        <NoData customMessage="No results found." />
+        <NoData customMessage={LL.openidOverview.messages.noClientsFound()} />
       )}
       {!isLoading && hasAccess && filteredClients?.length > 0 && (
         <VirtualizedList
@@ -301,9 +324,11 @@ export const OpenidClientsListPage = () => {
       <OpenIdClientModal />
       <ConfirmModal
         type={ConfirmModalType.WARNING}
-        title="Delete client"
-        submitText="Delete"
-        subTitle={`Are you sure you want to delete ${deleteClient?.name}`}
+        title={LL.openidOverview.deleteApp.title()}
+        submitText={LL.openidOverview.deleteApp.submit()}
+        subTitle={LL.openidOverview.deleteApp.message({
+          appName: deleteClient?.name || '',
+        })}
         onSubmit={() => {
           if (!isUndefined(deleteClient)) {
             deleteClientMutation(deleteClient.client_id);
@@ -322,21 +347,3 @@ enum FilterOption {
   ENABLED = 2,
   DISABLED = 3,
 }
-
-const selectOptions: SelectOption<FilterOption>[] = [
-  {
-    key: 1,
-    label: 'All',
-    value: FilterOption.ALL,
-  },
-  {
-    key: 3,
-    label: 'Enabled',
-    value: FilterOption.ENABLED,
-  },
-  {
-    key: 2,
-    label: 'Disabled',
-    value: FilterOption.DISABLED,
-  },
-];
