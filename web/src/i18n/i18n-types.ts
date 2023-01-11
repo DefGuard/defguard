@@ -1166,6 +1166,10 @@ type RootTranslation = {
 			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
 			 */
 			editSuccess: string
+			/**
+			 * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
+			 */
+			challengeSuccess: string
 		}
 		modulesVisibility: {
 			/**
@@ -2570,6 +2574,10 @@ export type TranslationFunctions = {
 			 * Settings updated
 			 */
 			editSuccess: () => LocalizedString
+			/**
+			 * Challenge message changed
+			 */
+			challengeSuccess: () => LocalizedString
 		}
 		modulesVisibility: {
 			/**

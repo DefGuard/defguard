@@ -510,6 +510,7 @@ const en: BaseTranslation = {
     title: 'Global Settings',
     messages: {
       editSuccess: 'Settings updated',
+			challengeSuccess: 'Challenge message changed',
     },
     modulesVisibility: {
       header: 'Modules Visibility',

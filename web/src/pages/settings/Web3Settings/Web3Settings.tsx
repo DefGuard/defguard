@@ -35,7 +35,7 @@ export const Web3Settings = () => {
     editSettings,
     {
       onSuccess: () => {
-        toaster.success(LL.messages.success());
+        toaster.success(LL.settingsPage.messages.challengeSuccess());
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       },
       onError: (err) => {

@@ -34,7 +34,7 @@ export const ModulesCard = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-        toaster.success(LL.messages.success());
+        toaster.success(LL.settingsPage.messages.editSuccess());
       },
       onError: () => {
         toaster.error(LL.messages.error());
