@@ -20,9 +20,12 @@ import MessageBox, {
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
+import { useI18nContext } from '../../../i18n/i18n-react';
+import parse from 'html-react-parser';
 
 export const NetworkGatewaySetup = () => {
   const toaster = useToaster();
+  const { LL } = useI18nContext();
   const {
     network: { getGatewayStatus, getNetworkToken },
   } = useApi();
@@ -32,7 +35,7 @@ export const NetworkGatewaySetup = () => {
     getGatewayStatus,
     {
       onError: (err) => {
-        toaster.error('Failed to get gateway status');
+        toaster.error(LL.gatewaySetup.messages.statusError());
         console.error(err);
       },
       refetchOnWindowFocus: false,
@@ -56,10 +59,10 @@ export const NetworkGatewaySetup = () => {
           clipboard
             .write(command())
             .then(() => {
-              toaster.success('Command copied.');
+              toaster.success(LL.messages.succcessClipboard());
             })
             .catch((err) => {
-              toaster.error('Clipboard is not accessible.');
+              toaster.error(LL.messages.clipboardError());
               console.error(err);
             });
         }}
@@ -70,18 +73,12 @@ export const NetworkGatewaySetup = () => {
   return (
     <section className="gateway">
       <header>
-        <h2>Gateway server setup</h2>
+        <h2>{LL.gatewaySetup.header()}</h2>
       </header>
       <Card>
-        <MessageBox>
-          <p>
-            Please use command below on your gateway server. If you don{"'"}t
-            know how, or have some issues please visit our{' '}
-            <a>detailed documentation page</a>.
-          </p>
-        </MessageBox>
+        <MessageBox>{parse(LL.gatewaySetup.messages.runCommand())}</MessageBox>
         <ExpandableCard
-          title="Gateway setup command"
+          title={LL.gatewaySetup.card.title()}
           disableExpand={true}
           expanded={true}
           actions={getActions}
@@ -92,7 +89,7 @@ export const NetworkGatewaySetup = () => {
           <Button
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.PRIMARY}
-            text="Check connection status"
+            text={LL.gatewaySetup.controls.status()}
             loading={statusLoading}
             onClick={() => {
               if (!statusLoading) {
@@ -102,12 +99,12 @@ export const NetworkGatewaySetup = () => {
           />
           {!gatewayStatus?.connected && !statusLoading && (
             <MessageBox type={MessageBoxType.ERROR}>
-              <p>No connection established, please run provided command.</p>
+              {parse(LL.gatewaySetup.messages.noConnection())}
             </MessageBox>
           )}
           {gatewayStatus?.connected && !statusLoading && (
             <MessageBox type={MessageBoxType.SUCCESS}>
-              <p>Gateway connected.</p>
+              {parse(LL.gatewaySetup.messages.connected())}
             </MessageBox>
           )}
         </div>

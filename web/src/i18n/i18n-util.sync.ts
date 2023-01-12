@@ -6,9 +6,11 @@ import type { Locales, Translations } from './i18n-types'
 import { loadedFormatters, loadedLocales, locales } from './i18n-util'
 
 import en from './en'
+import pl from './pl'
 
 const localeTranslations = {
 	en,
+	pl,
 }
 
 export const loadLocale = (locale: Locales): void => {

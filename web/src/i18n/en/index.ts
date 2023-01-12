@@ -4,6 +4,7 @@ const en: BaseTranslation = {
   messages: {
     error: 'Error has occurred.',
     success: 'Operation succeeded',
+		succcessClipboard: 'Copied to clipboard',
     errorVersion: 'Failed to get application version.',
     errorLicense: 'Failed to get license.',
     clipboardError: 'Clipboard is not accessible.',
@@ -916,6 +917,10 @@ const en: BaseTranslation = {
       email: 'Know your email address.',
       phone: 'Know your phone number.',
     },
+    controls: {
+      accept: 'Accept',
+      cancel: 'Cancel',
+    },
   },
   networkOverview: {
     pageTitle: 'Network overview',
@@ -983,6 +988,30 @@ const en: BaseTranslation = {
           label: 'DNS',
         },
       },
+      controls: {
+        submit: 'Save changes',
+        cancel: 'Back',
+      },
+    },
+  },
+  gatewaySetup: {
+    header: 'Gateway server setup',
+		card: {
+			title: 'Gateway setup command',
+		},
+		controls: {
+			status: 'Check connection status'
+		},
+    messages: {
+      runCommand: `
+          <p>
+            Please use command below on your gateway server. If you don't
+            know how, or have some issues please visit our
+            <a>detailed documentation page</a>.
+          </p>`,
+			noConnection: `<p>No connection established, please run provided command.</p>`,
+			connected: `<p>Gateway connected.</p>`,
+			statusError: 'Failed to get gateway status'
     },
   },
   loginPage: {
@@ -1040,8 +1069,7 @@ const en: BaseTranslation = {
           submit: 'Use security key',
         },
         messages: {
-          error:
-            'Failed to read key. Please try again.',
+          error: 'Failed to read key. Please try again.',
         },
       },
     },

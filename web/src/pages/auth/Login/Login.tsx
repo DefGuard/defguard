@@ -70,7 +70,6 @@ const Login = () => {
     onSuccess: (data) => {
       const { url, user, mfa } = data;
       if (user && url) {
-        logIn(user);
         window.location.replace(url);
         return;
       }

@@ -6,10 +6,11 @@ import { useI18nContext } from '../../../i18n/i18n-react';
 import parse from 'html-react-parser';
 
 export const SupportCard = () => {
+  const { LL } = useI18nContext();
   const licence = useAppStore((state) => state.license);
   if (!licence) return null;
   return (
-    <ContentCard header={<h3> Support </h3>} className="support">
+    <ContentCard header={<h3> {LL.settingsPage.supportCard.title()} </h3>} className="support">
       {licence.enterprise ? <EnterpriceContent /> : <CommunityContent />}
     </ContentCard>
   );

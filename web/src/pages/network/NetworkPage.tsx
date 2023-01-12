@@ -24,7 +24,7 @@ export const NetworkPage = () => {
         <h1>{LL.networkPage.pageTitle()}</h1>
         <div className="controls">
           <Button
-            text="Back"
+            text={LL.networkConfiguration.form.controls.cancel()}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.LINK}
             onClick={() => navigate('../overview')}
@@ -39,13 +39,14 @@ export const NetworkPage = () => {
 };
 
 const SaveFormButton = () => {
+  const { LL } = useI18nContext();
   const [save, loading] = useNetworkPageStore(
     (state) => [state.saveSubject, state.loading],
     shallow
   );
   return (
     <Button
-      text="Save changes"
+      text={LL.networkConfiguration.form.controls.submit()}
       size={ButtonSize.SMALL}
       styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
       icon={<IconCheckmarkWhite />}

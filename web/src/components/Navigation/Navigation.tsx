@@ -203,7 +203,7 @@ export const Navigation = () => {
               <NavigationLink
                 key={'/admin/settings'}
                 item={{
-                  title: 'Settings',
+                  title: LL.navigation.bar.settings(),
                   linkPath: '/admin/settings',
                   icon: <SvgIconEdit />,
                   allowedToView: ['admin'],

@@ -7,6 +7,7 @@ export type BaseLocale = 'en'
 
 export type Locales =
 	| 'en'
+	| 'pl'
 
 export type Translation = RootTranslation
 
@@ -22,6 +23,10 @@ type RootTranslation = {
 		 * O​p​e​r​a​t​i​o​n​ ​s​u​c​c​e​e​d​e​d
 		 */
 		success: string
+		/**
+		 * C​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
+		 */
+		succcessClipboard: string
 		/**
 		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
 		 */
@@ -2059,6 +2064,16 @@ type RootTranslation = {
 			 */
 			phone: string
 		}
+		controls: {
+			/**
+			 * A​c​c​e​p​t
+			 */
+			accept: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+		}
 	}
 	networkOverview: {
 		/**
@@ -2227,6 +2242,57 @@ type RootTranslation = {
 					label: string
 				}
 			}
+			controls: {
+				/**
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
+				 */
+				submit: string
+				/**
+				 * B​a​c​k
+				 */
+				cancel: string
+			}
+		}
+	}
+	gatewaySetup: {
+		/**
+		 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
+		 */
+		header: string
+		card: {
+			/**
+			 * G​a​t​e​w​a​y​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
+			 */
+			title: string
+		}
+		controls: {
+			/**
+			 * C​h​e​c​k​ ​c​o​n​n​e​c​t​i​o​n​ ​s​t​a​t​u​s
+			 */
+			status: string
+		}
+		messages: {
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​u​s​e​ ​c​o​m​m​a​n​d​ ​b​e​l​o​w​ ​o​n​ ​y​o​u​r​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​ ​I​f​ ​y​o​u​ ​d​o​n​'​t​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​k​n​o​w​ ​h​o​w​,​ ​o​r​ ​h​a​v​e​ ​s​o​m​e​ ​i​s​s​u​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​o​u​r​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​>​d​e​t​a​i​l​e​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​p​a​g​e​<​/​a​>​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+			 */
+			runCommand: string
+			/**
+			 * <​p​>​N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.​<​/​p​>
+			 */
+			noConnection: string
+			/**
+			 * <​p​>​G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.​<​/​p​>
+			 */
+			connected: string
+			/**
+			 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​ ​s​t​a​t​u​s
+			 */
+			statusError: string
 		}
 	}
 	loginPage: {
@@ -2351,6 +2417,10 @@ export type TranslationFunctions = {
 		 * Operation succeeded
 		 */
 		success: () => LocalizedString
+		/**
+		 * Copied to clipboard
+		 */
+		succcessClipboard: () => LocalizedString
 		/**
 		 * Failed to get application version.
 		 */
@@ -4375,6 +4445,16 @@ export type TranslationFunctions = {
 			 */
 			phone: () => LocalizedString
 		}
+		controls: {
+			/**
+			 * Accept
+			 */
+			accept: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+		}
 	}
 	networkOverview: {
 		/**
@@ -4540,6 +4620,57 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 				}
 			}
+			controls: {
+				/**
+				 * Save changes
+				 */
+				submit: () => LocalizedString
+				/**
+				 * Back
+				 */
+				cancel: () => LocalizedString
+			}
+		}
+	}
+	gatewaySetup: {
+		/**
+		 * Gateway server setup
+		 */
+		header: () => LocalizedString
+		card: {
+			/**
+			 * Gateway setup command
+			 */
+			title: () => LocalizedString
+		}
+		controls: {
+			/**
+			 * Check connection status
+			 */
+			status: () => LocalizedString
+		}
+		messages: {
+			/**
+			 * 
+		          <p>
+		            Please use command below on your gateway server. If you don't
+		            know how, or have some issues please visit our
+		            <a>detailed documentation page</a>.
+		          </p>
+			 */
+			runCommand: () => LocalizedString
+			/**
+			 * <p>No connection established, please run provided command.</p>
+			 */
+			noConnection: () => LocalizedString
+			/**
+			 * <p>Gateway connected.</p>
+			 */
+			connected: () => LocalizedString
+			/**
+			 * Failed to get gateway status
+			 */
+			statusError: () => LocalizedString
 		}
 	}
 	loginPage: {

@@ -101,8 +101,7 @@ export const OpenidAllowPage = () => {
 
   const scopes: Record<string, string> = {
     openid: LL.openidAllow.scopes.openid(),
-    profile:
-      LL.openidAllow.scopes.profile(),
+    profile: LL.openidAllow.scopes.profile(),
     email: LL.openidAllow.scopes.email(),
     phone: LL.openidAllow.scopes.phone(),
   };
@@ -113,7 +112,7 @@ export const OpenidAllowPage = () => {
         <SvgDefguardLogoLogin />
       </div>
       <div className="consent">
-        <h1>{LL.openidAllow.header({name: name || ''})}</h1>
+        <h1>{LL.openidAllow.header({ name: name || '' })}</h1>
         <ul className="scopes-list">
           {scope && scope.length
             ? scope.split(' ').map((s) => (
@@ -128,14 +127,14 @@ export const OpenidAllowPage = () => {
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconCheckmarkWhite />}
-            text="Accept"
+            text={LL.openidAllow.controls.accept()}
             onClick={() => handleSubmit(true)}
           />
           <Button
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.STANDARD}
             icon={<SvgIconDelete />}
-            text="Cancel"
+            text={LL.openidAllow.controls.cancel()}
             onClick={() => handleSubmit(false)}
           />
         </div>

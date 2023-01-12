@@ -103,7 +103,7 @@ export const ProvisionersPage = () => {
       <header>
         <h1>{LL.provisionersOverview.pageTitle()}</h1>
         <Search
-          placeholder="Find provisioners"
+          placeholder={LL.provisionersOverview.search.placeholder()}
           initialValue={searchValue}
           debounceTiming={500}
           onDebounce={(val) => setSearchValue(val)}

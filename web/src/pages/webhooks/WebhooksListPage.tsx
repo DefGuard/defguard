@@ -173,7 +173,7 @@ export const WebhooksListPage = () => {
         render: (context) => (
           <EditButton>
             <EditButtonOption
-              text="Edit"
+              text={LL.webhooksOverview.list.editButton.edit()}
               onClick={() =>
                 setWebhookModalState({ visible: true, webhook: context })
               }
@@ -301,7 +301,7 @@ export const WebhooksListPage = () => {
             }
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
-            text="Add new"
+            text={LL.webhooksOverview.addNewWebhook()}
             icon={<SvgIconPlusWhite />}
           />
         </div>
