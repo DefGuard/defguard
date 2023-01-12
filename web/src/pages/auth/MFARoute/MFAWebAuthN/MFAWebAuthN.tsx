@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import shallow from 'zustand/shallow';
+import { useI18nContext } from '../../../../i18n/i18n-react';
 
 import Button, {
   ButtonSize,
@@ -26,6 +27,7 @@ export const MFAWebAuthN = () => {
       },
     },
   } = useApi();
+  const { LL } = useI18nContext();
 
   const logIn = useAuthStore((state) => state.logIn);
   const clearMFAStore = useMFAStore((state) => state.resetState);
@@ -70,7 +72,7 @@ export const MFAWebAuthN = () => {
         get(parsed)
           .then((response) => mfaFinish(response.toJSON()))
           .catch((err) => {
-            toaster.error('Failed to read key. Try again.');
+            toaster.error(LL.loginPage.mfa.webauthn.messages.error());
             console.error(err);
           })
           .finally(() => setAwaitingKey(false));
@@ -86,9 +88,9 @@ export const MFAWebAuthN = () => {
 
   return (
     <>
-      <p>When you are ready to authenticate, press the button below.</p>
+      <p>{LL.loginPage.mfa.webauthn.header()}</p>
       <Button
-        text="Use security key"
+        text={LL.loginPage.mfa.webauthn.controls.submit()}
         loading={mfaStartLoading || mfaFinishLoading || awaitingKey}
         onClick={() => mfaStart()}
         size={ButtonSize.BIG}
@@ -98,20 +100,20 @@ export const MFAWebAuthN = () => {
         <span>or</span>
         {totpAvailable && (
           <Button
-            text="Use authenticator app instead"
+            text={LL.loginPage.mfa.controls.useAuthenticator()}
             size={ButtonSize.BIG}
             onClick={() => navigate('../totp')}
           />
         )}
         {web3Available && (
           <Button
-            text="Use your wallet instead"
+            text={LL.loginPage.mfa.controls.useWallet()}
             size={ButtonSize.BIG}
             onClick={() => navigate('../web3')}
           />
         )}
         <Button
-          text="Use recovery code instead"
+          text={LL.loginPage.mfa.controls.useRecoveryCode()}
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.LINK}
           onClick={() => navigate('../recovery')}

@@ -1,3 +1,4 @@
+import { useI18nContext } from '../../../i18n/i18n-react';
 import './style.scss';
 
 // import {
@@ -6,12 +7,13 @@ import './style.scss';
 // } from '../../../shared/components/layout/ActivityStatus/ActivityStatus';
 
 export const OverviewActivityStream = () => {
+	const {LL} = useI18nContext();
   return (
     <div className="activity-stream">
       <header>
-        <h2>Activity stream</h2>
+        <h2>{LL.activityOverview.header()}</h2>
       </header>
-      <p className="no-data-text">Currently there is no activity detected</p>
+      <p className="no-data-text">{LL.activityOverview.noData()}</p>
       {/* <div className="stream"> */}
       {/* <div className="activity"> */}
       {/*

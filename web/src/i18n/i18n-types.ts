@@ -7,6 +7,7 @@ export type BaseLocale = 'en'
 
 export type Locales =
 	| 'en'
+	| 'pl'
 
 export type Translation = RootTranslation
 
@@ -23,6 +24,10 @@ type RootTranslation = {
 		 */
 		success: string
 		/**
+		 * C​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
+		 */
+		succcessClipboard: string
+		/**
 		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
 		 */
 		errorVersion: string
@@ -36,6 +41,14 @@ type RootTranslation = {
 		clipboardError: string
 	}
 	modals: {
+		changeWebhook: {
+			messages: {
+				/**
+				 * W​e​b​h​o​o​k​ ​c​h​a​n​g​e​d​.
+				 */
+				success: string
+			}
+		}
 		manageWebAuthNKeys: {
 			/**
 			 * S​e​c​u​r​i​t​y​ ​k​e​y​s
@@ -406,6 +419,30 @@ type RootTranslation = {
 				success: RequiredParams<'username'>
 			}
 		}
+		deleteProvisioner: {
+			/**
+			 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
+			 */
+			title: string
+			controls: {
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​i​d​}​ ​p​r​o​v​i​s​i​o​n​e​r​?
+			 * @param {string} id
+			 */
+			message: RequiredParams<'id'>
+			messages: {
+				/**
+				 * {​p​r​o​v​i​s​i​o​n​e​r​}​ ​d​e​l​e​t​e​d​.
+				 * @param {string} provisioner
+				 */
+				success: RequiredParams<'provisioner'>
+			}
+		}
 		changeUserPassword: {
 			messages: {
 				/**
@@ -550,6 +587,139 @@ type RootTranslation = {
 						label: string
 					}
 				}
+			}
+		}
+		webhookModal: {
+			title: {
+				/**
+				 * A​d​d​ ​w​e​b​h​o​o​k​.
+				 */
+				addWebhook: string
+				/**
+				 * E​d​i​t​ ​w​e​b​h​o​o​k
+				 */
+				editWebhook: string
+			}
+			messages: {
+				/**
+				 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+				 */
+				clientIdCopy: string
+				/**
+				 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
+				 */
+				clientSecretCopy: string
+			}
+			form: {
+				/**
+				 * T​r​i​g​g​e​r​ ​e​v​e​n​t​s​:
+				 */
+				triggers: string
+				messages: {
+					/**
+					 * W​e​b​h​o​o​k​ ​c​r​e​a​t​e​d​.
+					 */
+					successAdd: string
+					/**
+					 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d​.
+					 */
+					successModify: string
+				}
+				error: {
+					/**
+					 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+					 */
+					urlRequired: string
+					/**
+					 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
+					 */
+					validUrl: string
+					/**
+					 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​t​r​i​g​g​e​r​.
+					 */
+					scopeValidation: string
+					/**
+					 * T​o​k​e​n​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+					 */
+					tokenRequired: string
+				}
+				fields: {
+					description: {
+						/**
+						 * D​e​s​c​r​i​p​t​i​o​n
+						 */
+						label: string
+						/**
+						 * W​e​b​h​o​o​k​ ​t​o​ ​c​r​e​a​t​e​ ​g​m​a​i​l​ ​a​c​c​o​u​n​t​ ​o​n​ ​n​e​w​ ​u​s​e​r
+						 */
+						placeholder: string
+					}
+					token: {
+						/**
+						 * S​e​c​r​e​t​ ​t​o​k​e​n
+						 */
+						label: string
+						/**
+						 * A​u​t​h​o​r​i​z​a​t​i​o​n​ ​t​o​k​e​n
+						 */
+						placeholder: string
+					}
+					url: {
+						/**
+						 * W​e​b​h​o​o​k​ ​U​R​L
+						 */
+						label: string
+						/**
+						 * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​w​e​b​h​o​o​k
+						 */
+						placeholder: string
+					}
+					userCreated: {
+						/**
+						 * N​e​w​ ​u​s​e​r​ ​C​r​e​a​t​e​d
+						 */
+						label: string
+					}
+					userDeleted: {
+						/**
+						 * U​s​e​r​ ​d​e​l​e​t​e​d
+						 */
+						label: string
+					}
+					userModified: {
+						/**
+						 * U​s​e​r​ ​m​o​d​i​f​i​e​d
+						 */
+						label: string
+					}
+					hwkeyProvision: {
+						/**
+						 * U​s​e​r​ ​Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n
+						 */
+						label: string
+					}
+				}
+			}
+		}
+		deleteWebhook: {
+			/**
+			 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​n​a​m​e​}​ ​w​e​b​h​o​o​k​ ​?
+			 * @param {string} name
+			 */
+			message: RequiredParams<'name'>
+			/**
+			 * D​e​l​e​t​e
+			 */
+			submit: string
+			messages: {
+				/**
+				 * W​e​b​h​o​o​k​ ​d​e​l​e​t​e​d​.
+				 */
+				success: string
 			}
 		}
 	}
@@ -1140,6 +1310,26 @@ type RootTranslation = {
 			 * O​n​e​ ​l​o​w​e​r​c​a​s​e​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
 			 */
 			oneLowercase: string
+			/**
+			 * M​a​x​i​m​u​m​ ​p​o​r​t​ ​i​s​ ​6​5​5​3​5​.
+			 */
+			portMax: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​e​n​d​p​o​i​n​t​.
+			 */
+			endpoint: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​a​d​d​r​e​s​s​.
+			 */
+			address: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​p​o​r​t​.
+			 */
+			validPort: string
+			/**
+			 * C​o​d​e​ ​s​h​o​u​l​d​ ​h​a​v​e​ ​6​ ​d​i​g​i​t​s​.
+			 */
+			validCode: string
 		}
 	}
 	components: {
@@ -1236,6 +1426,16 @@ type RootTranslation = {
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
 			 */
 			helper: string
+			filterLabels: {
+				/**
+				 * G​r​i​d​ ​v​i​e​w
+				 */
+				grid: string
+				/**
+				 * L​i​s​t​ ​v​i​e​w
+				 */
+				list: string
+			}
 		}
 		web3Settings: {
 			/**
@@ -1422,6 +1622,809 @@ type RootTranslation = {
 			}
 		}
 	}
+	openidOverview: {
+		/**
+		 * O​p​e​n​I​D​ ​A​p​p​s
+		 */
+		pageTitle: string
+		search: {
+			/**
+			 * F​i​n​d​ ​a​p​p​s
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l​ ​a​p​p​s
+			 */
+			all: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+		}
+		/**
+		 * A​l​l​ ​a​p​p​s
+		 */
+		clientCount: string
+		/**
+		 * A​d​d​ ​n​e​w
+		 */
+		addNewApp: string
+		list: {
+			headers: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * E​d​i​t​ ​a​p​p
+				 */
+				edit: string
+				/**
+				 * D​e​l​e​t​e​ ​a​p​p
+				 */
+				'delete': string
+				/**
+				 * D​i​s​a​b​l​e
+				 */
+				disable: string
+				/**
+				 * E​n​a​b​l​e
+				 */
+				enable: string
+			}
+			status: {
+				/**
+				 * E​n​a​b​l​e​d
+				 */
+				enabled: string
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+			}
+		}
+		messages: {
+			/**
+			 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
+			 */
+			noLicenseMessage: string
+			/**
+			 * N​o​ ​r​e​s​u​l​t​s​ ​f​o​u​n​d​.
+			 */
+			noClientsFound: string
+		}
+		deleteApp: {
+			/**
+			 * D​e​l​e​t​e​ ​a​p​p
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p​ ​?
+			 * @param {string} appName
+			 */
+			message: RequiredParams<'appName'>
+			/**
+			 * D​e​l​e​t​e​ ​a​p​p
+			 */
+			submit: string
+			messages: {
+				/**
+				 * A​p​p​ ​d​e​l​e​t​e​d​.
+				 */
+				success: string
+			}
+		}
+		enableApp: {
+			messages: {
+				/**
+				 * A​p​p​ ​e​n​a​b​l​e​d​.
+				 */
+				success: string
+			}
+		}
+		disableApp: {
+			messages: {
+				/**
+				 * A​p​p​ ​d​i​s​a​b​l​e​d​.
+				 */
+				success: string
+			}
+		}
+		modals: {
+			openidClientModal: {
+				title: {
+					/**
+					 * A​d​d​ ​a​p​p​.
+					 */
+					addApp: string
+					/**
+					 * E​d​i​t​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p
+					 * @param {string} appName
+					 */
+					editApp: RequiredParams<'appName'>
+				}
+				/**
+				 * S​c​o​p​e​s​:
+				 */
+				scopes: string
+				messages: {
+					/**
+					 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+					 */
+					clientIdCopy: string
+					/**
+					 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
+					 */
+					clientSecretCopy: string
+				}
+				form: {
+					messages: {
+						/**
+						 * A​p​p​ ​c​r​e​a​t​e​d​.
+						 */
+						successAdd: string
+						/**
+						 * A​p​p​ ​m​o​d​i​f​i​e​d​.
+						 */
+						successModify: string
+					}
+					error: {
+						/**
+						 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+						 */
+						urlRequired: string
+						/**
+						 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
+						 */
+						validUrl: string
+						/**
+						 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​s​c​o​p​e​.
+						 */
+						scopeValidation: string
+					}
+					fields: {
+						name: {
+							/**
+							 * A​p​p​ ​n​a​m​e
+							 */
+							label: string
+						}
+						redirectUri: {
+							/**
+							 * R​e​d​i​r​e​c​t​ ​U​R​L​ ​{​c​o​u​n​t​}
+							 * @param {number} count
+							 */
+							label: RequiredParams<'count'>
+							/**
+							 * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​r​e​d​i​r​e​c​t
+							 */
+							placeholder: string
+						}
+						openid: {
+							/**
+							 * O​p​e​n​I​D
+							 */
+							label: string
+						}
+						profile: {
+							/**
+							 * P​r​o​f​i​l​e
+							 */
+							label: string
+						}
+						email: {
+							/**
+							 * E​m​a​i​l
+							 */
+							label: string
+						}
+						phone: {
+							/**
+							 * P​h​o​n​e
+							 */
+							label: string
+						}
+					}
+					controls: {
+						/**
+						 * A​d​d​ ​U​R​L
+						 */
+						addUrl: string
+					}
+				}
+				/**
+				 * C​l​i​e​n​t​ ​I​D
+				 */
+				clientId: string
+				/**
+				 * C​l​i​e​n​t​ ​s​e​c​r​e​t
+				 */
+				clientSecret: string
+			}
+		}
+	}
+	webhooksOverview: {
+		/**
+		 * W​e​b​h​o​o​k​s
+		 */
+		pageTitle: string
+		search: {
+			/**
+			 * F​i​n​d​ ​w​e​b​h​o​o​k​s​ ​b​y​ ​u​r​l
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l​ ​w​e​b​h​o​o​k​s
+			 */
+			all: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+		}
+		/**
+		 * A​l​l​ ​w​e​b​h​o​o​k​s
+		 */
+		webhooksCount: string
+		/**
+		 * A​d​d​ ​n​e​w
+		 */
+		addNewWebhook: string
+		/**
+		 * N​o​ ​w​e​b​h​o​o​k​s​ ​f​o​u​n​d​.
+		 */
+		noWebhooksFound: string
+		list: {
+			headers: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * D​e​s​c​r​i​p​t​i​o​n
+				 */
+				description: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * E​d​i​t
+				 */
+				edit: string
+				/**
+				 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
+				 */
+				'delete': string
+				/**
+				 * D​i​s​a​b​l​e
+				 */
+				disable: string
+				/**
+				 * E​n​a​b​l​e
+				 */
+				enable: string
+			}
+			status: {
+				/**
+				 * E​n​a​b​l​e​d
+				 */
+				enabled: string
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+			}
+		}
+	}
+	provisionersOverview: {
+		/**
+		 * P​r​o​v​i​s​i​o​n​e​r​s
+		 */
+		pageTitle: string
+		search: {
+			/**
+			 * F​i​n​d​ ​p​r​o​v​i​s​i​o​n​e​r​s
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l
+			 */
+			all: string
+			/**
+			 * A​v​a​i​l​a​b​l​e
+			 */
+			available: string
+			/**
+			 * U​n​a​v​a​i​l​a​b​l​e
+			 */
+			unavailable: string
+		}
+		/**
+		 * A​l​l​ ​p​r​o​v​i​s​i​o​n​e​r​s
+		 */
+		provisionersCount: string
+		/**
+		 * N​o​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​f​o​u​n​d​.
+		 */
+		noProvisionersFound: string
+		/**
+		 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
+		 */
+		noLicenseMessage: string
+		provisioningStation: {
+			/**
+			 * Y​u​b​i​K​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n
+			 */
+			header: string
+			/**
+			 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
+			 */
+			cardTitle: string
+			/**
+			 * I​n​ ​o​r​d​e​r​ ​t​o​ ​b​e​ ​a​b​l​e​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​y​o​u​r​ ​Y​u​b​i​K​e​y​s​,​ ​f​i​r​s​t​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​ ​u​p​
+		​ ​ ​ ​ ​ ​ ​ ​ ​p​h​y​s​i​c​a​l​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​U​S​B​ ​s​l​o​t​.​ ​R​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​ ​o​n​ ​y​o​u​r​ ​c​h​o​s​e​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​m​a​c​h​i​n​e​ ​t​o​ ​r​e​g​i​s​t​e​r​ ​i​t​ ​a​n​d​ ​s​t​a​r​t​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​y​o​u​r​ ​k​e​y​s​.
+			 */
+			content: string
+		}
+		/**
+		 * <​p​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​s​t​r​o​n​g​>​Y​u​b​i​K​e​y​ ​m​o​d​u​l​e​<​/​s​t​r​o​n​g​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​T​h​i​s​ ​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​m​o​d​u​l​e​ ​f​o​r​ ​Y​u​b​i​K​e​y​<​/​p​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​m​a​n​a​g​e​m​e​n​t​ ​a​n​d​ ​p​r​o​v​i​s​i​o​n​i​n​g​.​<​/​p​>
+		 */
+		noLicenseBox: string
+		list: {
+			headers: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * I​P​ ​a​d​d​r​e​s​s
+				 */
+				ip: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
+				 */
+				'delete': string
+			}
+			status: {
+				/**
+				 * A​v​a​i​l​a​b​l​e
+				 */
+				available: string
+				/**
+				 * U​n​a​v​a​i​l​a​b​l​e
+				 */
+				unavailable: string
+			}
+		}
+		messages: {
+			/**
+			 * C​o​m​m​a​n​d​ ​c​o​p​i​e​d​.
+			 */
+			codeCopied: string
+		}
+	}
+	openidAllow: {
+		/**
+		 * {​n​a​m​e​}​ ​w​o​u​l​d​ ​l​i​k​e​ ​t​o​:
+		 * @param {string} name
+		 */
+		header: RequiredParams<'name'>
+		scopes: {
+			/**
+			 * U​s​e​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​d​a​t​a​ ​f​o​r​ ​f​u​t​u​r​e​ ​l​o​g​i​n​s​.
+			 */
+			openid: string
+			/**
+			 * K​n​o​w​ ​b​a​s​i​c​ ​i​n​f​o​r​m​a​t​i​o​n​ ​f​r​o​m​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​l​i​k​e​ ​n​a​m​e​,​ ​p​r​o​f​i​l​e​ ​p​i​c​t​u​r​e​ ​e​t​c​.
+			 */
+			profile: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​.
+			 */
+			email: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​p​h​o​n​e​ ​n​u​m​b​e​r​.
+			 */
+			phone: string
+		}
+		controls: {
+			/**
+			 * A​c​c​e​p​t
+			 */
+			accept: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+		}
+	}
+	networkOverview: {
+		/**
+		 * N​e​t​w​o​r​k​ ​o​v​e​r​v​i​e​w
+		 */
+		pageTitle: string
+		controls: {
+			/**
+			 * E​d​i​t​ ​n​e​t​w​o​r​k​ ​s​e​t​t​i​n​g​s
+			 */
+			editNetwork: string
+			/**
+			 * C​o​n​f​i​g​u​r​e​ ​n​e​t​w​o​r​k​ ​s​e​t​t​i​n​g​s
+			 */
+			configureNetwork: string
+		}
+		filterLabels: {
+			/**
+			 * G​r​i​d​ ​v​i​e​w
+			 */
+			grid: string
+			/**
+			 * L​i​s​t​ ​v​i​e​w
+			 */
+			list: string
+		}
+		stats: {
+			/**
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​u​s​e​r​s
+			 */
+			currentlyActiveUsers: string
+			/**
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​d​e​v​i​c​e​s
+			 */
+			currentlyActiveDevices: string
+			/**
+			 * A​c​t​i​v​e​ ​u​s​e​r​s​ ​i​n​ ​{​h​o​u​r​}​H
+			 * @param {number} hour
+			 */
+			activeUsersFilter: RequiredParams<'hour'>
+			/**
+			 * A​c​t​i​v​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​H
+			 * @param {number} hour
+			 */
+			activeDevicesFilter: RequiredParams<'hour'>
+			/**
+			 * T​o​t​a​l​ ​t​r​a​n​s​f​e​r​:
+			 */
+			totalTransfer: string
+			/**
+			 * A​c​t​i​v​i​t​y​ ​i​n​ ​{​h​o​u​r​}​H
+			 * @param {number} hour
+			 */
+			activityIn: RequiredParams<'hour'>
+			/**
+			 * I​n​:
+			 */
+			'in': string
+			/**
+			 * O​u​t​:
+			 */
+			out: string
+		}
+	}
+	connectedUsersOverview: {
+		/**
+		 * C​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
+		 */
+		pageTitle: string
+		/**
+		 * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​a​r​e​ ​n​o​ ​c​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
+		 */
+		noUsersMessage: string
+		userList: {
+			/**
+			 * U​s​e​r​n​a​m​e
+			 */
+			username: string
+			/**
+			 * D​e​v​i​c​e
+			 */
+			device: string
+			/**
+			 * C​o​n​n​e​c​t​e​d
+			 */
+			connected: string
+			/**
+			 * D​e​v​i​c​e​ ​l​o​c​a​t​i​o​n
+			 */
+			deviceLocation: string
+			/**
+			 * N​e​t​w​o​r​k​ ​u​s​a​g​e
+			 */
+			networkUsage: string
+		}
+	}
+	networkPage: {
+		/**
+		 * E​d​i​t​ ​n​e​t​w​o​r​k
+		 */
+		pageTitle: string
+	}
+	activityOverview: {
+		/**
+		 * A​c​t​i​v​i​t​y​ ​s​t​r​e​a​m
+		 */
+		header: string
+		/**
+		 * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​i​s​ ​n​o​ ​a​c​t​i​v​i​t​y​ ​d​e​t​e​c​t​e​d
+		 */
+		noData: string
+	}
+	networkConfiguration: {
+		/**
+		 * N​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+		 */
+		header: string
+		form: {
+			messages: {
+				/**
+				 * G​a​t​e​w​a​y​ ​p​u​b​l​i​c​ ​a​d​d​r​e​s​s​,​ ​u​s​e​d​ ​b​y​ ​V​P​N​ ​u​s​e​r​s​ ​t​o​ ​c​o​n​n​e​c​t
+				 */
+				gateway: string
+				/**
+				 * S​p​e​c​i​f​y​ ​t​h​e​ ​D​N​S​ ​r​e​s​o​l​v​e​r​s​ ​t​o​ ​q​u​e​r​y​ ​w​h​e​n​ ​t​h​e​ ​w​i​r​e​g​u​a​r​d​ ​i​n​t​e​r​f​a​c​e​ ​i​s​ ​u​p​.
+				 */
+				dns: string
+				/**
+				 * L​i​s​t​ ​o​f​ ​a​d​d​r​e​s​s​e​s​/​m​a​s​k​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​r​o​u​t​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​n​e​t​w​o​r​k​.
+				 */
+				allowedIps: string
+				/**
+				 * N​e​t​w​o​r​k​ ​m​o​d​i​f​i​e​d​.
+				 */
+				networkModified: string
+				/**
+				 * N​e​t​w​o​r​k​ ​c​r​e​a​t​e​d​.
+				 */
+				networkCreated: string
+			}
+			fields: {
+				name: {
+					/**
+					 * N​e​t​w​o​r​k​ ​n​a​m​e
+					 */
+					label: string
+				}
+				address: {
+					/**
+					 * V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​a​n​d​ ​m​a​s​k
+					 */
+					label: string
+				}
+				endpoint: {
+					/**
+					 * G​a​t​e​w​a​y​ ​a​d​d​r​e​s​s
+					 */
+					label: string
+				}
+				allowedIps: {
+					/**
+					 * A​l​l​o​w​e​d​ ​I​p​s
+					 */
+					label: string
+				}
+				port: {
+					/**
+					 * G​a​t​e​w​a​y​ ​p​o​r​t
+					 */
+					label: string
+				}
+				dns: {
+					/**
+					 * D​N​S
+					 */
+					label: string
+				}
+			}
+			controls: {
+				/**
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
+				 */
+				submit: string
+				/**
+				 * B​a​c​k
+				 */
+				cancel: string
+			}
+		}
+	}
+	gatewaySetup: {
+		/**
+		 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
+		 */
+		header: string
+		card: {
+			/**
+			 * G​a​t​e​w​a​y​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
+			 */
+			title: string
+		}
+		controls: {
+			/**
+			 * C​h​e​c​k​ ​c​o​n​n​e​c​t​i​o​n​ ​s​t​a​t​u​s
+			 */
+			status: string
+		}
+		messages: {
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​u​s​e​ ​c​o​m​m​a​n​d​ ​b​e​l​o​w​ ​o​n​ ​y​o​u​r​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​ ​I​f​ ​y​o​u​ ​d​o​n​'​t​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​k​n​o​w​ ​h​o​w​,​ ​o​r​ ​h​a​v​e​ ​s​o​m​e​ ​i​s​s​u​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​o​u​r​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​>​d​e​t​a​i​l​e​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​p​a​g​e​<​/​a​>​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+			 */
+			runCommand: string
+			/**
+			 * <​p​>​N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.​<​/​p​>
+			 */
+			noConnection: string
+			/**
+			 * <​p​>​G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.​<​/​p​>
+			 */
+			connected: string
+			/**
+			 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​ ​s​t​a​t​u​s
+			 */
+			statusError: string
+		}
+	}
+	loginPage: {
+		/**
+		 * E​n​t​e​r​ ​y​o​u​r​ ​c​r​e​d​e​n​t​i​a​l​s
+		 */
+		pageTitle: string
+		mfa: {
+			controls: {
+				/**
+				 * U​s​e​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​ ​i​n​s​t​e​a​d
+				 */
+				useAuthenticator: string
+				/**
+				 * U​s​e​ ​y​o​u​r​ ​w​a​l​l​e​t​ ​i​n​s​t​e​a​d
+				 */
+				useWallet: string
+				/**
+				 * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​i​n​s​t​e​a​d
+				 */
+				useWebauthn: string
+				/**
+				 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​ ​i​n​s​t​e​a​d
+				 */
+				useRecoveryCode: string
+			}
+			totp: {
+				/**
+				 * U​s​e​ ​c​o​d​e​ ​f​r​o​m​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​p​p​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​p​r​o​c​e​e​d​.
+				 */
+				header: string
+				form: {
+					fields: {
+						code: {
+							/**
+							 * E​n​t​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
+							 */
+							placeholder: string
+						}
+					}
+					controls: {
+						/**
+						 * U​s​e​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
+						 */
+						submit: string
+					}
+				}
+			}
+			recoveryCode: {
+				/**
+				 * E​n​t​e​r​ ​o​n​e​ ​o​f​ ​a​c​t​i​v​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​l​o​g​ ​i​n​.
+				 */
+				header: string
+				form: {
+					fields: {
+						code: {
+							/**
+							 * R​e​c​o​v​e​r​y​ ​c​o​d​e
+							 */
+							placeholder: string
+						}
+					}
+					controls: {
+						/**
+						 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e
+						 */
+						submit: string
+					}
+				}
+			}
+			wallet: {
+				/**
+				 * U​s​e​ ​y​o​u​r​ ​c​r​y​p​t​o​ ​w​a​l​l​e​t​ ​t​o​ ​s​i​g​n​ ​i​n​,​ ​p​l​e​a​s​e​ ​s​i​g​n​ ​m​e​s​s​a​g​e​ ​i​n​ ​y​o​u​r​ ​w​a​l​l​e​t​ ​a​p​p​ ​o​r​ ​e​x​t​e​n​s​i​o​n​.
+				 */
+				header: string
+				controls: {
+					/**
+					 * U​s​e​ ​y​o​u​r​ ​w​a​l​l​e​t
+					 */
+					submit: string
+				}
+				messages: {
+					/**
+					 * W​a​l​l​e​t​ ​w​a​s​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​d​u​r​i​n​g​ ​s​i​g​n​i​n​g​ ​p​r​o​c​e​s​s​.
+					 */
+					walletError: string
+					/**
+					 * W​a​l​l​e​t​ ​i​s​ ​n​o​t​ ​a​u​t​h​o​r​i​z​e​d​ ​f​o​r​ ​M​F​A​ ​l​o​g​i​n​.​ ​P​l​e​a​s​e​ ​u​s​e​ ​a​u​t​h​o​r​i​z​e​d​ ​w​a​l​l​e​t​.
+					 */
+					walletErrorMfa: string
+				}
+			}
+			webauthn: {
+				/**
+				 * W​h​e​n​ ​y​o​u​ ​a​r​e​ ​r​e​a​d​y​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​,​ ​p​r​e​s​s​ ​t​h​e​ ​b​u​t​t​o​n​ ​b​e​l​o​w​.
+				 */
+				header: string
+				controls: {
+					/**
+					 * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y
+					 */
+					submit: string
+				}
+				messages: {
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​r​e​a​d​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​.
+					 */
+					error: string
+				}
+			}
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -1434,6 +2437,10 @@ export type TranslationFunctions = {
 		 * Operation succeeded
 		 */
 		success: () => LocalizedString
+		/**
+		 * Copied to clipboard
+		 */
+		succcessClipboard: () => LocalizedString
 		/**
 		 * Failed to get application version.
 		 */
@@ -1448,6 +2455,14 @@ export type TranslationFunctions = {
 		clipboardError: () => LocalizedString
 	}
 	modals: {
+		changeWebhook: {
+			messages: {
+				/**
+				 * Webhook changed.
+				 */
+				success: () => LocalizedString
+			}
+		}
 		manageWebAuthNKeys: {
 			/**
 			 * Security keys
@@ -1815,6 +2830,28 @@ export type TranslationFunctions = {
 				success: (arg: { username: string }) => LocalizedString
 			}
 		}
+		deleteProvisioner: {
+			/**
+			 * Delete provisioner
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Delete provisioner
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to delete {id} provisioner?
+			 */
+			message: (arg: { id: string }) => LocalizedString
+			messages: {
+				/**
+				 * {provisioner} deleted.
+				 */
+				success: (arg: { provisioner: string }) => LocalizedString
+			}
+		}
 		changeUserPassword: {
 			messages: {
 				/**
@@ -1959,6 +2996,138 @@ export type TranslationFunctions = {
 						label: () => LocalizedString
 					}
 				}
+			}
+		}
+		webhookModal: {
+			title: {
+				/**
+				 * Add webhook.
+				 */
+				addWebhook: () => LocalizedString
+				/**
+				 * Edit webhook
+				 */
+				editWebhook: () => LocalizedString
+			}
+			messages: {
+				/**
+				 * Client ID copied.
+				 */
+				clientIdCopy: () => LocalizedString
+				/**
+				 * Client secret copied.
+				 */
+				clientSecretCopy: () => LocalizedString
+			}
+			form: {
+				/**
+				 * Trigger events:
+				 */
+				triggers: () => LocalizedString
+				messages: {
+					/**
+					 * Webhook created.
+					 */
+					successAdd: () => LocalizedString
+					/**
+					 * Webhook modified.
+					 */
+					successModify: () => LocalizedString
+				}
+				error: {
+					/**
+					 * URL is required.
+					 */
+					urlRequired: () => LocalizedString
+					/**
+					 * Must be a valid URL.
+					 */
+					validUrl: () => LocalizedString
+					/**
+					 * Must have at least one trigger.
+					 */
+					scopeValidation: () => LocalizedString
+					/**
+					 * Token is required.
+					 */
+					tokenRequired: () => LocalizedString
+				}
+				fields: {
+					description: {
+						/**
+						 * Description
+						 */
+						label: () => LocalizedString
+						/**
+						 * Webhook to create gmail account on new user
+						 */
+						placeholder: () => LocalizedString
+					}
+					token: {
+						/**
+						 * Secret token
+						 */
+						label: () => LocalizedString
+						/**
+						 * Authorization token
+						 */
+						placeholder: () => LocalizedString
+					}
+					url: {
+						/**
+						 * Webhook URL
+						 */
+						label: () => LocalizedString
+						/**
+						 * https://example.com/webhook
+						 */
+						placeholder: () => LocalizedString
+					}
+					userCreated: {
+						/**
+						 * New user Created
+						 */
+						label: () => LocalizedString
+					}
+					userDeleted: {
+						/**
+						 * User deleted
+						 */
+						label: () => LocalizedString
+					}
+					userModified: {
+						/**
+						 * User modified
+						 */
+						label: () => LocalizedString
+					}
+					hwkeyProvision: {
+						/**
+						 * User Yubikey provision
+						 */
+						label: () => LocalizedString
+					}
+				}
+			}
+		}
+		deleteWebhook: {
+			/**
+			 * Delete webhook
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to delete {name} webhook ?
+			 */
+			message: (arg: { name: string }) => LocalizedString
+			/**
+			 * Delete
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * Webhook deleted.
+				 */
+				success: () => LocalizedString
 			}
 		}
 	}
@@ -2548,6 +3717,26 @@ export type TranslationFunctions = {
 			 * One lowercase character required.
 			 */
 			oneLowercase: () => LocalizedString
+			/**
+			 * Maximum port is 65535.
+			 */
+			portMax: () => LocalizedString
+			/**
+			 * Enter a valid endpoint.
+			 */
+			endpoint: () => LocalizedString
+			/**
+			 * Enter a valid address.
+			 */
+			address: () => LocalizedString
+			/**
+			 * Enter a valid port.
+			 */
+			validPort: () => LocalizedString
+			/**
+			 * Code should have 6 digits.
+			 */
+			validCode: () => LocalizedString
 		}
 	}
 	components: {
@@ -2644,6 +3833,16 @@ export type TranslationFunctions = {
 		          </a>
 			 */
 			helper: () => LocalizedString
+			filterLabels: {
+				/**
+				 * Grid view
+				 */
+				grid: () => LocalizedString
+				/**
+				 * List view
+				 */
+				list: () => LocalizedString
+			}
 		}
 		web3Settings: {
 			/**
@@ -2825,6 +4024,802 @@ export type TranslationFunctions = {
 					
 				 */
 				community: () => LocalizedString
+			}
+		}
+	}
+	openidOverview: {
+		/**
+		 * OpenID Apps
+		 */
+		pageTitle: () => LocalizedString
+		search: {
+			/**
+			 * Find apps
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All apps
+			 */
+			all: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+		}
+		/**
+		 * All apps
+		 */
+		clientCount: () => LocalizedString
+		/**
+		 * Add new
+		 */
+		addNewApp: () => LocalizedString
+		list: {
+			headers: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Edit app
+				 */
+				edit: () => LocalizedString
+				/**
+				 * Delete app
+				 */
+				'delete': () => LocalizedString
+				/**
+				 * Disable
+				 */
+				disable: () => LocalizedString
+				/**
+				 * Enable
+				 */
+				enable: () => LocalizedString
+			}
+			status: {
+				/**
+				 * Enabled
+				 */
+				enabled: () => LocalizedString
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+			}
+		}
+		messages: {
+			/**
+			 * You don't have a license for this feature.
+			 */
+			noLicenseMessage: () => LocalizedString
+			/**
+			 * No results found.
+			 */
+			noClientsFound: () => LocalizedString
+		}
+		deleteApp: {
+			/**
+			 * Delete app
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to delete {appName} app ?
+			 */
+			message: (arg: { appName: string }) => LocalizedString
+			/**
+			 * Delete app
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * App deleted.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		enableApp: {
+			messages: {
+				/**
+				 * App enabled.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		disableApp: {
+			messages: {
+				/**
+				 * App disabled.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		modals: {
+			openidClientModal: {
+				title: {
+					/**
+					 * Add app.
+					 */
+					addApp: () => LocalizedString
+					/**
+					 * Edit {appName} app
+					 */
+					editApp: (arg: { appName: string }) => LocalizedString
+				}
+				/**
+				 * Scopes:
+				 */
+				scopes: () => LocalizedString
+				messages: {
+					/**
+					 * Client ID copied.
+					 */
+					clientIdCopy: () => LocalizedString
+					/**
+					 * Client secret copied.
+					 */
+					clientSecretCopy: () => LocalizedString
+				}
+				form: {
+					messages: {
+						/**
+						 * App created.
+						 */
+						successAdd: () => LocalizedString
+						/**
+						 * App modified.
+						 */
+						successModify: () => LocalizedString
+					}
+					error: {
+						/**
+						 * URL is required.
+						 */
+						urlRequired: () => LocalizedString
+						/**
+						 * Must be a valid URL.
+						 */
+						validUrl: () => LocalizedString
+						/**
+						 * Must have at least one scope.
+						 */
+						scopeValidation: () => LocalizedString
+					}
+					fields: {
+						name: {
+							/**
+							 * App name
+							 */
+							label: () => LocalizedString
+						}
+						redirectUri: {
+							/**
+							 * Redirect URL {count}
+							 */
+							label: (arg: { count: number }) => LocalizedString
+							/**
+							 * https://example.com/redirect
+							 */
+							placeholder: () => LocalizedString
+						}
+						openid: {
+							/**
+							 * OpenID
+							 */
+							label: () => LocalizedString
+						}
+						profile: {
+							/**
+							 * Profile
+							 */
+							label: () => LocalizedString
+						}
+						email: {
+							/**
+							 * Email
+							 */
+							label: () => LocalizedString
+						}
+						phone: {
+							/**
+							 * Phone
+							 */
+							label: () => LocalizedString
+						}
+					}
+					controls: {
+						/**
+						 * Add URL
+						 */
+						addUrl: () => LocalizedString
+					}
+				}
+				/**
+				 * Client ID
+				 */
+				clientId: () => LocalizedString
+				/**
+				 * Client secret
+				 */
+				clientSecret: () => LocalizedString
+			}
+		}
+	}
+	webhooksOverview: {
+		/**
+		 * Webhooks
+		 */
+		pageTitle: () => LocalizedString
+		search: {
+			/**
+			 * Find webhooks by url
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All webhooks
+			 */
+			all: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+		}
+		/**
+		 * All webhooks
+		 */
+		webhooksCount: () => LocalizedString
+		/**
+		 * Add new
+		 */
+		addNewWebhook: () => LocalizedString
+		/**
+		 * No webhooks found.
+		 */
+		noWebhooksFound: () => LocalizedString
+		list: {
+			headers: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Description
+				 */
+				description: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Edit
+				 */
+				edit: () => LocalizedString
+				/**
+				 * Delete webhook
+				 */
+				'delete': () => LocalizedString
+				/**
+				 * Disable
+				 */
+				disable: () => LocalizedString
+				/**
+				 * Enable
+				 */
+				enable: () => LocalizedString
+			}
+			status: {
+				/**
+				 * Enabled
+				 */
+				enabled: () => LocalizedString
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+			}
+		}
+	}
+	provisionersOverview: {
+		/**
+		 * Provisioners
+		 */
+		pageTitle: () => LocalizedString
+		search: {
+			/**
+			 * Find provisioners
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All
+			 */
+			all: () => LocalizedString
+			/**
+			 * Available
+			 */
+			available: () => LocalizedString
+			/**
+			 * Unavailable
+			 */
+			unavailable: () => LocalizedString
+		}
+		/**
+		 * All provisioners
+		 */
+		provisionersCount: () => LocalizedString
+		/**
+		 * No provisioners found.
+		 */
+		noProvisionersFound: () => LocalizedString
+		/**
+		 * You don't have a license for this feature.
+		 */
+		noLicenseMessage: () => LocalizedString
+		provisioningStation: {
+			/**
+			 * YubiKey provisioning station
+			 */
+			header: () => LocalizedString
+			/**
+			 * Provisioning station setup command
+			 */
+			cardTitle: () => LocalizedString
+			/**
+			 * In order to be able to provision your YubiKeys, first you need to set up
+		        physical machine with USB slot. Run provided command on your chosen
+		        machine to register it and start provisioning your keys.
+			 */
+			content: () => LocalizedString
+		}
+		/**
+		 * <p>
+	              <strong>YubiKey module</strong>
+	            </p>
+	            <br />
+	            <p>This is enterprise module for YubiKey</p>
+	            <p>management and provisioning.</p>
+		 */
+		noLicenseBox: () => LocalizedString
+		list: {
+			headers: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * IP address
+				 */
+				ip: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Delete provisioner
+				 */
+				'delete': () => LocalizedString
+			}
+			status: {
+				/**
+				 * Available
+				 */
+				available: () => LocalizedString
+				/**
+				 * Unavailable
+				 */
+				unavailable: () => LocalizedString
+			}
+		}
+		messages: {
+			/**
+			 * Command copied.
+			 */
+			codeCopied: () => LocalizedString
+		}
+	}
+	openidAllow: {
+		/**
+		 * {name} would like to:
+		 */
+		header: (arg: { name: string }) => LocalizedString
+		scopes: {
+			/**
+			 * Use your profile data for future logins.
+			 */
+			openid: () => LocalizedString
+			/**
+			 * Know basic information from your profile like name, profile picture etc.
+			 */
+			profile: () => LocalizedString
+			/**
+			 * Know your email address.
+			 */
+			email: () => LocalizedString
+			/**
+			 * Know your phone number.
+			 */
+			phone: () => LocalizedString
+		}
+		controls: {
+			/**
+			 * Accept
+			 */
+			accept: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+		}
+	}
+	networkOverview: {
+		/**
+		 * Network overview
+		 */
+		pageTitle: () => LocalizedString
+		controls: {
+			/**
+			 * Edit network settings
+			 */
+			editNetwork: () => LocalizedString
+			/**
+			 * Configure network settings
+			 */
+			configureNetwork: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * Grid view
+			 */
+			grid: () => LocalizedString
+			/**
+			 * List view
+			 */
+			list: () => LocalizedString
+		}
+		stats: {
+			/**
+			 * Currently active users
+			 */
+			currentlyActiveUsers: () => LocalizedString
+			/**
+			 * Currently active devices
+			 */
+			currentlyActiveDevices: () => LocalizedString
+			/**
+			 * Active users in {hour}H
+			 */
+			activeUsersFilter: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Active devices in {hour}H
+			 */
+			activeDevicesFilter: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Total transfer:
+			 */
+			totalTransfer: () => LocalizedString
+			/**
+			 * Activity in {hour}H
+			 */
+			activityIn: (arg: { hour: number }) => LocalizedString
+			/**
+			 * In:
+			 */
+			'in': () => LocalizedString
+			/**
+			 * Out:
+			 */
+			out: () => LocalizedString
+		}
+	}
+	connectedUsersOverview: {
+		/**
+		 * Connected users
+		 */
+		pageTitle: () => LocalizedString
+		/**
+		 * Currently there are no connected users
+		 */
+		noUsersMessage: () => LocalizedString
+		userList: {
+			/**
+			 * Username
+			 */
+			username: () => LocalizedString
+			/**
+			 * Device
+			 */
+			device: () => LocalizedString
+			/**
+			 * Connected
+			 */
+			connected: () => LocalizedString
+			/**
+			 * Device location
+			 */
+			deviceLocation: () => LocalizedString
+			/**
+			 * Network usage
+			 */
+			networkUsage: () => LocalizedString
+		}
+	}
+	networkPage: {
+		/**
+		 * Edit network
+		 */
+		pageTitle: () => LocalizedString
+	}
+	activityOverview: {
+		/**
+		 * Activity stream
+		 */
+		header: () => LocalizedString
+		/**
+		 * Currently there is no activity detected
+		 */
+		noData: () => LocalizedString
+	}
+	networkConfiguration: {
+		/**
+		 * Network configuration
+		 */
+		header: () => LocalizedString
+		form: {
+			messages: {
+				/**
+				 * Gateway public address, used by VPN users to connect
+				 */
+				gateway: () => LocalizedString
+				/**
+				 * Specify the DNS resolvers to query when the wireguard interface is up.
+				 */
+				dns: () => LocalizedString
+				/**
+				 * List of addresses/masks that should be routed through the VPN network.
+				 */
+				allowedIps: () => LocalizedString
+				/**
+				 * Network modified.
+				 */
+				networkModified: () => LocalizedString
+				/**
+				 * Network created.
+				 */
+				networkCreated: () => LocalizedString
+			}
+			fields: {
+				name: {
+					/**
+					 * Network name
+					 */
+					label: () => LocalizedString
+				}
+				address: {
+					/**
+					 * VPN network address and mask
+					 */
+					label: () => LocalizedString
+				}
+				endpoint: {
+					/**
+					 * Gateway address
+					 */
+					label: () => LocalizedString
+				}
+				allowedIps: {
+					/**
+					 * Allowed Ips
+					 */
+					label: () => LocalizedString
+				}
+				port: {
+					/**
+					 * Gateway port
+					 */
+					label: () => LocalizedString
+				}
+				dns: {
+					/**
+					 * DNS
+					 */
+					label: () => LocalizedString
+				}
+			}
+			controls: {
+				/**
+				 * Save changes
+				 */
+				submit: () => LocalizedString
+				/**
+				 * Back
+				 */
+				cancel: () => LocalizedString
+			}
+		}
+	}
+	gatewaySetup: {
+		/**
+		 * Gateway server setup
+		 */
+		header: () => LocalizedString
+		card: {
+			/**
+			 * Gateway setup command
+			 */
+			title: () => LocalizedString
+		}
+		controls: {
+			/**
+			 * Check connection status
+			 */
+			status: () => LocalizedString
+		}
+		messages: {
+			/**
+			 * 
+		          <p>
+		            Please use command below on your gateway server. If you don't
+		            know how, or have some issues please visit our
+		            <a>detailed documentation page</a>.
+		          </p>
+			 */
+			runCommand: () => LocalizedString
+			/**
+			 * <p>No connection established, please run provided command.</p>
+			 */
+			noConnection: () => LocalizedString
+			/**
+			 * <p>Gateway connected.</p>
+			 */
+			connected: () => LocalizedString
+			/**
+			 * Failed to get gateway status
+			 */
+			statusError: () => LocalizedString
+		}
+	}
+	loginPage: {
+		/**
+		 * Enter your credentials
+		 */
+		pageTitle: () => LocalizedString
+		mfa: {
+			controls: {
+				/**
+				 * Use Authenticator app instead
+				 */
+				useAuthenticator: () => LocalizedString
+				/**
+				 * Use your wallet instead
+				 */
+				useWallet: () => LocalizedString
+				/**
+				 * Use security key instead
+				 */
+				useWebauthn: () => LocalizedString
+				/**
+				 * Use recovery code instead
+				 */
+				useRecoveryCode: () => LocalizedString
+			}
+			totp: {
+				/**
+				 * Use code from your authentication app and click button to proceed.
+				 */
+				header: () => LocalizedString
+				form: {
+					fields: {
+						code: {
+							/**
+							 * Enter Authenticator code
+							 */
+							placeholder: () => LocalizedString
+						}
+					}
+					controls: {
+						/**
+						 * Use authenticator code
+						 */
+						submit: () => LocalizedString
+					}
+				}
+			}
+			recoveryCode: {
+				/**
+				 * Enter one of active recovery codes and click button to log in.
+				 */
+				header: () => LocalizedString
+				form: {
+					fields: {
+						code: {
+							/**
+							 * Recovery code
+							 */
+							placeholder: () => LocalizedString
+						}
+					}
+					controls: {
+						/**
+						 * Use recovery code
+						 */
+						submit: () => LocalizedString
+					}
+				}
+			}
+			wallet: {
+				/**
+				 * Use your crypto wallet to sign in, please sign message in your wallet app or extension.
+				 */
+				header: () => LocalizedString
+				controls: {
+					/**
+					 * Use your wallet
+					 */
+					submit: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Wallet was disconnected during signing process.
+					 */
+					walletError: () => LocalizedString
+					/**
+					 * Wallet is not authorized for MFA login. Please use authorized wallet.
+					 */
+					walletErrorMfa: () => LocalizedString
+				}
+			}
+			webauthn: {
+				/**
+				 * When you are ready to authenticate, press the button below.
+				 */
+				header: () => LocalizedString
+				controls: {
+					/**
+					 * Use security key
+					 */
+					submit: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Failed to read key. Please try again.
+					 */
+					error: () => LocalizedString
+				}
 			}
 		}
 	}

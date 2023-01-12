@@ -20,9 +20,29 @@ import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { ProvisionersList } from './ProvisionersList/ProvisionersList';
 import { ProvisioningStationSetup } from './ProvisioningStationSetup';
+import { useI18nContext } from '../../i18n/i18n-react';
+import parse from 'html-react-parser';
 
 export const ProvisionersPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
+  const { LL } = useI18nContext();
+  const filterSelectOptions: SelectOption<FilterOptions>[] = [
+    {
+      key: 1,
+      label: LL.provisionersOverview.filterLabels.all(),
+      value: FilterOptions.ALL,
+    },
+    {
+      key: 2,
+      label: LL.provisionersOverview.filterLabels.available(),
+      value: FilterOptions.AVAILABLE,
+    },
+    {
+      key: 3,
+      label: LL.provisionersOverview.filterLabels.unavailable(),
+      value: FilterOptions.UNAVAILABLE,
+    },
+  ];
   const [selectedFilterOption, setSelectedFilterOption] = useState(
     filterSelectOptions[0]
   );
@@ -81,9 +101,9 @@ export const ProvisionersPage = () => {
   return (
     <PageContainer id="provisioners-page">
       <header>
-        <h1>Provisioners</h1>
+        <h1>{LL.provisionersOverview.pageTitle()}</h1>
         <Search
-          placeholder="Find provisioners"
+          placeholder={LL.provisionersOverview.search.placeholder()}
           initialValue={searchValue}
           debounceTiming={500}
           onDebounce={(val) => setSearchValue(val)}
@@ -92,7 +112,7 @@ export const ProvisionersPage = () => {
       <div className="provisioners-container">
         <div className="top">
           <div className="provisioners-count">
-            <span>All provisioners</span>
+            <span>{LL.provisionersOverview.provisionersCount()}</span>
             <div className="count">
               <span>{provisioners?.length ?? 0}</span>
             </div>
@@ -120,9 +140,13 @@ export const ProvisionersPage = () => {
         {!isLoading &&
           ((hasAccess && !filteredProvisioners) ||
           filteredProvisioners.length === 0 ? (
-            <NoData customMessage="No provisioners found" />
+            <NoData
+              customMessage={LL.provisionersOverview.noProvisionersFound()}
+            />
           ) : null)}
-        {!hasAccess && <NoData customMessage="No license for this feature" />}
+        {!hasAccess && (
+          <NoData customMessage={LL.provisionersOverview.noLicenseMessage()} />
+        )}
         {isLoading && hasAccess && (
           <div className="loader">
             <LoaderSpinner size={130} />
@@ -134,12 +158,7 @@ export const ProvisionersPage = () => {
           <ProvisioningStationSetup hasAccess={hasAccess} />
         ) : (
           <NoLicenseBox>
-            <p>
-              <strong>YubiKey module</strong>
-            </p>
-            <br />
-            <p>This is enterprise module for YubiKey</p>
-            <p>management and provisioning.</p>
+            {parse(LL.provisionersOverview.noLicenseBox())}
           </NoLicenseBox>
         )}
       </div>
@@ -152,21 +171,3 @@ enum FilterOptions {
   AVAILABLE = 'available',
   UNAVAILABLE = 'unavailable',
 }
-
-const filterSelectOptions: SelectOption<FilterOptions>[] = [
-  {
-    key: 1,
-    label: 'All',
-    value: FilterOptions.ALL,
-  },
-  {
-    key: 2,
-    label: 'Available',
-    value: FilterOptions.AVAILABLE,
-  },
-  {
-    key: 3,
-    label: 'Unavailable',
-    value: FilterOptions.UNAVAILABLE,
-  },
-];

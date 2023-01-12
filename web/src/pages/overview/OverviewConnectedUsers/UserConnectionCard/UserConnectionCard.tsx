@@ -34,6 +34,7 @@ import {
   summarizeUsersNetworkStats,
 } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
+import { useI18nContext } from '../../../../i18n/i18n-react';
 dayjs.extend(utc);
 interface Props {
   data: NetworkUserStats;
@@ -248,6 +249,7 @@ interface ConnectionTimeProps {
 }
 
 const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
+	const {LL} = useI18nContext();
   const getConnectionTime = useMemo(() => {
     const minutes = dayjs().diff(dayjs.utc(connectedAt), 'm');
     if (minutes > 60) {
@@ -263,7 +265,7 @@ const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
 
   return (
     <div className="connection-time lower-box">
-      <span className="label">Connected:</span>
+      <span className="label">{LL.connectedUsersOverview.userList.connected()}</span>
       <div className="content-wrapper">
         <SvgIconConnected />
         <span data-test="connection-time-value">{getConnectionTime}</span>
@@ -304,6 +306,7 @@ interface ActiveDevicesProps {
 }
 
 const ActiveDevices = ({ data }: ActiveDevicesProps) => {
+	const {LL} = useI18nContext();
   const activeDeviceCount = data.length;
   const showCount = useMemo(() => activeDeviceCount > 3, [activeDeviceCount]);
   const getCount = useMemo(() => 2 - activeDeviceCount, [activeDeviceCount]);
@@ -315,7 +318,7 @@ const ActiveDevices = ({ data }: ActiveDevicesProps) => {
   }, [activeDeviceCount]);
   return (
     <div className="active-devices lower-box">
-      <span className="label">Devices:</span>
+      <span className="label">{LL.connectedUsersOverview.userList.device()}</span>
       <div className="content-wrapper">
         {data.slice(0, getSliceEnd).map((device) => (
           <DeviceAvatar

@@ -5,6 +5,7 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import * as yup from 'yup';
 import shallow from 'zustand/shallow';
+import { useI18nContext } from '../../../../i18n/i18n-react';
 
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
@@ -20,16 +21,7 @@ interface Inputs {
   code: string;
 }
 
-const schema = yup
-  .object()
-  .shape({
-    code: yup
-      .string()
-      .required('Code is required.')
-      .min(6, 'Code should have 6 digits')
-      .max(6, 'Code should have 6 digits'),
-  })
-  .required();
+
 
 export const MFATOTPAuth = () => {
   const navigate = useNavigate();
@@ -50,6 +42,7 @@ export const MFATOTPAuth = () => {
       },
     },
   } = useApi();
+  const { LL } = useI18nContext();
 
   const { mutate, isLoading } = useMutation(
     [MutationKeys.VERIFY_TOTP],
@@ -75,6 +68,16 @@ export const MFATOTPAuth = () => {
       },
     }
   );
+const schema = yup
+  .object()
+  .shape({
+    code: yup
+      .string()
+      .required(LL.form.error.required())
+      .min(6, LL.form.error.validCode())
+      .max(6, LL.form.error.validCode()),
+  })
+  .required();
 
   const { handleSubmit, control, setError, setValue } = useForm<Inputs>({
     resolver: yupResolver(schema),
@@ -97,16 +100,16 @@ export const MFATOTPAuth = () => {
 
   return (
     <>
-      <p>Use code from your authentication app and click button to proceed</p>
+      <p>{LL.loginPage.mfa.totp.header()}</p>
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'code' }}
           autoComplete="one-time-code"
-          placeholder="Enter Authenticator code"
+          placeholder={LL.loginPage.mfa.totp.form.fields.code.placeholder()}
           required
         />
         <Button
-          text="Use authenticator code"
+          text={LL.loginPage.mfa.totp.form.controls.submit()}
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
           loading={isLoading}
@@ -117,7 +120,7 @@ export const MFATOTPAuth = () => {
         <span>or</span>
         {webauthnAvailable && (
           <Button
-            text="Use security key instead"
+            text={LL.loginPage.mfa.controls.useWebauthn()}
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.LINK}
             onClick={() => navigate('../webauthn')}
@@ -125,14 +128,14 @@ export const MFATOTPAuth = () => {
         )}
         {web3Available && (
           <Button
-            text="Use your wallet instead"
+            text={LL.loginPage.mfa.controls.useWallet()}
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.LINK}
             onClick={() => navigate('../web3')}
           />
         )}
         <Button
-          text="Use recovery code instead"
+          text={LL.loginPage.mfa.controls.useRecoveryCode()}
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.LINK}
           onClick={() => navigate('../recovery')}

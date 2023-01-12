@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import clipboard from 'clipboardy';
 import { useMemo } from 'react';
+import { useI18nContext } from '../../i18n/i18n-react';
 
 import {
   ActionButton,
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export const ProvisioningStationSetup = ({ hasAccess = false }: Props) => {
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     provisioning: { getWorkerToken },
@@ -42,10 +44,10 @@ export const ProvisioningStationSetup = ({ hasAccess = false }: Props) => {
           clipboard
             .write(command)
             .then(() => {
-              toaster.success('Command copied.');
+              toaster.success(LL.provisionersOverview.messages.codeCopied());
             })
             .catch((err) => {
-              toaster.error('Clipboard is not accessible.');
+              toaster.error(LL.messages.clipboardError());
               console.error(err);
             });
         }}
@@ -56,17 +58,13 @@ export const ProvisioningStationSetup = ({ hasAccess = false }: Props) => {
 
   return (
     <Card className="provisioning-setup">
-      <h4>YubiKey provisioning station</h4>
-      <p>
-        In order to be able to provision your YubiKeys, first you need to set up
-        physical machine with USB slot. Run provided command on your chosen
-        machine to register it and start provisioning your keys.
-      </p>
+      <h4>{LL.provisionersOverview.provisioningStation.header()}</h4>
+      <p>{LL.provisionersOverview.provisioningStation.content()}</p>
       <div className="image-row">
         <YubikeyProvisioningGraphic />
       </div>
       <ExpandableCard
-        title="Provisioning station setup command"
+        title={LL.provisionersOverview.provisioningStation.cardTitle()}
         disableExpand={true}
         expanded={true}
         actions={getActions}

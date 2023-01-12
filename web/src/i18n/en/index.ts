@@ -4,11 +4,17 @@ const en: BaseTranslation = {
   messages: {
     error: 'Error has occurred.',
     success: 'Operation succeeded',
+    succcessClipboard: 'Copied to clipboard',
     errorVersion: 'Failed to get application version.',
     errorLicense: 'Failed to get license.',
     clipboardError: 'Clipboard is not accessible.',
   },
   modals: {
+    changeWebhook: {
+      messages: {
+        success: 'Webhook changed.',
+      },
+    },
     manageWebAuthNKeys: {
       title: 'Security keys',
       messages: {
@@ -203,6 +209,16 @@ const en: BaseTranslation = {
         success: '{username: string} deleted.',
       },
     },
+    deleteProvisioner: {
+      title: 'Delete provisioner',
+      controls: {
+        submit: 'Delete provisioner',
+      },
+      message: 'Do you want to delete {id: string} provisioner?',
+      messages: {
+        success: '{provisioner: string} deleted.',
+      },
+    },
     changeUserPassword: {
       messages: {
         success: 'Password changed.',
@@ -270,6 +286,63 @@ const en: BaseTranslation = {
             label: 'Phone',
           },
         },
+      },
+    },
+    webhookModal: {
+      title: {
+        addWebhook: 'Add webhook.',
+        editWebhook: 'Edit webhook',
+      },
+      messages: {
+        clientIdCopy: 'Client ID copied.',
+        clientSecretCopy: 'Client secret copied.',
+      },
+      form: {
+        triggers: 'Trigger events:',
+        messages: {
+          successAdd: 'Webhook created.',
+          successModify: 'Webhook modified.',
+        },
+        error: {
+          urlRequired: 'URL is required.',
+          validUrl: 'Must be a valid URL.',
+          scopeValidation: 'Must have at least one trigger.',
+          tokenRequired: 'Token is required.',
+        },
+        fields: {
+          description: {
+            label: 'Description',
+            placeholder: 'Webhook to create gmail account on new user',
+          },
+          token: {
+            label: 'Secret token',
+            placeholder: 'Authorization token',
+          },
+          url: {
+            label: 'Webhook URL',
+            placeholder: 'https://example.com/webhook',
+          },
+          userCreated: {
+            label: 'New user Created',
+          },
+          userDeleted: {
+            label: 'User deleted',
+          },
+          userModified: {
+            label: 'User modified',
+          },
+          hwkeyProvision: {
+            label: 'User Yubikey provision',
+          },
+        },
+      },
+    },
+    deleteWebhook: {
+      title: 'Delete webhook',
+      message: 'Do you want to delete {name: string} webhook ?',
+      submit: 'Delete',
+      messages: {
+        success: 'Webhook deleted.',
       },
     },
   },
@@ -496,6 +569,11 @@ const en: BaseTranslation = {
       oneSpecial: 'Special character required.',
       oneUppercase: 'One uppercase character required.',
       oneLowercase: 'One lowercase character required.',
+      portMax: 'Maximum port is 65535.',
+      endpoint: 'Enter a valid endpoint.',
+      address: 'Enter a valid address.',
+      validPort: 'Enter a valid port.',
+      validCode: 'Code should have 6 digits.',
     },
   },
   components: {
@@ -510,7 +588,7 @@ const en: BaseTranslation = {
     title: 'Global Settings',
     messages: {
       editSuccess: 'Settings updated',
-			challengeSuccess: 'Challenge message changed',
+      challengeSuccess: 'Challenge message changed',
     },
     modulesVisibility: {
       header: 'Modules Visibility',
@@ -548,6 +626,10 @@ const en: BaseTranslation = {
           <a href="defguard.gitbook.io" target="_blank">
             Read more in documentation.
           </a>`,
+      filterLabels: {
+        grid: 'Grid view',
+        list: 'List view',
+      },
     },
     web3Settings: {
       header: 'Web3 / Wallet connect',
@@ -648,6 +730,355 @@ const en: BaseTranslation = {
         https://github.com/Defguard/defguard
       </a>
 			`,
+      },
+    },
+  },
+  openidOverview: {
+    pageTitle: 'OpenID Apps',
+    search: {
+      placeholder: 'Find apps',
+    },
+    filterLabels: {
+      all: 'All apps',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+    },
+    clientCount: 'All apps',
+    addNewApp: 'Add new',
+    list: {
+      headers: {
+        name: 'Name',
+        status: 'Status',
+        actions: 'Actions',
+      },
+      editButton: {
+        edit: 'Edit app',
+        delete: 'Delete app',
+        disable: 'Disable',
+        enable: 'Enable',
+      },
+      status: {
+        enabled: 'Enabled',
+        disabled: 'Disabled',
+      },
+    },
+    messages: {
+      noLicenseMessage: "You don't have a license for this feature.",
+      noClientsFound: 'No results found.',
+    },
+    deleteApp: {
+      title: 'Delete app',
+      message: 'Do you want to delete {appName: string} app ?',
+      submit: 'Delete app',
+      messages: {
+        success: 'App deleted.',
+      },
+    },
+    enableApp: {
+      messages: {
+        success: 'App enabled.',
+      },
+    },
+    disableApp: {
+      messages: {
+        success: 'App disabled.',
+      },
+    },
+    modals: {
+      openidClientModal: {
+        title: {
+          addApp: 'Add app.',
+          editApp: 'Edit {appName: string} app',
+        },
+        scopes: 'Scopes:',
+        messages: {
+          clientIdCopy: 'Client ID copied.',
+          clientSecretCopy: 'Client secret copied.',
+        },
+        form: {
+          messages: {
+            successAdd: 'App created.',
+            successModify: 'App modified.',
+          },
+          error: {
+            urlRequired: 'URL is required.',
+            validUrl: 'Must be a valid URL.',
+            scopeValidation: 'Must have at least one scope.',
+          },
+          fields: {
+            name: {
+              label: 'App name',
+            },
+            redirectUri: {
+              label: 'Redirect URL {count: number}',
+              placeholder: 'https://example.com/redirect',
+            },
+            openid: {
+              label: 'OpenID',
+            },
+            profile: {
+              label: 'Profile',
+            },
+            email: {
+              label: 'Email',
+            },
+            phone: {
+              label: 'Phone',
+            },
+          },
+          controls: {
+            addUrl: 'Add URL',
+          },
+        },
+        clientId: 'Client ID',
+        clientSecret: 'Client secret',
+      },
+    },
+  },
+  webhooksOverview: {
+    pageTitle: 'Webhooks',
+    search: {
+      placeholder: 'Find webhooks by url',
+    },
+    filterLabels: {
+      all: 'All webhooks',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+    },
+    webhooksCount: 'All webhooks',
+    addNewWebhook: 'Add new',
+    noWebhooksFound: 'No webhooks found.',
+    list: {
+      headers: {
+        name: 'Name',
+        description: 'Description',
+        status: 'Status',
+        actions: 'Actions',
+      },
+      editButton: {
+        edit: 'Edit',
+        delete: 'Delete webhook',
+        disable: 'Disable',
+        enable: 'Enable',
+      },
+      status: {
+        enabled: 'Enabled',
+        disabled: 'Disabled',
+      },
+    },
+  },
+  provisionersOverview: {
+    pageTitle: 'Provisioners',
+    search: {
+      placeholder: 'Find provisioners',
+    },
+    filterLabels: {
+      all: 'All',
+      available: 'Available',
+      unavailable: 'Unavailable',
+    },
+    provisionersCount: 'All provisioners',
+    noProvisionersFound: 'No provisioners found.',
+    noLicenseMessage: "You don't have a license for this feature.",
+    provisioningStation: {
+      header: 'YubiKey provisioning station',
+      cardTitle: 'Provisioning station setup command',
+      content: `In order to be able to provision your YubiKeys, first you need to set up
+        physical machine with USB slot. Run provided command on your chosen
+        machine to register it and start provisioning your keys.`,
+    },
+    noLicenseBox: `<p>
+              <strong>YubiKey module</strong>
+            </p>
+            <br />
+            <p>This is enterprise module for YubiKey</p>
+            <p>management and provisioning.</p>`,
+    list: {
+      headers: {
+        name: 'Name',
+        ip: 'IP address',
+        status: 'Status',
+        actions: 'Actions',
+      },
+      editButton: {
+        delete: 'Delete provisioner',
+      },
+      status: {
+        available: 'Available',
+        unavailable: 'Unavailable',
+      },
+    },
+    messages: {
+      codeCopied: 'Command copied.',
+    },
+  },
+  openidAllow: {
+    header: '{name: string} would like to:',
+    scopes: {
+      openid: 'Use your profile data for future logins.',
+      profile:
+        'Know basic information from your profile like name, profile picture etc.',
+      email: 'Know your email address.',
+      phone: 'Know your phone number.',
+    },
+    controls: {
+      accept: 'Accept',
+      cancel: 'Cancel',
+    },
+  },
+  networkOverview: {
+    pageTitle: 'Network overview',
+    controls: {
+      editNetwork: 'Edit network settings',
+      configureNetwork: 'Configure network settings',
+    },
+    filterLabels: {
+      grid: 'Grid view',
+      list: 'List view',
+    },
+    stats: {
+      currentlyActiveUsers: 'Currently active users',
+      currentlyActiveDevices: 'Currently active devices',
+      activeUsersFilter: 'Active users in {hour: number}H',
+      activeDevicesFilter: 'Active devices in {hour: number}H',
+      totalTransfer: 'Total transfer:',
+      activityIn: 'Activity in {hour: number}H',
+      in: 'In:',
+      out: 'Out:',
+    },
+  },
+  connectedUsersOverview: {
+    pageTitle: 'Connected users',
+    noUsersMessage: 'Currently there are no connected users',
+    userList: {
+      username: 'Username',
+      device: 'Device',
+      connected: 'Connected',
+      deviceLocation: 'Device location',
+      networkUsage: 'Network usage',
+    },
+  },
+  networkPage: {
+    pageTitle: 'Edit network',
+  },
+	activityOverview: {
+		header: 'Activity stream',
+		noData: 'Currently there is no activity detected'
+	},
+  networkConfiguration: {
+    header: 'Network configuration',
+    form: {
+      messages: {
+        gateway: 'Gateway public address, used by VPN users to connect',
+        dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
+        allowedIps:
+          'List of addresses/masks that should be routed through the VPN network.',
+        networkModified: 'Network modified.',
+        networkCreated: 'Network created.',
+      },
+      fields: {
+        name: {
+          label: 'Network name',
+        },
+        address: {
+          label: 'VPN network address and mask',
+        },
+        endpoint: {
+          label: 'Gateway address',
+        },
+        allowedIps: {
+          label: 'Allowed Ips',
+        },
+        port: {
+          label: 'Gateway port',
+        },
+        dns: {
+          label: 'DNS',
+        },
+      },
+      controls: {
+        submit: 'Save changes',
+        cancel: 'Back',
+      },
+    },
+  },
+  gatewaySetup: {
+    header: 'Gateway server setup',
+    card: {
+      title: 'Gateway setup command',
+    },
+    controls: {
+      status: 'Check connection status',
+    },
+    messages: {
+      runCommand: `
+          <p>
+            Please use command below on your gateway server. If you don't
+            know how, or have some issues please visit our
+            <a>detailed documentation page</a>.
+          </p>`,
+      noConnection: `<p>No connection established, please run provided command.</p>`,
+      connected: `<p>Gateway connected.</p>`,
+      statusError: 'Failed to get gateway status',
+    },
+  },
+  loginPage: {
+    pageTitle: 'Enter your credentials',
+    mfa: {
+      controls: {
+        useAuthenticator: 'Use Authenticator app instead',
+        useWallet: 'Use your wallet instead',
+        useWebauthn: 'Use security key instead',
+        useRecoveryCode: 'Use recovery code instead',
+      },
+      totp: {
+        header:
+          'Use code from your authentication app and click button to proceed.',
+        form: {
+          fields: {
+            code: {
+              placeholder: 'Enter Authenticator code',
+            },
+          },
+          controls: {
+            submit: 'Use authenticator code',
+          },
+        },
+      },
+      recoveryCode: {
+        header:
+          'Enter one of active recovery codes and click button to log in.',
+        form: {
+          fields: {
+            code: {
+              placeholder: 'Recovery code',
+            },
+          },
+          controls: {
+            submit: 'Use recovery code',
+          },
+        },
+      },
+      wallet: {
+        header:
+          'Use your crypto wallet to sign in, please sign message in your wallet app or extension.',
+        controls: {
+          submit: 'Use your wallet',
+        },
+        messages: {
+          walletError: 'Wallet was disconnected during signing process.',
+          walletErrorMfa:
+            'Wallet is not authorized for MFA login. Please use authorized wallet.',
+        },
+      },
+      webauthn: {
+        header: 'When you are ready to authenticate, press the button below.',
+        controls: {
+          submit: 'Use security key',
+        },
+        messages: {
+          error: 'Failed to read key. Please try again.',
+        },
       },
     },
   },

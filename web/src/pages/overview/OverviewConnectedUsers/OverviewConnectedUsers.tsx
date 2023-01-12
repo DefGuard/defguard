@@ -7,6 +7,7 @@ import { getMaxDeviceStats } from '../helpers/stats';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { UserConnectionCard } from './UserConnectionCard/UserConnectionCard';
 import { UserConnectionListItem } from './UserConnectionListItem/UserConnectionListItem';
+import { useI18nContext } from '../../../i18n/i18n-react';
 
 interface Props {
   stats?: NetworkUserStats[];
@@ -27,6 +28,7 @@ export const OverviewConnectedUsers = ({ stats }: Props) => {
     return rest.join(' ');
   }, [viewMode]);
   const dataMax = stats ? getMaxDeviceStats(stats) : undefined;
+  const { LL } = useI18nContext();
 
   const renderedStats = useMemo(() => {
     if (!stats || !stats.length) {
@@ -49,10 +51,12 @@ export const OverviewConnectedUsers = ({ stats }: Props) => {
   return (
     <div className="overview-connected-users">
       <header>
-        <h2>Connected users</h2>
+        <h2>{LL.connectedUsersOverview.pageTitle()}</h2>
       </header>
       {!stats || !stats.length ? (
-        <p className="no-data-text">Currently there are no connected users</p>
+        <p className="no-data-text">
+          {LL.connectedUsersOverview.noUsersMessage()}
+        </p>
       ) : null}
       <div className={getContentClassName}>{renderedStats}</div>
     </div>
@@ -65,26 +69,27 @@ interface RenderUserListProps {
 }
 
 const RenderUserList = ({ data, dataMax }: RenderUserListProps) => {
+  const { LL } = useI18nContext();
   return (
     <>
       <div className="headers">
         <div className="header">
-          <span>User name</span>
+          <span>{LL.connectedUsersOverview.userList.username()}</span>
         </div>
         <div className="header">
-          <span>Device</span>
+          <span>{LL.connectedUsersOverview.userList.device()}</span>
         </div>
         <div className="header">
-          <span>Connected</span>
+          <span>{LL.connectedUsersOverview.userList.connected()}</span>
         </div>
         <div className="header">
-          <span>Device location</span>
+          <span>{LL.connectedUsersOverview.userList.deviceLocation()}</span>
         </div>
         {/* <div className="header">
           <span>Connections</span>
         </div> */}
         <div className="header">
-          <span>Network usage</span>
+          <span>{LL.connectedUsersOverview.userList.networkUsage()}</span>
         </div>
       </div>
       <div className="users-list">
