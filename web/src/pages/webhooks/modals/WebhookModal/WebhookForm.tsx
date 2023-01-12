@@ -85,11 +85,11 @@ export const WebhookForm = () => {
           url: yup
             .string()
             .required(
-              LL.webhooksOverview.modals.webhookModal.form.error.urlRequired
+              LL.modals.webhookModal.form.error.urlRequired
             )
             .matches(
               patternValidUrl,
-              LL.webhooksOverview.modals.webhookModal.form.error.validUrl
+              LL.modals.webhookModal.form.error.validUrl
             ),
           description: yup
             .string()
@@ -98,21 +98,21 @@ export const WebhookForm = () => {
             .required(),
           token: yup
             .string()
-            .required('Token is required.')
-            .matches(patternAtLeastOneDigit, 'Should have at least one digit.')
+            .required(LL.modals.webhookModal.form.error.tokenRequired())
+            .matches(patternAtLeastOneDigit, LL.form.error.oneDigit())
             .matches(
               patternAtLeastOneUpperCaseChar,
-              'Should have at least one upper case character.'
+              LL.form.error.oneUppercase(),
             )
             .matches(
               patternAtLeastOneSpecialChar,
-              'Should have at least one special character.'
+              LL.form.error.oneSpecial(),
             )
             .matches(
               patternAtLeastOneLowerCaseChar,
-              'Should have at least one small character.'
+              LL.form.error.oneLowercase(),
             )
-            .max(250, 'Maximum length exceeded.'),
+            .max(250, LL.form.error.maximumLength()),
           enabled: yup.boolean(),
           on_user_created: yup.boolean().test({
             message: '',
@@ -148,7 +148,7 @@ export const WebhookForm = () => {
   const { mutate: addWebhookMutation, isLoading: addWebhookIsLoading } =
     useMutation([MutationKeys.EDIT_WEBHOOK], addWebhook, {
       onSuccess: () => {
-        toaster.success(LL.webhooksOverview.modals.webhookModal.form.messages.successAdd());
+        toaster.success(LL.modals.webhookModal.form.messages.successAdd());
         setModalState({ visible: false, webhook: undefined });
       },
       onError: (err) => {
@@ -160,7 +160,7 @@ export const WebhookForm = () => {
   const { mutate: editWebhookMutation, isLoading: editMutationIsLoading } =
     useMutation([MutationKeys.EDIT_WEBHOOK], editWebhook, {
       onSuccess: () => {
-        toaster.success(LL.webhooksOverview.modals.webhookModal.form.messages.successModify());
+        toaster.success(LL.modals.webhookModal.form.messages.successModify());
         setModalState({ visible: false, webhook: undefined });
       },
       onError: (err) => {
@@ -183,44 +183,44 @@ export const WebhookForm = () => {
   return (
     <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
-        outerLabel={LL.webhooksOverview.modals.webhookModal.form.fields.url.label()}
+        outerLabel={LL.modals.webhookModal.form.fields.url.label()}
         controller={{ control, name: 'url' }}
-        placeholder={LL.webhooksOverview.modals.webhookModal.form.fields.url.placeholder()}
+        placeholder={LL.modals.webhookModal.form.fields.url.placeholder()}
         required
       />
       <FormInput
-        outerLabel={LL.webhooksOverview.modals.webhookModal.form.fields.description.label()}
+        outerLabel={LL.modals.webhookModal.form.fields.description.label()}
         controller={{ control, name: 'description' }}
-        placeholder={LL.webhooksOverview.modals.webhookModal.form.fields.description.placeholder()}
+        placeholder={LL.modals.webhookModal.form.fields.description.placeholder()}
         required
         type="text"
       />
       <FormInput
-        outerLabel={LL.webhooksOverview.modals.webhookModal.form.fields.token.label()}
+        outerLabel={LL.modals.webhookModal.form.fields.token.label()}
         controller={{ control, name: 'token' }}
-        placeholder={LL.webhooksOverview.modals.webhookModal.form.fields.token.placeholder()}
+        placeholder={LL.modals.webhookModal.form.fields.token.placeholder()}
         required
       />
-      <h3>{LL.webhooksOverview.modals.webhookModal.form.triggers()}</h3>
+      <h3>{LL.modals.webhookModal.form.triggers()}</h3>
       <div className="events">
         <FormCheckBox
           controller={{ control, name: 'on_user_created' }}
-          label={LL.webhooksOverview.modals.webhookModal.form.fields.userCreated.label()}
+          label={LL.modals.webhookModal.form.fields.userCreated.label()}
           labelPosition="right"
         />
         <FormCheckBox
           controller={{ control, name: 'on_user_deleted' }}
-          label={LL.webhooksOverview.modals.webhookModal.form.fields.userDeleted.label()}
+          label={LL.modals.webhookModal.form.fields.userDeleted.label()}
           labelPosition="right"
         />
         <FormCheckBox
           controller={{ control, name: 'on_user_modified' }}
-          label={LL.webhooksOverview.modals.webhookModal.form.fields.userModified.label()}
+          label={LL.modals.webhookModal.form.fields.userModified.label()}
           labelPosition="right"
         />
         <FormCheckBox
           controller={{ control, name: 'on_hwkey_provision' }}
-          label={LL.webhooksOverview.modals.webhookModal.form.fields.hwkeyProvision.label()}
+          label={LL.modals.webhookModal.form.fields.hwkeyProvision.label()}
           labelPosition="right"
         />
       </div>

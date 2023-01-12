@@ -13,6 +13,7 @@ import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhit
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
+import { useI18nContext } from '../../i18n/i18n-react';
 
 export const OpenidAllowPage = () => {
   const [params] = useSearchParams();
@@ -31,6 +32,7 @@ export const OpenidAllowPage = () => {
   const setAuthStore = useAuthStore((state) => state.setState);
   const navigate = useNavigate();
   const authLocation = useAuthStore((state) => state.authLocation);
+  const { LL } = useI18nContext();
 
   const validateParams = useCallback(() => {
     const check = [scope, responseType, clientId, nonce, redirectUri, state];
@@ -98,11 +100,11 @@ export const OpenidAllowPage = () => {
   }, [validateParams, clientId]);
 
   const scopes: Record<string, string> = {
-    openid: 'Use your profile data for future logins.',
+    openid: LL.openidAllow.scopes.openid(),
     profile:
-      'Know basic information from your profile like name, profile picture etc.',
-    email: 'Know your email address.',
-    phone: 'Know your phone number.',
+      LL.openidAllow.scopes.profile(),
+    email: LL.openidAllow.scopes.email(),
+    phone: LL.openidAllow.scopes.phone(),
   };
 
   return (
@@ -111,7 +113,7 @@ export const OpenidAllowPage = () => {
         <SvgDefguardLogoLogin />
       </div>
       <div className="consent">
-        <h1>{name} would like to:</h1>
+        <h1>{LL.openidAllow.header({name: name || ''})}</h1>
         <ul className="scopes-list">
           {scope && scope.length
             ? scope.split(' ').map((s) => (

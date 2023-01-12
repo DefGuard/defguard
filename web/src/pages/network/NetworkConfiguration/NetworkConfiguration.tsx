@@ -16,6 +16,7 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { ModifyNetworkRequest, Network } from '../../../shared/types';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
+import { useI18nContext } from '../../../i18n/i18n-react';
 
 const schema = yup
   .object({
@@ -137,10 +138,12 @@ export const NetworkConfiguration = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const { LL } = useI18nContext();
+
   return (
     <section className="network-config">
       <header>
-        <h2>Network configuration</h2>
+        <h2>{LL.networkConfiguration.header()}</h2>
         <Helper>
           <p>PLACEHOLDER</p>
         </Helper>
@@ -149,38 +152,36 @@ export const NetworkConfiguration = () => {
         <form onSubmit={handleSubmit(onValidSubmit)}>
           <FormInput
             controller={{ control, name: 'name' }}
-            outerLabel="Network name"
+            outerLabel={LL.networkConfiguration.form.fields.name.label()}
           />
           <FormInput
             controller={{ control, name: 'address' }}
-            outerLabel="VPN network address and mask"
+            outerLabel={LL.networkConfiguration.form.fields.address.label()}
           />
           <MessageBox>
-            <p>Gateway{"'"}s public address, used by VPN users to connect</p>
+            <p>{LL.networkConfiguration.form.messages.gateway()}</p>
           </MessageBox>
           <FormInput
             controller={{ control, name: 'endpoint' }}
-            outerLabel="Gateway address"
+            outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
           />
           <FormInput
             controller={{ control, name: 'port' }}
-            outerLabel="Gateway port"
+            outerLabel={LL.networkConfiguration.form.fields.port.label()}
           />
           <MessageBox>
             <p>
-              List of addresses/masks that should be routed through the VPN
-              network
+              {LL.networkConfiguration.form.messages.allowedIps()}
             </p>
           </MessageBox>
           <FormInput
             controller={{ control, name: 'allowed_ips' }}
-            outerLabel="Allowed Ips"
+            outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
           />
-          <FormInput controller={{ control, name: 'dns' }} outerLabel="DNS" />
+          <FormInput controller={{ control, name: 'dns' }} outerLabel={LL.networkConfiguration.form.fields.dns.label()} />
           <MessageBox>
             <p>
-              Specify the DNS resolvers to query when the WireGuard interface is
-              up.
+              {LL.networkConfiguration.form.messages.dns()}
             </p>
           </MessageBox>
           <button type="submit" className="hidden" ref={submitRef}></button>

@@ -36,6 +36,14 @@ type RootTranslation = {
 		clipboardError: string
 	}
 	modals: {
+		changeWebhook: {
+			messages: {
+				/**
+				 * W​e​b​h​o​o​k​ ​c​h​a​n​g​e​d​.
+				 */
+				success: string
+			}
+		}
 		manageWebAuthNKeys: {
 			/**
 			 * S​e​c​u​r​i​t​y​ ​k​e​y​s
@@ -406,6 +414,30 @@ type RootTranslation = {
 				success: RequiredParams<'username'>
 			}
 		}
+		deleteProvisioner: {
+			/**
+			 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
+			 */
+			title: string
+			controls: {
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​i​d​}​ ​p​r​o​v​i​s​i​o​n​e​r​?
+			 * @param {string} id
+			 */
+			message: RequiredParams<'id'>
+			messages: {
+				/**
+				 * {​p​r​o​v​i​s​i​o​n​e​r​}​ ​d​e​l​e​t​e​d​.
+				 * @param {string} provisioner
+				 */
+				success: RequiredParams<'provisioner'>
+			}
+		}
 		changeUserPassword: {
 			messages: {
 				/**
@@ -550,6 +582,139 @@ type RootTranslation = {
 						label: string
 					}
 				}
+			}
+		}
+		webhookModal: {
+			title: {
+				/**
+				 * A​d​d​ ​w​e​b​h​o​o​k​.
+				 */
+				addWebhook: string
+				/**
+				 * E​d​i​t​ ​w​e​b​h​o​o​k
+				 */
+				editWebhook: string
+			}
+			messages: {
+				/**
+				 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+				 */
+				clientIdCopy: string
+				/**
+				 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
+				 */
+				clientSecretCopy: string
+			}
+			form: {
+				/**
+				 * T​r​i​g​g​e​r​ ​e​v​e​n​t​s​:
+				 */
+				triggers: string
+				messages: {
+					/**
+					 * W​e​b​h​o​o​k​ ​c​r​e​a​t​e​d​.
+					 */
+					successAdd: string
+					/**
+					 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d​.
+					 */
+					successModify: string
+				}
+				error: {
+					/**
+					 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+					 */
+					urlRequired: string
+					/**
+					 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
+					 */
+					validUrl: string
+					/**
+					 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​t​r​i​g​g​e​r​.
+					 */
+					scopeValidation: string
+					/**
+					 * T​o​k​e​n​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+					 */
+					tokenRequired: string
+				}
+				fields: {
+					description: {
+						/**
+						 * D​e​s​c​r​i​p​t​i​o​n
+						 */
+						label: string
+						/**
+						 * W​e​b​h​o​o​k​ ​t​o​ ​c​r​e​a​t​e​ ​g​m​a​i​l​ ​a​c​c​o​u​n​t​ ​o​n​ ​n​e​w​ ​u​s​e​r
+						 */
+						placeholder: string
+					}
+					token: {
+						/**
+						 * S​e​c​r​e​t​ ​t​o​k​e​n
+						 */
+						label: string
+						/**
+						 * A​u​t​h​o​r​i​z​a​t​i​o​n​ ​t​o​k​e​n
+						 */
+						placeholder: string
+					}
+					url: {
+						/**
+						 * W​e​b​h​o​o​k​ ​U​R​L
+						 */
+						label: string
+						/**
+						 * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​w​e​b​h​o​o​k
+						 */
+						placeholder: string
+					}
+					userCreated: {
+						/**
+						 * N​e​w​ ​u​s​e​r​ ​C​r​e​a​t​e​d
+						 */
+						label: string
+					}
+					userDeleted: {
+						/**
+						 * U​s​e​r​ ​d​e​l​e​t​e​d
+						 */
+						label: string
+					}
+					userModified: {
+						/**
+						 * U​s​e​r​ ​m​o​d​i​f​i​e​d
+						 */
+						label: string
+					}
+					hwkeyProvision: {
+						/**
+						 * U​s​e​r​ ​Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n
+						 */
+						label: string
+					}
+				}
+			}
+		}
+		deleteWebhook: {
+			/**
+			 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​n​a​m​e​}​ ​w​e​b​h​o​o​k​ ​?
+			 * @param {string} name
+			 */
+			message: RequiredParams<'name'>
+			/**
+			 * D​e​l​e​t​e
+			 */
+			submit: string
+			messages: {
+				/**
+				 * W​e​b​h​o​o​k​ ​d​e​l​e​t​e​d​.
+				 */
+				success: string
 			}
 		}
 	}
@@ -1744,142 +1909,294 @@ type RootTranslation = {
 				disabled: string
 			}
 		}
-		deleteWebhook: {
+	}
+	provisionersOverview: {
+		/**
+		 * P​r​o​v​i​s​i​o​n​e​r​s
+		 */
+		pageTitle: string
+		search: {
 			/**
-			 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
+			 * F​i​n​d​ ​p​r​o​v​i​s​i​o​n​e​r​s
 			 */
-			title: string
+			placeholder: string
+		}
+		filterLabels: {
 			/**
-			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​n​a​m​e​}​ ​w​e​b​h​o​o​k​ ​?
-			 * @param {string} name
+			 * A​l​l
 			 */
-			message: RequiredParams<'name'>
+			all: string
 			/**
-			 * D​e​l​e​t​e
+			 * A​v​a​i​l​a​b​l​e
 			 */
-			submit: string
-			messages: {
+			available: string
+			/**
+			 * U​n​a​v​a​i​l​a​b​l​e
+			 */
+			unavailable: string
+		}
+		/**
+		 * A​l​l​ ​p​r​o​v​i​s​i​o​n​e​r​s
+		 */
+		provisionersCount: string
+		/**
+		 * N​o​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​f​o​u​n​d​.
+		 */
+		noProvisionersFound: string
+		/**
+		 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
+		 */
+		noLicenseMessage: string
+		provisioningStation: {
+			/**
+			 * Y​u​b​i​K​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n
+			 */
+			header: string
+			/**
+			 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
+			 */
+			cardTitle: string
+			/**
+			 * I​n​ ​o​r​d​e​r​ ​t​o​ ​b​e​ ​a​b​l​e​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​y​o​u​r​ ​Y​u​b​i​K​e​y​s​,​ ​f​i​r​s​t​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​ ​u​p​
+		​ ​ ​ ​ ​ ​ ​ ​ ​p​h​y​s​i​c​a​l​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​U​S​B​ ​s​l​o​t​.​ ​R​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​ ​o​n​ ​y​o​u​r​ ​c​h​o​s​e​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​m​a​c​h​i​n​e​ ​t​o​ ​r​e​g​i​s​t​e​r​ ​i​t​ ​a​n​d​ ​s​t​a​r​t​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​y​o​u​r​ ​k​e​y​s​.
+			 */
+			content: string
+		}
+		/**
+		 * <​p​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​s​t​r​o​n​g​>​Y​u​b​i​K​e​y​ ​m​o​d​u​l​e​<​/​s​t​r​o​n​g​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​T​h​i​s​ ​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​m​o​d​u​l​e​ ​f​o​r​ ​Y​u​b​i​K​e​y​<​/​p​>​
+	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​m​a​n​a​g​e​m​e​n​t​ ​a​n​d​ ​p​r​o​v​i​s​i​o​n​i​n​g​.​<​/​p​>
+		 */
+		noLicenseBox: string
+		list: {
+			headers: {
 				/**
-				 * W​e​b​h​o​o​k​ ​d​e​l​e​t​e​d​.
+				 * N​a​m​e
 				 */
-				success: string
+				name: string
+				/**
+				 * I​P​ ​a​d​d​r​e​s​s
+				 */
+				ip: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
+				 */
+				'delete': string
+			}
+			status: {
+				/**
+				 * A​v​a​i​l​a​b​l​e
+				 */
+				available: string
+				/**
+				 * U​n​a​v​a​i​l​a​b​l​e
+				 */
+				unavailable: string
 			}
 		}
-		changeWebhook: {
+		messages: {
+			/**
+			 * C​o​m​m​a​n​d​ ​c​o​p​i​e​d​.
+			 */
+			codeCopied: string
+		}
+	}
+	openidAllow: {
+		/**
+		 * {​n​a​m​e​}​ ​w​o​u​l​d​ ​l​i​k​e​ ​t​o​:
+		 * @param {string} name
+		 */
+		header: RequiredParams<'name'>
+		scopes: {
+			/**
+			 * U​s​e​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​d​a​t​a​ ​f​o​r​ ​f​u​t​u​r​e​ ​l​o​g​i​n​s​.
+			 */
+			openid: string
+			/**
+			 * K​n​o​w​ ​b​a​s​i​c​ ​i​n​f​o​r​m​a​t​i​o​n​ ​f​r​o​m​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​l​i​k​e​ ​n​a​m​e​,​ ​p​r​o​f​i​l​e​ ​p​i​c​t​u​r​e​ ​e​t​c​.
+			 */
+			profile: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​.
+			 */
+			email: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​p​h​o​n​e​ ​n​u​m​b​e​r​.
+			 */
+			phone: string
+		}
+	}
+	networkOverview: {
+		/**
+		 * N​e​t​w​o​r​k​ ​o​v​e​r​v​i​e​w
+		 */
+		pageTitle: string
+		controls: {
+			/**
+			 * E​d​i​t​ ​n​e​t​w​o​r​k​ ​s​e​t​t​i​n​g​s
+			 */
+			editNetwork: string
+			/**
+			 * C​o​n​f​i​g​u​r​e​ ​n​e​t​w​o​r​k​ ​s​e​t​t​i​n​g​s
+			 */
+			configureNetwork: string
+		}
+		filterLabels: {
+			/**
+			 * G​r​i​d​ ​v​i​e​w
+			 */
+			grid: string
+			/**
+			 * L​i​s​t​ ​v​i​e​w
+			 */
+			list: string
+		}
+		stats: {
+			/**
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​u​s​e​r​s
+			 */
+			currentlyActiveUsers: string
+			/**
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​d​e​v​i​c​e​s
+			 */
+			currentlyActiveDevices: string
+			/**
+			 * A​c​t​i​v​e​ ​u​s​e​r​s​ ​i​n​ ​{​h​o​u​r​}​H
+			 * @param {number} hour
+			 */
+			activeUsersFilter: RequiredParams<'hour'>
+			/**
+			 * A​c​t​i​v​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​H
+			 * @param {number} hour
+			 */
+			activeDevicesFilter: RequiredParams<'hour'>
+			/**
+			 * T​o​t​a​l​ ​t​r​a​n​s​f​e​r​:
+			 */
+			totalTransfer: string
+			/**
+			 * A​c​t​i​v​i​t​y​ ​i​n​ ​{​h​o​u​r​}​H
+			 * @param {number} hour
+			 */
+			activityIn: RequiredParams<'hour'>
+			/**
+			 * I​n​:
+			 */
+			'in': string
+			/**
+			 * O​u​t​:
+			 */
+			out: string
+		}
+	}
+	connectedUsersOverview: {
+		/**
+		 * C​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
+		 */
+		pageTitle: string
+		/**
+		 * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​a​r​e​ ​n​o​ ​c​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
+		 */
+		noUsersMessage: string
+		userList: {
+			/**
+			 * U​s​e​r​n​a​m​e
+			 */
+			username: string
+			/**
+			 * D​e​v​i​c​e
+			 */
+			device: string
+			/**
+			 * C​o​n​n​e​c​t​e​d
+			 */
+			connected: string
+			/**
+			 * D​e​v​i​c​e​ ​l​o​c​a​t​i​o​n
+			 */
+			deviceLocation: string
+			/**
+			 * N​e​t​w​o​r​k​ ​u​s​a​g​e
+			 */
+			networkUsage: string
+		}
+	}
+	networkPage: {
+		/**
+		 * E​d​i​t​ ​n​e​t​w​o​r​k
+		 */
+		pageTitle: string
+	}
+	networkConfiguration: {
+		/**
+		 * N​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+		 */
+		header: string
+		form: {
 			messages: {
 				/**
-				 * W​e​b​h​o​o​k​ ​c​h​a​n​g​e​d​.
+				 * G​a​t​e​w​a​y​ ​p​u​b​l​i​c​ ​a​d​d​r​e​s​s​,​ ​u​s​e​d​ ​b​y​ ​V​P​N​ ​u​s​e​r​s​ ​t​o​ ​c​o​n​n​e​c​t
 				 */
-				success: string
+				gateway: string
+				/**
+				 * S​p​e​c​i​f​y​ ​t​h​e​ ​D​N​S​ ​r​e​s​o​l​v​e​r​s​ ​t​o​ ​q​u​e​r​y​ ​w​h​e​n​ ​t​h​e​ ​w​i​r​e​g​u​a​r​d​ ​i​n​t​e​r​f​a​c​e​ ​i​s​ ​u​p​.
+				 */
+				dns: string
+				/**
+				 * L​i​s​t​ ​o​f​ ​a​d​d​r​e​s​s​e​s​/​m​a​s​k​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​r​o​u​t​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​n​e​t​w​o​r​k​.
+				 */
+				allowedIps: string
 			}
-		}
-		modals: {
-			webhookModal: {
-				title: {
+			fields: {
+				name: {
 					/**
-					 * A​d​d​ ​w​e​b​h​o​o​k​.
+					 * N​e​t​w​o​r​k​ ​n​a​m​e
 					 */
-					addWebhook: string
-					/**
-					 * E​d​i​t​ ​w​e​b​h​o​o​k
-					 */
-					editWebhook: string
+					label: string
 				}
-				messages: {
+				address: {
 					/**
-					 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+					 * V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​a​n​d​ ​m​a​s​k
 					 */
-					clientIdCopy: string
-					/**
-					 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
-					 */
-					clientSecretCopy: string
+					label: string
 				}
-				form: {
+				endpoint: {
 					/**
-					 * T​r​i​g​g​e​r​ ​e​v​e​n​t​s​:
+					 * G​a​t​e​w​a​y​ ​a​d​d​r​e​s​s
 					 */
-					triggers: string
-					messages: {
-						/**
-						 * W​e​b​h​o​o​k​ ​c​r​e​a​t​e​d​.
-						 */
-						successAdd: string
-						/**
-						 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d​.
-						 */
-						successModify: string
-					}
-					error: {
-						/**
-						 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
-						 */
-						urlRequired: string
-						/**
-						 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
-						 */
-						validUrl: string
-						/**
-						 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​s​c​o​p​e​.
-						 */
-						scopeValidation: string
-					}
-					fields: {
-						description: {
-							/**
-							 * d​e​s​c​r​i​p​t​i​o​n
-							 */
-							label: string
-							/**
-							 * W​e​b​h​o​o​k​ ​t​o​ ​c​r​e​a​t​e​ ​g​m​a​i​l​ ​a​c​c​o​u​n​t​ ​o​n​ ​n​e​w​ ​u​s​e​r
-							 */
-							placeholder: string
-						}
-						token: {
-							/**
-							 * S​e​c​r​e​t​ ​t​o​k​e​n
-							 */
-							label: string
-							/**
-							 * A​u​t​h​o​r​i​z​a​t​i​o​n​ ​t​o​k​e​n
-							 */
-							placeholder: string
-						}
-						url: {
-							/**
-							 * W​e​b​h​o​o​k​ ​U​R​L
-							 */
-							label: string
-							/**
-							 * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​w​e​b​h​o​o​k
-							 */
-							placeholder: string
-						}
-						userCreated: {
-							/**
-							 * N​e​w​ ​u​s​e​r​ ​C​r​e​a​t​e​d
-							 */
-							label: string
-						}
-						userDeleted: {
-							/**
-							 * U​s​e​r​ ​d​e​l​e​t​e​d
-							 */
-							label: string
-						}
-						userModified: {
-							/**
-							 * U​s​e​r​ ​m​o​d​i​f​i​e​d
-							 */
-							label: string
-						}
-						hwkeyProvision: {
-							/**
-							 * U​s​e​r​ ​Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n
-							 */
-							label: string
-						}
-					}
+					label: string
+				}
+				allowedIps: {
+					/**
+					 * A​l​l​o​w​e​d​ ​I​p​s
+					 */
+					label: string
+				}
+				port: {
+					/**
+					 * G​a​t​e​w​a​y​ ​p​o​r​t
+					 */
+					label: string
+				}
+				dns: {
+					/**
+					 * D​N​S
+					 */
+					label: string
 				}
 			}
 		}
@@ -1910,6 +2227,14 @@ export type TranslationFunctions = {
 		clipboardError: () => LocalizedString
 	}
 	modals: {
+		changeWebhook: {
+			messages: {
+				/**
+				 * Webhook changed.
+				 */
+				success: () => LocalizedString
+			}
+		}
 		manageWebAuthNKeys: {
 			/**
 			 * Security keys
@@ -2277,6 +2602,28 @@ export type TranslationFunctions = {
 				success: (arg: { username: string }) => LocalizedString
 			}
 		}
+		deleteProvisioner: {
+			/**
+			 * Delete provisioner
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Delete provisioner
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to delete {id} provisioner?
+			 */
+			message: (arg: { id: string }) => LocalizedString
+			messages: {
+				/**
+				 * {provisioner} deleted.
+				 */
+				success: (arg: { provisioner: string }) => LocalizedString
+			}
+		}
 		changeUserPassword: {
 			messages: {
 				/**
@@ -2421,6 +2768,138 @@ export type TranslationFunctions = {
 						label: () => LocalizedString
 					}
 				}
+			}
+		}
+		webhookModal: {
+			title: {
+				/**
+				 * Add webhook.
+				 */
+				addWebhook: () => LocalizedString
+				/**
+				 * Edit webhook
+				 */
+				editWebhook: () => LocalizedString
+			}
+			messages: {
+				/**
+				 * Client ID copied.
+				 */
+				clientIdCopy: () => LocalizedString
+				/**
+				 * Client secret copied.
+				 */
+				clientSecretCopy: () => LocalizedString
+			}
+			form: {
+				/**
+				 * Trigger events:
+				 */
+				triggers: () => LocalizedString
+				messages: {
+					/**
+					 * Webhook created.
+					 */
+					successAdd: () => LocalizedString
+					/**
+					 * Webhook modified.
+					 */
+					successModify: () => LocalizedString
+				}
+				error: {
+					/**
+					 * URL is required.
+					 */
+					urlRequired: () => LocalizedString
+					/**
+					 * Must be a valid URL.
+					 */
+					validUrl: () => LocalizedString
+					/**
+					 * Must have at least one trigger.
+					 */
+					scopeValidation: () => LocalizedString
+					/**
+					 * Token is required.
+					 */
+					tokenRequired: () => LocalizedString
+				}
+				fields: {
+					description: {
+						/**
+						 * Description
+						 */
+						label: () => LocalizedString
+						/**
+						 * Webhook to create gmail account on new user
+						 */
+						placeholder: () => LocalizedString
+					}
+					token: {
+						/**
+						 * Secret token
+						 */
+						label: () => LocalizedString
+						/**
+						 * Authorization token
+						 */
+						placeholder: () => LocalizedString
+					}
+					url: {
+						/**
+						 * Webhook URL
+						 */
+						label: () => LocalizedString
+						/**
+						 * https://example.com/webhook
+						 */
+						placeholder: () => LocalizedString
+					}
+					userCreated: {
+						/**
+						 * New user Created
+						 */
+						label: () => LocalizedString
+					}
+					userDeleted: {
+						/**
+						 * User deleted
+						 */
+						label: () => LocalizedString
+					}
+					userModified: {
+						/**
+						 * User modified
+						 */
+						label: () => LocalizedString
+					}
+					hwkeyProvision: {
+						/**
+						 * User Yubikey provision
+						 */
+						label: () => LocalizedString
+					}
+				}
+			}
+		}
+		deleteWebhook: {
+			/**
+			 * Delete webhook
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to delete {name} webhook ?
+			 */
+			message: (arg: { name: string }) => LocalizedString
+			/**
+			 * Delete
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * Webhook deleted.
+				 */
+				success: () => LocalizedString
 			}
 		}
 	}
@@ -3609,141 +4088,290 @@ export type TranslationFunctions = {
 				disabled: () => LocalizedString
 			}
 		}
-		deleteWebhook: {
+	}
+	provisionersOverview: {
+		/**
+		 * Provisioners
+		 */
+		pageTitle: () => LocalizedString
+		search: {
 			/**
-			 * Delete webhook
+			 * Find provisioners
 			 */
-			title: () => LocalizedString
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
 			/**
-			 * Do you want to delete {name} webhook ?
+			 * All
 			 */
-			message: (arg: { name: string }) => LocalizedString
+			all: () => LocalizedString
 			/**
-			 * Delete
+			 * Available
 			 */
-			submit: () => LocalizedString
-			messages: {
+			available: () => LocalizedString
+			/**
+			 * Unavailable
+			 */
+			unavailable: () => LocalizedString
+		}
+		/**
+		 * All provisioners
+		 */
+		provisionersCount: () => LocalizedString
+		/**
+		 * No provisioners found.
+		 */
+		noProvisionersFound: () => LocalizedString
+		/**
+		 * You don't have a license for this feature.
+		 */
+		noLicenseMessage: () => LocalizedString
+		provisioningStation: {
+			/**
+			 * YubiKey provisioning station
+			 */
+			header: () => LocalizedString
+			/**
+			 * Provisioning station setup command
+			 */
+			cardTitle: () => LocalizedString
+			/**
+			 * In order to be able to provision your YubiKeys, first you need to set up
+		        physical machine with USB slot. Run provided command on your chosen
+		        machine to register it and start provisioning your keys.
+			 */
+			content: () => LocalizedString
+		}
+		/**
+		 * <p>
+	              <strong>YubiKey module</strong>
+	            </p>
+	            <br />
+	            <p>This is enterprise module for YubiKey</p>
+	            <p>management and provisioning.</p>
+		 */
+		noLicenseBox: () => LocalizedString
+		list: {
+			headers: {
 				/**
-				 * Webhook deleted.
+				 * Name
 				 */
-				success: () => LocalizedString
+				name: () => LocalizedString
+				/**
+				 * IP address
+				 */
+				ip: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Delete provisioner
+				 */
+				'delete': () => LocalizedString
+			}
+			status: {
+				/**
+				 * Available
+				 */
+				available: () => LocalizedString
+				/**
+				 * Unavailable
+				 */
+				unavailable: () => LocalizedString
 			}
 		}
-		changeWebhook: {
+		messages: {
+			/**
+			 * Command copied.
+			 */
+			codeCopied: () => LocalizedString
+		}
+	}
+	openidAllow: {
+		/**
+		 * {name} would like to:
+		 */
+		header: (arg: { name: string }) => LocalizedString
+		scopes: {
+			/**
+			 * Use your profile data for future logins.
+			 */
+			openid: () => LocalizedString
+			/**
+			 * Know basic information from your profile like name, profile picture etc.
+			 */
+			profile: () => LocalizedString
+			/**
+			 * Know your email address.
+			 */
+			email: () => LocalizedString
+			/**
+			 * Know your phone number.
+			 */
+			phone: () => LocalizedString
+		}
+	}
+	networkOverview: {
+		/**
+		 * Network overview
+		 */
+		pageTitle: () => LocalizedString
+		controls: {
+			/**
+			 * Edit network settings
+			 */
+			editNetwork: () => LocalizedString
+			/**
+			 * Configure network settings
+			 */
+			configureNetwork: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * Grid view
+			 */
+			grid: () => LocalizedString
+			/**
+			 * List view
+			 */
+			list: () => LocalizedString
+		}
+		stats: {
+			/**
+			 * Currently active users
+			 */
+			currentlyActiveUsers: () => LocalizedString
+			/**
+			 * Currently active devices
+			 */
+			currentlyActiveDevices: () => LocalizedString
+			/**
+			 * Active users in {hour}H
+			 */
+			activeUsersFilter: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Active devices in {hour}H
+			 */
+			activeDevicesFilter: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Total transfer:
+			 */
+			totalTransfer: () => LocalizedString
+			/**
+			 * Activity in {hour}H
+			 */
+			activityIn: (arg: { hour: number }) => LocalizedString
+			/**
+			 * In:
+			 */
+			'in': () => LocalizedString
+			/**
+			 * Out:
+			 */
+			out: () => LocalizedString
+		}
+	}
+	connectedUsersOverview: {
+		/**
+		 * Connected users
+		 */
+		pageTitle: () => LocalizedString
+		/**
+		 * Currently there are no connected users
+		 */
+		noUsersMessage: () => LocalizedString
+		userList: {
+			/**
+			 * Username
+			 */
+			username: () => LocalizedString
+			/**
+			 * Device
+			 */
+			device: () => LocalizedString
+			/**
+			 * Connected
+			 */
+			connected: () => LocalizedString
+			/**
+			 * Device location
+			 */
+			deviceLocation: () => LocalizedString
+			/**
+			 * Network usage
+			 */
+			networkUsage: () => LocalizedString
+		}
+	}
+	networkPage: {
+		/**
+		 * Edit network
+		 */
+		pageTitle: () => LocalizedString
+	}
+	networkConfiguration: {
+		/**
+		 * Network configuration
+		 */
+		header: () => LocalizedString
+		form: {
 			messages: {
 				/**
-				 * Webhook changed.
+				 * Gateway public address, used by VPN users to connect
 				 */
-				success: () => LocalizedString
+				gateway: () => LocalizedString
+				/**
+				 * Specify the DNS resolvers to query when the wireguard interface is up.
+				 */
+				dns: () => LocalizedString
+				/**
+				 * List of addresses/masks that should be routed through the VPN network.
+				 */
+				allowedIps: () => LocalizedString
 			}
-		}
-		modals: {
-			webhookModal: {
-				title: {
+			fields: {
+				name: {
 					/**
-					 * Add webhook.
+					 * Network name
 					 */
-					addWebhook: () => LocalizedString
-					/**
-					 * Edit webhook
-					 */
-					editWebhook: () => LocalizedString
+					label: () => LocalizedString
 				}
-				messages: {
+				address: {
 					/**
-					 * Client ID copied.
+					 * VPN network address and mask
 					 */
-					clientIdCopy: () => LocalizedString
-					/**
-					 * Client secret copied.
-					 */
-					clientSecretCopy: () => LocalizedString
+					label: () => LocalizedString
 				}
-				form: {
+				endpoint: {
 					/**
-					 * Trigger events:
+					 * Gateway address
 					 */
-					triggers: () => LocalizedString
-					messages: {
-						/**
-						 * Webhook created.
-						 */
-						successAdd: () => LocalizedString
-						/**
-						 * Webhook modified.
-						 */
-						successModify: () => LocalizedString
-					}
-					error: {
-						/**
-						 * URL is required.
-						 */
-						urlRequired: () => LocalizedString
-						/**
-						 * Must be a valid URL.
-						 */
-						validUrl: () => LocalizedString
-						/**
-						 * Must have at least one scope.
-						 */
-						scopeValidation: () => LocalizedString
-					}
-					fields: {
-						description: {
-							/**
-							 * description
-							 */
-							label: () => LocalizedString
-							/**
-							 * Webhook to create gmail account on new user
-							 */
-							placeholder: () => LocalizedString
-						}
-						token: {
-							/**
-							 * Secret token
-							 */
-							label: () => LocalizedString
-							/**
-							 * Authorization token
-							 */
-							placeholder: () => LocalizedString
-						}
-						url: {
-							/**
-							 * Webhook URL
-							 */
-							label: () => LocalizedString
-							/**
-							 * https://example.com/webhook
-							 */
-							placeholder: () => LocalizedString
-						}
-						userCreated: {
-							/**
-							 * New user Created
-							 */
-							label: () => LocalizedString
-						}
-						userDeleted: {
-							/**
-							 * User deleted
-							 */
-							label: () => LocalizedString
-						}
-						userModified: {
-							/**
-							 * User modified
-							 */
-							label: () => LocalizedString
-						}
-						hwkeyProvision: {
-							/**
-							 * User Yubikey provision
-							 */
-							label: () => LocalizedString
-						}
-					}
+					label: () => LocalizedString
+				}
+				allowedIps: {
+					/**
+					 * Allowed Ips
+					 */
+					label: () => LocalizedString
+				}
+				port: {
+					/**
+					 * Gateway port
+					 */
+					label: () => LocalizedString
+				}
+				dns: {
+					/**
+					 * DNS
+					 */
+					label: () => LocalizedString
 				}
 			}
 		}

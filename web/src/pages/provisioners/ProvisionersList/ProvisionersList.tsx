@@ -27,6 +27,7 @@ import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Provisioner } from '../../../shared/types';
+import { useI18nContext } from '../../../i18n/i18n-react';
 
 interface Props {
   provisioners: Provisioner[];
@@ -34,6 +35,7 @@ interface Props {
 
 export const ProvisionersList = ({ provisioners }: Props) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
+  const { LL, locale } = useI18nContext();
   const {
     provisioning: { deleteWorker },
   } = useApi();
@@ -88,14 +90,14 @@ export const ProvisionersList = ({ provisioners }: Props) => {
               <>
                 <IconCheckmarkGreen />
                 <span className={classNames({ connected: value.connected })}>
-                  Available
+                  {LL.provisionersOverview.list.status.available()}
                 </span>
               </>
             ) : (
               <>
                 <IconDeactivated />
                 <span className={classNames({ connected: value.connected })}>
-                  Unavailable
+                  {LL.provisionersOverview.list.status.unavailable()}
                 </span>
               </>
             )}
@@ -117,7 +119,7 @@ export const ProvisionersList = ({ provisioners }: Props) => {
             <EditButtonOption
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               onClick={() => openDelete(value.id)}
-              text="Remove provisioner"
+              text={LL.provisionersOverview.list.editButton.delete()}
             />
           </EditButton>
         ),
@@ -133,23 +135,23 @@ export const ProvisionersList = ({ provisioners }: Props) => {
     const res: ListHeader[] = [
       {
         key: 'name',
-        text: 'Name',
+        text: LL.provisionersOverview.list.headers.name(),
         active: true,
         sortDirection: ListSortDirection.ASC,
       },
       {
         key: 'status',
-        text: 'Status',
+        text: LL.provisionersOverview.list.headers.status(),
         active: false,
       },
       {
         key: 'ip',
-        text: 'IP address',
+        text: LL.provisionersOverview.list.headers.ip(),
         active: false,
       },
       {
         key: 'actions',
-        text: 'Actions',
+        text: LL.provisionersOverview.list.headers.actions(),
         active: false,
         sortable: false,
       },
@@ -158,7 +160,7 @@ export const ProvisionersList = ({ provisioners }: Props) => {
       res.splice(1, 1);
     }
     return res;
-  }, [breakpoint]);
+  }, [breakpoint, locale]);
 
   return (
     <>
@@ -182,8 +184,8 @@ export const ProvisionersList = ({ provisioners }: Props) => {
         setIsOpen={setDeleteModalOpen}
         onSubmit={onDelete}
         submitText="Delete"
-        title={`Delete provisioner`}
-        subTitle={`Provisioner ${deleteTarget} will be deleted`}
+        title={LL.modals.deleteProvisioner.title()}
+        subTitle={LL.modals.deleteProvisioner.message({ id: deleteTarget })}
         type={ConfirmModalType.WARNING}
       />
     </>

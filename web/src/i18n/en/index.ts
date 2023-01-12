@@ -9,6 +9,11 @@ const en: BaseTranslation = {
     clipboardError: 'Clipboard is not accessible.',
   },
   modals: {
+    changeWebhook: {
+      messages: {
+        success: 'Webhook changed.',
+      },
+    },
     manageWebAuthNKeys: {
       title: 'Security keys',
       messages: {
@@ -203,6 +208,16 @@ const en: BaseTranslation = {
         success: '{username: string} deleted.',
       },
     },
+    deleteProvisioner: {
+      title: 'Delete provisioner',
+      controls: {
+        submit: 'Delete provisioner',
+      },
+      message: 'Do you want to delete {id: string} provisioner?',
+      messages: {
+        success: '{provisioner: string} deleted.',
+      },
+    },
     changeUserPassword: {
       messages: {
         success: 'Password changed.',
@@ -270,6 +285,63 @@ const en: BaseTranslation = {
             label: 'Phone',
           },
         },
+      },
+    },
+    webhookModal: {
+      title: {
+        addWebhook: 'Add webhook.',
+        editWebhook: 'Edit webhook',
+      },
+      messages: {
+        clientIdCopy: 'Client ID copied.',
+        clientSecretCopy: 'Client secret copied.',
+      },
+      form: {
+        triggers: 'Trigger events:',
+        messages: {
+          successAdd: 'Webhook created.',
+          successModify: 'Webhook modified.',
+        },
+        error: {
+          urlRequired: 'URL is required.',
+          validUrl: 'Must be a valid URL.',
+          scopeValidation: 'Must have at least one trigger.',
+          tokenRequired: 'Token is required.',
+        },
+        fields: {
+          description: {
+            label: 'Description',
+            placeholder: 'Webhook to create gmail account on new user',
+          },
+          token: {
+            label: 'Secret token',
+            placeholder: 'Authorization token',
+          },
+          url: {
+            label: 'Webhook URL',
+            placeholder: 'https://example.com/webhook',
+          },
+          userCreated: {
+            label: 'New user Created',
+          },
+          userDeleted: {
+            label: 'User deleted',
+          },
+          userModified: {
+            label: 'User modified',
+          },
+          hwkeyProvision: {
+            label: 'User Yubikey provision',
+          },
+        },
+      },
+    },
+    deleteWebhook: {
+      title: 'Delete webhook',
+      message: 'Do you want to delete {name: string} webhook ?',
+      submit: 'Delete',
+      messages: {
+        success: 'Webhook deleted.',
       },
     },
   },
@@ -784,67 +856,124 @@ const en: BaseTranslation = {
         disabled: 'Disabled',
       },
     },
-    deleteWebhook: {
-      title: 'Delete webhook',
-      message: 'Do you want to delete {name: string} webhook ?',
-      submit: 'Delete',
-      messages: {
-        success: 'Webhook deleted.',
+  },
+  provisionersOverview: {
+    pageTitle: 'Provisioners',
+    search: {
+      placeholder: 'Find provisioners',
+    },
+    filterLabels: {
+      all: 'All',
+      available: 'Available',
+      unavailable: 'Unavailable',
+    },
+    provisionersCount: 'All provisioners',
+    noProvisionersFound: 'No provisioners found.',
+    noLicenseMessage: "You don't have a license for this feature.",
+    provisioningStation: {
+      header: 'YubiKey provisioning station',
+      cardTitle: 'Provisioning station setup command',
+      content: `In order to be able to provision your YubiKeys, first you need to set up
+        physical machine with USB slot. Run provided command on your chosen
+        machine to register it and start provisioning your keys.`,
+    },
+    noLicenseBox: `<p>
+              <strong>YubiKey module</strong>
+            </p>
+            <br />
+            <p>This is enterprise module for YubiKey</p>
+            <p>management and provisioning.</p>`,
+    list: {
+      headers: {
+        name: 'Name',
+        ip: 'IP address',
+        status: 'Status',
+        actions: 'Actions',
+      },
+      editButton: {
+        delete: 'Delete provisioner',
+      },
+      status: {
+        available: 'Available',
+        unavailable: 'Unavailable',
       },
     },
-    changeWebhook: {
-      messages: {
-        success: 'Webhook changed.',
-      },
+    messages: {
+      codeCopied: 'Command copied.',
     },
-    modals: {
-      webhookModal: {
-        title: {
-          addWebhook: 'Add webhook.',
-          editWebhook: 'Edit webhook',
+  },
+  openidAllow: {
+    header: '{name: string} would like to:',
+    scopes: {
+      openid: 'Use your profile data for future logins.',
+      profile:
+        'Know basic information from your profile like name, profile picture etc.',
+      email: 'Know your email address.',
+      phone: 'Know your phone number.',
+    },
+  },
+  networkOverview: {
+    pageTitle: 'Network overview',
+    controls: {
+      editNetwork: 'Edit network settings',
+      configureNetwork: 'Configure network settings',
+    },
+    filterLabels: {
+      grid: 'Grid view',
+      list: 'List view',
+    },
+    stats: {
+      currentlyActiveUsers: 'Currently active users',
+      currentlyActiveDevices: 'Currently active devices',
+      activeUsersFilter: 'Active users in {hour: number}H',
+      activeDevicesFilter: 'Active devices in {hour: number}H',
+      totalTransfer: 'Total transfer:',
+      activityIn: 'Activity in {hour: number}H',
+      in: 'In:',
+      out: 'Out:',
+    },
+  },
+  connectedUsersOverview: {
+    pageTitle: 'Connected users',
+    noUsersMessage: 'Currently there are no connected users',
+    userList: {
+      username: 'Username',
+      device: 'Device',
+      connected: 'Connected',
+      deviceLocation: 'Device location',
+      networkUsage: 'Network usage',
+    },
+  },
+  networkPage: {
+    pageTitle: 'Edit network',
+  },
+  networkConfiguration: {
+    header: 'Network configuration',
+    form: {
+			messages: {
+				gateway: "Gateway public address, used by VPN users to connect",
+				dns: "Specify the DNS resolvers to query when the wireguard interface is up.",
+				allowedIps: "List of addresses/masks that should be routed through the VPN network."
+			},
+      fields: {
+        name: {
+          label: 'Network name',
         },
-        messages: {
-          clientIdCopy: 'Client ID copied.',
-          clientSecretCopy: 'Client secret copied.',
-        },
-        form: {
-          triggers: 'Trigger events:',
-          messages: {
-            successAdd: 'Webhook created.',
-            successModify: 'Webhook modified.',
-          },
-          error: {
-            urlRequired: 'URL is required.',
-            validUrl: 'Must be a valid URL.',
-            scopeValidation: 'Must have at least one scope.',
-          },
-          fields: {
-            description: {
-              label: 'description',
-              placeholder: 'Webhook to create gmail account on new user',
-            },
-            token: {
-              label: 'Secret token',
-							placeholder: 'Authorization token'
-            },
-            url: {
-              label: 'Webhook URL',
-              placeholder: 'https://example.com/webhook',
-            },
-            userCreated: {
-              label: 'New user Created',
-            },
-            userDeleted: {
-              label: 'User deleted',
-            },
-            userModified: {
-              label: 'User modified',
-            },
-            hwkeyProvision: {
-              label: 'User Yubikey provision',
-            },
-          },
-        },
+				address: {
+					label: 'VPN network address and mask'
+				},
+				endpoint: {
+					label: "Gateway address"
+				},
+				allowedIps: {
+					label: "Allowed Ips"
+				},
+				port: {
+					label: "Gateway port"
+				},
+				dns: {
+					label: "DNS"
+				}
       },
     },
   },

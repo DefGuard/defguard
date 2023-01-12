@@ -85,7 +85,7 @@ export const WebhooksListPage = () => {
   const { mutate: deleteWebhookMutation, isLoading: deleteWebhookIsLoading } =
     useMutation([MutationKeys.DELETE_WEBHOOK], deleteWebhook, {
       onSuccess: () => {
-        toaster.success(LL.webhooksOverview.deleteWebhook.messages.success());
+        toaster.success(LL.modals.deleteWebhook.messages.success());
         setDeleteModalOpen(false);
         queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
       },
@@ -99,7 +99,7 @@ export const WebhooksListPage = () => {
   const { mutate: changeWebhookMutation, isLoading: changeWebhookIsLoading } =
     useMutation([MutationKeys.CHANGE_WEBHOOK_STATE], changeWebhookState, {
       onSuccess: () => {
-        toaster.success(LL.webhooksOverview.changeWebhook.messages.success());
+        toaster.success(LL.modals.changeWebhook.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
       },
       onError: (err) => {
@@ -330,8 +330,8 @@ export const WebhooksListPage = () => {
       )}
       <WebhookModal />
       <ConfirmModal
-        title={LL.webhooksOverview.deleteWebhook.title()}
-        subTitle={LL.webhooksOverview.deleteWebhook.message({
+        title={LL.modals.deleteWebhook.title()}
+        subTitle={LL.modals.deleteWebhook.message({
           name: webhookToDelete?.url || '',
         })}
         isOpen={deleteModalOpen}

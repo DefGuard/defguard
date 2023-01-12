@@ -24,6 +24,7 @@ import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnect
 import { OverviewStats } from './OverviewStats/OverviewStats';
 import { OverviewStatsFilterSelect } from './OverviewStatsFilterSelect/OverviewStatsFilterSelect';
 import { OverviewViewSelect } from './OverviewViewSelect/OverviewViewSelect';
+import { useI18nContext } from '../../i18n/i18n-react';
 
 const STATUS_REFETCH_TIMEOUT = 15 * 1000;
 
@@ -35,6 +36,7 @@ export const OverviewPage = () => {
   const statsFilter = useOverviewStore((state) => state.statsFilter);
   const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
   const queryClient = useQueryClient();
+  const { LL } = useI18nContext();
 
   const {
     network: { getNetworks, getUsersStats, getNetworkStats },
@@ -117,8 +119,8 @@ export const OverviewPage = () => {
               styleVariant={ButtonStyleVariant.STANDARD}
               text={
                 isUndefined(networks) || !networks?.length
-                  ? 'Configure network settings'
-                  : 'Edit network settings'
+                    ? LL.networkOverview.controls.configureNetwork()
+                    : LL.networkOverview.controls.editNetwork()
               }
               icon={<IconEditNetwork />}
               disabled={networksLoading}
@@ -130,7 +132,7 @@ export const OverviewPage = () => {
         )}
         {breakpoint === 'desktop' && (
           <header>
-            <h1>Network overview</h1>
+            <h1>{LL.networkOverview.pageTitle()}</h1>
             <div className="controls">
               <OverviewViewSelect />
               <OverviewStatsFilterSelect />
@@ -138,8 +140,8 @@ export const OverviewPage = () => {
                 styleVariant={ButtonStyleVariant.STANDARD}
                 text={
                   isUndefined(networks) || !networks?.length
-                    ? 'Configure network settings'
-                    : 'Edit network settings'
+                    ? LL.networkOverview.controls.configureNetwork()
+                    : LL.networkOverview.controls.editNetwork()
                 }
                 icon={<IconEditNetwork />}
                 disabled={networksLoading}

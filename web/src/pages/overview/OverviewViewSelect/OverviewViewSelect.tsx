@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import useBreakpoint from 'use-breakpoint';
+import { useI18nContext } from '../../../i18n/i18n-react';
 
 import {
   Select,
@@ -14,6 +15,7 @@ export const OverviewViewSelect = () => {
   const defaultViewMode = useOverviewStore((state) => state.defaultViewMode);
   const viewMode = useOverviewStore((state) => state.viewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
+  const { LL, locale } = useI18nContext();
 
   useEffect(() => {
     setOverViewStore({ viewMode: defaultViewMode });
@@ -25,12 +27,12 @@ export const OverviewViewSelect = () => {
         {
           key: 0,
           value: OverviewLayoutType.GRID,
-          label: 'Grid view',
+          label: LL.networkOverview.filterLabels.grid()
         },
         {
           key: 1,
           value: OverviewLayoutType.LIST,
-          label: 'List view',
+          label: LL.networkOverview.filterLabels.list(),
           disabled: true,
         },
       ];
@@ -40,22 +42,22 @@ export const OverviewViewSelect = () => {
         {
           key: 0,
           value: OverviewLayoutType.GRID,
-          label: 'Grid view',
+          label: LL.networkOverview.filterLabels.grid(),
           disabled: true,
         },
         {
           key: 1,
           value: OverviewLayoutType.LIST,
-          label: 'List view',
+          label: LL.networkOverview.filterLabels.list(),
           disabled: false,
         },
       ];
     }
     return [
-      { key: 0, value: OverviewLayoutType.GRID, label: 'Grid view' },
-      { key: 1, value: OverviewLayoutType.LIST, label: 'List view' },
+      { key: 0, value: OverviewLayoutType.GRID, label: LL.networkOverview.filterLabels.grid()},
+      { key: 1, value: OverviewLayoutType.LIST, label: LL.networkOverview.filterLabels.list(),},
     ];
-  }, [breakpoint]);
+  }, [breakpoint, locale]);
 
   const getSelectValue = useMemo(() => {
     return getSelectOptions.find((o) => o.value === viewMode);

@@ -12,13 +12,16 @@ import { IconCheckmarkWhite } from '../../shared/components/svg';
 import { useNetworkPageStore } from './hooks/useNetworkPageStore';
 import { NetworkConfiguration } from './NetworkConfiguration/NetworkConfiguration';
 import { NetworkGatewaySetup } from './NetworkGateway/NetworkGateway';
+import { useI18nContext } from '../../i18n/i18n-react';
 
 export const NetworkPage = () => {
   const navigate = useNavigate();
+  const { LL } = useI18nContext();
+
   return (
     <PageContainer id="network-page">
       <header>
-        <h1>Edit Network</h1>
+        <h1>{LL.networkPage.pageTitle()}</h1>
         <div className="controls">
           <Button
             text="Back"
