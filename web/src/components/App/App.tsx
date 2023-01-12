@@ -19,6 +19,7 @@ import { ProvisionersPage } from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
 import { UserProfile } from '../../pages/users/UserProfile/UserProfile';
 import { UsersPage } from '../../pages/users/UsersPage';
+import { UsersSharedModals } from '../../pages/users/UsersSharedModals';
 import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
@@ -112,6 +113,7 @@ const App = () => {
                 <ProtectedRoute>
                   <PageContainer>
                     <UserProfile />
+                    <UsersSharedModals />
                   </PageContainer>
                 </ProtectedRoute>
               }

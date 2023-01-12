@@ -36,7 +36,7 @@ export const AppLoader = () => {
   const license = useAppStore((state) => state.license);
   const { LL } = useI18nContext();
 
-  const { isLoading: currentUserLoading, data: userMe } = useQuery(
+  const { isLoading: currentUserLoading } = useQuery(
     [QueryKeys.FETCH_ME],
     getMe,
     {
@@ -102,6 +102,7 @@ export const AppLoader = () => {
     } else {
       loadLocaleAsync(localLanguage).then(() => {
         setLocale(localLanguage);
+        document.documentElement.setAttribute('lang', localLanguage);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
