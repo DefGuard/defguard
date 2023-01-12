@@ -13,9 +13,9 @@ export const WebhookModal = () => {
   const modalState = useModalStore((state) => state.webhookModal);
   const getTitle = useMemo(() => {
     if (!isUndefined(modalState.webhook)) {
-      return LL.webhooksOverview.modals.webhookModal.title.editWebhook();
+      return LL.modals.webhookModal.title.editWebhook();
     }
-    return LL.webhooksOverview.modals.webhookModal.title.addWebhook();
+    return LL.modals.webhookModal.title.addWebhook();
   }, [modalState.webhook, locale]);
   const setModalState = useModalStore((state) => state.setWebhookModal);
   return (
