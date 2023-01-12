@@ -25,7 +25,7 @@ import parse from 'html-react-parser';
 
 export const NetworkGatewaySetup = () => {
   const toaster = useToaster();
-  const { LL } = useI18nContext();
+  const { LL, locale } = useI18nContext();
   const {
     network: { getGatewayStatus, getNetworkToken },
   } = useApi();
@@ -68,7 +68,7 @@ export const NetworkGatewaySetup = () => {
         }}
       />,
     ],
-    [command, toaster]
+    [command, toaster, locale]
   );
   return (
     <section className="gateway">

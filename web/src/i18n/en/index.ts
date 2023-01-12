@@ -4,7 +4,7 @@ const en: BaseTranslation = {
   messages: {
     error: 'Error has occurred.',
     success: 'Operation succeeded',
-		succcessClipboard: 'Copied to clipboard',
+    succcessClipboard: 'Copied to clipboard',
     errorVersion: 'Failed to get application version.',
     errorLicense: 'Failed to get license.',
     clipboardError: 'Clipboard is not accessible.',
@@ -626,6 +626,10 @@ const en: BaseTranslation = {
           <a href="defguard.gitbook.io" target="_blank">
             Read more in documentation.
           </a>`,
+      filterLabels: {
+        grid: 'Grid view',
+        list: 'List view',
+      },
     },
     web3Settings: {
       header: 'Web3 / Wallet connect',
@@ -957,6 +961,10 @@ const en: BaseTranslation = {
   networkPage: {
     pageTitle: 'Edit network',
   },
+	activityOverview: {
+		header: 'Activity stream',
+		noData: 'Currently there is no activity detected'
+	},
   networkConfiguration: {
     header: 'Network configuration',
     form: {
@@ -996,12 +1004,12 @@ const en: BaseTranslation = {
   },
   gatewaySetup: {
     header: 'Gateway server setup',
-		card: {
-			title: 'Gateway setup command',
-		},
-		controls: {
-			status: 'Check connection status'
-		},
+    card: {
+      title: 'Gateway setup command',
+    },
+    controls: {
+      status: 'Check connection status',
+    },
     messages: {
       runCommand: `
           <p>
@@ -1009,9 +1017,9 @@ const en: BaseTranslation = {
             know how, or have some issues please visit our
             <a>detailed documentation page</a>.
           </p>`,
-			noConnection: `<p>No connection established, please run provided command.</p>`,
-			connected: `<p>Gateway connected.</p>`,
-			statusError: 'Failed to get gateway status'
+      noConnection: `<p>No connection established, please run provided command.</p>`,
+      connected: `<p>Gateway connected.</p>`,
+      statusError: 'Failed to get gateway status',
     },
   },
   loginPage: {

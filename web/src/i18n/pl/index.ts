@@ -626,6 +626,10 @@ const pl: BaseTranslation = {
           <a href="defguard.gitbook.io" target="_blank">
 					Przeczytaj więcej w dokumentacji.
           </a>`,
+      filterLabels: {
+        grid: 'Widok siatki',
+        list: 'Widok listy',
+      },
     },
     web3Settings: {
       header: 'Web3 / Wallet connect',
@@ -952,6 +956,10 @@ const pl: BaseTranslation = {
   networkPage: {
     pageTitle: 'Edycja sieci',
   },
+	activityOverview: {
+		header: 'Strumien aktywności',
+		noData: 'Obecnie nie wykryto żadnej aktywności'
+	},
   networkConfiguration: {
     header: 'Konfiguracja sieci',
     form: {

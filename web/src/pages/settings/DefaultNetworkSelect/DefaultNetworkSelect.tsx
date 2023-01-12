@@ -26,12 +26,12 @@ export const DefaultNetworkSelect = () => {
         {
           key: 0,
           value: OverviewLayoutType.GRID,
-          label: 'Grid view',
+          label: LL.settingsPage.defaultNetworkSelect.filterLabels.grid(),
         },
         {
           key: 1,
           value: OverviewLayoutType.LIST,
-          label: 'List view',
+          label: LL.settingsPage.defaultNetworkSelect.filterLabels.list(),
           disabled: true,
         },
       ];
@@ -41,20 +41,28 @@ export const DefaultNetworkSelect = () => {
         {
           key: 0,
           value: OverviewLayoutType.GRID,
-          label: 'Grid view',
+          label: LL.settingsPage.defaultNetworkSelect.filterLabels.grid(),
           disabled: true,
         },
         {
           key: 1,
           value: OverviewLayoutType.LIST,
-          label: 'List view',
+          label: LL.settingsPage.defaultNetworkSelect.filterLabels.list(),
           disabled: false,
         },
       ];
     }
     return [
-      { key: 0, value: OverviewLayoutType.GRID, label: 'Grid view' },
-      { key: 1, value: OverviewLayoutType.LIST, label: 'List view' },
+      {
+        key: 0,
+        value: OverviewLayoutType.GRID,
+        label: LL.settingsPage.defaultNetworkSelect.filterLabels.grid(),
+      },
+      {
+        key: 1,
+        value: OverviewLayoutType.LIST,
+        label: LL.settingsPage.defaultNetworkSelect.filterLabels.list(),
+      },
     ];
   }, [breakpoint]);
 

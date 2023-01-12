@@ -1426,6 +1426,16 @@ type RootTranslation = {
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
 			 */
 			helper: string
+			filterLabels: {
+				/**
+				 * G​r​i​d​ ​v​i​e​w
+				 */
+				grid: string
+				/**
+				 * L​i​s​t​ ​v​i​e​w
+				 */
+				list: string
+			}
 		}
 		web3Settings: {
 			/**
@@ -2175,6 +2185,16 @@ type RootTranslation = {
 		 * E​d​i​t​ ​n​e​t​w​o​r​k
 		 */
 		pageTitle: string
+	}
+	activityOverview: {
+		/**
+		 * A​c​t​i​v​i​t​y​ ​s​t​r​e​a​m
+		 */
+		header: string
+		/**
+		 * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​i​s​ ​n​o​ ​a​c​t​i​v​i​t​y​ ​d​e​t​e​c​t​e​d
+		 */
+		noData: string
 	}
 	networkConfiguration: {
 		/**
@@ -3813,6 +3833,16 @@ export type TranslationFunctions = {
 		          </a>
 			 */
 			helper: () => LocalizedString
+			filterLabels: {
+				/**
+				 * Grid view
+				 */
+				grid: () => LocalizedString
+				/**
+				 * List view
+				 */
+				list: () => LocalizedString
+			}
 		}
 		web3Settings: {
 			/**
@@ -4553,6 +4583,16 @@ export type TranslationFunctions = {
 		 * Edit network
 		 */
 		pageTitle: () => LocalizedString
+	}
+	activityOverview: {
+		/**
+		 * Activity stream
+		 */
+		header: () => LocalizedString
+		/**
+		 * Currently there is no activity detected
+		 */
+		noData: () => LocalizedString
 	}
 	networkConfiguration: {
 		/**
