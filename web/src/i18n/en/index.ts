@@ -568,6 +568,11 @@ const en: BaseTranslation = {
       oneSpecial: 'Special character required.',
       oneUppercase: 'One uppercase character required.',
       oneLowercase: 'One lowercase character required.',
+      portMax: 'Maximum port is 65535.',
+      endpoint: 'Enter a valid endpoint.',
+      address: 'Enter a valid address.',
+      validPort: 'Enter a valid port.',
+      validCode: 'Code should have 6 digits.',
     },
   },
   components: {
@@ -950,30 +955,94 @@ const en: BaseTranslation = {
   networkConfiguration: {
     header: 'Network configuration',
     form: {
-			messages: {
-				gateway: "Gateway public address, used by VPN users to connect",
-				dns: "Specify the DNS resolvers to query when the wireguard interface is up.",
-				allowedIps: "List of addresses/masks that should be routed through the VPN network."
-			},
+      messages: {
+        gateway: 'Gateway public address, used by VPN users to connect',
+        dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
+        allowedIps:
+          'List of addresses/masks that should be routed through the VPN network.',
+        networkModified: 'Network modified.',
+        networkCreated: 'Network created.',
+      },
       fields: {
         name: {
           label: 'Network name',
         },
-				address: {
-					label: 'VPN network address and mask'
-				},
-				endpoint: {
-					label: "Gateway address"
-				},
-				allowedIps: {
-					label: "Allowed Ips"
-				},
-				port: {
-					label: "Gateway port"
-				},
-				dns: {
-					label: "DNS"
-				}
+        address: {
+          label: 'VPN network address and mask',
+        },
+        endpoint: {
+          label: 'Gateway address',
+        },
+        allowedIps: {
+          label: 'Allowed Ips',
+        },
+        port: {
+          label: 'Gateway port',
+        },
+        dns: {
+          label: 'DNS',
+        },
+      },
+    },
+  },
+  loginPage: {
+    pageTitle: 'Enter your credentials',
+    mfa: {
+      controls: {
+        useAuthenticator: 'Use Authenticator app instead',
+        useWallet: 'Use your wallet instead',
+        useWebauthn: 'Use security key instead',
+        useRecoveryCode: 'Use recovery code instead',
+      },
+      totp: {
+        header:
+          'Use code from your authentication app and click button to proceed.',
+        form: {
+          fields: {
+            code: {
+              placeholder: 'Enter Authenticator code',
+            },
+          },
+          controls: {
+            submit: 'Use authenticator code',
+          },
+        },
+      },
+      recoveryCode: {
+        header:
+          'Enter one of active recovery codes and click button to log in.',
+        form: {
+          fields: {
+            code: {
+              placeholder: 'Recovery code',
+            },
+          },
+          controls: {
+            submit: 'Use recovery code',
+          },
+        },
+      },
+      wallet: {
+        header:
+          'Use your crypto wallet to sign in, please sign message in your wallet app or extension.',
+        controls: {
+          submit: 'Use your wallet',
+        },
+        messages: {
+          walletError: 'Wallet was disconnected during signing process.',
+          walletErrorMfa:
+            'Wallet is not authorized for MFA login. Please use authorized wallet.',
+        },
+      },
+      webauthn: {
+        header: 'When you are ready to authenticate, press the button below.',
+        controls: {
+          submit: 'Use security key',
+        },
+        messages: {
+          error:
+            'Failed to read key. Please try again.',
+        },
       },
     },
   },

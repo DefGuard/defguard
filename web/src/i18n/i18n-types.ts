@@ -1305,6 +1305,26 @@ type RootTranslation = {
 			 * O​n​e​ ​l​o​w​e​r​c​a​s​e​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
 			 */
 			oneLowercase: string
+			/**
+			 * M​a​x​i​m​u​m​ ​p​o​r​t​ ​i​s​ ​6​5​5​3​5​.
+			 */
+			portMax: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​e​n​d​p​o​i​n​t​.
+			 */
+			endpoint: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​a​d​d​r​e​s​s​.
+			 */
+			address: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​p​o​r​t​.
+			 */
+			validPort: string
+			/**
+			 * C​o​d​e​ ​s​h​o​u​l​d​ ​h​a​v​e​ ​6​ ​d​i​g​i​t​s​.
+			 */
+			validCode: string
 		}
 	}
 	components: {
@@ -2160,6 +2180,14 @@ type RootTranslation = {
 				 * L​i​s​t​ ​o​f​ ​a​d​d​r​e​s​s​e​s​/​m​a​s​k​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​r​o​u​t​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​n​e​t​w​o​r​k​.
 				 */
 				allowedIps: string
+				/**
+				 * N​e​t​w​o​r​k​ ​m​o​d​i​f​i​e​d​.
+				 */
+				networkModified: string
+				/**
+				 * N​e​t​w​o​r​k​ ​c​r​e​a​t​e​d​.
+				 */
+				networkCreated: string
 			}
 			fields: {
 				name: {
@@ -2197,6 +2225,116 @@ type RootTranslation = {
 					 * D​N​S
 					 */
 					label: string
+				}
+			}
+		}
+	}
+	loginPage: {
+		/**
+		 * E​n​t​e​r​ ​y​o​u​r​ ​c​r​e​d​e​n​t​i​a​l​s
+		 */
+		pageTitle: string
+		mfa: {
+			controls: {
+				/**
+				 * U​s​e​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​ ​i​n​s​t​e​a​d
+				 */
+				useAuthenticator: string
+				/**
+				 * U​s​e​ ​y​o​u​r​ ​w​a​l​l​e​t​ ​i​n​s​t​e​a​d
+				 */
+				useWallet: string
+				/**
+				 * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​i​n​s​t​e​a​d
+				 */
+				useWebauthn: string
+				/**
+				 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​ ​i​n​s​t​e​a​d
+				 */
+				useRecoveryCode: string
+			}
+			totp: {
+				/**
+				 * U​s​e​ ​c​o​d​e​ ​f​r​o​m​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​p​p​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​p​r​o​c​e​e​d​.
+				 */
+				header: string
+				form: {
+					fields: {
+						code: {
+							/**
+							 * E​n​t​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
+							 */
+							placeholder: string
+						}
+					}
+					controls: {
+						/**
+						 * U​s​e​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
+						 */
+						submit: string
+					}
+				}
+			}
+			recoveryCode: {
+				/**
+				 * E​n​t​e​r​ ​o​n​e​ ​o​f​ ​a​c​t​i​v​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​l​o​g​ ​i​n​.
+				 */
+				header: string
+				form: {
+					fields: {
+						code: {
+							/**
+							 * R​e​c​o​v​e​r​y​ ​c​o​d​e
+							 */
+							placeholder: string
+						}
+					}
+					controls: {
+						/**
+						 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e
+						 */
+						submit: string
+					}
+				}
+			}
+			wallet: {
+				/**
+				 * U​s​e​ ​y​o​u​r​ ​c​r​y​p​t​o​ ​w​a​l​l​e​t​ ​t​o​ ​s​i​g​n​ ​i​n​,​ ​p​l​e​a​s​e​ ​s​i​g​n​ ​m​e​s​s​a​g​e​ ​i​n​ ​y​o​u​r​ ​w​a​l​l​e​t​ ​a​p​p​ ​o​r​ ​e​x​t​e​n​s​i​o​n​.
+				 */
+				header: string
+				controls: {
+					/**
+					 * U​s​e​ ​y​o​u​r​ ​w​a​l​l​e​t
+					 */
+					submit: string
+				}
+				messages: {
+					/**
+					 * W​a​l​l​e​t​ ​w​a​s​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​d​u​r​i​n​g​ ​s​i​g​n​i​n​g​ ​p​r​o​c​e​s​s​.
+					 */
+					walletError: string
+					/**
+					 * W​a​l​l​e​t​ ​i​s​ ​n​o​t​ ​a​u​t​h​o​r​i​z​e​d​ ​f​o​r​ ​M​F​A​ ​l​o​g​i​n​.​ ​P​l​e​a​s​e​ ​u​s​e​ ​a​u​t​h​o​r​i​z​e​d​ ​w​a​l​l​e​t​.
+					 */
+					walletErrorMfa: string
+				}
+			}
+			webauthn: {
+				/**
+				 * W​h​e​n​ ​y​o​u​ ​a​r​e​ ​r​e​a​d​y​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​,​ ​p​r​e​s​s​ ​t​h​e​ ​b​u​t​t​o​n​ ​b​e​l​o​w​.
+				 */
+				header: string
+				controls: {
+					/**
+					 * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y
+					 */
+					submit: string
+				}
+				messages: {
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​r​e​a​d​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​.
+					 */
+					error: string
 				}
 			}
 		}
@@ -3489,6 +3627,26 @@ export type TranslationFunctions = {
 			 * One lowercase character required.
 			 */
 			oneLowercase: () => LocalizedString
+			/**
+			 * Maximum port is 65535.
+			 */
+			portMax: () => LocalizedString
+			/**
+			 * Enter a valid endpoint.
+			 */
+			endpoint: () => LocalizedString
+			/**
+			 * Enter a valid address.
+			 */
+			address: () => LocalizedString
+			/**
+			 * Enter a valid port.
+			 */
+			validPort: () => LocalizedString
+			/**
+			 * Code should have 6 digits.
+			 */
+			validCode: () => LocalizedString
 		}
 	}
 	components: {
@@ -4335,6 +4493,14 @@ export type TranslationFunctions = {
 				 * List of addresses/masks that should be routed through the VPN network.
 				 */
 				allowedIps: () => LocalizedString
+				/**
+				 * Network modified.
+				 */
+				networkModified: () => LocalizedString
+				/**
+				 * Network created.
+				 */
+				networkCreated: () => LocalizedString
 			}
 			fields: {
 				name: {
@@ -4372,6 +4538,116 @@ export type TranslationFunctions = {
 					 * DNS
 					 */
 					label: () => LocalizedString
+				}
+			}
+		}
+	}
+	loginPage: {
+		/**
+		 * Enter your credentials
+		 */
+		pageTitle: () => LocalizedString
+		mfa: {
+			controls: {
+				/**
+				 * Use Authenticator app instead
+				 */
+				useAuthenticator: () => LocalizedString
+				/**
+				 * Use your wallet instead
+				 */
+				useWallet: () => LocalizedString
+				/**
+				 * Use security key instead
+				 */
+				useWebauthn: () => LocalizedString
+				/**
+				 * Use recovery code instead
+				 */
+				useRecoveryCode: () => LocalizedString
+			}
+			totp: {
+				/**
+				 * Use code from your authentication app and click button to proceed.
+				 */
+				header: () => LocalizedString
+				form: {
+					fields: {
+						code: {
+							/**
+							 * Enter Authenticator code
+							 */
+							placeholder: () => LocalizedString
+						}
+					}
+					controls: {
+						/**
+						 * Use authenticator code
+						 */
+						submit: () => LocalizedString
+					}
+				}
+			}
+			recoveryCode: {
+				/**
+				 * Enter one of active recovery codes and click button to log in.
+				 */
+				header: () => LocalizedString
+				form: {
+					fields: {
+						code: {
+							/**
+							 * Recovery code
+							 */
+							placeholder: () => LocalizedString
+						}
+					}
+					controls: {
+						/**
+						 * Use recovery code
+						 */
+						submit: () => LocalizedString
+					}
+				}
+			}
+			wallet: {
+				/**
+				 * Use your crypto wallet to sign in, please sign message in your wallet app or extension.
+				 */
+				header: () => LocalizedString
+				controls: {
+					/**
+					 * Use your wallet
+					 */
+					submit: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Wallet was disconnected during signing process.
+					 */
+					walletError: () => LocalizedString
+					/**
+					 * Wallet is not authorized for MFA login. Please use authorized wallet.
+					 */
+					walletErrorMfa: () => LocalizedString
+				}
+			}
+			webauthn: {
+				/**
+				 * When you are ready to authenticate, press the button below.
+				 */
+				header: () => LocalizedString
+				controls: {
+					/**
+					 * Use security key
+					 */
+					submit: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Failed to read key. Please try again.
+					 */
+					error: () => LocalizedString
 				}
 			}
 		}

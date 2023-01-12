@@ -75,7 +75,7 @@ const Login = () => {
         return;
       }
       if (!user && !mfa) {
-        toaster.error('Unexpected error occurred, contact administrator.');
+        toaster.error(LL.messages.error());
         console.error('API returned unexpected result upon login.');
       } else {
         if (user) {
@@ -94,9 +94,7 @@ const Login = () => {
               navigate('../mfa/totp');
               break;
             default:
-              toaster.error(
-                'Unexpected error occurred, contact administrator.'
-              );
+              toaster.error(LL.messages.error());
               console.error('API returned unexpected result upon login.');
               break;
           }
@@ -131,7 +129,7 @@ const Login = () => {
 
   return (
     <section id="login-container">
-      <h1>Enter your credentials</h1>
+      <h1>{LL.loginPage.pageTitle()}</h1>
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormInput
           controller={{ control, name: 'username' }}

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAccount, useSignMessage } from 'wagmi';
 import shallow from 'zustand/shallow';
+import { useI18nContext } from '../../../../i18n/i18n-react';
 
 import Button, {
   ButtonSize,
@@ -23,6 +24,7 @@ export const MFAWeb3 = () => {
       },
     },
   } = useApi();
+  const { LL } = useI18nContext();
 
   const { isConnected, isConnecting, address } = useAccount();
   const setModalsState = useModalStore((state) => state.setState);
@@ -44,7 +46,6 @@ export const MFAWeb3 = () => {
     {
       onSuccess: (data) => {
         const { user, url } = data;
-        toaster.success('Logged in.');
         if (user && url) {
           resetMFAStore();
           logIn(user);
@@ -58,10 +59,7 @@ export const MFAWeb3 = () => {
       },
       onError: (err) => {
         console.error(err);
-        toaster.error(
-          'Wallet is not authorized for MFA login.',
-          'Please use authorized wallet.'
-        );
+        toaster.error(LL.loginPage.mfa.wallet.messages.walletErrorMfa());
         if (isConnected) {
         }
       },
@@ -78,7 +76,7 @@ export const MFAWeb3 = () => {
             message: data.challenge,
           });
         } else {
-          toaster.error('Wallet was disconnected during signing process.');
+          toaster.error(LL.loginPage.mfa.wallet.messages.walletError());
         }
       },
     }
@@ -111,12 +109,9 @@ export const MFAWeb3 = () => {
 
   return (
     <>
-      <p>
-        Use your crypto wallet to sign in, please sign message in your wallet
-        app or extension.
-      </p>
+      <p>{LL.loginPage.mfa.wallet.header()}</p>
       <Button
-        text="Use your wallet"
+        text={LL.loginPage.mfa.wallet.controls.submit()}
         styleVariant={ButtonStyleVariant.PRIMARY}
         size={ButtonSize.BIG}
         loading={finishLoading || startLoading || isConnecting || isSigning}
@@ -134,20 +129,20 @@ export const MFAWeb3 = () => {
         <span>or</span>
         {totpAvailable && (
           <Button
-            text="Use authenticator app instead"
+            text={LL.loginPage.mfa.controls.useAuthenticator()}
             size={ButtonSize.BIG}
             onClick={() => navigate('../totp')}
           />
         )}
         {webauthnAvailable && (
           <Button
-            text="Use security key insted"
+            text={LL.loginPage.mfa.controls.useWebauthn()}
             size={ButtonSize.BIG}
             onClick={() => navigate('../webauthn')}
           />
         )}
         <Button
-          text="Use recovery code instead"
+          text={LL.loginPage.mfa.controls.useRecoveryCode()}
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.LINK}
           onClick={() => navigate('../recovery')}

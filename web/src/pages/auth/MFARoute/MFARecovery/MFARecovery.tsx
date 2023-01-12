@@ -5,6 +5,7 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import * as yup from 'yup';
 import shallow from 'zustand/shallow';
+import { useI18nContext } from '../../../../i18n/i18n-react';
 
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
@@ -17,13 +18,6 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { RecoveryLoginRequest } from '../../../../shared/types';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
-
-const schema = yup
-  .object()
-  .shape({
-    code: yup.string().required('Field requried'),
-  })
-  .required();
 
 export const MFARecovery = () => {
   const toaster = useToaster();
@@ -43,6 +37,8 @@ export const MFARecovery = () => {
       mfa: { recovery },
     },
   } = useApi();
+
+  const { LL } = useI18nContext();
 
   const { mutate, isLoading } = useMutation(
     [MutationKeys.RECOVERY_LOGIN],
@@ -68,6 +64,13 @@ export const MFARecovery = () => {
     }
   );
 
+  const schema = yup
+    .object()
+    .shape({
+      code: yup.string().required(LL.form.error.required()),
+    })
+    .required();
+
   const { handleSubmit, control } = useForm<RecoveryLoginRequest>({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -88,17 +91,17 @@ export const MFARecovery = () => {
 
   return (
     <>
-      <p>Enter one of active recovery codes and click button to log in.</p>
+      <p>{LL.loginPage.mfa.recoveryCode.header()}</p>
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
-          placeholder="Recovery code"
+          placeholder={LL.loginPage.mfa.recoveryCode.form.fields.code.placeholder()}
           controller={{ control, name: 'code' }}
         />
         <Button
           type="submit"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          text="Use recovery code"
+          text={LL.loginPage.mfa.recoveryCode.form.controls.submit()}
           loading={isLoading}
         />
       </form>
@@ -106,14 +109,14 @@ export const MFARecovery = () => {
         <span>or</span>
         {totpAvailable && (
           <Button
-            text="Use authenticator app instead"
+            text={LL.loginPage.mfa.controls.useAuthenticator()}
             size={ButtonSize.BIG}
             onClick={() => navigate('../totp')}
           />
         )}
         {webauthnAvailable && (
           <Button
-            text="Use security key instead"
+            text={LL.loginPage.mfa.controls.useWebauthn()}
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.LINK}
             onClick={() => navigate('../webauthn')}
@@ -121,7 +124,7 @@ export const MFARecovery = () => {
         )}
         {web3Available && (
           <Button
-            text="Use your wallet instead"
+            text={LL.loginPage.mfa.controls.useWallet()}
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.LINK}
             onClick={() => navigate('../web3')}
