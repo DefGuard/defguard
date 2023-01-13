@@ -66,7 +66,6 @@ const Login = () => {
 
   const setMfaStore = useMFAStore((state) => state.setState);
   const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore)
-  const setAuthStore = useAuthStore((state) => state.setState);
 
   const loginMutation = useMutation((data: LoginData) => login(data), {
     mutationKey: [MutationKeys.LOG_IN],
@@ -83,7 +82,6 @@ const Login = () => {
       } else {
         if (user) {
           logIn(user);
-          setAuthStore({ sessionPersist: true });
         }
         if (mfa) {
           setMfaStore(mfa);

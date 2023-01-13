@@ -109,14 +109,14 @@ export const OpenidAllowPage = () => {
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconCheckmarkWhite />}
-            text="Accept"
+            text={LL.openidAllow.controls.accept()}
             onClick={() => handleSubmit(true)}
           />
           <Button
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.STANDARD}
             icon={<SvgIconDelete />}
-            text="Cancel"
+            text={LL.openidAllow.controls.cancel()}
             onClick={() => handleSubmit(false)}
           />
         </div>

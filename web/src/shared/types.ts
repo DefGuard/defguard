@@ -566,14 +566,16 @@ export interface UseAppStore {
   settings?: Settings;
   license?: License;
   version?: string;
-	openIDRedirect?: boolean;
+  openIDRedirect?: boolean;
   language?: Locales;
   setAppStore: (newValues: Partial<Omit<UseAppStore, 'setAppStore'>>) => void;
 }
 
 export interface UseOpenIDStore {
-	openIDRedirect?: boolean;
-  setOpenIDStore: (newValues: Partial<Omit<UseOpenIDStore, 'setOpenIdStore'>>) => void;
+  openIDRedirect?: boolean;
+  setOpenIDStore: (
+    newValues: Partial<Omit<UseOpenIDStore, 'setOpenIdStore'>>
+  ) => void;
 }
 
 export interface Settings {
