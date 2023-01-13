@@ -40,7 +40,7 @@ export const UserYubiKeys = () => {
   return (
     <section id="user-yubikeys">
       <header>
-        <h2>User YubiKey</h2>
+        <h2>{LL.userPage.yubiKey.header()}</h2>
         {enableEdit && (
           <EditButton>
             <EditButtonOption text="Provision new keys" />

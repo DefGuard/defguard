@@ -10,19 +10,21 @@ import { LicenseModal } from './LicenseModal/LicenseModal';
 import { ModulesCard } from './ModulesCard/ModulesCard';
 import { SupportCard } from './SupportCard/SupportCard';
 import { Web3Settings } from './Web3Settings/Web3Settings';
+import { useI18nContext } from '../../i18n/i18n-react';
 
 export const SettingsPage = () => {
   const settings = useAppStore((state) => state.settings);
+	const {LL} = useI18nContext();
   return (
     <PageContainer id="settings-page">
       <header>
-        <h1>{settings?.instance_name} Global Settings</h1>
+        <h1>{settings?.instance_name} {LL.settingsPage.title()}</h1>
       </header>
       <div className="left">
+        <BrandingCard />
         <ModulesCard />
         <DefaultNetworkSelect />
         <Web3Settings />
-        <BrandingCard />
       </div>
       <div className="right">
         <LicenseCard />

@@ -24,6 +24,7 @@ import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import parse from 'html-react-parser';
+import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
 
 export const BrandingCard = () => {
   const { LL, locale } = useI18nContext();
@@ -82,12 +83,8 @@ export const BrandingCard = () => {
       yup
         .object()
         .shape({
-          main_logo_url: yup
-            .string()
-            .required(LL.form.error.required()),
-          nav_logo_url: yup
-            .string()
-            .required(LL.form.error.required()),
+          main_logo_url: yup.string(),
+          nav_logo_url: yup.string(),
           instance_name: yup
             .string()
             .min(3, LL.form.error.minimumLength())
@@ -119,8 +116,12 @@ export const BrandingCard = () => {
 
   const onSubmit: SubmitHandler<Settings> = (data) => {
     settings.instance_name = data.instance_name;
-    settings.main_logo_url = data.main_logo_url;
-    settings.nav_logo_url = data.nav_logo_url;
+    if (data.main_logo_url != '') {
+      settings.main_logo_url = data.main_logo_url;
+    }
+    if (data.nav_logo_url != '') {
+      settings.nav_logo_url = data.nav_logo_url;
+    }
     mutate(settings);
   };
 
@@ -181,13 +182,20 @@ export const BrandingCard = () => {
             placeholder={LL.settingsPage.instanceBranding.form.fields.instanceName.placeholder()}
             required
           />
+          <Helper>
+              {parse(LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.helper())}
+          </Helper>
           <FormInput
             outerLabel={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.label()}
             controller={{ control, name: 'main_logo_url' }}
             placeholder={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.placeholder()}
             required
           />
-
+          <Helper>
+            <p>
+              {parse(LL.settingsPage.instanceBranding.form.fields.navLogoUrl.helper())}
+            </p>
+          </Helper>
           <FormInput
             outerLabel={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.label()}
             controller={{ control, name: 'nav_logo_url' }}
