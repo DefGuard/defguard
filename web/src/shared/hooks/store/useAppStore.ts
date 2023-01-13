@@ -14,7 +14,6 @@ export const useAppStore = create<
       license: undefined,
       version: undefined,
       language: undefined,
-			openIDRedirect: false,
       setAppStore: (data) => set((state) => ({ ...state, ...data })),
     }),
     {

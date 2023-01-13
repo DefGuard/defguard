@@ -566,7 +566,6 @@ export interface UseAppStore {
   settings?: Settings;
   license?: License;
   version?: string;
-  openIDRedirect?: boolean;
   language?: Locales;
   setAppStore: (newValues: Partial<Omit<UseAppStore, 'setAppStore'>>) => void;
 }
