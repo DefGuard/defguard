@@ -345,6 +345,7 @@ pub async fn secure_authorization(
     appstate: &State<AppState>,
     allow: bool,
     data: AuthenticationRequest<'_>,
+    cookies: &CookieJar<'_>,
 ) -> Result<Redirect, OriWebError> {
     let mut url =
         Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
@@ -369,6 +370,9 @@ pub async fn secure_authorization(
                             app.save(&appstate.pool).await?;
                         }
                     }
+                    if let Some(cookie) = cookies.get("known_sign_in") {
+                        cookies.remove(cookie.to_owned());
+                    };
                     let location =
                         generate_auth_code_redirect(appstate, &data, session_info.user.id).await?;
                     return Ok(Redirect::found(location));
