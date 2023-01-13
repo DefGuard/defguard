@@ -2,7 +2,7 @@
 import './style.scss';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import Button, {
   ButtonSize,
@@ -11,9 +11,9 @@ import Button, {
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
-import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { useI18nContext } from '../../i18n/i18n-react';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 
 export const OpenidAllowPage = () => {
   const [params] = useSearchParams();
@@ -28,10 +28,6 @@ export const OpenidAllowPage = () => {
   const {
     openid: { getOpenidClient },
   } = useApi();
-  const currentUser = useAuthStore((state) => state.user);
-  const setAuthStore = useAuthStore((state) => state.setState);
-  const navigate = useNavigate();
-  const authLocation = useAuthStore((state) => state.authLocation);
   const { LL } = useI18nContext();
 
   const validateParams = useCallback(() => {
@@ -44,20 +40,6 @@ export const OpenidAllowPage = () => {
     return true;
   }, [scope, responseType, clientId, nonce, redirectUri, state]);
 
-  useEffect(() => {
-    if (!currentUser) {
-      const loc = window.location.href;
-      setAuthStore({ authLocation: loc });
-      setTimeout(() => {
-        navigate('/auth', { replace: true });
-      }, 250);
-    } else {
-      if (authLocation) {
-        setAuthStore({ authLocation: undefined });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
   const getFormAction = useCallback(
     (allow: boolean) => {
       if (validateParams()) {
@@ -69,16 +51,18 @@ export const OpenidAllowPage = () => {
     },
     [validateParams, params]
   );
+  const setAppStore = useAppStore((state) => state.setAppStore);
 
   const handleSubmit = useCallback(
     (allow: boolean) => {
+      setAppStore({ openIDRedirect: false });
       const formAction = getFormAction(allow);
       if (inputRef.current) {
         inputRef.current.formAction = formAction;
         inputRef.current.click();
       }
     },
-    [getFormAction]
+    [getFormAction, setAppStore]
   );
 
   useEffect(() => {

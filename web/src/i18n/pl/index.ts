@@ -920,6 +920,10 @@ const pl: BaseTranslation = {
       email: 'Poznać twój adres e-mail.',
       phone: 'Poznać twój numer telefonu.',
     },
+		controls: {
+			accept: 'Akceptuj',
+			cancel: 'Anuluj',
+		}
   },
   networkOverview: {
     pageTitle: 'Przegląd sieci',
