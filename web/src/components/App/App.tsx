@@ -25,6 +25,7 @@ import PageContainer from '../../shared/components/layout/PageContainer/PageCont
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
+import OpenIDRoute from '../../shared/components/Router/Guards/OpenIDRoute/OpenIDRoute';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
@@ -121,9 +122,9 @@ const App = () => {
             <Route
               path="consent/*"
               element={
-                <ProtectedRoute moduleRequired="openid_enabled">
+                <OpenIDRoute moduleRequired="openid_enabled">
                   <OpenidAllowPage />
-                </ProtectedRoute>
+                </OpenIDRoute>
               }
             />
             <Route

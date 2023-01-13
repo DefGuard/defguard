@@ -570,6 +570,13 @@ export interface UseAppStore {
   setAppStore: (newValues: Partial<Omit<UseAppStore, 'setAppStore'>>) => void;
 }
 
+export interface UseOpenIDStore {
+  openIDRedirect?: boolean;
+  setOpenIDStore: (
+    newValues: Partial<Omit<UseOpenIDStore, 'setOpenIdStore'>>
+  ) => void;
+}
+
 export interface Settings {
   id: string;
   challenge_template: string;

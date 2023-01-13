@@ -13,6 +13,7 @@ import Button, {
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
+import { useOpenIDStore } from '../../../../shared/hooks/store/useOpenIdStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
@@ -23,6 +24,7 @@ export const MFARecovery = () => {
   const toaster = useToaster();
   const navigate = useNavigate();
   const clearMFAStore = useMFAStore((state) => state.resetState);
+  const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore);
   const logIn = useAuthStore((state) => state.logIn);
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
     (state) => [
@@ -48,7 +50,7 @@ export const MFARecovery = () => {
         const { url, user } = data;
         if (user && url) {
           clearMFAStore();
-          logIn(user);
+          setOpenIDStore({ openIDRedirect: true });
           window.location.replace(url);
           return;
         }

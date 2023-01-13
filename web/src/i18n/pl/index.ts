@@ -844,8 +844,8 @@ const pl: BaseTranslation = {
     },
     filterLabels: {
       all: 'Wszystkie webhooki',
-      enabled: 'Enabled',
-      disabled: 'Disabled',
+      enabled: 'Włączone',
+      disabled: 'Wyłączone',
     },
     webhooksCount: 'Wszystkie webhooki',
     addNewWebhook: 'Dodaj webhook',
@@ -923,6 +923,10 @@ const pl: BaseTranslation = {
       email: 'Poznać twój adres e-mail.',
       phone: 'Poznać twój numer telefonu.',
     },
+		controls: {
+			accept: 'Akceptuj',
+			cancel: 'Anuluj',
+		}
   },
   networkOverview: {
     pageTitle: 'Przegląd sieci',

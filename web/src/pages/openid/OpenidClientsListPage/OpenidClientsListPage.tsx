@@ -211,7 +211,11 @@ export const OpenidClientsListPage = () => {
               }
             />
             <EditButtonOption
-              text={client.enabled ? 'Disable' : 'Enable'}
+              text={
+                client.enabled
+                  ? LL.openidOverview.list.editButton.disable()
+                  : LL.openidOverview.list.editButton.enable()
+              }
               onClick={() => editClientStatusMutation(client)}
             />
             <EditButtonOption

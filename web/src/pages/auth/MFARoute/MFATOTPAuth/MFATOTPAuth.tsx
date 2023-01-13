@@ -13,6 +13,7 @@ import Button, {
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
+import { useOpenIDStore } from '../../../../shared/hooks/store/useOpenIdStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
@@ -21,11 +22,10 @@ interface Inputs {
   code: string;
 }
 
-
-
 export const MFATOTPAuth = () => {
   const navigate = useNavigate();
   const clearMFAStore = useMFAStore((state) => state.resetState);
+  const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore);
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
     (state) => [
       state.totp_available,
@@ -52,7 +52,7 @@ export const MFATOTPAuth = () => {
         const { user, url } = data;
         if (user && url) {
           clearMFAStore();
-          logIn(user);
+          setOpenIDStore({ openIDRedirect: true });
           window.location.replace(url);
           return;
         }
@@ -68,16 +68,16 @@ export const MFATOTPAuth = () => {
       },
     }
   );
-const schema = yup
-  .object()
-  .shape({
-    code: yup
-      .string()
-      .required(LL.form.error.required())
-      .min(6, LL.form.error.validCode())
-      .max(6, LL.form.error.validCode()),
-  })
-  .required();
+  const schema = yup
+    .object()
+    .shape({
+      code: yup
+        .string()
+        .required(LL.form.error.required())
+        .min(6, LL.form.error.validCode())
+        .max(6, LL.form.error.validCode()),
+    })
+    .required();
 
   const { handleSubmit, control, setError, setValue } = useForm<Inputs>({
     resolver: yupResolver(schema),
