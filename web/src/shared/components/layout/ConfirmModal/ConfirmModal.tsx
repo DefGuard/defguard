@@ -47,8 +47,6 @@ const ConfirmModal = ({
     return res;
   }, [type]);
 
-  console.log(onSubmit);
-
   return (
     <Modal
       backdrop
