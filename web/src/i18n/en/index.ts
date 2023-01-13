@@ -242,7 +242,7 @@ const en: BaseTranslation = {
       title: 'Yubikey provisioning:',
       infoBox: `The selected provisioner must have a <b>clean</b> YubiKey
                 plugged in be provisioned. To clean a used YubiKey
-                <b>gpg-card factory reset</b> before provisioning.`,
+                <b>gpg --card-edit </b> before provisioning.`,
       selectionLabel:
         'Select one of the following provisioners to provision a YubiKey:',
       noData: {
@@ -551,6 +551,7 @@ const en: BaseTranslation = {
     copy: 'Copy',
     saveChanges: 'Save changes',
     submit: 'Submit',
+		login: 'Sign in',
     cancel: 'Cancel',
     close: 'Close',
     placeholders: {
@@ -653,10 +654,12 @@ const en: BaseTranslation = {
           },
           mainLogoUrl: {
             label: 'Login logo url',
+						helper: '<p>Maximum picture size is 250x100  px</p>',
             placeholder: 'Default image',
           },
           navLogoUrl: {
-            label: 'Navigation Logo url',
+            label: 'Menu & navigation small logo',
+						helper: '<p>Maximum picture size is 100x100 px</p>',
             placeholder: 'Default image',
           },
         },
@@ -961,10 +964,10 @@ const en: BaseTranslation = {
   networkPage: {
     pageTitle: 'Edit network',
   },
-	activityOverview: {
-		header: 'Activity stream',
-		noData: 'Currently there is no activity detected'
-	},
+  activityOverview: {
+    header: 'Activity stream',
+    noData: 'Currently there is no activity detected',
+  },
   networkConfiguration: {
     header: 'Network configuration',
     form: {

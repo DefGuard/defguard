@@ -58,6 +58,7 @@ export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
     <>
       <button
         className="helper"
+				type="button"
         onClick={() => {
           if (breakpoint === 'desktop') {
             setFloatOpen(true);

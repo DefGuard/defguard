@@ -4,7 +4,7 @@ const pl: BaseTranslation = {
   messages: {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
-		succcessClipboard: 'Skopiowano do schowka',
+    succcessClipboard: 'Skopiowano do schowka',
     errorVersion: 'Nie udało się uzyskać wersji aplikacji.',
     errorLicense: 'Nie udało się uzyskać licencji.',
     clipboardError: 'Schowek nie jest dostępny.',
@@ -238,20 +238,20 @@ const pl: BaseTranslation = {
       },
     },
     provisionKeys: {
-      title: 'Yubikey provisioning:',
-      infoBox: `The selected provisioner must have a <b>clean</b> YubiKey
-                plugged in be provisioned. To clean a used YubiKey
-                <b>gpg-card factory reset</b> before provisioning.`,
+      title: 'Provisionowanie YubiKeya:',
+      infoBox: `Wybrany provisioner musi mieć podłączony <b>pusty</b> YubiKey.
+                Aby zresetować YubiKey uruchom 
+                <b>gpg --card-edit</b> przed generowaniem kluczy.`,
       selectionLabel:
         'Wybierz jeden z następujących provisionerów, aby wygenrować klucze na YubiKey:',
       noData: {
         workers: 'Nie znaleziono workerów...',
       },
       controls: {
-        submit: 'Provision YubiKey',
+        submit: 'Wygeneruj klucze dla YubiKey',
       },
       messages: {
-        success: 'Keys zostały przetransferowane na YubiKey',
+        success: 'Klucze zostały przetransferowane na YubiKey',
         errorStatus: 'Wystapił błąd podczas pobierania statusu.',
       },
     },
@@ -483,7 +483,7 @@ const pl: BaseTranslation = {
     },
     yubiKey: {
       header: 'YubiKey użytkownika',
-      provision: 'Provision a YubiKey',
+      provision: 'Sprovisionuj YubiKey',
       keys: {
         pgp: 'Klucz PGP',
         ssh: 'Klucz SSH',
@@ -535,7 +535,7 @@ const pl: BaseTranslation = {
     },
     mobileTitles: {
       users: 'Użytkownicy',
-      settings: 'Defguard Global Settings',
+      settings: 'Defguard ustaawienia globalne',
       user: 'Profil użytkownika',
       provisioners: 'Provisioners',
       webhooks: 'Webhooki',
@@ -551,6 +551,7 @@ const pl: BaseTranslation = {
     copy: 'Kopiuj',
     saveChanges: 'Zapisz zmiany',
     submit: 'Zapisz',
+    login: 'Zaloguj sie',
     cancel: 'Anuluj',
     close: 'Zamknij',
     placeholders: {
@@ -591,7 +592,7 @@ const pl: BaseTranslation = {
       challengeSuccess: 'Zmieniono wiadomość do podpisu.',
     },
     modulesVisibility: {
-      header: 'Modules Visibility',
+      header: 'Widoczność modułów',
       helper: `<p>
 			Jeśli nie używasz niektórych modułów możesz zmienić ich widoczność
           </p>
@@ -653,10 +654,12 @@ const pl: BaseTranslation = {
           },
           mainLogoUrl: {
             label: 'Url loga na stronie logowania',
+						helper: '<p>Maksymalna wielkość zdjęcia to 250x100 px.</p>',
             placeholder: 'Domyślny obrazek',
           },
           navLogoUrl: {
-            label: 'Url loga w nawigacji',
+            label: 'Menu i nawigacja - małe logo',
+            helper: '<p>Maksymalna wielkość zdjęcia to 100x100 px.</p>',
             placeholder: 'Domyślny obrazek',
           },
         },
@@ -956,10 +959,10 @@ const pl: BaseTranslation = {
   networkPage: {
     pageTitle: 'Edycja sieci',
   },
-	activityOverview: {
-		header: 'Strumien aktywności',
-		noData: 'Obecnie nie wykryto żadnej aktywności'
-	},
+  activityOverview: {
+    header: 'Strumien aktywności',
+    noData: 'Obecnie nie wykryto żadnej aktywności',
+  },
   networkConfiguration: {
     header: 'Konfiguracja sieci',
     form: {
@@ -992,20 +995,20 @@ const pl: BaseTranslation = {
           label: 'DNS',
         },
       },
-			controls: {
-				submit: 'Zapisz zmiany',
-				cancel: 'Cofnij',
-			}
+      controls: {
+        submit: 'Zapisz zmiany',
+        cancel: 'Cofnij',
+      },
     },
   },
   gatewaySetup: {
     header: 'Uruchomienie serwera gateway',
-		card: {
-			title: 'Komenda uruchamiająca serwer gateway',
-		},
-		controls: {
-			status: 'Sprawdź status połączenia'
-		},
+    card: {
+      title: 'Komenda uruchamiająca serwer gateway',
+    },
+    controls: {
+      status: 'Sprawdź status połączenia',
+    },
     messages: {
       runCommand: `
           <p>
@@ -1013,13 +1016,13 @@ const pl: BaseTranslation = {
             wiesz jak, lub masz jakieś problemy
             <a>odwiedź naszą stronę</a>.
           </p>`,
-			noConnection: `<p>Brak połączenia proszę uruchom poniższą komendę.</p>`,
-			connected: `<p>Gateway połączony.</p>`,
-			statusError: 'Nie udało się uzyskać statusu'
+      noConnection: `<p>Brak połączenia proszę uruchom poniższą komendę.</p>`,
+      connected: `<p>Gateway połączony.</p>`,
+      statusError: 'Nie udało się uzyskać statusu',
     },
   },
   loginPage: {
-    pageTitle: 'Wprowadź swoje dane uwierzytelniające',
+    pageTitle: 'Wprowadź swoje dane logowania',
     mfa: {
       controls: {
         useAuthenticator: 'Zamiast tego użyj aplikacji Authenticator',

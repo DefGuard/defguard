@@ -149,7 +149,7 @@ const Login = () => {
           disabled={loginMutation.isLoading}
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          text={LL.form.submit()}
+          text={LL.form.login()}
         />
       </form>
     </section>

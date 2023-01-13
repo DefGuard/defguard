@@ -485,7 +485,7 @@ type RootTranslation = {
 			/**
 			 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​o​v​i​s​i​o​n​e​r​ ​m​u​s​t​ ​h​a​v​e​ ​a​ ​<​b​>​c​l​e​a​n​<​/​b​>​ ​Y​u​b​i​K​e​y​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​l​u​g​g​e​d​ ​i​n​ ​b​e​ ​p​r​o​v​i​s​i​o​n​e​d​.​ ​T​o​ ​c​l​e​a​n​ ​a​ ​u​s​e​d​ ​Y​u​b​i​K​e​y​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​>​g​p​g​-​c​a​r​d​ ​f​a​c​t​o​r​y​ ​r​e​s​e​t​<​/​b​>​ ​b​e​f​o​r​e​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​>​g​p​g​ ​-​-​c​a​r​d​-​e​d​i​t​ ​<​/​b​>​ ​b​e​f​o​r​e​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
 			 */
 			infoBox: string
 			/**
@@ -1248,6 +1248,10 @@ type RootTranslation = {
 		 */
 		submit: string
 		/**
+		 * S​i​g​n​ ​i​n
+		 */
+		login: string
+		/**
 		 * C​a​n​c​e​l
 		 */
 		cancel: string
@@ -1484,15 +1488,23 @@ type RootTranslation = {
 						 */
 						label: string
 						/**
+						 * <​p​>​M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​2​5​0​x​1​0​0​ ​ ​p​x​<​/​p​>
+						 */
+						helper: string
+						/**
 						 * D​e​f​a​u​l​t​ ​i​m​a​g​e
 						 */
 						placeholder: string
 					}
 					navLogoUrl: {
 						/**
-						 * N​a​v​i​g​a​t​i​o​n​ ​L​o​g​o​ ​u​r​l
+						 * M​e​n​u​ ​&​ ​n​a​v​i​g​a​t​i​o​n​ ​s​m​a​l​l​ ​l​o​g​o
 						 */
 						label: string
+						/**
+						 * <​p​>​M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​1​0​0​x​1​0​0​ ​p​x​<​/​p​>
+						 */
+						helper: string
 						/**
 						 * D​e​f​a​u​l​t​ ​i​m​a​g​e
 						 */
@@ -2894,7 +2906,7 @@ export type TranslationFunctions = {
 			/**
 			 * The selected provisioner must have a <b>clean</b> YubiKey
 		                plugged in be provisioned. To clean a used YubiKey
-		                <b>gpg-card factory reset</b> before provisioning.
+		                <b>gpg --card-edit </b> before provisioning.
 			 */
 			infoBox: () => LocalizedString
 			/**
@@ -3655,6 +3667,10 @@ export type TranslationFunctions = {
 		 */
 		submit: () => LocalizedString
 		/**
+		 * Sign in
+		 */
+		login: () => LocalizedString
+		/**
 		 * Cancel
 		 */
 		cancel: () => LocalizedString
@@ -3891,15 +3907,23 @@ export type TranslationFunctions = {
 						 */
 						label: () => LocalizedString
 						/**
+						 * <p>Maximum picture size is 250x100  px</p>
+						 */
+						helper: () => LocalizedString
+						/**
 						 * Default image
 						 */
 						placeholder: () => LocalizedString
 					}
 					navLogoUrl: {
 						/**
-						 * Navigation Logo url
+						 * Menu & navigation small logo
 						 */
 						label: () => LocalizedString
+						/**
+						 * <p>Maximum picture size is 100x100 px</p>
+						 */
+						helper: () => LocalizedString
 						/**
 						 * Default image
 						 */
