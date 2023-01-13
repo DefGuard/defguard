@@ -844,8 +844,8 @@ const pl: BaseTranslation = {
     },
     filterLabels: {
       all: 'Wszystkie webhooki',
-      enabled: 'Enabled',
-      disabled: 'Disabled',
+      enabled: 'Włączone',
+      disabled: 'Wyłączone',
     },
     webhooksCount: 'Wszystkie webhooki',
     addNewWebhook: 'Dodaj webhook',

@@ -11,6 +11,7 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
+import { useOpenIDStore } from '../../../../shared/hooks/store/useOpenIdStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
@@ -29,6 +30,7 @@ export const MFAWeb3 = () => {
   const { isConnected, isConnecting, address } = useAccount();
   const setModalsState = useModalStore((state) => state.setState);
   const logIn = useAuthStore((state) => state.logIn);
+  const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore);
   const resetMFAStore = useMFAStore((state) => state.resetState);
   const toaster = useToaster();
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
@@ -48,7 +50,7 @@ export const MFAWeb3 = () => {
         const { user, url } = data;
         if (user && url) {
           resetMFAStore();
-          logIn(user);
+          setOpenIDStore({ openIDRedirect: true });
           window.location.replace(url);
           return;
         }

@@ -13,7 +13,6 @@ import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhit
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
 import useApi from '../../shared/hooks/useApi';
 import { useI18nContext } from '../../i18n/i18n-react';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
 
 export const OpenidAllowPage = () => {
   const [params] = useSearchParams();
@@ -28,6 +27,7 @@ export const OpenidAllowPage = () => {
   const {
     openid: { getOpenidClient },
   } = useApi();
+
   const { LL } = useI18nContext();
 
   const validateParams = useCallback(() => {
@@ -51,18 +51,16 @@ export const OpenidAllowPage = () => {
     },
     [validateParams, params]
   );
-  const setAppStore = useAppStore((state) => state.setAppStore);
 
   const handleSubmit = useCallback(
     (allow: boolean) => {
-      setAppStore({ openIDRedirect: false });
       const formAction = getFormAction(allow);
       if (inputRef.current) {
         inputRef.current.formAction = formAction;
         inputRef.current.click();
       }
     },
-    [getFormAction, setAppStore]
+    [getFormAction]
   );
 
   useEffect(() => {
@@ -111,14 +109,14 @@ export const OpenidAllowPage = () => {
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconCheckmarkWhite />}
-            text={LL.openidAllow.controls.accept()}
+            text="Accept"
             onClick={() => handleSubmit(true)}
           />
           <Button
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.STANDARD}
             icon={<SvgIconDelete />}
-            text={LL.openidAllow.controls.cancel()}
+            text="Cancel"
             onClick={() => handleSubmit(false)}
           />
         </div>

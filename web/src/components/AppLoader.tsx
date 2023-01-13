@@ -10,6 +10,7 @@ import { loadLocaleAsync } from '../i18n/i18n-util.async';
 import LoaderPage from '../pages/loader/LoaderPage';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
+import { useOpenIDStore } from '../shared/hooks/store/useOpenIdStore';
 import useApi from '../shared/hooks/useApi';
 import { useToaster } from '../shared/hooks/useToaster';
 import { QueryKeys } from '../shared/queries';
@@ -33,10 +34,11 @@ export const AppLoader = () => {
   const { setLocale } = useI18nContext();
   const localLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setAppStore);
+  const openIDRedirect = useOpenIDStore((state) => state.openIDRedirect);
   const license = useAppStore((state) => state.license);
   const { LL } = useI18nContext();
 
-  const { isLoading: currentUserLoading } = useQuery(
+  const { isLoading: currentUserLoading, isInitialLoading } = useQuery(
     [QueryKeys.FETCH_ME],
     getMe,
     {
@@ -52,6 +54,7 @@ export const AppLoader = () => {
       refetchOnMount: true,
       refetchOnWindowFocus: false,
       retry: false,
+      enabled: !openIDRedirect,
     }
   );
 
@@ -116,12 +119,14 @@ export const AppLoader = () => {
     }
   }, [appSettings]);
 
-  if (
-    currentUserLoading ||
-    (settingsLoading && isUndefined(appSettings)) ||
-    (licenseLoading && isUndefined(license))
-  )
-    return <LoaderPage />;
+  if (!isInitialLoading) {
+    if (
+      currentUserLoading ||
+      (settingsLoading && isUndefined(appSettings)) ||
+      (licenseLoading && isUndefined(license))
+    )
+      return <LoaderPage />;
+  }
 
   return (
     <Suspense fallback={<LoaderPage />}>

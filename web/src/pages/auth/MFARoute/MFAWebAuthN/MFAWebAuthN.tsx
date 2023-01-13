@@ -13,6 +13,7 @@ import Button, {
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
+import { useOpenIDStore } from '../../../../shared/hooks/store/useOpenIdStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
@@ -30,6 +31,7 @@ export const MFAWebAuthN = () => {
   const { LL } = useI18nContext();
 
   const logIn = useAuthStore((state) => state.logIn);
+  const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore)
   const clearMFAStore = useMFAStore((state) => state.resetState);
   const navigate = useNavigate();
   const toaster = useToaster();
@@ -50,7 +52,7 @@ export const MFAWebAuthN = () => {
         const { user, url } = data;
         if (user && url) {
           clearMFAStore();
-          logIn(user);
+					setOpenIDStore({openIDRedirect: true})
           window.location.replace(url);
           return;
         }

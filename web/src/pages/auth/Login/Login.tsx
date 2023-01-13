@@ -22,7 +22,7 @@ import { MutationKeys } from '../../../shared/mutations';
 import { patternNoSpecialChars } from '../../../shared/patterns';
 import { LoginData, UserMFAMethod } from '../../../shared/types';
 import { useMFAStore } from '../shared/hooks/useMFAStore';
-import { useAppStore } from '../../../shared/hooks/store/useAppStore';
+import { useOpenIDStore } from '../../../shared/hooks/store/useOpenIdStore';
 
 type Inputs = {
   username: string;
@@ -65,14 +65,15 @@ const Login = () => {
   });
 
   const setMfaStore = useMFAStore((state) => state.setState);
-  const setAppStore = useAppStore((state) => state.setAppStore);
+  const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore)
+  const setAuthStore = useAuthStore((state) => state.setState);
 
   const loginMutation = useMutation((data: LoginData) => login(data), {
     mutationKey: [MutationKeys.LOG_IN],
     onSuccess: (data) => {
       const { url, user, mfa } = data;
       if (user && url) {
-        setAppStore({ openIDRedirect: true });
+        setOpenIDStore({ openIDRedirect: true });
         window.location.replace(url);
         return;
       }
@@ -82,6 +83,7 @@ const Login = () => {
       } else {
         if (user) {
           logIn(user);
+          setAuthStore({ sessionPersist: true });
         }
         if (mfa) {
           setMfaStore(mfa);

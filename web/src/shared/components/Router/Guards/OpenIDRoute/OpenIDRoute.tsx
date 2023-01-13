@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAppStore } from '../../../../hooks/store/useAppStore';
+import { useOpenIDStore } from '../../../../hooks/store/useOpenIdStore';
 import { Settings } from '../../../../types';
 
 interface Props {
@@ -15,13 +16,16 @@ type Setting = keyof Settings;
  */
 
 const openIDRoute = ({ children, moduleRequired }: Props) => {
-  const openIDRedirect = useAppStore((state) => state.openIDRedirect);
+  const openIDRedirect = useOpenIDStore((state) => state.openIDRedirect);
+  const settings = useAppStore((state) => state.settings);
 
   const navigate = useNavigate();
-  if (moduleRequired !== undefined) {
-    navigate('/', { replace: true });
+  if (settings !== undefined && moduleRequired !== undefined) {
+    if (!settings[moduleRequired]) {
+      navigate('/', { replace: true });
+    }
   }
-  if (openIDRedirect !== undefined || openIDRedirect === false) {
+  if (openIDRedirect === false) {
     navigate('/', { replace: true });
   }
   return <>{children}</>;
