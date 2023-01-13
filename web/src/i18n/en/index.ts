@@ -242,7 +242,7 @@ const en: BaseTranslation = {
       title: 'Yubikey provisioning:',
       infoBox: `The selected provisioner must have a <b>clean</b> YubiKey
                 plugged in be provisioned. To clean a used YubiKey
-                <b>gpg-card factory reset</b> before provisioning.`,
+                <b>gpg --card-edit </b> before provisioning.`,
       selectionLabel:
         'Select one of the following provisioners to provision a YubiKey:',
       noData: {

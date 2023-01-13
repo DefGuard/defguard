@@ -485,7 +485,7 @@ type RootTranslation = {
 			/**
 			 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​o​v​i​s​i​o​n​e​r​ ​m​u​s​t​ ​h​a​v​e​ ​a​ ​<​b​>​c​l​e​a​n​<​/​b​>​ ​Y​u​b​i​K​e​y​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​l​u​g​g​e​d​ ​i​n​ ​b​e​ ​p​r​o​v​i​s​i​o​n​e​d​.​ ​T​o​ ​c​l​e​a​n​ ​a​ ​u​s​e​d​ ​Y​u​b​i​K​e​y​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​>​g​p​g​-​c​a​r​d​ ​f​a​c​t​o​r​y​ ​r​e​s​e​t​<​/​b​>​ ​b​e​f​o​r​e​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​>​g​p​g​ ​-​-​c​a​r​d​-​e​d​i​t​ ​<​/​b​>​ ​b​e​f​o​r​e​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
 			 */
 			infoBox: string
 			/**
@@ -2906,7 +2906,7 @@ export type TranslationFunctions = {
 			/**
 			 * The selected provisioner must have a <b>clean</b> YubiKey
 		                plugged in be provisioned. To clean a used YubiKey
-		                <b>gpg-card factory reset</b> before provisioning.
+		                <b>gpg --card-edit </b> before provisioning.
 			 */
 			infoBox: () => LocalizedString
 			/**

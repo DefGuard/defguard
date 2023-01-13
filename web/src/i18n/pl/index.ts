@@ -238,20 +238,20 @@ const pl: BaseTranslation = {
       },
     },
     provisionKeys: {
-      title: 'Yubikey provisioning:',
-      infoBox: `The selected provisioner must have a <b>clean</b> YubiKey
-                plugged in be provisioned. To clean a used YubiKey
-                <b>gpg-card factory reset</b> before provisioning.`,
+      title: 'Provisionowanie YubiKeya:',
+      infoBox: `Wybrany provisioner musi mieć podłączony <b>pusty</b> YubiKey.
+                Aby zresetować YubiKey uruchom 
+                <b>gpg --card-edit</b> przed generowaniem kluczy.`,
       selectionLabel:
         'Wybierz jeden z następujących provisionerów, aby wygenrować klucze na YubiKey:',
       noData: {
         workers: 'Nie znaleziono workerów...',
       },
       controls: {
-        submit: 'Provision YubiKey',
+        submit: 'Wygeneruj klucze dla YubiKey',
       },
       messages: {
-        success: 'Keys zostały przetransferowane na YubiKey',
+        success: 'Klucze zostały przetransferowane na YubiKey',
         errorStatus: 'Wystapił błąd podczas pobierania statusu.',
       },
     },
