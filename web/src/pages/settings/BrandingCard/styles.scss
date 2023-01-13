@@ -5,6 +5,7 @@
     @include media-breakpoint-up(lg) {
       margin-bottom: 3rem;
     }
+
     & > .card {
       box-sizing: border-box;
       padding: 2.5rem 2rem 2.5rem 1.5rem;
@@ -12,6 +13,7 @@
       & > form {
         align-items: stretch;
         justify-content: flex-start;
+
         .helper {
           margin-left: auto;
         }
