@@ -1,13 +1,11 @@
 use defguard::{
     build_webapp,
-    db::{
-        models::wallet::{hash_message, keccak256},
-        AppEvent, GatewayEvent, User, UserInfo,
-    },
+    db::{models::wallet::keccak256, AppEvent, GatewayEvent, User, UserInfo},
     grpc::GatewayState,
     handlers::{AddUserData, Auth, PasswordChange, Username, WalletChallenge},
     hex::to_lower_hex,
 };
+use ethers::core::types::transaction::eip712::{Eip712, TypedData};
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
@@ -251,19 +249,39 @@ async fn test_wallet() {
     assert_eq!(response.status(), Status::Ok);
     let challenge: WalletChallenge = response.into_json().await.unwrap();
     // see migrations for the default message
+    let challenge_message = "Please read this carefully:  Click to sign to prove you are in possesion of your private key to the account. This request will not trigger a blockchain transaction or cost any gas fees.";
+    let nonce = to_lower_hex(&keccak256(wallet_address.as_bytes()));
     let message: String = format!(
-        "\
-        Please read this carefully:\n\n\
-        Click to sign to prove you are in possesion of your private key to the account.\n\
-        This request will not trigger a blockchain transaction or cost any gas fees.\n\
-        Wallet address:\n\
-        {}\n\
-        \n\
-        Nonce:\n\
-        {}",
+        r#"{{
+	"domain": {{ "name": "Defguard", "version": "1" }},
+        "types": {{
+		"EIP712Domain": [
+                    {{ "name": "name", "type": "string" }},
+                    {{ "name": "version", "type": "string" }}
+		],
+		"ProofOfOwnership": [
+                    {{ "name": "wallet", "type": "address" }},
+                    {{ "name": "content", "type": "string" }},
+                    {{ "name": "nonce", "type": "string" }}
+		]
+	}},
+	"primaryType": "ProofOfOwnership",
+	"message": {{
+		"wallet": "{}",
+		"content": "{}",
+                "nonce": "{}"
+	}}}}
+        "#,
         wallet_address,
-        to_lower_hex(&keccak256(wallet_address.as_bytes()))
-    );
+        challenge_message
+            .replace('\n', " ")
+            .replace('\r', " ")
+            .replace('\t', " "),
+        nonce,
+    )
+    .trim()
+    .into();
+
     assert_eq!(challenge.message, message);
 
     let response = client.get("/api/v1/user/hpotter").dispatch().await;
@@ -271,7 +289,10 @@ async fn test_wallet() {
     let user_info: UserInfo = response.into_json().await.unwrap();
     assert!(user_info.wallets.is_empty());
     // Sign message
-    let message = Message::from_slice(&hash_message(&challenge.message)).unwrap();
+    let typed_data: TypedData = rocket::serde::json::serde_json::from_str(&message).unwrap();
+    let hash_msg = typed_data.encode_eip712().unwrap();
+    let message = Message::from_slice(&hash_msg).unwrap();
+
     let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
     let (rec_id, sig) = sig_r.serialize_compact();
 

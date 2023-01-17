@@ -3,7 +3,9 @@ use crate::{
     DbPool,
 };
 use chrono::{NaiveDateTime, Utc};
+use ethers::core::types::transaction::eip712::{Eip712, TypedData};
 use model_derive::Model;
+use rocket::serde::json::serde_json;
 use secp256k1::{
     ecdsa::{RecoverableSignature, RecoveryId},
     Message, Secp256k1,
@@ -96,8 +98,8 @@ impl Wallet {
     pub fn verify_address(&self, message: &str, signature: &str) -> Result<bool, Web3Error> {
         let address_array = hex_decode(&self.address).map_err(|_| Web3Error::Decode)?;
         let signature_array = hex_decode(signature).map_err(|_| Web3Error::Decode)?;
-
-        let hash_msg = hash_message(message);
+        let typed_data: TypedData = serde_json::from_str(message).map_err(|_| Web3Error::Decode)?;
+        let hash_msg = typed_data.encode_eip712().map_err(|_| Web3Error::Decode)?;
         let message = Message::from_slice(&hash_msg).map_err(|_| Web3Error::InvalidMessage)?;
         let id = match signature_array[64] {
             0 | 27 => 0,
@@ -140,18 +142,40 @@ impl Wallet {
         Ok(())
     }
 
+    /// Prepare challenge message using EIP-712 format
     pub fn format_challenge(address: &str, challenge_message: &str) -> String {
         let nonce = to_lower_hex(&keccak256(address.as_bytes()));
+
         format!(
-            "\
-            {}\n\
-            Wallet address:\n\
-            {}\n\
-            \n\
-            Nonce:\n\
-            {}",
-            challenge_message, address, nonce,
+            r#"{{
+	"domain": {{ "name": "Defguard", "version": "1" }},
+        "types": {{
+		"EIP712Domain": [
+                    {{ "name": "name", "type": "string" }},
+                    {{ "name": "version", "type": "string" }}
+		],
+		"ProofOfOwnership": [
+                    {{ "name": "wallet", "type": "address" }},
+                    {{ "name": "content", "type": "string" }},
+                    {{ "name": "nonce", "type": "string" }}
+		]
+	}},
+	"primaryType": "ProofOfOwnership",
+	"message": {{
+		"wallet": "{}",
+		"content": "{}",
+                "nonce": "{}"
+	}}}}
+        "#,
+            address,
+            challenge_message
+                .replace('\n', " ")
+                .replace('\r', " ")
+                .replace('\t', " "),
+            nonce
         )
+        .trim()
+        .into()
     }
 
     pub async fn find_by_user_and_address(
