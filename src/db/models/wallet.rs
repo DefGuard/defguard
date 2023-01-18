@@ -99,6 +99,7 @@ impl Wallet {
         let address_array = hex_decode(&self.address).map_err(|_| Web3Error::Decode)?;
         let signature_array = hex_decode(signature).map_err(|_| Web3Error::Decode)?;
         let typed_data: TypedData = serde_json::from_str(message).map_err(|_| Web3Error::Decode)?;
+        println!("{:?}", message);
         let hash_msg = typed_data.encode_eip712().map_err(|_| Web3Error::Decode)?;
         let message = Message::from_slice(&hash_msg).map_err(|_| Web3Error::InvalidMessage)?;
         let id = match signature_array[64] {
@@ -174,6 +175,9 @@ impl Wallet {
                 .replace('\t', " "),
             nonce
         )
+        .replace('\n', " ")
+        .replace('\r', " ")
+        .replace('\t', " ")
         .trim()
         .into()
     }
@@ -213,16 +217,21 @@ mod test {
     #[test]
     fn test_verify_address() {
         for (address, signature) in [
-            ("0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
-            "0xcf9a650ed3dbb594f68a0614fc385363f17a150f0ced6e0e92f6cc40923ec0d86c70aa3a74e73216a57d6ae6a1e07e5951416491a2660a88d5d78a5ec7e4a9bd1c"),
-            ("0x8B9B066ebe684Efcf0Cf882392A1225744a1E5a5",
-            "0x4288f0a78b55bd3d731f4ffab3504bf6a1fe1c01aeb8f4ec21cb4d3db1459592524d595ab3b745001e8b4626e5d4741facbbf0b7ade41076664287ba7bd8d1c600"),
-            ("0xd3Fce6f0794901b5d43A92935693F7c1A364Da29",
-            "0xad419ec9ac28625a246a7a70c5a28f7057a54265cfae427d977deb6196bcfac26e847b4a6f942b793b19f2a6803bc49019e4867fafff8830d7270db48dddd21a01"),
+            ("0x6cD15DA14A4Ef26047f1D7858D7A82b59DDCa102",
+            "0x3aa6174aeb34eb8f722666893ce4c6d05990571d0668bf5bff833a1c9f51cbf53e7775383d6e58d75a5ad21e8d1817e59c628944479728031e7cc6bef99dca701c"),
+            ("0x8AEF669452465635355923E4Dc80990aEAEE3b8d",
+            "0xd18f9778958d276f21f905ac295664d4e1e3df691ea5e53927b346af6258291d538312966f669aa9686651f6481ed52dbb7a6dbc91abb1a89f8e683b2733e0be1b"),
+            ("0xE8e659AD9E99afd41f97015Cb2E2a96dD7456fA0",
+            "0x2b2a84dea21e9a4df9ea1de174708f89f4fc89f86765287cd39584a1b3043d5a53e8b093b81a12505f9605017c96996f36b89989672aafdf9cb90a566ce59c4e1b"),
         ] {
-            let wallet = Wallet::new_for_user(0, address.into(), String::new(), 0, String::new());
+            let challenge_message = "Please read this carefully:
+
+Click to sign to prove you are in possesion of your private key to the account.
+This request will not trigger a blockchain transaction or cost any gas fees.";
+            let message =  Wallet::format_challenge(address, challenge_message);
+            let wallet = Wallet::new_for_user(0, address.into(), String::new(), 0, message.clone());
             let result = wallet.verify_address(
-                "By signing this message you confirm that you're the owner of the wallet",
+                &message,
                 signature,
             )
             .unwrap();

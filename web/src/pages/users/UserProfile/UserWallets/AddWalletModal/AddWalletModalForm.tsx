@@ -2,12 +2,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import {
-  useAccount,
-  useDisconnect,
-  useNetwork,
-  useSignTypedData,
-} from 'wagmi';
+import { useAccount, useDisconnect, useNetwork, useSignTypedData } from 'wagmi';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -66,13 +61,11 @@ export const AddWalletModalForm = () => {
     mutationKey: [MutationKeys.WALLET_CHALLENGE],
     onSuccess: async (data, variables) => {
       if (!chain?.id) return;
-      //const test = JSON.parse(data.message)
       const message = JSON.parse(data.message);
       const types = message.types;
       const domain = message.domain;
       const value = message.message;
       const signature = await signTypedDataAsync({ types, domain, value });
-      console.log(signature);
       AddWalletMutation.mutate({
         name: variables.name || 'My wallet',
         chain_id: chain.id,
