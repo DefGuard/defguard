@@ -275,14 +275,8 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
                 "nonce": "{}"
 	}}}}
         "#,
-        wallet_address,
-        challenge_message
-            .chars()
-            .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
-            .collect::<String>(),
-        nonce,
+        wallet_address, challenge_message, nonce,
     )
-    .trim()
     .chars()
     .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
     .collect::<String>();

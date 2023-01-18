@@ -167,14 +167,8 @@ impl Wallet {
                 "nonce": "{}"
 	}}}}
         "#,
-            address,
-            challenge_message
-                .chars()
-                .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
-                .collect::<String>(),
-            nonce
+            address, challenge_message, nonce
         )
-        .trim()
         .chars()
         .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
         .collect()
