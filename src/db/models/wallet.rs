@@ -3,7 +3,9 @@ use crate::{
     DbPool,
 };
 use chrono::{NaiveDateTime, Utc};
+use ethers::core::types::transaction::eip712::{Eip712, TypedData};
 use model_derive::Model;
+use rocket::serde::json::serde_json;
 use secp256k1::{
     ecdsa::{RecoverableSignature, RecoveryId},
     Message, Secp256k1,
@@ -96,8 +98,8 @@ impl Wallet {
     pub fn verify_address(&self, message: &str, signature: &str) -> Result<bool, Web3Error> {
         let address_array = hex_decode(&self.address).map_err(|_| Web3Error::Decode)?;
         let signature_array = hex_decode(signature).map_err(|_| Web3Error::Decode)?;
-
-        let hash_msg = hash_message(message);
+        let typed_data: TypedData = serde_json::from_str(message).map_err(|_| Web3Error::Decode)?;
+        let hash_msg = typed_data.encode_eip712().map_err(|_| Web3Error::Decode)?;
         let message = Message::from_slice(&hash_msg).map_err(|_| Web3Error::InvalidMessage)?;
         let id = match signature_array[64] {
             0 | 27 => 0,
@@ -140,18 +142,36 @@ impl Wallet {
         Ok(())
     }
 
+    /// Prepare challenge message using EIP-712 format
     pub fn format_challenge(address: &str, challenge_message: &str) -> String {
         let nonce = to_lower_hex(&keccak256(address.as_bytes()));
+
         format!(
-            "\
-            {}\n\
-            Wallet address:\n\
-            {}\n\
-            \n\
-            Nonce:\n\
-            {}",
-            challenge_message, address, nonce,
+            r#"{{
+	"domain": {{ "name": "Defguard", "version": "1" }},
+        "types": {{
+		"EIP712Domain": [
+                    {{ "name": "name", "type": "string" }},
+                    {{ "name": "version", "type": "string" }}
+		],
+		"ProofOfOwnership": [
+                    {{ "name": "wallet", "type": "address" }},
+                    {{ "name": "content", "type": "string" }},
+                    {{ "name": "nonce", "type": "string" }}
+		]
+	}},
+	"primaryType": "ProofOfOwnership",
+	"message": {{
+		"wallet": "{}",
+		"content": "{}",
+                "nonce": "{}"
+	}}}}
+        "#,
+            address, challenge_message, nonce
         )
+        .chars()
+        .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
+        .collect()
     }
 
     pub async fn find_by_user_and_address(
@@ -189,16 +209,21 @@ mod test {
     #[test]
     fn test_verify_address() {
         for (address, signature) in [
-            ("0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
-            "0xcf9a650ed3dbb594f68a0614fc385363f17a150f0ced6e0e92f6cc40923ec0d86c70aa3a74e73216a57d6ae6a1e07e5951416491a2660a88d5d78a5ec7e4a9bd1c"),
-            ("0x8B9B066ebe684Efcf0Cf882392A1225744a1E5a5",
-            "0x4288f0a78b55bd3d731f4ffab3504bf6a1fe1c01aeb8f4ec21cb4d3db1459592524d595ab3b745001e8b4626e5d4741facbbf0b7ade41076664287ba7bd8d1c600"),
-            ("0xd3Fce6f0794901b5d43A92935693F7c1A364Da29",
-            "0xad419ec9ac28625a246a7a70c5a28f7057a54265cfae427d977deb6196bcfac26e847b4a6f942b793b19f2a6803bc49019e4867fafff8830d7270db48dddd21a01"),
+            ("0x6cD15DA14A4Ef26047f1D7858D7A82b59DDCa102",
+            "0xfb812c61b3d5f3ea729a049b4f14c28c07938367c91062c959150e1a3273f07772f162c5abf8312be39c3a6640c47e02866bcd19b5545bc5650d5870547a1a8f1c"),
+            ("0x8AEF669452465635355923E4Dc80990aEAEE3b8d",
+            "0xefa7641e06c0d35e9386a3d97d50c5a2fffc7c5838ea42647093417b62bd1dc830ce8ecea3f9173190ee6c215a8a423fd1110caba06b6dc474e0792f802dfdc31b"),
+            ("0xE8e659AD9E99afd41f97015Cb2E2a96dD7456fA0",
+            "0x47d3eddfb2ed3ad1776c704fbe90737286ede2931c9e561abe6ce33606f411a00eafc25ec540e5db7ea82364e7df1e4722a916a828f02746a28773ae0e7bf3f31b"),
         ] {
-            let wallet = Wallet::new_for_user(0, address.into(), String::new(), 0, String::new());
+            let challenge_message = "Please read this carefully:
+
+Click to sign to prove you are in possesion of your private key to the account.
+This request will not trigger a blockchain transaction or cost any gas fees.";
+            let message =  Wallet::format_challenge(address, challenge_message);
+            let wallet = Wallet::new_for_user(0, address.into(), String::new(), 0, message.clone());
             let result = wallet.verify_address(
-                "By signing this message you confirm that you're the owner of the wallet",
+                &message,
                 signature,
             )
             .unwrap();

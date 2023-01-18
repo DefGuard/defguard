@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useAccount, useSignMessage, useSignTypedData } from 'wagmi';
 import shallow from 'zustand/shallow';
 import { useI18nContext } from '../../../../i18n/i18n-react';
 
@@ -74,9 +74,11 @@ export const MFAWeb3 = () => {
     {
       onSuccess: (data) => {
         if (isConnected) {
-          signMessage({
-            message: data.challenge,
-          });
+          const message = JSON.parse(data.challenge);
+          const types = message.types;
+          const domain = message.domain;
+          const value = message.message;
+          signTypedData({ types, domain, value });
         } else {
           toaster.error(LL.loginPage.mfa.wallet.messages.walletError());
         }
@@ -86,7 +88,7 @@ export const MFAWeb3 = () => {
 
   const navigate = useNavigate();
 
-  const { signMessage, isLoading: isSigning } = useSignMessage({
+  const { signTypedData, isLoading: isSigning } = useSignTypedData({
     onSuccess: (data) => {
       if (address) {
         mfaFinishMutation({

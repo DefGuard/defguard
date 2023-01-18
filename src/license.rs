@@ -1,6 +1,6 @@
 use base64;
 use chrono::{NaiveDate, Utc};
-use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
+use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
 /// Decoded license information
 /// Important: order must be preserved for bincode.
@@ -95,7 +95,7 @@ impl License {
         if !license.is_empty() {
             // Verify the signature.
             let public_key = RsaPublicKey::from_public_key_pem(PUBLIC_KEY).unwrap();
-            let padding = PaddingScheme::new_pkcs1v15_sign(None);
+            let padding = PaddingScheme::new_pkcs1v15_sign_raw();
             let license_decoded = match base64::decode(license) {
                 Ok(license_decoded) => license_decoded,
                 Err(e) => {
