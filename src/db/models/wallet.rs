@@ -169,16 +169,15 @@ impl Wallet {
         "#,
             address,
             challenge_message
-                .replace('\n', " ")
-                .replace('\r', " ")
-                .replace('\t', " "),
+                .chars()
+                .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
+                .collect::<String>(),
             nonce
         )
-        .replace('\n', " ")
-        .replace('\r', " ")
-        .replace('\t', " ")
         .trim()
-        .into()
+        .chars()
+        .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
+        .collect()
     }
 
     pub async fn find_by_user_and_address(
@@ -217,11 +216,11 @@ mod test {
     fn test_verify_address() {
         for (address, signature) in [
             ("0x6cD15DA14A4Ef26047f1D7858D7A82b59DDCa102",
-            "0x3aa6174aeb34eb8f722666893ce4c6d05990571d0668bf5bff833a1c9f51cbf53e7775383d6e58d75a5ad21e8d1817e59c628944479728031e7cc6bef99dca701c"),
+            "0xfb812c61b3d5f3ea729a049b4f14c28c07938367c91062c959150e1a3273f07772f162c5abf8312be39c3a6640c47e02866bcd19b5545bc5650d5870547a1a8f1c"),
             ("0x8AEF669452465635355923E4Dc80990aEAEE3b8d",
-            "0xd18f9778958d276f21f905ac295664d4e1e3df691ea5e53927b346af6258291d538312966f669aa9686651f6481ed52dbb7a6dbc91abb1a89f8e683b2733e0be1b"),
+            "0xefa7641e06c0d35e9386a3d97d50c5a2fffc7c5838ea42647093417b62bd1dc830ce8ecea3f9173190ee6c215a8a423fd1110caba06b6dc474e0792f802dfdc31b"),
             ("0xE8e659AD9E99afd41f97015Cb2E2a96dD7456fA0",
-            "0x2b2a84dea21e9a4df9ea1de174708f89f4fc89f86765287cd39584a1b3043d5a53e8b093b81a12505f9605017c96996f36b89989672aafdf9cb90a566ce59c4e1b"),
+            "0x47d3eddfb2ed3ad1776c704fbe90737286ede2931c9e561abe6ce33606f411a00eafc25ec540e5db7ea82364e7df1e4722a916a828f02746a28773ae0e7bf3f31b"),
         ] {
             let challenge_message = "Please read this carefully:
 

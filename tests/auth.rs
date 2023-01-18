@@ -406,16 +406,15 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
         "#,
         wallet_address,
         challenge_message
-            .replace('\n', " ")
-            .replace('\r', " ")
-            .replace('\t', " "),
+            .chars()
+            .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
+            .collect::<String>(),
         nonce,
     )
-    .replace('\n', " ")
-    .replace('\r', " ")
-    .replace('\t', " ")
     .trim()
-    .into();
+    .chars()
+    .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
+    .collect::<String>();
     assert_eq!(data.challenge, message);
 
     // Sign message
