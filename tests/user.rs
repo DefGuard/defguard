@@ -249,8 +249,11 @@ async fn test_wallet() {
     assert_eq!(response.status(), Status::Ok);
     let challenge: WalletChallenge = response.into_json().await.unwrap();
     // see migrations for the default message
-    let challenge_message = "Please read this carefully:  Click to sign to prove you are in possesion of your private key to the account. This request will not trigger a blockchain transaction or cost any gas fees.";
     let nonce = to_lower_hex(&keccak256(wallet_address.as_bytes()));
+    let challenge_message = "Please read this carefully:
+
+Click to sign to prove you are in possesion of your private key to the account.
+This request will not trigger a blockchain transaction or cost any gas fees.";
     let message: String = format!(
         r#"{{
 	"domain": {{ "name": "Defguard", "version": "1" }},
@@ -279,6 +282,9 @@ async fn test_wallet() {
             .replace('\t', " "),
         nonce,
     )
+    .replace('\n', " ")
+    .replace('\r', " ")
+    .replace('\t', " ")
     .trim()
     .into();
 

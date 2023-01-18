@@ -379,7 +379,10 @@ async fn test_web3() {
     let data: Challenge = response.into_json().await.unwrap();
 
     let nonce = to_lower_hex(&keccak256(wallet_address.as_bytes()));
-    let challenge_message = "Please read this carefully:  Click to sign to prove you are in possesion of your private key to the account. This request will not trigger a blockchain transaction or cost any gas fees.";
+    let challenge_message = "Please read this carefully:
+
+Click to sign to prove you are in possesion of your private key to the account.
+This request will not trigger a blockchain transaction or cost any gas fees.";
     let message: String = format!(
         r#"{{
 	"domain": {{ "name": "Defguard", "version": "1" }},
@@ -408,6 +411,9 @@ async fn test_web3() {
             .replace('\t', " "),
         nonce,
     )
+    .replace('\n', " ")
+    .replace('\r', " ")
+    .replace('\t', " ")
     .trim()
     .into();
     assert_eq!(data.challenge, message);
