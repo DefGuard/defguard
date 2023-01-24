@@ -110,6 +110,10 @@ export const OverviewPage = () => {
     navigate('../network');
   };
 
+  if (networks && networks.length === 0) {
+    navigate('../network');
+  }
+
   return (
     <>
       <PageContainer id="network-overview-page">
@@ -119,8 +123,8 @@ export const OverviewPage = () => {
               styleVariant={ButtonStyleVariant.STANDARD}
               text={
                 isUndefined(networks) || !networks?.length
-                    ? LL.networkOverview.controls.configureNetwork()
-                    : LL.networkOverview.controls.editNetwork()
+                  ? LL.networkOverview.controls.configureNetwork()
+                  : LL.networkOverview.controls.editNetwork()
               }
               icon={<IconEditNetwork />}
               disabled={networksLoading}
