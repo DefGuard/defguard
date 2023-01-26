@@ -46,10 +46,10 @@ pub enum Features {
     Openid,
 }
 
-impl License {
+impl Default for License {
     /// Create default community license in case no license supplied
     #[must_use]
-    pub fn default() -> Self {
+    fn default() -> Self {
         Self {
             company: "community".into(),
             expiration: NaiveDate::from_ymd_opt(2100, 1, 1).unwrap_or_default(),
@@ -60,7 +60,9 @@ impl License {
             enterprise: false,
         }
     }
+}
 
+impl License {
     fn get(&self, feature: &Features) -> bool {
         match feature {
             Features::Ldap => self.ldap,
