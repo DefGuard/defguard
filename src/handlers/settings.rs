@@ -45,11 +45,11 @@ pub async fn set_default_branding(
             settings.main_logo_url = "/svg/logo-defguard-white.svg".into();
             settings.save(&appstate.pool).await?;
             info!("Restored default branding settings");
-            return Ok(ApiResponse {
+            Ok(ApiResponse {
                 json: json!(settings),
                 status: Status::Ok,
-            });
+            })
         }
-        None => return Err(OriWebError::DbError("Cannot restore settings".into())),
+        None => Err(OriWebError::DbError("Cannot restore settings".into())),
     }
 }

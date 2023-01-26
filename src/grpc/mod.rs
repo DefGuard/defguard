@@ -63,7 +63,7 @@ pub async fn run_grpc_server(
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), grpc_port);
     info!("Started gRPC services");
     let mut builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
-        let identity = Identity::from_pem(&cert, &key);
+        let identity = Identity::from_pem(cert, key);
         Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
     } else {
         Server::builder()
