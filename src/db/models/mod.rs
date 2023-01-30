@@ -1,6 +1,14 @@
+#[cfg(feature = "openid")]
+mod auth_code;
 pub mod device;
 pub mod error;
 pub mod group;
+#[cfg(feature = "openid")]
+mod oauth2authorizedapp;
+#[cfg(feature = "openid")]
+mod oauth2client;
+#[cfg(feature = "openid")]
+mod oauth2token;
 pub mod session;
 pub mod settings;
 pub mod user;
@@ -13,6 +21,21 @@ use super::{DbPool, Group};
 use device::Device;
 use sqlx::{query_as, Error as SqlxError};
 use user::{MFAMethod, User};
+
+#[cfg(feature = "openid")]
+pub use {
+    auth_code::AuthCode, oauth2authorizedapp::OAuth2AuthorizedApp, oauth2client::OAuth2Client,
+    oauth2token::OAuth2Token,
+};
+
+#[cfg(feature = "openid")]
+#[derive(Deserialize, Serialize)]
+pub struct NewOpenIDClient {
+    pub name: String,
+    pub redirect_uri: Vec<String>,
+    pub scope: Vec<String>,
+    pub enabled: bool,
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct WalletInfo {
@@ -35,6 +58,7 @@ pub struct SecurityKey {
     pub id: i64,
     pub name: String,
 }
+
 #[derive(Deserialize, Serialize)]
 pub struct UserInfo {
     pub username: String,
