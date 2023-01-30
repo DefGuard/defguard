@@ -2,7 +2,7 @@ use crate::{
     appstate::AppState,
     auth::{SessionInfo, SESSION_TIMEOUT},
     db::{DbPool, Session, User},
-    enterprise::db::{AuthCode, OAuth2AuthorizedApp, OAuth2Client, OAuth2Token},
+    db::{AuthCode, OAuth2AuthorizedApp, OAuth2Client, OAuth2Token},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
 };
