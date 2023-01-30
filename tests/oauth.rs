@@ -1,7 +1,6 @@
 use defguard::{
     build_webapp,
-    db::{AppEvent, GatewayEvent},
-    enterprise::db::NewOpenIDClient,
+    db::{models::NewOpenIDClient, AppEvent, GatewayEvent},
     grpc::GatewayState,
     handlers::Auth,
 };

@@ -1,8 +1,10 @@
 use defguard::{
     build_webapp,
     config::DefGuardConfig,
-    db::{AppEvent, DbPool, GatewayEvent},
-    enterprise::db::{NewOpenIDClient, OAuth2Client},
+    db::{
+        models::{oauth2client::OAuth2Client, NewOpenIDClient},
+        AppEvent, DbPool, GatewayEvent,
+    },
     grpc::GatewayState,
     handlers::Auth,
 };

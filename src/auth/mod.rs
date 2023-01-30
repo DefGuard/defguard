@@ -1,7 +1,6 @@
 use crate::{
     appstate::AppState,
-    db::{Session, SessionState, User},
-    enterprise::db::{OAuth2AuthorizedApp, OAuth2Token},
+    db::{OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
     error::OriWebError,
 };
 use jsonwebtoken::{

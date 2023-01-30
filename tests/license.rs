@@ -1,12 +1,12 @@
+use defguard::grpc::{GatewayState, WorkerState};
 #[cfg(feature = "worker")]
-use defguard::enterprise::handlers::worker::{create_job, job_status, list_workers, remove_worker};
+use defguard::handlers::worker::{create_job, job_status, list_workers, remove_worker};
 use defguard::{
     build_webapp,
     db::{AppEvent, GatewayEvent},
     handlers::Auth,
     license::{Features, License},
 };
-use defguard::{enterprise::grpc::WorkerState, grpc::GatewayState};
 use rocket::{http::Status, local::asynchronous::Client, routes};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;

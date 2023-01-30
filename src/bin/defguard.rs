@@ -2,8 +2,7 @@ use clap::Parser;
 use defguard::{
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent},
-    enterprise::grpc::WorkerState,
-    grpc::{run_grpc_server, GatewayState},
+    grpc::{run_grpc_server, GatewayState, WorkerState},
     init_dev_env, run_web_server,
 };
 use fern::{

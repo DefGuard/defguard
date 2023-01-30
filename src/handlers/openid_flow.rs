@@ -1,8 +1,11 @@
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, SESSION_TIMEOUT},
+    db::{
+        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
+        OAuth2AuthorizedApp, OAuth2Token,
+    },
     db::{DbPool, Session, User},
-    db::{AuthCode, OAuth2AuthorizedApp, OAuth2Client, OAuth2Token},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
 };

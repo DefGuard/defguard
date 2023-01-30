@@ -1,7 +1,7 @@
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    enterprise::db::{NewOpenIDClient, OAuth2Client},
+    db::models::{oauth2client::OAuth2Client, NewOpenIDClient},
     handlers::{webhooks::ChangeStateData, ApiResponse, ApiResult},
 };
 use rocket::{
