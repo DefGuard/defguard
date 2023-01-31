@@ -1,9 +1,11 @@
 #[cfg(feature = "worker")]
-use crate::grpc::worker::{worker_service_server::WorkerServiceServer, WorkerServer};
 use crate::{
     auth::ClaimsType,
     db::{DbPool, GatewayEvent},
-    grpc::interceptor::JwtInterceptor,
+    grpc::{
+        interceptor::JwtInterceptor,
+        worker::{worker_service_server::WorkerServiceServer, WorkerServer},
+    },
 };
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
 #[cfg(feature = "wireguard")]
