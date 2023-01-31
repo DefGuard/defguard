@@ -1,4 +1,4 @@
-use crate::{db::models::error::ModelError, enterprise::ldap::error::OriLDAPError};
+use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
 use sqlx::error::Error as SqlxError;
 use std::{error::Error, fmt};
 

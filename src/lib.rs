@@ -67,11 +67,11 @@ pub mod appstate;
 pub mod auth;
 pub mod config;
 pub mod db;
-pub mod enterprise;
 mod error;
 pub mod grpc;
 pub mod handlers;
 pub mod hex;
+pub mod ldap;
 pub mod license;
 pub(crate) mod random;
 

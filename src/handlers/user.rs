@@ -6,10 +6,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserInfo, Wallet, WebAuthn},
-    enterprise::ldap::utils::{
-        ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user,
-    },
     error::OriWebError,
+    ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     license::Features,
 };
 use rocket::{

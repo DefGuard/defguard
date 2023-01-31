@@ -1,7 +1,7 @@
 use crate::{
     config::DefGuardConfig,
     db::{DbPool, User},
-    enterprise::ldap::{error::OriLDAPError, LDAPConnection},
+    ldap::{error::OriLDAPError, LDAPConnection},
 };
 
 pub async fn user_from_ldap(
