@@ -1,5 +1,5 @@
 use base64;
-use chrono::{NaiveDate, Utc};
+use chrono::NaiveDate;
 use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
 /// Decoded license information
@@ -47,22 +47,23 @@ pub enum Features {
 }
 
 impl Default for License {
-    /// Create default community license in case no license supplied
+    /// Create default license
     #[must_use]
     fn default() -> Self {
         Self {
-            company: "community".into(),
+            company: "default".into(),
             expiration: NaiveDate::from_ymd_opt(2100, 1, 1).unwrap_or_default(),
-            ldap: false,
-            oauth: false,
-            openid: false,
-            worker: false,
-            enterprise: false,
+            ldap: true,
+            oauth: true,
+            openid: true,
+            worker: true,
+            enterprise: true,
         }
     }
 }
 
 impl License {
+    #[allow(dead_code)]
     fn get(&self, feature: &Features) -> bool {
         match feature {
             Features::Ldap => self.ldap,
@@ -72,13 +73,15 @@ impl License {
     }
 
     #[must_use]
-    pub fn validate(&self, feature: &Features) -> bool {
-        if self.expiration < Utc::now().naive_utc().date() {
-            info!("License expired");
-            false
-        } else {
-            self.enterprise || self.get(feature)
-        }
+    pub fn validate(&self, _feature: &Features) -> bool {
+        true
+        // // Old license validation
+        // if self.expiration < Utc::now().naive_utc().date() {
+        //     info!("License expired");
+        //     false
+        // } else {
+        //     self.enterprise || self.get(feature)
+        // }
     }
 
     // Enterprise license enables all features.
