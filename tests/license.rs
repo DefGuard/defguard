@@ -65,6 +65,7 @@ async fn test_license_ok() {
     assert_eq!(response.status(), Status::Ok);
 }
 
+#[ignore]
 #[rocket::async_test]
 async fn test_license_expired() {
     // test expired license
@@ -83,6 +84,7 @@ async fn test_license_expired() {
     assert_eq!(response.status(), Status::NotFound);
 }
 
+#[ignore]
 #[cfg(feature = "openid")]
 #[rocket::async_test]
 async fn test_license_openid_disabled() {

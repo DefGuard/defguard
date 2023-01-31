@@ -72,7 +72,6 @@ tonic-build = "0.8"
 
 [features]
 default = ["openid", "wireguard", "worker"]
-mock-license-key = []
 openid = ["dep:openidconnect"]
 worker = []
 wireguard = []
