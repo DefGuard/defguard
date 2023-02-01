@@ -32,7 +32,7 @@ export const ProvisioningStationSetup = ({ hasAccess = false }: Props) => {
   });
 
   const command = hasAccess
-    ? `docker compose run ykdev -g -w ${data?.token}`
+    ? `docker compose run yubi-bridge --grpc --worker-token ${data?.token}`
     : '';
 
   const getActions = useMemo(
