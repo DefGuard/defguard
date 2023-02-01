@@ -62,4 +62,4 @@ jobs:
           DEFGUARD_DB_USER: defguard
           DEFGUARD_DB_PASSWORD: defguard
           SQLX_OFFLINE: true
-        run: cargo test --locked --no-fail-fast --features mock-license-key
+        run: cargo test --locked --no-fail-fast
