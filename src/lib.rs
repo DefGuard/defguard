@@ -3,11 +3,11 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 
 #[cfg(feature = "worker")]
-use crate::enterprise::handlers::worker::{
+use crate::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
 };
 #[cfg(feature = "openid")]
-use crate::enterprise::handlers::{
+use crate::handlers::{
     openid_clients::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
         get_openid_client, list_openid_clients,
@@ -16,10 +16,10 @@ use crate::enterprise::handlers::{
         authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
     },
 };
-use crate::enterprise::{db::OAuth2Client, grpc::WorkerState};
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
 use crate::license::License;
+use crate::{db::models::oauth2client::OAuth2Client, grpc::WorkerState};
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
@@ -67,11 +67,11 @@ pub mod appstate;
 pub mod auth;
 pub mod config;
 pub mod db;
-pub mod enterprise;
 mod error;
 pub mod grpc;
 pub mod handlers;
 pub mod hex;
+pub mod ldap;
 pub mod license;
 pub(crate) mod random;
 

@@ -1,5 +1,5 @@
 use base64;
-use chrono::{NaiveDate, Utc};
+use chrono::NaiveDate;
 use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
 /// Decoded license information
@@ -15,7 +15,6 @@ pub struct License {
     pub enterprise: bool,
 }
 
-#[cfg(feature = "mock-license-key")]
 pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoowOenhBJnaS5C/W9kHX
 Vz6LQYUXczT1BasE+ehy53LWnj5nPD98J0/h3mUNrYcr28qKfj8MVNBDcvzRDCx2
@@ -27,18 +26,6 @@ jQIDAQAB
 -----END PUBLIC KEY-----
 ";
 
-#[cfg(not(feature = "mock-license-key"))]
-pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApI/JdghL3uSNqRbFwAv3
-s5tQQKfqL60srY6uaxng4dtpt0juWIhdzhoDEwUqJL8RA7mIRxJZ+FrgwrHm6Q7a
-GI1TCKL+7QEjgNRlemtb9LeVo1eK3SVpV3UnXLAOTXnWXZanYcPYDp4MpflTUAIN
-/iTCtjwn+0piSCXgj2qlmMiDQfTWcBQgSimDSYN1MXi74OczEnKtEt9WuMfluAib
-t08etN/WX8S/FAiWicyL84Ol5htk1iLPwaP8FfAEvmpMY7obXATbBx+HNk8Zd1TU
-1jbEqXTQn9RNLAZBwyMs4EeuuvzKgbOvsEyLTOEy9n7VtShG8X5VqFrPGuDmYTvS
-7QIDAQAB
------END PUBLIC KEY-----
-";
-
 #[derive(Serialize)]
 pub enum Features {
     Ldap,
@@ -47,22 +34,23 @@ pub enum Features {
 }
 
 impl Default for License {
-    /// Create default community license in case no license supplied
+    /// Create default license
     #[must_use]
     fn default() -> Self {
         Self {
-            company: "community".into(),
+            company: "default".into(),
             expiration: NaiveDate::from_ymd_opt(2100, 1, 1).unwrap_or_default(),
-            ldap: false,
-            oauth: false,
-            openid: false,
-            worker: false,
-            enterprise: false,
+            ldap: true,
+            oauth: true,
+            openid: true,
+            worker: true,
+            enterprise: true,
         }
     }
 }
 
 impl License {
+    #[allow(dead_code)]
     fn get(&self, feature: &Features) -> bool {
         match feature {
             Features::Ldap => self.ldap,
@@ -72,13 +60,15 @@ impl License {
     }
 
     #[must_use]
-    pub fn validate(&self, feature: &Features) -> bool {
-        if self.expiration < Utc::now().naive_utc().date() {
-            info!("License expired");
-            false
-        } else {
-            self.enterprise || self.get(feature)
-        }
+    pub fn validate(&self, _feature: &Features) -> bool {
+        true
+        // // Old license validation
+        // if self.expiration < Utc::now().naive_utc().date() {
+        //     info!("License expired");
+        //     false
+        // } else {
+        //     self.enterprise || self.get(feature)
+        // }
     }
 
     // Enterprise license enables all features.

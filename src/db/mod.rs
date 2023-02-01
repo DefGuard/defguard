@@ -25,6 +25,8 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
 pub use models::{
     device::{AddDevice, Device},
     group::Group,
+    oauth2authorizedapp::OAuth2AuthorizedApp,
+    oauth2token::OAuth2Token,
     session::{Session, SessionState},
     settings::Settings,
     user::{MFAMethod, User},

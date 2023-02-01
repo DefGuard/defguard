@@ -17,12 +17,18 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 pub(crate) mod auth;
 pub(crate) mod group;
 pub(crate) mod license;
+#[cfg(feature = "openid")]
+pub mod openid_clients;
+#[cfg(feature = "openid")]
+pub mod openid_flow;
 pub(crate) mod settings;
 pub(crate) mod user;
 pub(crate) mod version;
 pub(crate) mod webhooks;
 #[cfg(feature = "wireguard")]
 pub mod wireguard;
+#[cfg(feature = "worker")]
+pub mod worker;
 
 #[derive(Default)]
 pub struct ApiResponse {

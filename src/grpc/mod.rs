@@ -1,10 +1,11 @@
 #[cfg(feature = "worker")]
-use crate::enterprise::grpc::worker::{worker_service_server::WorkerServiceServer, WorkerServer};
 use crate::{
     auth::ClaimsType,
     db::{DbPool, GatewayEvent},
-    enterprise::grpc::WorkerState,
-    grpc::interceptor::JwtInterceptor,
+    grpc::{
+        interceptor::JwtInterceptor,
+        worker::{worker_service_server::WorkerServiceServer, WorkerServer},
+    },
 };
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
 #[cfg(feature = "wireguard")]
@@ -17,11 +18,18 @@ use std::{
 use tokio::sync::{mpsc::UnboundedReceiver, Mutex as AsyncMutex};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
+use crate::db::AppEvent;
+use serde::Serialize;
+use std::{collections::hash_map::HashMap, time::Instant};
+use tokio::sync::mpsc::UnboundedSender;
+
 mod auth;
 #[cfg(feature = "wireguard")]
 mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
+#[cfg(feature = "worker")]
+pub mod worker;
 
 pub struct GatewayState {
     pub connected: bool,
@@ -75,4 +83,46 @@ pub async fn run_grpc_server(
     let router = router.add_service(worker_service);
     router.serve(addr).await?;
     Ok(())
+}
+
+#[cfg(feature = "worker")]
+pub struct Job {
+    id: u32,
+    first_name: String,
+    last_name: String,
+    email: String,
+    username: String,
+}
+
+#[cfg(feature = "worker")]
+#[derive(Serialize)]
+pub struct JobResponse {
+    pub success: bool,
+    pgp_key: String,
+    pgp_cert_id: String,
+    ssh_key: String,
+    pub error: String,
+}
+
+#[cfg(feature = "worker")]
+pub struct WorkerInfo {
+    last_seen: Instant,
+    ip: IpAddr,
+    jobs: Vec<Job>,
+}
+
+#[cfg(feature = "worker")]
+pub struct WorkerState {
+    current_job_id: u32,
+    workers: HashMap<String, WorkerInfo>,
+    job_status: HashMap<u32, JobResponse>,
+    webhook_tx: UnboundedSender<AppEvent>,
+}
+
+#[cfg(feature = "worker")]
+#[derive(Serialize)]
+pub struct WorkerDetail {
+    id: String,
+    ip: IpAddr,
+    connected: bool,
 }

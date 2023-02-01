@@ -6,8 +6,8 @@ use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
-    enterprise::ldap::utils::user_from_ldap,
     error::OriWebError,
+    ldap::utils::user_from_ldap,
     license::Features,
 };
 use rocket::{

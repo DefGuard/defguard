@@ -3,9 +3,9 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{Group, User},
-    enterprise::ldap::utils::{ldap_add_user_to_group, ldap_remove_user_from_group},
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
+    ldap::utils::{ldap_add_user_to_group, ldap_remove_user_from_group},
 };
 use rocket::{
     http::Status,

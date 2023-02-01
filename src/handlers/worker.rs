@@ -2,8 +2,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::User,
-    enterprise::grpc::WorkerState,
     error::OriWebError,
+    grpc::WorkerState,
     handlers::{ApiResponse, ApiResult},
 };
 

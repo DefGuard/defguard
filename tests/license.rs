@@ -1,12 +1,12 @@
+use defguard::grpc::{GatewayState, WorkerState};
 #[cfg(feature = "worker")]
-use defguard::enterprise::handlers::worker::{create_job, job_status, list_workers, remove_worker};
+use defguard::handlers::worker::{create_job, job_status, list_workers, remove_worker};
 use defguard::{
     build_webapp,
     db::{AppEvent, GatewayEvent},
     handlers::Auth,
     license::{Features, License},
 };
-use defguard::{enterprise::grpc::WorkerState, grpc::GatewayState};
 use rocket::{http::Status, local::asynchronous::Client, routes};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
@@ -65,6 +65,7 @@ async fn test_license_ok() {
     assert_eq!(response.status(), Status::Ok);
 }
 
+#[ignore]
 #[rocket::async_test]
 async fn test_license_expired() {
     // test expired license
@@ -83,6 +84,7 @@ async fn test_license_expired() {
     assert_eq!(response.status(), Status::NotFound);
 }
 
+#[ignore]
 #[cfg(feature = "openid")]
 #[rocket::async_test]
 async fn test_license_openid_disabled() {
