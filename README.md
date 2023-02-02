@@ -12,46 +12,24 @@ Defguard is an open-source identity management system made with the aim to make 
 
 **Features:**
 
-* Wireguard VPN management
-* Webhooks
-* LDAP synchronization
-* Yubikey Provisioning
 * OpenID connect provider
+* Wireguard VPN management
+* LDAP synchronization
+* Webhooks
+* Yubikey Provisioning
 
  <p align="center">
     <img src="docs/network-overview.png" alt="defguard">
  </p>
 
-See the [documentation](https://neovim.io/doc/general/) for more information.
-
-* [Introduction to DefGuard](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/)
-* Community features
-  * [Deploying your instance](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/community-features/setting-up-your-instance)
-  * [Webhooks](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/community-features/webhooks)
-  * [WireGuard](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/community-features/wireguard)
-* Enterprise features
-  * [LDAP synchronization](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/enterprise-features/ldap-synchronization-setup)
-  * [OpenID Connect](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/enterprise-features/openid-connect)
-  * [YubiKey Provisioning](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/enterprise-features/yubikey-provisioning)
-* In depth
-  * [Architecture overview](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/in-depth/architecture)
-  * [Configuration](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/in-depth/environmental-variables-configuration)
-  * [WireGuard VPN](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/in-depth/wireguard-vpn)
-* For developers
-  * [Contributing](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/for-developers/contributing)
-  * [Other resources](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/for-developers/other-resources)
-* Extras
-  * [Support](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/extras/support)
-  * [Troubleshooting](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/extras/troubelshooting)
-  * [FAQ](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/extras/faq)
-  * [Roadmap](https://app.gitbook.com/o/MDuF1T1ZyTda6cRc7AKP/s/xuW7w9EJzjxdg83zu6CW/~/changes/ZqwZls3bz3uhQ9Vh8O9m/extras/roadmap)
+See the [documentation](https://defguard.gitbook.io) for more information.
 
 # Development environment setup
 
 Remember to clone DefGuard repository recursively (with protos):
 
 ```
-git clone --recursive git@git.teonite.net:orion/core.git
+git clone --recursive git@github.com:DefGuard/defguard.git
 ```
 
 ## With Docker Compose
