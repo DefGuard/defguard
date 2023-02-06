@@ -1,5 +1,10 @@
 use super::{ApiResponse, ApiResult};
-use crate::{auth::{AdminRole, SessionInfo}, db::Settings, error::OriWebError, AppState};
+use crate::{
+    auth::{AdminRole, SessionInfo},
+    db::Settings,
+    error::OriWebError,
+    AppState,
+};
 use rocket::{
     http::Status,
     serde::json::{serde_json::json, Json},
@@ -38,7 +43,10 @@ pub async fn set_default_branding(
     id: i64,
     session: SessionInfo,
 ) -> ApiResult {
-    debug!("User {} restoring default branding settings", session.user.username);
+    debug!(
+        "User {} restoring default branding settings",
+        session.user.username
+    );
     let settings = Settings::find_by_id(&appstate.pool, id).await?;
     match settings {
         Some(mut settings) => {
@@ -46,7 +54,10 @@ pub async fn set_default_branding(
             settings.nav_logo_url = "/svg/defguard-nav-logo.svg".into();
             settings.main_logo_url = "/svg/logo-defguard-white.svg".into();
             settings.save(&appstate.pool).await?;
-            info!("User {} restored default branding settings", session.user.username);
+            info!(
+                "User {} restored default branding settings",
+                session.user.username
+            );
             Ok(ApiResponse {
                 json: json!(settings),
                 status: Status::Ok,
