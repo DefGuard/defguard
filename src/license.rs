@@ -83,9 +83,7 @@ impl License {
     /// decode encoded license string to License instance
     #[must_use]
     pub fn decode(_license: &str) -> Self {
-        let license = Self::default();
-        info!("Using license: {:?}", license);
-        license
+        Self::default()
         // debug!("Checking license");
         // if !license.is_empty() {
         //     // Verify the signature.

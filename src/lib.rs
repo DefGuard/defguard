@@ -113,6 +113,7 @@ pub async fn build_webapp(
         ..Config::default()
     };
     let license_decoded = License::decode(&config.license);
+    info!("Using license: {:?}", license_decoded);
     let webapp = rocket::custom(cfg)
         .mount("/", routes![smart_index])
         .mount("/", FileServer::new("./web/dist", Options::Missing).rank(3))
