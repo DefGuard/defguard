@@ -8,7 +8,7 @@ use defguard::{
         },
         AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork, WireguardPeerStats,
     },
-    grpc::GatewayState,
+    grpc::{GatewayState, WorkerState},
     handlers::{wireguard::WireguardNetworkData, Auth},
 };
 use matches::assert_matches;
@@ -25,10 +25,20 @@ use common::init_test_db;
 
 async fn make_client(pool: DbPool, config: DefGuardConfig) -> (Client, Arc<Mutex<GatewayState>>) {
     let (tx, rx) = unbounded_channel::<AppEvent>();
+    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, Arc::clone(&gateway_state), pool).await;
+    let webapp = build_webapp(
+        config,
+        tx,
+        rx,
+        wg_tx,
+        worker_state,
+        Arc::clone(&gateway_state),
+        pool,
+    )
+    .await;
     (Client::tracked(webapp).await.unwrap(), gateway_state)
 }
 

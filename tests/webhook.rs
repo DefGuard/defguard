@@ -1,7 +1,7 @@
 use defguard::{
     build_webapp,
     db::{AppEvent, GatewayEvent, WebHook},
-    grpc::GatewayState,
+    grpc::{GatewayState, WorkerState},
     handlers::Auth,
 };
 use rocket::{http::Status, local::asynchronous::Client};
@@ -16,10 +16,11 @@ async fn test_webhooks() {
     let (pool, config) = init_test_db().await;
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
+    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
+    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
     let client = Client::tracked(webapp).await.unwrap();
 
     let auth = Auth::new("admin".into(), "pass123".into());
