@@ -1,6 +1,6 @@
 use crate::{
     appstate::AppState,
-    auth::AdminRole,
+    auth::{AdminRole, SessionInfo},
     db::WebHook,
     handlers::{ApiResponse, ApiResult},
 };
@@ -15,12 +15,16 @@ pub async fn add_webhook(
     _admin: AdminRole,
     appstate: &State<AppState>,
     data: Json<WebHook>,
+    session: SessionInfo,
 ) -> ApiResult {
+    let url = data.url.clone();
+    debug!("User {} adding webhook {}", session.user.username, url);
     let mut webhook = data.into_inner();
     let status = match webhook.save(&appstate.pool).await {
         Ok(_) => Status::Created,
         Err(_) => Status::BadRequest,
     };
+    info!("User {} added webhook {}", session.user.username, url);
     Ok(ApiResponse {
         json: json!({}),
         status,
@@ -69,7 +73,9 @@ pub async fn change_webhook(
     appstate: &State<AppState>,
     id: i64,
     data: Json<WebHookData>,
+    session: SessionInfo,
 ) -> ApiResult {
+    debug!("User {} updating webhook {}", session.user.username, id);
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(mut webhook) => {
             let data = data.into_inner();
@@ -86,6 +92,7 @@ pub async fn change_webhook(
         }
         None => Status::NotFound,
     };
+    info!("User {} updated webhook {}", session.user.username, id);
     Ok(ApiResponse {
         json: json!({}),
         status,
@@ -93,7 +100,13 @@ pub async fn change_webhook(
 }
 
 #[delete("/<id>")]
-pub async fn delete_webhook(_admin: AdminRole, appstate: &State<AppState>, id: i64) -> ApiResult {
+pub async fn delete_webhook(
+    _admin: AdminRole,
+    appstate: &State<AppState>,
+    id: i64,
+    session: SessionInfo,
+) -> ApiResult {
+    debug!("User {} deleting webhook {}", session.user.username, id);
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(webhook) => {
             webhook.delete(&appstate.pool).await?;
@@ -101,6 +114,7 @@ pub async fn delete_webhook(_admin: AdminRole, appstate: &State<AppState>, id: i
         }
         None => Status::NotFound,
     };
+    info!("User {} deleted webhook {}", session.user.username, id);
     Ok(ApiResponse {
         json: json!({}),
         status,
@@ -118,7 +132,12 @@ pub async fn change_enabled(
     appstate: &State<AppState>,
     id: i64,
     data: Json<ChangeStateData>,
+    session: SessionInfo,
 ) -> ApiResult {
+    debug!(
+        "User {} changing webhook {} enabled state to {}",
+        session.user.username, id, data.enabled
+    );
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(mut webhook) => {
             webhook.enabled = data.enabled;
@@ -127,6 +146,10 @@ pub async fn change_enabled(
         }
         None => Status::NotFound,
     };
+    info!(
+        "User {} changed webhook {} enabled state to {}",
+        session.user.username, id, data.enabled
+    );
     Ok(ApiResponse {
         json: json!({}),
         status,
