@@ -55,8 +55,13 @@ pub async fn create_network(
     _admin: AdminRole,
     data: Json<WireguardNetworkData>,
     appstate: &State<AppState>,
+    session: SessionInfo,
 ) -> ApiResult {
-    debug!("Creating WireGuard network",);
+    let network_name = data.name.clone();
+    debug!(
+        "User {} creating WireGuard network {}",
+        session.user.username, network_name
+    );
     let data = data.into_inner();
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -70,7 +75,10 @@ pub async fn create_network(
     .map_err(|_| OriWebError::Serialization("Invalid network address".into()))?;
     network.save(&appstate.pool).await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.clone()));
-    info!("Created WireGuard network");
+    info!(
+        "User {} created WireGuard network {}",
+        session.user.username, network_name
+    );
     Ok(ApiResponse {
         json: json!(network),
         status: Status::Created,
@@ -89,8 +97,12 @@ pub async fn modify_network(
     id: i64,
     data: Json<WireguardNetworkData>,
     appstate: &State<AppState>,
+    session: SessionInfo,
 ) -> ApiResult {
-    debug!("Modifying network id: {}", id);
+    debug!(
+        "User {} updating WireGuard network {}",
+        session.user.username, id
+    );
     let mut network = find_network(id, &appstate.pool).await?;
     let data = data.into_inner();
     network.allowed_ips = data.parse_allowed_ips();
@@ -101,7 +113,10 @@ pub async fn modify_network(
     network.dns = data.dns;
     network.save(&appstate.pool).await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkModified(network.clone()));
-    info!("Modified network id: {}", id);
+    info!(
+        "User {} updated WireGuard network {}",
+        session.user.username, id
+    );
     Ok(ApiResponse {
         json: json!(network),
         status: Status::Ok,
@@ -109,13 +124,24 @@ pub async fn modify_network(
 }
 
 #[delete("/<id>")]
-pub async fn delete_network(_admin: AdminRole, id: i64, appstate: &State<AppState>) -> ApiResult {
-    debug!("Deleting network id: {}", id);
+pub async fn delete_network(
+    _admin: AdminRole,
+    id: i64,
+    appstate: &State<AppState>,
+    session: SessionInfo,
+) -> ApiResult {
+    debug!(
+        "User {} deleting WireGuard network {}",
+        session.user.username, id
+    );
     let network = find_network(id, &appstate.pool).await?;
     let network_name = network.name.clone();
     network.delete(&appstate.pool).await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_name));
-    info!("Deleted network id: {}", id);
+    info!(
+        "User {} deleted WireGuard network {}",
+        session.user.username, id
+    );
     Ok(ApiResponse::default())
 }
 
@@ -154,8 +180,12 @@ pub async fn add_device(
     username: &str,
     data: Json<AddDevice>,
 ) -> ApiResult {
+    let device_name = data.name.clone();
+    debug!(
+        "User {} adding device {} for user {}",
+        session.user.username, device_name, username
+    );
     let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
-    debug!("Adding device for user: {}", username);
     // FIXME: hard-coded network id
     if let Ok(Some(network)) = WireguardNetwork::find_by_id(&appstate.pool, 1).await {
         if network.pubkey == data.wireguard_pubkey {
@@ -177,9 +207,8 @@ pub async fn add_device(
         device.save(&appstate.pool).await?;
         appstate.send_wireguard_event(GatewayEvent::DeviceCreated(device.clone()));
         info!(
-            "Added WireGuard device {} for user: {}",
-            device.id.unwrap(),
-            username
+            "User {} added device {} for user {}",
+            session.user.username, device_name, username
         );
         let config = device.create_config(network);
         Ok(ApiResponse {
@@ -202,7 +231,7 @@ pub async fn modify_device(
     data: Json<Device>,
     appstate: &State<AppState>,
 ) -> ApiResult {
-    debug!("Modifying device with id: {}", id);
+    debug!("User {} updating device {}", session.user.username, id);
     let mut device = device_for_admin_or_self(&appstate.pool, &session, id).await?;
 
     // FIXME: hard-coded network id
@@ -217,6 +246,7 @@ pub async fn modify_device(
         device.update_from(data.into_inner());
         device.save(&appstate.pool).await?;
         appstate.send_wireguard_event(GatewayEvent::DeviceModified(device.clone()));
+        info!("User {} updated device {}", session.user.username, id);
         Ok(ApiResponse {
             json: json!(device),
             status: Status::Ok,
@@ -242,12 +272,12 @@ pub async fn get_device(session: SessionInfo, id: i64, appstate: &State<AppState
 
 #[delete("/device/<id>")]
 pub async fn delete_device(session: SessionInfo, id: i64, appstate: &State<AppState>) -> ApiResult {
-    debug!("Removing device with id: {}", id);
+    debug!("User {} deleting device {}", session.user.username, id);
     let device = device_for_admin_or_self(&appstate.pool, &session, id).await?;
     let device_pubkey = device.wireguard_pubkey.clone();
     device.delete(&appstate.pool).await?;
     appstate.send_wireguard_event(GatewayEvent::DeviceDeleted(device_pubkey));
-    info!("Removed device with id: {}", id);
+    info!("User {} deleted device {}", session.user.username, id);
     Ok(ApiResponse::default())
 }
 

@@ -1,6 +1,4 @@
-use base64;
 use chrono::NaiveDate;
-use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
 /// Decoded license information
 /// Important: order must be preserved for bincode.
@@ -15,6 +13,7 @@ pub struct License {
     pub enterprise: bool,
 }
 
+#[allow(dead_code)]
 pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoowOenhBJnaS5C/W9kHX
 Vz6LQYUXczT1BasE+ehy53LWnj5nPD98J0/h3mUNrYcr28qKfj8MVNBDcvzRDCx2
@@ -72,6 +71,7 @@ impl License {
     }
 
     // Enterprise license enables all features.
+    #[allow(dead_code)]
     fn sanitize(&mut self) {
         if self.enterprise {
             self.worker = true;
@@ -82,44 +82,45 @@ impl License {
 
     /// decode encoded license string to License instance
     #[must_use]
-    pub fn decode(license: &str) -> Self {
-        debug!("Checking license");
-        if !license.is_empty() {
-            // Verify the signature.
-            let public_key = RsaPublicKey::from_public_key_pem(PUBLIC_KEY).unwrap();
-            let padding = PaddingScheme::new_pkcs1v15_sign_raw();
-            let license_decoded = match base64::decode(license) {
-                Ok(license_decoded) => license_decoded,
-                Err(e) => {
-                    error!("Error decoding license. Using community features: {}", e);
-                    return Self::default();
-                }
-            };
-            let len = license_decoded.len();
-            if let Ok(()) = public_key.verify(
-                padding,
-                &license_decoded[..len - 256],
-                &license_decoded[len - 256..],
-            ) {
-                match bincode::deserialize::<Self>(&license_decoded[..]) {
-                    Ok(mut license) => {
-                        license.sanitize();
-                        info!("License validation successful: {:?}", license);
-                        return license;
-                    }
-                    Err(e) => {
-                        error!(
-                            "Error deserializing license: {}. Using community features.",
-                            e
-                        );
-                    }
-                }
-            } else {
-                error!("Invalid license signature. Using community features");
-            }
-        } else {
-            info!("No license supplied. Using community features");
-        }
+    pub fn decode(_license: &str) -> Self {
         Self::default()
+        // debug!("Checking license");
+        // if !license.is_empty() {
+        //     // Verify the signature.
+        //     let public_key = RsaPublicKey::from_public_key_pem(PUBLIC_KEY).unwrap();
+        //     let padding = PaddingScheme::new_pkcs1v15_sign_raw();
+        //     let license_decoded = match base64::decode(license) {
+        //         Ok(license_decoded) => license_decoded,
+        //         Err(e) => {
+        //             error!("Error decoding license. Using community features: {}", e);
+        //             return Self::default();
+        //         }
+        //     };
+        //     let len = license_decoded.len();
+        //     if let Ok(()) = public_key.verify(
+        //         padding,
+        //         &license_decoded[..len - 256],
+        //         &license_decoded[len - 256..],
+        //     ) {
+        //         match bincode::deserialize::<Self>(&license_decoded[..]) {
+        //             Ok(mut license) => {
+        //                 license.sanitize();
+        //                 info!("License validation successful: {:?}", license);
+        //                 return license;
+        //             }
+        //             Err(e) => {
+        //                 error!(
+        //                     "Error deserializing license: {}. Using community features.",
+        //                     e
+        //                 );
+        //             }
+        //         }
+        //     } else {
+        //         error!("Invalid license signature. Using community features");
+        //     }
+        // } else {
+        //     info!("No license supplied. Using community features");
+        // }
+        // Self::default()
     }
 }

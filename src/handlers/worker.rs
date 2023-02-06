@@ -32,11 +32,16 @@ struct JobResponseError {
 
 #[post("/job", format = "json", data = "<data>")]
 pub async fn create_job(
-    _session: SessionInfo,
+    session: SessionInfo,
     appstate: &State<AppState>,
     data: Json<JobData>,
     worker_state: &State<Arc<Mutex<WorkerState>>>,
 ) -> ApiResult {
+    let (worker, username) = (data.worker.clone(), data.username.clone());
+    debug!(
+        "User {} creating a worker job for worker {} and user {}",
+        session.user.username, worker, username
+    );
     let job_data = data.into_inner();
     match User::find_by_username(&appstate.pool, &job_data.username).await? {
         Some(user) => {
@@ -49,7 +54,10 @@ pub async fn create_job(
                 user.email,
                 job_data.username,
             );
-            info!("Job created with id {}", id);
+            info!(
+                "User {} created a worker job for worker {} and user {}",
+                session.user.username, worker, username
+            );
             Ok(ApiResponse {
                 json: json!(Jobid { id }),
                 status: Status::Created,
@@ -94,12 +102,20 @@ pub fn list_workers(
 
 #[delete("/<worker_id>")]
 pub async fn remove_worker(
-    _session: SessionInfo,
+    session: SessionInfo,
     worker_state: &State<Arc<Mutex<WorkerState>>>,
     worker_id: &str,
 ) -> ApiResult {
+    debug!(
+        "User {} deleting worker {}",
+        session.user.username, worker_id
+    );
     let mut state = worker_state.lock().unwrap();
     if state.remove_worker(worker_id) {
+        info!(
+            "User {} deleted worker {}",
+            session.user.username, worker_id
+        );
         Ok(ApiResponse::default())
     } else {
         error!("Worker {} not found", worker_id);

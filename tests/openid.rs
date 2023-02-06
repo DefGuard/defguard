@@ -5,7 +5,7 @@ use defguard::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},
         AppEvent, DbPool, GatewayEvent,
     },
-    grpc::GatewayState,
+    grpc::{GatewayState, WorkerState},
     handlers::Auth,
 };
 
@@ -39,20 +39,21 @@ async fn make_client() -> Client {
     config.license = LICENSE_ENTERPRISE.into();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
-
+    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
+    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
 }
 
 async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> Client {
     let (tx, rx) = unbounded_channel::<AppEvent>();
+    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, gateway_state, pool).await;
+    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
     Client::tracked(webapp).await.unwrap()
 }
 
