@@ -100,7 +100,7 @@ pub async fn change_openid_client_state(
     data: Json<ChangeStateData>,
 ) -> ApiResult {
     debug!(
-        "User {} changin OpenID client {} enabled state",
+        "User {} updating OpenID client {} enabled state",
         session.user.username, client_id
     );
     let status = match OAuth2Client::find_by_client_id(&appstate.pool, client_id).await? {
@@ -108,7 +108,7 @@ pub async fn change_openid_client_state(
             openid_client.enabled = data.enabled;
             openid_client.save(&appstate.pool).await?;
             info!(
-                "User {} changed OpenID client {} ({}) enabled state to {}",
+                "User {} updated OpenID client {} ({}) enabled state to {}",
                 session.user.username, client_id, openid_client.name, openid_client.enabled,
             );
             Status::Ok
