@@ -102,6 +102,7 @@ pub async fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: UnboundedSender<GatewayEvent>,
+    worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayState>>,
     pool: DbPool,
 ) -> Rocket<Build> {
@@ -174,6 +175,7 @@ pub async fn build_webapp(
                 change_enabled
             ],
         );
+
     #[cfg(feature = "wireguard")]
     let webapp = webapp.manage(gateway_state).mount(
         "/api/v1",
@@ -188,6 +190,7 @@ pub async fn build_webapp(
             connection_info,
         ],
     );
+
     // initialize webapp with network routes
     #[cfg(feature = "wireguard")]
     let webapp = webapp.mount(
@@ -203,9 +206,9 @@ pub async fn build_webapp(
             network_stats,
         ],
     );
+
     #[cfg(feature = "openid")]
     let webapp = if license_decoded.validate(&Features::Openid) {
-        info!("OpenID Connect feature is enabled");
         webapp
             .mount(
                 "/api/v1/oauth",
@@ -224,6 +227,22 @@ pub async fn build_webapp(
                 ],
             )
             .mount("/.well-known", routes![openid_configuration])
+    } else {
+        webapp
+    };
+
+    #[cfg(feature = "worker")]
+    let webapp = if license_decoded.validate(&Features::Worker) {
+        webapp.manage(worker_state).mount(
+            "/api/v1/worker",
+            routes![
+                create_job,
+                list_workers,
+                job_status,
+                remove_worker,
+                create_worker_token
+            ],
+        )
     } else {
         webapp
     };
@@ -256,27 +275,11 @@ pub async fn run_web_server(
         webhook_tx,
         webhook_rx,
         wireguard_tx,
+        worker_state,
         gateway_state,
         pool,
     )
     .await;
-    #[cfg(feature = "worker")]
-    let webapp = if License::decode(&config.license).validate(&Features::Worker) {
-        info!("Worker feature is enabled");
-        webapp.manage(worker_state).mount(
-            "/api/v1/worker",
-            routes![
-                create_job,
-                list_workers,
-                job_status,
-                remove_worker,
-                create_worker_token
-            ],
-        )
-    } else {
-        webapp
-    };
-
     info!("Started web services");
     webapp.launch().await
 }
