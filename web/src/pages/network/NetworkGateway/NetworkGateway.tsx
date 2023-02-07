@@ -2,8 +2,10 @@ import './style.scss';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import clipboard from 'clipboardy';
+import parse from 'html-react-parser';
 import { useCallback, useMemo } from 'react';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import {
   ActionButton,
   ActionButtonVariant,
@@ -20,8 +22,6 @@ import MessageBox, {
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
-import { useI18nContext } from '../../../i18n/i18n-react';
-import parse from 'html-react-parser';
 
 export const NetworkGatewaySetup = () => {
   const toaster = useToaster();
@@ -47,7 +47,7 @@ export const NetworkGatewaySetup = () => {
   );
 
   const command = useCallback(() => {
-    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} registry.teonite.net/defguard/wireguard:latest`;
+    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} ghcr.io/defguard/gateway:latest`;
   }, [networkToken]);
 
   const getActions = useMemo(
@@ -59,7 +59,7 @@ export const NetworkGatewaySetup = () => {
           clipboard
             .write(command())
             .then(() => {
-              toaster.success(LL.messages.succcessClipboard());
+              toaster.success(LL.messages.successClipboard());
             })
             .catch((err) => {
               toaster.error(LL.messages.clipboardError());
@@ -76,38 +76,50 @@ export const NetworkGatewaySetup = () => {
         <h2>{LL.gatewaySetup.header()}</h2>
       </header>
       <Card>
-        <MessageBox>{parse(LL.gatewaySetup.messages.runCommand())}</MessageBox>
-        <ExpandableCard
-          title={LL.gatewaySetup.card.title()}
-          disableExpand={true}
-          expanded={true}
-          actions={getActions}
-        >
-          <p>{command()}</p>
-        </ExpandableCard>
-        <div className="status">
-          <Button
-            size={ButtonSize.BIG}
-            styleVariant={ButtonStyleVariant.PRIMARY}
-            text={LL.gatewaySetup.controls.status()}
-            loading={statusLoading}
-            onClick={() => {
-              if (!statusLoading) {
-                queryClient.invalidateQueries([QueryKeys.FETCH_GATEWAY_STATUS]);
-              }
-            }}
-          />
-          {!gatewayStatus?.connected && !statusLoading && (
-            <MessageBox type={MessageBoxType.ERROR}>
-              {parse(LL.gatewaySetup.messages.noConnection())}
-            </MessageBox>
+        <MessageBox>
+          {parse(
+            networkToken
+              ? LL.gatewaySetup.messages.runCommand()
+              : LL.gatewaySetup.messages.createNetwork()
           )}
-          {gatewayStatus?.connected && !statusLoading && (
-            <MessageBox type={MessageBoxType.SUCCESS}>
-              {parse(LL.gatewaySetup.messages.connected())}
-            </MessageBox>
-          )}
-        </div>
+        </MessageBox>
+        {networkToken && (
+          <>
+            <ExpandableCard
+              title={LL.gatewaySetup.card.title()}
+              disableExpand={true}
+              expanded={true}
+              actions={getActions}
+            >
+              <p>{command()}</p>
+            </ExpandableCard>
+            <div className="status">
+              <Button
+                size={ButtonSize.BIG}
+                styleVariant={ButtonStyleVariant.PRIMARY}
+                text={LL.gatewaySetup.controls.status()}
+                loading={statusLoading}
+                onClick={() => {
+                  if (!statusLoading) {
+                    queryClient.invalidateQueries([
+                      QueryKeys.FETCH_GATEWAY_STATUS,
+                    ]);
+                  }
+                }}
+              />
+              {!gatewayStatus?.connected && !statusLoading && (
+                <MessageBox type={MessageBoxType.ERROR}>
+                  {parse(LL.gatewaySetup.messages.noConnection())}
+                </MessageBox>
+              )}
+              {gatewayStatus?.connected && !statusLoading && (
+                <MessageBox type={MessageBoxType.SUCCESS}>
+                  {parse(LL.gatewaySetup.messages.connected())}
+                </MessageBox>
+              )}
+            </div>
+          </>
+        )}
       </Card>
     </section>
   );

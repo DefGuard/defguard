@@ -331,7 +331,7 @@ pub async fn create_network_token(
     let network = find_network(id, &appstate.pool).await?;
     let token = Claims::new(
         ClaimsType::Gateway,
-        network.name.clone(),
+        format!("DEFGUARD-NETWORK-{}", id),
         String::new(),
         u32::MAX.into(),
     )

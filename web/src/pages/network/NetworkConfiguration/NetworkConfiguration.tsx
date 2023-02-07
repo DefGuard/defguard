@@ -17,6 +17,8 @@ import { MutationKeys } from '../../../shared/mutations';
 import { ModifyNetworkRequest, Network } from '../../../shared/types';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 import { useI18nContext } from '../../../i18n/i18n-react';
+import { useQueryClient } from 'wagmi';
+import { QueryKeys } from '../../../shared/queries';
 
 type FormInputs = ModifyNetworkRequest;
 
@@ -24,7 +26,7 @@ const defaultValues: FormInputs = {
   address: '',
   endpoint: '',
   name: '',
-  port: 0,
+  port: 50051,
   allowed_ips: '',
   dns: '',
 };
@@ -47,6 +49,7 @@ export const NetworkConfiguration = () => {
   const network = useNetworkPageStore((state) => state.network);
   const setStoreState = useNetworkPageStore((state) => state.setState);
   const submitSubject = useNetworkPageStore((state) => state.saveSubject);
+  const queryClient = useQueryClient();
   const { LL } = useI18nContext();
 
   const { mutate: editNetworkMutation, isLoading: editLoading } = useMutation(
@@ -55,9 +58,8 @@ export const NetworkConfiguration = () => {
     {
       onSuccess: (response) => {
         setStoreState({ network: response });
-        toaster.success(
-          LL.networkConfiguration.form.messages.networkModified()
-        );
+        toaster.success(LL.networkConfiguration.form.messages.networkModified());
+        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
         console.error(err);
@@ -72,6 +74,7 @@ export const NetworkConfiguration = () => {
       onSuccess: (network) => {
         setStoreState({ network, loading: false });
         toaster.success(LL.networkConfiguration.form.messages.networkCreated());
+        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
         setStoreState({ loading: false });
