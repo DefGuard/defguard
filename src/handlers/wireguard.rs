@@ -331,6 +331,7 @@ pub async fn create_network_token(
     let network = find_network(id, &appstate.pool).await?;
     let token = Claims::new(
         ClaimsType::Gateway,
+        // FIXME: sub should include network id
         network.name.clone(),
         String::new(),
         u32::MAX.into(),

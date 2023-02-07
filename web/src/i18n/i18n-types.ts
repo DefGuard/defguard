@@ -26,7 +26,7 @@ type RootTranslation = {
 		/**
 		 * C​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
 		 */
-		succcessClipboard: string
+		successClipboard: string
 		/**
 		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
 		 */
@@ -2314,6 +2314,13 @@ type RootTranslation = {
 			 */
 			runCommand: string
 			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+			 */
+			createNetwork: string
+			/**
 			 * <​p​>​N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.​<​/​p​>
 			 */
 			noConnection: string
@@ -2452,7 +2459,7 @@ export type TranslationFunctions = {
 		/**
 		 * Copied to clipboard
 		 */
-		succcessClipboard: () => LocalizedString
+		successClipboard: () => LocalizedString
 		/**
 		 * Failed to get application version.
 		 */
@@ -4723,6 +4730,13 @@ export type TranslationFunctions = {
 		          </p>
 			 */
 			runCommand: () => LocalizedString
+			/**
+			 * 
+		          <p>
+		            Please create the network before running the gateway process.
+		          </p>
+			 */
+			createNetwork: () => LocalizedString
 			/**
 			 * <p>No connection established, please run provided command.</p>
 			 */

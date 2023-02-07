@@ -1020,6 +1020,10 @@ const pl: BaseTranslation = {
             wiesz jak, lub masz jakieś problemy
             <a>odwiedź naszą stronę</a>.
           </p>`,
+      createNetwork: `
+          <p>
+            Utwórz sieć przed uruchomieniem procesu gateway.
+          </p>`,
       noConnection: `<p>Brak połączenia proszę uruchom poniższą komendę.</p>`,
       connected: `<p>Gateway połączony.</p>`,
       statusError: 'Nie udało się uzyskać statusu',
