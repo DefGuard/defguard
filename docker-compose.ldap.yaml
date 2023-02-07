@@ -23,7 +23,7 @@ services:
       - "50055:50055"
 
   gateway:
-    image: registry.teonite.net/defguard/wireguard:latest
+    image: ghcr.io/defguard/gateway:latest
     environment:
       DEFGUARD_GRPC_URL: https://core:50055
       DEFGUARD_STATS_PERIOD: 60

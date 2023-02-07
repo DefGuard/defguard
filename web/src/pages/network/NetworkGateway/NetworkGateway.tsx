@@ -47,7 +47,7 @@ export const NetworkGatewaySetup = () => {
   );
 
   const command = useCallback(() => {
-    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} registry.teonite.net/defguard/wireguard:latest`;
+    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} ghcr.io/defguard/gateway:latest`;
   }, [networkToken]);
 
   const getActions = useMemo(
