@@ -6,6 +6,7 @@ use model_derive::Model;
 use rand_core::OsRng;
 use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow};
 use std::{
+    array::TryFromSliceError,
     collections::HashMap,
     fmt::Debug,
     net::{IpAddr, Ipv4Addr},
@@ -523,6 +524,78 @@ pub struct WireguardNetworkStats {
     pub transfer_series: Vec<WireguardStatsRow>,
 }
 
+#[derive(Debug)]
+pub enum WireguardConfigParseError {
+    ParseError,
+    SectionNotFound(String),
+    KeyNotFound(String),
+    InvalidIp(String),
+    InvalidKey(String),
+}
+
+impl From<ini::ParseError> for WireguardConfigParseError {
+    fn from(_: ini::ParseError) -> Self {
+        WireguardConfigParseError::ParseError
+    }
+}
+
+impl From<IpNetworkError> for WireguardConfigParseError {
+    fn from(e: IpNetworkError) -> Self {
+        WireguardConfigParseError::InvalidIp(format!("{}", e))
+    }
+}
+
+impl From<TryFromSliceError> for WireguardConfigParseError {
+    fn from(e: TryFromSliceError) -> Self {
+        WireguardConfigParseError::InvalidKey(format!("{}", e))
+    }
+}
+
+pub fn parse_config(
+    config: &str,
+) -> Result<(WireguardNetwork, Vec<Device>), WireguardConfigParseError> {
+    let config = ini::Ini::load_from_str(config)?;
+    // Parse WireguardNetwork
+    let interface_section = config
+        .section(Some("Interface"))
+        .ok_or_else(|| WireguardConfigParseError::SectionNotFound("Interface".to_string()))?;
+    let prvkey = interface_section
+        .get("PrivateKey")
+        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PrivateKey".to_string()))?;
+    // let prvkey_secret: StaticSecret = prvkey.parse().unwrap();
+    // let pubkey = PublicKey::from(prvkey.as_bytes());
+    // TODO: fix unwraps
+    let prvkey_bytes: [u8; 32] = base64::decode(prvkey.as_bytes())
+        .unwrap()
+        .try_into()
+        .unwrap();
+    let pubkey = base64::encode(PublicKey::from(&StaticSecret::from(prvkey_bytes)).to_bytes());
+    let address = interface_section
+        .get("Address")
+        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("Address".to_string()))?;
+    let port = interface_section
+        .get("ListenPort")
+        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("ListenPort".to_string()))?;
+    let dns = interface_section.get("DNS").map(|s| s.to_string());
+    println!("{}", pubkey.clone());
+    let mut network = WireguardNetwork::new(
+        pubkey.clone(),
+        address.parse()?,
+        // TODO: fix unwrap
+        port.parse().unwrap(),
+        "".to_string(),
+        dns,
+        // TODO: parse address
+        vec!["10.0.0.0/24".parse().unwrap()],
+    )?;
+    network.pubkey = pubkey;
+    network.prvkey = prvkey.to_string();
+
+    // TODO: Parse Device
+
+    Ok((network, Vec::new()))
+}
+
 #[cfg(test)]
 mod test {
     use chrono::{Duration, SubsecRound};
@@ -655,5 +728,50 @@ mod test {
             // Postgres stores 6 sub-second digits while chrono stores 9
             (now - Duration::minutes(samples)).trunc_subsecs(6),
         );
+    }
+
+    #[test]
+    fn test_parse_config() {
+        let config = "
+            [Interface]
+            PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+            Address = 10.0.0.1/24
+            ListenPort = 55055
+            DNS = 10.0.0.2
+
+            [Peer]
+            PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
+            AllowedIPs = 10.0.0.10/24
+            PersistentKeepalive = 300
+        ";
+        let (network, devices) = parse_config(config).unwrap();
+        assert_eq!(
+            network.prvkey,
+            "GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg="
+        );
+        assert_eq!(network.id, None);
+        assert_eq!(network.name, "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y=");
+        assert_eq!(network.address, "10.0.0.1/24".parse().unwrap());
+        assert_eq!(network.port, 55055);
+        assert_eq!(
+            network.pubkey,
+            "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y="
+        );
+        assert_eq!(
+            network.prvkey,
+            "GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg="
+        );
+        assert_eq!(network.endpoint, "");
+        assert_eq!(network.dns, Some("10.0.0.2".to_string()));
+        assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
+        assert_eq!(network.connected_at, None);
+
+        assert_eq!(devices.len(), 1);
+        let device = &devices[0];
+        assert_eq!(
+            device.wireguard_pubkey,
+            "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
+        );
+        // TODO: assert all device fields
     }
 }
