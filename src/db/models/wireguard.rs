@@ -1,5 +1,5 @@
 use super::{device::Device, error::ModelError, DbPool, User, UserInfo};
-use base64;
+use base64::{self, DecodeError};
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
@@ -531,6 +531,7 @@ pub enum WireguardConfigParseError {
     KeyNotFound(String),
     InvalidIp(String),
     InvalidKey(String),
+    InvalidPort(String),
 }
 
 impl From<ini::ParseError> for WireguardConfigParseError {
@@ -551,6 +552,12 @@ impl From<TryFromSliceError> for WireguardConfigParseError {
     }
 }
 
+impl From<DecodeError> for WireguardConfigParseError {
+    fn from(e: DecodeError) -> Self {
+        WireguardConfigParseError::InvalidKey(format!("{}", e))
+    }
+}
+
 pub fn parse_config(
     config: &str,
 ) -> Result<(WireguardNetwork, Vec<Device>), WireguardConfigParseError> {
@@ -562,10 +569,9 @@ pub fn parse_config(
     let prvkey = interface_section
         .get("PrivateKey")
         .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PrivateKey".to_string()))?;
-    let prvkey_bytes: [u8; 32] = base64::decode(prvkey.as_bytes())
-        .unwrap()
+    let prvkey_bytes: [u8; 32] = base64::decode(prvkey.as_bytes())?
         .try_into()
-        .unwrap();
+        .map_err(|_| WireguardConfigParseError::InvalidKey(prvkey.to_string()))?;
     let pubkey = base64::encode(PublicKey::from(&StaticSecret::from(prvkey_bytes)).to_bytes());
     let address = interface_section
         .get("Address")
@@ -573,13 +579,16 @@ pub fn parse_config(
     let port = interface_section
         .get("ListenPort")
         .ok_or_else(|| WireguardConfigParseError::KeyNotFound("ListenPort".to_string()))?;
+    let port = port
+        .parse()
+        .map_err(|_| WireguardConfigParseError::InvalidPort(port.to_string()))?;
     let dns = interface_section.get("DNS").map(|s| s.to_string());
     let network_address: IpNetwork = address.parse()?;
-    let allowed_ips = IpNetwork::new(network_address.network(), network_address.prefix()).unwrap();
+    let allowed_ips = IpNetwork::new(network_address.network(), network_address.prefix())?;
     let mut network = WireguardNetwork::new(
         pubkey.clone(),
         network_address,
-        port.parse().unwrap(),
+        port,
         "".to_string(),
         dns,
         vec![allowed_ips],
