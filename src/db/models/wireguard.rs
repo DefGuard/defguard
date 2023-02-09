@@ -562,9 +562,6 @@ pub fn parse_config(
     let prvkey = interface_section
         .get("PrivateKey")
         .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PrivateKey".to_string()))?;
-    // let prvkey_secret: StaticSecret = prvkey.parse().unwrap();
-    // let pubkey = PublicKey::from(prvkey.as_bytes());
-    // TODO: fix unwraps
     let prvkey_bytes: [u8; 32] = base64::decode(prvkey.as_bytes())
         .unwrap()
         .try_into()
@@ -577,16 +574,15 @@ pub fn parse_config(
         .get("ListenPort")
         .ok_or_else(|| WireguardConfigParseError::KeyNotFound("ListenPort".to_string()))?;
     let dns = interface_section.get("DNS").map(|s| s.to_string());
-    println!("{}", pubkey.clone());
+    let network_address: IpNetwork = address.parse()?;
+    let allowed_ips = IpNetwork::new(network_address.network(), network_address.prefix()).unwrap();
     let mut network = WireguardNetwork::new(
         pubkey.clone(),
-        address.parse()?,
-        // TODO: fix unwrap
+        network_address,
         port.parse().unwrap(),
         "".to_string(),
         dns,
-        // TODO: parse address
-        vec!["10.0.0.0/24".parse().unwrap()],
+        vec![allowed_ips],
     )?;
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();
