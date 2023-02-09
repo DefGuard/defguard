@@ -587,9 +587,25 @@ pub fn parse_config(
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();
 
-    // TODO: Parse Device
+    // Parse Devices
+    let peer_sections = config.section_all(Some("Peer"));
 
-    Ok((network, Vec::new()))
+    let mut devices = Vec::new();
+    for peer in peer_sections {
+        let ip = peer
+            .get("AllowedIPs")
+            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("AllowedIPs".to_string()))?;
+        let ip_network: IpNetwork = ip.parse()?;
+        let ip = ip_network.ip().to_string();
+
+        let pubkey = peer
+            .get("PublicKey")
+            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PublicKey".to_string()))?;
+
+        devices.push(Device::new(pubkey.to_string(), ip, pubkey.to_string(), -1));
+    }
+
+    Ok((network, devices))
 }
 
 #[cfg(test)]
@@ -739,6 +755,11 @@ mod test {
             PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
             AllowedIPs = 10.0.0.10/24
             PersistentKeepalive = 300
+
+            [Peer]
+            PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
+            AllowedIPs = 10.0.0.11/24
+            PersistentKeepalive = 300
         ";
         let (network, devices) = parse_config(config).unwrap();
         assert_eq!(
@@ -762,12 +783,28 @@ mod test {
         assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
         assert_eq!(network.connected_at, None);
 
-        assert_eq!(devices.len(), 1);
-        let device = &devices[0];
+        assert_eq!(devices.len(), 2);
+
+        let device1 = &devices[0];
+        assert_eq!(device1.id, None);
+        assert_eq!(device1.name, "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=");
+        assert_eq!(device1.wireguard_ip, "10.0.0.10");
         assert_eq!(
-            device.wireguard_pubkey,
+            device1.wireguard_pubkey,
             "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
         );
-        // TODO: assert all device fields
+        // TODO: do something about user_id
+        assert_eq!(device1.user_id, -1);
+
+        let device2 = &devices[1];
+        assert_eq!(device2.id, None);
+        assert_eq!(device2.name, "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=");
+        assert_eq!(device2.wireguard_ip, "10.0.0.11");
+        assert_eq!(
+            device2.wireguard_pubkey,
+            "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="
+        );
+        // TODO: do something about user_id
+        assert_eq!(device2.user_id, -1);
     }
 }
