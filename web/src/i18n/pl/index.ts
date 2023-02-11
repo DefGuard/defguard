@@ -1001,6 +1001,7 @@ const pl: BaseTranslation = {
       },
       controls: {
         submit: 'Zapisz zmiany',
+        fill: 'Uzupełnij z pliku',
         cancel: 'Cofnij',
       },
     },

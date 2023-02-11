@@ -2280,6 +2280,10 @@ type RootTranslation = {
 				 */
 				submit: string
 				/**
+				 * F​i​l​l​ ​f​r​o​m​ ​f​i​l​e
+				 */
+				fill: string
+				/**
 				 * B​a​c​k
 				 */
 				cancel: string
@@ -4696,6 +4700,10 @@ export type TranslationFunctions = {
 				 * Save changes
 				 */
 				submit: () => LocalizedString
+				/**
+				 * Fill from file
+				 */
+				fill: () => LocalizedString
 				/**
 				 * Back
 				 */

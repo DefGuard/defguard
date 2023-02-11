@@ -1001,6 +1001,7 @@ const en: BaseTranslation = {
       },
       controls: {
         submit: 'Save changes',
+        fill: 'Fill from file',
         cancel: 'Back',
       },
     },

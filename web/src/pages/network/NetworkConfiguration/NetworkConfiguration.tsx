@@ -5,20 +5,29 @@ import { useMutation } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { useFilePicker } from 'use-file-picker';
+import { useQueryClient } from 'wagmi';
 import * as yup from 'yup';
-
+import axios from 'axios';
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
+import Button, {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/components/layout/Button/Button';
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
+import {
+  IconArrowGrayUp,
+  IconCheckmarkWhite,
+} from '../../../shared/components/svg';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
+import { QueryKeys } from '../../../shared/queries';
 import { ModifyNetworkRequest, Network } from '../../../shared/types';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
-import { useI18nContext } from '../../../i18n/i18n-react';
-import { useQueryClient } from 'wagmi';
-import { QueryKeys } from '../../../shared/queries';
 
 type FormInputs = ModifyNetworkRequest;
 
@@ -40,6 +49,24 @@ const networkToForm = (data?: Network): FormInputs | undefined => {
   return { ...defaultValues, ...omited } as FormInputs;
 };
 
+// const ImportConfigButton = () => {
+//   const { LL } = useI18nContext();
+//   const [save, loading] = useNetworkPageStore(
+//     (state) => [state.saveSubject, state.loading],
+//     shallow
+//   );
+//   return (
+//     <Button
+//       text={LL.networkConfiguration.form.controls.submit()}
+//       size={ButtonSize.SMALL}
+//       styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
+//       icon={<IconCheckmarkWhite />}
+//       loading={loading}
+//       onClick={() => save.next()}
+//     />
+//   );
+// };
+
 export const NetworkConfiguration = () => {
   const toaster = useToaster();
   const {
@@ -58,7 +85,9 @@ export const NetworkConfiguration = () => {
     {
       onSuccess: (response) => {
         setStoreState({ network: response });
-        toaster.success(LL.networkConfiguration.form.messages.networkModified());
+        toaster.success(
+          LL.networkConfiguration.form.messages.networkModified()
+        );
         queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
@@ -83,7 +112,19 @@ export const NetworkConfiguration = () => {
       },
     }
   );
+  const [openFileSelector, { filesContent, loading: filePickerLoading }] =
+    useFilePicker({ accept: '.*', multiple: false });
+  if (filesContent.length > 0) {
+    console.log(filesContent);
+    const file = filesContent[0];
+    const formData = new FormData();
+    // Update the formData object
+    formData.append('config', file.content, file.name);
 
+    // Request made to the backend api
+    // Send formData object
+    axios.post('localhost:9000', formData);
+  }
   const defaultFormValues = useMemo(() => {
     if (network) {
       const res = networkToForm(network);
@@ -145,6 +186,17 @@ export const NetworkConfiguration = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const onFileChange = (evt) => {
+    const file = evt.target.files[0];
+    const formData = new FormData();
+    // Update the formData object
+    formData.append('config', file, file.name);
+
+    // Request made to the backend api
+    // Send formData object
+    axios.post('http://localhost:9000', formData);
+    console.log(evt);
+  };
   return (
     <section className="network-config">
       <header>
@@ -159,16 +211,16 @@ export const NetworkConfiguration = () => {
             controller={{ control, name: 'name' }}
             outerLabel={LL.networkConfiguration.form.fields.name.label()}
           />
-          <FormInput
-            controller={{ control, name: 'address' }}
-            outerLabel={LL.networkConfiguration.form.fields.address.label()}
-          />
           <MessageBox>
             <p>{LL.networkConfiguration.form.messages.gateway()}</p>
           </MessageBox>
           <FormInput
             controller={{ control, name: 'endpoint' }}
             outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
+          />
+          <FormInput
+            controller={{ control, name: 'address' }}
+            outerLabel={LL.networkConfiguration.form.fields.address.label()}
           />
           <FormInput
             controller={{ control, name: 'port' }}
@@ -188,6 +240,15 @@ export const NetworkConfiguration = () => {
           <MessageBox>
             <p>{LL.networkConfiguration.form.messages.dns()}</p>
           </MessageBox>
+          <Button
+            text={LL.networkConfiguration.form.controls.fill()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.STANDARD}
+            icon={<IconArrowGrayUp />}
+            loading={false}
+            onClick={() => openFileSelector()}
+          />
+          <input type="file" onChange={onFileChange} />
           <button type="submit" className="hidden" ref={submitRef}></button>
         </form>
       </Card>
