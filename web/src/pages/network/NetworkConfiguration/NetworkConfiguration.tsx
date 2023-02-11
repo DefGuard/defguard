@@ -115,15 +115,7 @@ export const NetworkConfiguration = () => {
   const [openFileSelector, { filesContent, loading: filePickerLoading }] =
     useFilePicker({ accept: '.*', multiple: false });
   if (filesContent.length > 0) {
-    console.log(filesContent);
-    const file = filesContent[0];
-    const formData = new FormData();
-    // Update the formData object
-    formData.append('config', file.content, file.name);
-
-    // Request made to the backend api
-    // Send formData object
-    axios.post('localhost:9000', formData);
+    axios.post('/api/v1/network/parse', filesContent[0].content);
   }
   const defaultFormValues = useMemo(() => {
     if (network) {
@@ -186,17 +178,6 @@ export const NetworkConfiguration = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onFileChange = (evt) => {
-    const file = evt.target.files[0];
-    const formData = new FormData();
-    // Update the formData object
-    formData.append('config', file, file.name);
-
-    // Request made to the backend api
-    // Send formData object
-    axios.post('http://localhost:9000', formData);
-    console.log(evt);
-  };
   return (
     <section className="network-config">
       <header>
@@ -248,7 +229,6 @@ export const NetworkConfiguration = () => {
             loading={false}
             onClick={() => openFileSelector()}
           />
-          <input type="file" onChange={onFileChange} />
           <button type="submit" className="hidden" ref={submitRef}></button>
         </form>
       </Card>

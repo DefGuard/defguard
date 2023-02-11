@@ -30,7 +30,7 @@ pub(crate) mod webhooks;
 pub mod wireguard;
 #[cfg(feature = "worker")]
 pub mod worker;
-mod wg_config;
+pub mod wg_config;
 
 #[derive(Default)]
 pub struct ApiResponse {

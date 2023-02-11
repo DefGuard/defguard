@@ -1,5 +1,6 @@
 use super::{
-    device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, OriWebError,
+    device_for_admin_or_self, user_for_admin_or_self, wg_config::parse_wireguard_config,
+    ApiResponse, ApiResult, OriWebError,
 };
 use crate::{
     appstate::AppState,
@@ -169,6 +170,17 @@ pub async fn network_details(
 
     Ok(ApiResponse {
         json: json!(network),
+        status: Status::Ok,
+    })
+}
+
+#[post("/parse", data = "<config>")]
+pub async fn parse_config(config: &str) -> ApiResult {
+    error!("### {}", config);
+    let (network, devices) = parse_wireguard_config(config)
+        .map_err(|_| OriWebError::ModelError("Failed to parse wireguard config file".to_string()))?;
+    Ok(ApiResponse {
+        json: json!({"network": network, "devices": devices}),
         status: Status::Ok,
     })
 }
