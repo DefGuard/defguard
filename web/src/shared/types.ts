@@ -96,6 +96,11 @@ export interface Network {
   dns?: string;
 }
 
+export interface ParseWireguardConfigResponse {
+  network: Network;
+  devices: Device[];
+}
+
 export interface ModifyNetworkRequest
   extends Omit<Network, 'id' | 'connected_at' | 'allowed_ips'> {
   allowed_ips: string;
@@ -289,6 +294,9 @@ export interface ApiHook {
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (network: Network) => EmptyApiResponse;
+    parseWireguardConfig: (
+      config: string
+    ) => Promise<ParseWireguardConfigResponse>;
     getUsersStats: (
       data?: GetNetworkStatsRequest
     ) => Promise<NetworkUserStats[]>;

@@ -1,14 +1,13 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useFilePicker } from 'use-file-picker';
 import { useQueryClient } from 'wagmi';
 import * as yup from 'yup';
-import axios from 'axios';
+
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
 import Button, {
@@ -49,28 +48,10 @@ const networkToForm = (data?: Network): FormInputs | undefined => {
   return { ...defaultValues, ...omited } as FormInputs;
 };
 
-// const ImportConfigButton = () => {
-//   const { LL } = useI18nContext();
-//   const [save, loading] = useNetworkPageStore(
-//     (state) => [state.saveSubject, state.loading],
-//     shallow
-//   );
-//   return (
-//     <Button
-//       text={LL.networkConfiguration.form.controls.submit()}
-//       size={ButtonSize.SMALL}
-//       styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
-//       icon={<IconCheckmarkWhite />}
-//       loading={loading}
-//       onClick={() => save.next()}
-//     />
-//   );
-// };
-
 export const NetworkConfiguration = () => {
   const toaster = useToaster();
   const {
-    network: { addNetwork, editNetwork },
+    network: { addNetwork, editNetwork, parseWireguardConfig },
   } = useApi();
   const submitRef = useRef<HTMLButtonElement | null>(null);
   const network = useNetworkPageStore((state) => state.network);
@@ -88,7 +69,7 @@ export const NetworkConfiguration = () => {
         toaster.success(
           LL.networkConfiguration.form.messages.networkModified()
         );
-        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
+        queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
         console.error(err);
@@ -103,7 +84,7 @@ export const NetworkConfiguration = () => {
       onSuccess: (network) => {
         setStoreState({ network, loading: false });
         toaster.success(LL.networkConfiguration.form.messages.networkCreated());
-        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
+        queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
         setStoreState({ loading: false });
@@ -112,11 +93,22 @@ export const NetworkConfiguration = () => {
       },
     }
   );
-  const [openFileSelector, { filesContent, loading: filePickerLoading }] =
-    useFilePicker({ accept: '.*', multiple: false });
-  if (filesContent.length > 0) {
-    axios.post('/api/v1/network/parse', filesContent[0].content);
-  }
+  const parseConfig = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = () => {
+      // you can use this method to get file and perform respective operations
+      const file = input.files[0];
+      const reader = new FileReader();
+      console.log(file);
+      reader.addEventListener('loadend', () => {
+        console.log(reader.result);
+        // document.getElementById('demoShowA').innerHTML = reader.result;
+      });
+      reader.readAsText(file);
+    };
+    input.click();
+  };
   const defaultFormValues = useMemo(() => {
     if (network) {
       const res = networkToForm(network);
@@ -227,7 +219,7 @@ export const NetworkConfiguration = () => {
             styleVariant={ButtonStyleVariant.STANDARD}
             icon={<IconArrowGrayUp />}
             loading={false}
-            onClick={() => openFileSelector()}
+            onClick={() => parseConfig()}
           />
           <button type="submit" className="hidden" ref={submitRef}></button>
         </form>

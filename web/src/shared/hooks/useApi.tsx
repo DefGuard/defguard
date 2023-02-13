@@ -158,6 +158,10 @@ const useApi = (props?: HookProps): ApiHook => {
   const addNetwork: ApiHook['network']['addNetwork'] = (network) =>
     client.post(`/network/`, network).then(unpackRequest);
 
+  const parseWireguardConfig: ApiHook['network']['parseWireguardConfig'] = (
+    config
+  ) => client.post(`/network/parse`, config).then(unpackRequest);
+
   const login: ApiHook['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
       if (response.status === 200) {
