@@ -2235,6 +2235,10 @@ type RootTranslation = {
 				 * N​e​t​w​o​r​k​ ​c​r​e​a​t​e​d​.
 				 */
 				networkCreated: string
+				/**
+				 * C​o​n​f​i​g​ ​f​i​l​e​ ​p​a​r​s​e​d​.
+				 */
+				configParsed: string
 			}
 			fields: {
 				name: {
@@ -4656,6 +4660,10 @@ export type TranslationFunctions = {
 				 * Network created.
 				 */
 				networkCreated: () => LocalizedString
+				/**
+				 * Config file parsed.
+				 */
+				configParsed: () => LocalizedString
 			}
 			fields: {
 				name: {

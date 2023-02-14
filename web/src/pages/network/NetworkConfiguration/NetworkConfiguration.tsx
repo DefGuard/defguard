@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -17,10 +17,7 @@ import Button, {
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
-import {
-  IconArrowGrayUp,
-  IconCheckmarkWhite,
-} from '../../../shared/components/svg';
+import { IconArrowGrayUp } from '../../../shared/components/svg';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
@@ -64,16 +61,17 @@ export const NetworkConfiguration = () => {
     [MutationKeys.CHANGE_NETWORK],
     editNetwork,
     {
-      onSuccess: (response) => {
-        setStoreState({ network: response });
+      onSuccess: (network) => {
+        setStoreState({ network, loading: false });
         toaster.success(
           LL.networkConfiguration.form.messages.networkModified()
         );
         queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
-        console.error(err);
+        setStoreState({ loading: false });
         toaster.error(LL.messages.error());
+        console.error(err);
       },
     }
   );
@@ -93,31 +91,6 @@ export const NetworkConfiguration = () => {
       },
     }
   );
-  const parseConfig = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.onchange = () => {
-      // you can use this method to get file and perform respective operations
-      const file = input.files[0];
-      const reader = new FileReader();
-      console.log(file);
-      reader.addEventListener('loadend', () => {
-        console.log(reader.result);
-        // document.getElementById('demoShowA').innerHTML = reader.result;
-      });
-      reader.readAsText(file);
-    };
-    input.click();
-  };
-  const defaultFormValues = useMemo(() => {
-    if (network) {
-      const res = networkToForm(network);
-      if (res) {
-        return res;
-      }
-    }
-    return defaultValues;
-  }, [network]);
 
   const schema = yup
     .object({
@@ -146,11 +119,6 @@ export const NetworkConfiguration = () => {
     })
     .required();
 
-  const { control, handleSubmit } = useForm<FormInputs>({
-    defaultValues: defaultFormValues,
-    resolver: yupResolver(schema),
-  });
-
   const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
     if (network) {
       editNetworkMutation({ ...network, ...values });
@@ -161,14 +129,69 @@ export const NetworkConfiguration = () => {
   };
 
   useEffect(() => {
-    setStoreState({ loading: addLoading || editLoading });
-  }, [addLoading, editLoading, setStoreState]);
-
-  useEffect(() => {
     const sub = submitSubject.subscribe(() => submitRef.current?.click());
     return () => sub.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const defaultFormValues = useMemo(() => {
+    if (network) {
+      const res = networkToForm(network);
+      if (res) {
+        return res;
+      }
+    }
+    return defaultValues;
+  }, [network]);
+
+  const {
+    control,
+    handleSubmit,
+    reset: resetForm,
+  } = useForm<FormInputs>({
+    defaultValues: defaultFormValues,
+    resolver: yupResolver(schema),
+  });
+
+  const { mutate: parseConfigMutation, isLoading: parseLoading } = useMutation(
+    [MutationKeys.PARSE_WIREGUARD_CONFIG],
+    parseWireguardConfig,
+    {
+      onSuccess: (response) => {
+        setStoreState({ network: response.network });
+        // TODO: fix typing
+        resetForm(response.network);
+        toaster.success(LL.networkConfiguration.form.messages.configParsed());
+      },
+      onError: (err) => {
+        console.error(err);
+        toaster.error(LL.messages.error());
+      },
+    }
+  );
+
+  useEffect(() => {
+    setStoreState({ loading: addLoading || editLoading || parseLoading });
+  }, [addLoading, editLoading, parseLoading, setStoreState]);
+
+  // Displays file picker and posts selected file content to be parsed by API
+  const parseConfig = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = () => {
+      if (input.files == null) {
+        return;
+      }
+      const reader = new FileReader();
+      reader.addEventListener('loadend', () => {
+        if (typeof reader.result === 'string') {
+          parseConfigMutation(reader.result);
+        }
+      });
+      reader.readAsText(input.files[0]);
+    };
+    input.click();
+  };
 
   return (
     <section className="network-config">

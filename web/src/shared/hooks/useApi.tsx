@@ -420,6 +420,7 @@ const useApi = (props?: HookProps): ApiHook => {
       getNetworks: fetchNetworks,
       editNetwork: modifyNetwork,
       deleteNetwork,
+      parseWireguardConfig,
       getUsersStats,
       getNetworkToken,
       getNetworkStats,

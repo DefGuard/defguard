@@ -978,6 +978,7 @@ const en: BaseTranslation = {
           'List of addresses/masks that should be routed through the VPN network.',
         networkModified: 'Network modified.',
         networkCreated: 'Network created.',
+        configParsed: 'Config file parsed.',
       },
       fields: {
         name: {

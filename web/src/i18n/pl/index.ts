@@ -978,6 +978,7 @@ const pl: BaseTranslation = {
           'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
         networkModified: 'Sieć zmodyfikowana.',
         networkCreated: 'Sieć utworzona.',
+        configParsed: 'Plik konfiguracyjny wczytany.',
       },
       fields: {
         name: {
