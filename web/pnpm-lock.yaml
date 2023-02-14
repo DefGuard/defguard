@@ -92,7 +92,6 @@ specifiers:
   typesafe-i18n: ^5.18.1
   typescript: ~4.9.4
   use-breakpoint: ^3.0.6
-  use-file-picker: ^1.5.2
   vite: ^4.0.4
   vite-plugin-eslint: ^1.8.1
   vite-plugin-node-polyfills: ^0.6.0
@@ -159,7 +158,6 @@ dependencies:
   tippy.js: 6.3.7
   typesafe-i18n: 5.18.1_typescript@4.9.4
   use-breakpoint: 3.0.6_biqbaboplfbrettd7655fr4n2y
-  use-file-picker: 1.5.2_react@18.2.0
   vite-plugin-node-polyfills: 0.6.0_rollup@3.9.1+vite@4.0.4
   wagmi: 0.10.4_wweobo2sc25ap44y2tvtsnwgjm
   yup: 0.32.11
@@ -6603,13 +6601,6 @@ packages:
     resolution: {integrity: sha512-P9bmyZ3h/PRG+Nzga+rbdI4OEpNDzAVyy74uVO9ATgzLK6VtAsYybF/+TOCvrc0MO793d6+42lLyZTw7/ArVzA==}
     dev: false
 
-  /file-selector/0.2.4:
-    resolution: {integrity: sha512-ZDsQNbrv6qRi1YTDOEWzf5J2KjZ9KMI1Q2SGeTkCJmNNW25Jg4TW4UMcmoqcg4WrAyKRcpBXdbWRxkfrOzVRbA==}
-    engines: {node: '>= 10'}
-    dependencies:
-      tslib: 2.4.0
-    dev: false
-
   /file-uri-to-path/1.0.0:
     resolution: {integrity: sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==}
     dev: false
@@ -10552,16 +10543,6 @@ packages:
       dequal: 2.0.3
       react: 18.2.0
     dev: true
-
-  /use-file-picker/1.5.2_react@18.2.0:
-    resolution: {integrity: sha512-quBXHlUqjadSHj62vADzWYazHrH0oJio5u9GlxAG71vFYfS9KFNm1tFtZ3IMKxUMg9ADKGFg1V8caLWF5ajrDQ==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      react: '>=16'
-    dependencies:
-      file-selector: 0.2.4
-      react: 18.2.0
-    dev: false
 
   /use-sync-external-store/1.2.0_react@18.2.0:
     resolution: {integrity: sha512-eEgnFxGQ1Ife9bzYs6VLi8/4X6CObHMw9Qr9tPY43iKwsPw8xE8+EFsf/2cFZ5S3esXgpWgtSCtLNS41F+sKPA==}

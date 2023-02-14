@@ -92,7 +92,6 @@
     "tippy.js": "^6.3.7",
     "typesafe-i18n": "^5.18.1",
     "use-breakpoint": "^3.0.6",
-    "use-file-picker": "^1.5.2",
     "vite-plugin-node-polyfills": "^0.6.0",
     "wagmi": "^0.10.4",
     "yup": "^0.32.11",

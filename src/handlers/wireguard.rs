@@ -176,7 +176,6 @@ pub async fn network_details(
 
 #[post("/parse", data = "<config>")]
 pub async fn parse_config(config: &str) -> ApiResult {
-    error!("### {}", config);
     let (network, devices) = parse_wireguard_config(config)
         .map_err(|_| OriWebError::ModelError("Failed to parse wireguard config file".to_string()))?;
     Ok(ApiResponse {
