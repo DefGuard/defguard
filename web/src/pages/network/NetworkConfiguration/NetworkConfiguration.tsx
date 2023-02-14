@@ -58,8 +58,10 @@ export const NetworkConfiguration = () => {
     {
       onSuccess: (response) => {
         setStoreState({ network: response });
-        toaster.success(LL.networkConfiguration.form.messages.networkModified());
-        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
+        toaster.success(
+          LL.networkConfiguration.form.messages.networkModified()
+        );
+        queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
         console.error(err);
@@ -74,7 +76,7 @@ export const NetworkConfiguration = () => {
       onSuccess: (network) => {
         setStoreState({ network, loading: false });
         toaster.success(LL.networkConfiguration.form.messages.networkCreated());
-        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
+        queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
         setStoreState({ loading: false });
@@ -181,13 +183,13 @@ export const NetworkConfiguration = () => {
             controller={{ control, name: 'allowed_ips' }}
             outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
           />
+          <MessageBox>
+            <p>{LL.networkConfiguration.form.messages.dns()}</p>
+          </MessageBox>
           <FormInput
             controller={{ control, name: 'dns' }}
             outerLabel={LL.networkConfiguration.form.fields.dns.label()}
           />
-          <MessageBox>
-            <p>{LL.networkConfiguration.form.messages.dns()}</p>
-          </MessageBox>
           <button type="submit" className="hidden" ref={submitRef}></button>
         </form>
       </Card>
