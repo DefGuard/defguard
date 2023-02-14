@@ -104,6 +104,7 @@ export interface ParseWireguardConfigResponse {
 export interface ModifyNetworkRequest
   extends Omit<Network, 'id' | 'connected_at' | 'allowed_ips'> {
   allowed_ips: string;
+  devices: Device[];
 }
 
 export interface NetworkToken {

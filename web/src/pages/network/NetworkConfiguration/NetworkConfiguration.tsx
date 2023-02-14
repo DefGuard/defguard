@@ -3,9 +3,8 @@ import './style.scss';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
-
 import { useEffect, useMemo, useRef } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { Controller, SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 import { useQueryClient } from 'wagmi';
 import * as yup from 'yup';
 
@@ -35,6 +34,7 @@ const defaultValues: FormInputs = {
   port: 50051,
   allowed_ips: '',
   dns: '',
+  devices: [],
 };
 
 const networkToForm = (data?: Network): FormInputs | undefined => {
@@ -148,12 +148,18 @@ export const NetworkConfiguration = () => {
   const {
     control,
     handleSubmit,
+    register,
     reset: resetForm,
   } = useForm<FormInputs>({
     defaultValues: defaultFormValues,
     resolver: yupResolver(schema),
   });
-
+  const { fields, append, prepend, remove, swap, move, insert } = useFieldArray(
+    {
+      control,
+      name: 'devices',
+    }
+  );
   const { mutate: parseConfigMutation, isLoading: parseLoading } = useMutation(
     [MutationKeys.PARSE_WIREGUARD_CONFIG],
     parseWireguardConfig,
@@ -161,7 +167,7 @@ export const NetworkConfiguration = () => {
       onSuccess: (response) => {
         setStoreState({ network: response.network });
         // TODO: fix typing
-        resetForm(response.network);
+        resetForm({ ...response.network, ...{ devices: response.devices } } as ModifyNetworkRequest);
         toaster.success(LL.networkConfiguration.form.messages.configParsed());
       },
       onError: (err) => {
@@ -237,6 +243,26 @@ export const NetworkConfiguration = () => {
           <MessageBox>
             <p>{LL.networkConfiguration.form.messages.dns()}</p>
           </MessageBox>
+          {fields.map((device, index) => {
+            return (
+              <li key={device.id}>
+                <input
+                  name={`devices[${index}].name`}
+                  defaultValue={`${device.name}`} // make sure to set up defaultValue
+                  ref={register()}
+                />
+                {/* <Controller */}
+                {/*   as={<input />} */}
+                {/*   name={`devices[${index}].name`} */}
+                {/*   control={control} */}
+                {/*   defaultValue={device.name} // make sure to set up defaultValue */}
+                {/* /> */}
+                <button type="button" onClick={() => remove(index)}>
+                  Delete
+                </button>
+              </li>
+            );
+          })}
           <Button
             text={LL.networkConfiguration.form.controls.fill()}
             size={ButtonSize.SMALL}
