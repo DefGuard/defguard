@@ -1610,9 +1610,8 @@ type RootTranslation = {
 			body: {
 				/**
 				 * 
-			​	​	​	​<​p​>​F​o​r​ ​E​n​t​e​r​p​r​i​s​e​ ​s​u​p​p​o​r​t​<​/​p​>​
 			​ ​ ​ ​ ​ ​ ​<​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​c​o​n​t​a​c​t​:​ ​
+			​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​s​u​p​p​o​r​t​ ​p​l​e​a​s​e​ ​c​o​n​t​a​c​t​:​ ​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​m​a​i​l​t​o​:​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​"​>​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​<​/​a​>​
 			​ ​ ​ ​ ​ ​ ​<​/​p​>​
 			​	​	​	​<​b​r​/​>​
@@ -4034,9 +4033,8 @@ export type TranslationFunctions = {
 			body: {
 				/**
 				 * 
-						<p>For Enterprise support</p>
 			      <p>
-			        Please contact: 
+			        For support please contact: 
 			        <a href="mailto:support@defguard.net">support@defguard.net</a>
 			      </p>
 						<br/>

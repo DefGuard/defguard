@@ -162,7 +162,7 @@ export const OverviewPage = () => {
         )}
         <div className="bottom-row">
           <OverviewConnectedUsers stats={getNetworkUsers} />
-          <OverviewActivityStream />
+          {/* <OverviewActivityStream /> */}
         </div>
       </PageContainer>
     </>
