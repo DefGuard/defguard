@@ -717,9 +717,8 @@ const en: BaseTranslation = {
       title: 'Support',
       body: {
         enterprise: `
-			<p>For Enterprise support</p>
       <p>
-        Please contact: 
+        For support please contact: 
         <a href="mailto:support@defguard.net">support@defguard.net</a>
       </p>
 			<br/>
