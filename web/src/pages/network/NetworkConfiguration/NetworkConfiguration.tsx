@@ -24,6 +24,8 @@ import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { ModifyNetworkRequest, Network } from '../../../shared/types';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
+import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
+import { SelectStyleVariant } from '../../../shared/components/layout/Select/Select';
 
 type FormInputs = ModifyNetworkRequest;
 
@@ -200,6 +202,18 @@ export const NetworkConfiguration = () => {
     input.click();
   };
 
+  const users = [{ username: 'admin', id: 1 }];
+  const userOptions = useMemo(() => {
+    if (users) {
+      return users.map((u) => ({
+        key: u.id,
+        value: u.id,
+        label: u.username,
+      }));
+    }
+    return [];
+  }, [users]);
+
   return (
     <section className="network-config">
       <header>
@@ -247,16 +261,22 @@ export const NetworkConfiguration = () => {
             return (
               <li key={device.id}>
                 <input
-                  name={`devices[${index}].name`}
-                  defaultValue={`${device.name}`} // make sure to set up defaultValue
-                  ref={register()}
+                  // TODO: fix typing
+                  {...register(`devices[${index}].name`)}
+                  defaultValue={`${device.name}`}
                 />
-                {/* <Controller */}
-                {/*   as={<input />} */}
-                {/*   name={`devices[${index}].name`} */}
-                {/*   control={control} */}
-                {/*   defaultValue={device.name} // make sure to set up defaultValue */}
-                {/* /> */}
+
+                <FormSelect
+                  styleVariant={SelectStyleVariant.WHITE}
+                  options={userOptions}
+                  controller={{ control, name: `devices[${index}].user_id` }}
+                  outerLabel={LL.userPage.userDetails.fields.groups.label()}
+                  loading={false}
+                  searchable={true}
+                  multi={false}
+                  disabled={false}
+                />
+                <span>{device.wireguard_ip}</span>
                 <button type="button" onClick={() => remove(index)}>
                   Delete
                 </button>
