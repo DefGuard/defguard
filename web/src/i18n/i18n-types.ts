@@ -1154,7 +1154,7 @@ type RootTranslation = {
 	navigation: {
 		bar: {
 			/**
-			 * O​v​e​r​v​i​e​w
+			 * V​P​N​ ​O​v​e​r​v​i​e​w
 			 */
 			overview: string
 			/**
@@ -3580,7 +3580,7 @@ export type TranslationFunctions = {
 	navigation: {
 		bar: {
 			/**
-			 * Overview
+			 * VPN Overview
 			 */
 			overview: () => LocalizedString
 			/**

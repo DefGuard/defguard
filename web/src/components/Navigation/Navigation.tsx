@@ -17,10 +17,11 @@ import SvgIconEdit from '../../shared/components/svg/IconEditAlt';
 import SvgIconHamburgerMenu from '../../shared/components/svg/IconHamburgerMenu';
 import SvgIconNavLogout from '../../shared/components/svg/IconNavLogout';
 import SvgIconNavOpenId from '../../shared/components/svg/IconNavOpenid';
-import SvgIconNavOverview from '../../shared/components/svg/IconNavOverview';
 import SvgIconNavProfile from '../../shared/components/svg/IconNavProfile';
-import SvgIconNavSettings from '../../shared/components/svg/IconNavSettings';
+import SvgIconNavProvisioners from '../../shared/components/svg/IconNavProvisioners';
 import SvgIconNavUsers from '../../shared/components/svg/IconNavUsers';
+import SvgIconNavVpn from '../../shared/components/svg/IconNavVpn';
+import SvgIconNavWebhooks from '../../shared/components/svg/IconNavWebhooks';
 import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
@@ -97,7 +98,7 @@ export const Navigation = () => {
       {
         title: LL.navigation.bar.overview(),
         linkPath: '/admin/overview',
-        icon: <SvgIconNavOverview />,
+        icon: <SvgIconNavVpn />,
         allowedToView: ['admin'],
         enabled: settings?.wireguard_enabled,
       },
@@ -111,14 +112,14 @@ export const Navigation = () => {
       {
         title: LL.navigation.bar.provisioners(),
         linkPath: '/admin/provisioners',
-        icon: <SvgIconNavOverview />,
+        icon: <SvgIconNavProvisioners />,
         allowedToView: ['admin'],
         enabled: settings?.worker_enabled,
       },
       {
         title: LL.navigation.bar.webhooks(),
         linkPath: '/admin/webhooks',
-        icon: <SvgIconNavSettings />,
+        icon: <SvgIconNavWebhooks />,
         allowedToView: ['admin'],
         enabled: settings?.webhooks_enabled,
       },

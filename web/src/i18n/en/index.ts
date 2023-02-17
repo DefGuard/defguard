@@ -524,7 +524,7 @@ const en: BaseTranslation = {
   },
   navigation: {
     bar: {
-      overview: 'Overview',
+      overview: 'VPN Overview',
       users: 'Users',
       provisioners: 'Provisioners',
       webhooks: 'Webhooks',
