@@ -2157,6 +2157,10 @@ type RootTranslation = {
 			 * O​u​t​:
 			 */
 			out: string
+			/**
+			 * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d
+			 */
+			gatewayDisconnected: string
 		}
 	}
 	connectedUsersOverview: {
@@ -4573,6 +4577,10 @@ export type TranslationFunctions = {
 			 * Out:
 			 */
 			out: () => LocalizedString
+			/**
+			 * Gateway disconnected
+			 */
+			gatewayDisconnected: () => LocalizedString
 		}
 	}
 	connectedUsersOverview: {

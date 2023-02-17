@@ -11,6 +11,7 @@ import Button, {
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import NoData from '../../shared/components/layout/NoData/NoData';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
@@ -21,7 +22,6 @@ import { sortByDate } from '../../shared/utils/sortByDate';
 import { useNetworkPageStore } from '../network/hooks/useNetworkPageStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
-import { OverviewActivityStream } from './OverviewActivityStream/OverviewActivityStream';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
 import { OverviewStats } from './OverviewStats/OverviewStats';
 import { OverviewStatsFilterSelect } from './OverviewStatsFilterSelect/OverviewStatsFilterSelect';
@@ -40,7 +40,7 @@ export const OverviewPage = () => {
   const { LL } = useI18nContext();
 
   const {
-    network: { getNetworks, getUsersStats, getNetworkStats },
+    network: { getNetworks, getUsersStats, getNetworkStats, getGatewayStatus },
   } = useApi();
 
   const { data: networkStats } = useQuery(
@@ -73,6 +73,11 @@ export const OverviewPage = () => {
       },
       refetchOnWindowFocus: false,
     }
+  );
+
+  const { data: gatewayStatus, isLoading: gatewayStatusLoading } = useQuery(
+    [QueryKeys.FETCH_GATEWAY_STATUS],
+    getGatewayStatus
   );
 
   const { data: networks, isLoading: networksLoading } = useQuery(
@@ -162,12 +167,16 @@ export const OverviewPage = () => {
           />
         )}
         <div className="bottom-row">
-          {userStatsLoading ? (
+          {userStatsLoading || gatewayStatusLoading ? (
             <div className="stats-loader">
               <LoaderSpinner size={180} />
             </div>
-          ) : (
+          ) : gatewayStatus?.connected ? (
             <OverviewConnectedUsers stats={getNetworkUsers} />
+          ) : (
+            <NoData
+              customMessage={LL.networkOverview.stats.gatewayDisconnected()}
+            />
           )}
           {/* <OverviewActivityStream /> */}
         </div>
