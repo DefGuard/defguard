@@ -947,6 +947,7 @@ const en: BaseTranslation = {
       activityIn: 'Activity in {hour: number}H',
       in: 'In:',
       out: 'Out:',
+      gatewayDisconnected: 'Gateway disconnected',
     },
   },
   connectedUsersOverview: {

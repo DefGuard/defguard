@@ -6,9 +6,12 @@ import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import useBreakpoint from 'use-breakpoint';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import Button, {
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
+import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import NoData from '../../shared/components/layout/NoData/NoData';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
@@ -19,12 +22,10 @@ import { sortByDate } from '../../shared/utils/sortByDate';
 import { useNetworkPageStore } from '../network/hooks/useNetworkPageStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
-import { OverviewActivityStream } from './OverviewActivityStream/OverviewActivityStream';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
 import { OverviewStats } from './OverviewStats/OverviewStats';
 import { OverviewStatsFilterSelect } from './OverviewStatsFilterSelect/OverviewStatsFilterSelect';
 import { OverviewViewSelect } from './OverviewViewSelect/OverviewViewSelect';
-import { useI18nContext } from '../../i18n/i18n-react';
 
 const STATUS_REFETCH_TIMEOUT = 15 * 1000;
 
@@ -39,7 +40,7 @@ export const OverviewPage = () => {
   const { LL } = useI18nContext();
 
   const {
-    network: { getNetworks, getUsersStats, getNetworkStats },
+    network: { getNetworks, getUsersStats, getNetworkStats, getGatewayStatus },
   } = useApi();
 
   const { data: networkStats } = useQuery(
@@ -56,7 +57,7 @@ export const OverviewPage = () => {
     }
   );
 
-  const { data: networkUsersStats } = useQuery(
+  const { data: networkUsersStats, isLoading: userStatsLoading } = useQuery(
     [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter],
     () => getUsersStats({ from: getNetworkStatsFilterValue(statsFilter) }),
     {
@@ -72,6 +73,11 @@ export const OverviewPage = () => {
       },
       refetchOnWindowFocus: false,
     }
+  );
+
+  const { data: gatewayStatus, isLoading: gatewayStatusLoading } = useQuery(
+    [QueryKeys.FETCH_GATEWAY_STATUS],
+    getGatewayStatus
   );
 
   const { data: networks, isLoading: networksLoading } = useQuery(
@@ -161,7 +167,17 @@ export const OverviewPage = () => {
           />
         )}
         <div className="bottom-row">
-          <OverviewConnectedUsers stats={getNetworkUsers} />
+          {userStatsLoading || gatewayStatusLoading ? (
+            <div className="stats-loader">
+              <LoaderSpinner size={180} />
+            </div>
+          ) : gatewayStatus?.connected ? (
+            <OverviewConnectedUsers stats={getNetworkUsers} />
+          ) : (
+            <NoData
+              customMessage={LL.networkOverview.stats.gatewayDisconnected()}
+            />
+          )}
           {/* <OverviewActivityStream /> */}
         </div>
       </PageContainer>

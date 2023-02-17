@@ -107,7 +107,7 @@
       @include media-breakpoint-up(xl) {
         display: grid;
         flex-grow: 1;
-        grid-template-columns: 1fr 369px;
+        grid-template-columns: 1fr;
         column-gap: 4rem;
         max-width: 100%;
         overflow: hidden;
@@ -133,15 +133,15 @@
         }
       }
 
-      & > .activity-stream {
-        @include media-breakpoint-down(xl) {
-          padding-left: 2rem;
-          padding-right: 2rem;
-        }
-        @include media-breakpoint-up(xl) {
-          grid-column: 2;
-        }
-      }
+      // & > .activity-stream {
+      //   @include media-breakpoint-down(xl) {
+      //     padding-left: 2rem;
+      //     padding-right: 2rem;
+      //   }
+      //   @include media-breakpoint-up(xl) {
+      //     grid-column: 2;
+      //   }
+      // }
     }
 
     h1 {
@@ -150,6 +150,21 @@
 
     h2 {
       @include typography(20px, 28px, semiBold, var(--text-main), 'Poppins');
+    }
+  }
+
+  .stats-loader {
+    grid-row: 1;
+    grid-column: span 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-flow: row nowrap;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    @include media-breakpoint-up(lg) {
+      grid-row: 1;
     }
   }
 }

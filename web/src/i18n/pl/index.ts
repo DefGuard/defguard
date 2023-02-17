@@ -654,7 +654,7 @@ const pl: BaseTranslation = {
           },
           mainLogoUrl: {
             label: 'Url loga na stronie logowania',
-						helper: '<p>Maksymalna wielkość zdjęcia to 250x100 px.</p>',
+            helper: '<p>Maksymalna wielkość zdjęcia to 250x100 px.</p>',
             placeholder: 'Domyślny obrazek',
           },
           navLogoUrl: {
@@ -922,10 +922,10 @@ const pl: BaseTranslation = {
       email: 'Poznać twój adres e-mail.',
       phone: 'Poznać twój numer telefonu.',
     },
-		controls: {
-			accept: 'Akceptuj',
-			cancel: 'Anuluj',
-		}
+    controls: {
+      accept: 'Akceptuj',
+      cancel: 'Anuluj',
+    },
   },
   networkOverview: {
     pageTitle: 'Przegląd sieci',
@@ -946,6 +946,7 @@ const pl: BaseTranslation = {
       activityIn: 'Aktywność w {hour: number}H',
       in: 'Przychodzący:',
       out: 'Wychodzący:',
+      gatewayDisconnected: 'Gateway rozłączony',
     },
   },
   connectedUsersOverview: {
