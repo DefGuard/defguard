@@ -6,9 +6,11 @@ import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import useBreakpoint from 'use-breakpoint';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import Button, {
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
+import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
@@ -24,7 +26,6 @@ import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnect
 import { OverviewStats } from './OverviewStats/OverviewStats';
 import { OverviewStatsFilterSelect } from './OverviewStatsFilterSelect/OverviewStatsFilterSelect';
 import { OverviewViewSelect } from './OverviewViewSelect/OverviewViewSelect';
-import { useI18nContext } from '../../i18n/i18n-react';
 
 const STATUS_REFETCH_TIMEOUT = 15 * 1000;
 
@@ -56,7 +57,7 @@ export const OverviewPage = () => {
     }
   );
 
-  const { data: networkUsersStats } = useQuery(
+  const { data: networkUsersStats, isLoading: userStatsLoading } = useQuery(
     [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter],
     () => getUsersStats({ from: getNetworkStatsFilterValue(statsFilter) }),
     {
@@ -161,7 +162,13 @@ export const OverviewPage = () => {
           />
         )}
         <div className="bottom-row">
-          <OverviewConnectedUsers stats={getNetworkUsers} />
+          {userStatsLoading ? (
+            <div className="stats-loader">
+              <LoaderSpinner size={180} />
+            </div>
+          ) : (
+            <OverviewConnectedUsers stats={getNetworkUsers} />
+          )}
           {/* <OverviewActivityStream /> */}
         </div>
       </PageContainer>
