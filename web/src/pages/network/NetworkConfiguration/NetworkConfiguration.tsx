@@ -250,6 +250,9 @@ export const NetworkConfiguration = () => {
             controller={{ control, name: 'allowed_ips' }}
             outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
           />
+          <MessageBox>
+            <p>{LL.networkConfiguration.form.messages.dns()}</p>
+          </MessageBox>
           <FormInput
             controller={{ control, name: 'dns' }}
             outerLabel={LL.networkConfiguration.form.fields.dns.label()}
