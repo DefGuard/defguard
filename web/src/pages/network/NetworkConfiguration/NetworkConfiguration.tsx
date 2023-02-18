@@ -123,6 +123,11 @@ export const NetworkConfiguration = () => {
     .required();
 
   const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
+    const devices = values.devices?.map((d) => ({
+      ...d,
+      user_id: d.user_id.value,
+    }));
+    values = { ...values, devices };
     if (network) {
       editNetworkMutation({ ...network, ...values });
     } else {
@@ -202,8 +207,8 @@ export const NetworkConfiguration = () => {
     input.click();
   };
 
-  const users = [{ username: 'admin', id: 1 }];
   const userOptions = useMemo(() => {
+    const users = [{ username: 'admin', id: 1 }];
     if (users) {
       return users.map((u) => ({
         key: u.id,
@@ -212,7 +217,8 @@ export const NetworkConfiguration = () => {
       }));
     }
     return [];
-  }, [users]);
+  // }, [users]);
+  }, []);
 
   return (
     <section className="network-config">
@@ -268,11 +274,17 @@ export const NetworkConfiguration = () => {
                   {...register(`devices[${index}].name`)}
                   defaultValue={`${device.name}`}
                 />
+                {/* <input */}
+                {/*   // TODO: fix typing */}
+                {/*   {...register(`devices[${index}].user_id`)} */}
+                {/*   defaultValue="" */}
+                {/* /> */}
 
                 <FormSelect
                   styleVariant={SelectStyleVariant.WHITE}
                   options={userOptions}
                   controller={{ control, name: `devices[${index}].user_id` }}
+                  // controller={{ control, name: `devices[${index}].id` }}
                   outerLabel={LL.userPage.userDetails.fields.groups.label()}
                   loading={false}
                   searchable={true}
