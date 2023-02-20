@@ -28,6 +28,7 @@ export const SelectOption = ({
   return (
     <motion.button
       {...rest}
+      type="button"
       className={cn}
       animate={getAnimate}
       variants={selectOptionVariants}
