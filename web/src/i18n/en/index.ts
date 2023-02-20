@@ -999,6 +999,12 @@ const en: BaseTranslation = {
         dns: {
           label: 'DNS',
         },
+        deviceName: {
+          label: 'Device name',
+        },
+        deviceUser: {
+          label: 'User',
+        },
       },
       controls: {
         submit: 'Save changes',

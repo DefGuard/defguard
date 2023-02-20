@@ -161,11 +161,10 @@ export const NetworkConfiguration = () => {
   const {
     control,
     handleSubmit,
-    register,
     reset: resetForm,
   } = useForm<FormInputs>({
     defaultValues: defaultFormValues,
-    // resolver: yupResolver(schema),
+    resolver: yupResolver(schema),
   });
   const { fields, append, prepend, remove, swap, move, insert } = useFieldArray(
     {
@@ -231,11 +230,6 @@ export const NetworkConfiguration = () => {
     return [];
     // }, [users]);
   }, []);
-  const portOptions = [
-    { key: 1, value: 1000, label: 1000 },
-    { key: 2, value: 2000, label: 2000 },
-    { key: 3, value: 3000, label: 3000 },
-  ];
   return (
     <section className="network-config">
       <header>
@@ -285,39 +279,22 @@ export const NetworkConfiguration = () => {
           {fields.map((device, index) => {
             return (
               <>
-                {/* <input */}
-                {/*   // TODO: fix typing */}
-                {/*   {...register(`devices[${index}].name`)} */}
-                {/*   defaultValue={`${device.name}`} */}
-                {/* /> */}
-
-                {/* <input */}
-                {/*   // TODO: fix typing */}
-                {/*   {...register(`devices[${index}].user_id`)} */}
-                {/*   defaultValue="" */}
-                {/* /> */}
-
                 <FormInput
                   controller={{ control, name: `devices[${index}].name` }}
-                  outerLabel={LL.networkConfiguration.form.fields.dns.label()}
+                  outerLabel={LL.networkConfiguration.form.fields.deviceName.label()}
                 />
 
                 <FormSelect
                   styleVariant={SelectStyleVariant.WHITE}
                   options={userOptions}
                   controller={{ control, name: `devices[${index}].user_id` }}
-                  // controller={{ control, name: `devices[${index}].id` }}
-                  outerLabel={LL.userPage.userDetails.fields.groups.label()}
+                  outerLabel={LL.networkConfiguration.form.fields.deviceUser.label()}
                   loading={false}
                   searchable={false}
                   multi={false}
                   disabled={false}
                 />
 
-                {/* <select {...register(`devices[${index}].user_id`)} defaultValue={`${device.user_id}`}> */}
-                {/* <select {...register(`devices[${index}].user_id`)}> */}
-                {/*   {userOptions.map((u) => (<option value={u.value}>{u.label}</option>))} */}
-                {/* </select> */}
                 <span>{device.wireguard_ip}</span>
                 <button type="button" onClick={() => remove(index)}>
                   Delete

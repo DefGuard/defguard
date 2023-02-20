@@ -2280,6 +2280,18 @@ type RootTranslation = {
 					 */
 					label: string
 				}
+				deviceName: {
+					/**
+					 * D​e​v​i​c​e​ ​n​a​m​e
+					 */
+					label: string
+				}
+				deviceUser: {
+					/**
+					 * U​s​e​r
+					 */
+					label: string
+				}
 			}
 			controls: {
 				/**
@@ -4705,6 +4717,18 @@ export type TranslationFunctions = {
 				dns: {
 					/**
 					 * DNS
+					 */
+					label: () => LocalizedString
+				}
+				deviceName: {
+					/**
+					 * Device name
+					 */
+					label: () => LocalizedString
+				}
+				deviceUser: {
+					/**
+					 * User
 					 */
 					label: () => LocalizedString
 				}
