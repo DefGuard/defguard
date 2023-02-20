@@ -4,12 +4,18 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
-import { Controller, SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
+import {
+  Controller,
+  SubmitHandler,
+  useFieldArray,
+  useForm,
+} from 'react-hook-form';
 import { useQueryClient } from 'wagmi';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -17,6 +23,7 @@ import Button, {
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
+import { SelectStyleVariant } from '../../../shared/components/layout/Select/Select';
 import { IconArrowGrayUp } from '../../../shared/components/svg';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -24,8 +31,6 @@ import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { ModifyNetworkRequest, Network } from '../../../shared/types';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
-import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
-import { SelectStyleVariant } from '../../../shared/components/layout/Select/Select';
 
 type FormInputs = ModifyNetworkRequest;
 
@@ -123,11 +128,12 @@ export const NetworkConfiguration = () => {
     .required();
 
   const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
-    const devices = values.devices?.map((d) => ({
-      ...d,
-      user_id: d.user_id.value,
-    }));
-    values = { ...values, devices };
+    // const devices = values.devices?.map((d) => ({
+    //   ...d,
+    //   user_id: d.user_id.value,
+    // }));
+    // values = { ...values, devices };
+    values.port = values.port.value;
     if (network) {
       editNetworkMutation({ ...network, ...values });
     } else {
@@ -159,7 +165,7 @@ export const NetworkConfiguration = () => {
     reset: resetForm,
   } = useForm<FormInputs>({
     defaultValues: defaultFormValues,
-    resolver: yupResolver(schema),
+    // resolver: yupResolver(schema),
   });
   const { fields, append, prepend, remove, swap, move, insert } = useFieldArray(
     {
@@ -174,7 +180,10 @@ export const NetworkConfiguration = () => {
       onSuccess: (response) => {
         setStoreState({ network: response.network });
         // TODO: fix typing
-        resetForm({ ...response.network, ...{ devices: response.devices } } as ModifyNetworkRequest);
+        resetForm({
+          ...response.network,
+          ...{ devices: response.devices },
+        } as ModifyNetworkRequest);
         toaster.success(LL.networkConfiguration.form.messages.configParsed());
       },
       onError: (err) => {
@@ -208,7 +217,10 @@ export const NetworkConfiguration = () => {
   };
 
   const userOptions = useMemo(() => {
-    const users = [{ username: 'admin', id: 1 }];
+    const users = [
+      { username: 'admin', id: 1 },
+      { username: 'sradmin', id: 2 },
+    ];
     if (users) {
       return users.map((u) => ({
         key: u.id,
@@ -217,9 +229,13 @@ export const NetworkConfiguration = () => {
       }));
     }
     return [];
-  // }, [users]);
+    // }, [users]);
   }, []);
-
+  const portOptions = [
+    { key: 1, value: 1000, label: 1000 },
+    { key: 2, value: 2000, label: 2000 },
+    { key: 3, value: 3000, label: 3000 },
+  ];
   return (
     <section className="network-config">
       <header>
@@ -268,17 +284,23 @@ export const NetworkConfiguration = () => {
           </MessageBox>
           {fields.map((device, index) => {
             return (
-              <li key={device.id}>
-                <input
-                  // TODO: fix typing
-                  {...register(`devices[${index}].name`)}
-                  defaultValue={`${device.name}`}
-                />
+              <>
+                {/* <input */}
+                {/*   // TODO: fix typing */}
+                {/*   {...register(`devices[${index}].name`)} */}
+                {/*   defaultValue={`${device.name}`} */}
+                {/* /> */}
+
                 {/* <input */}
                 {/*   // TODO: fix typing */}
                 {/*   {...register(`devices[${index}].user_id`)} */}
                 {/*   defaultValue="" */}
                 {/* /> */}
+
+                <FormInput
+                  controller={{ control, name: `devices[${index}].name` }}
+                  outerLabel={LL.networkConfiguration.form.fields.dns.label()}
+                />
 
                 <FormSelect
                   styleVariant={SelectStyleVariant.WHITE}
@@ -287,15 +309,20 @@ export const NetworkConfiguration = () => {
                   // controller={{ control, name: `devices[${index}].id` }}
                   outerLabel={LL.userPage.userDetails.fields.groups.label()}
                   loading={false}
-                  searchable={true}
+                  searchable={false}
                   multi={false}
                   disabled={false}
                 />
+
+                {/* <select {...register(`devices[${index}].user_id`)} defaultValue={`${device.user_id}`}> */}
+                {/* <select {...register(`devices[${index}].user_id`)}> */}
+                {/*   {userOptions.map((u) => (<option value={u.value}>{u.label}</option>))} */}
+                {/* </select> */}
                 <span>{device.wireguard_ip}</span>
                 <button type="button" onClick={() => remove(index)}>
                   Delete
                 </button>
-              </li>
+              </>
             );
           })}
           <Button
