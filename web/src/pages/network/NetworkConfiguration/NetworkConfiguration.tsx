@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
 import {
@@ -166,12 +166,10 @@ export const NetworkConfiguration = () => {
     defaultValues: defaultFormValues,
     resolver: yupResolver(schema),
   });
-  const { fields, append, prepend, remove, swap, move, insert } = useFieldArray(
-    {
-      control,
-      name: 'devices',
-    }
-  );
+  const { fields, remove } = useFieldArray({
+    control,
+    name: 'devices',
+  });
   const { mutate: parseConfigMutation, isLoading: parseLoading } = useMutation(
     [MutationKeys.PARSE_WIREGUARD_CONFIG],
     parseWireguardConfig,
@@ -214,13 +212,16 @@ export const NetworkConfiguration = () => {
     };
     input.click();
   };
+  const {
+    user: { getUsers },
+  } = useApi();
+  const { data: users, isLoading: usersLoading } = useQuery(
+    [QueryKeys.FETCH_USERS],
+    getUsers
+  );
 
   const userOptions = useMemo(() => {
-    const users = [
-      { username: 'admin', id: 1 },
-      { username: 'sradmin', id: 2 },
-    ];
-    if (users) {
+    if (!usersLoading && users) {
       return users.map((u) => ({
         key: u.id,
         value: u.id,
@@ -228,8 +229,8 @@ export const NetworkConfiguration = () => {
       }));
     }
     return [];
-    // }, [users]);
-  }, []);
+  }, [users, usersLoading]);
+
   return (
     <section className="network-config">
       <header>
@@ -278,28 +279,33 @@ export const NetworkConfiguration = () => {
           </MessageBox>
           {fields.map((device, index) => {
             return (
-              <>
-                <FormInput
-                  controller={{ control, name: `devices[${index}].name` }}
-                  outerLabel={LL.networkConfiguration.form.fields.deviceName.label()}
+              <div className="device-form" key={device.id}>
+                <span>
+                  <FormInput
+                    controller={{ control, name: `devices[${index}].name` }}
+                    outerLabel={LL.networkConfiguration.form.fields.deviceName.label()}
+                  />
+                </span>
+                <span>
+                  <FormSelect
+                    styleVariant={SelectStyleVariant.WHITE}
+                    options={userOptions}
+                    controller={{ control, name: `devices[${index}].user_id` }}
+                    outerLabel={LL.networkConfiguration.form.fields.deviceUser.label()}
+                    loading={false}
+                    searchable={false}
+                    multi={false}
+                    disabled={false}
+                  />
+                </span>
+                <span className="wireguard-ip">{device.wireguard_ip}</span>{' '}
+                <Button
+                  text={LL.networkConfiguration.form.controls.remove()}
+                  size={ButtonSize.SMALL}
+                  styleVariant={ButtonStyleVariant.STANDARD}
+                  onClick={() => remove(index)}
                 />
-
-                <FormSelect
-                  styleVariant={SelectStyleVariant.WHITE}
-                  options={userOptions}
-                  controller={{ control, name: `devices[${index}].user_id` }}
-                  outerLabel={LL.networkConfiguration.form.fields.deviceUser.label()}
-                  loading={false}
-                  searchable={false}
-                  multi={false}
-                  disabled={false}
-                />
-
-                <span>{device.wireguard_ip}</span>
-                <button type="button" onClick={() => remove(index)}>
-                  Delete
-                </button>
-              </>
+              </div>
             );
           })}
           <Button

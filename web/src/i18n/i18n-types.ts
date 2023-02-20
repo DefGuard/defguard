@@ -2306,6 +2306,10 @@ type RootTranslation = {
 				 * B​a​c​k
 				 */
 				cancel: string
+				/**
+				 * R​e​m​o​v​e
+				 */
+				remove: string
 			}
 		}
 	}
@@ -4746,6 +4750,10 @@ export type TranslationFunctions = {
 				 * Back
 				 */
 				cancel: () => LocalizedString
+				/**
+				 * Remove
+				 */
+				remove: () => LocalizedString
 			}
 		}
 	}

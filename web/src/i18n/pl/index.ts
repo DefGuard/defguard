@@ -1010,6 +1010,7 @@ const pl: BaseTranslation = {
         submit: 'Zapisz zmiany',
         fill: 'Uzupełnij z pliku',
         cancel: 'Cofnij',
+        remove: 'Usuń',
       },
     },
   },

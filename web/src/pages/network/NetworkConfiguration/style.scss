@@ -27,6 +27,26 @@
             margin-bottom: 2.5rem;
           }
         }
+
+        & > .device-form {
+          display: grid;
+          width: 100%;
+          grid-template-columns: 1fr 1fr auto auto;
+          column-gap: 10px;
+
+          & .wireguard-ip {
+            // display: inline;
+            // vertical-align: middle;
+            position: absolute;
+            top: 50%;
+  transform: translateY(-50%);
+  transform: translateY(-50%);
+          }
+        }
+
+        & .input-container {
+          width: 100%;
+        }
       }
     }
   }
