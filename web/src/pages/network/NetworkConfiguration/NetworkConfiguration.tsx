@@ -188,10 +188,8 @@ export const NetworkConfiguration = () => {
     parseWireguardConfig,
     {
       onSuccess: (response) => {
-        setStoreState({ network: response.network });
         resetForm({
-          ...response.network,
-          allowed_ips: network?.allowed_ips?.join(' '),
+          ...networkToForm(response.network),
           ...{ devices: response.devices.map(deviceToFormValues) },
         });
 
@@ -291,8 +289,8 @@ export const NetworkConfiguration = () => {
           <MessageBox>
             <p>{LL.networkConfiguration.form.messages.dns()}</p>
           </MessageBox>
-          {fields.map((device, index) => {
-            return (
+          {!network &&
+            fields.map((device, index) => (
               <div className="device-form" key={device.id}>
                 <span>
                   <FormInput
@@ -320,16 +318,17 @@ export const NetworkConfiguration = () => {
                   onClick={() => remove(index)}
                 />
               </div>
-            );
-          })}
-          <Button
-            text={LL.networkConfiguration.form.controls.fill()}
-            size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.STANDARD}
-            icon={<IconArrowGrayUp />}
-            loading={false}
-            onClick={() => parseConfig()}
-          />
+            ))}
+          {!network && (
+            <Button
+              text={LL.networkConfiguration.form.controls.fill()}
+              size={ButtonSize.SMALL}
+              styleVariant={ButtonStyleVariant.STANDARD}
+              icon={<IconArrowGrayUp />}
+              loading={false}
+              onClick={() => parseConfig()}
+            />
+          )}
           <button type="submit" className="hidden" ref={submitRef}></button>
         </form>
       </Card>
