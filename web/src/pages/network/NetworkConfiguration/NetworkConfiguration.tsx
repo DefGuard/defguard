@@ -1,11 +1,10 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
-import { useQueryClient } from 'wagmi';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
@@ -75,12 +74,12 @@ export const NetworkConfiguration = () => {
     [MutationKeys.CHANGE_NETWORK],
     editNetwork,
     {
-      onSuccess: (network) => {
+      onSuccess: async (network) => {
         setStoreState({ network, loading: false });
         toaster.success(
           LL.networkConfiguration.form.messages.networkModified()
         );
-        queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
+        await queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
         setStoreState({ loading: false });
@@ -93,10 +92,10 @@ export const NetworkConfiguration = () => {
     [MutationKeys.ADD_NETWORK],
     addNetwork,
     {
-      onSuccess: (network) => {
+      onSuccess: async (network) => {
         setStoreState({ network, loading: false });
         toaster.success(LL.networkConfiguration.form.messages.networkCreated());
-        queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
+        await queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
         setStoreState({ loading: false });

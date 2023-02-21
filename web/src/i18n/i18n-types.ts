@@ -2320,7 +2320,7 @@ type RootTranslation = {
 		header: string
 		card: {
 			/**
-			 * G​a​t​e​w​a​y​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
+			 * D​o​c​k​e​r​ ​b​a​s​e​d​ ​g​a​t​e​w​a​y​ ​s​e​t​u​p
 			 */
 			title: string
 		}
@@ -2334,9 +2334,10 @@ type RootTranslation = {
 			/**
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​u​s​e​ ​c​o​m​m​a​n​d​ ​b​e​l​o​w​ ​o​n​ ​y​o​u​r​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​ ​I​f​ ​y​o​u​ ​d​o​n​'​t​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​k​n​o​w​ ​h​o​w​,​ ​o​r​ ​h​a​v​e​ ​s​o​m​e​ ​i​s​s​u​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​o​u​r​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​>​d​e​t​a​i​l​e​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​p​a​g​e​<​/​a​>​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​g​a​t​e​w​a​y​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​g​a​t​e​w​a​y​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
 			 */
 			runCommand: string
@@ -4764,7 +4765,7 @@ export type TranslationFunctions = {
 		header: () => LocalizedString
 		card: {
 			/**
-			 * Gateway setup command
+			 * Docker based gateway setup
 			 */
 			title: () => LocalizedString
 		}
@@ -4778,9 +4779,10 @@ export type TranslationFunctions = {
 			/**
 			 * 
 		          <p>
-		            Please use command below on your gateway server. If you don't
-		            know how, or have some issues please visit our
-		            <a>detailed documentation page</a>.
+		            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+		            More details can be found in the <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">documentation</a>.
+		            There are several ways to deploy the gateway server,
+		            below is a Docker based example, for other examples please visit <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">documentation</a>.
 		          </p>
 			 */
 			runCommand: () => LocalizedString
