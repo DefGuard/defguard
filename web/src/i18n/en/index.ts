@@ -1008,7 +1008,7 @@ const en: BaseTranslation = {
   gatewaySetup: {
     header: 'Gateway server setup',
     card: {
-      title: 'Gateway setup command',
+      title: 'Docker based gateway setup',
     },
     controls: {
       status: 'Check connection status',
@@ -1016,9 +1016,10 @@ const en: BaseTranslation = {
     messages: {
       runCommand: `
           <p>
-            Please use command below on your gateway server. If you don't
-            know how, or have some issues please visit our
-            <a>detailed documentation page</a>.
+            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+            More details can be found in the <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">documentation</a>.
+            There are several ways to deploy the gateway server,
+            below is a Docker based example, for other examples please visit <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">documentation</a>.
           </p>`,
       createNetwork: `
           <p>

@@ -1008,7 +1008,7 @@ const pl: BaseTranslation = {
   gatewaySetup: {
     header: 'Uruchomienie serwera gateway',
     card: {
-      title: 'Komenda uruchamiająca serwer gateway',
+      title: 'Komenda docker uruchamiająca serwer gateway',
     },
     controls: {
       status: 'Sprawdź status połączenia',
@@ -1016,9 +1016,10 @@ const pl: BaseTranslation = {
     messages: {
       runCommand: `
           <p>
-            Proszę użyć poniższej komendy na swoim serwerze gateway. Jeśli nie
-            wiesz jak, lub masz jakieś problemy
-            <a>odwiedź naszą stronę</a>.
+            Defguard wymaga uruchomienia serwera gateway w celu kontrolowania VPN.
+            Szczegóły znajdziesz w <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">dokumentacji</a>.
+            Istnieje wiele sposobów na uruchomienie serwera gateway, poniższy przykład używa technologii docker,
+            więcej przykładów znajdziesz w <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">dokumentacji</a>.
           </p>`,
       createNetwork: `
           <p>
