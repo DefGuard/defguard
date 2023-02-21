@@ -130,6 +130,14 @@ export const NetworkConfiguration = () => {
         .required(LL.form.error.required()),
       allowed_ips: yup.string(),
       dns: yup.string(),
+      devices: yup.array().of(
+        yup.object({
+          name: yup.string().required(LL.form.error.required()),
+          user_id: yup.object({
+            value: yup.number().min(1),
+          }),
+        })
+      ),
     })
     .required();
 
