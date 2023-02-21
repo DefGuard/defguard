@@ -4,12 +4,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
-import {
-  Controller,
-  SubmitHandler,
-  useFieldArray,
-  useForm,
-} from 'react-hook-form';
+import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 import { useQueryClient } from 'wagmi';
 import * as yup from 'yup';
 
@@ -29,10 +24,21 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
-import { ModifyNetworkRequest, Network } from '../../../shared/types';
+import {
+  Device,
+  ModifyNetworkRequest,
+  Network,
+  SelectOption,
+} from '../../../shared/types';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
-type FormInputs = ModifyNetworkRequest;
+interface DeviceInput extends Omit<Device, 'user_id'> {
+  user_id: SelectOption<number>;
+}
+
+interface FormInputs extends Omit<ModifyNetworkRequest, 'devices'> {
+  devices: DeviceInput[];
+}
 
 const defaultValues: FormInputs = {
   address: '',
@@ -128,16 +134,16 @@ export const NetworkConfiguration = () => {
     .required();
 
   const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
-    // const devices = values.devices?.map((d) => ({
-    //   ...d,
-    //   user_id: d.user_id.value,
-    // }));
-    // values = { ...values, devices };
-    values.port = values.port.value;
+    // Set device.user_id
+    const devices: Device[] = values.devices?.map((d) => ({
+      ...d,
+      user_id: d.user_id.value,
+    }));
+    const result = { ...values, devices };
     if (network) {
-      editNetworkMutation({ ...network, ...values });
+      editNetworkMutation({ ...network, ...result });
     } else {
-      addNetworkMutation(values);
+      addNetworkMutation(result);
     }
     setStoreState({ loading: true });
   };
@@ -170,17 +176,25 @@ export const NetworkConfiguration = () => {
     control,
     name: 'devices',
   });
+  const deviceToFormValues = (device: Device): DeviceInput => ({
+    ...device,
+    user_id: {
+      label: users?.find((u) => u.id === device.user_id)?.username || '',
+      value: device.user_id,
+    },
+  });
   const { mutate: parseConfigMutation, isLoading: parseLoading } = useMutation(
     [MutationKeys.PARSE_WIREGUARD_CONFIG],
     parseWireguardConfig,
     {
       onSuccess: (response) => {
         setStoreState({ network: response.network });
-        // TODO: fix typing
         resetForm({
           ...response.network,
-          ...{ devices: response.devices },
-        } as ModifyNetworkRequest);
+          allowed_ips: network?.allowed_ips?.join(' '),
+          ...{ devices: response.devices.map(deviceToFormValues) },
+        });
+
         toaster.success(LL.networkConfiguration.form.messages.configParsed());
       },
       onError: (err) => {
@@ -223,9 +237,9 @@ export const NetworkConfiguration = () => {
   const userOptions = useMemo(() => {
     if (!usersLoading && users) {
       return users.map((u) => ({
-        key: u.id,
-        value: u.id,
-        label: u.username,
+        key: u.id || -1,
+        value: u.id || -1,
+        label: u.username || '',
       }));
     }
     return [];
@@ -282,7 +296,7 @@ export const NetworkConfiguration = () => {
               <div className="device-form" key={device.id}>
                 <span>
                   <FormInput
-                    controller={{ control, name: `devices[${index}].name` }}
+                    controller={{ control, name: `devices.${index}.name` }}
                     outerLabel={LL.networkConfiguration.form.fields.deviceName.label()}
                   />
                 </span>
@@ -290,7 +304,7 @@ export const NetworkConfiguration = () => {
                   <FormSelect
                     styleVariant={SelectStyleVariant.WHITE}
                     options={userOptions}
-                    controller={{ control, name: `devices[${index}].user_id` }}
+                    controller={{ control, name: `devices.${index}.user_id` }}
                     outerLabel={LL.networkConfiguration.form.fields.deviceUser.label()}
                     loading={false}
                     searchable={false}

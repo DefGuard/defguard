@@ -23,6 +23,7 @@ export enum UserMFAMethod {
 }
 
 export interface User {
+  id?: number;
   username: string;
   last_name: string;
   first_name: string;
@@ -77,6 +78,7 @@ export interface Device {
   wireguard_ip: string;
   wireguard_pubkey: string;
   config: string;
+  user_id: number;
   created: string;
 }
 export interface AddDeviceRequest {
