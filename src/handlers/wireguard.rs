@@ -34,6 +34,7 @@ pub struct WireguardNetworkData {
     pub port: i32,
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
+    pub devices: Vec<Device>,
 }
 
 impl WireguardNetworkData {
@@ -75,6 +76,11 @@ pub async fn create_network(
     )
     .map_err(|_| OriWebError::Serialization("Invalid network address".into()))?;
     network.save(&appstate.pool).await?;
+    // save devices
+    for mut device in data.devices {
+        device.id = None;
+        device.save(&appstate.pool).await?;
+    }
     appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.clone()));
     info!(
         "User {} created WireGuard network {}",
