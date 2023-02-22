@@ -14,7 +14,6 @@ use rocket::{
 use std::env;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
-
 pub(crate) mod auth;
 pub(crate) mod group;
 pub(crate) mod license;
@@ -245,4 +244,3 @@ pub async fn device_for_admin_or_self(
         ))),
     }
 }
-

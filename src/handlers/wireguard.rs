@@ -1,6 +1,5 @@
 use super::{
-    device_for_admin_or_self, user_for_admin_or_self,
-    ApiResponse, ApiResult, OriWebError,
+    device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, OriWebError,
 };
 use crate::{
     appstate::AppState,
@@ -9,7 +8,8 @@ use crate::{
         models::wireguard::DateTimeAggregation, AddDevice, DbPool, Device, GatewayEvent,
         WireguardNetwork,
     },
-    grpc::GatewayState, wg_config::parse_wireguard_config,
+    grpc::GatewayState,
+    wg_config::parse_wireguard_config,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -184,8 +184,9 @@ pub async fn network_details(
 
 #[post("/parse", data = "<config>")]
 pub async fn parse_config(config: &str) -> ApiResult {
-    let (network, devices) = parse_wireguard_config(config)
-        .map_err(|_| OriWebError::ModelError("Failed to parse wireguard config file".to_string()))?;
+    let (network, devices) = parse_wireguard_config(config).map_err(|_| {
+        OriWebError::ModelError("Failed to parse wireguard config file".to_string())
+    })?;
     Ok(ApiResponse {
         json: json!({"network": network, "devices": devices}),
         status: Status::Ok,

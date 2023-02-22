@@ -18,8 +18,8 @@ use crate::handlers::{
 };
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
-use crate::{license::License, handlers::wireguard::parse_config};
 use crate::{db::models::oauth2client::OAuth2Client, grpc::WorkerState};
+use crate::{handlers::wireguard::parse_config, license::License};
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};

@@ -1,8 +1,8 @@
+use crate::db::{Device, WireguardNetwork};
 use base64::DecodeError;
-use ipnetwork::{IpNetworkError, IpNetwork};
-use crate::db::{WireguardNetwork, Device};
-use x25519_dalek::{PublicKey, StaticSecret};
+use ipnetwork::{IpNetwork, IpNetworkError};
 use std::array::TryFromSliceError;
+use x25519_dalek::{PublicKey, StaticSecret};
 
 #[derive(Debug)]
 pub enum WireguardConfigParseError {
