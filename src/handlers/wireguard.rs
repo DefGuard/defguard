@@ -1,5 +1,5 @@
 use super::{
-    device_for_admin_or_self, user_for_admin_or_self, wg_config::parse_wireguard_config,
+    device_for_admin_or_self, user_for_admin_or_self,
     ApiResponse, ApiResult, OriWebError,
 };
 use crate::{
@@ -9,7 +9,7 @@ use crate::{
         models::wireguard::DateTimeAggregation, AddDevice, DbPool, Device, GatewayEvent,
         WireguardNetwork,
     },
-    grpc::GatewayState,
+    grpc::GatewayState, wg_config::parse_wireguard_config,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -34,7 +34,7 @@ pub struct WireguardNetworkData {
     pub port: i32,
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
-    pub devices: Vec<Device>,
+    pub devices: Option<Vec<Device>>,
 }
 
 impl WireguardNetworkData {
@@ -76,10 +76,12 @@ pub async fn create_network(
     )
     .map_err(|_| OriWebError::Serialization("Invalid network address".into()))?;
     network.save(&appstate.pool).await?;
-    // save devices
-    for mut device in data.devices {
-        device.id = None;
-        device.save(&appstate.pool).await?;
+    if let Some(devices) = data.devices {
+        // save devices
+        for mut device in devices {
+            device.id = None;
+            device.save(&appstate.pool).await?;
+        }
     }
     appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.clone()));
     info!(

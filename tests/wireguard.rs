@@ -83,6 +83,7 @@ async fn test_network() {
         port: 55555,
         allowed_ips: Some("10.1.1.0/24".into()),
         dns: None,
+        devices: None,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id.unwrap()))

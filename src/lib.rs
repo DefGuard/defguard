@@ -74,6 +74,7 @@ pub mod hex;
 pub mod ldap;
 pub mod license;
 pub(crate) mod random;
+pub mod wg_config;
 
 #[macro_use]
 extern crate rocket;
