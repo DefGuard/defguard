@@ -2280,6 +2280,12 @@ type RootTranslation = {
 					 */
 					label: string
 				}
+				deviceIp: {
+					/**
+					 * I​P​ ​a​d​d​r​e​s​s
+					 */
+					label: string
+				}
 				deviceName: {
 					/**
 					 * D​e​v​i​c​e​ ​n​a​m​e
@@ -4722,6 +4728,12 @@ export type TranslationFunctions = {
 				dns: {
 					/**
 					 * DNS
+					 */
+					label: () => LocalizedString
+				}
+				deviceIp: {
+					/**
+					 * IP address
 					 */
 					label: () => LocalizedString
 				}

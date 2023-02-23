@@ -999,6 +999,9 @@ const pl: BaseTranslation = {
         dns: {
           label: 'DNS',
         },
+        deviceIp: {
+          label: 'Adres IP',
+        },
         deviceName: {
           label: 'Nazwa urządzenia',
         },

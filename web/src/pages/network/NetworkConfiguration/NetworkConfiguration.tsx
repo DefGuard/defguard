@@ -2,6 +2,7 @@ import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { motion, Variant, Variants } from 'framer-motion';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
@@ -18,7 +19,7 @@ import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
 import { SelectStyleVariant } from '../../../shared/components/layout/Select/Select';
-import { IconArrowGrayUp } from '../../../shared/components/svg';
+import { IconArrowGrayUp, IconTrash } from '../../../shared/components/svg';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
@@ -299,13 +300,19 @@ export const NetworkConfiguration = () => {
           {!network &&
             fields.map((device, index) => (
               <div className="device-form" key={device.id}>
-                <span>
+                <div>
+                  <label>
+                    {LL.networkConfiguration.form.fields.deviceIp.label()}
+                  </label>
+                  <p>{device.wireguard_ip}</p>
+                </div>
+                <div>
                   <FormInput
                     controller={{ control, name: `devices.${index}.name` }}
                     outerLabel={LL.networkConfiguration.form.fields.deviceName.label()}
                   />
-                </span>
-                <span>
+                </div>
+                <div>
                   <FormSelect
                     styleVariant={SelectStyleVariant.WHITE}
                     options={userOptions}
@@ -316,12 +323,10 @@ export const NetworkConfiguration = () => {
                     multi={false}
                     disabled={false}
                   />
-                </span>
-                <span className="wireguard-ip">{device.wireguard_ip}</span>{' '}
+                </div>
                 <Button
-                  text={LL.networkConfiguration.form.controls.remove()}
-                  size={ButtonSize.SMALL}
-                  styleVariant={ButtonStyleVariant.STANDARD}
+                  icon={<IconTrash />}
+                  styleVariant={ButtonStyleVariant.ICON}
                   onClick={() => remove(index)}
                 />
               </div>
