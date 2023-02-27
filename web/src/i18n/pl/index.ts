@@ -526,7 +526,7 @@ const pl: BaseTranslation = {
     bar: {
       overview: 'Przegląd sieci',
       users: 'Użytkownicy',
-      provisioners: 'Provisioners',
+      provisioners: 'Yubikey Provisioners',
       webhooks: 'Webhooki',
       openId: 'Aplikacje OpenID',
       myProfile: 'Mój profil',
@@ -537,7 +537,7 @@ const pl: BaseTranslation = {
       users: 'Użytkownicy',
       settings: 'Defguard ustaawienia globalne',
       user: 'Profil użytkownika',
-      provisioners: 'Provisioners',
+      provisioners: 'Yubikey Provisioners',
       webhooks: 'Webhooki',
       openId: 'Aplikacje OpenID',
       overview: 'Przegląd sieci',
