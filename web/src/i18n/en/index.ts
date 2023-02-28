@@ -526,7 +526,7 @@ const en: BaseTranslation = {
     bar: {
       overview: 'VPN Overview',
       users: 'Users',
-      provisioners: 'Provisioners',
+      provisioners: 'Yubikey Provisioners',
       webhooks: 'Webhooks',
       openId: 'OpenID Apps',
       myProfile: 'My Profile',
@@ -537,7 +537,7 @@ const en: BaseTranslation = {
       users: 'Users',
       settings: 'Defguard Global Settings',
       user: 'User Profile',
-      provisioners: 'Provisioners',
+      provisioners: 'Yubikey Provisioners',
       webhooks: 'Webhooks',
       openId: 'OpenId Apps',
       overview: 'Network Overview',

@@ -110,11 +110,11 @@ export const Navigation = () => {
         enabled: true,
       },
       {
-        title: LL.navigation.bar.provisioners(),
-        linkPath: '/admin/provisioners',
-        icon: <SvgIconNavProvisioners />,
+        title: LL.navigation.bar.openId(),
+        linkPath: '/admin/openid',
+        icon: <SvgIconNavOpenId />,
         allowedToView: ['admin'],
-        enabled: settings?.worker_enabled,
+        enabled: settings?.openid_enabled,
       },
       {
         title: LL.navigation.bar.webhooks(),
@@ -124,11 +124,11 @@ export const Navigation = () => {
         enabled: settings?.webhooks_enabled,
       },
       {
-        title: LL.navigation.bar.openId(),
-        linkPath: '/admin/openid',
-        icon: <SvgIconNavOpenId />,
+        title: LL.navigation.bar.provisioners(),
+        linkPath: '/admin/provisioners',
+        icon: <SvgIconNavProvisioners />,
         allowedToView: ['admin'],
-        enabled: settings?.openid_enabled,
+        enabled: settings?.worker_enabled,
       },
       {
         title: LL.navigation.bar.myProfile(),
