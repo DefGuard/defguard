@@ -1,0 +1,11 @@
+@use '../../../../../shared/scss/base/variables/' as v;
+@use '../../../../../shared/scss/helpers/bootstrap/' as bs;
+@use '../../../../../shared/scss/helpers/mixins' as mix;
+
+.steps-tracker {
+  @include mix.typography(16px, 17px, semiBold, $font-family: 'Poppins');
+
+  & > span {
+    @include mix.typography(16px, 17px, semiBold, v.$gray-light, 'Poppins');
+  }
+}

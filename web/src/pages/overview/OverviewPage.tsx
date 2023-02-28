@@ -117,7 +117,7 @@ export const OverviewPage = () => {
   };
 
   if (networks && networks.length === 0) {
-    navigate('../network');
+    navigate('../wizard');
   }
 
   return (

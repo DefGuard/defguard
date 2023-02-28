@@ -1,0 +1,29 @@
+@use '@shared/scss/base/variables' as v;
+@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@shared/scss/helpers/mixins' as mix;
+
+#wizard-logo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-content: center;
+  justify-content: flex-start;
+  gap: 3rem;
+  width: 100%;
+  height: 100%;
+
+  .separator {
+    height: 100%;
+    content: ' ';
+    display: block;
+    width: 1px;
+    background-color: v.$gray-lighter;
+    border: 0 solid transparent;
+  }
+
+  p {
+    font-size: 1.2rem;
+    line-height: 1.8rem;
+    color: v.$gray-light;
+  }
+}

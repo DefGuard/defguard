@@ -1090,6 +1090,29 @@ const en: BaseTranslation = {
       },
     },
   },
+  wizard: {
+    navigation: {
+      titles: {
+        step1: 'TODO',
+        step2: 'TODO',
+        step3: 'TODO',
+      },
+    },
+    networkType: {
+      regularNetwork: {
+        title: 'TODO',
+        description: 'TODO',
+      },
+      meshNetwork: {
+        title: 'TODO',
+        description: 'TODO',
+      },
+    },
+    common: {
+      select: 'TODO',
+    },
+    TODO: 'TODO',
+  },
 };
 
 export default en;

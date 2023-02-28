@@ -2448,6 +2448,56 @@ type RootTranslation = {
 			}
 		}
 	}
+	wizard: {
+		navigation: {
+			titles: {
+				/**
+				 * T​O​D​O
+				 */
+				step1: string
+				/**
+				 * T​O​D​O
+				 */
+				step2: string
+				/**
+				 * T​O​D​O
+				 */
+				step3: string
+			}
+		}
+		networkType: {
+			regularNetwork: {
+				/**
+				 * T​O​D​O
+				 */
+				title: string
+				/**
+				 * T​O​D​O
+				 */
+				description: string
+			}
+			meshNetwork: {
+				/**
+				 * T​O​D​O
+				 */
+				title: string
+				/**
+				 * T​O​D​O
+				 */
+				description: string
+			}
+		}
+		common: {
+			/**
+			 * T​O​D​O
+			 */
+			select: string
+		}
+		/**
+		 * T​O​D​O
+		 */
+		TODO: string
+	}
 }
 
 export type TranslationFunctions = {
@@ -4868,6 +4918,56 @@ export type TranslationFunctions = {
 				}
 			}
 		}
+	}
+	wizard: {
+		navigation: {
+			titles: {
+				/**
+				 * TODO
+				 */
+				step1: () => LocalizedString
+				/**
+				 * TODO
+				 */
+				step2: () => LocalizedString
+				/**
+				 * TODO
+				 */
+				step3: () => LocalizedString
+			}
+		}
+		networkType: {
+			regularNetwork: {
+				/**
+				 * TODO
+				 */
+				title: () => LocalizedString
+				/**
+				 * TODO
+				 */
+				description: () => LocalizedString
+			}
+			meshNetwork: {
+				/**
+				 * TODO
+				 */
+				title: () => LocalizedString
+				/**
+				 * TODO
+				 */
+				description: () => LocalizedString
+			}
+		}
+		common: {
+			/**
+			 * TODO
+			 */
+			select: () => LocalizedString
+		}
+		/**
+		 * TODO
+		 */
+		TODO: () => LocalizedString
 	}
 }
 
