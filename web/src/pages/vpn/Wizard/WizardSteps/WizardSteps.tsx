@@ -5,7 +5,7 @@ import { useParams } from 'react-router';
 import { Navigate } from 'react-router-dom';
 
 import { WizardNetwork } from '../types/types';
-import { NetworkConfiguration } from './NetworkConfiguration/NetworkConfiguration';
+import { NetworkConfiguration } from '../../../network/NetworkConfiguration/NetworkConfiguration';
 import { NetworkType } from './NetworkType/NetworkType';
 import StepGuard from './StepGuard/StepGuard';
 import { useWizardStore } from './store';
@@ -48,7 +48,11 @@ const WizardSteps: React.FC = () => {
       case 2:
         return (
           <StepGuard targetStep={2}>
-            <NetworkConfiguration formId={2} />
+            {network?.type === 'regular' ? (
+              <NetworkConfiguration />
+            ) : (
+              <NetworkConfiguration />
+            )}
           </StepGuard>
         );
       default:
@@ -59,7 +63,7 @@ const WizardSteps: React.FC = () => {
         }
         return <Navigate to={String(stepsCount)} />;
     }
-  }, [formStatus, step]);
+  }, [formStatus, step, network?.type]);
 
   useEffect(() => {
     if (isUndefined(step)) {

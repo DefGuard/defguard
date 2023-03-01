@@ -21,25 +21,27 @@ import { QueryKeys } from '../../../shared/queries';
 
 type FormInputs = ModifyNetworkRequest;
 
-const defaultValues: FormInputs = {
-  address: '',
-  endpoint: '',
-  name: '',
-  port: 50051,
-  allowed_ips: '',
-  dns: '',
-};
+// TODO: cleanup
+// const defaultValues: FormInputs = {
+//   address: '',
+//   endpoint: '',
+//   name: '',
+//   port: 50051,
+//   allowed_ips: '',
+//   dns: '',
+// };
 
-const networkToForm = (data?: Network): FormInputs | undefined => {
-  if (!data) return undefined;
-  const omited = omitBy(omit(data, ['id', 'connected_at']), isNull);
-  if (Array.isArray(omited.allowed_ips)) {
-    omited.allowed_ips = omited.allowed_ips.join(',');
-  }
-  return { ...defaultValues, ...omited } as FormInputs;
-};
+// TODO: cleanup
+// const networkToForm = (data?: Network): FormInputs | undefined => {
+//   if (!data) return undefined;
+//   const omited = omitBy(omit(data, ['id', 'connected_at']), isNull);
+//   if (Array.isArray(omited.allowed_ips)) {
+//     omited.allowed_ips = omited.allowed_ips.join(',');
+//   }
+//   return { ...defaultValues, ...omited } as FormInputs;
+// };
 
-export const NetworkConfiguration: React.FC = () => {
+export const NetworkImport: React.FC = () => {
   const toaster = useToaster();
   const {
     network: { addNetwork, editNetwork },
@@ -85,26 +87,20 @@ export const NetworkConfiguration: React.FC = () => {
     }
   );
 
-  const defaultFormValues = useMemo(() => {
-    if (network) {
-      const res = networkToForm(network);
-      if (res) {
-        return res;
-      }
-    }
-    return defaultValues;
-  }, [network]);
+  // TODO: cleanup
+  // const defaultFormValues = useMemo(() => {
+  //   if (network) {
+  //     const res = networkToForm(network);
+  //     if (res) {
+  //       return res;
+  //     }
+  //   }
+  //   return defaultValues;
+  // }, [network]);
 
   const schema = yup
     .object({
       name: yup.string().required(LL.form.error.required()),
-      address: yup
-        .string()
-        .required(LL.form.error.required())
-        .matches(
-          /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([1-9]|[12][0-9]|3[012])\b)?$/,
-          LL.form.error.address()
-        ),
       endpoint: yup
         .string()
         .required(LL.form.error.required())
@@ -112,18 +108,12 @@ export const NetworkConfiguration: React.FC = () => {
           /((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
           LL.form.error.endpoint()
         ),
-      port: yup
-        .number()
-        .max(65535, LL.form.error.portMax())
-        .typeError(LL.form.error.validPort())
-        .required(LL.form.error.required()),
-      allowed_ips: yup.string(),
-      dns: yup.string(),
     })
     .required();
 
   const { control, handleSubmit } = useForm<FormInputs>({
-    defaultValues: defaultFormValues,
+    // TODO: cleanup
+    // defaultValues: defaultFormValues,
     resolver: yupResolver(schema),
   });
 
@@ -160,34 +150,12 @@ export const NetworkConfiguration: React.FC = () => {
             controller={{ control, name: 'name' }}
             outerLabel={LL.networkConfiguration.form.fields.name.label()}
           />
-          <FormInput
-            controller={{ control, name: 'address' }}
-            outerLabel={LL.networkConfiguration.form.fields.address.label()}
-          />
           <MessageBox>
             <p>{LL.networkConfiguration.form.messages.gateway()}</p>
           </MessageBox>
           <FormInput
             controller={{ control, name: 'endpoint' }}
             outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
-          />
-          <FormInput
-            controller={{ control, name: 'port' }}
-            outerLabel={LL.networkConfiguration.form.fields.port.label()}
-          />
-          <MessageBox>
-            <p>{LL.networkConfiguration.form.messages.allowedIps()}</p>
-          </MessageBox>
-          <FormInput
-            controller={{ control, name: 'allowed_ips' }}
-            outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
-          />
-          <MessageBox>
-            <p>{LL.networkConfiguration.form.messages.dns()}</p>
-          </MessageBox>
-          <FormInput
-            controller={{ control, name: 'dns' }}
-            outerLabel={LL.networkConfiguration.form.fields.dns.label()}
           />
           <button type="submit" className="hidden" ref={submitRef}></button>
         </form>
