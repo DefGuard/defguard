@@ -18,7 +18,7 @@ export enum NetworkTypeEnum {
 }
 
 export type WizardNetwork = {
-  type?: 'mesh' | 'regular';
+  type?: 'import' | 'regular';
   name?: string;
   address?: string;
   port?: number;

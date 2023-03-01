@@ -2486,6 +2486,10 @@ type RootTranslation = {
 				 */
 				description: string
 			}
+			/**
+			 * C​r​e​a​t​e​ ​W​i​r​e​G​u​a​r​d​ ​n​e​t​w​o​r​k
+			 */
+			createNetwork: string
 		}
 		common: {
 			/**
@@ -4957,6 +4961,10 @@ export type TranslationFunctions = {
 				 */
 				description: () => LocalizedString
 			}
+			/**
+			 * Create WireGuard network
+			 */
+			createNetwork: () => LocalizedString
 		}
 		common: {
 			/**

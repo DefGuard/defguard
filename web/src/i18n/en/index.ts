@@ -1107,6 +1107,7 @@ const en: BaseTranslation = {
         title: 'TODO',
         description: 'TODO',
       },
+      createNetwork: 'Create WireGuard network',
     },
     common: {
       select: 'TODO',

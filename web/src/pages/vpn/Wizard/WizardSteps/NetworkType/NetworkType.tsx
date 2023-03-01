@@ -63,9 +63,6 @@ export const NetworkType = ({ formId }: Props) => {
 
   const schema = yup
     .object({
-      name: yup
-        .string()
-        .required(LL.wizard.networkType.network.validation.required()),
       type: yup.mixed<inputNetworkType>().oneOf(['mesh', 'regular']).required(),
     })
     .required();
@@ -92,14 +89,9 @@ export const NetworkType = ({ formId }: Props) => {
     <>
       <div className="container-basic network-types">
         {breakpoint !== 'desktop' && (
-          <h1 className="step-name">Network name & type</h1>
+          <h1 className="step-name">{LL.wizard.networkType.createNetwork()}</h1>
         )}
         <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
-          <FormInput
-            controller={{ control, name: 'name' }}
-            placeholder={LL.wizard.networkType.network.placeholder()}
-            required
-          />
           <Controller
             name="type"
             control={control}

@@ -9,6 +9,7 @@ import Button, {
 import SvgIconInfoNormal from '../../../../../shared/components/svg/IconInfoNormal';
 import SvgImageMeshNetwork from '../../../../../shared/components/svg/ImageMeshNetwork';
 import { deviceBreakpoints } from '../../../../../shared/constants';
+import NetworkSelectButton from './NetworkSelectButton';
 
 interface Props extends React.HTMLAttributes<HTMLInputElement> {
   onChange: (value: unknown) => void;
@@ -32,6 +33,10 @@ const MeshNetwork = React.forwardRef<HTMLInputElement, Props>(
       return res.join(' ');
     }, [value]);
 
+    const handleChange = () => {
+      onChange('mesh');
+    };
+
     return (
       <div className={getClassName}>
         {breakpoint !== 'desktop' && <SvgIconInfoNormal />}
@@ -40,11 +45,9 @@ const MeshNetwork = React.forwardRef<HTMLInputElement, Props>(
           <p>{LL.wizard.networkType.meshNetwork.description()}</p>
         )}
         {breakpoint === 'desktop' && <SvgImageMeshNetwork />}
-        <Button
-          styleVariant={ButtonStyleVariant.PRIMARY}
-          size={ButtonSize.BIG}
-          text={LL.wizard.common.select()}
-          disabled={true}
+        <NetworkSelectButton
+          active={typeof value !== 'undefined' && value === 'mesh'}
+          onClick={() => handleChange()}
         />
         <input
           type="radio"
