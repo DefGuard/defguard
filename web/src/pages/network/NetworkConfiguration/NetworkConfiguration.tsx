@@ -18,6 +18,7 @@ import { ModifyNetworkRequest, Network } from '../../../shared/types';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { QueryKeys } from '../../../shared/queries';
+import { useNavigate } from 'react-router';
 
 type FormInputs = ModifyNetworkRequest;
 
@@ -51,10 +52,8 @@ export const NetworkConfiguration: React.FC = () => {
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
 
-  const { mutate: editNetworkMutation, isLoading: editLoading } = useMutation(
-    [MutationKeys.CHANGE_NETWORK],
-    editNetwork,
-    {
+  const { mutateAsync: editNetworkMutation, isLoading: editLoading } =
+    useMutation([MutationKeys.CHANGE_NETWORK], editNetwork, {
       onSuccess: async (response) => {
         setStoreState({ network: response });
         toaster.success(
@@ -66,12 +65,9 @@ export const NetworkConfiguration: React.FC = () => {
         console.error(err);
         toaster.error(LL.messages.error());
       },
-    }
-  );
-  const { mutate: addNetworkMutation, isLoading: addLoading } = useMutation(
-    [MutationKeys.ADD_NETWORK],
-    addNetwork,
-    {
+    });
+  const { mutateAsync: addNetworkMutation, isLoading: addLoading } =
+    useMutation([MutationKeys.ADD_NETWORK], addNetwork, {
       onSuccess: async (network) => {
         setStoreState({ network, loading: false });
         toaster.success(LL.networkConfiguration.form.messages.networkCreated());
@@ -82,8 +78,7 @@ export const NetworkConfiguration: React.FC = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
-  );
+    });
 
   const defaultFormValues = useMemo(() => {
     if (network) {
@@ -127,13 +122,15 @@ export const NetworkConfiguration: React.FC = () => {
     resolver: yupResolver(schema),
   });
 
-  const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
-    if (network) {
-      editNetworkMutation({ ...network, ...values });
-    } else {
-      addNetworkMutation(values);
-    }
+  const navigate = useNavigate();
+  const onValidSubmit: SubmitHandler<FormInputs> = async (values) => {
     setStoreState({ loading: true });
+    if (network) {
+      await editNetworkMutation({ ...network, ...values });
+    } else {
+      await addNetworkMutation(values);
+    }
+    navigate('/admin/network');
   };
 
   useEffect(() => {
