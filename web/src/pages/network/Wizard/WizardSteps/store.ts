@@ -6,7 +6,6 @@ import { WizardStore } from '../types/interfaces';
 import { FormStatus, Location } from '../types/types';
 
 const defaultState = {
-  type: undefined,
   stepsCount: 2,
   locations: [],
   editMode: false,
@@ -22,7 +21,7 @@ export const useWizardStore = create<
   [['zustand/devtools', WizardStore]]
 >(
   devtools((set) => ({
-    type: undefined,
+    type: 'regular',
     stepsCount: 2,
     locations: [],
     editMode: false,

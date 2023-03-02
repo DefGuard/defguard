@@ -19,7 +19,6 @@ import MeshNetwork from './MeshNetwork';
 import RegularNetwork from './RegularNetwork';
 
 type Inputs = {
-  name: string;
   type: inputNetworkType;
 };
 
@@ -71,7 +70,7 @@ export const WizardType = ({ formId }: Props) => {
   const { handleSubmit, control } = useForm<Inputs>({
     resolver: yupResolver(schema),
     mode: 'all',
-    defaultValues: {},
+    defaultValues: { type: 'regular' },
   });
 
   useEffect(() => {

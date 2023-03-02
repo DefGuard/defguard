@@ -1,6 +1,6 @@
 import './style.scss';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
@@ -24,8 +24,8 @@ interface Props {
 const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const navigate = useNavigate();
-  const [formSubmissionSubject] = useWizardStore(
-    (state) => [state.formSubmissionSubject],
+  const [formSubmissionSubject, proceedWizardSubject] = useWizardStore(
+    (state) => [state.formSubmissionSubject, state.proceedWizardSubject],
     shallow
   );
   // TODO: cleanup
@@ -65,33 +65,34 @@ const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
   //   }
   // );
 
-  // useEffect(() => {
-  //   const sub = proceedWizardSubject.subscribe(() => {
-  //     if (currentStep === steps) {
-  //       // Finish clicked
-  //       const currentNetwork = networkObserver?.getValue();
-  //       if (currentNetwork) {
-  //         if (editMode) {
-  //           editNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
-  //         } else {
-  //           addNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
-  //         }
-  //       }
-  //     } else {
-  //       navigate(`../${currentStep + 1}`);
-  //     }
-  //   });
-  //   return () => sub.unsubscribe();
-  // }, [
-  //   addNetworkMutation,
-  //   currentStep,
-  //   editMode,
-  //   editNetworkMutation,
-  //   navigate,
-  //   networkObserver,
-  //   proceedWizardSubject,
-  //   steps,
-  // ]);
+  useEffect(() => {
+    const sub = proceedWizardSubject.subscribe(() => {
+      if (currentStep === steps) {
+        // TODO: remove this if branch
+        // // Finish clicked
+        // const currentNetwork = networkObserver?.getValue();
+        // if (currentNetwork) {
+        //   if (editMode) {
+        //     editNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
+        //   } else {
+        //     addNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
+        //   }
+        // }
+      } else {
+        navigate(`../${currentStep + 1}`);
+      }
+    });
+    return () => sub.unsubscribe();
+  }, [
+    // addNetworkMutation,
+    currentStep,
+    // editMode,
+    // editNetworkMutation,
+    navigate,
+    // networkObserver,
+    proceedWizardSubject,
+    steps,
+  ]);
 
   return (
     <nav className="wizard-nav">
