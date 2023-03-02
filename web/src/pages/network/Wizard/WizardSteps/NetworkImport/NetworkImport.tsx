@@ -7,17 +7,17 @@ import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
-import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { Card } from '../../../shared/components/layout/Card/Card';
-import { Helper } from '../../../shared/components/layout/Helper/Helper';
-import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
-import useApi from '../../../shared/hooks/useApi';
-import { useToaster } from '../../../shared/hooks/useToaster';
-import { MutationKeys } from '../../../shared/mutations';
-import { ModifyNetworkRequest, Network } from '../../../shared/types';
-import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
-import { useI18nContext } from '../../../i18n/i18n-react';
-import { QueryKeys } from '../../../shared/queries';
+import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
+import { Card } from '../../../../../shared/components/layout/Card/Card';
+import { Helper } from '../../../../../shared/components/layout/Helper/Helper';
+import MessageBox from '../../../../../shared/components/layout/MessageBox/MessageBox';
+import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { MutationKeys } from '../../../../../shared/mutations';
+import { ModifyNetworkRequest, Network } from '../../../../../shared/types';
+import { useNetworkPageStore } from '../../../hooks/useNetworkPageStore';
+import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { QueryKeys } from '../../../../../shared/queries';
 
 type FormInputs = ModifyNetworkRequest;
 

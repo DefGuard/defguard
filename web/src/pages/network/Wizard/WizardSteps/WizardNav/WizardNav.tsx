@@ -1,7 +1,6 @@
 import './style.scss';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import useBreakpoint from 'use-breakpoint';
 import shallow from 'zustand/shallow';
@@ -13,11 +12,6 @@ import Button, {
 import SvgIconArrowGrayLeft from '../../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../../shared/components/svg/IconArrowGrayRight';
 import { deviceBreakpoints } from '../../../../../shared/constants';
-import { wizardToApiNetwork } from '../../../../../shared/helpers/wizardToApiNetwork';
-import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
-import useApi from '../../../../../shared/hooks/useApi';
-import { QueryKeys } from '../../../../../shared/queries';
-import { Network } from '../../../../../shared/types';
 import { StepTracker } from '../StepTracker/StepTracker';
 import { useWizardStore } from '../store';
 
@@ -30,84 +24,74 @@ interface Props {
 const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const navigate = useNavigate();
-  const [
-    editMode,
-    formSubmissionSubject,
-    proceedWizardSubject,
-    networkObserver,
-    resetStore,
-  ] = useWizardStore(
-    (state) => [
-      state.editMode,
-      state.formSubmissionSubject,
-      state.proceedWizardSubject,
-      state.network,
-      state.resetStore,
-    ],
+  const [formSubmissionSubject] = useWizardStore(
+    (state) => [state.formSubmissionSubject],
     shallow
   );
-  const setAppStore = useAppStore((state) => state.setAppStore);
+  // TODO: cleanup
+  // const setAppStore = useAppStore((state) => state.setAppStore);
 
   const getClassName = useMemo(() => {
     const res = ['controls'];
     return res.join(' ');
   }, []);
 
-  const {
-    network: { addNetwork, editNetwork },
-  } = useApi();
-  const queryClient = useQueryClient();
+  // TODO: cleanup
+  // const {
+  //   network: { addNetwork, editNetwork },
+  // } = useApi();
+  // const queryClient = useQueryClient();
 
-  const addNetworkMutation = useMutation(
-    (networkData: Network) => addNetwork(networkData),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
-        resetStore({ editMode: false });
-        setAppStore({ wizardCompleted: true });
-        navigate('/admin/overview', { state: { created: true } });
-      },
-    }
-  );
+  // const addNetworkMutation = useMutation(
+  //   (networkData: Network) => addNetwork(networkData),
+  //   {
+  //     onSuccess: () => {
+  //       queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
+  //       resetStore({ editMode: false });
+  //       setAppStore({ wizardCompleted: true });
+  //       navigate('/admin/overview', { state: { created: true } });
+  //     },
+  //   }
+  // );
 
-  const editNetworkMutation = useMutation(
-    (networkData: Network) => editNetwork(networkData),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
-        resetStore({ editMode: false });
-        navigate('/admin/overview');
-      },
-    }
-  );
+  // const editNetworkMutation = useMutation(
+  //   (networkData: Network) => editNetwork(networkData),
+  //   {
+  //     onSuccess: () => {
+  //       queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
+  //       resetStore({ editMode: false });
+  //       navigate('/admin/overview');
+  //     },
+  //   }
+  // );
 
-  useEffect(() => {
-    const sub = proceedWizardSubject.subscribe(() => {
-      if (currentStep === steps) {
-        // Finish clicked
-        const currentNetwork = networkObserver?.getValue();
-        if (currentNetwork) {
-          if (editMode) {
-            editNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
-          } else {
-            addNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
-          }
-        }
-      } else {
-        navigate(`../${currentStep + 1}`);
-      }
-    });
-    return () => sub.unsubscribe();
-  }, [
-    addNetworkMutation,
-    currentStep,
-    editMode,
-    editNetworkMutation,
-    navigate,
-    networkObserver,
-    proceedWizardSubject,
-    steps,
-  ]);
+  // useEffect(() => {
+  //   const sub = proceedWizardSubject.subscribe(() => {
+  //     if (currentStep === steps) {
+  //       // Finish clicked
+  //       const currentNetwork = networkObserver?.getValue();
+  //       if (currentNetwork) {
+  //         if (editMode) {
+  //           editNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
+  //         } else {
+  //           addNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
+  //         }
+  //       }
+  //     } else {
+  //       navigate(`../${currentStep + 1}`);
+  //     }
+  //   });
+  //   return () => sub.unsubscribe();
+  // }, [
+  //   addNetworkMutation,
+  //   currentStep,
+  //   editMode,
+  //   editNetworkMutation,
+  //   navigate,
+  //   networkObserver,
+  //   proceedWizardSubject,
+  //   steps,
+  // ]);
 
   return (
     <nav className="wizard-nav">

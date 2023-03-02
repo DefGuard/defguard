@@ -1,54 +1,54 @@
 import { isUndefined } from 'lodash-es';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useParams } from 'react-router';
 import { Navigate } from 'react-router-dom';
 
-import { WizardNetwork } from '../types/types';
-import { NetworkType } from './NetworkType/NetworkType';
+import { useI18nContext } from '../../../../i18n/i18n-react';
+import { NetworkSetup } from './NetworkSetup/NetworkSetup';
 import StepGuard from './StepGuard/StepGuard';
 import { useWizardStore } from './store';
 import WizardNav from './WizardNav/WizardNav';
-import { NetworkSetup } from './NetworkSetup/NetworkSetup';
+import { WizardType } from './WizardType/WizardType';
 
 const stepsCount = 2;
 
 const WizardSteps: React.FC = () => {
   const { step } = useParams();
   const { LL } = useI18nContext();
-  const networkObserver = useWizardStore((state) => state.network);
-  const setWizardState = useWizardStore((state) => state.setState);
-  const [network, setNetwork] = useState<WizardNetwork | undefined>();
+
+  const [setState, type] = useWizardStore((state) => {
+    return [state.setState, state.type];
+  });
   const formStatus = useWizardStore((state) => state.formStatus);
+  // TODO: remove networkType referencing network object
   const getNavTitle = useMemo(() => {
-    const networkType = network?.type;
     const currentStep = Number(step);
     switch (currentStep) {
       case 1:
         return LL.wizard.navigation.titles.step1();
       case 2:
-        if (!networkType) {
+        if (!type) {
           return '';
         }
         return LL.wizard.navigation.titles.step2();
       case 3:
-        if (!networkType) {
+        if (!type) {
           return '';
         }
         return LL.wizard.navigation.titles.step3();
       default:
         return '';
     }
-  }, [network, step, LL]);
+  }, [type, step, LL]);
 
   const getStepForm = useMemo(() => {
     switch (Number(step)) {
       case 1:
-        return <NetworkType formId={1} />;
+        return <WizardType formId={1} />;
       case 2:
         return (
           <StepGuard targetStep={2}>
-            {network?.type === 'regular' ? (
+            {type === 'regular' ? (
               <NetworkSetup formId={2} />
             ) : (
               <NetworkSetup formId={2} />
@@ -63,21 +63,21 @@ const WizardSteps: React.FC = () => {
         }
         return <Navigate to={String(stepsCount)} />;
     }
-  }, [formStatus, step, network?.type]);
+  }, [formStatus, step, type]);
 
   useEffect(() => {
     if (isUndefined(step)) {
-      setWizardState({ currentStep: undefined });
+      setState({ currentStep: undefined });
     } else {
-      setWizardState({ currentStep: Number(step) });
+      setState({ currentStep: Number(step) });
     }
-  }, [setWizardState, step]);
+  }, [setState, step]);
 
-  useEffect(() => {
-    setNetwork(networkObserver?.getValue());
-    const sub = networkObserver?.subscribe((data) => setNetwork(data));
-    return () => sub?.unsubscribe();
-  }, [networkObserver]);
+  // useEffect(() => {
+  //   setNetwork(networkObserver?.getValue());
+  //   const sub = networkObserver?.subscribe((data) => setNetwork(data));
+  //   return () => sub?.unsubscribe();
+  // }, [networkObserver]);
 
   return (
     <>

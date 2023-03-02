@@ -1,50 +1,48 @@
 import React, { useMemo } from 'react';
-import { useI18nContext } from '../../../../../i18n/i18n-react';
 import useBreakpoint from 'use-breakpoint';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import SvgIconInfoNormal from '../../../../../shared/components/svg/IconInfoNormal';
-import SvgImageRegularNetwork from '../../../../../shared/components/svg/ImageRegularNetwork';
+import SvgImageMeshNetwork from '../../../../../shared/components/svg/ImageMeshNetwork';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import NetworkSelectButton from './NetworkSelectButton';
 
 interface Props extends React.HTMLAttributes<HTMLInputElement> {
   onChange: (value: unknown) => void;
-  value: 'mesh' | 'regular';
+  value: 'import' | 'regular';
 }
 
 // eslint-disable-next-line react/display-name
-const RegularNetwork = React.forwardRef<HTMLInputElement, Props>(
+const MeshNetwork = React.forwardRef<HTMLInputElement, Props>(
   ({ onChange, value, ...props }, ref) => {
     const { LL } = useI18nContext();
     const { breakpoint } = useBreakpoint(deviceBreakpoints);
+
     const getClassName = useMemo(() => {
-      const res = ['regular-network'];
-      if (value === 'regular') {
+      const res = ['mesh-network'];
+      if (value === 'import') {
         res.push('active');
       }
-      if (value === 'mesh') {
+      if (value === 'regular') {
         res.push('not-active');
       }
       return res.join(' ');
     }, [value]);
 
     const handleChange = () => {
-      onChange('regular');
+      onChange('import');
     };
 
     return (
       <div className={getClassName}>
         {breakpoint !== 'desktop' && <SvgIconInfoNormal />}
-        <h3>{LL.wizard.networkType.regularNetwork.title()}</h3>
+        <h3>{LL.wizard.networkType.meshNetwork.title()}</h3>
         {breakpoint === 'desktop' && (
-          <>
-            <p>{LL.wizard.networkType.regularNetwork.description()}</p>
-            <SvgImageRegularNetwork />
-          </>
+          <p>{LL.wizard.networkType.meshNetwork.description()}</p>
         )}
-
+        {breakpoint === 'desktop' && <SvgImageMeshNetwork />}
         <NetworkSelectButton
-          active={typeof value !== 'undefined' && value === 'regular'}
+          active={typeof value !== 'undefined' && value === 'import'}
           onClick={() => handleChange()}
         />
         <input
@@ -52,11 +50,11 @@ const RegularNetwork = React.forwardRef<HTMLInputElement, Props>(
           ref={ref}
           {...props}
           onChange={onChange}
-          checked={value === 'regular'}
+          checked={value === 'import'}
         />
       </div>
     );
   }
 );
 
-export default RegularNetwork;
+export default MeshNetwork;

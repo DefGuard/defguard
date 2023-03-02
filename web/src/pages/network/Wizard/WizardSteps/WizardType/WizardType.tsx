@@ -8,12 +8,11 @@ import {
   SubmitHandler,
   useForm,
 } from 'react-hook-form';
-import { useI18nContext } from '../../../../../i18n/i18n-react';
 import useBreakpoint from 'use-breakpoint';
 import * as yup from 'yup';
 import shallow from 'zustand/shallow';
 
-import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { useWizardStore } from '../store';
 import MeshNetwork from './MeshNetwork';
@@ -24,56 +23,55 @@ type Inputs = {
   type: inputNetworkType;
 };
 
-type inputNetworkType = 'mesh' | 'regular';
+type inputNetworkType = 'regular' | 'import';
 
 interface Props {
   formId: number;
 }
 
-export const NetworkType = ({ formId }: Props) => {
+export const WizardType = ({ formId }: Props) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const submitRef = useRef<HTMLInputElement>(null);
   const formSubmissionSubject = useWizardStore(
     (state) => state.formSubmissionSubject
   );
-  const [networkObserver, setNetwork, setFormStatus, proceedWizardSubject] =
-    useWizardStore(
-      (state) => [
-        state.network,
-        state.setNetwork,
+  const [setFormStatus, proceedWizardSubject, setState, type] = useWizardStore(
+    (state) => {
+      return [
         state.setFormStatus,
         state.proceedWizardSubject,
-      ],
-      shallow
-    );
+        state.setState,
+        state.type,
+      ];
+    },
+    shallow
+  );
   const { LL } = useI18nContext();
   const onValidSubmit: SubmitHandler<Inputs> = useCallback(
     (data) => {
-      setNetwork(data);
+      setState({ type: data.type });
       setFormStatus({ [formId]: true });
       proceedWizardSubject.next();
     },
-    [formId, proceedWizardSubject, setFormStatus, setNetwork]
+    [formId, proceedWizardSubject, setFormStatus, setState]
   );
   const onInvalidSubmit: SubmitErrorHandler<Inputs> = () => {
     setFormStatus({ 1: false });
   };
 
-  const network = networkObserver ? networkObserver.getValue() : undefined;
-
   const schema = yup
     .object({
-      type: yup.mixed<inputNetworkType>().oneOf(['mesh', 'regular']).required(),
+      type: yup
+        .mixed<inputNetworkType>()
+        .oneOf(['import', 'regular'])
+        .required(),
     })
     .required();
 
   const { handleSubmit, control } = useForm<Inputs>({
     resolver: yupResolver(schema),
     mode: 'all',
-    defaultValues: {
-      name: network?.name ?? '',
-      type: network?.type ?? 'regular',
-    },
+    defaultValues: {},
   });
 
   useEffect(() => {
@@ -95,7 +93,7 @@ export const NetworkType = ({ formId }: Props) => {
           <Controller
             name="type"
             control={control}
-            defaultValue={network?.type}
+            defaultValue={type}
             render={({ field }) => (
               <div className="select-container">
                 <MeshNetwork onChange={field.onChange} value={field.value} />

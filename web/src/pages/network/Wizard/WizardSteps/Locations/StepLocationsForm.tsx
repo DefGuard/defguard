@@ -4,7 +4,7 @@ import React from 'react';
 import { useEffect } from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { useFieldArray } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import * as yup from 'yup';
 
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
@@ -27,7 +27,7 @@ type Inputs = {
 };
 
 const StepLocationsForm: React.FC = () => {
-  const { t } = useTranslation('en');
+  const { LL } = useI18nContext();
   const schema = yup
     .object({
       name: yup.string().required(),
@@ -36,7 +36,7 @@ const StepLocationsForm: React.FC = () => {
         .required()
         .matches(
           /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:\d{1,5}\b)?$/,
-          t('wizard.locations.form.validation.invalidAddress')
+          LL.wizard.locations.form.validation.invalidAddress()
         ),
       shared: yup
         .array()
@@ -47,7 +47,7 @@ const StepLocationsForm: React.FC = () => {
               .required()
               .matches(
                 /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:\d{1,5}\b)?$/,
-                t('wizard.locations.form.validation.invalidAddress')
+                LL.wizard.locations.form.validation.invalidAddress()
               ),
           })
         )

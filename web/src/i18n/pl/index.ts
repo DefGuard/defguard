@@ -1115,6 +1115,9 @@ const pl: BaseTranslation = {
       select: 'TODO',
     },
     TODO: 'TODO',
+    locations: {
+      form: { validation: { invalidAddress: 'Nieprawidłowy adres' } },
+    },
   },
 };
 

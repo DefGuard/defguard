@@ -17,6 +17,7 @@ export enum NetworkTypeEnum {
   REGULAR = 'regular',
 }
 
+// TODO: remove?
 export type WizardNetwork = {
   type?: 'import' | 'regular';
   name?: string;

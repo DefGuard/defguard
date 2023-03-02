@@ -2501,6 +2501,16 @@ type RootTranslation = {
 		 * T​O​D​O
 		 */
 		TODO: string
+		locations: {
+			form: {
+				validation: {
+					/**
+					 * I​n​v​a​l​i​d​ ​a​d​d​r​e​s​s
+					 */
+					invalidAddress: string
+				}
+			}
+		}
 	}
 }
 
@@ -4976,6 +4986,16 @@ export type TranslationFunctions = {
 		 * TODO
 		 */
 		TODO: () => LocalizedString
+		locations: {
+			form: {
+				validation: {
+					/**
+					 * Invalid address
+					 */
+					invalidAddress: () => LocalizedString
+				}
+			}
+		}
 	}
 }
 

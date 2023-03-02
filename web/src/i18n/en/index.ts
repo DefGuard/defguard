@@ -1113,6 +1113,9 @@ const en: BaseTranslation = {
       select: 'TODO',
     },
     TODO: 'TODO',
+    locations: {
+      form: { validation: { invalidAddress: 'Invalid address' } },
+    },
   },
 };
 
