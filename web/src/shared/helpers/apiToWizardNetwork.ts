@@ -1,6 +1,6 @@
 import { trim } from 'lodash-es';
 
-import { WizardNetwork } from './../../pages/vpn/Wizard/types/types';
+import { WizardNetwork } from './../../pages/network/Wizard/types/types';
 import { Network } from './../types';
 export const apiToWizardNetwork = (networkData: Network): WizardNetwork => {
   return {

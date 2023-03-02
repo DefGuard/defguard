@@ -26,7 +26,7 @@ import { ToastManager } from '../../shared/components/layout/ToastManager/ToastM
 import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import OpenIDRoute from '../../shared/components/Router/Guards/OpenIDRoute/OpenIDRoute';
-import WizardPage from '../../pages/vpn/Wizard/WizardPage';
+import WizardPage from '../../pages/network/Wizard/WizardPage';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
