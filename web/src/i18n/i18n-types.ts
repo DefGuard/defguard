@@ -2216,6 +2216,10 @@ type RootTranslation = {
 		 * N​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		header: string
+		/**
+		 * N​e​t​w​o​r​k​ ​i​m​p​o​r​t
+		 */
+		importHeader: string
 		form: {
 			messages: {
 				/**
@@ -4701,6 +4705,10 @@ export type TranslationFunctions = {
 		 * Network configuration
 		 */
 		header: () => LocalizedString
+		/**
+		 * Network import
+		 */
+		importHeader: () => LocalizedString
 		form: {
 			messages: {
 				/**

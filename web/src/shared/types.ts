@@ -101,6 +101,12 @@ export interface ModifyNetworkRequest
   allowed_ips: string;
 }
 
+export interface ImportNetworkRequest {
+  name: string;
+  endpoint: string;
+  config: string;
+}
+
 export interface NetworkToken {
   token: string;
 }

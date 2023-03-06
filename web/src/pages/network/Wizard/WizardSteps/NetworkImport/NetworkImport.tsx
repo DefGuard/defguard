@@ -1,102 +1,103 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { isNull, omit, omitBy } from 'lodash-es';
-import { useEffect, useMemo, useRef } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { useCallback, useEffect, useRef } from 'react';
+import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
+import useBreakpoint from 'use-breakpoint';
 import * as yup from 'yup';
+import shallow from 'zustand/shallow';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
 import { Card } from '../../../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../../../shared/components/layout/MessageBox/MessageBox';
-import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { MutationKeys } from '../../../../../shared/mutations';
-import { ModifyNetworkRequest, Network } from '../../../../../shared/types';
-import { useNetworkPageStore } from '../../../hooks/useNetworkPageStore';
-import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { QueryKeys } from '../../../../../shared/queries';
+import { deviceBreakpoints } from '../../../../../shared/constants';
+import { ImportNetworkRequest } from '../../../../../shared/types';
+import { useWizardStore } from '../store';
 
-type FormInputs = ModifyNetworkRequest;
+type Inputs = {
+  name: string;
+  endpoint: string;
+  config: string;
+};
 
-// TODO: cleanup
-// const defaultValues: FormInputs = {
-//   address: '',
-//   endpoint: '',
-//   name: '',
-//   port: 50051,
-//   allowed_ips: '',
-//   dns: '',
-// };
+// type inputNetworkType = 'mesh' | 'regular';
 
-// TODO: cleanup
-// const networkToForm = (data?: Network): FormInputs | undefined => {
-//   if (!data) return undefined;
-//   const omited = omitBy(omit(data, ['id', 'connected_at']), isNull);
-//   if (Array.isArray(omited.allowed_ips)) {
-//     omited.allowed_ips = omited.allowed_ips.join(',');
-//   }
-//   return { ...defaultValues, ...omited } as FormInputs;
-// };
+interface Props {
+  formId: number;
+}
 
-export const NetworkImport: React.FC = () => {
-  const toaster = useToaster();
-  const {
-    network: { addNetwork, editNetwork },
-  } = useApi();
-  const submitRef = useRef<HTMLButtonElement | null>(null);
-  const network = useNetworkPageStore((state) => state.network);
-  const setStoreState = useNetworkPageStore((state) => state.setState);
-  const submitSubject = useNetworkPageStore((state) => state.saveSubject);
-  const queryClient = useQueryClient();
+type FormInputs = ImportNetworkRequest;
+
+export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
+  const submitRef = useRef<HTMLInputElement>(null);
+  const formSubmissionSubject = useWizardStore(
+    (state) => state.formSubmissionSubject
+  );
+  const [setNetwork, setFormStatus, proceedWizardSubject] = useWizardStore(
+    (state) => [
+      state.setNetwork,
+      state.setFormStatus,
+      state.proceedWizardSubject,
+    ],
+    shallow
+  );
   const { LL } = useI18nContext();
-
-  const { mutate: editNetworkMutation, isLoading: editLoading } = useMutation(
-    [MutationKeys.CHANGE_NETWORK],
-    editNetwork,
-    {
-      onSuccess: async (response) => {
-        setStoreState({ network: response });
-        toaster.success(
-          LL.networkConfiguration.form.messages.networkModified()
-        );
-        await queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
-      },
-      onError: (err) => {
-        console.error(err);
-        toaster.error(LL.messages.error());
-      },
-    }
+  const onValidSubmit: SubmitHandler<Inputs> = useCallback(
+    (data) => {
+      setNetwork(data);
+      setFormStatus({ [formId]: true });
+      proceedWizardSubject.next();
+    },
+    [formId, proceedWizardSubject, setFormStatus, setNetwork]
   );
-  const { mutate: addNetworkMutation, isLoading: addLoading } = useMutation(
-    [MutationKeys.ADD_NETWORK],
-    addNetwork,
-    {
-      onSuccess: async (network) => {
-        setStoreState({ network, loading: false });
-        toaster.success(LL.networkConfiguration.form.messages.networkCreated());
-        await queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
-      },
-      onError: (err) => {
-        setStoreState({ loading: false });
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
-    }
-  );
+  const onInvalidSubmit: SubmitErrorHandler<Inputs> = () => {
+    setFormStatus({ 1: false });
+  };
 
   // TODO: cleanup
-  // const defaultFormValues = useMemo(() => {
-  //   if (network) {
-  //     const res = networkToForm(network);
-  //     if (res) {
-  //       return res;
-  //     }
-  //   }
-  //   return defaultValues;
-  // }, [network]);
+  // const network = networkObserver ? networkObserver.getValue() : undefined;
+
+  // const schema = yup
+  //   .object({
+  //     type: yup.mixed<inputNetworkType>().oneOf(['mesh', 'regular']).required(),
+  //   })
+  //   .required();
+
+  // const { handleSubmit, control } = useForm<Inputs>({
+  //   resolver: yupResolver(schema),
+  //   mode: 'all',
+  //   defaultValues: {
+  //     name: network?.name ?? '',
+  //     type: network?.type ?? 'regular',
+  //   },
+  // });
+
+  // TODO: use loading?
+  // const [save, loading] = useNetworkPageStore(
+  //   (state) => [state.saveSubject, state.loading],
+  //   shallow
+  // );
+
+  useEffect(() => {
+    const sub = formSubmissionSubject.subscribe((stepId) => {
+      if (stepId === formId) {
+        // TODO: cleanup
+        // save.next();
+        submitRef.current?.click();
+      }
+    });
+    return () => sub.unsubscribe();
+    // }, [formId, formSubmissionSubject, save]);
+  }, [formId, formSubmissionSubject]);
+
+  const defaultValues: FormInputs = {
+    name: '',
+    endpoint: '',
+    config: '',
+  };
 
   const schema = yup
     .object({
@@ -112,54 +113,50 @@ export const NetworkImport: React.FC = () => {
     .required();
 
   const { control, handleSubmit } = useForm<FormInputs>({
-    // TODO: cleanup
-    // defaultValues: defaultFormValues,
+    defaultValues,
     resolver: yupResolver(schema),
   });
 
-  const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
-    if (network) {
-      editNetworkMutation({ ...network, ...values });
-    } else {
-      addNetworkMutation(values);
-    }
-    setStoreState({ loading: true });
-  };
-
-  useEffect(() => {
-    setStoreState({ loading: addLoading || editLoading });
-  }, [addLoading, editLoading, setStoreState]);
-
-  useEffect(() => {
-    const sub = submitSubject.subscribe(() => submitRef.current?.click());
-    return () => sub.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
-    <section className="network-config">
-      <header>
-        <h2>{LL.networkConfiguration.header()}</h2>
-        <Helper>
-          <p>PLACEHOLDER</p>
-        </Helper>
-      </header>
-      <Card>
-        <form onSubmit={handleSubmit(onValidSubmit)}>
-          <FormInput
-            controller={{ control, name: 'name' }}
-            outerLabel={LL.networkConfiguration.form.fields.name.label()}
-          />
-          <MessageBox>
-            <p>{LL.networkConfiguration.form.messages.gateway()}</p>
-          </MessageBox>
-          <FormInput
-            controller={{ control, name: 'endpoint' }}
-            outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
-          />
-          <button type="submit" className="hidden" ref={submitRef}></button>
-        </form>
-      </Card>
-    </section>
+    <>
+      <div className="container-basic network-setup">
+        {breakpoint !== 'desktop' && (
+          <h1 className="step-name">{LL.wizard.networkType.createNetwork()}</h1>
+        )}
+        <section className="network-config">
+          <header>
+            <h2>{LL.networkConfiguration.importHeader()}</h2>
+            <Helper>
+              <p>PLACEHOLDER</p>
+            </Helper>
+          </header>
+          <Card>
+            <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
+              <FormInput
+                controller={{ control, name: 'name' }}
+                outerLabel={LL.networkConfiguration.form.fields.name.label()}
+              />
+              <MessageBox>
+                <p>{LL.networkConfiguration.form.messages.gateway()}</p>
+              </MessageBox>
+              <FormInput
+                controller={{ control, name: 'endpoint' }}
+                outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
+              />
+              {/* TODO: config select button */}
+              <FormInput
+                controller={{ control, name: 'config' }}
+                outerLabel={LL.networkConfiguration.form.fields.address.label()}
+              />
+              <input
+                className="visually-hidden"
+                type="submit"
+                ref={submitRef}
+              />
+            </form>
+          </Card>
+        </section>
+      </div>
+    </>
   );
 };

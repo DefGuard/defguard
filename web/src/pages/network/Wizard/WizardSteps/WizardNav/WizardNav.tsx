@@ -12,7 +12,6 @@ import Button, {
 import SvgIconArrowGrayLeft from '../../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../../shared/components/svg/IconArrowGrayRight';
 import { deviceBreakpoints } from '../../../../../shared/constants';
-import { StepTracker } from '../StepTracker/StepTracker';
 import { useWizardStore } from '../store';
 
 interface Props {
@@ -96,7 +95,6 @@ const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
 
   return (
     <nav className="wizard-nav">
-      {breakpoint === 'desktop' && <StepTracker />}
       <div>
         {breakpoint === 'desktop' && <h1>{title}</h1>}
         <div className={getClassName}>

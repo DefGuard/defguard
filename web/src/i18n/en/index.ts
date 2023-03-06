@@ -970,6 +970,7 @@ const en: BaseTranslation = {
   },
   networkConfiguration: {
     header: 'Network configuration',
+    importHeader: 'Network import',
     form: {
       messages: {
         gateway: 'Gateway public address, used by VPN users to connect',

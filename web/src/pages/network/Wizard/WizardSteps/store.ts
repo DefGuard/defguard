@@ -2,10 +2,15 @@ import { Subject } from 'rxjs';
 import create from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-import { WizardStore } from '../types/interfaces';
+import { ImportedNetwork, WizardStore } from '../types/interfaces';
 import { FormStatus, Location } from '../types/types';
 
 const defaultState = {
+  network: {
+    name: '',
+    endpoint: '',
+    config: '',
+  },
   stepsCount: 2,
   locations: [],
   editMode: false,
@@ -22,6 +27,11 @@ export const useWizardStore = create<
 >(
   devtools((set) => ({
     type: 'regular',
+    network: {
+      name: '',
+      endpoint: '',
+      config: '',
+    },
     stepsCount: 2,
     locations: [],
     editMode: false,
@@ -41,6 +51,10 @@ export const useWizardStore = create<
     setFormStatus: (formStatus: FormStatus) =>
       set((state) => ({
         formStatus: { ...state.formStatus, ...formStatus },
+      })),
+    setNetwork: (network: ImportedNetwork) =>
+      set((state) => ({
+        network: { ...state.network, ...network },
       })),
     setState: (data) => set((state) => ({ ...state, ...data })),
     resetStore: (data) =>

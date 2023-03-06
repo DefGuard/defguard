@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 import { Navigate } from 'react-router-dom';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { NetworkImport } from './NetworkImport/NetworkImport';
 import { NetworkSetup } from './NetworkSetup/NetworkSetup';
 import StepGuard from './StepGuard/StepGuard';
 import { useWizardStore } from './store';
@@ -51,7 +52,7 @@ const WizardSteps: React.FC = () => {
             {type === 'regular' ? (
               <NetworkSetup formId={2} />
             ) : (
-              <NetworkSetup formId={2} />
+              <NetworkImport formId={2} />
             )}
           </StepGuard>
         );

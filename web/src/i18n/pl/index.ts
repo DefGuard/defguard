@@ -969,6 +969,7 @@ const pl: BaseTranslation = {
   },
   networkConfiguration: {
     header: 'Konfiguracja sieci',
+    importHeader: 'Import sieci',
     form: {
       messages: {
         gateway:
