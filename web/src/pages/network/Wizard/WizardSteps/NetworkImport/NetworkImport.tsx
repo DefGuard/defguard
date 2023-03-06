@@ -19,12 +19,8 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { ImportNetworkRequest } from '../../../../../shared/types';
 import { useWizardStore } from '../store';
-
-type Inputs = {
-  name: string;
-  endpoint: string;
-  config: string;
-};
+import Button, { ButtonSize, ButtonStyleVariant } from '../../../../../shared/components/layout/Button/Button';
+import { IconArrowGrayUp } from '../../../../../shared/components/svg';
 
 // TODO: cleanup
 // type inputNetworkType = 'mesh' | 'regular';
@@ -33,7 +29,9 @@ interface Props {
   formId: number;
 }
 
-type FormInputs = ImportNetworkRequest;
+interface FormInputs extends ImportNetworkRequest {
+  fileName: string;
+}
 
 export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -72,7 +70,7 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
     }
   );
   const { LL } = useI18nContext();
-  const onValidSubmit: SubmitHandler<Inputs> = useCallback(
+  const onValidSubmit: SubmitHandler<FormInputs> = useCallback(
     async (data) => {
       // TODO: do we need that? maybe post straight away?
       setNetwork(data);
@@ -88,7 +86,7 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
       importNetworkMutation,
     ]
   );
-  const onInvalidSubmit: SubmitErrorHandler<Inputs> = () => {
+  const onInvalidSubmit: SubmitErrorHandler<FormInputs> = () => {
     setFormStatus({ 1: false });
   };
 
@@ -131,6 +129,7 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
   const defaultValues: FormInputs = {
     name: '',
     endpoint: '',
+    fileName: '',
     config: '',
   };
 
@@ -144,13 +143,38 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
           /((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
           LL.form.error.endpoint()
         ),
+      config: yup.string().required(LL.form.error.required()),
     })
     .required();
 
-  const { control, handleSubmit } = useForm<FormInputs>({
+  const { control, handleSubmit, reset, getValues } = useForm<FormInputs>({
     defaultValues,
     resolver: yupResolver(schema),
   });
+
+  // Displays file picker and updates form with selected file
+  const loadConfig = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = () => {
+      const reader = new FileReader();
+      reader.addEventListener('loadend', () => {
+        if (typeof reader.result === 'string') {
+          // parseConfigMutation(reader.result);
+          console.log(reader.result);
+          console.log(input.files);
+          input.files?.[0] &&
+            reset({
+              ...getValues(),
+              config: reader.result,
+              fileName: input.files[0].name,
+            });
+        }
+      });
+      input.files?.[0] && reader.readAsText(input.files[0]);
+    };
+    input.click();
+  };
 
   return (
     <>
@@ -178,10 +202,25 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
                 controller={{ control, name: 'endpoint' }}
                 outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
               />
-              {/* TODO: config select button */}
+              {/* TODO: hidden/disabled inputs */}
+              <FormInput
+                controller={{ control, name: 'fileName' }}
+                disabled
+                outerLabel={LL.wizard.TODO()}
+              />
               <FormInput
                 controller={{ control, name: 'config' }}
-                outerLabel={LL.networkConfiguration.form.fields.address.label()}
+                disabled
+                hidden
+                outerLabel={LL.wizard.TODO()}
+              />
+              <Button
+                text={LL.wizard.TODO()}
+                size={ButtonSize.SMALL}
+                styleVariant={ButtonStyleVariant.STANDARD}
+                icon={<IconArrowGrayUp />}
+                loading={false}
+                onClick={() => loadConfig()}
               />
               <input
                 className="visually-hidden"
