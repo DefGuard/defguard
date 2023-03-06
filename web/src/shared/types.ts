@@ -79,6 +79,7 @@ export interface Device {
   config: string;
   created: string;
 }
+
 export interface AddDeviceRequest {
   username: string;
   name: string;
@@ -257,6 +258,19 @@ export interface MFAFinishResponse {
   user?: User;
 }
 
+export interface ImportNetworkResponse {
+  network: Network;
+  peers: ImportedDevice[];
+}
+
+export interface ImportedDevice {
+  id?: string;
+  name?: string;
+  wireguard_ip: string;
+  wireguard_pubkey: string;
+  user_id?: number;
+}
+
 export interface ApiHook {
   getVersion: () => Promise<VersionResponse>;
   oAuth: {
@@ -291,6 +305,9 @@ export interface ApiHook {
   };
   network: {
     addNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
+    importNetwork: (
+      network: ImportNetworkRequest
+    ) => Promise<ImportNetworkResponse>;
     getNetwork: (networkId: string) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;

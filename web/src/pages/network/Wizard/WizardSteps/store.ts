@@ -6,6 +6,7 @@ import { ImportedNetwork, WizardStore } from '../types/interfaces';
 import { FormStatus, Location } from '../types/types';
 
 const defaultState = {
+  // TODO: do we need that in state?
   network: {
     name: '',
     endpoint: '',
@@ -27,6 +28,7 @@ export const useWizardStore = create<
 >(
   devtools((set) => ({
     type: 'regular',
+    // TODO: do we need that in state?
     network: {
       name: '',
       endpoint: '',

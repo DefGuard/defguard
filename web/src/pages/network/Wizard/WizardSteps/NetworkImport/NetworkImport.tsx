@@ -1,6 +1,7 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
+import { useMutation } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef } from 'react';
 import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import useBreakpoint from 'use-breakpoint';
@@ -13,6 +14,9 @@ import { Card } from '../../../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../../../shared/components/layout/MessageBox/MessageBox';
 import { deviceBreakpoints } from '../../../../../shared/constants';
+import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { MutationKeys } from '../../../../../shared/mutations';
 import { ImportNetworkRequest } from '../../../../../shared/types';
 import { useWizardStore } from '../store';
 
@@ -22,6 +26,7 @@ type Inputs = {
   config: string;
 };
 
+// TODO: cleanup
 // type inputNetworkType = 'mesh' | 'regular';
 
 interface Props {
@@ -33,25 +38,55 @@ type FormInputs = ImportNetworkRequest;
 export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const submitRef = useRef<HTMLInputElement>(null);
-  const formSubmissionSubject = useWizardStore(
-    (state) => state.formSubmissionSubject
-  );
-  const [setNetwork, setFormStatus, proceedWizardSubject] = useWizardStore(
+  const {
+    network: { importNetwork },
+  } = useApi();
+  const toaster = useToaster();
+  const [
+    setNetwork,
+    setFormStatus,
+    proceedWizardSubject,
+    formSubmissionSubject,
+  ] = useWizardStore(
     (state) => [
       state.setNetwork,
       state.setFormStatus,
       state.proceedWizardSubject,
+      state.formSubmissionSubject,
     ],
     shallow
   );
+  const { mutateAsync: importNetworkMutation } = useMutation(
+    [MutationKeys.IMPORT_NETWORK],
+    importNetwork,
+    {
+      onSuccess: async (response) => {
+        // TODO: cleanup
+        console.log(response);
+        toaster.success(LL.networkConfiguration.form.messages.networkCreated());
+      },
+      onError: (err) => {
+        toaster.error(LL.messages.error());
+        console.error(err);
+      },
+    }
+  );
   const { LL } = useI18nContext();
   const onValidSubmit: SubmitHandler<Inputs> = useCallback(
-    (data) => {
+    async (data) => {
+      // TODO: do we need that? maybe post straight away?
       setNetwork(data);
+      await importNetworkMutation(data);
       setFormStatus({ [formId]: true });
       proceedWizardSubject.next();
     },
-    [formId, proceedWizardSubject, setFormStatus, setNetwork]
+    [
+      formId,
+      proceedWizardSubject,
+      setFormStatus,
+      setNetwork,
+      importNetworkMutation,
+    ]
   );
   const onInvalidSubmit: SubmitErrorHandler<Inputs> = () => {
     setFormStatus({ 1: false });
