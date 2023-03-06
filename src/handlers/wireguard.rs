@@ -9,6 +9,7 @@ use crate::{
         WireguardNetwork,
     },
     grpc::GatewayState,
+    wg_config::parse_wireguard_config,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -169,6 +170,32 @@ pub async fn network_details(
 
     Ok(ApiResponse {
         json: json!(network),
+        status: Status::Ok,
+    })
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct ImportNetworkData {
+    pub name: String,
+    pub endpoint: String,
+    pub config: String,
+}
+
+#[post("/import", format = "json", data = "<data>")]
+pub async fn import_network(
+    _admin: AdminRole,
+    appstate: &State<AppState>,
+    data: Json<ImportNetworkData>,
+) -> ApiResult {
+    let data = data.into_inner();
+    let (mut network, devices) = parse_wireguard_config(&data.config).map_err(|_| {
+        OriWebError::ModelError("Failed to parse wireguard config file".to_string())
+    })?;
+    network.name = data.name;
+    network.endpoint = data.endpoint;
+    network.save(&appstate.pool).await?;
+    Ok(ApiResponse {
+        json: json!({"network": network, "devices": devices}),
         status: Status::Ok,
     })
 }
