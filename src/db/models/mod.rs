@@ -55,6 +55,7 @@ pub struct SecurityKey {
 
 #[derive(Deserialize, Serialize)]
 pub struct UserInfo {
+    pub id: Option<i64>,
     pub username: String,
     pub last_name: String,
     pub first_name: String,
@@ -85,6 +86,7 @@ impl UserInfo {
         let security_keys = user.security_keys(pool).await?;
 
         Ok(Self {
+            id: user.id,
             username: user.username,
             last_name: user.last_name,
             first_name: user.first_name,
