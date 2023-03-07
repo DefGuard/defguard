@@ -46,6 +46,11 @@ impl WireguardNetworkData {
     }
 }
 
+#[derive(Deserialize)]
+pub struct UserDevices {
+    pub devices: Vec<Device>,
+}
+
 #[derive(Serialize)]
 struct ConnectionInfo {
     connected: bool,
@@ -198,6 +203,30 @@ pub async fn import_network(
         json: json!({"network": network, "devices": devices}),
         status: Status::Ok,
     })
+}
+
+#[post("/devices", format = "json", data = "<data>")]
+pub async fn add_user_devices(
+    session: SessionInfo,
+    appstate: &State<AppState>,
+    data: Json<UserDevices>,
+) -> ApiResult {
+    let mut data = data.into_inner();
+    debug!(
+        "User {} adding {} devices",
+        session.user.username,
+        data.devices.len()
+    );
+    for device in data.devices.as_mut_slice() {
+        device.save(&appstate.pool).await?;
+    }
+    info!(
+        "User {} added {} devices",
+        session.user.username,
+        data.devices.len()
+    );
+
+    Ok(ApiResponse::default())
 }
 
 #[post("/device/<username>", format = "json", data = "<data>")]

@@ -17,7 +17,7 @@ import { deviceBreakpoints } from '../../../../../shared/constants';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
-import { ImportedDevice, ImportNetworkRequest } from '../../../../../shared/types';
+import { ImportedDevice, ImportNetworkRequest, SelectOption } from '../../../../../shared/types';
 import { useWizardStore } from '../store';
 import Button, { ButtonSize, ButtonStyleVariant } from '../../../../../shared/components/layout/Button/Button';
 import { IconArrowGrayUp, IconTrash } from '../../../../../shared/components/svg';
@@ -32,8 +32,11 @@ interface Props {
   formId: number;
 }
 
+interface DeviceInput extends Omit<ImportedDevice, 'user_id'> {
+  user_id: SelectOption<number>;
+}
 interface FormInputs {
-  devices: ImportedDevice[];
+  devices: DeviceInput[];
 }
 
 export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
@@ -62,7 +65,7 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
     ],
     shallow
   );
-  const { mutateAsync: importNetworkMutation } = useMutation(
+  const { mutateAsync: createUserDevicesMutation } = useMutation(
     [MutationKeys.CREATE_USER_DEVICES],
     createUserDevices,
     {
@@ -82,11 +85,16 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
 
   const onValidSubmit: SubmitHandler<FormInputs> = useCallback(
     async (data) => {
-      await importNetworkMutation(data);
+      // Set device.user_id
+      const devices: ImportedDevice[] = data.devices?.map((d) => ({
+        ...d,
+        user_id: d.user_id.value,
+      }));
+      await createUserDevicesMutation({devices});
       setFormStatus({ [formId]: true });
       // proceedWizardSubject.next();
     },
-    [formId, setFormStatus, importNetworkMutation]
+    [formId, setFormStatus, createUserDevicesMutation]
   );
   const onInvalidSubmit: SubmitErrorHandler<FormInputs> = () => {
     setFormStatus({ 3: false });
@@ -147,25 +155,6 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
     })
     .required();
 
-  const {
-    control,
-    handleSubmit,
-    reset: resetForm,
-  } = useForm<FormInputs>({
-    defaultValues: { devices },
-    resolver: yupResolver(schema),
-  });
-
-  const { fields, remove } = useFieldArray({
-    control,
-    name: 'devices',
-  });
-
-  // const { control, handleSubmit, reset, getValues } = useForm<FormInputs>({
-  //   defaultValues,
-  //   resolver: yupResolver(schema),
-  // });
-
   const { data: users, isLoading: usersLoading } = useQuery(
     [QueryKeys.FETCH_USERS],
     getUsers
@@ -181,6 +170,33 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
     }
     return [];
   }, [users, usersLoading]);
+
+  const deviceToFormValues = (device: ImportedDevice): DeviceInput => ({
+    ...device,
+    user_id: {
+      label: users?.find((u) => u.id === device.user_id)?.username || '',
+      value: device.user_id,
+    },
+  });
+
+  const {
+    control,
+    handleSubmit,
+    reset: resetForm,
+  } = useForm<FormInputs>({
+    defaultValues: { devices: devices.map(deviceToFormValues) },
+    resolver: yupResolver(schema),
+  });
+
+  const { fields, remove } = useFieldArray({
+    control,
+    name: 'devices',
+  });
+
+  // const { control, handleSubmit, reset, getValues } = useForm<FormInputs>({
+  //   defaultValues,
+  //   resolver: yupResolver(schema),
+  // });
 
   return (
     <section className="user-devices">

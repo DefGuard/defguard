@@ -109,6 +109,10 @@ export interface ImportNetworkRequest {
   config: string;
 }
 
+export interface CreateUserDevicesRequest {
+  devices: ImportedDevice[];
+}
+
 export interface NetworkToken {
   token: string;
 }
@@ -310,7 +314,7 @@ export interface ApiHook {
     importNetwork: (
       network: ImportNetworkRequest
     ) => Promise<ImportNetworkResponse>;
-    createUserDevices: (devices: ImportedDevice[]) => EmptyApiResponse;
+    createUserDevices: (devices: CreateUserDevicesRequest) => EmptyApiResponse;
     getNetwork: (networkId: string) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
