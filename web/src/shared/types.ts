@@ -23,6 +23,7 @@ export enum UserMFAMethod {
 }
 
 export interface User {
+  id?: number;
   username: string;
   last_name: string;
   first_name: string;
@@ -260,15 +261,16 @@ export interface MFAFinishResponse {
 
 export interface ImportNetworkResponse {
   network: Network;
-  peers: ImportedDevice[];
+  devices: ImportedDevice[];
 }
 
 export interface ImportedDevice {
   id?: string;
-  name?: string;
+  name: string;
   wireguard_ip: string;
   wireguard_pubkey: string;
-  user_id?: number;
+  // TODO: don't use -1 user_id
+  user_id: number;
 }
 
 export interface ApiHook {
@@ -308,6 +310,7 @@ export interface ApiHook {
     importNetwork: (
       network: ImportNetworkRequest
     ) => Promise<ImportNetworkResponse>;
+    createUserDevices: (devices: ImportedDevice[]) => EmptyApiResponse;
     getNetwork: (networkId: string) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;

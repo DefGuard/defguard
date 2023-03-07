@@ -1,4 +1,5 @@
 import { Subject } from 'rxjs';
+import { ImportedDevice } from '../../../../shared/types';
 
 import { FormStatus, Location } from './types';
 
@@ -11,6 +12,7 @@ export interface ImportedNetwork {
 export interface WizardStore {
   type?: 'regular' | 'import';
   network: ImportedNetwork;
+  devices: ImportedDevice[];
   stepsCount: number;
   currentStep?: number;
   locations: Location[];

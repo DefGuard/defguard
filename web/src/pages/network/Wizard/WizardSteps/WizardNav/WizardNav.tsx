@@ -67,6 +67,8 @@ const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
   useEffect(() => {
     const sub = proceedWizardSubject.subscribe(() => {
       if (currentStep === steps) {
+        // TODO: cleanup
+        console.log('Last step');
         // TODO: remove this if branch
         // // Finish clicked
         // const currentNetwork = networkObserver?.getValue();
@@ -78,6 +80,8 @@ const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
         //   }
         // }
       } else {
+        // TODO: cleanup
+        console.log('Proceeding');
         navigate(`../${currentStep + 1}`);
       }
     });

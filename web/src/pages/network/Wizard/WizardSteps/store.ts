@@ -1,6 +1,7 @@
 import { Subject } from 'rxjs';
 import create from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { ImportedDevice } from '../../../../shared/types';
 
 import { ImportedNetwork, WizardStore } from '../types/interfaces';
 import { FormStatus, Location } from '../types/types';
@@ -12,6 +13,7 @@ const defaultState = {
     endpoint: '',
     config: '',
   },
+  devices: [],
   stepsCount: 2,
   locations: [],
   editMode: false,
@@ -34,6 +36,7 @@ export const useWizardStore = create<
       endpoint: '',
       config: '',
     },
+    devices: [],
     stepsCount: 2,
     locations: [],
     editMode: false,

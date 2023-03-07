@@ -8,10 +8,11 @@ import { NetworkImport } from './NetworkImport/NetworkImport';
 import { NetworkSetup } from './NetworkSetup/NetworkSetup';
 import StepGuard from './StepGuard/StepGuard';
 import { useWizardStore } from './store';
+import { UserDevices } from './UserDevices/UserDevices';
 import WizardNav from './WizardNav/WizardNav';
 import { WizardType } from './WizardType/WizardType';
 
-const stepsCount = 2;
+const stepsCount = 3;
 
 const WizardSteps: React.FC = () => {
   const { step } = useParams();
@@ -56,6 +57,12 @@ const WizardSteps: React.FC = () => {
             )}
           </StepGuard>
         );
+      case 3:
+        return (
+          <StepGuard targetStep={3}>
+            <UserDevices formId={3} />;
+          </StepGuard>
+        )
       default:
         for (let i = 1; i <= stepsCount; i++) {
           if (!formStatus[i]) {
@@ -74,6 +81,7 @@ const WizardSteps: React.FC = () => {
     }
   }, [setState, step]);
 
+  // TODO: cleanup
   // useEffect(() => {
   //   setNetwork(networkObserver?.getValue());
   //   const sub = networkObserver?.subscribe((data) => setNetwork(data));

@@ -161,6 +161,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const importNetwork: ApiHook['network']['importNetwork'] = (network) =>
     client.post(`/network/import`, network).then(unpackRequest);
 
+  const createUserDevices: ApiHook['network']['createUserDevices'] = (devices) =>
+    client.post(`/network/devices`, devices).then(unpackRequest);
+
   const login: ApiHook['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
       if (response.status === 200) {
@@ -416,6 +419,7 @@ const useApi = (props?: HookProps): ApiHook => {
     network: {
       addNetwork,
       importNetwork,
+      createUserDevices,
       getNetwork: fetchNetwork,
       getNetworks: fetchNetworks,
       editNetwork: modifyNetwork,

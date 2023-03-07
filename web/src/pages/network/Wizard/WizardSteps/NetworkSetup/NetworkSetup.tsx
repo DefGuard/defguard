@@ -44,7 +44,7 @@ export const NetworkSetup = ({ formId }: Props) => {
   //   [formId, proceedWizardSubject, setFormStatus, setNetwork]
   // );
   // const onInvalidSubmit: SubmitErrorHandler<Inputs> = () => {
-  //   setFormStatus({ 1: false });
+  //   setFormStatus({ 2: false });
   // };
 
   // const network = networkObserver ? networkObserver.getValue() : undefined;
@@ -74,6 +74,7 @@ export const NetworkSetup = ({ formId }: Props) => {
     const sub = formSubmissionSubject.subscribe((stepId) => {
       if (stepId === formId) {
         save.next();
+        // TODO: navigate here instead of in NetworkConfiguration save
       }
     });
     return () => sub.unsubscribe();

@@ -42,12 +42,14 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
   const toaster = useToaster();
   const [
     setNetwork,
+    setState,
     setFormStatus,
     proceedWizardSubject,
     formSubmissionSubject,
   ] = useWizardStore(
     (state) => [
       state.setNetwork,
+      state.setState,
       state.setFormStatus,
       state.proceedWizardSubject,
       state.formSubmissionSubject,
@@ -61,6 +63,7 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
       onSuccess: async (response) => {
         // TODO: cleanup
         console.log(response);
+        setState({ devices: response.devices });
         toaster.success(LL.networkConfiguration.form.messages.networkCreated());
       },
       onError: (err) => {
@@ -87,7 +90,7 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
     ]
   );
   const onInvalidSubmit: SubmitErrorHandler<FormInputs> = () => {
-    setFormStatus({ 1: false });
+    setFormStatus({ 2: false });
   };
 
   // TODO: cleanup
