@@ -24,6 +24,7 @@ import { IconArrowGrayUp, IconTrash } from '../../../../../shared/components/svg
 import { FormSelect } from '../../../../../shared/components/Form/FormSelect/FormSelect';
 import { SelectStyleVariant } from '../../../../../shared/components/layout/Select/Select';
 import { QueryKeys } from '../../../../../shared/queries';
+import { useNavigate } from 'react-router';
 
 // TODO: cleanup
 // type inputNetworkType = 'mesh' | 'regular';
@@ -41,6 +42,7 @@ interface FormInputs {
 
 export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
+  const navigate = useNavigate();
   const submitRef = useRef<HTMLButtonElement | null>(null);
   const {
     user: { getUsers },
@@ -73,7 +75,7 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
         // TODO: cleanup
         console.log(response);
         toaster.success(LL.wizard.TODO());
-        // TODO: navigate to /network
+        navigate('/admin/network');
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
