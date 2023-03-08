@@ -71,10 +71,8 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
     [MutationKeys.CREATE_USER_DEVICES],
     createUserDevices,
     {
-      onSuccess: async (response) => {
-        // TODO: cleanup
-        console.log(response);
-        toaster.success(LL.wizard.TODO());
+      onSuccess: async () => {
+        toaster.success(LL.wizard.locations.form.messages.devicesCreated());
         navigate('/admin/network');
       },
       onError: (err) => {
@@ -92,7 +90,7 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
         ...d,
         user_id: d.user_id.value,
       }));
-      await createUserDevicesMutation({devices});
+      await createUserDevicesMutation({ devices });
       setFormStatus({ [formId]: true });
       // proceedWizardSubject.next();
     },
@@ -213,13 +211,13 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
           {fields.map((device, index) => (
             <div className="device-form" key={device.id}>
               <div>
-                <label>{LL.wizard.TODO()}</label>
+                <label>{LL.wizard.locations.form.ip()}</label>
                 <p>{device.wireguard_ip}</p>
               </div>
               <div>
                 <FormInput
                   controller={{ control, name: `devices.${index}.name` }}
-                  outerLabel={LL.wizard.TODO()}
+                  outerLabel={LL.wizard.locations.form.name()}
                 />
               </div>
               <div>
@@ -227,7 +225,7 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
                   styleVariant={SelectStyleVariant.WHITE}
                   options={userOptions}
                   controller={{ control, name: `devices.${index}.user_id` }}
-                  outerLabel={LL.wizard.TODO()}
+                  outerLabel={LL.wizard.locations.form.user()}
                   loading={false}
                   searchable={false}
                   multi={false}

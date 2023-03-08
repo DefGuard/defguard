@@ -1094,19 +1094,19 @@ const en: BaseTranslation = {
   wizard: {
     navigation: {
       titles: {
-        step1: 'TODO',
-        step2: 'TODO',
-        step3: 'TODO',
+        step1: 'Wizard type',
+        step2: 'Network configuration',
+        step3: 'Devices',
       },
     },
-    networkType: {
-      regularNetwork: {
-        title: 'TODO',
-        description: 'TODO',
+    wizardType: {
+      regular: {
+        title: 'Regular',
+        description: 'Manual network configuration',
       },
-      meshNetwork: {
-        title: 'TODO',
-        description: 'TODO',
+      import: {
+        title: 'Import',
+        description: 'Import from WireGuard config file',
       },
       createNetwork: 'Create WireGuard network',
     },
@@ -1115,7 +1115,15 @@ const en: BaseTranslation = {
     },
     TODO: 'TODO',
     locations: {
-      form: { validation: { invalidAddress: 'Invalid address' } },
+      form: {
+        name: 'Name',
+        ip: 'IP address',
+        user: 'User',
+        fileName: 'File',
+        selectFile: 'Select file',
+        messages: { devicesCreated: 'Devices created' },
+        validation: { invalidAddress: 'Invalid address' },
+      },
     },
   },
 };

@@ -84,7 +84,7 @@ export const NetworkSetup = ({ formId }: Props) => {
     <>
       <div className="container-basic network-setup">
         {breakpoint !== 'desktop' && (
-          <h1 className="step-name">{LL.wizard.networkType.createNetwork()}</h1>
+          <h1 className="step-name">{LL.wizard.wizardType.createNetwork()}</h1>
         )}
         <NetworkConfiguration />
         <input className="visually-hidden" type="submit" ref={submitRef} />

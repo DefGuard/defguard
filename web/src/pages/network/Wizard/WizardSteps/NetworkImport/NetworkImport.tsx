@@ -146,7 +146,7 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
           /((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
           LL.form.error.endpoint()
         ),
-      config: yup.string().required(LL.form.error.required()),
+      fileName: yup.string().required(LL.form.error.required()),
     })
     .required();
 
@@ -183,15 +183,9 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
     <>
       <div className="container-basic network-import">
         {breakpoint !== 'desktop' && (
-          <h1 className="step-name">{LL.wizard.networkType.createNetwork()}</h1>
+          <h1 className="step-name">{LL.wizard.wizardType.createNetwork()}</h1>
         )}
         <section className="network-config">
-          <header>
-            <h2>{LL.networkConfiguration.importHeader()}</h2>
-            <Helper>
-              <p>PLACEHOLDER</p>
-            </Helper>
-          </header>
           <Card>
             <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
               <FormInput
@@ -205,31 +199,23 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
                 controller={{ control, name: 'endpoint' }}
                 outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
               />
-              {/* TODO: hidden/disabled inputs */}
               <FormInput
                 controller={{ control, name: 'fileName' }}
+                outerLabel={LL.wizard.locations.form.fileName()}
                 disabled
-                outerLabel={LL.wizard.TODO()}
-              />
-              <FormInput
-                controller={{ control, name: 'config' }}
-                disabled
-                hidden
-                outerLabel={LL.wizard.TODO()}
               />
               <Button
-                text={LL.wizard.TODO()}
+                text={LL.wizard.locations.form.selectFile()}
                 size={ButtonSize.SMALL}
                 styleVariant={ButtonStyleVariant.STANDARD}
                 icon={<IconArrowGrayUp />}
                 loading={false}
                 onClick={() => loadConfig()}
               />
-              <input
-                className="visually-hidden"
-                type="submit"
-                ref={submitRef}
-              />
+              <div className="hidden">
+                <FormInput controller={{ control, name: 'config' }} disabled />
+              </div>
+              <input className="hidden" type="submit" ref={submitRef} />
             </form>
           </Card>
         </section>

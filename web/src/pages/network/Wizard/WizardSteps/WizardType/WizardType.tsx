@@ -86,7 +86,7 @@ export const WizardType = ({ formId }: Props) => {
     <>
       <div className="container-basic network-types">
         {breakpoint !== 'desktop' && (
-          <h1 className="step-name">{LL.wizard.networkType.createNetwork()}</h1>
+          <h1 className="step-name">{LL.wizard.wizardType.createNetwork()}</h1>
         )}
         <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
           <Controller

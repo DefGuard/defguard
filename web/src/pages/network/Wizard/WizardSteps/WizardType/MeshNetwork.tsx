@@ -36,9 +36,9 @@ const MeshNetwork = React.forwardRef<HTMLInputElement, Props>(
     return (
       <div className={getClassName}>
         {breakpoint !== 'desktop' && <SvgIconInfoNormal />}
-        <h3>{LL.wizard.networkType.meshNetwork.title()}</h3>
+        <h3>{LL.wizard.wizardType.import.title()}</h3>
         {breakpoint === 'desktop' && (
-          <p>{LL.wizard.networkType.meshNetwork.description()}</p>
+          <p>{LL.wizard.wizardType.import.description()}</p>
         )}
         {breakpoint === 'desktop' && <SvgImageMeshNetwork />}
         <NetworkSelectButton

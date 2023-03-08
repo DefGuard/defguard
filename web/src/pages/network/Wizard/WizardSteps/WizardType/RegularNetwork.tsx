@@ -35,10 +35,10 @@ const RegularNetwork = React.forwardRef<HTMLInputElement, Props>(
     return (
       <div className={getClassName}>
         {breakpoint !== 'desktop' && <SvgIconInfoNormal />}
-        <h3>{LL.wizard.networkType.regularNetwork.title()}</h3>
+        <h3>{LL.wizard.wizardType.regular.title()}</h3>
         {breakpoint === 'desktop' && (
           <>
-            <p>{LL.wizard.networkType.regularNetwork.description()}</p>
+            <p>{LL.wizard.wizardType.regular.description()}</p>
             <SvgImageRegularNetwork />
           </>
         )}

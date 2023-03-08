@@ -2456,37 +2456,37 @@ type RootTranslation = {
 		navigation: {
 			titles: {
 				/**
-				 * T​O​D​O
+				 * W​i​z​a​r​d​ ​t​y​p​e
 				 */
 				step1: string
 				/**
-				 * T​O​D​O
+				 * N​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				step2: string
 				/**
-				 * T​O​D​O
+				 * D​e​v​i​c​e​s
 				 */
 				step3: string
 			}
 		}
-		networkType: {
-			regularNetwork: {
+		wizardType: {
+			regular: {
 				/**
-				 * T​O​D​O
+				 * R​e​g​u​l​a​r
 				 */
 				title: string
 				/**
-				 * T​O​D​O
+				 * M​a​n​u​a​l​ ​n​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				description: string
 			}
-			meshNetwork: {
+			'import': {
 				/**
-				 * T​O​D​O
+				 * I​m​p​o​r​t
 				 */
 				title: string
 				/**
-				 * T​O​D​O
+				 * I​m​p​o​r​t​ ​f​r​o​m​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​ ​f​i​l​e
 				 */
 				description: string
 			}
@@ -2507,6 +2507,32 @@ type RootTranslation = {
 		TODO: string
 		locations: {
 			form: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * I​P​ ​a​d​d​r​e​s​s
+				 */
+				ip: string
+				/**
+				 * U​s​e​r
+				 */
+				user: string
+				/**
+				 * F​i​l​e
+				 */
+				fileName: string
+				/**
+				 * S​e​l​e​c​t​ ​f​i​l​e
+				 */
+				selectFile: string
+				messages: {
+					/**
+					 * D​e​v​i​c​e​s​ ​c​r​e​a​t​e​d
+					 */
+					devicesCreated: string
+				}
 				validation: {
 					/**
 					 * I​n​v​a​l​i​d​ ​a​d​d​r​e​s​s
@@ -4945,37 +4971,37 @@ export type TranslationFunctions = {
 		navigation: {
 			titles: {
 				/**
-				 * TODO
+				 * Wizard type
 				 */
 				step1: () => LocalizedString
 				/**
-				 * TODO
+				 * Network configuration
 				 */
 				step2: () => LocalizedString
 				/**
-				 * TODO
+				 * Devices
 				 */
 				step3: () => LocalizedString
 			}
 		}
-		networkType: {
-			regularNetwork: {
+		wizardType: {
+			regular: {
 				/**
-				 * TODO
+				 * Regular
 				 */
 				title: () => LocalizedString
 				/**
-				 * TODO
+				 * Manual network configuration
 				 */
 				description: () => LocalizedString
 			}
-			meshNetwork: {
+			'import': {
 				/**
-				 * TODO
+				 * Import
 				 */
 				title: () => LocalizedString
 				/**
-				 * TODO
+				 * Import from WireGuard config file
 				 */
 				description: () => LocalizedString
 			}
@@ -4996,6 +5022,32 @@ export type TranslationFunctions = {
 		TODO: () => LocalizedString
 		locations: {
 			form: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * IP address
+				 */
+				ip: () => LocalizedString
+				/**
+				 * User
+				 */
+				user: () => LocalizedString
+				/**
+				 * File
+				 */
+				fileName: () => LocalizedString
+				/**
+				 * Select file
+				 */
+				selectFile: () => LocalizedString
+				messages: {
+					/**
+					 * Devices created
+					 */
+					devicesCreated: () => LocalizedString
+				}
 				validation: {
 					/**
 					 * Invalid address
