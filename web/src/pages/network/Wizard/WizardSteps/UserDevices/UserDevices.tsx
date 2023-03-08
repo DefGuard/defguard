@@ -200,12 +200,6 @@ export const UserDevices: React.FC<Props> = ({ formId }: Props) => {
 
   return (
     <section className="user-devices">
-      <header>
-        <h2>{LL.networkConfiguration.header()}</h2>
-        <Helper>
-          <p>PLACEHOLDER</p>
-        </Helper>
-      </header>
       <Card>
         <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
           {fields.map((device, index) => (

@@ -20,28 +20,36 @@
           align-content: center;
           justify-content: center;
           gap: 3rem;
-          width: auto;
+          width: 100%;
           max-width: 100%;
           height: auto;
           padding: 3rem;
           position: relative;
         }
 
-        & form {
-          display: grid;
+        & > .card {
+          padding: 1.5rem 3rem 4rem;
           width: 100%;
-          grid-template-columns: auto 1fr 1fr auto;
-          column-gap: 10px;
-          align-items: center;
 
-          & .input-container {
+          & > form > .hidden {
+            @include mix.visually-hidden;
+          }
+
+          & .device-form {
+            display: grid;
             width: 100%;
-          }
+            grid-template-columns: auto 1fr 1fr auto;
+            column-gap: 10px;
+            align-items: center;
 
-          & label {
-            @include outer-label;
-          }
+            & .input-container {
+              width: 100%;
+            }
 
+            & label {
+              @include outer-label;
+            }
+          }
         }
       }
     }

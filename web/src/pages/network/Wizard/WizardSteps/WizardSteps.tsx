@@ -60,9 +60,9 @@ const WizardSteps: React.FC = () => {
       case 3:
         return (
           <StepGuard targetStep={3}>
-            <UserDevices formId={3} />;
+            <UserDevices formId={3} />
           </StepGuard>
-        )
+        );
       default:
         for (let i = 1; i <= stepsCount; i++) {
           if (!formStatus[i]) {
