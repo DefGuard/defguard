@@ -181,7 +181,7 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
 
   return (
     <>
-      <div className="container-basic network-setup">
+      <div className="container-basic network-import">
         {breakpoint !== 'desktop' && (
           <h1 className="step-name">{LL.wizard.networkType.createNetwork()}</h1>
         )}
