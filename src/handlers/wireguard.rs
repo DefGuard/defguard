@@ -46,7 +46,7 @@ impl WireguardNetworkData {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct UserDevices {
     pub devices: Vec<Device>,
 }
@@ -199,9 +199,8 @@ pub async fn import_network(
     data: Json<ImportNetworkData>,
 ) -> ApiResult {
     let data = data.into_inner();
-    let (mut network, devices) = parse_wireguard_config(&data.config).map_err(|_| {
-        OriWebError::ModelError("Failed to parse wireguard config file".to_string())
-    })?;
+    let (mut network, devices) = parse_wireguard_config(&data.config)
+        .map_err(|_| OriWebError::Http(Status::UnprocessableEntity))?;
     network.name = data.name;
     network.endpoint = data.endpoint;
     network.save(&appstate.pool).await?;
@@ -226,6 +225,7 @@ pub async fn add_user_devices(
     );
     for device in data.devices.as_mut_slice() {
         device.save(&appstate.pool).await?;
+        appstate.send_wireguard_event(GatewayEvent::DeviceCreated(device.clone()));
     }
     info!(
         "User {} added {} devices",
@@ -233,7 +233,10 @@ pub async fn add_user_devices(
         data.devices.len()
     );
 
-    Ok(ApiResponse::default())
+    Ok(ApiResponse {
+        json: json!(data),
+        status: Status::Created,
+    })
 }
 
 #[post("/device/<username>", format = "json", data = "<data>")]

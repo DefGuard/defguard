@@ -6,11 +6,11 @@ use defguard::{
         models::wireguard::{
             WireguardDeviceTransferRow, WireguardNetworkStats, WireguardUserStatsRow,
         },
-        AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork, WireguardPeerStats,
+        AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork, WireguardPeerStats,
     },
     grpc::{GatewayState, WorkerState},
     handlers::{
-        wireguard::{ImportedNetworkData, WireguardNetworkData},
+        wireguard::{ImportedNetworkData, UserDevices, WireguardNetworkData},
         Auth,
     },
 };
@@ -21,7 +21,7 @@ use rocket::{
     serde::json::{serde_json::json, Value},
 };
 use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc::unbounded_channel;
+use tokio::sync::mpsc::{error::TryRecvError, unbounded_channel};
 
 mod common;
 use common::init_test_db;
@@ -643,7 +643,7 @@ async fn test_config_import() {
     let devices = response.devices;
     assert_eq!(devices.len(), 2);
 
-    let device1 = &devices[0];
+    let mut device1 = devices[0].clone();
     assert_eq!(device1.id, None);
     assert_eq!(device1.name, "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=");
     assert_eq!(device1.wireguard_ip, "10.0.0.10");
@@ -654,7 +654,7 @@ async fn test_config_import() {
     // TODO: do something about user_id
     assert_eq!(device1.user_id, -1);
 
-    let device2 = &devices[1];
+    let mut device2 = devices[1].clone();
     assert_eq!(device2.id, None);
     assert_eq!(device2.name, "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=");
     assert_eq!(device2.wireguard_ip, "10.0.0.11");
@@ -664,4 +664,184 @@ async fn test_config_import() {
     );
     // TODO: do something about user_id
     assert_eq!(device2.user_id, -1);
+
+    // modify devices
+    device1.name = "device1".to_string();
+    device1.user_id = 1;
+    device2.name = "device2".to_string();
+    device2.user_id = 1;
+
+    // post modified devices
+    let response = client
+        .post("/api/v1/network/devices")
+        .json(&json!({"devices": [device1, device2]}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+
+    // assert modified devices
+    let response: UserDevices = response.into_json().await.unwrap();
+    let device1 = response.devices[0].clone();
+    assert_eq!(device1.name, "device1");
+    assert_eq!(device1.user_id, 1);
+    let device2 = response.devices[1].clone();
+    assert_eq!(device2.name, "device2");
+    assert_eq!(device2.user_id, 1);
+
+    // assert events
+    let event = wg_rx.lock().await.try_recv().unwrap();
+    assert_matches!(event, GatewayEvent::DeviceCreated(_));
+
+    let event = wg_rx.lock().await.try_recv().unwrap();
+    assert_matches!(event, GatewayEvent::DeviceCreated(_));
+
+    let event = wg_rx.lock().await.try_recv();
+    assert_matches!(event, Err(TryRecvError::Empty));
+}
+
+#[rocket::async_test]
+async fn test_config_import_missing_interface() {
+    let wg_config = "
+        PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+        Address = 10.0.0.1/24
+        ListenPort = 55055
+        DNS = 10.0.0.2
+
+        [Peer]
+        PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
+        AllowedIPs = 10.0.0.10/24
+        PersistentKeepalive = 300
+
+        [Peer]
+        PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
+        AllowedIPs = 10.0.0.11/24
+        PersistentKeepalive = 300
+    ";
+    let (pool, config) = init_test_db().await;
+    let (client, _) = make_client(pool, config).await;
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // import network
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::UnprocessableEntity);
+}
+
+#[rocket::async_test]
+async fn test_config_import_invalid_key() {
+    let wg_config = "
+        [Interface]
+        PrivateKey = DEFINITELY_NOT_A_VALID_WG_KEY
+        Address = 10.0.0.1/24
+        ListenPort = 55055
+        DNS = 10.0.0.2
+
+        [Peer]
+        PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
+        AllowedIPs = 10.0.0.10/24
+        PersistentKeepalive = 300
+
+        [Peer]
+        PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
+        AllowedIPs = 10.0.0.11/24
+        PersistentKeepalive = 300
+    ";
+    let (pool, config) = init_test_db().await;
+    let (client, _) = make_client(pool, config).await;
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // import network
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::UnprocessableEntity);
+}
+
+#[rocket::async_test]
+async fn test_config_import_invalid_ip() {
+    let wg_config = "
+        [Interface]
+        PrivateKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
+        Address = 10.0.0.256/24
+        ListenPort = 55055
+        DNS = 10.0.0.2
+
+        [Peer]
+        PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
+        AllowedIPs = 10.0.0.10/24
+        PersistentKeepalive = 300
+
+        [Peer]
+        PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
+        AllowedIPs = 10.0.0.11/24
+        PersistentKeepalive = 300
+    ";
+    let (pool, config) = init_test_db().await;
+    let (client, _) = make_client(pool, config).await;
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // import network
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::UnprocessableEntity);
+}
+
+#[rocket::async_test]
+async fn test_config_import_nonadmin() {
+    let wg_config = "
+        [Interface]
+        PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+        Address = 10.0.0.1/24
+        ListenPort = 55055
+        DNS = 10.0.0.2
+
+        [Peer]
+        PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
+        AllowedIPs = 10.0.0.10/24
+        PersistentKeepalive = 300
+
+        [Peer]
+        PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
+        AllowedIPs = 10.0.0.11/24
+        PersistentKeepalive = 300
+    ";
+    let (pool, config) = init_test_db().await;
+    let mut user = User::new(
+        "hpotter".into(),
+        "pass123",
+        "Potter".into(),
+        "Harry".into(),
+        "h.potter@hogwart.edu.uk".into(),
+        None,
+    );
+    user.save(&pool).await.unwrap();
+    let (client, _) = make_client(pool, config).await;
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // import network
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
 }
