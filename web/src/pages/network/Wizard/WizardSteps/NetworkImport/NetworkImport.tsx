@@ -22,9 +22,6 @@ import { useWizardStore } from '../store';
 import Button, { ButtonSize, ButtonStyleVariant } from '../../../../../shared/components/layout/Button/Button';
 import { IconArrowGrayUp } from '../../../../../shared/components/svg';
 
-// TODO: cleanup
-// type inputNetworkType = 'mesh' | 'regular';
-
 interface Props {
   formId: number;
 }
@@ -61,8 +58,6 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
     importNetwork,
     {
       onSuccess: async (response) => {
-        // TODO: cleanup
-        console.log(response);
         setState({ devices: response.devices });
         toaster.success(LL.networkConfiguration.form.messages.networkCreated());
       },
@@ -76,6 +71,7 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
   const onValidSubmit: SubmitHandler<FormInputs> = useCallback(
     async (data) => {
       // TODO: do we need that? maybe post straight away?
+      // TODO: cleanup & test
       setNetwork(data);
       await importNetworkMutation(data);
       setFormStatus({ [formId]: true });
@@ -93,40 +89,13 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
     setFormStatus({ 2: false });
   };
 
-  // TODO: cleanup
-  // const network = networkObserver ? networkObserver.getValue() : undefined;
-
-  // const schema = yup
-  //   .object({
-  //     type: yup.mixed<inputNetworkType>().oneOf(['mesh', 'regular']).required(),
-  //   })
-  //   .required();
-
-  // const { handleSubmit, control } = useForm<Inputs>({
-  //   resolver: yupResolver(schema),
-  //   mode: 'all',
-  //   defaultValues: {
-  //     name: network?.name ?? '',
-  //     type: network?.type ?? 'regular',
-  //   },
-  // });
-
-  // TODO: use loading?
-  // const [save, loading] = useNetworkPageStore(
-  //   (state) => [state.saveSubject, state.loading],
-  //   shallow
-  // );
-
   useEffect(() => {
     const sub = formSubmissionSubject.subscribe((stepId) => {
       if (stepId === formId) {
-        // TODO: cleanup
-        // save.next();
         submitRef.current?.click();
       }
     });
     return () => sub.unsubscribe();
-    // }, [formId, formSubmissionSubject, save]);
   }, [formId, formSubmissionSubject]);
 
   const defaultValues: FormInputs = {
@@ -163,9 +132,6 @@ export const NetworkImport: React.FC<Props> = ({ formId }: Props) => {
       const reader = new FileReader();
       reader.addEventListener('loadend', () => {
         if (typeof reader.result === 'string') {
-          // parseConfigMutation(reader.result);
-          console.log(reader.result);
-          console.log(input.files);
           input.files?.[0] &&
             reset({
               ...getValues(),

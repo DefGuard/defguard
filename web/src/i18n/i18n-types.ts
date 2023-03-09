@@ -2497,14 +2497,10 @@ type RootTranslation = {
 		}
 		common: {
 			/**
-			 * T​O​D​O
+			 * S​e​l​e​c​t
 			 */
 			select: string
 		}
-		/**
-		 * T​O​D​O
-		 */
-		TODO: string
 		locations: {
 			form: {
 				/**
@@ -5012,14 +5008,10 @@ export type TranslationFunctions = {
 		}
 		common: {
 			/**
-			 * TODO
+			 * Select
 			 */
 			select: () => LocalizedString
 		}
-		/**
-		 * TODO
-		 */
-		TODO: () => LocalizedString
 		locations: {
 			form: {
 				/**

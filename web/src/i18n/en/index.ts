@@ -1111,9 +1111,8 @@ const en: BaseTranslation = {
       createNetwork: 'Create WireGuard network',
     },
     common: {
-      select: 'TODO',
+      select: 'Select',
     },
-    TODO: 'TODO',
     locations: {
       form: {
         name: 'Name',

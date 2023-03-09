@@ -1113,9 +1113,8 @@ const pl: BaseTranslation = {
       createNetwork: 'Utwórz sieć WireGuard',
     },
     common: {
-      select: 'TODO',
+      select: 'Wybierz',
     },
-    TODO: 'TODO',
     locations: {
       form: {
         name: 'Nazwa',

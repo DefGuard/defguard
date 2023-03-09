@@ -22,7 +22,6 @@ const WizardSteps: React.FC = () => {
     return [state.setState, state.type];
   });
   const formStatus = useWizardStore((state) => state.formStatus);
-  // TODO: remove networkType referencing network object
   const getNavTitle = useMemo(() => {
     const currentStep = Number(step);
     switch (currentStep) {
@@ -80,13 +79,6 @@ const WizardSteps: React.FC = () => {
       setState({ currentStep: Number(step) });
     }
   }, [setState, step]);
-
-  // TODO: cleanup
-  // useEffect(() => {
-  //   setNetwork(networkObserver?.getValue());
-  //   const sub = networkObserver?.subscribe((data) => setNetwork(data));
-  //   return () => sub?.unsubscribe();
-  // }, [networkObserver]);
 
   return (
     <>

@@ -27,75 +27,22 @@ const WizardNav: React.FC<Props> = ({ title, currentStep, steps }) => {
     (state) => [state.formSubmissionSubject, state.proceedWizardSubject],
     shallow
   );
-  // TODO: cleanup
-  // const setAppStore = useAppStore((state) => state.setAppStore);
 
   const getClassName = useMemo(() => {
     const res = ['controls'];
     return res.join(' ');
   }, []);
 
-  // TODO: cleanup
-  // const {
-  //   network: { addNetwork, editNetwork },
-  // } = useApi();
-  // const queryClient = useQueryClient();
-
-  // const addNetworkMutation = useMutation(
-  //   (networkData: Network) => addNetwork(networkData),
-  //   {
-  //     onSuccess: () => {
-  //       queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
-  //       resetStore({ editMode: false });
-  //       setAppStore({ wizardCompleted: true });
-  //       navigate('/admin/overview', { state: { created: true } });
-  //     },
-  //   }
-  // );
-
-  // const editNetworkMutation = useMutation(
-  //   (networkData: Network) => editNetwork(networkData),
-  //   {
-  //     onSuccess: () => {
-  //       queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
-  //       resetStore({ editMode: false });
-  //       navigate('/admin/overview');
-  //     },
-  //   }
-  // );
-
   useEffect(() => {
     const sub = proceedWizardSubject.subscribe(() => {
       if (currentStep === steps) {
-        // TODO: cleanup
-        console.log('Last step');
-        // TODO: remove this if branch
-        // // Finish clicked
-        // const currentNetwork = networkObserver?.getValue();
-        // if (currentNetwork) {
-        //   if (editMode) {
-        //     editNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
-        //   } else {
-        //     addNetworkMutation.mutate(wizardToApiNetwork(currentNetwork));
-        //   }
-        // }
+        // TODO: cleanup & remove this if branch
       } else {
-        // TODO: cleanup
-        console.log('Proceeding');
         navigate(`../${currentStep + 1}`);
       }
     });
     return () => sub.unsubscribe();
-  }, [
-    // addNetworkMutation,
-    currentStep,
-    // editMode,
-    // editNetworkMutation,
-    navigate,
-    // networkObserver,
-    proceedWizardSubject,
-    steps,
-  ]);
+  }, [currentStep, navigate, proceedWizardSubject, steps]);
 
   return (
     <nav className="wizard-nav">
