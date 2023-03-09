@@ -56,6 +56,19 @@ struct ConnectionInfo {
     connected: bool,
 }
 
+#[derive(Deserialize)]
+pub struct ImportNetworkData {
+    pub name: String,
+    pub endpoint: String,
+    pub config: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ImportedNetworkData {
+    pub network: WireguardNetwork,
+    pub devices: Vec<Device>,
+}
+
 #[post("/", format = "json", data = "<data>")]
 pub async fn create_network(
     _admin: AdminRole,
@@ -179,13 +192,6 @@ pub async fn network_details(
     })
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct ImportNetworkData {
-    pub name: String,
-    pub endpoint: String,
-    pub config: String,
-}
-
 #[post("/import", format = "json", data = "<data>")]
 pub async fn import_network(
     _admin: AdminRole,
@@ -199,9 +205,10 @@ pub async fn import_network(
     network.name = data.name;
     network.endpoint = data.endpoint;
     network.save(&appstate.pool).await?;
+    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.clone()));
     Ok(ApiResponse {
-        json: json!({"network": network, "devices": devices}),
-        status: Status::Ok,
+        json: json!(ImportedNetworkData { network, devices }),
+        status: Status::Created,
     })
 }
 
