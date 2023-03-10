@@ -40,6 +40,7 @@ Using Docker Compose you can setup a simple stack with:
 * database (PostgreSQL)
 * VPN gateway
 * device connected to the gateway
+* ldap
 
 This way you'll have some live stats data to work with.
 
@@ -53,8 +54,16 @@ docker compose run core init-dev-env
 
 2. Run the application:
 
+Without LDAP:
+
 ```
 docker compose up
+```
+
+With LDAP:
+
+```
+docker compose -f docker-compose.ldap.yaml up
 ```
 
 ## Cargo
