@@ -57,7 +57,7 @@ pub struct DefGuardConfig {
     #[clap(
         long,
         env = "DEFGUARD_LDAP_BIND_USERNAME",
-        default_value = "dc=admin,dc=example,dc=org"
+        default_value = "cn=admin,dc=example,dc=org"
     )]
     pub ldap_bind_username: String,
 
