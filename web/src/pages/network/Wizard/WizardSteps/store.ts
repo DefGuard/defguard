@@ -1,7 +1,6 @@
 import { Subject } from 'rxjs';
 import create from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { ImportedDevice } from '../../../../shared/types';
 
 import { ImportedNetwork, WizardStore } from '../types/interfaces';
 import { FormStatus, Location } from '../types/types';
@@ -29,7 +28,7 @@ export const useWizardStore = create<
   [['zustand/devtools', WizardStore]]
 >(
   devtools((set) => ({
-    type: 'regular',
+    type: 'manual',
     // TODO: do we need that in state?
     network: {
       name: '',

@@ -3,23 +3,23 @@ import { useI18nContext } from '../../../../../i18n/i18n-react';
 import useBreakpoint from 'use-breakpoint';
 
 import SvgIconInfoNormal from '../../../../../shared/components/svg/IconInfoNormal';
-import SvgImageRegularNetwork from '../../../../../shared/components/svg/ImageRegularNetwork';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import NetworkSelectButton from './NetworkSelectButton';
+import { ManualConfig } from '../../../../../shared/components/svg';
 
 interface Props extends React.HTMLAttributes<HTMLInputElement> {
   onChange: (value: unknown) => void;
-  value: 'import' | 'regular';
+  value: 'import' | 'manual';
 }
 
 // eslint-disable-next-line react/display-name
-const RegularNetwork = React.forwardRef<HTMLInputElement, Props>(
+const Manual = React.forwardRef<HTMLInputElement, Props>(
   ({ onChange, value, ...props }, ref) => {
     const { LL } = useI18nContext();
     const { breakpoint } = useBreakpoint(deviceBreakpoints);
     const getClassName = useMemo(() => {
       const res = ['regular-network'];
-      if (value === 'regular') {
+      if (value === 'manual') {
         res.push('active');
       }
       if (value === 'import') {
@@ -29,22 +29,22 @@ const RegularNetwork = React.forwardRef<HTMLInputElement, Props>(
     }, [value]);
 
     const handleChange = () => {
-      onChange('regular');
+      onChange('manual');
     };
 
     return (
       <div className={getClassName}>
         {breakpoint !== 'desktop' && <SvgIconInfoNormal />}
-        <h3>{LL.wizard.wizardType.regular.title()}</h3>
+        <h3>{LL.wizard.wizardType.manual.title()}</h3>
         {breakpoint === 'desktop' && (
           <>
-            <p>{LL.wizard.wizardType.regular.description()}</p>
-            <SvgImageRegularNetwork />
+            <p>{LL.wizard.wizardType.manual.description()}</p>
+            <ManualConfig />
           </>
         )}
 
         <NetworkSelectButton
-          active={typeof value !== 'undefined' && value === 'regular'}
+          active={typeof value !== 'undefined' && value === 'manual'}
           onClick={() => handleChange()}
         />
         <input
@@ -52,11 +52,11 @@ const RegularNetwork = React.forwardRef<HTMLInputElement, Props>(
           ref={ref}
           {...props}
           onChange={onChange}
-          checked={value === 'regular'}
+          checked={value === 'manual'}
         />
       </div>
     );
   }
 );
 
-export default RegularNetwork;
+export default Manual;

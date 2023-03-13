@@ -15,14 +15,14 @@ import shallow from 'zustand/shallow';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { useWizardStore } from '../store';
-import MeshNetwork from './MeshNetwork';
-import RegularNetwork from './RegularNetwork';
+import Import from './Import';
+import Manual from './Manual';
 
 type Inputs = {
-  type: inputNetworkType;
+  type: InputWizardType;
 };
 
-type inputNetworkType = 'regular' | 'import';
+type InputWizardType = 'manual' | 'import';
 
 interface Props {
   formId: number;
@@ -60,17 +60,14 @@ export const WizardType = ({ formId }: Props) => {
 
   const schema = yup
     .object({
-      type: yup
-        .mixed<inputNetworkType>()
-        .oneOf(['import', 'regular'])
-        .required(),
+      type: yup.mixed<InputWizardType>().oneOf(['import', 'manual']).required(),
     })
     .required();
 
   const { handleSubmit, control } = useForm<Inputs>({
     resolver: yupResolver(schema),
     mode: 'all',
-    defaultValues: { type: 'regular' },
+    defaultValues: { type: 'manual' },
   });
 
   useEffect(() => {
@@ -95,8 +92,8 @@ export const WizardType = ({ formId }: Props) => {
             defaultValue={type}
             render={({ field }) => (
               <div className="select-container">
-                <MeshNetwork onChange={field.onChange} value={field.value} />
-                <RegularNetwork onChange={field.onChange} value={field.value} />
+                <Import onChange={field.onChange} value={field.value} />
+                <Manual onChange={field.onChange} value={field.value} />
               </div>
             )}
           />

@@ -2470,9 +2470,9 @@ type RootTranslation = {
 			}
 		}
 		wizardType: {
-			regular: {
+			manual: {
 				/**
-				 * R​e​g​u​l​a​r
+				 * M​a​n​u​a​l
 				 */
 				title: string
 				/**
@@ -4981,9 +4981,9 @@ export type TranslationFunctions = {
 			}
 		}
 		wizardType: {
-			regular: {
+			manual: {
 				/**
-				 * Regular
+				 * Manual
 				 */
 				title: () => LocalizedString
 				/**

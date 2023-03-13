@@ -2,18 +2,18 @@ import React, { useMemo } from 'react';
 import useBreakpoint from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { ImportConfig } from '../../../../../shared/components/svg';
 import SvgIconInfoNormal from '../../../../../shared/components/svg/IconInfoNormal';
-import SvgImageMeshNetwork from '../../../../../shared/components/svg/ImageMeshNetwork';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import NetworkSelectButton from './NetworkSelectButton';
 
 interface Props extends React.HTMLAttributes<HTMLInputElement> {
   onChange: (value: unknown) => void;
-  value: 'import' | 'regular';
+  value: 'import' | 'manual';
 }
 
 // eslint-disable-next-line react/display-name
-const MeshNetwork = React.forwardRef<HTMLInputElement, Props>(
+const Import = React.forwardRef<HTMLInputElement, Props>(
   ({ onChange, value, ...props }, ref) => {
     const { LL } = useI18nContext();
     const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -23,7 +23,7 @@ const MeshNetwork = React.forwardRef<HTMLInputElement, Props>(
       if (value === 'import') {
         res.push('active');
       }
-      if (value === 'regular') {
+      if (value === 'manual') {
         res.push('not-active');
       }
       return res.join(' ');
@@ -40,7 +40,7 @@ const MeshNetwork = React.forwardRef<HTMLInputElement, Props>(
         {breakpoint === 'desktop' && (
           <p>{LL.wizard.wizardType.import.description()}</p>
         )}
-        {breakpoint === 'desktop' && <SvgImageMeshNetwork />}
+        {breakpoint === 'desktop' && <ImportConfig />}
         <NetworkSelectButton
           active={typeof value !== 'undefined' && value === 'import'}
           onClick={() => handleChange()}
@@ -57,4 +57,4 @@ const MeshNetwork = React.forwardRef<HTMLInputElement, Props>(
   }
 );
 
-export default MeshNetwork;
+export default Import;

@@ -1102,8 +1102,8 @@ const pl: BaseTranslation = {
       },
     },
     wizardType: {
-      regular: {
-        title: 'Standardowy',
+      manual: {
+        title: 'Manualny',
         description: 'Manualna konfiguracja sieci WireGuard',
       },
       import: {

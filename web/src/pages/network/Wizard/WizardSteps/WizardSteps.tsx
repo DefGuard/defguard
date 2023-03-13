@@ -49,7 +49,7 @@ const WizardSteps: React.FC = () => {
       case 2:
         return (
           <StepGuard targetStep={2}>
-            {type === 'regular' ? (
+            {type === 'manual' ? (
               <NetworkSetup formId={2} />
             ) : (
               <NetworkImport formId={2} />

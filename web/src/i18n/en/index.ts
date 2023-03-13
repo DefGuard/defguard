@@ -1100,8 +1100,8 @@ const en: BaseTranslation = {
       },
     },
     wizardType: {
-      regular: {
-        title: 'Regular',
+      manual: {
+        title: 'Manual',
         description: 'Manual network configuration',
       },
       import: {

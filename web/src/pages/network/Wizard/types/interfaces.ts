@@ -10,7 +10,7 @@ export interface ImportedNetwork {
 }
 
 export interface WizardStore {
-  type?: 'regular' | 'import';
+  type?: 'manual' | 'import';
   network: ImportedNetwork;
   devices: ImportedDevice[];
   stepsCount: number;
