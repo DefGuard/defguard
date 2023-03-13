@@ -189,11 +189,19 @@ impl<'r> AuthenticationRequest<'r> {
             .split(' ')
             .all(|scope| !oauth2client.scope.contains(&scope.to_owned()))
         {
+            error!(
+                "Invalid scope for client {}: {}",
+                oauth2client.name, self.scope
+            );
             return Err(CoreAuthErrorResponseType::InvalidScope);
         }
 
         // currenly we support only "code" for `response_type`
         if self.response_type.len() != 1 || !self.response_type.contains(&CoreResponseType::Code) {
+            error!(
+                "Invalid response_type for client {}, only 'code' supported",
+                oauth2client.name
+            );
             return Err(CoreAuthErrorResponseType::InvalidRequest);
         }
 
@@ -205,15 +213,26 @@ impl<'r> AuthenticationRequest<'r> {
             .split(' ')
             .all(|uri| !oauth2client.redirect_uri.contains(&uri.to_owned()))
         {
+            error!(
+                "Invalid redirect_uri for client {}: {} not in [{}]",
+                oauth2client.name,
+                self.redirect_uri,
+                oauth2client.redirect_uri.join(" "),
+            );
             return Err(CoreAuthErrorResponseType::AccessDenied);
         }
 
         // check PKCE; currently, only SHA-256 method is supported
         // TODO: support `plain` which is the default if not specified
         if self.code_challenge.is_some() && self.code_challenge_method != Some("S256") {
+            error!(
+                "Invalid PKCE method: {}, only S256 supported",
+                self.code_challenge_method.unwrap_or("None"),
+            );
             return Err(CoreAuthErrorResponseType::InvalidRequest);
         }
 
+        info!("Validation succeeded for client {}", oauth2client.name);
         Ok(())
     }
 }
@@ -273,12 +292,17 @@ pub async fn authorization(
         Some(oauth2client) => match data.validate_for_client(&oauth2client) {
             Ok(()) => match data.prompt {
                 Some("consent") => {
+                    info!(
+                        "Redirecting user to consent form - client id {}",
+                        data.client_id
+                    );
                     return Ok(Redirect::found(format!(
                         "/consent?{}",
                         serde_urlencoded::to_string(data).unwrap()
                     )));
                 }
                 Some("none") => {
+                    error!("'none' prompt in client id {} request", data.client_id);
                     error = CoreAuthErrorResponseType::LoginRequired;
                 }
                 _ => {
@@ -287,12 +311,12 @@ pub async fn authorization(
                             Ok(Some(session)) => {
                                 // If session expired return login
                                 if session.expired() {
+                                    info!("Session {} for user id {} has expired, redirecting to login", session.id, session.user_id);
                                     let _result = session.delete(&appstate.pool).await;
                                     return login_redirect(appstate, &data, cookies).await;
                                 } else {
-                                    // If session is present check if app is in
-                                    // user authorized apps if yes
-                                    // return code and state else redirect to consent
+                                    // If session is present check if app is in user authorized apps.
+                                    // If yes return auth code and state else redirect to consent form.
                                     match OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                                         &appstate.pool,
                                         session.user_id,
@@ -300,7 +324,8 @@ pub async fn authorization(
                                     )
                                     .await?
                                     {
-                                        Some(_) => {
+                                        Some(app) => {
+                                            info!("OAuth client id {} authorized by user id {}, returning auth code", app.oauth2client_id, session.user_id);
                                             cookies.remove(Cookie::named("known_sign_in"));
                                             let location = generate_auth_code_redirect(
                                                 appstate,
@@ -310,8 +335,9 @@ pub async fn authorization(
                                             .await?;
                                             return Ok(Redirect::found(location));
                                         }
-                                        // If authorized app not found return consent
+                                        // If authorized app not found redirect to consent form
                                         None => {
+                                            info!("OAuth client id {} not yet authorized by user id {}, redirecting to consent form", oauth2client.id.unwrap(), session.user_id);
                                             return Ok(Redirect::found(format!(
                                                 "/consent?{}",
                                                 serde_urlencoded::to_string(data).unwrap()
@@ -320,19 +346,35 @@ pub async fn authorization(
                                     }
                                 }
                             }
-                            // If no session return to login
-                            _ => return login_redirect(appstate, &data, cookies).await,
+                            // If session not present in db redirect to login
+                            _ => {
+                                info!(
+                                    "Session {} not found, redirecting to login page",
+                                    session_cookie.value()
+                                );
+                                return login_redirect(appstate, &data, cookies).await;
+                            }
                         }
 
-                        // If no session cookie return login
+                    // If no session cookie provided redirect to login
                     } else {
+                        info!("Session cookie not provided, redirecting to login page");
                         return login_redirect(appstate, &data, cookies).await;
                     }
                 }
             },
-            Err(err) => error = err,
+            Err(err) => {
+                error!(
+                    "OIDC login validation failed for client {}: {:?}",
+                    data.client_id, err
+                );
+                error = err;
+            }
         },
-        None => error = CoreAuthErrorResponseType::UnauthorizedClient,
+        None => {
+            error!("OIDC client id {} not found", data.client_id);
+            error = CoreAuthErrorResponseType::UnauthorizedClient;
+        }
     }
 
     let mut url =
@@ -373,18 +415,42 @@ pub async fn secure_authorization(
                             app.save(&appstate.pool).await?;
                         }
                     }
+                    info!(
+                        "User {} allowed login with client {}",
+                        session_info.user.username, oauth2client.name
+                    );
                     if let Some(cookie) = cookies.get("known_sign_in") {
                         cookies.remove(cookie.to_owned());
                     };
                     let location =
                         generate_auth_code_redirect(appstate, &data, session_info.user.id).await?;
+                    info!(
+                        "Redirecting user {} to {}",
+                        session_info.user.username, location
+                    );
                     return Ok(Redirect::found(location));
                 }
-                Err(err) => error = err,
+                Err(err) => {
+                    info!(
+                        "OIDC login validation failed for user {}, client {}",
+                        session_info.user.username, oauth2client.name
+                    );
+                    error = err;
+                }
             },
-            None => error = CoreAuthErrorResponseType::UnauthorizedClient,
+            None => {
+                error!(
+                    "User {} tried to log in with non-existent OIDC client id {}",
+                    session_info.user.username, data.client_id
+                );
+                error = CoreAuthErrorResponseType::UnauthorizedClient;
+            }
         }
     } else {
+        info!(
+            "User {} denied OIDC login with app id {}",
+            session_info.user.username, data.client_id
+        );
         error = CoreAuthErrorResponseType::AccessDenied;
     }
 
@@ -439,19 +505,29 @@ impl<'r> TokenRequest<'r> {
         T: Into<Vec<u8>>,
     {
         // assume self.grant_type == "authorization_code"
-
         if let (Some(code), Some(redirect_uri)) = (self.code, self.redirect_uri) {
             if redirect_uri != auth_code.redirect_uri {
+                error!(
+                    "Redirect URIs don't match for client_id {}: {} != {}",
+                    self.client_id.unwrap_or("Unknown"),
+                    redirect_uri,
+                    auth_code.redirect_uri
+                );
                 return Err(CoreErrorResponseType::UnauthorizedClient);
             }
 
             if !self.verify_pkce(auth_code.code_challenge.as_ref()) {
+                error!(
+                    "PKCE verification failed for client id {}",
+                    self.client_id.unwrap_or("Unknown")
+                );
                 return Err(CoreErrorResponseType::InvalidRequest);
             }
 
             let access_token = AccessToken::new(token.access_token.clone());
             // append ID token only when scope contains "openid"
             let id_token = if token.scope.split(' ').any(|scope| scope == "openid") {
+                debug!("Scope contains openid, issuing JWT ID token");
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
                 let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
@@ -493,6 +569,12 @@ impl<'r> TokenRequest<'r> {
             token_response.set_refresh_token(Some(RefreshToken::new(token.refresh_token.clone())));
             Ok(token_response)
         } else {
+            if self.code.is_none() {
+                error!("Request missing code param");
+            }
+            if self.redirect_uri.is_none() {
+                error!("Request missing redirect_uri param");
+            }
             Err(CoreErrorResponseType::InvalidRequest)
         }
     }
@@ -503,7 +585,6 @@ impl<'r> TokenRequest<'r> {
     ) -> Result<StandardTokenResponse<EmptyExtraTokenFields, CoreTokenType>, CoreErrorResponseType>
     {
         // assume self.grant_type == "refresh_token"
-
         let access_token = AccessToken::new(token.access_token.clone());
         let refresh_token = RefreshToken::new(token.refresh_token.clone());
         let mut token_response = StandardTokenResponse::new(
@@ -539,6 +620,7 @@ pub async fn token(
     // TODO: cleanup branches
     match form.grant_type {
         "authorization_code" => {
+            debug!("Staring authorization_code flow");
             if let Some(code) = form.code {
                 if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
@@ -553,6 +635,10 @@ pub async fn token(
                                 )
                                 .await?
                             {
+                                debug!(
+                                    "Issuing new token for user {} client {}",
+                                    user.username, client.name
+                                );
                                 // Remove existing token in case same client asks for new token
                                 if let Some(token) = OAuth2Token::find_by_authorized_app_id(
                                     &appstate.pool,
@@ -577,12 +663,20 @@ pub async fn token(
                                 ) {
                                     Ok(response) => {
                                         token.save(&appstate.pool).await?;
+                                        info!(
+                                            "Issued new token for user {} client {}",
+                                            user.username, client.name
+                                        );
                                         return Ok(ApiResponse {
                                             json: json!(response),
                                             status: Status::Ok,
                                         });
                                     }
                                     Err(err) => {
+                                        error!(
+                                            "Error issuing new token for user {} client {}: {}",
+                                            user.username, client.name, err
+                                        );
                                         let response =
                                             StandardErrorResponse::<CoreErrorResponseType>::new(
                                                 err, None, None,
@@ -593,13 +687,24 @@ pub async fn token(
                                         });
                                     }
                                 }
+                            } else {
+                                error!("Can't issue token - authorized app not found for user {}, client {}", user.username, client.name);
                             }
+                        } else {
+                            error!("User id {} not found", auth_code.user_id);
                         }
+                    } else {
+                        error!("OAuth client id {} not found", form.client_id.unwrap_or(""));
                     }
+                } else {
+                    error!("OAuth auth code not found");
                 }
+            } else {
+                error!("No code provided in request for client id {}", form.client_id.unwrap_or(""));
             }
         }
         "refresh_token" => {
+            debug!("Starting refresh_token flow");
             if let Some(refresh_token) = form.refresh_token {
                 if let Ok(Some(mut token)) =
                     OAuth2Token::find_refresh_token(&appstate.pool, refresh_token).await
