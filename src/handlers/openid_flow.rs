@@ -700,7 +700,10 @@ pub async fn token(
                     error!("OAuth auth code not found");
                 }
             } else {
-                error!("No code provided in request for client id {}", form.client_id.unwrap_or(""));
+                error!(
+                    "No code provided in request for client id {}",
+                    form.client_id.unwrap_or("")
+                );
             }
         }
         "refresh_token" => {
