@@ -45,6 +45,10 @@ fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
 async fn main() -> Result<(), SetLoggerError> {
     let config = DefGuardConfig::parse();
     logger_setup(&config.log_level)?;
+    match config.openid_signing_key {
+        Some(_) => log::info!("Using RSA OpenID signing key"),
+        None => log::info!("Using HMAC OpenID signing key"),
+    }
 
     if let Some(Command::InitDevEnv) = config.cmd {
         init_dev_env(&config).await;
