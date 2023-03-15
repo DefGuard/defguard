@@ -20,10 +20,10 @@ use openidconnect::{
     url::Url,
     AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
-    EndUserGivenName, EndUserName, EndUserPhoneNumber, IssuerUrl, JsonWebKeySetUrl, LocalizedClaim,
-    Nonce, PkceCodeChallenge, PkceCodeVerifier, PrivateSigningKey, RefreshToken, ResponseTypes,
-    Scope, StandardClaims, StandardErrorResponse, StandardTokenResponse, SubjectIdentifier,
-    TokenUrl, UserInfoUrl,
+    EndUserGivenName, EndUserName, EndUserPhoneNumber, EndUserUsername, IssuerUrl,
+    JsonWebKeySetUrl, LocalizedClaim, Nonce, PkceCodeChallenge, PkceCodeVerifier,
+    PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims, StandardErrorResponse,
+    StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
 use rocket::{
     form::{self, Form, FromFormField, ValueField},
@@ -49,6 +49,7 @@ impl From<&User> for StandardClaims<CoreGenderClaim> {
         family_name.insert(None, EndUserFamilyName::new(user.last_name.clone()));
         let email = EndUserEmail::new(user.email.clone());
         let phone_number = user.phone.clone().map(EndUserPhoneNumber::new);
+        let preferred_username = EndUserUsername::new(user.username.clone());
 
         StandardClaims::new(SubjectIdentifier::new(user.username.clone()))
             .set_name(Some(name))
@@ -56,6 +57,7 @@ impl From<&User> for StandardClaims<CoreGenderClaim> {
             .set_family_name(Some(family_name))
             .set_email(Some(email))
             .set_phone_number(phone_number)
+            .set_preferred_username(Some(preferred_username))
     }
 }
 
