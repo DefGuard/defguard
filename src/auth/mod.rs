@@ -173,7 +173,7 @@ impl<'r> FromRequest<'r> for SessionInfo {
                     .headers()
                     .get_one("Authorization")
                     .and_then(|value| {
-                        if value.starts_with("Bearer ") {
+                        if value.to_lowercase().starts_with("bearer ") {
                             value.get(7..)
                         } else {
                             None
