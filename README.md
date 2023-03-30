@@ -71,7 +71,7 @@ docker compose -f docker-compose.ldap.yaml up
 To run backend without Docker, you'll need:
 
 * PostgreSQL database
-* environment variables set
+* Environment variables set
 
 Run PostgreSQL with:
 
@@ -83,5 +83,9 @@ You'll find environment variables in .env file. Source them however you like (we
 Once that's done, you can run backend with:
 
 ```
-cargo run
+cargo run -- --grpc-cert ssl/defguard.crt --grpc-key ssl/defguard.key
 ```
+
+## SSL
+
+In `ssl` directory you'll find self-signed certificates for local development (cargo run, docker-compose).
