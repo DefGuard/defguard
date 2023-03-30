@@ -52,8 +52,8 @@ pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: DbPool,
     gateway_state: Arc<Mutex<GatewayState>>,
-    grpc_cert: Option<String>,
-    grpc_key: Option<String>,
+    grpc_cert: String,
+    grpc_key: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone()));
@@ -70,12 +70,8 @@ pub async fn run_grpc_server(
     // Run gRPC server
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), grpc_port);
     info!("Started gRPC services");
-    let mut builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
-        let identity = Identity::from_pem(cert, key);
-        Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
-    } else {
-        Server::builder()
-    };
+    let identity = Identity::from_pem(grpc_cert, grpc_key);
+    let mut builder = Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?;
     let router = builder.add_service(auth_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);

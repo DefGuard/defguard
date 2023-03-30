@@ -42,7 +42,7 @@ fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), SetLoggerError> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = DefGuardConfig::parse();
     logger_setup(&config.log_level)?;
     match config.openid_signing_key {
@@ -69,14 +69,8 @@ async fn main() -> Result<(), SetLoggerError> {
     .await;
 
     // read grpc TLS cert and key
-    let grpc_cert = config
-        .grpc_cert
-        .as_ref()
-        .and_then(|path| read_to_string(path).ok());
-    let grpc_key = config
-        .grpc_key
-        .as_ref()
-        .and_then(|path| read_to_string(path).ok());
+    let grpc_cert = read_to_string(&config.grpc_cert)?;
+    let grpc_key = read_to_string(&config.grpc_key)?;
 
     // run services
     tokio::select! {
