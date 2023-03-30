@@ -29,10 +29,10 @@ pub struct DefGuardConfig {
     #[clap(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
 
-    #[clap(long, env = "DEFGUARD_GRPC_CERT")]
+    #[clap(long, env = "DEFGUARD_GRPC_CERT", default_value = "ssl/defguard.crt")]
     pub grpc_cert: String,
 
-    #[clap(long, env = "DEFGUARD_GRPC_KEY")]
+    #[clap(long, env = "DEFGUARD_GRPC_KEY", default_value = "ssl/defguard.key")]
     pub grpc_key: String,
 
     #[clap(long, env = "DEFGUARD_ADMIN_GROUPNAME", default_value = "admin")]
