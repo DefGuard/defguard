@@ -83,7 +83,7 @@ You'll find environment variables in .env file. Source them however you like (we
 Once that's done, you can run backend with:
 
 ```
-cargo run -- --grpc-cert ssl/defguard.crt --grpc-key ssl/defguard.key
+cargo run
 ```
 
 ## SSL
