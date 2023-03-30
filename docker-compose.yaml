@@ -15,12 +15,16 @@ services:
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
       DEFGUARD_URL: http://localhost:3000
+      DEFGUARD_GRPC_CERT: /ssl/defguard.crt
+      DEFGUARD_GRPC_KEY: /ssl/defguard.key
       RUST_BACKTRACE: 1
     ports:
       # rest api
       - "8000:8000"
       # grpc
       - "50055:50055"
+    volumes:
+      - ./ssl:/ssl
     depends_on:
       - db
 
@@ -30,10 +34,13 @@ services:
       DEFGUARD_GRPC_URL: http://core:50055
       DEFGUARD_STATS_PERIOD: 60
       DEFGUARD_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEZWZHdWFyZCIsInN1YiI6IlRlc3ROZXQiLCJjbGllbnRfaWQiOiIiLCJleHAiOjU5NjE3NDcwNzYsIm5iZiI6MTY2Njc3OTc4MSwicm9sZXMiOltdfQ.uEUMnw_gO23W0K2q3N1lToeP0D2zAY1swr8N-84sRHA
+      DEFGUARD_GRPC_CA: /ssl/defguard-ca.pem
       RUST_LOG: debug
     ports:
       # wireguard endpoint
       - "50051:50051/udp"
+    volumes:
+      - ./ssl:/ssl
     depends_on:
       - core
     cap_add:
