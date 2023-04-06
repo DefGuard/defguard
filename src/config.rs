@@ -4,6 +4,7 @@ use reqwest::Url;
 use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
 
 #[derive(Clone, Parser)]
+#[command(version)]
 pub struct DefGuardConfig {
     #[clap(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,
