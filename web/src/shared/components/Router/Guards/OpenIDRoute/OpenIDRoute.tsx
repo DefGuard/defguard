@@ -15,7 +15,7 @@ type Setting = keyof Settings;
  * Wrapper around Route, check if user came from openID redirect
  */
 
-const openIDRoute = ({ children, moduleRequired }: Props) => {
+export const OpenIDRoute = ({ children, moduleRequired }: Props) => {
   const openIDRedirect = useOpenIDStore((state) => state.openIDRedirect);
   const settings = useAppStore((state) => state.settings);
 
@@ -30,4 +30,3 @@ const openIDRoute = ({ children, moduleRequired }: Props) => {
   }
   return <>{children}</>;
 };
-export default openIDRoute;

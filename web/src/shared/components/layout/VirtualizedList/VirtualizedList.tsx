@@ -6,7 +6,7 @@ import { detect } from 'detect-browser';
 import { motion, Variants } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
 import { ReactNode, useMemo, useRef, useState } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { ColorsRGB, deviceBreakpoints } from '../../../constants';
 import { VirtualizedListSortIcon } from './VirtualizedListSortIcon';
@@ -136,8 +136,7 @@ export const VirtualizedList = <T extends object>({
           style={{
             paddingBottom: headerPadding?.bottom || 0,
             paddingTop: headerPadding?.top || 0,
-            paddingLeft:
-              (getRowPadding.paddingLeft || 0) + (headerPadding?.left || 0),
+            paddingLeft: (getRowPadding.paddingLeft || 0) + (headerPadding?.left || 0),
             paddingRight:
               (getRowPadding?.paddingRight || 0) +
               (headerPadding?.right || 0) +
@@ -232,10 +231,7 @@ const ListHeader = ({
         }
       }}
     >
-      <motion.span
-        variants={headerSpanVariants}
-        animate={active ? 'active' : 'idle'}
-      >
+      <motion.span variants={headerSpanVariants} animate={active ? 'active' : 'idle'}>
         {text}
       </motion.span>
       <VirtualizedListSortIcon

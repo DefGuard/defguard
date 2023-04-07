@@ -4,12 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import Button, {
-  ButtonStyleVariant,
-} from '../../shared/components/layout/Button/Button';
+import Button, { ButtonStyleVariant } from '../../shared/components/layout/Button/Button';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
 import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
@@ -64,10 +62,7 @@ export const OverviewPage = () => {
       enabled: !isUndefined(statsFilter),
       onSuccess: async () => {
         setTimeout(
-          () =>
-            queryClient.invalidateQueries([
-              QueryKeys.FETCH_NETWORK_USERS_STATS,
-            ]),
+          () => queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_USERS_STATS]),
           STATUS_REFETCH_TIMEOUT
         );
       },
@@ -116,10 +111,6 @@ export const OverviewPage = () => {
     navigate('../network');
   };
 
-  if (networks && networks.length === 0) {
-    navigate('../wizard');
-  }
-
   return (
     <>
       <PageContainer id="network-overview-page">
@@ -161,10 +152,7 @@ export const OverviewPage = () => {
           </header>
         )}
         {networkStats && networkUsersStats && (
-          <OverviewStats
-            usersStats={networkUsersStats}
-            networkStats={networkStats}
-          />
+          <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
         )}
         <div className="bottom-row">
           {userStatsLoading || gatewayStatusLoading ? (
@@ -174,9 +162,7 @@ export const OverviewPage = () => {
           ) : gatewayStatus?.connected ? (
             <OverviewConnectedUsers stats={getNetworkUsers} />
           ) : (
-            <NoData
-              customMessage={LL.networkOverview.stats.gatewayDisconnected()}
-            />
+            <NoData customMessage={LL.networkOverview.stats.gatewayDisconnected()} />
           )}
           {/* <OverviewActivityStream /> */}
         </div>

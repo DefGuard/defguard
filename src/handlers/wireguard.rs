@@ -256,7 +256,7 @@ pub async fn add_device(
     if let Ok(Some(network)) = WireguardNetwork::find_by_id(&appstate.pool, 1).await {
         if network.pubkey == data.wireguard_pubkey {
             return Ok(ApiResponse {
-                json: json!({"msg": "device's pubkey must be differnet from server's pubkey"}),
+                json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
                 status: Status::BadRequest,
             });
         }
@@ -304,7 +304,7 @@ pub async fn modify_device(
     if let Ok(Some(network)) = WireguardNetwork::find_by_id(&appstate.pool, 1).await {
         if network.pubkey == data.wireguard_pubkey {
             return Ok(ApiResponse {
-                json: json!({"msg": "device's pubkey must be differnet from server's pubkey"}),
+                json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
                 status: Status::BadRequest,
             });
         }

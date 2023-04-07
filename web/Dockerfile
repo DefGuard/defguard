@@ -1,12 +1,13 @@
-FROM node:19-alpine3.15 as build
+FROM node:19.8-alpine3.16 as build
 
 WORKDIR /app
 COPY package.json .
 COPY pnpm-lock.yaml .
 COPY .npmrc .
 RUN npm i -g pnpm
-RUN pnpm install --ignore-scripts
+RUN pnpm install --ignore-scripts --frozen-lockfile
 COPY . .
+RUN pnpm run generate-translation-types
 RUN pnpm build
 
 FROM nginx:1.21.5

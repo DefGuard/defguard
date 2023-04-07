@@ -13,9 +13,18 @@
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
     "prettier",
-    "plugin:prettier/recommended"
+    "plugin:prettier/recommended",
+    "plugin:import/recommended",
+    "plugin:import/typescript"
   ],
   "rules": {
+    "max-len": [
+      "error",
+      {
+        "code": 90,
+        "ignorePattern": "^import .*"
+      }
+    ],
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
     "react/prop-types": "off",
@@ -43,6 +52,28 @@
     "react": {
       "pragma": "React",
       "version": "detect"
+    },
+    "import/resolver": {
+      "node": {
+        "extensions": [
+          ".js",
+          ".jsx",
+          ".ts",
+          ".tsx"
+        ]
+      }
     }
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/i18n/**/*"
+      ],
+      "rules": {
+        "max-len": [
+          "off"
+        ]
+      }
+    }
+  ]
 }

@@ -3,8 +3,9 @@ import './style.scss';
 import numbro from 'numbro';
 import { forwardRef } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import {
   NetworkDirection,
   NetworkSpeed,
@@ -19,7 +20,6 @@ import { deviceBreakpoints } from '../../../shared/constants';
 import { NetworkUserStats, WireguardNetworkStats } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { NetworkUsageChart } from '../OverviewConnectedUsers/shared/components/NetworkUsageChart/NetworkUsageChart';
-import { useI18nContext } from '../../../i18n/i18n-react';
 
 interface Props {
   usersStats?: NetworkUserStats[];
@@ -37,12 +37,14 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
   ({ networkStats }, ref) => {
     const { breakpoint } = useBreakpoint(deviceBreakpoints);
     const filterValue = useOverviewStore((state) => state.statsFilter);
-		const {LL} = useI18nContext();
+    const { LL } = useI18nContext();
     return (
       <div className="overview-network-stats" ref={ref}>
         <div className="summary">
           <div className="info">
-            <span className="info-title">{LL.networkOverview.stats.currentlyActiveUsers()}</span>
+            <span className="info-title">
+              {LL.networkOverview.stats.currentlyActiveUsers()}
+            </span>
             <div className="content">
               <Icon24HConnections />
               <span className="info-value">
@@ -51,7 +53,9 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
             </div>
           </div>
           <div className="info">
-            <span className="info-title">{LL.networkOverview.stats.currentlyActiveDevices()}</span>
+            <span className="info-title">
+              {LL.networkOverview.stats.currentlyActiveDevices()}
+            </span>
             <div className="content">
               <IconActiveConnections />
               <span className="info-value">
@@ -60,14 +64,18 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
             </div>
           </div>
           <div className="info">
-            <span className="info-title">{LL.networkOverview.stats.activeUsersFilter({hour: filterValue})}</span>
+            <span className="info-title">
+              {LL.networkOverview.stats.activeUsersFilter({ hour: filterValue })}
+            </span>
             <div className="content">
               <Icon24HConnections />
               <span className="info-value">{networkStats.active_users}</span>
             </div>
           </div>
           <div className="info">
-            <span className="info-title">{LL.networkOverview.stats.activeDevicesFilter({hour: filterValue})}</span>
+            <span className="info-title">
+              {LL.networkOverview.stats.activeDevicesFilter({ hour: filterValue })}
+            </span>
             <div className="content">
               <Icon24HConnections />
               <span className="info-value">
@@ -77,7 +85,9 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
           </div>
           {breakpoint === 'desktop' && (
             <div className="info network-usage" data-test="network-usage">
-              <span className="info-title">{LL.networkOverview.stats.totalTransfer()}</span>
+              <span className="info-title">
+                {LL.networkOverview.stats.totalTransfer()}
+              </span>
               <div className="content">
                 <div className="network-usage">
                   <span>
@@ -105,7 +115,7 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
         </div>
         <div className="activity-graph">
           <header>
-            <h3>{LL.networkOverview.stats.activityIn({hour: filterValue})}</h3>
+            <h3>{LL.networkOverview.stats.activityIn({ hour: filterValue })}</h3>
             <div className="peaks">
               <span>{LL.networkOverview.stats.totalTransfer()}</span>
               <div className="network-speed">

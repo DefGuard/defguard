@@ -1,8 +1,10 @@
 import './style.scss';
 
+import parse from 'html-react-parser';
 import { useMemo } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import {
   Select,
@@ -12,8 +14,6 @@ import {
 import { deviceBreakpoints } from '../../../shared/constants';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../../overview/hooks/store/useOverviewStore';
-import { useI18nContext } from '../../../i18n/i18n-react';
-import parse from 'html-react-parser';
 
 export const DefaultNetworkSelect = () => {
   const { LL } = useI18nContext();
@@ -83,8 +83,7 @@ export const DefaultNetworkSelect = () => {
         onChange={(option) => {
           if (option) {
             setOverViewStore({
-              defaultViewMode: (option as SelectOption<OverviewLayoutType>)
-                .value,
+              defaultViewMode: (option as SelectOption<OverviewLayoutType>).value,
               viewMode: (option as SelectOption<OverviewLayoutType>).value,
             });
           }

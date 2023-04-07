@@ -123,28 +123,18 @@
 
   & > .content {
     display: grid;
-    grid-template-rows: repeat(3, auto);
-    grid-template-columns: 1fr;
+    row-gap: 3rem;
     grid-template-areas:
       'wide-cards'
       'cards-1'
       'cards-2';
-
-    @include media-breakpoint-down(lg) {
-      row-gap: 3rem;
-    }
+    grid-template-rows: repeat(3, auto);
+    grid-template-columns: 1fr;
 
     @include media-breakpoint-up(lg) {
-      grid-template-rows: repeat(2, 1fr);
-      grid-template-columns: 1fr 369px;
-      grid-template-areas:
-        'wide-cards cards-1'
-        'wide-cards cards-2';
+      row-gap: 0;
       column-gap: 35px;
-    }
-
-    @include media-breakpoint-up(xxl) {
-      grid-template-rows: 1fr;
+      grid-template-rows: auto;
       grid-template-columns: 1fr repeat(2, 369px);
       grid-template-areas: 'wide-cards cards-1 cards-2';
     }

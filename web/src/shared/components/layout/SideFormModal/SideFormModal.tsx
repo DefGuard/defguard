@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMemo } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { deviceBreakpoints } from '../../../constants';
 import { IconHamburgerClose } from '../../svg';
@@ -34,12 +34,7 @@ export const SideFormModal = ({
   }, [className, side]);
 
   return (
-    <Modal
-      backdrop
-      className={getClassName}
-      isOpen={isOpen}
-      setIsOpen={setIsOpen}
-    >
+    <Modal backdrop className={getClassName} isOpen={isOpen} setIsOpen={setIsOpen}>
       <header>
         <h3>{header}</h3>
         {breakpoint !== 'desktop' && (

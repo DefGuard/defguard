@@ -5,8 +5,8 @@ import { AxiosError } from 'axios';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Subject, switchMap, timer } from 'rxjs';
-import useBreakpoint from 'use-breakpoint';
-import shallow from 'zustand/shallow';
+import { useBreakpoint } from 'use-breakpoint';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconButton from '../../../../../shared/components/layout/IconButton/IconButton';
@@ -22,28 +22,22 @@ import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import {
-  WorkerJobStatus,
-  WorkerJobStatusError,
-} from '../../../../../shared/types';
+import { WorkerJobStatus, WorkerJobStatusError } from '../../../../../shared/types';
 import WorkerLoader from './WorkerLoader/WorkerLoader';
 import { WorkerSelectionForm } from './WorkerSelectionForm/WorkerSelectionForm';
 
 export const KeyProvisioningModal = () => {
   const { LL } = useI18nContext();
-  const [{ visible: isOpen, user: selectedUser }, setModalState] =
-    useModalStore(
-      (state) => [state.provisionKeyModal, state.setProvisionKeyModal],
-      shallow
-    );
+  const [{ visible: isOpen, user: selectedUser }, setModalState] = useModalStore(
+    (state) => [state.provisionKeyModal, state.setProvisionKeyModal],
+    shallow
+  );
   const setIsOpen = (v: boolean) => {
     setModalState({ visible: v });
   };
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [noWorkers, setNoWorkers] = useState(false);
-  const [jobStatusSubject, setJobStatusSubject] = useState<
-    Subject<void> | undefined
-  >();
+  const [jobStatusSubject, setJobStatusSubject] = useState<Subject<void> | undefined>();
   const [submitted, setSubmitted] = useState(false);
   const [jobSucceeded, setJobSucceeded] = useState(false);
   const [errorData, setErrorData] = useState('');
@@ -57,64 +51,53 @@ export const KeyProvisioningModal = () => {
   const queryClient = useQueryClient();
   const toaster = useToaster();
 
-  const { data: workers, isLoading } = useQuery(
-    [QueryKeys.FETCH_WORKERS],
-    getWorkers,
-    {
-      onSuccess: (data) => {
-        if (!data || (data && !data.length)) {
-          setNoWorkers(true);
-          setTimeout(
-            () => queryClient.invalidateQueries([QueryKeys.FETCH_WORKERS]),
-            2500
-          );
-        } else {
-          if (noWorkers) {
-            setNoWorkers(false);
+  const { data: workers, isLoading } = useQuery([QueryKeys.FETCH_WORKERS], getWorkers, {
+    onSuccess: (data) => {
+      if (!data || (data && !data.length)) {
+        setNoWorkers(true);
+        setTimeout(() => queryClient.invalidateQueries([QueryKeys.FETCH_WORKERS]), 2500);
+      } else {
+        if (noWorkers) {
+          setNoWorkers(false);
+        }
+      }
+    },
+    onError: (err) => {
+      setIsOpen(false);
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+    enabled: isOpen,
+  });
+  useQuery([QueryKeys.FETCH_WORKER_JOB_STATUS, jobId], () => getJobStatus(jobId), {
+    enabled: typeof jobId === 'number' && isOpen,
+    refetchOnWindowFocus: false,
+    onSuccess: (data) => {
+      if (typeof data !== 'undefined' && data) {
+        if (data.success === true) {
+          const { success, ...rest } = data;
+          if (success === true) {
+            setJobSucceeded(true);
+            setKeysData(rest);
+            toaster.success(LL.modals.provisionKeys.messages.success());
+          } else {
+            toaster.error(LL.messages.error());
           }
         }
-      },
-      onError: (err) => {
-        setIsOpen(false);
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
-      enabled: isOpen,
-    }
-  );
-  useQuery(
-    [QueryKeys.FETCH_WORKER_JOB_STATUS, jobId],
-    () => getJobStatus(jobId),
-    {
-      enabled: typeof jobId === 'number' && isOpen,
-      refetchOnWindowFocus: false,
-      onSuccess: (data) => {
-        if (typeof data !== 'undefined' && data) {
-          if (data.success === true) {
-            const { success, ...rest } = data;
-            if (success === true) {
-              setJobSucceeded(true);
-              setKeysData(rest);
-              toaster.success(LL.modals.provisionKeys.messages.success());
-            } else {
-              toaster.error(LL.messages.error());
-            }
-          }
-        } else {
-          jobStatusSubject?.next();
-        }
-      },
-      onError: (err: AxiosError<WorkerJobStatusError>) => {
-        const data: WorkerJobStatusError | undefined = err.response?.data;
-        if (data && data.message && data.message.length) {
-          setJobSucceeded(true);
-          setErrorData(data.message);
-        } else {
-          setErrorData(LL.modals.provisionKeys.messages.errorStatus());
-        }
-      },
-    }
-  );
+      } else {
+        jobStatusSubject?.next();
+      }
+    },
+    onError: (err: AxiosError<WorkerJobStatusError>) => {
+      const data: WorkerJobStatusError | undefined = err.response?.data;
+      if (data && data.message && data.message.length) {
+        setJobSucceeded(true);
+        setErrorData(data.message);
+      } else {
+        setErrorData(LL.modals.provisionKeys.messages.errorStatus());
+      }
+    },
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -133,11 +116,9 @@ export const KeyProvisioningModal = () => {
     if (!jobStatusSubject) {
       setJobStatusSubject(new Subject());
     } else {
-      const sub = jobStatusSubject
-        .pipe(switchMap(() => timer(2500)))
-        .subscribe(() => {
-          queryClient.invalidateQueries([QueryKeys.FETCH_WORKER_JOB_STATUS]);
-        });
+      const sub = jobStatusSubject.pipe(switchMap(() => timer(2500))).subscribe(() => {
+        queryClient.invalidateQueries([QueryKeys.FETCH_WORKER_JOB_STATUS]);
+      });
       return () => sub.unsubscribe();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -154,9 +135,7 @@ export const KeyProvisioningModal = () => {
       setIsOpen={setIsOpen}
       isOpen={isOpen}
       className={
-        submitted
-          ? 'key-provisioning middle submitted'
-          : 'key-provisioning middle'
+        submitted ? 'key-provisioning middle submitted' : 'key-provisioning middle'
       }
     >
       {!submitted ? (

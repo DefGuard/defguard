@@ -2,7 +2,7 @@ import './style.scss';
 
 import { saveAs } from 'file-saver';
 import { motion } from 'framer-motion';
-import shallow from 'zustand/shallow';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import Button, {
@@ -38,12 +38,7 @@ export const KeyDetailsModal = () => {
   };
 
   return (
-    <Modal
-      backdrop
-      setIsOpen={setIsOpen}
-      className="key-details middle"
-      isOpen={isOpen}
-    >
+    <Modal backdrop setIsOpen={setIsOpen} className="key-details middle" isOpen={isOpen}>
       <div className="header">
         <p>{LL.modals.keyDetails.title()}</p>
       </div>

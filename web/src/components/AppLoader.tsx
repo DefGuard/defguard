@@ -1,16 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { lazy, Suspense, useEffect } from 'react';
+// eslint-disable-next-line import/no-unresolved
 import { navigatorDetector } from 'typesafe-i18n/detectors';
-import shallow from 'zustand/shallow';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../i18n/i18n-react';
 import { detectLocale } from '../i18n/i18n-util';
 import { loadLocaleAsync } from '../i18n/i18n-util.async';
 import LoaderPage from '../pages/loader/LoaderPage';
+import { isUserAdmin } from '../shared/helpers/isUserAdmin';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
-import { useOpenIDStore } from '../shared/hooks/store/useOpenIdStore';
 import useApi from '../shared/hooks/useApi';
 import { useToaster } from '../shared/hooks/useToaster';
 import { QueryKeys } from '../shared/queries';
@@ -20,8 +21,8 @@ import { QueryKeys } from '../shared/queries';
  * **/
 export const AppLoader = () => {
   const toaster = useToaster();
-  const [currentUser, logOut, logIn] = useAuthStore(
-    (state) => [state.user, state.logOut, state.logIn],
+  const [currentUser, resetAuthState, setAuthState] = useAuthStore(
+    (state) => [state.user, state.resetState, state.setState],
     shallow
   );
   const appSettings = useAppStore((state) => state.settings);
@@ -34,7 +35,6 @@ export const AppLoader = () => {
   const { setLocale } = useI18nContext();
   const localLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setAppStore);
-  const openIDRedirect = useOpenIDStore((state) => state.openIDRedirect);
   const license = useAppStore((state) => state.license);
   const { LL } = useI18nContext();
 
@@ -43,18 +43,17 @@ export const AppLoader = () => {
     getMe,
     {
       onSuccess: (user) => {
-        logIn(user);
+        const isAdmin = isUserAdmin(user);
+        setAuthState({ isAdmin, user });
       },
       onError: () => {
         if (currentUser) {
-          logOut();
+          resetAuthState();
         }
-        console.clear();
       },
       refetchOnMount: true,
       refetchOnWindowFocus: false,
       retry: false,
-      enabled: !openIDRedirect,
     }
   );
 
@@ -84,19 +83,15 @@ export const AppLoader = () => {
     }
   );
 
-  const { isLoading: licenseLoading } = useQuery(
-    [QueryKeys.FETCH_LICENSE],
-    getLicense,
-    {
-      onSuccess: (data) => {
-        setAppStore({ license: data });
-      },
-      onError: () => {
-        toaster.error(LL.messages.errorLicense());
-      },
-      refetchOnWindowFocus: false,
-    }
-  );
+  const { isLoading: licenseLoading } = useQuery([QueryKeys.FETCH_LICENSE], getLicense, {
+    onSuccess: (data) => {
+      setAppStore({ license: data });
+    },
+    onError: () => {
+      toaster.error(LL.messages.errorLicense());
+    },
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
     if (!localLanguage) {

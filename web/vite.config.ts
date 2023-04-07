@@ -7,8 +7,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills';
 let buildTarget = 'modules';
 
 if (process.env.TAURI_PLATFORM) {
-  buildTarget =
-    process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13';
+  buildTarget = process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13';
 }
 
 export default defineConfig({

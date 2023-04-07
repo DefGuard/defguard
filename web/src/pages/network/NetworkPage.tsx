@@ -1,8 +1,9 @@
 import './style.scss';
 
 import { useNavigate } from 'react-router';
-import shallow from 'zustand/shallow';
+import { shallow } from 'zustand/shallow';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -12,7 +13,6 @@ import { IconCheckmarkWhite } from '../../shared/components/svg';
 import { useNetworkPageStore } from './hooks/useNetworkPageStore';
 import { NetworkConfiguration } from './NetworkConfiguration/NetworkConfiguration';
 import { NetworkGatewaySetup } from './NetworkGateway/NetworkGateway';
-import { useI18nContext } from '../../i18n/i18n-react';
 
 export const NetworkPage = () => {
   const navigate = useNavigate();

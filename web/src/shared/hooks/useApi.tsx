@@ -65,43 +65,31 @@ const useApi = (props?: HookProps): ApiHook => {
     }
   }
 
-  client.interceptors.response.use(
-    (res) => {
-      if (res && res.headers) {
-        const version = res.headers['x-defguard-version'] as string | undefined;
-        if (version && version.length) {
-          if (backendVersion !== version) {
-            setAppStore({ backendVersion: version });
-          }
+  client.interceptors.response.use((res) => {
+    if (res && res.headers) {
+      const version = res.headers['x-defguard-version'] as string | undefined;
+      if (version && version.length) {
+        if (backendVersion !== version) {
+          setAppStore({ backendVersion: version });
         }
       }
-      // API sometimes returns null in optional fileds.
-      if (res.data) {
-        const keys = Object.keys(res.data);
-        if (keys && keys.length) {
-          keys.forEach((k) => {
-            if (isNull(res.data[k])) {
-              delete res.data[k];
-            }
-          });
-        }
-      }
-      return res;
-    },
-    (error) => {
-      if (Number(error.code) > 401 && Number(error.code) < 500) {
-        const message = error.response?.data.message;
-        if (message) {
-        }
-      }
-      return Promise.reject(error);
     }
-  );
+    // API sometimes returns null in optional fields.
+    if (res.data) {
+      const keys = Object.keys(res.data);
+      if (keys && keys.length) {
+        keys.forEach((k) => {
+          if (isNull(res.data[k])) {
+            delete res.data[k];
+          }
+        });
+      }
+    }
+    return res;
+  });
 
   const addUser = async (data: AddUserRequest) => {
-    return client
-      .post<EmptyApiResponse>(`/user/`, data)
-      .then((res) => res.data);
+    return client.post<EmptyApiResponse>(`/user/`, data).then((res) => res.data);
   };
 
   const getMe = () => client.get<User>(`/me`).then((res) => res.data);
@@ -113,9 +101,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.put<User>(`/user/${username}`, data).then(unpackRequest);
 
   const deleteUser = async (user: User) =>
-    client
-      .delete<EmptyApiResponse>(`/user/${user.username}`)
-      .then((res) => res.data);
+    client.delete<EmptyApiResponse>(`/user/${user.username}`).then((res) => res.data);
 
   const fetchDevices = async () =>
     client.get<Device[]>(`/device`).then((res) => res.data);
@@ -134,10 +120,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const deleteDevice = async (device: Device) =>
     client.delete<EmptyApiResponse>(`/device/${device.id}`);
 
-  const addDevice: ApiHook['device']['addDevice'] = async ({
-    username,
-    ...rest
-  }) => client.post(`/device/${username}`, rest).then((res) => res.data);
+  const addDevice: ApiHook['device']['addDevice'] = async ({ username, ...rest }) =>
+    client.post(`/device/${username}`, rest).then((res) => res.data);
 
   const fetchUserDevices = async (username: string) =>
     client.get<Device[]>(`/device/user/${username}`).then((res) => res.data);
@@ -177,8 +161,7 @@ const useApi = (props?: HookProps): ApiHook => {
       return {};
     });
 
-  const logout = () =>
-    client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);
+  const logout = () => client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);
 
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
@@ -186,9 +169,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const getWorkers = () => client.get('/worker/').then((res) => res.data);
 
   const provisionYubiKey = (data: WorkerJobRequest) =>
-    client
-      .post<WorkerJobResponse>(`/worker/job`, data)
-      .then((response) => response.data);
+    client.post<WorkerJobResponse>(`/worker/job`, data).then((response) => response.data);
 
   const getJobStatus = (id?: number) =>
     client.get<WorkerJobStatus>(`/worker/${id}`).then((res) => res.data);
@@ -218,8 +199,7 @@ const useApi = (props?: HookProps): ApiHook => {
       .delete<EmptyApiResponse>(`/user/${username}/wallet/${address}`)
       .then((response) => response.data);
 
-  const getGroups = () =>
-    client.get<GroupsResponse>('/group/').then(unpackRequest);
+  const getGroups = () => client.get<GroupsResponse>('/group/').then(unpackRequest);
 
   const addToGroup = ({ group, ...rest }: UserGroupRequest) =>
     client.post<EmptyApiResponse>(`/group/${group}`, rest);
@@ -241,10 +221,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const addWebhook: ApiHook['webhook']['addWebhook'] = async (data) => {
     return client.post<EmptyApiResponse>('/webhook/', data);
   };
-  const editWebhook: ApiHook['webhook']['editWebhook'] = async ({
-    id,
-    ...rest
-  }) => {
+  const editWebhook: ApiHook['webhook']['editWebhook'] = async ({ id, ...rest }) => {
     return client.put<EmptyApiResponse>(`/webhook/${id}`, rest);
   };
   const getOpenidClients = () => client.get('/oauth/').then((res) => res.data);
@@ -255,10 +232,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const addOpenidClient = async (data: AddOpenidClientRequest) => {
     return client.post<EmptyApiResponse>('/oauth/', data);
   };
-  const editOpenidClient = async ({
-    client_id,
-    ...rest
-  }: EditOpenidClientRequest) => {
+  const editOpenidClient = async ({ client_id, ...rest }: EditOpenidClientRequest) => {
     return client.put<EmptyApiResponse>(`/oauth/${client_id}`, rest);
   };
   const changeOpenidClientState = async ({
@@ -274,15 +248,11 @@ const useApi = (props?: HookProps): ApiHook => {
     client.post('openid/verify', data);
 
   const getUserClients = async (username: string) =>
-    client
-      .get<AuthorizedClient[]>(`/oauth/apps/${username}`)
-      .then((res) => res.data);
+    client.get<AuthorizedClient[]>(`/oauth/apps/${username}`).then((res) => res.data);
 
   const removeUserClient = async (data: RemoveUserClientRequest) =>
     client
-      .delete<EmptyApiResponse>(
-        `/user/${data.username}/oauth_app/${data.client_id}`
-      )
+      .delete<EmptyApiResponse>(`/user/${data.username}/oauth_app/${data.client_id}`)
       .then((res) => res.data);
 
   const oAuthConsent = (params: unknown) =>
@@ -316,24 +286,22 @@ const useApi = (props?: HookProps): ApiHook => {
   const getWorkerToken = () =>
     client.get<WorkerToken>('/worker/token').then(unpackRequest);
 
-  const getLicense = () =>
-    client.get<License>('/license/').then((res) => res.data);
+  const getLicense = () => client.get<License>('/license/').then((res) => res.data);
 
   const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
 
+  // eslint-disable-next-line max-len
   const mfaWebauthnRegisterStart: ApiHook['auth']['mfa']['webauthn']['register']['start'] =
     () => client.post('/auth/webauthn/init').then(unpackRequest);
 
+  // eslint-disable-next-line max-len
   const mfaWebauthnRegisterFinish: ApiHook['auth']['mfa']['webauthn']['register']['finish'] =
-    async (data) =>
-      client.post('/auth/webauthn/finish', data).then(unpackRequest);
+    async (data) => client.post('/auth/webauthn/finish', data).then(unpackRequest);
 
-  const mfaWebauthnStart = () =>
-    client.post('/auth/webauthn/start').then(unpackRequest);
+  const mfaWebauthnStart = () => client.post('/auth/webauthn/start').then(unpackRequest);
 
-  const mfaWebautnFinish: ApiHook['auth']['mfa']['webauthn']['finish'] = (
-    data
-  ) => client.post('/auth/webauthn', data).then(unpackRequest);
+  const mfaWebautnFinish: ApiHook['auth']['mfa']['webauthn']['finish'] = (data) =>
+    client.post('/auth/webauthn', data).then(unpackRequest);
 
   const mfaTOTPInit = () => client.post('/auth/totp/init').then(unpackRequest);
 
@@ -362,9 +330,10 @@ const useApi = (props?: HookProps): ApiHook => {
       })
       .then(unpackRequest);
 
-  const mfaWebauthnDeleteKey: ApiHook['auth']['mfa']['webauthn']['deleteKey'] =
-    ({ keyId, username }) =>
-      client.delete(`/user/${username}/security_key/${keyId}`);
+  const mfaWebauthnDeleteKey: ApiHook['auth']['mfa']['webauthn']['deleteKey'] = ({
+    keyId,
+    username,
+  }) => client.delete(`/user/${username}/security_key/${keyId}`);
 
   const getSettings = () => client.get('/settings/').then(unpackRequest);
 
@@ -380,9 +349,8 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const getGatewayStatus = () => client.get('/connection').then(unpackRequest);
 
-  const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (
-    id: string
-  ) => client.get(`/settings/${id}`).then(unpackRequest);
+  const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
+    client.get(`/settings/${id}`).then(unpackRequest);
 
   return {
     getVersion,

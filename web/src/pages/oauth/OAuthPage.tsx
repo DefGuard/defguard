@@ -5,9 +5,7 @@ import { cloneDeep } from 'lodash-es';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import Badge, {
-  BadgeStyleVariant,
-} from '../../shared/components/layout/Badge/Badge';
+import Badge, { BadgeStyleVariant } from '../../shared/components/layout/Badge/Badge';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -19,34 +17,32 @@ import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { standardVariants } from '../../shared/variants';
 
-const OAuthPage = () => {
+export const OAuthPage = () => {
   const toaster = useToaster();
   const [params] = useSearchParams();
   const [scope, setScope] = useState<string | null>('');
   const [responseType, setResponseType] = useState<string | null>('');
   const [clientId, setClientId] = useState<string | null>('');
   const [codeChallenge, setCodeChallenge] = useState<string | null>('');
-  const [codeChallengeMethod, setCodeChallengeMethod] = useState<string | null>(
-    ''
-  );
+  const [codeChallengeMethod, setCodeChallengeMethod] = useState<string | null>('');
   const [redirectUri, setRedirectUri] = useState<string | null>('');
   const [state, setState] = useState<string | null>('');
   const inputRef = useRef<HTMLInputElement | null>(null);
   const currentUser = useAuthStore((state) => state.user);
   const setAuthStore = useAuthStore((state) => state.setState);
   const navigate = useNavigate();
-  const authLocation = useAuthStore((state) => state.authLocation);
+  const authLocation = useAuthStore((state) => state.openIdState);
 
   useEffect(() => {
     if (!currentUser) {
       const loc = String(cloneDeep(window.location.href));
-      setAuthStore({ authLocation: loc });
+      setAuthStore({ openIdState: loc });
       setTimeout(() => {
         navigate('/auth', { replace: true });
       }, 250);
     } else {
       if (authLocation) {
-        setAuthStore({ authLocation: undefined });
+        setAuthStore({ openIdState: undefined });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,11 +118,7 @@ const OAuthPage = () => {
             ? scope
                 .split(' ')
                 .map((s) => (
-                  <Badge
-                    key={s}
-                    text={s}
-                    styleVariant={BadgeStyleVariant.PRIMARY}
-                  />
+                  <Badge key={s} text={s} styleVariant={BadgeStyleVariant.PRIMARY} />
                 ))
             : null}
         </div>
@@ -153,5 +145,3 @@ const OAuthPage = () => {
     </motion.section>
   );
 };
-
-export default OAuthPage;

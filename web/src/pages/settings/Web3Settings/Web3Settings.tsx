@@ -2,8 +2,9 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -17,7 +18,6 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
-import { useI18nContext } from '../../../i18n/i18n-react';
 
 export const Web3Settings = () => {
   const { LL } = useI18nContext();
@@ -30,20 +30,16 @@ export const Web3Settings = () => {
   } = useApi();
   const queryClient = useQueryClient();
   const toaster = useToaster();
-  const { mutate, isLoading } = useMutation(
-    [MutationKeys.EDIT_SETTINGS],
-    editSettings,
-    {
-      onSuccess: () => {
-        toaster.success(LL.settingsPage.messages.challengeSuccess());
-        queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-      },
-      onError: (err) => {
-        console.error(err);
-        toaster.error(LL.messages.error());
-      },
-    }
-  );
+  const { mutate, isLoading } = useMutation([MutationKeys.EDIT_SETTINGS], editSettings, {
+    onSuccess: () => {
+      toaster.success(LL.settingsPage.messages.challengeSuccess());
+      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+    },
+    onError: (err) => {
+      console.error(err);
+      toaster.error(LL.messages.error());
+    },
+  });
 
   useEffect(() => {
     if (settings) {

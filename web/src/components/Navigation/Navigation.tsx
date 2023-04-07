@@ -4,8 +4,8 @@ import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import React, { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import useBreakpoint from 'use-breakpoint';
-import shallow from 'zustand/shallow';
+import { useBreakpoint } from 'use-breakpoint';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import Divider from '../../shared/components/layout/Divider/Divider';
@@ -28,7 +28,7 @@ import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
 import { ApplicationVersion } from './ApplicationVersion/ApplicationVersion';
-import { MobileNavModal } from './MobleNavModal/MobileNavModal';
+import { MobileNavModal } from './MobileNavModal/MobileNavModal';
 import { NavigationLink } from './NavigationLink';
 
 export interface NavigationItem {
@@ -42,7 +42,7 @@ export interface NavigationItem {
 export const Navigation = () => {
   const { LL, locale } = useI18nContext();
   const [currentUser, storeLogOut] = useAuthStore(
-    (state) => [state.user, state.logOut],
+    (state) => [state.user, state.resetState],
     shallow
   );
   const [isMobileNavOpen, setMobileNavOpen] = useState(false);
@@ -166,10 +166,7 @@ export const Navigation = () => {
         <nav className="nav-mobile">
           <SvgDefguadNavLogoCollapsed />
           <p className="page-title">{getPageTitle}</p>
-          <IconButton
-            className="hamburger-button"
-            onClick={() => setMobileNavOpen(true)}
-          >
+          <IconButton className="hamburger-button" onClick={() => setMobileNavOpen(true)}>
             <SvgIconHamburgerMenu />
           </IconButton>
         </nav>
@@ -178,9 +175,7 @@ export const Navigation = () => {
         <>
           <button
             onClick={() => setNavigationOpen(!isNavigationOpen)}
-            className={
-              'nav-control-button' + (isNavigationOpen ? '' : ' collapsed')
-            }
+            className={'nav-control-button' + (isNavigationOpen ? '' : ' collapsed')}
           >
             <SvgIconArrowDoubleGrayLeft />
           </button>
@@ -189,9 +184,7 @@ export const Navigation = () => {
             layout
           >
             <section className="logo-container">
-              {settings ? (
-                <img src={settings?.nav_logo_url} alt="logo" />
-              ) : null}
+              {settings ? <img src={settings?.nav_logo_url} alt="logo" /> : null}
               <SvgDefguadNavLogo /> <SvgDefguadNavLogoCollapsed />
             </section>
             <span className="divider"></span>
@@ -211,10 +204,7 @@ export const Navigation = () => {
                   enabled: true,
                 }}
               />
-              <button
-                className="log-out"
-                onClick={() => logOutMutation.mutate()}
-              >
+              <button className="log-out" onClick={() => logOutMutation.mutate()}>
                 <SvgIconNavLogout />
                 <span>{LL.navigation.bar.logOut()}</span>
               </button>

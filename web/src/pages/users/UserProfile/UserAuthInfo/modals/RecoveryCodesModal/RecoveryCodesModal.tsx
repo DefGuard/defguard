@@ -14,10 +14,7 @@ import MessageBox, {
   MessageBoxType,
 } from '../../../../../../shared/components/layout/MessageBox/MessageBox';
 import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
-import {
-  IconCopy,
-  IconDownload,
-} from '../../../../../../shared/components/svg';
+import { IconCopy, IconDownload } from '../../../../../../shared/components/svg';
 import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
@@ -52,7 +49,7 @@ const ModalContent = () => {
       mfa: { enable },
     },
   } = useApi();
-  const logOut = useAuthStore((state) => state.logOut);
+  const logOut = useAuthStore((state) => state.resetState);
   const { mutate, isLoading } = useMutation([MutationKeys.ENABLE_MFA], enable, {
     onSuccess: () => {
       setModalState({ visible: false, codes: undefined });

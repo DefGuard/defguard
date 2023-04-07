@@ -1,5 +1,5 @@
 import { sort } from 'radash';
-import create from 'zustand';
+import { create } from 'zustand';
 
 import { ToastType } from '../../components/layout/ToastManager/Toast/Toast';
 

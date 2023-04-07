@@ -138,12 +138,14 @@
       gap: 1.5rem;
       cursor: pointer;
       position: relative;
+      overflow: hidden;
 
       span {
         display: none;
         font-size: 1.5rem;
         line-height: 1.6;
         font-family: Poppins;
+        white-space: nowrap;
         @include mix.text-weight(medium);
 
         color: v.$gray-light;

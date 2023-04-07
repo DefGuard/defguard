@@ -4,16 +4,15 @@ import { useEffect } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import * as yup from 'yup';
-import shallow from 'zustand/shallow';
-import { useI18nContext } from '../../../../i18n/i18n-react';
+import { shallow } from 'zustand/shallow';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
-import { useOpenIDStore } from '../../../../shared/hooks/store/useOpenIdStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
@@ -23,17 +22,11 @@ import { useMFAStore } from '../../shared/hooks/useMFAStore';
 export const MFARecovery = () => {
   const toaster = useToaster();
   const navigate = useNavigate();
-  const clearMFAStore = useMFAStore((state) => state.resetState);
-  const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore);
-  const logIn = useAuthStore((state) => state.logIn);
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
-    (state) => [
-      state.totp_available,
-      state.web3_available,
-      state.webauthn_available,
-    ],
+    (state) => [state.totp_available, state.web3_available, state.webauthn_available],
     shallow
   );
+  const loginSubject = useAuthStore((state) => state.loginSubject);
   const {
     auth: {
       mfa: { recovery },
@@ -42,29 +35,13 @@ export const MFARecovery = () => {
 
   const { LL } = useI18nContext();
 
-  const { mutate, isLoading } = useMutation(
-    [MutationKeys.RECOVERY_LOGIN],
-    recovery,
-    {
-      onSuccess: (data) => {
-        const { url, user } = data;
-        if (user && url) {
-          clearMFAStore();
-          setOpenIDStore({ openIDRedirect: true });
-          window.location.replace(url);
-          return;
-        }
-        if (user) {
-          clearMFAStore();
-          logIn(user);
-        }
-      },
-      onError: (err) => {
-        console.error(err);
-        toaster.error('Recovery code invalid.');
-      },
-    }
-  );
+  const { mutate, isLoading } = useMutation([MutationKeys.RECOVERY_LOGIN], recovery, {
+    onSuccess: (data) => loginSubject.next(data),
+    onError: (err) => {
+      console.error(err);
+      toaster.error('Recovery code invalid.');
+    },
+  });
 
   const schema = yup
     .object()

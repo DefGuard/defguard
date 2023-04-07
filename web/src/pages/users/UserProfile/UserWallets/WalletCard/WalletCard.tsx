@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
@@ -32,11 +32,7 @@ interface Props {
   showMFA?: boolean;
 }
 
-export const WalletCard = ({
-  wallet,
-  connected = false,
-  showMFA = false,
-}: Props) => {
+export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props) => {
   const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const setModalsState = useModalStore((state) => state.setState);

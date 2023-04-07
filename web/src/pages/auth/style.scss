@@ -27,8 +27,8 @@
     height: 100%;
 
     img {
-	width: 250px;
-	height: 100px;
+      width: 250px;
+      height: 100px;
     }
 
     @include media-breakpoint-up(lg) {
@@ -41,5 +41,4 @@
     width: 100%;
     grid-row: 1;
   }
-
 }

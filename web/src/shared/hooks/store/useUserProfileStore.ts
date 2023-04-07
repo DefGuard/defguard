@@ -1,5 +1,5 @@
 import { Subject } from 'rxjs';
-import create from 'zustand';
+import { create } from 'zustand';
 
 import { User } from '../../types';
 

@@ -1162,7 +1162,7 @@ type RootTranslation = {
 			 */
 			users: string
 			/**
-			 * Y​u​b​i​k​e​y​ ​P​r​o​v​i​s​i​o​n​e​r​s
+			 * Y​u​b​i​k​e​y
 			 */
 			provisioners: string
 			/**
@@ -1200,7 +1200,7 @@ type RootTranslation = {
 			 */
 			user: string
 			/**
-			 * Y​u​b​i​k​e​y​ ​P​r​o​v​i​s​i​o​n​e​r​s
+			 * Y​u​b​i​k​e​y
 			 */
 			provisioners: string
 			/**
@@ -3683,7 +3683,7 @@ export type TranslationFunctions = {
 			 */
 			users: () => LocalizedString
 			/**
-			 * Yubikey Provisioners
+			 * Yubikey
 			 */
 			provisioners: () => LocalizedString
 			/**
@@ -3721,7 +3721,7 @@ export type TranslationFunctions = {
 			 */
 			user: () => LocalizedString
 			/**
-			 * Yubikey Provisioners
+			 * Yubikey
 			 */
 			provisioners: () => LocalizedString
 			/**

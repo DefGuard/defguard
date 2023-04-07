@@ -8,12 +8,7 @@ interface Props extends HTMLMotionProps<'label'> {
   colon?: boolean;
 }
 
-export const Label = ({
-  children,
-  className,
-  colon = true,
-  ...rest
-}: Props) => {
+export const Label = ({ children, className, colon = true, ...rest }: Props) => {
   const cn = useMemo(() => classNames(className), [className]);
 
   return (

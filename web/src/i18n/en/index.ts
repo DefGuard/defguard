@@ -243,8 +243,7 @@ const en: BaseTranslation = {
       infoBox: `The selected provisioner must have a <b>clean</b> YubiKey
                 plugged in be provisioned. To clean a used YubiKey
                 <b>gpg --card-edit </b> before provisioning.`,
-      selectionLabel:
-        'Select one of the following provisioners to provision a YubiKey:',
+      selectionLabel: 'Select one of the following provisioners to provision a YubiKey:',
       noData: {
         workers: 'No workers found, waiting...',
       },
@@ -526,7 +525,7 @@ const en: BaseTranslation = {
     bar: {
       overview: 'VPN Overview',
       users: 'Users',
-      provisioners: 'Yubikey Provisioners',
+      provisioners: 'Yubikey',
       webhooks: 'Webhooks',
       openId: 'OpenID Apps',
       myProfile: 'My Profile',
@@ -537,7 +536,7 @@ const en: BaseTranslation = {
       users: 'Users',
       settings: 'Defguard Global Settings',
       user: 'User Profile',
-      provisioners: 'Yubikey Provisioners',
+      provisioners: 'Yubikey',
       webhooks: 'Webhooks',
       openId: 'OpenId Apps',
       overview: 'Network Overview',
@@ -551,7 +550,7 @@ const en: BaseTranslation = {
     copy: 'Copy',
     saveChanges: 'Save changes',
     submit: 'Submit',
-		login: 'Sign in',
+    login: 'Sign in',
     cancel: 'Cancel',
     close: 'Close',
     placeholders: {
@@ -654,12 +653,12 @@ const en: BaseTranslation = {
           },
           mainLogoUrl: {
             label: 'Login logo url',
-						helper: '<p>Maximum picture size is 250x100  px</p>',
+            helper: '<p>Maximum picture size is 250x100  px</p>',
             placeholder: 'Default image',
           },
           navLogoUrl: {
             label: 'Menu & navigation small logo',
-						helper: '<p>Maximum picture size is 100x100 px</p>',
+            helper: '<p>Maximum picture size is 100x100 px</p>',
             placeholder: 'Default image',
           },
         },
@@ -918,8 +917,7 @@ const en: BaseTranslation = {
     header: '{name: string} would like to:',
     scopes: {
       openid: 'Use your profile data for future logins.',
-      profile:
-        'Know basic information from your profile like name, profile picture etc.',
+      profile: 'Know basic information from your profile like name, profile picture etc.',
       email: 'Know your email address.',
       phone: 'Know your phone number.',
     },
@@ -1041,8 +1039,7 @@ const en: BaseTranslation = {
         useRecoveryCode: 'Use recovery code instead',
       },
       totp: {
-        header:
-          'Use code from your authentication app and click button to proceed.',
+        header: 'Use code from your authentication app and click button to proceed.',
         form: {
           fields: {
             code: {
@@ -1055,8 +1052,7 @@ const en: BaseTranslation = {
         },
       },
       recoveryCode: {
-        header:
-          'Enter one of active recovery codes and click button to log in.',
+        header: 'Enter one of active recovery codes and click button to log in.',
         form: {
           fields: {
             code: {
