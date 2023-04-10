@@ -20,7 +20,7 @@ import {
 } from '../../../shared/components/layout/EditButton/EditButtonOption';
 import LoaderSpinner from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../../shared/components/layout/NoData/NoData';
-import PageContainer from '../../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../../shared/components/layout/PageContainer/PageContainer';
 import { Search } from '../../../shared/components/layout/Search/Search';
 import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
 import {
@@ -256,7 +256,7 @@ export const OpenidClientsListPage = () => {
       <section className="actions">
         <div className="clients-count">
           <span>{LL.openidOverview.clientCount()}</span>
-          <div className="count" data-test="clients-count">
+          <div className="count" data-testid="clients-count">
             <span>{clients && clients.length > 0 ? clients.length : 0}</span>
           </div>
         </div>

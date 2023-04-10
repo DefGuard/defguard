@@ -143,7 +143,7 @@ export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props
         <AvatarBox>
           <IconEth />
         </AvatarBox>
-        <h3 data-test="wallet-name">{wallet.name}</h3>
+        <h3 data-testid="wallet-name">{wallet.name}</h3>
         {connected && (
           <Badge text="Connected" styleVariant={BadgeStyleVariant.STANDARD} />
         )}
@@ -156,7 +156,7 @@ export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props
       </div>
       <div className="bottom">
         <Label>{LL.userPage.wallets.card.address()}</Label>
-        <p data-test="wallet-address">{wallet.address}</p>
+        <p data-testid="wallet-address">{wallet.address}</p>
       </div>
     </Card>
   );

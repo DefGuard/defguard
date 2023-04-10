@@ -1154,6 +1154,10 @@ type RootTranslation = {
 	navigation: {
 		bar: {
 			/**
+			 * V​P​N​ ​W​i​z​a​r​d
+			 */
+			wizard: string
+			/**
 			 * V​P​N​ ​O​v​e​r​v​i​e​w
 			 */
 			overview: string
@@ -1187,6 +1191,10 @@ type RootTranslation = {
 			logOut: string
 		}
 		mobileTitles: {
+			/**
+			 * V​P​N​ ​W​i​z​a​r​d
+			 */
+			wizard: string
 			/**
 			 * U​s​e​r​s
 			 */
@@ -2453,26 +2461,54 @@ type RootTranslation = {
 		}
 	}
 	wizard: {
+		welcome: {
+			/**
+			 * W​e​l​c​o​m​e​ ​t​o​ ​d​e​f​g​u​a​r​d​!
+			 */
+			header: string
+			/**
+			 * B​e​f​o​r​e​ ​y​o​u​ ​s​t​a​r​t​,​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​n​e​t​w​o​r​k​ ​e​n​v​i​r​o​n​m​e​n​t​ ​f​i​r​s​t​.​ ​W​h​e​n​ ​i​n​ ​d​o​u​b​t​ ​h​o​v​e​r​ ​o​n​ ​<​R​e​a​c​t​>​ ​i​c​o​n​.
+			 */
+			sub: string
+		}
 		navigation: {
+			/**
+			 * N​e​t​w​o​r​k​ ​s​e​t​u​p
+			 */
+			top: string
 			titles: {
 				/**
-				 * W​i​z​a​r​d​ ​t​y​p​e
+				 * N​e​t​w​o​r​k​ ​s​e​t​u​p
 				 */
-				step1: string
+				welcome: string
 				/**
-				 * N​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 * C​h​o​s​e​ ​n​e​t​w​o​r​k​ ​s​e​t​u​p
 				 */
-				step2: string
+				choseNetworkSetup: string
 				/**
-				 * D​e​v​i​c​e​s
+				 * I​m​p​o​r​t​ ​e​x​i​s​t​i​n​g​ ​n​e​t​w​o​r​k
 				 */
-				step3: string
+				importConfig: string
+				/**
+				 * C​o​n​f​i​g​u​r​e​ ​n​e​t​w​o​r​k
+				 */
+				manualConfig: string
+			}
+			buttons: {
+				/**
+				 * N​e​x​t
+				 */
+				next: string
+				/**
+				 * B​a​c​k
+				 */
+				back: string
 			}
 		}
 		wizardType: {
 			manual: {
 				/**
-				 * M​a​n​u​a​l
+				 * M​a​n​u​a​l​ ​C​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				title: string
 				/**
@@ -2482,7 +2518,7 @@ type RootTranslation = {
 			}
 			'import': {
 				/**
-				 * I​m​p​o​r​t
+				 * I​m​p​o​r​t​ ​F​r​o​m​ ​F​i​l​e
 				 */
 				title: string
 				/**
@@ -3675,6 +3711,10 @@ export type TranslationFunctions = {
 	navigation: {
 		bar: {
 			/**
+			 * VPN Wizard
+			 */
+			wizard: () => LocalizedString
+			/**
 			 * VPN Overview
 			 */
 			overview: () => LocalizedString
@@ -3708,6 +3748,10 @@ export type TranslationFunctions = {
 			logOut: () => LocalizedString
 		}
 		mobileTitles: {
+			/**
+			 * VPN Wizard
+			 */
+			wizard: () => LocalizedString
 			/**
 			 * Users
 			 */
@@ -4964,26 +5008,54 @@ export type TranslationFunctions = {
 		}
 	}
 	wizard: {
+		welcome: {
+			/**
+			 * Welcome to defguard!
+			 */
+			header: () => LocalizedString
+			/**
+			 * Before you start, you need to setup your network environment first. When in doubt hover on <React> icon.
+			 */
+			sub: () => LocalizedString
+		}
 		navigation: {
+			/**
+			 * Network setup
+			 */
+			top: () => LocalizedString
 			titles: {
 				/**
-				 * Wizard type
+				 * Network setup
 				 */
-				step1: () => LocalizedString
+				welcome: () => LocalizedString
 				/**
-				 * Network configuration
+				 * Chose network setup
 				 */
-				step2: () => LocalizedString
+				choseNetworkSetup: () => LocalizedString
 				/**
-				 * Devices
+				 * Import existing network
 				 */
-				step3: () => LocalizedString
+				importConfig: () => LocalizedString
+				/**
+				 * Configure network
+				 */
+				manualConfig: () => LocalizedString
+			}
+			buttons: {
+				/**
+				 * Next
+				 */
+				next: () => LocalizedString
+				/**
+				 * Back
+				 */
+				back: () => LocalizedString
 			}
 		}
 		wizardType: {
 			manual: {
 				/**
-				 * Manual
+				 * Manual Configuration
 				 */
 				title: () => LocalizedString
 				/**
@@ -4993,7 +5065,7 @@ export type TranslationFunctions = {
 			}
 			'import': {
 				/**
-				 * Import
+				 * Import From File
 				 */
 				title: () => LocalizedString
 				/**

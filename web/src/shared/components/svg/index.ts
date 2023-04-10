@@ -25,6 +25,7 @@ export { default as Avatar12Gray } from './Avatar12Gray';
 export { default as DefguadNavLogoCollapsed } from './DefguadNavLogoCollapsed';
 export { default as DefguardLogoLogin } from './DefguardLogoLogin';
 export { default as DefguardNavLogo } from './DefguardNavLogo';
+export { default as DefguardNoIcon } from './DefguardNoIcon';
 export { default as DefguardLogo } from './DefguardLogo';
 export { default as GlowIcon } from './GlowIcon';
 export { default as Icon24HConnections } from './Icon24HConnections';

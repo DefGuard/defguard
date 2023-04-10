@@ -270,7 +270,6 @@ export interface ImportedDevice {
   name: string;
   wireguard_ip: string;
   wireguard_pubkey: string;
-  // TODO: don't use -1 user_id
   user_id: number;
 }
 

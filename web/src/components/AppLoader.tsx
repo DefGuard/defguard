@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 // eslint-disable-next-line import/no-unresolved
 import { navigatorDetector } from 'typesafe-i18n/detectors';
 import { shallow } from 'zustand/shallow';
@@ -12,6 +12,7 @@ import LoaderPage from '../pages/loader/LoaderPage';
 import { isUserAdmin } from '../shared/helpers/isUserAdmin';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
+import { useNavigationStore } from '../shared/hooks/store/useNavigationStore';
 import useApi from '../shared/hooks/useApi';
 import { useToaster } from '../shared/hooks/useToaster';
 import { QueryKeys } from '../shared/queries';
@@ -31,31 +32,40 @@ export const AppLoader = () => {
     user: { getMe },
     settings: { getSettings },
     license: { getLicense },
+    network: { getNetworks },
   } = useApi();
+  const [userLoading, setUserLoading] = useState(true);
   const { setLocale } = useI18nContext();
   const localLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setAppStore);
+  const setNavigation = useNavigationStore((state) => state.setState);
   const license = useAppStore((state) => state.license);
   const { LL } = useI18nContext();
 
-  const { isLoading: currentUserLoading, isInitialLoading } = useQuery(
-    [QueryKeys.FETCH_ME],
-    getMe,
-    {
-      onSuccess: (user) => {
-        const isAdmin = isUserAdmin(user);
-        setAuthState({ isAdmin, user });
-      },
-      onError: () => {
-        if (currentUser) {
-          resetAuthState();
+  useQuery([QueryKeys.FETCH_ME], getMe, {
+    onSuccess: async (user) => {
+      const isAdmin = isUserAdmin(user);
+      if (isAdmin) {
+        const networks = await getNetworks();
+        if (networks.length === 0) {
+          setNavigation({ enableWizard: true });
+        } else {
+          setNavigation({ enableWizard: false });
         }
-      },
-      refetchOnMount: true,
-      refetchOnWindowFocus: false,
-      retry: false,
-    }
-  );
+      }
+      setAuthState({ isAdmin, user });
+      setUserLoading(false);
+    },
+    onError: () => {
+      if (currentUser) {
+        resetAuthState();
+      }
+      setUserLoading(false);
+    },
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
   useQuery([QueryKeys.FETCH_APP_VERSION], getVersion, {
     onSuccess: (data) => {
@@ -114,14 +124,12 @@ export const AppLoader = () => {
     }
   }, [appSettings]);
 
-  if (!isInitialLoading) {
-    if (
-      currentUserLoading ||
-      (settingsLoading && isUndefined(appSettings)) ||
-      (licenseLoading && isUndefined(license))
-    )
-      return <LoaderPage />;
-  }
+  if (
+    userLoading ||
+    (settingsLoading && isUndefined(appSettings)) ||
+    (licenseLoading && isUndefined(license))
+  )
+    return <LoaderPage />;
 
   return (
     <Suspense fallback={<LoaderPage />}>

@@ -523,6 +523,7 @@ const en: BaseTranslation = {
   },
   navigation: {
     bar: {
+      wizard: 'VPN Wizard',
       overview: 'VPN Overview',
       users: 'Users',
       provisioners: 'Yubikey',
@@ -533,6 +534,7 @@ const en: BaseTranslation = {
       logOut: 'Log out',
     },
     mobileTitles: {
+      wizard: 'VPN Wizard',
       users: 'Users',
       settings: 'Defguard Global Settings',
       user: 'User Profile',
@@ -1088,20 +1090,30 @@ const en: BaseTranslation = {
     },
   },
   wizard: {
+    welcome: {
+      header: 'Welcome to defguard!',
+      sub: 'Before you start, you need to setup your network environment first. When in doubt hover on <React> icon.',
+    },
     navigation: {
+      top: 'Network setup',
       titles: {
-        step1: 'Wizard type',
-        step2: 'Network configuration',
-        step3: 'Devices',
+        welcome: 'Network setup',
+        choseNetworkSetup: 'Chose network setup',
+        importConfig: 'Import existing network',
+        manualConfig: 'Configure network',
+      },
+      buttons: {
+        next: 'Next',
+        back: 'Back',
       },
     },
     wizardType: {
       manual: {
-        title: 'Manual',
+        title: 'Manual Configuration',
         description: 'Manual network configuration',
       },
       import: {
-        title: 'Import',
+        title: 'Import From File',
         description: 'Import from WireGuard config file',
       },
       createNetwork: 'Create WireGuard network',

@@ -10,7 +10,7 @@ import { useI18nContext } from '../../i18n/i18n-react';
 import Button, { ButtonStyleVariant } from '../../shared/components/layout/Button/Button';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
-import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
 import useApi from '../../shared/hooks/useApi';

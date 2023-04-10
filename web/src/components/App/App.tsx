@@ -14,7 +14,7 @@ import { UsersPage } from '../../pages/users/UsersPage';
 import { UsersSharedModals } from '../../pages/users/UsersSharedModals';
 import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 import { WizardPage } from '../../pages/wizard/WizardPage';
-import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';

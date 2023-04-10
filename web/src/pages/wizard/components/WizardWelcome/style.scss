@@ -1,21 +1,39 @@
 @use '@scss/helpers' as *;
 
 #wizard-welcome {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: flex-start;
   box-sizing: border-box;
-  padding: 0 20px;
+  padding: 50px 88px;
 
-  & > h1 {
-    width: 100%;
-    text-align: center;
-    margin-top: 50px;
+  & > header {
+    @include typography(20px, 30px, semiBold, var(--text-main), 'Poppins');
+
     margin-bottom: 20px;
-    @include typography(26px, 28px, semiBold, var(--text-main), 'Poppins');
-    @include media-breakpoint-up(lg) {
-      @include typography(28px, 42px, semiBold, var(--text-main), 'Poppins');
+  }
+
+  & > p {
+    @include list-text;
+
+    color: var(--gray-light);
+    max-width: 345px;
+    white-space: normal;
+    text-align: center;
+    margin-bottom: 100px;
+
+    & > svg {
+      transform: scale(66.67%) translateY(25%);
     }
   }
 
+  & > .btn {
+    width: 100%;
+  }
   @include media-breakpoint-up(lg) {
-    padding: 80px 40px 70px;
+    width: 520px !important;
+    margin-top: 180px;
+    height: 380px;
   }
 }

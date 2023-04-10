@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import Divider from '../../../shared/components/layout/Divider/Divider';
+import { Divider } from '../../../shared/components/layout/Divider/Divider';
 import Modal from '../../../shared/components/layout/Modal/Modal';
 import SvgDefguadNavLogo from '../../../shared/components/svg/DefguadNavLogo';
 import SvgIconEdit from '../../../shared/components/svg/IconEditAlt';

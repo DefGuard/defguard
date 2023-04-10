@@ -54,7 +54,6 @@ export const AuthPage = () => {
 
   useEffect(() => {
     const sub = loginSubject.subscribe(async ({ user, url, mfa }) => {
-      console.log({ user, url, mfa, openIdParams, toStrin: openIdParams?.toString() });
       // handle openid scenarios first
 
       // user authenticated but app needs consent

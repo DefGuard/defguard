@@ -84,7 +84,7 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
             </div>
           </div>
           {breakpoint === 'desktop' && (
-            <div className="info network-usage" data-test="network-usage">
+            <div className="info network-usage" data-testid="network-usage">
               <span className="info-title">
                 {LL.networkOverview.stats.totalTransfer()}
               </span>
@@ -96,7 +96,7 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
                   <NetworkSpeed
                     speedValue={networkStats.download}
                     direction={NetworkDirection.DOWNLOAD}
-                    data-test="download"
+                    data-testid="download"
                   />
                 </div>
                 <div className="network-usage">
@@ -106,7 +106,7 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
                   <NetworkSpeed
                     speedValue={networkStats.upload}
                     direction={NetworkDirection.UPLOAD}
-                    data-test="upload"
+                    data-testid="upload"
                   />
                 </div>
               </div>

@@ -8,7 +8,7 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import Divider from '../../shared/components/layout/Divider/Divider';
+import { Divider } from '../../shared/components/layout/Divider/Divider';
 import IconButton from '../../shared/components/layout/IconButton/IconButton';
 import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
 import SvgDefguadNavLogoCollapsed from '../../shared/components/svg/DefguadNavLogoCollapsed';
@@ -41,7 +41,7 @@ export interface NavigationItem {
 
 export const Navigation = () => {
   const { LL, locale } = useI18nContext();
-  const [currentUser, storeLogOut] = useAuthStore(
+  const [currentUser, resetAuthStore] = useAuthStore(
     (state) => [state.user, state.resetState],
     shallow
   );
@@ -50,12 +50,13 @@ export const Navigation = () => {
     (state) => [state.isNavigationOpen, state.setNavigationOpen, state.user],
     shallow
   );
+  const [enableWizard] = useNavigationStore((state) => [state.enableWizard], shallow);
   const {
     auth: { logout },
   } = useApi();
   const logOutMutation = useMutation(logout, {
     onSuccess: () => {
-      storeLogOut();
+      resetAuthStore();
     },
   });
 
@@ -100,7 +101,14 @@ export const Navigation = () => {
         linkPath: '/admin/overview',
         icon: <SvgIconNavVpn />,
         allowedToView: ['admin'],
-        enabled: settings?.wireguard_enabled,
+        enabled: settings?.wireguard_enabled && !enableWizard,
+      },
+      {
+        title: LL.navigation.bar.wizard(),
+        linkPath: '/admin/wizard',
+        icon: <SvgIconNavVpn />,
+        allowedToView: ['admin'],
+        enabled: settings?.wireguard_enabled && enableWizard,
       },
       {
         title: LL.navigation.bar.users(),

@@ -1,27 +1,24 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
+import parse from 'html-react-parser';
 import { orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
 import { NoLicenseBox } from '../../shared/components/layout/NoLicenseBox/NoLicenseBox';
-import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { Search } from '../../shared/components/layout/Search/Search';
-import {
-  Select,
-  SelectOption,
-} from '../../shared/components/layout/Select/Select';
+import { Select, SelectOption } from '../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { ProvisionersList } from './ProvisionersList/ProvisionersList';
 import { ProvisioningStationSetup } from './ProvisioningStationSetup';
-import { useI18nContext } from '../../i18n/i18n-react';
-import parse from 'html-react-parser';
 
 export const ProvisionersPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -73,9 +70,7 @@ export const ProvisionersPage = () => {
 
   const filteredProvisioners = useMemo(() => {
     let res = orderBy(provisioners, ['id'], ['desc']);
-    res = res.filter((p) =>
-      p.id.toLowerCase().includes(searchValue.toLowerCase())
-    );
+    res = res.filter((p) => p.id.toLowerCase().includes(searchValue.toLowerCase()));
     switch (selectedFilterOption.value) {
       case FilterOptions.ALL:
         break;
@@ -90,10 +85,7 @@ export const ProvisionersPage = () => {
   }, [provisioners, searchValue, selectedFilterOption.value]);
 
   useEffect(() => {
-    if (
-      breakpoint !== 'desktop' &&
-      selectedFilterOption.value === FilterOptions.ALL
-    ) {
+    if (breakpoint !== 'desktop' && selectedFilterOption.value === FilterOptions.ALL) {
       setSelectedFilterOption(filterSelectOptions[0]);
     }
   }, [breakpoint, selectedFilterOption.value]);
@@ -138,11 +130,8 @@ export const ProvisionersPage = () => {
             <ProvisionersList provisioners={filteredProvisioners} />
           )}
         {!isLoading &&
-          ((hasAccess && !filteredProvisioners) ||
-          filteredProvisioners.length === 0 ? (
-            <NoData
-              customMessage={LL.provisionersOverview.noProvisionersFound()}
-            />
+          ((hasAccess && !filteredProvisioners) || filteredProvisioners.length === 0 ? (
+            <NoData customMessage={LL.provisionersOverview.noProvisionersFound()} />
           ) : null)}
         {!hasAccess && (
           <NoData customMessage={LL.provisionersOverview.noLicenseMessage()} />
@@ -157,9 +146,7 @@ export const ProvisionersPage = () => {
         {hasAccess ? (
           <ProvisioningStationSetup hasAccess={hasAccess} />
         ) : (
-          <NoLicenseBox>
-            {parse(LL.provisionersOverview.noLicenseBox())}
-          </NoLicenseBox>
+          <NoLicenseBox>{parse(LL.provisionersOverview.noLicenseBox())}</NoLicenseBox>
         )}
       </div>
     </PageContainer>

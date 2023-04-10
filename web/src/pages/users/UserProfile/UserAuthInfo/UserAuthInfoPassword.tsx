@@ -3,7 +3,7 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
-import Divider from '../../../../shared/components/layout/Divider/Divider';
+import { Divider } from '../../../../shared/components/layout/Divider/Divider';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 
@@ -11,9 +11,7 @@ export const UserAuthInfoPassword = () => {
   const { LL } = useI18nContext();
   const user = useUserProfileStore((store) => store.user);
   const editMode = useUserProfileStore((store) => store.editMode);
-  const setChangePasswordModal = useModalStore(
-    (state) => state.setChangePasswordModal
-  );
+  const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
 
   if (!editMode) return null;
   return (

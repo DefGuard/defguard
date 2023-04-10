@@ -8,7 +8,7 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../shared/components/layout/Button/Button';
-import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconCheckmarkWhite } from '../../shared/components/svg';
 import { useNetworkPageStore } from './hooks/useNetworkPageStore';
 import { NetworkConfiguration } from './NetworkConfiguration/NetworkConfiguration';

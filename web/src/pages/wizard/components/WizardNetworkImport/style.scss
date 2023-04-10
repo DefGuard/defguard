@@ -1,0 +1,21 @@
+@use '@scss/helpers' as *;
+
+#wizard-network-import {
+  box-sizing: border-box;
+  padding: 55px;
+
+  & > form {
+    & > * {
+      width: 100%;
+    }
+
+    & > .message-box-container {
+      margin-bottom: 25px;
+    }
+
+    & > .upload {
+      width: 120px;
+      align-self: flex-start;
+    }
+  }
+}

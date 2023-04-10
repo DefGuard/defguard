@@ -125,7 +125,7 @@ export const UsersOverview = () => {
       <motion.section className="actions">
         <div className="items-count">
           <span>{LL.usersOverview.usersCount()}</span>
-          <div className="count" data-test="users-count">
+          <div className="count" data-testid="users-count">
             <span>{users && users.length ? users.length : 0}</span>
           </div>
         </div>

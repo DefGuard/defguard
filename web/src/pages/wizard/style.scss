@@ -1,126 +1,29 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/mixins' as mix;
-@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@scss/helpers' as *;
 
-#wizard {
-  background-color: v.$bg-light;
-  position: relative;
-  @include bs.media-breakpoint-down(xl) {
-    max-height: 100%;
-    overflow: hidden;
-    padding: 0;
-    height: 100%;
+#wizard-page {
+  #wizard-content {
+    position: relative;
+    @include media-breakpoint-up(lg) {
+      box-sizing: border-box;
+      padding: 54px 0;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: min-content;
+      min-height: 100%;
+      row-gap: 40px;
+      justify-items: center;
 
-    h1 {
-      &.step-name {
-        @include mix.typography(15px, 21px, semiBold);
-        @include mix.poppins;
-
-        text-transform: uppercase;
-        width: 100%;
-        text-align: center;
-        margin: 3rem 0;
+      & > * {
+        grid-column: 3 / 11;
       }
-    }
-  }
-  @include bs.media-breakpoint-up(xl) {
-    display: grid;
-    grid-template-rows: auto;
-    grid-template-columns: repeat(12, 1fr);
-    column-gap: 3rem;
-    height: 100%;
-    box-sizing: border-box;
-    max-width: 1920px;
-    max-height: 100%;
-    overflow: auto;
-    margin-right: 0.6rem;
-  }
 
-  & > .content {
-    @include bs.media-breakpoint-down(xl) {
-      height: 100%;
-    }
-    @include bs.media-breakpoint-up(xl) {
-      grid-row: 1;
-      grid-column: 1 / span 12;
-      height: 100%;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-content: center;
-      align-items: center;
-      justify-content: flex-start;
-    }
-
-    #wizard-logo {
-      height: 45px;
-      width: 100%;
-      margin-bottom: 10rem;
-      margin-top: 3rem;
-    }
-
-    .steps-container {
-      display: flex;
-      flex-direction: column;
-      align-content: center;
-      align-items: center;
-      justify-content: flex-start;
-      @include bs.media-breakpoint-down(xl) {
-        height: 100%;
-        width: 100%;
-
-        & > .container-basic {
-          border-radius: 0;
-          box-shadow: none;
-          height: 100%;
-        }
+      & > .card {
+        width: calc(100% - 50px);
+        max-width: 955px;
       }
-      @include bs.media-breakpoint-up(xl) {
-        height: auto;
-        width: 100%;
 
-        .container-basic {
-          justify-content: center !important;
-          margin-bottom: 4rem;
-        }
-      }
-    }
-    @include bs.media-breakpoint-up(xl) {
-      grid-column: 3 / span 8;
-    }
-    @include bs.media-breakpoint-up(xxl) {
-      grid-column: 4 / span 6;
-    }
-  }
-
-  &.center {
-    & > .content {
-      justify-content: center;
-
-      #wizard-logo {
-        margin-bottom: 6rem;
-        margin-top: 0;
-        justify-content: center;
-        width: 100%;
-      }
-      @include bs.media-breakpoint-up(xl) {
-        .steps-container {
-          height: auto;
-        }
-      }
-    }
-    @include bs.media-breakpoint-up(lg) {
-      grid-column: 5 / span 4;
-    }
-  }
-  @include bs.media-breakpoint-up(xl) {
-    padding: 0 3.3rem;
-  }
-
-  form {
-    input {
-      &.visually-hidden {
-        @include mix.visually-hidden;
+      .card {
+        box-shadow: 0 12px 24px rgb(0 0 0 / 8%) !important;
       }
     }
   }

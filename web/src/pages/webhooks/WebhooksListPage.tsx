@@ -20,7 +20,7 @@ import {
 } from '../../shared/components/layout/EditButton/EditButtonOption';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
-import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { Search } from '../../shared/components/layout/Search/Search';
 import { Select, SelectOption } from '../../shared/components/layout/Select/Select';
 import {

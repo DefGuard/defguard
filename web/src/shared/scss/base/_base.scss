@@ -1,6 +1,7 @@
 @use './fonts';
 @use './variables' as v;
 @use './scrollbar';
+@use '../helpers/' as *;
 
 html,
 body,
@@ -153,4 +154,9 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
+}
+
+.visually-hidden,
+.hidden {
+  @include visually-hidden;
 }

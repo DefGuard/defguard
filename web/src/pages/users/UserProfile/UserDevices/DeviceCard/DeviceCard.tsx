@@ -69,7 +69,7 @@ export const DeviceCard = ({ device }: Props) => {
         <AvatarBox>
           <DeviceAvatar deviceId={Number(device.id)} />
         </AvatarBox>
-        <h3 data-test="device-name">{device.name}</h3>
+        <h3 data-testid="device-name">{device.name}</h3>
       </header>
       <div className="content">
         <div className="info">
