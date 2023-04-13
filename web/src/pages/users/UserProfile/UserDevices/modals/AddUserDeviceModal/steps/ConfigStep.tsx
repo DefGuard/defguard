@@ -32,11 +32,7 @@ export const ConfigStep = () => {
 
   const expandableCardActions = useMemo(() => {
     return [
-      <ActionButton
-        variant={ActionButtonVariant.QRCODE}
-        key={1}
-        forcedActive={true}
-      />,
+      <ActionButton variant={ActionButtonVariant.QRCODE} key={1} forcedActive={true} />,
       <ActionButton
         variant={ActionButtonVariant.COPY}
         key={2}

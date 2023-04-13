@@ -32,6 +32,7 @@ import {
 import { IconCheckmarkGreen, IconDeactivated } from '../../../shared/components/svg';
 import SvgIconPlusWhite from '../../../shared/components/svg/IconPlusWhite';
 import { deviceBreakpoints } from '../../../shared/constants';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -41,7 +42,7 @@ import { OpenidClient } from '../../../shared/types';
 import { OpenIdClientModal } from '../modals/OpenIdClientModal/OpenIdClientModal';
 
 export const OpenidClientsListPage = () => {
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -50,29 +51,30 @@ export const OpenidClientsListPage = () => {
   const [searchValue, setSearchValue] = useState('');
   const {
     openid: { getOpenidClients, changeOpenidClientState, deleteOpenidClient },
-    license: { getLicense },
   } = useApi();
+  const license = useAppStore((state) => state.license);
   const setOpenIdClientModalState = useModalStore((state) => state.setOpenIdClientModal);
 
-  const { data: license } = useQuery([QueryKeys.FETCH_LICENSE], getLicense);
-
-  const selectOptions: SelectOption<FilterOption>[] = [
-    {
-      key: 1,
-      label: LL.openidOverview.filterLabels.all(),
-      value: FilterOption.ALL,
-    },
-    {
-      key: 3,
-      label: LL.openidOverview.filterLabels.enabled(),
-      value: FilterOption.ENABLED,
-    },
-    {
-      key: 2,
-      label: LL.openidOverview.filterLabels.disabled(),
-      value: FilterOption.DISABLED,
-    },
-  ];
+  const selectOptions = useMemo(
+    (): SelectOption<FilterOption>[] => [
+      {
+        key: 1,
+        label: LL.openidOverview.filterLabels.all(),
+        value: FilterOption.ALL,
+      },
+      {
+        key: 3,
+        label: LL.openidOverview.filterLabels.enabled(),
+        value: FilterOption.ENABLED,
+      },
+      {
+        key: 2,
+        label: LL.openidOverview.filterLabels.disabled(),
+        value: FilterOption.DISABLED,
+      },
+    ],
+    [LL]
+  );
 
   const [selectedFilter, setSelectedFilter] = useState(selectOptions[0]);
 
@@ -161,7 +163,7 @@ export const OpenidClientsListPage = () => {
       },
     ];
     return res;
-  }, [locale]);
+  }, [LL.openidOverview.list.headers]);
 
   const listCells = useMemo(() => {
     const res: ListRowCell<OpenidClient>[] = [
@@ -220,7 +222,12 @@ export const OpenidClientsListPage = () => {
       },
     ];
     return res;
-  }, [editClientStatusMutation, setOpenIdClientModalState]);
+  }, [
+    LL.openidOverview.list.editButton,
+    LL.openidOverview.list.status,
+    editClientStatusMutation,
+    setOpenIdClientModalState,
+  ]);
 
   const getListPadding = useMemo(() => {
     if (breakpoint === 'desktop') {
@@ -239,7 +246,7 @@ export const OpenidClientsListPage = () => {
     if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOption.ALL) {
       setSelectedFilter(selectOptions[0]);
     }
-  }, [breakpoint, selectedFilter.value]);
+  }, [breakpoint, selectOptions, selectedFilter.value]);
 
   return (
     <PageContainer id="openid-clients-list">

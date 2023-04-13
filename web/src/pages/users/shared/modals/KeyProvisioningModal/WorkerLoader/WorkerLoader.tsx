@@ -23,12 +23,7 @@ interface Props {
   keyData?: Pick<WorkerJobStatus, 'pgp_cert_id' | 'pgp_key' | 'ssh_key'>;
 }
 
-const WorkerLoader: React.FC<Props> = ({
-  setIsOpen,
-  succeeded,
-  keyData,
-  errorData,
-}) => {
+const WorkerLoader: React.FC<Props> = ({ setIsOpen, succeeded, keyData, errorData }) => {
   const user = useModalStore((state) => state.provisionKeyModal.user);
 
   const handleDownloadAll = () => {
@@ -83,24 +78,16 @@ const WorkerLoader: React.FC<Props> = ({
         >
           <p className="title">Success!</p>
           <p className="sub-title">
-            Yubikey provisioning for {`${user?.first_name} ${user?.last_name}`}{' '}
-            has been completed.
+            Yubikey provisioning for {`${user?.first_name} ${user?.last_name}`} has been
+            completed.
           </p>
           {keyData && keyData.pgp_key && keyData.ssh_key ? (
             <ul>
               <li>
-                <KeyBox
-                  collapsible
-                  keyValue={keyData?.pgp_key}
-                  title="PGP key"
-                />
+                <KeyBox collapsible keyValue={keyData?.pgp_key} title="PGP key" />
               </li>
               <li>
-                <KeyBox
-                  collapsible
-                  keyValue={keyData?.ssh_key}
-                  title="SSH key"
-                />
+                <KeyBox collapsible keyValue={keyData?.ssh_key} title="SSH key" />
               </li>
             </ul>
           ) : null}
@@ -131,8 +118,8 @@ const WorkerLoader: React.FC<Props> = ({
         >
           <p className="title">Error!</p>
           <p className="sub-title">
-            Yubikey provisioning for {`${user?.first_name} ${user?.last_name}`}{' '}
-            has failed.
+            Yubikey provisioning for {`${user?.first_name} ${user?.last_name}`} has
+            failed.
           </p>
           <MessageBox type={MessageBoxType.ERROR}>
             <p>{errorData}</p>

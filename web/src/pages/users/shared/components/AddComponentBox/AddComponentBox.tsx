@@ -13,11 +13,7 @@ interface Props {
   disabled?: boolean;
 }
 
-export const AddComponentBox = ({
-  callback,
-  text,
-  disabled = false,
-}: Props) => {
+export const AddComponentBox = ({ callback, text, disabled = false }: Props) => {
   const [hovered, setHovered] = useState(false);
 
   const cn = useMemo(

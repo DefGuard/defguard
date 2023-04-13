@@ -5,7 +5,10 @@
     box-sizing: border-box;
     overflow-y: auto;
     display: grid;
-    grid-template: 1fr auto auto 'left'
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      'left'
       'right';
     position: relative;
     padding: 3rem 1.5rem;
@@ -13,7 +16,10 @@
 
     @include media-breakpoint-up(lg) {
       padding: 4rem 6rem;
-      grid-template: 1fr 1fr repeat(2, auto) 'header header'
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(2, auto);
+      grid-template-areas:
+        'header header'
         'left right';
       column-gap: 6rem;
       row-gap: 5rem;

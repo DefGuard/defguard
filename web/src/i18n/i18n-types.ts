@@ -1769,7 +1769,7 @@ type RootTranslation = {
 			openidClientModal: {
 				title: {
 					/**
-					 * A​d​d​ ​a​p​p​.
+					 * A​d​d​ ​A​p​p​l​i​c​a​t​i​o​n
 					 */
 					addApp: string
 					/**
@@ -2461,6 +2461,10 @@ type RootTranslation = {
 		}
 	}
 	wizard: {
+		/**
+		 * N​e​t​w​o​r​k​ ​s​e​t​u​p​ ​c​o​m​p​l​e​t​e​d
+		 */
+		completed: string
 		welcome: {
 			/**
 			 * W​e​l​c​o​m​e​ ​t​o​ ​d​e​f​g​u​a​r​d​!
@@ -2493,6 +2497,10 @@ type RootTranslation = {
 				 * C​o​n​f​i​g​u​r​e​ ​n​e​t​w​o​r​k
 				 */
 				manualConfig: string
+				/**
+				 * M​a​p​ ​i​m​p​o​r​t​e​d​ ​d​e​v​i​c​e​s
+				 */
+				mapDevices: string
 			}
 			buttons: {
 				/**
@@ -2503,6 +2511,28 @@ type RootTranslation = {
 				 * B​a​c​k
 				 */
 				back: string
+			}
+		}
+		deviceMap: {
+			/**
+			 * D​e​v​i​c​e​s​ ​a​d​d​e​d
+			 */
+			crateSuccess: string
+			list: {
+				headers: {
+					/**
+					 * D​e​v​i​c​e​ ​N​a​m​e
+					 */
+					deviceName: string
+					/**
+					 * I​P
+					 */
+					deviceIP: string
+					/**
+					 * U​s​e​r
+					 */
+					user: string
+				}
 			}
 		}
 		wizardType: {
@@ -4322,7 +4352,7 @@ export type TranslationFunctions = {
 			openidClientModal: {
 				title: {
 					/**
-					 * Add app.
+					 * Add Application
 					 */
 					addApp: () => LocalizedString
 					/**
@@ -5008,6 +5038,10 @@ export type TranslationFunctions = {
 		}
 	}
 	wizard: {
+		/**
+		 * Network setup completed
+		 */
+		completed: () => LocalizedString
 		welcome: {
 			/**
 			 * Welcome to defguard!
@@ -5040,6 +5074,10 @@ export type TranslationFunctions = {
 				 * Configure network
 				 */
 				manualConfig: () => LocalizedString
+				/**
+				 * Map imported devices
+				 */
+				mapDevices: () => LocalizedString
 			}
 			buttons: {
 				/**
@@ -5050,6 +5088,28 @@ export type TranslationFunctions = {
 				 * Back
 				 */
 				back: () => LocalizedString
+			}
+		}
+		deviceMap: {
+			/**
+			 * Devices added
+			 */
+			crateSuccess: () => LocalizedString
+			list: {
+				headers: {
+					/**
+					 * Device Name
+					 */
+					deviceName: () => LocalizedString
+					/**
+					 * IP
+					 */
+					deviceIP: () => LocalizedString
+					/**
+					 * User
+					 */
+					user: () => LocalizedString
+				}
 			}
 		}
 		wizardType: {

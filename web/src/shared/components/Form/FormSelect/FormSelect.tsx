@@ -1,15 +1,10 @@
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
-import {
-  FieldValues,
-  useController,
-  UseControllerProps,
-} from 'react-hook-form';
+import { FieldValues, useController, UseControllerProps } from 'react-hook-form';
 
 import { Select, SelectOption, SelectProps } from '../../layout/Select/Select';
 
-interface Props<T extends FieldValues, Y>
-  extends Omit<SelectProps<Y>, 'onChange'> {
+interface Props<T extends FieldValues, Y> extends Omit<SelectProps<Y>, 'onChange'> {
   controller: UseControllerProps<T>;
 }
 

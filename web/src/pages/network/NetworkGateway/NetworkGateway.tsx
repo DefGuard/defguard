@@ -101,9 +101,7 @@ export const NetworkGatewaySetup = () => {
                 loading={statusLoading}
                 onClick={() => {
                   if (!statusLoading) {
-                    queryClient.invalidateQueries([
-                      QueryKeys.FETCH_GATEWAY_STATUS,
-                    ]);
+                    queryClient.invalidateQueries([QueryKeys.FETCH_GATEWAY_STATUS]);
                   }
                 }}
               />

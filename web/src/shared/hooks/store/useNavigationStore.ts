@@ -23,7 +23,7 @@ export const useNavigationStore = create<NavigationStore>()(
     {
       version: 1.2,
       name: 'navigation-store',
-      partialize: (state) => pick(state, ['isNavigationOpen']),
+      partialize: (state) => pick(state, ['isNavigationOpen', 'enableWizard']),
     }
   )
 );

@@ -2,9 +2,7 @@ import { motion, SVGMotionProps } from 'framer-motion';
 
 import { ColorsRGB } from '../../../../constants';
 
-export const ActionButtonIconQRCode = (
-  props: SVGMotionProps<SVGSVGElement>
-) => {
+export const ActionButtonIconQRCode = (props: SVGMotionProps<SVGSVGElement>) => {
   return (
     <motion.svg
       xmlns="http://www.w3.org/2000/svg"

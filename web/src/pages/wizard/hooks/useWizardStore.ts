@@ -1,4 +1,4 @@
-import { omit } from 'lodash-es';
+import { cloneDeep, omit } from 'lodash-es';
 import { Subject } from 'rxjs';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -14,6 +14,7 @@ export const useWizardStore = create<WizardStore>()(
       setupType: WizardSetupType.MANUAL,
       importedNetworkDevices: undefined,
       submitSubject: new Subject<void>(),
+      nextStepSubject: new Subject<void>(),
       setState: (newState) => set((old) => ({ ...old, ...newState })),
       nextStep: () => set({ currentStep: get().currentStep + 1 }),
       perviousStep: () => {
@@ -21,12 +22,40 @@ export const useWizardStore = create<WizardStore>()(
           return set({ currentStep: get().currentStep - 1 });
         }
       },
+      mapDevice: (deviceIP, userId) => {
+        const clone = cloneDeep(get().importedNetworkDevices);
+        if (clone) {
+          const deviceIndex = clone.findIndex((d) => d.wireguard_ip === deviceIP);
+          const device = clone[deviceIndex];
+          if (device) {
+            device.user_id = userId;
+            clone[deviceIndex] = device;
+            return set({ importedNetworkDevices: clone });
+          }
+        }
+      },
+      resetState: () =>
+        set({
+          disableBack: false,
+          disableNext: false,
+          currentStep: 0,
+          setupType: WizardSetupType.MANUAL,
+          importedNetworkDevices: undefined,
+        }),
     }),
     {
       name: 'network-wizard',
       partialize: (store) =>
-        omit(store, ['setState', 'nextStep', 'perviousStep', 'submitSubject']),
-      storage: createJSONStorage(() => sessionStorage),
+        omit(store, [
+          'setState',
+          'resetState',
+          'nextStep',
+          'nextStepSubject',
+          'perviousStep',
+          'submitSubject',
+          'mapDevice',
+        ]),
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );
@@ -41,6 +70,7 @@ export type WizardStore = {
   disableNext: boolean;
   currentStep: number;
   submitSubject: Subject<void>;
+  nextStepSubject: Subject<void>;
   setupType?: WizardSetupType;
   importedNetworkConfig?: Network;
   manualNetworkConfig?: {
@@ -53,6 +83,8 @@ export type WizardStore = {
   };
   importedNetworkDevices?: ImportedDevice[];
   setState: (newState: Partial<WizardStore>) => void;
+  resetState: () => void;
   nextStep: () => void;
   perviousStep: () => void;
+  mapDevice: (deviceIP: string, userId: number) => void;
 };

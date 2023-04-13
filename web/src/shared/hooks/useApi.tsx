@@ -1,5 +1,4 @@
 import axios, { AxiosResponse } from 'axios';
-import { isNull } from 'lodash-es';
 
 import {
   AddOpenidClientRequest,
@@ -36,6 +35,7 @@ import {
   WorkerJobStatus,
   WorkerToken,
 } from '../types';
+import { removeNulls } from '../utils/removeNulls';
 import { useAppStore } from './store/useAppStore';
 
 interface HookProps {
@@ -76,14 +76,7 @@ const useApi = (props?: HookProps): ApiHook => {
     }
     // API sometimes returns null in optional fields.
     if (res.data) {
-      const keys = Object.keys(res.data);
-      if (keys && keys.length) {
-        keys.forEach((k) => {
-          if (isNull(res.data[k])) {
-            delete res.data[k];
-          }
-        });
-      }
+      res.data = removeNulls(res.data);
     }
     return res;
   });

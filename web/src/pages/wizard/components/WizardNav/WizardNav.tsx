@@ -1,5 +1,6 @@
 import './style.scss';
 
+import { useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -14,6 +15,8 @@ import {
 import { DefguardNoIcon } from '../../../../shared/components/svg';
 import SvgIconArrowGrayLeft from '../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../shared/components/svg/IconArrowGrayRight';
+import { useNavigationStore } from '../../../../shared/hooks/store/useNavigationStore';
+import { useToaster } from '../../../../shared/hooks/useToaster';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 interface Props {
@@ -23,13 +26,35 @@ interface Props {
 
 export const WizardNav = ({ title, lastStep }: Props) => {
   const { LL } = useI18nContext();
-  const backDisabled = useWizardStore((state) => state.disableBack);
-  const nextDisabled = useWizardStore((state) => state.disableNext);
-  const currentStep = useWizardStore((state) => state.currentStep);
-  const [back, submitSubject] = useWizardStore(
-    (state) => [state.perviousStep, state.submitSubject],
+  const toaster = useToaster();
+  const setNavigationState = useNavigationStore((state) => state.setState);
+  const [backDisabled, nextDisabled, currentStep] = useWizardStore(
+    (state) => [state.disableBack, state.disableNext, state.currentStep],
     shallow
   );
+  const [back, submitSubject, next, nextSubject, resetState] = useWizardStore(
+    (state) => [
+      state.perviousStep,
+      state.submitSubject,
+      state.nextStep,
+      state.nextStepSubject,
+      state.resetState,
+    ],
+    shallow
+  );
+
+  useEffect(() => {
+    const sub = nextSubject.subscribe(() => {
+      if (lastStep) {
+        toaster.success(LL.wizard.completed());
+        setNavigationState({ enableWizard: false });
+        resetState();
+      } else {
+        next();
+      }
+    });
+    return () => sub?.unsubscribe();
+  }, [lastStep, next, nextSubject]);
 
   if (currentStep === 0) return null;
 

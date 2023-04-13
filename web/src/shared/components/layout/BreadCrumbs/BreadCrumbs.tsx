@@ -75,9 +75,7 @@ const BreadCrumbs: React.FC = () => {
                   {item.label}
                 </motion.span>
               </NavLink>
-              {index !== breadCrumbs.length - 1 ? (
-                <SvgIconArrowGraySmall />
-              ) : null}
+              {index !== breadCrumbs.length - 1 ? <SvgIconArrowGraySmall /> : null}
             </li>
           </React.Fragment>
         ))}

@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
@@ -13,6 +13,7 @@ import NoData from '../../shared/components/layout/NoData/NoData';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
+import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
@@ -34,8 +35,8 @@ export const OverviewPage = () => {
   const setOverViewStore = useOverviewStore((state) => state.setState);
   const statsFilter = useOverviewStore((state) => state.statsFilter);
   const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
-  const queryClient = useQueryClient();
   const { LL } = useI18nContext();
+  const wizardActive = useNavigationStore((state) => state.enableWizard);
 
   const {
     network: { getNetworks, getUsersStats, getNetworkStats, getGatewayStatus },
@@ -45,13 +46,8 @@ export const OverviewPage = () => {
     [QueryKeys.FETCH_NETWORK_STATS, statsFilter],
     () => getNetworkStats({ from: getNetworkStatsFilterValue(statsFilter) }),
     {
-      onSuccess: async () => {
-        setTimeout(
-          () => queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_STATS]),
-          STATUS_REFETCH_TIMEOUT
-        );
-      },
       refetchOnWindowFocus: false,
+      refetchInterval: STATUS_REFETCH_TIMEOUT,
     }
   );
 
@@ -60,13 +56,8 @@ export const OverviewPage = () => {
     () => getUsersStats({ from: getNetworkStatsFilterValue(statsFilter) }),
     {
       enabled: !isUndefined(statsFilter),
-      onSuccess: async () => {
-        setTimeout(
-          () => queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_USERS_STATS]),
-          STATUS_REFETCH_TIMEOUT
-        );
-      },
       refetchOnWindowFocus: false,
+      refetchInterval: STATUS_REFETCH_TIMEOUT,
     }
   );
 
@@ -110,6 +101,13 @@ export const OverviewPage = () => {
     }
     navigate('../network');
   };
+
+  useEffect(() => {
+    if (wizardActive) {
+      navigate('/admin/wizard', { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>

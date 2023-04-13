@@ -1,13 +1,7 @@
 import * as React from 'react';
 import { SVGProps } from 'react';
 const SvgIconTrash = (props: SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={22}
-    height={22}
-    role="img"
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} role="img" {...props}>
     <defs>
       <clipPath id="icon-trash_svg__a">
         <path

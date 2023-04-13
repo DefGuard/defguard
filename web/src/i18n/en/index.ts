@@ -790,7 +790,7 @@ const en: BaseTranslation = {
     modals: {
       openidClientModal: {
         title: {
-          addApp: 'Add app.',
+          addApp: 'Add Application',
           editApp: 'Edit {appName: string} app',
         },
         scopes: 'Scopes:',
@@ -1090,6 +1090,7 @@ const en: BaseTranslation = {
     },
   },
   wizard: {
+    completed: 'Network setup completed',
     welcome: {
       header: 'Welcome to defguard!',
       sub: 'Before you start, you need to setup your network environment first. When in doubt hover on <React> icon.',
@@ -1101,10 +1102,21 @@ const en: BaseTranslation = {
         choseNetworkSetup: 'Chose network setup',
         importConfig: 'Import existing network',
         manualConfig: 'Configure network',
+        mapDevices: 'Map imported devices',
       },
       buttons: {
         next: 'Next',
         back: 'Back',
+      },
+    },
+    deviceMap: {
+      crateSuccess: 'Devices added',
+      list: {
+        headers: {
+          deviceName: 'Device Name',
+          deviceIP: 'IP',
+          user: 'User',
+        },
       },
     },
     wizardType: {

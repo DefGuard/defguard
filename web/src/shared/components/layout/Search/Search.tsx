@@ -4,11 +4,7 @@ import { HTMLMotionProps, motion, Variants } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { debounceTime, Subject } from 'rxjs';
 
-import {
-  buttonsBoxShadow,
-  ColorsRGB,
-  inactiveBoxShadow,
-} from '../../../constants';
+import { buttonsBoxShadow, ColorsRGB, inactiveBoxShadow } from '../../../constants';
 
 interface Props {
   containerMotionProps?: HTMLMotionProps<'div'>;
@@ -34,19 +30,15 @@ export const Search = ({
   const [inputValue, setInputValue] = useState(initialValue);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [changeSubject, setChangeSubject] = useState<
-    Subject<string> | undefined
-  >();
+  const [changeSubject, setChangeSubject] = useState<Subject<string> | undefined>();
 
   useEffect(() => {
     if (changeSubject) {
-      const sub = changeSubject
-        .pipe(debounceTime(debounceTiming))
-        .subscribe((value) => {
-          if (onDebounce) {
-            onDebounce(value);
-          }
-        });
+      const sub = changeSubject.pipe(debounceTime(debounceTiming)).subscribe((value) => {
+        if (onDebounce) {
+          onDebounce(value);
+        }
+      });
       return () => sub.unsubscribe();
     } else {
       setChangeSubject(new Subject());

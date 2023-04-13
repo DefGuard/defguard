@@ -6,8 +6,8 @@ import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 import * as yup from 'yup';
-import { useI18nContext } from '../../../../i18n/i18n-react';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormCheckBox } from '../../../../shared/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
 import {
@@ -305,9 +305,7 @@ export const OpenIdClientModalForm = () => {
                 variant={ActionButtonVariant.COPY}
                 onClick={() =>
                   clipboard
-                    .write(
-                      modalState.client ? modalState.client.client_secret : ''
-                    )
+                    .write(modalState.client ? modalState.client.client_secret : '')
                     .then(() => {
                       toaster.success(
                         LL.openidOverview.modals.openidClientModal.messages.clientSecretCopy()
@@ -327,11 +325,7 @@ export const OpenIdClientModalForm = () => {
       )}
       <div className={getControlsClass}>
         <Button
-          text={
-            modalState.viewMode
-              ? LL.form.close()
-              : LL.form.cancel()
-          }
+          text={modalState.viewMode ? LL.form.close() : LL.form.cancel()}
           styleVariant={ButtonStyleVariant.STANDARD}
           size={ButtonSize.BIG}
           onClick={() =>

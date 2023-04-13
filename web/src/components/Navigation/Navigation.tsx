@@ -193,7 +193,10 @@ export const Navigation = () => {
           >
             <section className="logo-container">
               {settings ? <img src={settings?.nav_logo_url} alt="logo" /> : null}
-              <SvgDefguadNavLogo /> <SvgDefguadNavLogoCollapsed />
+              <SvgDefguadNavLogo
+                style={{ display: settings?.nav_logo_url ? 'none' : 'block' }}
+              />
+              <SvgDefguadNavLogoCollapsed />
             </section>
             <span className="divider"></span>
             <section className="links">

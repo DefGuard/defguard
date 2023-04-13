@@ -14,11 +14,7 @@ interface KeyRowProps {
   onDelete: () => void;
   disableDelete: boolean;
 }
-export const WebAuthNKeyRow = ({
-  data,
-  onDelete,
-  disableDelete,
-}: KeyRowProps) => {
+export const WebAuthNKeyRow = ({ data, onDelete, disableDelete }: KeyRowProps) => {
   return (
     <RowBox className="security-key">
       <SvgIconKey />

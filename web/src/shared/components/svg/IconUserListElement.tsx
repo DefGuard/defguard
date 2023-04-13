@@ -10,10 +10,7 @@ const SvgIconUserListElement = (props: SVGProps<SVGSVGElement>) => (
         }
       </style>
     </defs>
-    <g
-      transform="translate(-313 -224.475)"
-      className="icon-user-list-element_svg__b"
-    >
+    <g transform="translate(-313 -224.475)" className="icon-user-list-element_svg__b">
       <rect
         className="icon-user-list-element_svg__c"
         width={10}

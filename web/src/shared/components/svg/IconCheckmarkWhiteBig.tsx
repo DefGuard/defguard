@@ -17,10 +17,7 @@ const SvgIconCheckmarkWhiteBig = (props: SVGProps<SVGSVGElement>) => (
         }
       </style>
     </defs>
-    <g
-      className="icon-checkmark-white-big_svg__b"
-      transform="rotate(90 18.203 18)"
-    >
+    <g className="icon-checkmark-white-big_svg__b" transform="rotate(90 18.203 18)">
       <rect
         className="icon-checkmark-white-big_svg__c"
         width={19.857}

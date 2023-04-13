@@ -124,15 +124,19 @@
   & > .content {
     display: grid;
     row-gap: 3rem;
-    grid-template:
-      1fr repeat(3, auto) 'wide-cards'
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, auto);
+    grid-template-areas:
+      'wide-cards'
       'cards-1'
       'cards-2';
 
     @include media-breakpoint-up(lg) {
       row-gap: 0;
       column-gap: 35px;
-      grid-template: 1fr repeat(2, 369px) auto 'wide-cards cards-1 cards-2';
+      grid-template-columns: 1fr repeat(2, 369px);
+      grid-template-rows: auto;
+      grid-template-areas: 'wide-cards cards-1 cards-2';
     }
 
     & > div > section > header {

@@ -18,11 +18,7 @@ export const ToggleStory: Story = () => {
   const [selected, setSelected] = useState(options[0].value);
   return (
     <>
-      <Toggle
-        selected={selected}
-        onChange={(v) => setSelected(v)}
-        options={options}
-      />
+      <Toggle selected={selected} onChange={(v) => setSelected(v)} options={options} />
       <p>Selected: {selected}</p>
     </>
   );

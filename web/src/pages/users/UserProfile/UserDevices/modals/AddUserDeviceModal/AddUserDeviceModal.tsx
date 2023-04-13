@@ -18,9 +18,7 @@ export const UserDeviceModal = () => {
     <ModalWithTitle
       title={LL.modals.addDevice.web.title()}
       isOpen={modalState.visible}
-      setIsOpen={(visibility) =>
-        setModalState({ visible: visibility, currentStep: 0 })
-      }
+      setIsOpen={(visibility) => setModalState({ visible: visibility, currentStep: 0 })}
       id="add-user-device-modal"
       steps={modalSteps}
       currentStep={modalState.currentStep}

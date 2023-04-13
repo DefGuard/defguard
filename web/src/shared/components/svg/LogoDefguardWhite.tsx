@@ -2,12 +2,7 @@ import * as React from 'react';
 import { SVGProps } from 'react';
 
 const SvgLogoDefguardWhite = (props: SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={90.133}
-    height={36.125}
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={90.133} height={36.125} {...props}>
     <defs>
       <style>{'\n      .logo-defguard-white_svg__a{fill:#fff}\n    '}</style>
     </defs>

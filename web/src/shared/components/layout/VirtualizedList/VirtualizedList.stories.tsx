@@ -2,11 +2,7 @@ import { Story } from '@ladle/react';
 import { useMemo } from 'react';
 
 import { User, UserMFAMethod } from '../../../types';
-import {
-  ListHeader,
-  ListSortDirection,
-  VirtualizedList,
-} from './VirtualizedList';
+import { ListHeader, ListSortDirection, VirtualizedList } from './VirtualizedList';
 
 const headers: ListHeader[] = [
   {

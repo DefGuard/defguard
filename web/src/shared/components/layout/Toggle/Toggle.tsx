@@ -45,9 +45,7 @@ export const Toggle = <T,>({
         .map((optionItem, index) => {
           if (
             !isUndefined(
-              selected.find((selectedItem) =>
-                checkEqual(selectedItem, optionItem.value)
-              )
+              selected.find((selectedItem) => checkEqual(selectedItem, optionItem.value))
             )
           ) {
             return index;
@@ -56,9 +54,7 @@ export const Toggle = <T,>({
         })
         .filter((index) => !isUndefined(index)) as number[];
     } else {
-      return [
-        options.findIndex((option) => checkEqual(option.value, selected)),
-      ];
+      return [options.findIndex((option) => checkEqual(option.value, selected))];
     }
   }, [options, selected]);
 

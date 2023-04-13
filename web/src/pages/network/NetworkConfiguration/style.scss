@@ -1,6 +1,7 @@
 @use '../../../shared/scss/helpers' as *;
 
-#network-page, .network-setup {
+#network-page,
+.network-setup {
   .network-config {
     & > .card {
       padding: 1.5rem 3rem 4rem;

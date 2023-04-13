@@ -4,20 +4,10 @@ import { ColorsRGB } from '../../../../constants';
 
 export const ActionButtonIconCopy = (props: SVGMotionProps<SVGSVGElement>) => {
   return (
-    <motion.svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={22}
-      height={22}
-      {...props}
-    >
+    <motion.svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} {...props}>
       <defs>
         <clipPath id="icon-copy_svg__a">
-          <path
-            data-name="Rectangle 2627"
-            fill="#899ca8"
-            opacity={0}
-            d="M0 0h22v22H0z"
-          />
+          <path data-name="Rectangle 2627" fill="#899ca8" opacity={0} d="M0 0h22v22H0z" />
         </clipPath>
       </defs>
       <g transform="rotate(90 11 11)" clipPath="url(#icon-copy_svg__a)">

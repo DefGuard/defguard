@@ -26,9 +26,7 @@ export const UserDevices = () => {
   }, [isDesktopApp]);
   const setModalsState = useModalStore((state) => state.setState);
   const user = useUserProfileStore((state) => state.user);
-  const setUserDeviceModalState = useModalStore(
-    (state) => state.setUserDeviceModal
-  );
+  const setUserDeviceModalState = useModalStore((state) => state.setUserDeviceModal);
   return (
     <section id="user-devices">
       <header>

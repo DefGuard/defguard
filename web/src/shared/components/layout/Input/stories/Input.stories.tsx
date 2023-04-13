@@ -20,11 +20,7 @@ export const InputStory: Story<Props> = ({ value, ...rest }) => {
   }, [value]);
 
   return (
-    <Input
-      value={inputValue}
-      onChange={(e) => setInputValue(e.target.value)}
-      {...rest}
-    />
+    <Input value={inputValue} onChange={(e) => setInputValue(e.target.value)} {...rest} />
   );
 };
 

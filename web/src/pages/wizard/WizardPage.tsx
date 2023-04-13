@@ -1,11 +1,13 @@
 import './style.scss';
 
-import { ReactNode, useMemo } from 'react';
-import { Navigate, Route, Routes } from 'react-router';
+import { ReactNode, useEffect, useMemo } from 'react';
+import { Navigate, Route, Routes, useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
+import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
+import { WizardMapDevices } from './components/WizardMapDevices/WizardMapDevices';
 import { WizardNav } from './components/WizardNav/WizardNav';
 import { WizardNetworkImport } from './components/WizardNetworkImport/WizardNetworkImport';
 import { WizardNetworkSetup } from './components/WizardNetworkSetup/WizardNetworkSetup';
@@ -14,6 +16,15 @@ import { WizardWelcome } from './components/WizardWelcome/WizardWelcome';
 import { useWizardStore, WizardSetupType } from './hooks/useWizardStore';
 
 export const WizardPage = () => {
+  const navigate = useNavigate();
+  const wizardEnabled = useNavigationStore((state) => state.enableWizard);
+
+  useEffect(() => {
+    if (!wizardEnabled) {
+      navigate('/admin/overview', { replace: true });
+    }
+  }, [navigate, wizardEnabled]);
+
   return (
     <PageContainer id="wizard-page">
       <Routes>
@@ -53,6 +64,10 @@ const WizardRender = () => {
           {
             title: LL.wizard.navigation.titles.importConfig(),
             element: <WizardNetworkImport key={2} />,
+          },
+          {
+            title: LL.wizard.navigation.titles.mapDevices(),
+            element: <WizardMapDevices key={4} />,
           },
         ];
         break;

@@ -7,13 +7,19 @@
     overflow-y: auto;
     display: grid;
     row-gap: 3rem;
-    grid-template: 1fr 60px auto auto 'header'
+    grid-template-rows: repeat(2, auto);
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'header'
       'config'
       'gateway';
 
     @include media-breakpoint-up(lg) {
       padding: 4rem 6rem;
-      grid-template: 1fr 1fr 60px auto 'header header'
+      grid-template-rows: 60px auto;
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        'header header'
         'config gateway';
       row-gap: 4rem;
       column-gap: 4rem;

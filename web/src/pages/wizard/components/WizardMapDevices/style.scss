@@ -1,0 +1,51 @@
+@use '@scss/helpers' as *;
+
+#wizard-map-devices {
+  box-sizing: border-box;
+  padding-top: 42px;
+  & > .virtualized-list-container {
+    height: 100%;
+    & > .headers {
+      grid-template-columns: repeat(3, 150px);
+      width: 100%;
+      justify-content: space-between;
+      & > .header {
+        justify-content: center;
+        & > span {
+          color: var(--text-main) !important;
+        }
+      }
+    }
+    & > .scroll-container {
+      padding-bottom: 42px;
+      & > .rows-container {
+        & > .virtual-row {
+          & > .device {
+            display: grid;
+            grid-template-columns: repeat(3, 150px);
+            grid-template-rows: 1fr;
+            justify-content: space-between;
+            padding-right: 20px;
+
+            & > .name {
+              max-width: 100%;
+
+              @include text-overflow-dots;
+            }
+
+            & > .ip {
+              width: 100%;
+              text-align: center;
+
+              @include text-overflow-dots;
+            }
+
+            & > .select {
+              max-width: 150px;
+            }
+          }
+        }
+      }
+    }
+  }
+}

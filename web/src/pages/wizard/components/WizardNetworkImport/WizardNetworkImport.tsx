@@ -37,8 +37,8 @@ export const WizardNetworkImport = () => {
     network: { importNetwork },
   } = useApi();
   const toaster = useToaster();
-  const [setWizardState, nextStep, submitSubject] = useWizardStore(
-    (state) => [state.setState, state.nextStep, state.submitSubject],
+  const [setWizardState, nextStepSubject, submitSubject] = useWizardStore(
+    (state) => [state.setState, state.nextStepSubject, state.submitSubject],
     shallow
   );
 
@@ -81,8 +81,9 @@ export const WizardNetworkImport = () => {
       setWizardState({
         importedNetworkDevices: response.devices,
         importedNetworkConfig: response.network,
+        disableBack: true,
       });
-      nextStep();
+      nextStepSubject.next();
     },
     onError: (err) => {
       toaster.error(LL.messages.error());

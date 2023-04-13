@@ -14,8 +14,8 @@ export const WizardType = () => {
   const { LL } = useI18nContext();
   const setupType = useWizardStore((state) => state.setupType);
   const disableNext = useWizardStore((state) => state.disableNext);
-  const [setWizardState, nextStep] = useWizardStore(
-    (state) => [state.setState, state.nextStep],
+  const [setWizardState, nextStepSubject] = useWizardStore(
+    (state) => [state.setState, state.nextStepSubject],
     shallow
   );
   const submitSubject = useWizardStore((state) => state.submitSubject);
@@ -32,11 +32,11 @@ export const WizardType = () => {
   useEffect(() => {
     if (submitSubject && submitSubject.subscribe) {
       const sub = submitSubject.subscribe(() => {
-        nextStep();
+        nextStepSubject.next();
       });
       return () => sub?.unsubscribe();
     }
-  }, [nextStep, submitSubject]);
+  }, [submitSubject, nextStepSubject]);
 
   return (
     <Card id="wizard-setup-choice">

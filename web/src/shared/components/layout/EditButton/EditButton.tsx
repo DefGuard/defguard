@@ -46,16 +46,15 @@ export const EditButton = ({
       }),
     [className, visible]
   );
-  const { x, y, reference, floating, strategy, placement, middlewareData } =
-    useFloating({
-      placement: 'left',
-      strategy: 'fixed',
-      middleware: [offset(12), flip(), shift(), arrow({ element: arrowRef })],
-      open: open,
-      onOpenChange: setOpen,
-      whileElementsMounted: (refElement, floatingElement, updateFunc) =>
-        autoUpdate(refElement, floatingElement, updateFunc),
-    });
+  const { x, y, reference, floating, strategy, placement, middlewareData } = useFloating({
+    placement: 'left',
+    strategy: 'fixed',
+    middleware: [offset(12), flip(), shift(), arrow({ element: arrowRef })],
+    open: open,
+    onOpenChange: setOpen,
+    whileElementsMounted: (refElement, floatingElement, updateFunc) =>
+      autoUpdate(refElement, floatingElement, updateFunc),
+  });
 
   const getIconVariant = useMemo(() => {
     if (open && !disabled) {
@@ -118,12 +117,8 @@ export const EditButton = ({
                 data-placement={placement}
                 ref={arrowRef}
                 style={{
-                  left: middlewareData?.arrow?.x
-                    ? `${middlewareData.arrow.x}px`
-                    : '',
-                  top: middlewareData?.arrow?.y
-                    ? `${middlewareData.arrow.y}px`
-                    : '',
+                  left: middlewareData?.arrow?.x ? `${middlewareData.arrow.x}px` : '',
+                  top: middlewareData?.arrow?.y ? `${middlewareData.arrow.y}px` : '',
                   right: '',
                   bottom: '',
                   [staticSide]: '-8px',

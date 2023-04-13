@@ -1,12 +1,7 @@
 import * as React from 'react';
 import { SVGProps } from 'react';
 const SvgDefguardNavLogo = (props: SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={109.998}
-    height={44}
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={109.998} height={44} {...props}>
     <defs>
       <linearGradient
         id="defguard-nav-logo_svg__defguad-nav-logo-a"

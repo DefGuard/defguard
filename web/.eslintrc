@@ -22,7 +22,11 @@
       "error",
       {
         "code": 90,
-        "ignorePattern": "^import .*"
+        "comments": 140,
+        "tabWidth": 2,
+        "ignorePattern": "^import .*",
+        "ignoreComments": true,
+        "ignoreRegExpLiterals": true
       }
     ],
     "react-hooks/rules-of-hooks": "error",
@@ -67,7 +71,8 @@
   "overrides": [
     {
       "files": [
-        "src/i18n/**/*"
+        "src/i18n/**/*",
+        "src/shared/components/svg/**/*"
       ],
       "rules": {
         "max-len": [

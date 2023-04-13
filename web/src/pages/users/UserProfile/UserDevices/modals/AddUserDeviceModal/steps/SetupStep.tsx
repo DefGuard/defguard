@@ -102,8 +102,10 @@ export const SetupStep = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutateAsync: addDeviceMutation, isLoading: addDeviceLoading } =
-    useMutation([MutationKeys.ADD_DEVICE], addDevice, {
+  const { mutateAsync: addDeviceMutation, isLoading: addDeviceLoading } = useMutation(
+    [MutationKeys.ADD_DEVICE],
+    addDevice,
+    {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
         toaster.success(LL.modals.addDevice.messages.success());
@@ -112,7 +114,8 @@ export const SetupStep = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    });
+    }
+  );
 
   const user = useUserProfileStore((state) => state.user);
 
@@ -140,10 +143,7 @@ export const SetupStep = () => {
         username: user.username,
       }).then((config) => {
         // This needs to be replaced with valid key so the wireguard mobile app can consume QRCode without errors
-        const res = config.replace(
-          'YOUR_PRIVATE_KEY',
-          values.publicKey as string
-        );
+        const res = config.replace('YOUR_PRIVATE_KEY', values.publicKey as string);
         setModalState({
           config: res,
           deviceName: values.name,
@@ -168,10 +168,7 @@ export const SetupStep = () => {
           outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.name.label()}
           controller={{ control, name: 'name' }}
         />
-        <FormToggle
-          options={toggleOptions}
-          controller={{ control, name: 'choice' }}
-        />
+        <FormToggle options={toggleOptions} controller={{ control, name: 'choice' }} />
         <FormInput
           outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
           controller={{ control, name: 'publicKey' }}
