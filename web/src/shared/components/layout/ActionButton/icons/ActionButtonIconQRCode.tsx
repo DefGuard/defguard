@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import { motion, SVGMotionProps } from 'framer-motion';
 
 import { ColorsRGB } from '../../../../constants';

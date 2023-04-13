@@ -311,8 +311,7 @@ const pl: BaseTranslation = {
         fields: {
           description: {
             label: 'Opis',
-            placeholder:
-              'Webhook do tworzenia konta gmail na nowym użytkowniku',
+            placeholder: 'Webhook do tworzenia konta gmail na nowym użytkowniku',
           },
           token: {
             label: 'Secret token',
@@ -975,8 +974,7 @@ const pl: BaseTranslation = {
         gateway:
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
         dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs wireguard jest aktywny.',
-        allowedIps:
-          'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
+        allowedIps: 'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
         networkModified: 'Sieć zmodyfikowana.',
         networkCreated: 'Sieć utworzona.',
       },
@@ -1075,15 +1073,13 @@ const pl: BaseTranslation = {
           submit: 'Użyj swojego portfela',
         },
         messages: {
-          walletError:
-            'Portfel został rozłączony podczas procesu podpisywania.',
+          walletError: 'Portfel został rozłączony podczas procesu podpisywania.',
           walletErrorMfa:
             'Portfel nie jest autoryzowany do logowania MFA. Proszę użyć autoryzowanego portfela.',
         },
       },
       webauthn: {
-        header:
-          'Gdy jesteś gotowy do uwierzytelnienia, naciśnij przycisk poniżej.',
+        header: 'Gdy jesteś gotowy do uwierzytelnienia, naciśnij przycisk poniżej.',
         controls: {
           submit: 'Użyj klucza bezpieczeństwa',
         },

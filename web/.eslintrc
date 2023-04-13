@@ -18,15 +18,25 @@
     "plugin:import/typescript"
   ],
   "rules": {
+    "import/no-unresolved": [
+      "error",
+      {
+        "ignore": [
+          "@ladle/react",
+          ".md"
+        ]
+      }
+    ],
     "max-len": [
       "error",
       {
         "code": 90,
         "comments": 140,
         "tabWidth": 2,
-        "ignorePattern": "^import .*",
+        "ignorePattern": "^import .* |.*LL\\..*|.*d=.*",
         "ignoreComments": true,
-        "ignoreRegExpLiterals": true
+        "ignoreRegExpLiterals": true,
+        "ignoreTemplateLiterals": true
       }
     ],
     "react-hooks/rules-of-hooks": "error",
