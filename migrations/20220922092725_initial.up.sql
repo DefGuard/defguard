@@ -166,30 +166,9 @@ CREATE VIEW wireguard_peer_stats_view AS
         allowed_ips
     FROM wireguard_peer_stats;
 INSERT INTO
-    "user" (
-        username,
-        password_hash,
-        last_name,
-        first_name,
-        email
-    )
-VALUES
-    (
-        'admin',
-        '$argon2id$v=19$m=4096,t=3,p=1$XHgZw2qF/ryF1gOtuLLyZg$AF/Z0EIWk4KGetBSANEnkdK+IcoIWQLjYGuBQjas8SY',
-        -- pass123
-        'Administrator',
-        'DefGuard',
-        'admin@defguard'
-    );
-INSERT INTO
     "group" (name)
 VALUES
     ('admin');
-INSERT INTO
-    "group_user" (group_id, user_id)
-VALUES
-    (1, 1);
 INSERT INTO settings VALUES (
     1, true, true, true, true, true, true, true,
     'By signing this message you confirm that you''re the owner of the wallet'
