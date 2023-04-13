@@ -24,17 +24,12 @@ pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
 pub const SESSION_TIMEOUT: u64 = 3600 * 24 * 7;
 pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum ClaimsType {
+    #[default]
     Auth,
     Gateway,
     YubiBridge,
-}
-
-impl Default for ClaimsType {
-    fn default() -> Self {
-        ClaimsType::Auth
-    }
 }
 
 /// Standard claims: https://www.iana.org/assignments/jwt/jwt.xhtml
