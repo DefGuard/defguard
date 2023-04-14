@@ -1154,6 +1154,10 @@ type RootTranslation = {
 	navigation: {
 		bar: {
 			/**
+			 * V​P​N​ ​W​i​z​a​r​d
+			 */
+			wizard: string
+			/**
 			 * V​P​N​ ​O​v​e​r​v​i​e​w
 			 */
 			overview: string
@@ -1162,7 +1166,7 @@ type RootTranslation = {
 			 */
 			users: string
 			/**
-			 * Y​u​b​i​k​e​y​ ​P​r​o​v​i​s​i​o​n​e​r​s
+			 * Y​u​b​i​k​e​y
 			 */
 			provisioners: string
 			/**
@@ -1188,6 +1192,10 @@ type RootTranslation = {
 		}
 		mobileTitles: {
 			/**
+			 * V​P​N​ ​W​i​z​a​r​d
+			 */
+			wizard: string
+			/**
 			 * U​s​e​r​s
 			 */
 			users: string
@@ -1200,7 +1208,7 @@ type RootTranslation = {
 			 */
 			user: string
 			/**
-			 * Y​u​b​i​k​e​y​ ​P​r​o​v​i​s​i​o​n​e​r​s
+			 * Y​u​b​i​k​e​y
 			 */
 			provisioners: string
 			/**
@@ -1761,7 +1769,7 @@ type RootTranslation = {
 			openidClientModal: {
 				title: {
 					/**
-					 * A​d​d​ ​a​p​p​.
+					 * A​d​d​ ​A​p​p​l​i​c​a​t​i​o​n
 					 */
 					addApp: string
 					/**
@@ -2216,6 +2224,10 @@ type RootTranslation = {
 		 * N​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		header: string
+		/**
+		 * N​e​t​w​o​r​k​ ​i​m​p​o​r​t
+		 */
+		importHeader: string
 		form: {
 			messages: {
 				/**
@@ -2444,6 +2456,150 @@ type RootTranslation = {
 					 * F​a​i​l​e​d​ ​t​o​ ​r​e​a​d​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​.
 					 */
 					error: string
+				}
+			}
+		}
+	}
+	wizard: {
+		/**
+		 * N​e​t​w​o​r​k​ ​s​e​t​u​p​ ​c​o​m​p​l​e​t​e​d
+		 */
+		completed: string
+		welcome: {
+			/**
+			 * W​e​l​c​o​m​e​ ​t​o​ ​d​e​f​g​u​a​r​d​!
+			 */
+			header: string
+			/**
+			 * B​e​f​o​r​e​ ​y​o​u​ ​s​t​a​r​t​,​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​n​e​t​w​o​r​k​ ​e​n​v​i​r​o​n​m​e​n​t​ ​f​i​r​s​t​.​ ​W​h​e​n​ ​i​n​ ​d​o​u​b​t​ ​h​o​v​e​r​ ​o​n​ ​<​R​e​a​c​t​>​ ​i​c​o​n​.
+			 */
+			sub: string
+		}
+		navigation: {
+			/**
+			 * N​e​t​w​o​r​k​ ​s​e​t​u​p
+			 */
+			top: string
+			titles: {
+				/**
+				 * N​e​t​w​o​r​k​ ​s​e​t​u​p
+				 */
+				welcome: string
+				/**
+				 * C​h​o​s​e​ ​n​e​t​w​o​r​k​ ​s​e​t​u​p
+				 */
+				choseNetworkSetup: string
+				/**
+				 * I​m​p​o​r​t​ ​e​x​i​s​t​i​n​g​ ​n​e​t​w​o​r​k
+				 */
+				importConfig: string
+				/**
+				 * C​o​n​f​i​g​u​r​e​ ​n​e​t​w​o​r​k
+				 */
+				manualConfig: string
+				/**
+				 * M​a​p​ ​i​m​p​o​r​t​e​d​ ​d​e​v​i​c​e​s
+				 */
+				mapDevices: string
+			}
+			buttons: {
+				/**
+				 * N​e​x​t
+				 */
+				next: string
+				/**
+				 * B​a​c​k
+				 */
+				back: string
+			}
+		}
+		deviceMap: {
+			/**
+			 * D​e​v​i​c​e​s​ ​a​d​d​e​d
+			 */
+			crateSuccess: string
+			list: {
+				headers: {
+					/**
+					 * D​e​v​i​c​e​ ​N​a​m​e
+					 */
+					deviceName: string
+					/**
+					 * I​P
+					 */
+					deviceIP: string
+					/**
+					 * U​s​e​r
+					 */
+					user: string
+				}
+			}
+		}
+		wizardType: {
+			manual: {
+				/**
+				 * M​a​n​u​a​l​ ​C​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				title: string
+				/**
+				 * M​a​n​u​a​l​ ​n​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				description: string
+			}
+			'import': {
+				/**
+				 * I​m​p​o​r​t​ ​F​r​o​m​ ​F​i​l​e
+				 */
+				title: string
+				/**
+				 * I​m​p​o​r​t​ ​f​r​o​m​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​ ​f​i​l​e
+				 */
+				description: string
+			}
+			/**
+			 * C​r​e​a​t​e​ ​W​i​r​e​G​u​a​r​d​ ​n​e​t​w​o​r​k
+			 */
+			createNetwork: string
+		}
+		common: {
+			/**
+			 * S​e​l​e​c​t
+			 */
+			select: string
+		}
+		locations: {
+			form: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * I​P​ ​a​d​d​r​e​s​s
+				 */
+				ip: string
+				/**
+				 * U​s​e​r
+				 */
+				user: string
+				/**
+				 * F​i​l​e
+				 */
+				fileName: string
+				/**
+				 * S​e​l​e​c​t​ ​f​i​l​e
+				 */
+				selectFile: string
+				messages: {
+					/**
+					 * D​e​v​i​c​e​s​ ​c​r​e​a​t​e​d
+					 */
+					devicesCreated: string
+				}
+				validation: {
+					/**
+					 * I​n​v​a​l​i​d​ ​a​d​d​r​e​s​s
+					 */
+					invalidAddress: string
 				}
 			}
 		}
@@ -3585,6 +3741,10 @@ export type TranslationFunctions = {
 	navigation: {
 		bar: {
 			/**
+			 * VPN Wizard
+			 */
+			wizard: () => LocalizedString
+			/**
 			 * VPN Overview
 			 */
 			overview: () => LocalizedString
@@ -3593,7 +3753,7 @@ export type TranslationFunctions = {
 			 */
 			users: () => LocalizedString
 			/**
-			 * Yubikey Provisioners
+			 * Yubikey
 			 */
 			provisioners: () => LocalizedString
 			/**
@@ -3619,6 +3779,10 @@ export type TranslationFunctions = {
 		}
 		mobileTitles: {
 			/**
+			 * VPN Wizard
+			 */
+			wizard: () => LocalizedString
+			/**
 			 * Users
 			 */
 			users: () => LocalizedString
@@ -3631,7 +3795,7 @@ export type TranslationFunctions = {
 			 */
 			user: () => LocalizedString
 			/**
-			 * Yubikey Provisioners
+			 * Yubikey
 			 */
 			provisioners: () => LocalizedString
 			/**
@@ -4188,7 +4352,7 @@ export type TranslationFunctions = {
 			openidClientModal: {
 				title: {
 					/**
-					 * Add app.
+					 * Add Application
 					 */
 					addApp: () => LocalizedString
 					/**
@@ -4637,6 +4801,10 @@ export type TranslationFunctions = {
 		 * Network configuration
 		 */
 		header: () => LocalizedString
+		/**
+		 * Network import
+		 */
+		importHeader: () => LocalizedString
 		form: {
 			messages: {
 				/**
@@ -4865,6 +5033,150 @@ export type TranslationFunctions = {
 					 * Failed to read key. Please try again.
 					 */
 					error: () => LocalizedString
+				}
+			}
+		}
+	}
+	wizard: {
+		/**
+		 * Network setup completed
+		 */
+		completed: () => LocalizedString
+		welcome: {
+			/**
+			 * Welcome to defguard!
+			 */
+			header: () => LocalizedString
+			/**
+			 * Before you start, you need to setup your network environment first. When in doubt hover on <React> icon.
+			 */
+			sub: () => LocalizedString
+		}
+		navigation: {
+			/**
+			 * Network setup
+			 */
+			top: () => LocalizedString
+			titles: {
+				/**
+				 * Network setup
+				 */
+				welcome: () => LocalizedString
+				/**
+				 * Chose network setup
+				 */
+				choseNetworkSetup: () => LocalizedString
+				/**
+				 * Import existing network
+				 */
+				importConfig: () => LocalizedString
+				/**
+				 * Configure network
+				 */
+				manualConfig: () => LocalizedString
+				/**
+				 * Map imported devices
+				 */
+				mapDevices: () => LocalizedString
+			}
+			buttons: {
+				/**
+				 * Next
+				 */
+				next: () => LocalizedString
+				/**
+				 * Back
+				 */
+				back: () => LocalizedString
+			}
+		}
+		deviceMap: {
+			/**
+			 * Devices added
+			 */
+			crateSuccess: () => LocalizedString
+			list: {
+				headers: {
+					/**
+					 * Device Name
+					 */
+					deviceName: () => LocalizedString
+					/**
+					 * IP
+					 */
+					deviceIP: () => LocalizedString
+					/**
+					 * User
+					 */
+					user: () => LocalizedString
+				}
+			}
+		}
+		wizardType: {
+			manual: {
+				/**
+				 * Manual Configuration
+				 */
+				title: () => LocalizedString
+				/**
+				 * Manual network configuration
+				 */
+				description: () => LocalizedString
+			}
+			'import': {
+				/**
+				 * Import From File
+				 */
+				title: () => LocalizedString
+				/**
+				 * Import from WireGuard config file
+				 */
+				description: () => LocalizedString
+			}
+			/**
+			 * Create WireGuard network
+			 */
+			createNetwork: () => LocalizedString
+		}
+		common: {
+			/**
+			 * Select
+			 */
+			select: () => LocalizedString
+		}
+		locations: {
+			form: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * IP address
+				 */
+				ip: () => LocalizedString
+				/**
+				 * User
+				 */
+				user: () => LocalizedString
+				/**
+				 * File
+				 */
+				fileName: () => LocalizedString
+				/**
+				 * Select file
+				 */
+				selectFile: () => LocalizedString
+				messages: {
+					/**
+					 * Devices created
+					 */
+					devicesCreated: () => LocalizedString
+				}
+				validation: {
+					/**
+					 * Invalid address
+					 */
+					invalidAddress: () => LocalizedString
 				}
 			}
 		}

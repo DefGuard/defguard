@@ -1,19 +1,10 @@
 import * as React from 'react';
 import { SVGProps } from 'react';
 const SvgQrIconWhite = (props: SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={21.541}
-    height={21.212}
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={21.541} height={21.212} {...props}>
     <defs>
       <clipPath id="qr-icon-white_svg__a">
-        <path
-          data-name="Rectangle 3014"
-          fill="#fff"
-          d="M0 0h21.541v21.212H0z"
-        />
+        <path data-name="Rectangle 3014" fill="#fff" d="M0 0h21.541v21.212H0z" />
       </clipPath>
     </defs>
     <g data-name="Group 4749" clipPath="url(#qr-icon-white_svg__a)" fill="#fff">

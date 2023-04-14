@@ -311,8 +311,7 @@ const pl: BaseTranslation = {
         fields: {
           description: {
             label: 'Opis',
-            placeholder:
-              'Webhook do tworzenia konta gmail na nowym użytkowniku',
+            placeholder: 'Webhook do tworzenia konta gmail na nowym użytkowniku',
           },
           token: {
             label: 'Secret token',
@@ -969,13 +968,13 @@ const pl: BaseTranslation = {
   },
   networkConfiguration: {
     header: 'Konfiguracja sieci',
+    importHeader: 'Import sieci',
     form: {
       messages: {
         gateway:
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
         dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs wireguard jest aktywny.',
-        allowedIps:
-          'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
+        allowedIps: 'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
         networkModified: 'Sieć zmodyfikowana.',
         networkCreated: 'Sieć utworzona.',
       },
@@ -1074,21 +1073,53 @@ const pl: BaseTranslation = {
           submit: 'Użyj swojego portfela',
         },
         messages: {
-          walletError:
-            'Portfel został rozłączony podczas procesu podpisywania.',
+          walletError: 'Portfel został rozłączony podczas procesu podpisywania.',
           walletErrorMfa:
             'Portfel nie jest autoryzowany do logowania MFA. Proszę użyć autoryzowanego portfela.',
         },
       },
       webauthn: {
-        header:
-          'Gdy jesteś gotowy do uwierzytelnienia, naciśnij przycisk poniżej.',
+        header: 'Gdy jesteś gotowy do uwierzytelnienia, naciśnij przycisk poniżej.',
         controls: {
           submit: 'Użyj klucza bezpieczeństwa',
         },
         messages: {
           error: 'Nie udało się odczytać klucza. Proszę spróbować ponownie.',
         },
+      },
+    },
+  },
+  wizard: {
+    navigation: {
+      titles: {
+        step1: 'Typ kreatora',
+        step2: 'Konfiguracja sieci',
+        step3: 'Urządzenia',
+      },
+    },
+    wizardType: {
+      manual: {
+        title: 'Manualny',
+        description: 'Manualna konfiguracja sieci WireGuard',
+      },
+      import: {
+        title: 'Import',
+        description: 'Import z pliku konfiguracyjnego WireGuard',
+      },
+      createNetwork: 'Utwórz sieć WireGuard',
+    },
+    common: {
+      select: 'Wybierz',
+    },
+    locations: {
+      form: {
+        name: 'Nazwa',
+        ip: 'Adres IP',
+        user: 'Użytkownik',
+        fileName: 'Plik',
+        selectFile: 'Wybierz plik',
+        messages: { devicesCreated: 'Urządzenia utworzone.' },
+        validation: { invalidAddress: 'Nieprawidłowy adres.' },
       },
     },
   },

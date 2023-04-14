@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import Divider from '../../../shared/components/layout/Divider/Divider';
+import { Divider } from '../../../shared/components/layout/Divider/Divider';
 import Modal from '../../../shared/components/layout/Modal/Modal';
 import SvgDefguadNavLogo from '../../../shared/components/svg/DefguadNavLogo';
 import SvgIconEdit from '../../../shared/components/svg/IconEditAlt';
@@ -18,20 +18,10 @@ interface Props {
   onLogOut: () => void;
 }
 
-export const MobileNavModal = ({
-  isOpen,
-  setIsOpen,
-  links,
-  onLogOut,
-}: Props) => {
+export const MobileNavModal = ({ isOpen, setIsOpen, links, onLogOut }: Props) => {
   const { LL } = useI18nContext();
   return (
-    <Modal
-      className="mobile-nav"
-      isOpen={isOpen}
-      setIsOpen={setIsOpen}
-      backdrop
-    >
+    <Modal className="mobile-nav" isOpen={isOpen} setIsOpen={setIsOpen} backdrop>
       <button className="close-mobile-nav" onClick={() => setIsOpen(false)}>
         <SvgIconHamburgerClose />
       </button>

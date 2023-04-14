@@ -3,18 +3,14 @@ import './style.scss';
 import clipboard from 'clipboardy';
 import { saveAs } from 'file-saver';
 import ReactMarkdown from 'react-markdown';
-import shallow from 'zustand/shallow';
+import { shallow } from 'zustand/shallow';
 
 import licenseAgreement from '../../../shared/assets/LICENSE.md?raw';
 import Button, {
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
 import Modal from '../../../shared/components/layout/Modal/Modal';
-import {
-  IconCancel,
-  IconCopy,
-  IconDownload,
-} from '../../../shared/components/svg';
+import { IconCancel, IconCopy, IconDownload } from '../../../shared/components/svg';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useToaster } from '../../../shared/hooks/useToaster';
 

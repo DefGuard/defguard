@@ -29,12 +29,7 @@ const SvgIconListOrderUp = (props: SVGProps<SVGSVGElement>) => (
           rx={1}
           transform="translate(0 4)"
         />
-        <rect
-          className="icon-list-order-up_svg__c"
-          width={10}
-          height={2}
-          rx={1}
-        />
+        <rect className="icon-list-order-up_svg__c" width={10} height={2} rx={1} />
       </g>
       <g transform="rotate(-90 8 8)">
         <rect

@@ -1,12 +1,13 @@
 import './style.scss';
 
+import { autoUpdate, offset, useFloating } from '@floating-ui/react-dom-interactions';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
 import { detect } from 'detect-browser';
 import { motion, Variants } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
-import { ReactNode, useMemo, useRef, useState } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { Key, ReactNode, useMemo, useRef, useState } from 'react';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { ColorsRGB, deviceBreakpoints } from '../../../constants';
 import { VirtualizedListSortIcon } from './VirtualizedListSortIcon';
@@ -32,8 +33,11 @@ export const VirtualizedList = <T extends object>({
   });
 
   const cn = useMemo(
-    () => classNames('virtualized-list-container', className),
-    [className]
+    () =>
+      classNames('virtualized-list-container', className, {
+        'with-headers': !isUndefined(headers),
+      }),
+    [className, headers]
   );
 
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -136,8 +140,7 @@ export const VirtualizedList = <T extends object>({
           style={{
             paddingBottom: headerPadding?.bottom || 0,
             paddingTop: headerPadding?.top || 0,
-            paddingLeft:
-              (getRowPadding.paddingLeft || 0) + (headerPadding?.left || 0),
+            paddingLeft: (getRowPadding.paddingLeft || 0) + (headerPadding?.left || 0),
             paddingRight:
               (getRowPadding?.paddingRight || 0) +
               (headerPadding?.right || 0) +
@@ -197,6 +200,13 @@ const ListHeader = ({
   active = false,
   sortable = true,
 }: ListHeader) => {
+  const { x, y, strategy, reference, floating } = useFloating({
+    placement: 'right',
+    middleware: [offset(5)],
+    whileElementsMounted: (refElement, floatingElement, updateFunc) =>
+      autoUpdate(refElement, floatingElement, updateFunc),
+  });
+
   const getIconAnimate = useMemo(() => {
     if (active) {
       switch (sortDirection) {
@@ -233,17 +243,29 @@ const ListHeader = ({
       }}
     >
       <motion.span
+        ref={reference}
         variants={headerSpanVariants}
         animate={active ? 'active' : 'idle'}
       >
         {text}
       </motion.span>
-      <VirtualizedListSortIcon
-        className={getIconAnimate}
-        animate={getIconAnimate}
-        variants={headerSortIconVariants}
-        initial={false}
-      />
+      <div
+        className="floating-header-icon"
+        ref={floating}
+        style={{
+          position: strategy,
+          top: y ?? 0,
+          left: x ?? 0,
+          width: 'max-content',
+        }}
+      >
+        <VirtualizedListSortIcon
+          className={getIconAnimate}
+          animate={getIconAnimate}
+          variants={headerSortIconVariants}
+          initial={false}
+        />
+      </div>
     </div>
   );
 };
@@ -308,7 +330,7 @@ export enum ListSortDirection {
 
 export type ListHeader = {
   text: string;
-  key: string;
+  key: Key;
   active?: boolean;
   sortable?: boolean;
   sortDirection?: ListSortDirection;

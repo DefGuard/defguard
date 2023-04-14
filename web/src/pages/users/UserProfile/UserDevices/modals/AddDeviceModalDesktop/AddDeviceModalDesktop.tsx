@@ -11,9 +11,7 @@ export const AddDeviceModalDesktop = () => {
     <ModalWithTitle
       title={LL.modals.addDevice.desktop.title()}
       isOpen={visible}
-      setIsOpen={(v) =>
-        setModalsState({ addDeviceDesktopModal: { visible: v } })
-      }
+      setIsOpen={(v) => setModalsState({ addDeviceDesktopModal: { visible: v } })}
       backdrop
     >
       <AddDeviceDesktopForm />

@@ -40,8 +40,10 @@ export const RegisterWebAuthNForm = () => {
   } = useApi();
   const queryClient = useQueryClient();
 
-  const { mutate: registerKeyFinish, isLoading: registerKeyFinishLoading } =
-    useMutation([MutationKeys.REGISTER_SECURITY_KEY_FINISH], finish, {
+  const { mutate: registerKeyFinish, isLoading: registerKeyFinishLoading } = useMutation(
+    [MutationKeys.REGISTER_SECURITY_KEY_FINISH],
+    finish,
+    {
       onSuccess: (data) => {
         toaster.success(LL.modals.manageWebAuthNKeys.form.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
@@ -58,7 +60,8 @@ export const RegisterWebAuthNForm = () => {
         setModalState({ manageWebAuthNKeysModal: { visible: false } });
         console.error(err);
       },
-    });
+    }
+  );
 
   const formSchema = useMemo(
     () =>
@@ -108,9 +111,7 @@ export const RegisterWebAuthNForm = () => {
           className="cancel"
           type="button"
           text={LL.form.close()}
-          onClick={() =>
-            setModalState({ manageWebAuthNKeysModal: { visible: false } })
-          }
+          onClick={() => setModalState({ manageWebAuthNKeysModal: { visible: false } })}
         />
         <Button
           type="submit"

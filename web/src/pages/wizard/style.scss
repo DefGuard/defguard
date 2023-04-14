@@ -1,0 +1,30 @@
+@use '@scss/helpers' as *;
+
+#wizard-page {
+  #wizard-content {
+    position: relative;
+    @include media-breakpoint-up(lg) {
+      box-sizing: border-box;
+      padding: 54px 0;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: min-content;
+      min-height: 100%;
+      row-gap: 40px;
+      justify-items: center;
+
+      & > * {
+        grid-column: 3 / 11;
+      }
+
+      & > .card {
+        width: calc(100% - 50px);
+        max-width: 955px;
+      }
+
+      .card {
+        box-shadow: 0 12px 24px rgb(0 0 0 / 8%) !important;
+      }
+    }
+  }
+}

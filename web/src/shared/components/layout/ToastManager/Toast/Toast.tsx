@@ -4,10 +4,7 @@ import classNames from 'classnames';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import {
-  ToastOptions,
-  useToastsStore,
-} from '../../../../hooks/store/useToastStore';
+import { ToastOptions, useToastsStore } from '../../../../hooks/store/useToastStore';
 import SvgIconInfoError from '../../../svg/IconInfoError';
 import SvgIconInfoNormal from '../../../svg/IconInfoNormal';
 import SvgIconInfoSuccess from '../../../svg/IconInfoSuccess';
@@ -24,9 +21,7 @@ export interface ToastProps {
   data: ToastOptions;
 }
 
-export const Toast = ({
-  data: { id, type, message, subMessage },
-}: ToastProps) => {
+export const Toast = ({ data: { id, type, message, subMessage } }: ToastProps) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const timer = useRef(5);
   const timerTick = useRef<number | null>(null);

@@ -87,6 +87,8 @@
     }
 
     svg {
+      height: 40px;
+      max-width: 100px;
       position: absolute;
       top: 50%;
       left: 4rem;
@@ -138,12 +140,14 @@
       gap: 1.5rem;
       cursor: pointer;
       position: relative;
+      overflow: hidden;
 
       span {
         display: none;
         font-size: 1.5rem;
         line-height: 1.6;
         font-family: Poppins;
+        white-space: nowrap;
         @include mix.text-weight(medium);
 
         color: v.$gray-light;
@@ -248,7 +252,7 @@
 
     .logo-container {
       svg {
-        display: none;
+        opacity: 0;
 
         &:nth-of-type(1) {
           opacity: 1;

@@ -45,20 +45,16 @@ export const AddDeviceDesktopForm = () => {
     [locale]
   );
 
-  const { mutateAsync, isLoading } = useMutation(
-    [MutationKeys.ADD_DEVICE],
-    addDevice,
-    {
-      onSuccess: () => {
-        toaster.success(LL.modals.addDevice.messages.success());
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        setModalsState({ addDeviceDesktopModal: { visible: false } });
-        console.error(err);
-      },
-    }
-  );
+  const { mutateAsync, isLoading } = useMutation([MutationKeys.ADD_DEVICE], addDevice, {
+    onSuccess: () => {
+      toaster.success(LL.modals.addDevice.messages.success());
+    },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      setModalsState({ addDeviceDesktopModal: { visible: false } });
+      console.error(err);
+    },
+  });
   const {
     control,
     handleSubmit,
@@ -79,10 +75,7 @@ export const AddDeviceDesktopForm = () => {
         name: values.name,
         wireguard_pubkey: keys.publicKey,
       }).then(async (config) => {
-        const configWithSecret = config.replace(
-          'YOUR_PRIVATE_KEY',
-          keys.privateKey
-        );
+        const configWithSecret = config.replace('YOUR_PRIVATE_KEY', keys.privateKey);
         const appDir = fs.BaseDirectory.AppData;
         const dirExists = await fs.exists('wg', { dir: appDir });
         if (!dirExists) {
@@ -105,9 +98,7 @@ export const AddDeviceDesktopForm = () => {
         <Button
           type="button"
           text={LL.form.cancel()}
-          onClick={() =>
-            setModalsState({ addDeviceDesktopModal: { visible: false } })
-          }
+          onClick={() => setModalsState({ addDeviceDesktopModal: { visible: false } })}
         />
         <Button
           type="submit"

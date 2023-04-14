@@ -2,16 +2,9 @@ import { motion, SVGMotionProps } from 'framer-motion';
 
 import { ColorsRGB } from '../../../../constants';
 
-export const ActionButtonIconDownload = (
-  props: SVGMotionProps<SVGSVGElement>
-) => {
+export const ActionButtonIconDownload = (props: SVGMotionProps<SVGSVGElement>) => {
   return (
-    <motion.svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={22}
-      height={22}
-      {...props}
-    >
+    <motion.svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} {...props}>
       <defs>
         <clipPath id="icon-download_svg__a">
           <path

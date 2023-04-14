@@ -2,12 +2,12 @@ import './style.scss';
 
 import { useMemo } from 'react';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { NetworkUserStats, OverviewLayoutType } from '../../../shared/types';
 import { getMaxDeviceStats } from '../helpers/stats';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { UserConnectionCard } from './UserConnectionCard/UserConnectionCard';
 import { UserConnectionListItem } from './UserConnectionListItem/UserConnectionListItem';
-import { useI18nContext } from '../../../i18n/i18n-react';
 
 interface Props {
   stats?: NetworkUserStats[];
@@ -54,9 +54,7 @@ export const OverviewConnectedUsers = ({ stats }: Props) => {
         <h2>{LL.connectedUsersOverview.pageTitle()}</h2>
       </header>
       {!stats || !stats.length ? (
-        <p className="no-data-text">
-          {LL.connectedUsersOverview.noUsersMessage()}
-        </p>
+        <p className="no-data-text">{LL.connectedUsersOverview.noUsersMessage()}</p>
       ) : null}
       <div className={getContentClassName}>{renderedStats}</div>
     </div>

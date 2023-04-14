@@ -27,7 +27,7 @@ interface Inputs {
   repeat: string;
 }
 export const ChangePasswordForm = () => {
-  const logout = useAuthStore((state) => state.logOut);
+  const logout = useAuthStore((state) => state.resetState);
   const currentUser = useAuthStore((state) => state.user);
   const setModalState = useModalStore((state) => state.setChangePasswordModal);
   const modalState = useModalStore((state) => state.changePasswordModal);
@@ -43,14 +43,8 @@ export const ChangePasswordForm = () => {
             .max(32, LL.form.error.maximumLength())
             .matches(patternAtLeastOneDigit, LL.form.error.oneDigit())
             .matches(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
-            .matches(
-              patternAtLeastOneUpperCaseChar,
-              LL.form.error.oneUppercase()
-            )
-            .matches(
-              patternAtLeastOneLowerCaseChar,
-              LL.form.error.oneLowercase()
-            )
+            .matches(patternAtLeastOneUpperCaseChar, LL.form.error.oneUppercase())
+            .matches(patternAtLeastOneLowerCaseChar, LL.form.error.oneLowercase())
             .required(LL.form.error.required()),
           repeat: yup
             .string()
@@ -73,10 +67,7 @@ export const ChangePasswordForm = () => {
   const changePasswordMutation = useMutation(changePassword, {
     mutationKey: [MutationKeys.CHANGE_PASSWORD],
     onSuccess: () => {
-      if (
-        modalState.user &&
-        modalState.user.username === currentUser?.username
-      ) {
+      if (modalState.user && modalState.user.username === currentUser?.username) {
         logout();
         toaster.success(LL.modals.changeUserPassword.messages.success());
         setModalState({ user: undefined, visible: false });

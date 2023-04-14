@@ -1,8 +1,9 @@
+import parse from 'html-react-parser';
+
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { ContentCard } from '../../../shared/components/layout/ContentCard/ContentCard';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
-import parse from 'html-react-parser';
 
 export const LicenseCard = () => {
   const { LL } = useI18nContext();

@@ -79,11 +79,9 @@ const KeyBox = ({
     if (!copySubject) {
       setCopySubject(new Subject());
     } else {
-      const sub = copySubject
-        .pipe(switchMap(() => timer(2500)))
-        .subscribe(() => {
-          setCopiedVisible(false);
-        });
+      const sub = copySubject.pipe(switchMap(() => timer(2500))).subscribe(() => {
+        setCopiedVisible(false);
+      });
       return () => {
         sub.unsubscribe();
       };
@@ -101,11 +99,7 @@ const KeyBox = ({
               className={`collapse-controller ${disabled ? 'disabled' : ''}`}
               onClick={handleClick}
             >
-              {collapsed ? (
-                <SvgIconUserListExpanded />
-              ) : (
-                <SvgIconUserListHover />
-              )}
+              {collapsed ? <SvgIconUserListExpanded /> : <SvgIconUserListHover />}
             </div>
           ) : null}
           <motion.span
@@ -117,18 +111,10 @@ const KeyBox = ({
             {title}
           </motion.span>
           <motion.div className="actions">
-            <IconButton
-              onClick={handleCopy}
-              className="primary"
-              disabled={disabled}
-            >
+            <IconButton onClick={handleCopy} className="primary" disabled={disabled}>
               <SvgIconCopy />
             </IconButton>
-            <IconButton
-              onClick={handleDownload}
-              className="primary"
-              disabled={disabled}
-            >
+            <IconButton onClick={handleDownload} className="primary" disabled={disabled}>
               <SvgIconDownload />
             </IconButton>
           </motion.div>

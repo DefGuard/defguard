@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { useEffect, useLayoutEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import Button, {
@@ -38,9 +38,7 @@ export const UserProfile = () => {
   const currentUser = useAuthStore((state) => state.user);
   const editMode = useUserProfileStore((state) => state.editMode);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
-  const setNavigationUser = useNavigationStore(
-    (state) => state.setNavigationUser
-  );
+  const setNavigationUser = useNavigationStore((state) => state.setNavigationUser);
   const {
     user: { getUser },
   } = useApi();
@@ -79,9 +77,7 @@ export const UserProfile = () => {
     <section id="user-profile-v2">
       <header className={classNames({ edit: editMode })}>
         {breakpoint === 'desktop' && (
-          <h1>
-            {editMode ? LL.userPage.title.edit() : LL.userPage.title.view()}
-          </h1>
+          <h1>{editMode ? LL.userPage.title.edit() : LL.userPage.title.view()}</h1>
         )}
         <div className={classNames('controls', { edit: editMode })}>
           {editMode ? <EditModeControls /> : <ViewModeControls />}
@@ -112,11 +108,7 @@ const ViewModeControls = () => {
     <>
       <div className="right">
         <Button
-          text={
-            breakpoint === 'desktop'
-              ? LL.userPage.controls.editButton()
-              : undefined
-          }
+          text={breakpoint === 'desktop' ? LL.userPage.controls.editButton() : undefined}
           icon={<IconEdit />}
           styleVariant={
             breakpoint === 'desktop'
@@ -139,9 +131,7 @@ const EditModeControls = () => {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const isMe = useUserProfileStore((state) => state.isMe);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
-  const setDeleteUserModalState = useModalStore(
-    (state) => state.setDeleteUserModal
-  );
+  const setDeleteUserModalState = useModalStore((state) => state.setDeleteUserModal);
 
   const submitSubject = useUserProfileStore((state) => state.submitSubject);
 

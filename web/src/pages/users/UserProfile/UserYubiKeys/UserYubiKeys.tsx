@@ -33,9 +33,7 @@ export const UserYubiKeys = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.pgp_key, user?.ssh_key]);
 
-  const setProvisioningModal = useModalStore(
-    (state) => state.setProvisionKeyModal
-  );
+  const setProvisioningModal = useModalStore((state) => state.setProvisionKeyModal);
 
   return (
     <section id="user-yubikeys">

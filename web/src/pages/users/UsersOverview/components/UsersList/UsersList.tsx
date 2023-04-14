@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import UserInitials from '../../../../../shared/components/layout/UserInitials/UserInitials';
@@ -27,9 +27,7 @@ export const UsersList = ({ users }: Props) => {
   const { LL, locale } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const navigate = useNavigate();
-  const setNavigationUser = useNavigationStore(
-    (state) => state.setNavigationUser
-  );
+  const setNavigationUser = useNavigationStore((state) => state.setNavigationUser);
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const currentUser = useAuthStore((state) => state.user);
   const navigateToUser = useCallback(
@@ -73,10 +71,7 @@ export const UsersList = ({ users }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [breakpoint, locale]);
 
-  const onCellClick = useCallback(
-    (user: User) => navigateToUser(user),
-    [navigateToUser]
-  );
+  const onCellClick = useCallback((user: User) => navigateToUser(user), [navigateToUser]);
 
   const listCells = useMemo((): ListRowCell<User>[] => {
     const allCells = [
@@ -85,10 +80,7 @@ export const UsersList = ({ users }: Props) => {
         render: (user: User) => (
           <p className="name">
             {user.first_name && user.last_name ? (
-              <UserInitials
-                first_name={user.first_name}
-                last_name={user.last_name}
-              />
+              <UserInitials first_name={user.first_name} last_name={user.last_name} />
             ) : null}
             {`${user.first_name} ${user.last_name}`}
           </p>
@@ -97,9 +89,7 @@ export const UsersList = ({ users }: Props) => {
       },
       {
         key: 'username',
-        render: (user: User) => (
-          <span className="username">{user.username}</span>
-        ),
+        render: (user: User) => <span className="username">{user.username}</span>,
         onClick: onCellClick,
       },
       {

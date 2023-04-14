@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import './style.scss';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { AxiosError } from 'axios';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -11,10 +13,14 @@ import Button, {
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
+import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
-import { useI18nContext } from '../../i18n/i18n-react';
+import { useToaster } from '../../shared/hooks/useToaster';
+import LoaderPage from '../loader/LoaderPage';
 
 export const OpenidAllowPage = () => {
+  const navigate = useNavigate();
+
   const [params] = useSearchParams();
   const [scope, setScope] = useState<string | null>('');
   const [responseType, setResponseType] = useState<string | null>('');
@@ -27,40 +33,33 @@ export const OpenidAllowPage = () => {
   const {
     openid: { getOpenidClient },
   } = useApi();
+  const setAuthStore = useAuthStore((state) => state.setState);
+  const [loadingInfo, setLoadingInfo] = useState(true);
+  const toaster = useToaster();
 
   const { LL } = useI18nContext();
 
-  const validateParams = useCallback(() => {
+  const paramsValid = useMemo(() => {
     const check = [scope, responseType, clientId, nonce, redirectUri, state];
     for (const item in check) {
       if (typeof item === 'undefined' || typeof item === null) {
+        toaster.error('OpenID Params invalid.');
         return false;
       }
     }
     return true;
-  }, [scope, responseType, clientId, nonce, redirectUri, state]);
-
-  const getFormAction = useCallback(
-    (allow: boolean) => {
-      if (validateParams()) {
-        const res = params;
-        res.append('allow', String(allow));
-        return `/api/v1/oauth/authorize?${res.toString()}`;
-      }
-      return '';
-    },
-    [validateParams, params]
-  );
+  }, [clientId, nonce, redirectUri, responseType, scope, state, toaster]);
 
   const handleSubmit = useCallback(
     (allow: boolean) => {
-      const formAction = getFormAction(allow);
+      params.append('allow', String(allow));
+      const formAction = `/api/v1/oauth/authorize?${params.toString()}`;
       if (inputRef.current) {
         inputRef.current.formAction = formAction;
         inputRef.current.click();
       }
     },
-    [getFormAction]
+    [params]
   );
 
   useEffect(() => {
@@ -73,13 +72,22 @@ export const OpenidAllowPage = () => {
   }, [params]);
 
   useEffect(() => {
-    if (validateParams()) {
-      getOpenidClient(clientId!).then((res) => {
-        setName(res.name);
-      });
+    if (paramsValid && clientId) {
+      getOpenidClient(clientId)
+        .then((res) => {
+          setName(res.name);
+          setLoadingInfo(false);
+        })
+        .catch((error: AxiosError) => {
+          if (error.response?.status === 401) {
+            setAuthStore({ openIdParams: params });
+            setLoadingInfo(false);
+            navigate('/auth', { replace: true });
+          }
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validateParams, clientId]);
+  }, [paramsValid, clientId]);
 
   const scopes: Record<string, string> = {
     openid: LL.openidAllow.scopes.openid(),
@@ -87,6 +95,8 @@ export const OpenidAllowPage = () => {
     email: LL.openidAllow.scopes.email(),
     phone: LL.openidAllow.scopes.phone(),
   };
+
+  if (loadingInfo) return <LoaderPage />;
 
   return (
     <section id="openid-consent">
@@ -110,6 +120,7 @@ export const OpenidAllowPage = () => {
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconCheckmarkWhite />}
             text={LL.openidAllow.controls.accept()}
+            disabled={!paramsValid}
             onClick={() => handleSubmit(true)}
           />
           <Button
@@ -117,6 +128,7 @@ export const OpenidAllowPage = () => {
             styleVariant={ButtonStyleVariant.STANDARD}
             icon={<SvgIconDelete />}
             text={LL.openidAllow.controls.cancel()}
+            disabled={!paramsValid}
             onClick={() => handleSubmit(false)}
           />
         </div>

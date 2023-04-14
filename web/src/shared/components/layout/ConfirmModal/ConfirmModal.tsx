@@ -48,12 +48,7 @@ const ConfirmModal = ({
   }, [type]);
 
   return (
-    <Modal
-      backdrop
-      isOpen={isOpen}
-      setIsOpen={setIsOpen}
-      className={getMainClass}
-    >
+    <Modal backdrop isOpen={isOpen} setIsOpen={setIsOpen} className={getMainClass}>
       <p className="title">{title}</p>
       <p className="subtitle">{subTitle}</p>
       <section className="controls">

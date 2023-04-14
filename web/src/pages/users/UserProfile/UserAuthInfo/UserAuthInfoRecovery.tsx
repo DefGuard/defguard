@@ -21,9 +21,7 @@ export const UserAuthInfoRecovery = () => {
             <div className="right">
               {user.mfa_enabled && (
                 <>
-                  <span>
-                    {LL.userPage.userAuthInfo.recovery.codes.viewed()}
-                  </span>
+                  <span>{LL.userPage.userAuthInfo.recovery.codes.viewed()}</span>
                 </>
               )}
             </div>
@@ -34,8 +32,7 @@ export const UserAuthInfoRecovery = () => {
           <div className="row">
             <p>{LL.userPage.userAuthInfo.recovery.codes.label()}</p>
             <p className="info">
-              {user.mfa_enabled &&
-                LL.userPage.userAuthInfo.recovery.codes.viewed()}
+              {user.mfa_enabled && LL.userPage.userAuthInfo.recovery.codes.viewed()}
             </p>
           </div>
         </>

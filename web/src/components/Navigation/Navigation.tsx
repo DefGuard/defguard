@@ -4,11 +4,11 @@ import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import React, { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import useBreakpoint from 'use-breakpoint';
-import shallow from 'zustand/shallow';
+import { useBreakpoint } from 'use-breakpoint';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import Divider from '../../shared/components/layout/Divider/Divider';
+import { Divider } from '../../shared/components/layout/Divider/Divider';
 import IconButton from '../../shared/components/layout/IconButton/IconButton';
 import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
 import SvgDefguadNavLogoCollapsed from '../../shared/components/svg/DefguadNavLogoCollapsed';
@@ -28,7 +28,7 @@ import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
 import { ApplicationVersion } from './ApplicationVersion/ApplicationVersion';
-import { MobileNavModal } from './MobleNavModal/MobileNavModal';
+import { MobileNavModal } from './MobileNavModal/MobileNavModal';
 import { NavigationLink } from './NavigationLink';
 
 export interface NavigationItem {
@@ -41,8 +41,8 @@ export interface NavigationItem {
 
 export const Navigation = () => {
   const { LL, locale } = useI18nContext();
-  const [currentUser, storeLogOut] = useAuthStore(
-    (state) => [state.user, state.logOut],
+  const [currentUser, resetAuthStore] = useAuthStore(
+    (state) => [state.user, state.resetState],
     shallow
   );
   const [isMobileNavOpen, setMobileNavOpen] = useState(false);
@@ -50,12 +50,13 @@ export const Navigation = () => {
     (state) => [state.isNavigationOpen, state.setNavigationOpen, state.user],
     shallow
   );
+  const [enableWizard] = useNavigationStore((state) => [state.enableWizard], shallow);
   const {
     auth: { logout },
   } = useApi();
   const logOutMutation = useMutation(logout, {
     onSuccess: () => {
-      storeLogOut();
+      resetAuthStore();
     },
   });
 
@@ -100,7 +101,14 @@ export const Navigation = () => {
         linkPath: '/admin/overview',
         icon: <SvgIconNavVpn />,
         allowedToView: ['admin'],
-        enabled: settings?.wireguard_enabled,
+        enabled: settings?.wireguard_enabled && !enableWizard,
+      },
+      {
+        title: LL.navigation.bar.wizard(),
+        linkPath: '/admin/wizard',
+        icon: <SvgIconNavVpn />,
+        allowedToView: ['admin'],
+        enabled: settings?.wireguard_enabled && enableWizard,
       },
       {
         title: LL.navigation.bar.users(),
@@ -166,10 +174,7 @@ export const Navigation = () => {
         <nav className="nav-mobile">
           <SvgDefguadNavLogoCollapsed />
           <p className="page-title">{getPageTitle}</p>
-          <IconButton
-            className="hamburger-button"
-            onClick={() => setMobileNavOpen(true)}
-          >
+          <IconButton className="hamburger-button" onClick={() => setMobileNavOpen(true)}>
             <SvgIconHamburgerMenu />
           </IconButton>
         </nav>
@@ -178,9 +183,7 @@ export const Navigation = () => {
         <>
           <button
             onClick={() => setNavigationOpen(!isNavigationOpen)}
-            className={
-              'nav-control-button' + (isNavigationOpen ? '' : ' collapsed')
-            }
+            className={'nav-control-button' + (isNavigationOpen ? '' : ' collapsed')}
           >
             <SvgIconArrowDoubleGrayLeft />
           </button>
@@ -189,10 +192,11 @@ export const Navigation = () => {
             layout
           >
             <section className="logo-container">
-              {settings ? (
-                <img src={settings?.nav_logo_url} alt="logo" />
-              ) : null}
-              <SvgDefguadNavLogo /> <SvgDefguadNavLogoCollapsed />
+              {settings ? <img src={settings?.nav_logo_url} alt="logo" /> : null}
+              <SvgDefguadNavLogo
+                style={{ display: settings?.nav_logo_url ? 'none' : 'block' }}
+              />
+              <SvgDefguadNavLogoCollapsed />
             </section>
             <span className="divider"></span>
             <section className="links">
@@ -211,10 +215,7 @@ export const Navigation = () => {
                   enabled: true,
                 }}
               />
-              <button
-                className="log-out"
-                onClick={() => logOutMutation.mutate()}
-              >
+              <button className="log-out" onClick={() => logOutMutation.mutate()}>
                 <SvgIconNavLogout />
                 <span>{LL.navigation.bar.logOut()}</span>
               </button>

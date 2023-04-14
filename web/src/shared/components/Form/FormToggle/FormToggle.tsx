@@ -1,8 +1,4 @@
-import {
-  FieldValues,
-  useController,
-  UseControllerProps,
-} from 'react-hook-form';
+import { FieldValues, useController, UseControllerProps } from 'react-hook-form';
 
 import { Toggle, ToggleProps } from '../../layout/Toggle/Toggle';
 

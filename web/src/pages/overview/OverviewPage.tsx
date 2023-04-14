@@ -1,20 +1,19 @@
 import './style.scss';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import Button, {
-  ButtonStyleVariant,
-} from '../../shared/components/layout/Button/Button';
+import Button, { ButtonStyleVariant } from '../../shared/components/layout/Button/Button';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
-import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
+import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
@@ -36,8 +35,8 @@ export const OverviewPage = () => {
   const setOverViewStore = useOverviewStore((state) => state.setState);
   const statsFilter = useOverviewStore((state) => state.statsFilter);
   const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
-  const queryClient = useQueryClient();
   const { LL } = useI18nContext();
+  const wizardActive = useNavigationStore((state) => state.enableWizard);
 
   const {
     network: { getNetworks, getUsersStats, getNetworkStats, getGatewayStatus },
@@ -47,13 +46,8 @@ export const OverviewPage = () => {
     [QueryKeys.FETCH_NETWORK_STATS, statsFilter],
     () => getNetworkStats({ from: getNetworkStatsFilterValue(statsFilter) }),
     {
-      onSuccess: async () => {
-        setTimeout(
-          () => queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_STATS]),
-          STATUS_REFETCH_TIMEOUT
-        );
-      },
       refetchOnWindowFocus: false,
+      refetchInterval: STATUS_REFETCH_TIMEOUT,
     }
   );
 
@@ -62,16 +56,8 @@ export const OverviewPage = () => {
     () => getUsersStats({ from: getNetworkStatsFilterValue(statsFilter) }),
     {
       enabled: !isUndefined(statsFilter),
-      onSuccess: async () => {
-        setTimeout(
-          () =>
-            queryClient.invalidateQueries([
-              QueryKeys.FETCH_NETWORK_USERS_STATS,
-            ]),
-          STATUS_REFETCH_TIMEOUT
-        );
-      },
       refetchOnWindowFocus: false,
+      refetchInterval: STATUS_REFETCH_TIMEOUT,
     }
   );
 
@@ -116,9 +102,12 @@ export const OverviewPage = () => {
     navigate('../network');
   };
 
-  if (networks && networks.length === 0) {
-    navigate('../network');
-  }
+  useEffect(() => {
+    if (wizardActive) {
+      navigate('/admin/wizard', { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
@@ -161,10 +150,7 @@ export const OverviewPage = () => {
           </header>
         )}
         {networkStats && networkUsersStats && (
-          <OverviewStats
-            usersStats={networkUsersStats}
-            networkStats={networkStats}
-          />
+          <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
         )}
         <div className="bottom-row">
           {userStatsLoading || gatewayStatusLoading ? (
@@ -174,9 +160,7 @@ export const OverviewPage = () => {
           ) : gatewayStatus?.connected ? (
             <OverviewConnectedUsers stats={getNetworkUsers} />
           ) : (
-            <NoData
-              customMessage={LL.networkOverview.stats.gatewayDisconnected()}
-            />
+            <NoData customMessage={LL.networkOverview.stats.gatewayDisconnected()} />
           )}
           {/* <OverviewActivityStream /> */}
         </div>

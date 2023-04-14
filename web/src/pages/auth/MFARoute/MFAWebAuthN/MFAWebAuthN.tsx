@@ -1,19 +1,15 @@
-import {
-  get,
-  parseRequestOptionsFromJSON,
-} from '@github/webauthn-json/browser-ponyfill';
+import { get, parseRequestOptionsFromJSON } from '@github/webauthn-json/browser-ponyfill';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import shallow from 'zustand/shallow';
-import { useI18nContext } from '../../../../i18n/i18n-react';
+import { shallow } from 'zustand/shallow';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
-import { useOpenIDStore } from '../../../../shared/hooks/store/useOpenIdStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
@@ -30,17 +26,12 @@ export const MFAWebAuthN = () => {
   } = useApi();
   const { LL } = useI18nContext();
 
-  const logIn = useAuthStore((state) => state.logIn);
-  const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore)
-  const clearMFAStore = useMFAStore((state) => state.resetState);
+  const loginSubject = useAuthStore((state) => state.loginSubject);
+
   const navigate = useNavigate();
   const toaster = useToaster();
   const [webauthnAvailable, web3Available, totpAvailable] = useMFAStore(
-    (state) => [
-      state.webauthn_available,
-      state.web3_available,
-      state.totp_available,
-    ],
+    (state) => [state.webauthn_available, state.web3_available, state.totp_available],
     shallow
   );
 
@@ -48,18 +39,10 @@ export const MFAWebAuthN = () => {
     [MutationKeys.WEBAUTHN_MFA_FINISH],
     finish,
     {
-      onSuccess: (data) => {
-        const { user, url } = data;
-        if (user && url) {
-          clearMFAStore();
-					setOpenIDStore({openIDRedirect: true})
-          window.location.replace(url);
-          return;
-        }
-        if (user) {
-          clearMFAStore();
-          logIn(user);
-        }
+      onSuccess: (data) => loginSubject.next(data),
+      onError: (err) => {
+        toaster.error(LL.messages.error());
+        console.error(err);
       },
     }
   );

@@ -21,7 +21,7 @@ const storySelectOptions: SelectOption<number>[] = [
   },
 ];
 
-export const SelectStory: Story<{
+export const MultiSelectStory: Story<{
   loading?: boolean;
   disabled?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -69,3 +69,38 @@ export const SelectStory: Story<{
     />
   );
 };
+
+MultiSelectStory.storyName = 'Multiple options select';
+
+export const SingleOptionSelectStory: Story = () => {
+  const [selected, setSelected] = useState<SelectOption<number> | undefined>();
+  const [searchTerm, setSearchTerm] = useState<string | undefined>();
+
+  const getOptions = useMemo(() => {
+    if (!searchTerm) return storySelectOptions;
+
+    return storySelectOptions.filter((o) =>
+      o.label.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase())
+    );
+  }, [searchTerm]);
+
+  return (
+    <Select
+      options={getOptions}
+      multi={false}
+      selected={selected}
+      onChange={(res) => {
+        console.log(res);
+        if (!Array.isArray(res)) {
+          setSelected(res);
+        }
+      }}
+      onSearch={setSearchTerm}
+      searchDebounce={50}
+      placeholder="Select one option"
+      searchable
+    />
+  );
+};
+
+SingleOptionSelectStory.storyName = 'Single option select';

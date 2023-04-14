@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
-import React, { useEffect, useState } from 'react';
-import { SVGProps } from 'react';
+import React, { SVGProps, useEffect, useState } from 'react';
 
 const SvgIconSuccessLarge = (props: SVGProps<SVGSVGElement>) => {
   const [triggered, setTriggered] = useState(false);

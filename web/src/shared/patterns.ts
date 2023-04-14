@@ -3,6 +3,7 @@ export const patternNoSpecialChars = /^\w+$/;
 export const patternDigitOrLowercase = /^[0-9a-z]+$/g;
 
 export const patternValidEmail =
+  // eslint-disable-next-line max-len
   /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/g;
 
 export const patternAtLeastOneUpperCaseChar = /(?=.*?[A-Z])/g;
@@ -14,6 +15,7 @@ export const patternAtLeastOneDigit = /(?=.*?[0-9])/g;
 export const patternAtLeastOneSpecialChar = /(?=.*?[#?!@$%^&*-])/g;
 
 export const patternValidPhoneNumber =
+  // eslint-disable-next-line max-len
   /^\s*(?:\+?(\d{1,3}))?([-. (]*(\d{3})[-. )]*)?((\d{3})[-. ]*(\d{2,4})(?:[-.x ]*(\d+))?)\s*$/g;
 
 export const patternValidWireguardKey =

@@ -19,17 +19,11 @@ type Props = {
 export const UserEditButton = ({ user }: Props) => {
   const { LL } = useI18nContext();
   const navigate = useNavigate();
-  const setProvisionKeyModal = useModalStore(
-    (state) => state.setProvisionKeyModal
-  );
+  const setProvisionKeyModal = useModalStore((state) => state.setProvisionKeyModal);
   const setDeleteUserModal = useModalStore((state) => state.setDeleteUserModal);
-  const setChangePasswordModal = useModalStore(
-    (state) => state.setChangePasswordModal
-  );
+  const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
   const setUserProfile = useUserProfileStore((state) => state.setState);
-  const setNavigationUser = useNavigationStore(
-    (state) => state.setNavigationUser
-  );
+  const setNavigationUser = useNavigationStore((state) => state.setNavigationUser);
   const currentUser = useAuthStore((state) => state.user);
   return (
     <EditButton>

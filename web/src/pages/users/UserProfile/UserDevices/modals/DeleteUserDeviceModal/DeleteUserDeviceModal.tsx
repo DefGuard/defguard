@@ -15,9 +15,7 @@ export const DeleteUserDeviceModal = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const modalState = useModalStore((state) => state.deleteUserDeviceModal);
-  const setModalState = useModalStore(
-    (state) => state.setDeleteUserDeviceModal
-  );
+  const setModalState = useModalStore((state) => state.setDeleteUserDeviceModal);
   const {
     device: { deleteDevice },
   } = useApi();

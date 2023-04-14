@@ -11,7 +11,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { ReactNode, useMemo, useRef, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { deviceBreakpoints } from '../../../constants';
 import { IconInfo } from '../../svg';
@@ -32,16 +32,15 @@ export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
   const [floatOpen, setFloatOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const arrowRef = useRef(null);
-  const { x, y, strategy, floating, reference, placement, middlewareData } =
-    useFloating({
-      placement: initialPlacement,
-      strategy: 'fixed',
-      open: floatOpen,
-      onOpenChange: setFloatOpen,
-      whileElementsMounted: (refElement, floatingElement, updateFunc) =>
-        autoUpdate(refElement, floatingElement, updateFunc),
-      middleware: [flip(), offset(16), shift(), arrow({ element: arrowRef })],
-    });
+  const { x, y, strategy, floating, reference, placement, middlewareData } = useFloating({
+    placement: initialPlacement,
+    strategy: 'fixed',
+    open: floatOpen,
+    onOpenChange: setFloatOpen,
+    whileElementsMounted: (refElement, floatingElement, updateFunc) =>
+      autoUpdate(refElement, floatingElement, updateFunc),
+    middleware: [flip(), offset(16), shift(), arrow({ element: arrowRef })],
+  });
 
   const staticSide: string = useMemo(() => {
     const mapping: PlacementMap = {
@@ -58,7 +57,7 @@ export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
     <>
       <button
         className="helper"
-				type="button"
+        type="button"
         onClick={() => {
           if (breakpoint === 'desktop') {
             setFloatOpen(true);
@@ -114,12 +113,8 @@ export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
                 data-placement={placement}
                 ref={arrowRef}
                 style={{
-                  left: middlewareData?.arrow?.x
-                    ? `${middlewareData.arrow.x}px`
-                    : '',
-                  top: middlewareData?.arrow?.y
-                    ? `${middlewareData.arrow.y}px`
-                    : '',
+                  left: middlewareData?.arrow?.x ? `${middlewareData.arrow.x}px` : '',
+                  top: middlewareData?.arrow?.y ? `${middlewareData.arrow.y}px` : '',
                   right: '',
                   bottom: '',
                   [staticSide]: '-8px',

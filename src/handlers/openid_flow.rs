@@ -198,7 +198,7 @@ impl<'r> AuthenticationRequest<'r> {
             return Err(CoreAuthErrorResponseType::InvalidScope);
         }
 
-        // currenly we support only "code" for `response_type`
+        // currently we support only "code" for `response_type`
         if self.response_type.len() != 1 || !self.response_type.contains(&CoreResponseType::Code) {
             error!(
                 "Invalid response_type for client {}, only 'code' supported",

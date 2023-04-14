@@ -1,5 +1,5 @@
 import { isUndefined } from 'lodash-es';
-import React, { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useIdleTimer } from 'react-idle-timer';
 import { Navigate, useNavigate } from 'react-router-dom';
 
@@ -12,17 +12,16 @@ interface Props {
   children?: ReactNode;
   allowedGroups?: string[];
   moduleRequired?: Setting;
+  allowUnauthorized?: boolean;
 }
 type Setting = keyof Settings;
-/**
- * Wrapper around Route, check if user is logged in.
- */
 
-const ProtectedRoute: React.FC<Props> = ({
+export const ProtectedRoute = ({
   children,
   allowedGroups,
   moduleRequired,
-}) => {
+  allowUnauthorized = false,
+}: Props) => {
   const currentUser = useAuthStore((state) => state.user);
   const settings = useAppStore((state) => state.settings);
   const {
@@ -55,14 +54,16 @@ const ProtectedRoute: React.FC<Props> = ({
     }
   }, [allowedGroups, currentUser, navigate]);
 
-  if (isUndefined(currentUser)) {
+  if (isUndefined(currentUser) && !allowUnauthorized) {
+    console.warn('[GUARD] Not authorized to navigate.');
     return <Navigate replace to="/auth/login" />;
   }
+
   if (settings !== undefined && moduleRequired !== undefined) {
     if (!settings[moduleRequired]) {
+      console.warn('[GUARD] Not authorized to navigate.');
       navigate('/', { replace: true });
     }
   }
   return <>{children}</>;
 };
-export default ProtectedRoute;

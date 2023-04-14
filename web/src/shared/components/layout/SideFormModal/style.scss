@@ -45,12 +45,7 @@
             }
 
             & > h3 {
-              @include mix.typography(
-                21px,
-                30px,
-                semiBold,
-                $font-family: 'Poppins'
-              );
+              @include mix.typography(21px, 30px, semiBold, $font-family: 'Poppins');
             }
 
             & > button {

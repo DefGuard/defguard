@@ -29,10 +29,7 @@ const SvgIconPacketsIn = (props: SVGProps<SVGSVGElement>) => (
         transform="translate(5 2)"
       />
       <g className="icon-packets-in_svg__c">
-        <path
-          className="icon-packets-in_svg__d"
-          d="M9 4.234V1.766L11.056 3 9 4.234Z"
-        />
+        <path className="icon-packets-in_svg__d" d="M9 4.234V1.766L11.056 3 9 4.234Z" />
         <path
           className="icon-packets-in_svg__e"
           d="M12.056 3a.991.991 0 0 1-.485.857L9.514 5.091A1 1 0 0 1 8 4.234V1.766A1 1 0 0 1 9.514.91l2.057 1.234a.991.991 0 0 1 .485.857Z"

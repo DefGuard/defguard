@@ -25,7 +25,7 @@ import { QueryKeys } from '../../../shared/queries';
 
 export const NetworkGatewaySetup = () => {
   const toaster = useToaster();
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const {
     network: { getGatewayStatus, getNetworkToken },
   } = useApi();
@@ -47,6 +47,7 @@ export const NetworkGatewaySetup = () => {
   );
 
   const command = useCallback(() => {
+    // eslint-disable-next-line max-len
     return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} ghcr.io/defguard/gateway:latest`;
   }, [networkToken]);
 
@@ -68,7 +69,7 @@ export const NetworkGatewaySetup = () => {
         }}
       />,
     ],
-    [command, toaster, locale]
+    [command, toaster, LL.messages]
   );
   return (
     <section className="gateway">
@@ -101,9 +102,7 @@ export const NetworkGatewaySetup = () => {
                 loading={statusLoading}
                 onClick={() => {
                   if (!statusLoading) {
-                    queryClient.invalidateQueries([
-                      QueryKeys.FETCH_GATEWAY_STATUS,
-                    ]);
+                    queryClient.invalidateQueries([QueryKeys.FETCH_GATEWAY_STATUS]);
                   }
                 }}
               />

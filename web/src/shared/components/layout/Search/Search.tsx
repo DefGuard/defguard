@@ -4,11 +4,7 @@ import { HTMLMotionProps, motion, Variants } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { debounceTime, Subject } from 'rxjs';
 
-import {
-  buttonsBoxShadow,
-  ColorsRGB,
-  inactiveBoxShadow,
-} from '../../../constants';
+import { buttonsBoxShadow, ColorsRGB, inactiveBoxShadow } from '../../../constants';
 
 interface Props {
   containerMotionProps?: HTMLMotionProps<'div'>;
@@ -34,19 +30,15 @@ export const Search = ({
   const [inputValue, setInputValue] = useState(initialValue);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [changeSubject, setChangeSubject] = useState<
-    Subject<string> | undefined
-  >();
+  const [changeSubject, setChangeSubject] = useState<Subject<string> | undefined>();
 
   useEffect(() => {
     if (changeSubject) {
-      const sub = changeSubject
-        .pipe(debounceTime(debounceTiming))
-        .subscribe((value) => {
-          if (onDebounce) {
-            onDebounce(value);
-          }
-        });
+      const sub = changeSubject.pipe(debounceTime(debounceTiming)).subscribe((value) => {
+        if (onDebounce) {
+          onDebounce(value);
+        }
+      });
       return () => sub.unsubscribe();
     } else {
       setChangeSubject(new Subject());
@@ -134,6 +126,7 @@ const SearchIcon = ({ focus }: SearchIconProps) => {
         </clipPath>
         <style>
           {
+            // eslint-disable-next-line max-len
             '\n      .icon-search_svg__a{fill:#899ca8}.icon-search_svg__a{opacity:0}.icon-search_svg__b{clip-path:url(#icon-search_svg__a)}\n    '
           }
         </style>
@@ -143,6 +136,7 @@ const SearchIcon = ({ focus }: SearchIconProps) => {
           variants={searchIconVariants}
           animate={focus ? 'active' : 'idle'}
           className="icon-search_svg__c"
+          // eslint-disable-next-line max-len
           d="M10.379 4a6.375 6.375 0 0 1 4.951 10.4L18 17.067l-.933.933-2.667-2.67A6.378 6.378 0 1 1 10.379 4Zm0 11.438a5.059 5.059 0 1 0-5.059-5.059 5.065 5.065 0 0 0 5.059 5.059Z"
         />
       </g>

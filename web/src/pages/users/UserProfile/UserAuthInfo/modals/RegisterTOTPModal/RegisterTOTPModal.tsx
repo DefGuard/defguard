@@ -143,28 +143,24 @@ const TOTPRegisterForm = () => {
       .required();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
-  const { mutate, isLoading } = useMutation(
-    [MutationKeys.ENABLE_TOTP_FINISH],
-    enable,
-    {
-      onSuccess: (data) => {
-        toaster.success(LL.modals.registerTOTP.messages.success());
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        if (data && data.codes) {
-          setModalsState({
-            recoveryCodesModal: { visible: true, codes: data.codes },
-          });
-        }
-        setModalsState({ registerTOTP: { visible: false } });
-      },
-      onError: () => {
-        setValue('code', '');
-        setError('code', {
-          message: LL.modals.registerTOTP.form.fields.code.error(),
+  const { mutate, isLoading } = useMutation([MutationKeys.ENABLE_TOTP_FINISH], enable, {
+    onSuccess: (data) => {
+      toaster.success(LL.modals.registerTOTP.messages.success());
+      queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+      if (data && data.codes) {
+        setModalsState({
+          recoveryCodesModal: { visible: true, codes: data.codes },
         });
-      },
-    }
-  );
+      }
+      setModalsState({ registerTOTP: { visible: false } });
+    },
+    onError: () => {
+      setValue('code', '');
+      setError('code', {
+        message: LL.modals.registerTOTP.form.fields.code.error(),
+      });
+    },
+  });
   const { handleSubmit, control, setError, setValue } = useForm({
     resolver: yupResolver(schema),
     mode: 'all',

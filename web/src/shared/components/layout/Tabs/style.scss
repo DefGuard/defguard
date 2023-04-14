@@ -14,9 +14,8 @@
 
     .tab {
       display: flex;
-      flex-direction: column;
+      flex-flow: column nowrap;
       position: relative;
-      flex-wrap: nowrap;
       min-height: 30px;
       cursor: pointer;
 

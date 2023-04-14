@@ -7,6 +7,7 @@ import { floor } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePopper } from 'react-popper';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import Badge, {
   BadgeStyleVariant,
 } from '../../../../shared/components/layout/Badge/Badge';
@@ -29,12 +30,8 @@ import SvgIconUserListElement from '../../../../shared/components/svg/IconUserLi
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
-import {
-  summarizeDeviceStats,
-  summarizeUsersNetworkStats,
-} from '../../helpers/stats';
+import { summarizeDeviceStats, summarizeUsersNetworkStats } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
-import { useI18nContext } from '../../../../i18n/i18n-react';
 dayjs.extend(utc);
 interface Props {
   data: NetworkUserStats;
@@ -44,12 +41,9 @@ interface Props {
 export const UserConnectionCard = ({ data, dataMax }: Props) => {
   const [expanded, setExpanded] = useState(false);
   const [containerHovered, setContainerHovered] = useState(false);
-  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(
-    null
-  );
+  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
   const pageElement = document.getElementById('network-overview-page');
-  const [referenceElement, setReferenceElement] =
-    useState<HTMLDivElement | null>(null);
+  const [referenceElement, setReferenceElement] = useState<HTMLDivElement | null>(null);
   const {
     styles: popperStyles,
     attributes: popperAttributes,
@@ -127,10 +121,7 @@ export const UserConnectionCard = ({ data, dataMax }: Props) => {
       >
         {!expanded && <MainCardContent data={data} dataMax={dataMax} />}
         {containerHovered && !expanded && (
-          <IconButton
-            className="expand-button blank"
-            onClick={() => setExpanded(true)}
-          >
+          <IconButton className="expand-button blank" onClick={() => setExpanded(true)}>
             <SvgIconOpenModal />
           </IconButton>
         )}
@@ -153,11 +144,7 @@ export const UserConnectionCard = ({ data, dataMax }: Props) => {
           </IconButton>
           <div className="devices">
             {data.devices.map((device) => (
-              <ExpandedDeviceCard
-                key={device.id}
-                data={device}
-                dataMax={dataMax}
-              />
+              <ExpandedDeviceCard key={device.id} data={device} dataMax={dataMax} />
             ))}
           </div>
         </div>
@@ -211,12 +198,12 @@ const MainCardContent = ({ data, dataMax }: MainCardContentProps) => {
             <NetworkSpeed
               speedValue={getUserSummarizedStats.download}
               direction={NetworkDirection.DOWNLOAD}
-              data-test="download"
+              data-testid="download"
             />
             <NetworkSpeed
               speedValue={getUserSummarizedStats.upload}
               direction={NetworkDirection.UPLOAD}
-              data-test="upload"
+              data-testid="upload"
             />
           </div>
           <NetworkUsageChart data={getSummarizedStats} dataMax={dataMax} />
@@ -249,7 +236,7 @@ interface ConnectionTimeProps {
 }
 
 const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
-	const {LL} = useI18nContext();
+  const { LL } = useI18nContext();
   const getConnectionTime = useMemo(() => {
     const minutes = dayjs().diff(dayjs.utc(connectedAt), 'm');
     if (minutes > 60) {
@@ -268,7 +255,7 @@ const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
       <span className="label">{LL.connectedUsersOverview.userList.connected()}</span>
       <div className="content-wrapper">
         <SvgIconConnected />
-        <span data-test="connection-time-value">{getConnectionTime}</span>
+        <span data-testid="connection-time-value">{getConnectionTime}</span>
       </div>
     </div>
   );
@@ -281,21 +268,9 @@ const ActiveConnections = () => {
     <div className="active-connections lower-box">
       <span className="label">Connections:</span>
       <div className="content-wrapper">
-        <UserInitials
-          type={UserInitialsType.SMALL}
-          first_name="Z"
-          last_name="K"
-        />
-        <UserInitials
-          type={UserInitialsType.SMALL}
-          first_name="A"
-          last_name="P"
-        />
-        <UserInitials
-          type={UserInitialsType.SMALL}
-          first_name="R"
-          last_name="O"
-        />
+        <UserInitials type={UserInitialsType.SMALL} first_name="Z" last_name="K" />
+        <UserInitials type={UserInitialsType.SMALL} first_name="A" last_name="P" />
+        <UserInitials type={UserInitialsType.SMALL} first_name="R" last_name="O" />
       </div>
     </div>
   );
@@ -306,7 +281,7 @@ interface ActiveDevicesProps {
 }
 
 const ActiveDevices = ({ data }: ActiveDevicesProps) => {
-	const {LL} = useI18nContext();
+  const { LL } = useI18nContext();
   const activeDeviceCount = data.length;
   const showCount = useMemo(() => activeDeviceCount > 3, [activeDeviceCount]);
   const getCount = useMemo(() => 2 - activeDeviceCount, [activeDeviceCount]);
@@ -355,10 +330,7 @@ interface ExpandedDeviceCardProps {
 }
 
 const ExpandedDeviceCard = ({ data, dataMax }: ExpandedDeviceCardProps) => {
-  const getSummarizedStats = useMemo(
-    () => summarizeDeviceStats([data]),
-    [data]
-  );
+  const getSummarizedStats = useMemo(() => summarizeDeviceStats([data]), [data]);
   const downloadSummary = getSummarizedStats.reduce((sum, e) => {
     return sum + e.download;
   }, 0);
@@ -386,19 +358,15 @@ const ExpandedDeviceCard = ({ data, dataMax }: ExpandedDeviceCardProps) => {
               <NetworkSpeed
                 speedValue={downloadSummary}
                 direction={NetworkDirection.DOWNLOAD}
-                data-test="download"
+                data-testid="download"
               />
               <NetworkSpeed
                 speedValue={uploadSummary}
                 direction={NetworkDirection.UPLOAD}
-                data-test="upload"
+                data-testid="upload"
               />
             </div>
-            <NetworkUsageChart
-              data={data.stats}
-              width={180}
-              dataMax={dataMax}
-            />
+            <NetworkUsageChart data={data.stats} width={180} dataMax={dataMax} />
           </div>
         </div>
       </div>

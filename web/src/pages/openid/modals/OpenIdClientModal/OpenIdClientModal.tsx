@@ -2,10 +2,10 @@ import './style.scss';
 
 import { useMemo } from 'react';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { ModalWithTitle } from '../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { OpenIdClientModalForm } from './OpenIdClientModalForm';
-import { useI18nContext } from '../../../../i18n/i18n-react';
 
 export const OpenIdClientModal = () => {
   const { LL } = useI18nContext();
@@ -22,7 +22,11 @@ export const OpenIdClientModal = () => {
       });
     }
     return LL.openidOverview.modals.openidClientModal.title.addApp();
-  }, [modalState.client, modalState.viewMode]);
+  }, [
+    LL.openidOverview.modals.openidClientModal.title,
+    modalState.client,
+    modalState.viewMode,
+  ]);
 
   return (
     <ModalWithTitle

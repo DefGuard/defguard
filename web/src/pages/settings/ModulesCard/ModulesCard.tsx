@@ -1,9 +1,11 @@
 import './styles.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import parse from 'html-react-parser';
 import { cloneDeep } from 'lodash-es';
 import { ReactNode } from 'react';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import Badge from '../../../shared/components/layout/Badge/Badge';
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { CheckBox } from '../../../shared/components/layout/Checkbox/CheckBox';
@@ -14,8 +16,6 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
-import { useI18nContext } from '../../../i18n/i18n-react';
-import parse from 'html-react-parser';
 
 export const ModulesCard = () => {
   const { LL } = useI18nContext();
@@ -28,28 +28,20 @@ export const ModulesCard = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation(
-    [MutationKeys.EDIT_SETTINGS],
-    editSettings,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-        toaster.success(LL.settingsPage.messages.editSuccess());
-      },
-      onError: () => {
-        toaster.error(LL.messages.error());
-      },
-    }
-  );
+  const { mutate, isLoading } = useMutation([MutationKeys.EDIT_SETTINGS], editSettings, {
+    onSuccess: () => {
+      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+      toaster.success(LL.settingsPage.messages.editSuccess());
+    },
+    onError: () => {
+      toaster.error(LL.messages.error());
+    },
+  });
 
   const handleChange = (
     key: keyof Omit<
       Settings,
-      | 'id'
-      | 'challenge_template'
-      | 'main_logo_url'
-      | 'instance_name'
-      | 'nav_logo_url'
+      'id' | 'challenge_template' | 'main_logo_url' | 'instance_name' | 'nav_logo_url'
     >
   ) => {
     if (settings && !isLoading) {

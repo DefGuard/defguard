@@ -12,11 +12,7 @@ import {
 import { isUndefined } from 'lodash-es';
 import React, { useEffect, useMemo, useState } from 'react';
 
-import {
-  buttonsBoxShadow,
-  ColorsRGB,
-  inactiveBoxShadow,
-} from '../../../constants';
+import { buttonsBoxShadow, ColorsRGB, inactiveBoxShadow } from '../../../constants';
 import LoaderSpinner from '../LoaderSpinner/LoaderSpinner';
 
 interface Props extends HTMLMotionProps<'button'> {
@@ -146,9 +142,7 @@ const Button = ({
               custom={{ disabled, styleVariant, size }}
               style={{
                 marginLeft:
-                  isUndefined(icon) || !text || (text && text.length === 0)
-                    ? 0
-                    : 10,
+                  isUndefined(icon) || !text || (text && text.length === 0) ? 0 : 10,
               }}
             >
               {text}

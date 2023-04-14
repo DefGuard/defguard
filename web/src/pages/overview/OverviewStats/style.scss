@@ -123,13 +123,7 @@
           }
 
           & > .info-title {
-            @include typography(
-              12px,
-              17px,
-              medium,
-              var(--gray-light),
-              'Poppins'
-            );
+            @include typography(12px, 17px, medium, var(--gray-light), 'Poppins');
           }
 
           & > .content {
@@ -141,21 +135,9 @@
             column-gap: 1.15rem;
 
             & > .info-value {
-              @include typography(
-                41px,
-                41px,
-                semiBold,
-                var(--text-main),
-                'Poppins'
-              );
+              @include typography(41px, 41px, semiBold, var(--text-main), 'Poppins');
               @include media-breakpoint-up(md) {
-                @include typography(
-                  41px,
-                  57px,
-                  semiBold,
-                  var(--text-main),
-                  'Poppins'
-                );
+                @include typography(41px, 57px, semiBold, var(--text-main), 'Poppins');
               }
             }
           }
@@ -175,13 +157,7 @@
                   align-content: center;
                   justify-content: flex-start;
                   column-gap: 0.4rem;
-                  @include typography(
-                    12px,
-                    17px,
-                    medium,
-                    var(--text-main),
-                    'Poppins'
-                  );
+                  @include typography(12px, 17px, medium, var(--text-main), 'Poppins');
                 }
               }
             }
@@ -207,13 +183,7 @@
           margin-bottom: 1.5rem;
 
           h3 {
-            @include typography(
-              15px,
-              21px,
-              medium,
-              var(--text-main),
-              'Poppins'
-            );
+            @include typography(15px, 21px, medium, var(--text-main), 'Poppins');
             @include media-breakpoint-down(md) {
               text-transform: uppercase;
               @include text-weight(semiBold);
@@ -243,13 +213,7 @@
                   display: none;
                 }
               }
-              @include typography(
-                12px,
-                17px,
-                medium,
-                var(--gray-light),
-                'Poppins'
-              );
+              @include typography(12px, 17px, medium, var(--gray-light), 'Poppins');
             }
 
             & > .network-speed {

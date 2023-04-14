@@ -32,8 +32,10 @@ export const ManageWebAuthNKeysModal = () => {
   } = useApi();
   const toaster = useToaster();
   const queryClient = useQueryClient();
-  const { mutate: deleteKeyMutation, isLoading: deleteKeyLoading } =
-    useMutation([MutationKeys.WEBUAUTHN_DELETE_KEY], deleteKey, {
+  const { mutate: deleteKeyMutation, isLoading: deleteKeyLoading } = useMutation(
+    [MutationKeys.WEBUAUTHN_DELETE_KEY],
+    deleteKey,
+    {
       onSuccess: () => {
         toaster.success(LL.modals.manageWebAuthNKeys.messages.deleted());
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
@@ -42,7 +44,8 @@ export const ManageWebAuthNKeysModal = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    });
+    }
+  );
 
   return (
     <ModalWithTitle
