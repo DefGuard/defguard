@@ -2469,6 +2469,12 @@ type RootTranslation = {
 		 * N​e​t​w​o​r​k​ ​s​e​t​u​p​ ​c​o​m​p​l​e​t​e​d
 		 */
 		completed: string
+		configuration: {
+			/**
+			 * N​e​t​w​o​r​k​ ​c​r​e​a​t​e​d
+			 */
+			successMessage: string
+		}
 		welcome: {
 			/**
 			 * W​e​l​c​o​m​e​ ​t​o​ ​d​e​f​g​u​a​r​d​!
@@ -5050,6 +5056,12 @@ export type TranslationFunctions = {
 		 * Network setup completed
 		 */
 		completed: () => LocalizedString
+		configuration: {
+			/**
+			 * Network created
+			 */
+			successMessage: () => LocalizedString
+		}
 		welcome: {
 			/**
 			 * Welcome to defguard!

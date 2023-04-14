@@ -57,26 +57,21 @@ export const AuthPage = () => {
   useEffect(() => {
     const sub = loginSubject.subscribe(async ({ user, url, mfa }) => {
       // handle openid scenarios first
-      console.log('AUTH FIRED');
-      console.log({ user, url, mfa });
 
       // user authenticated but app needs consent
       if (openIdParams && user && !mfa) {
-        console.log(`AUTH OPENID NEED CONSENT`);
         navigate(`/consent?${openIdParams.toString()}`, { replace: true });
         return;
       }
 
       // application already had consent from user
       if (url && url.length && user) {
-        console.log('AUTH OPENID CONSENT FOUND, REDIRECTING...');
         resetMFAStore();
         window.location.replace(url);
         return;
       }
 
       if (mfa) {
-        console.log('DFG MFA AUTH flow');
         setMFAStore(mfa);
         let mfaUrl = '';
         switch (mfa.mfa_method) {
@@ -100,7 +95,6 @@ export const AuthPage = () => {
 
       // authorization finished
       if (user) {
-        console.log('DFG AUTH flow');
         const isAdmin = isUserAdmin(user);
         let navigateURL = '/me';
         if (isAdmin) {

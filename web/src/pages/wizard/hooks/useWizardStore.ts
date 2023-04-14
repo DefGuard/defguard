@@ -15,6 +15,14 @@ export const useWizardStore = create<WizardStore>()(
       importedNetworkDevices: undefined,
       submitSubject: new Subject<void>(),
       nextStepSubject: new Subject<void>(),
+      manualNetworkConfig: {
+        address: '',
+        endpoint: '',
+        name: '',
+        port: 50051,
+        allowed_ips: '',
+        dns: '',
+      },
       setState: (newState) => set((old) => ({ ...old, ...newState })),
       nextStep: () => set({ currentStep: get().currentStep + 1 }),
       perviousStep: () => {
@@ -73,12 +81,12 @@ export type WizardStore = {
   nextStepSubject: Subject<void>;
   setupType?: WizardSetupType;
   importedNetworkConfig?: Network;
-  manualNetworkConfig?: {
+  manualNetworkConfig: {
     name: string;
     address: string;
     port: number;
     endpoint: string;
-    allowed_ips?: string;
+    allowed_ips: string;
     dns?: string;
   };
   importedNetworkDevices?: ImportedDevice[];

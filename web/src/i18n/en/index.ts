@@ -1092,6 +1092,9 @@ const en: BaseTranslation = {
   },
   wizard: {
     completed: 'Network setup completed',
+    configuration: {
+      successMessage: 'Network created',
+    },
     welcome: {
       header: 'Welcome to defguard!',
       sub: 'Before you start, you need to setup your network environment first. When in doubt hover on <React> icon.',

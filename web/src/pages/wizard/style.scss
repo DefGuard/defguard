@@ -1,6 +1,8 @@
 @use '@scss/helpers' as *;
 
 #wizard-page {
+  max-height: 100%;
+  overflow-y: auto;
   #wizard-content {
     position: relative;
     @include media-breakpoint-up(lg) {

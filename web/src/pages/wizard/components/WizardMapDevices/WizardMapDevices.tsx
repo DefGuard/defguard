@@ -79,11 +79,6 @@ export const WizardMapDevices = () => {
   );
 
   useEffect(() => {
-    console.log(devices);
-    console.log(getUsersOptions);
-  }, [devices, getUsersOptions]);
-
-  useEffect(() => {
     const sub = submitSubject.subscribe(() => {
       if (devices) {
         const deviceWithoutUser = devices?.find((d) => d.user_id === -1);
@@ -96,7 +91,7 @@ export const WizardMapDevices = () => {
       }
     });
     return () => sub?.unsubscribe();
-  }, [devices, submitSubject, toaster]);
+  }, [devices, mutate, setWizardState, submitSubject, toaster]);
 
   if (isLoading || !devices || createLoading) return <LoaderSpinner />;
 
