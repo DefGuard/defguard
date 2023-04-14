@@ -1,0 +1,16 @@
+@use '@scss/helpers' as *;
+
+#wizard-manual-network-configuration {
+  & > form {
+    box-sizing: border-box;
+    padding: 47px 55px;
+
+    & > * {
+      width: 100%;
+    }
+
+    & > .message-box-container {
+      margin-bottom: 25px;
+    }
+  }
+}

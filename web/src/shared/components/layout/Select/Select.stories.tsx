@@ -90,7 +90,6 @@ export const SingleOptionSelectStory: Story = () => {
       multi={false}
       selected={selected}
       onChange={(res) => {
-        console.log(res);
         if (!Array.isArray(res)) {
           setSelected(res);
         }

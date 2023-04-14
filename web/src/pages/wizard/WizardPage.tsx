@@ -9,8 +9,8 @@ import { PageContainer } from '../../shared/components/layout/PageContainer/Page
 import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import { WizardMapDevices } from './components/WizardMapDevices/WizardMapDevices';
 import { WizardNav } from './components/WizardNav/WizardNav';
+import { WizardNetworkConfiguration } from './components/WizardNetworkConfiguration/WizardNetworkConfiguration';
 import { WizardNetworkImport } from './components/WizardNetworkImport/WizardNetworkImport';
-import { WizardNetworkSetup } from './components/WizardNetworkSetup/WizardNetworkSetup';
 import { WizardType } from './components/WizardType/WizardType';
 import { WizardWelcome } from './components/WizardWelcome/WizardWelcome';
 import { useWizardStore, WizardSetupType } from './hooks/useWizardStore';
@@ -76,7 +76,7 @@ const WizardRender = () => {
           ...res,
           {
             title: LL.wizard.navigation.titles.manualConfig(),
-            element: <WizardNetworkSetup key={3} />,
+            element: <WizardNetworkConfiguration key={3} />,
           },
         ];
         break;
