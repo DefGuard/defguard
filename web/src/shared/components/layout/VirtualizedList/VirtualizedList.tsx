@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import { detect } from 'detect-browser';
 import { motion, Variants } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
-import { Key, ReactNode, useMemo, useRef, useState } from 'react';
+import { Key, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { ColorsRGB, deviceBreakpoints } from '../../../constants';
@@ -200,7 +200,7 @@ const ListHeader = ({
   active = false,
   sortable = true,
 }: ListHeader) => {
-  const { x, y, strategy, reference, floating } = useFloating({
+  const { x, y, strategy, reference, floating, update } = useFloating({
     placement: 'right',
     middleware: [offset(5)],
     whileElementsMounted: (refElement, floatingElement, updateFunc) =>
@@ -232,6 +232,21 @@ const ListHeader = ({
       }),
     [active, clickable, sortable]
   );
+
+  // needs to update position of an element when navigation is expanding
+  // TODO Make sure this is not causing any significant impact on UX, update is called around 100+ times per navigation action
+  useEffect(() => {
+    const element = document.querySelector('.page-content');
+    if (element) {
+      const observer = new ResizeObserver(() => {
+        update();
+      });
+      observer.observe(element);
+      return () => {
+        observer?.unobserve(element);
+      };
+    }
+  }, [update]);
 
   return (
     <div

@@ -2356,6 +2356,10 @@ type RootTranslation = {
 		 */
 		pageTitle: string
 		mfa: {
+			/**
+			 * T​w​o​-​f​a​c​t​o​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
+			 */
+			title: string
 			controls: {
 				/**
 				 * U​s​e​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​ ​i​n​s​t​e​a​d
@@ -4933,6 +4937,10 @@ export type TranslationFunctions = {
 		 */
 		pageTitle: () => LocalizedString
 		mfa: {
+			/**
+			 * Two-factor authentication
+			 */
+			title: () => LocalizedString
 			controls: {
 				/**
 				 * Use Authenticator app instead
