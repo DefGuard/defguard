@@ -8,16 +8,20 @@
     position: relative;
 
     & > header {
-      display: flex;
-      flex-flow: row nowrap;
       column-gap: 1rem;
+      margin-bottom: 2rem;
+      display: grid;
+      grid-template-rows: 40px;
+      grid-template-columns: 40px 1fr;
       align-items: center;
       justify-content: flex-start;
-      margin-bottom: 2rem;
-      align-content: center;
+      overflow: hidden;
+      box-sizing: border-box;
+      padding-right: 20px + 40px + 20px;
 
       & > h3 {
         @include small-header;
+        @include text-overflow-dots;
 
         user-select: text !important;
       }

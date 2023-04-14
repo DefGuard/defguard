@@ -1034,6 +1034,7 @@ const en: BaseTranslation = {
   loginPage: {
     pageTitle: 'Enter your credentials',
     mfa: {
+      title: 'Two-factor authentication',
       controls: {
         useAuthenticator: 'Use Authenticator app instead',
         useWallet: 'Use your wallet instead',

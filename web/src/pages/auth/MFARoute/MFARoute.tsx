@@ -3,6 +3,7 @@ import './style.scss';
 import { useEffect } from 'react';
 import { Route, Routes, useNavigate } from 'react-router';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { UserMFAMethod } from '../../../shared/types';
 import { useMFAStore } from '../shared/hooks/useMFAStore';
 import { MFARecovery } from './MFARecovery/MFARecovery';
@@ -11,9 +12,10 @@ import { MFAWeb3 } from './MFAWeb3/MFAWeb3';
 import { MFAWebAuthN } from './MFAWebAuthN/MFAWebAuthN';
 
 export const MFARoute = () => {
+  const { LL } = useI18nContext();
   return (
     <section id="mfa">
-      <h1>Two-factor authentication</h1>
+      <h1>{LL.loginPage.mfa.title()}</h1>
       <Routes>
         <Route index element={<RedirectToDefaultMFA />} />
         <Route path="totp" element={<MFATOTPAuth />} />

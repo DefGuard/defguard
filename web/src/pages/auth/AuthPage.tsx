@@ -75,7 +75,30 @@ export const AuthPage = () => {
         return;
       }
 
-      // normal auth flow
+      if (mfa) {
+        console.log('DFG MFA AUTH flow');
+        setMFAStore(mfa);
+        let mfaUrl = '';
+        switch (mfa.mfa_method) {
+          case UserMFAMethod.WEB3:
+            mfaUrl = '/auth/mfa/web3';
+            break;
+          case UserMFAMethod.WEB_AUTH_N:
+            mfaUrl = '/auth/mfa/webauthn';
+            break;
+          case UserMFAMethod.ONE_TIME_PASSWORD:
+            mfaUrl = '/auth/mfa/totp';
+            break;
+          default:
+            toaster.error(LL.messages.error());
+            console.error('API did not return any MFA method in MFA flow.');
+            return;
+        }
+        navigate(mfaUrl, { replace: true });
+        return;
+      }
+
+      // authorization finished
       if (user) {
         console.log('DFG AUTH flow');
         const isAdmin = isUserAdmin(user);
@@ -94,29 +117,8 @@ export const AuthPage = () => {
           }
         }
         setAuthStore({ user, isAdmin });
-        if (!mfa) {
-          console.log('DFG AUTH NO MFA');
-          resetMFAStore();
-          navigate(navigateURL, { replace: true });
-        } else {
-          console.log('DFG MFA AUTH flow');
-          setMFAStore(mfa);
-          switch (mfa.mfa_method) {
-            case UserMFAMethod.WEB3:
-              navigate('../mfa/web3');
-              break;
-            case UserMFAMethod.WEB_AUTH_N:
-              navigate('../mfa/webauthn');
-              break;
-            case UserMFAMethod.ONE_TIME_PASSWORD:
-              navigate('../mfa/totp');
-              break;
-            default:
-              toaster.error(LL.messages.error());
-              console.error('API did not return any MFA method in MFA flow.');
-              break;
-          }
-        }
+        resetMFAStore();
+        navigate(navigateURL, { replace: true });
       }
     });
     return () => sub?.unsubscribe();
