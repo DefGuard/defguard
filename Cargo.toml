@@ -58,7 +58,7 @@ webauthn-rs = { version = "0.4", features = [
     "danger-allow-state-serialisation",
 ] }
 # Use pre to match zeroize version used by ethers
-x25519-dalek = { version = "2.0.0-pre.0" }
+x25519-dalek = { version = "2.0.0-rc.2", features = ["static_secrets"] }
 ethers = {version = "1.0.2", features = ["eip712"]}
 ethabi = "18.0.0"
 anyhow = "1.0.70"
