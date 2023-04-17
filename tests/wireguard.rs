@@ -32,6 +32,10 @@ async fn make_client(pool: DbPool, config: DefGuardConfig) -> (Client, Arc<Mutex
     let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
+    User::init_admin_user(&pool, &config.default_admin_password)
+        .await
+        .unwrap();
+
     let webapp = build_webapp(
         config,
         tx,

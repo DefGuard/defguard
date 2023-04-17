@@ -39,6 +39,13 @@ pub struct DefGuardConfig {
     #[clap(long, env = "DEFGUARD_ADMIN_GROUPNAME", default_value = "admin")]
     pub admin_groupname: String,
 
+    #[clap(
+        long,
+        env = "DEFGUARD_DEFAULT_ADMIN_PASSWORD",
+        default_value = "pass123"
+    )]
+    pub default_admin_password: String,
+
     #[clap(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     pub openid_signing_key: Option<RsaPrivateKey>,
 

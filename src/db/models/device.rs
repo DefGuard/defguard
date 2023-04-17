@@ -172,15 +172,31 @@ impl Device {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::db::User;
 
     #[sqlx::test]
     async fn test_assign_device_ip(pool: DbPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/30").unwrap();
 
-        let mut device = Device::assign_device_ip(&pool, 1, "dev1".into(), "key1".into(), &network)
-            .await
-            .unwrap();
+        let mut user = User::new(
+            "testuser".to_string(),
+            "hunter2",
+            "Tester".to_string(),
+            "Test".to_string(),
+            "test@test.com".to_string(),
+            None,
+        );
+        user.save(&pool).await.unwrap();
+        let mut device = Device::assign_device_ip(
+            &pool,
+            user.id.unwrap(),
+            "dev1".into(),
+            "key1".into(),
+            &network,
+        )
+        .await
+        .unwrap();
         assert_eq!(device.wireguard_ip, "10.1.1.2");
         device.save(&pool).await.unwrap();
 

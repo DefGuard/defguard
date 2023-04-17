@@ -10,10 +10,15 @@ use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
 use common::{init_test_db, LICENSE_ENTERPRISE, LICENSE_EXPIRED, LICENSE_WITHOUT_OPENID};
+use defguard::db::User;
 
 async fn make_client(license: &str) -> Client {
     let (pool, mut config) = init_test_db().await;
     config.license = license.into();
+
+    User::init_admin_user(&pool, &config.default_admin_password)
+        .await
+        .unwrap();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
