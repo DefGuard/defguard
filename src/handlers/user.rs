@@ -29,7 +29,7 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
 }
 
 #[get("/user", format = "json")]
-pub async fn list_users(_session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+pub async fn list_users(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
     for user in all_users {
