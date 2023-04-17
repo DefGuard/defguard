@@ -1,5 +1,4 @@
 import './style.scss';
-import './style.scss';
 
 import { ReactNode } from 'react';
 import { useConnect } from 'wagmi';
@@ -41,9 +40,7 @@ export const Web3ConnectModal = () => {
           text="cancel"
           className="cancel"
           size={ButtonSize.BIG}
-          onClick={() =>
-            setModalsState({ connectWalletModal: { visible: false } })
-          }
+          onClick={() => setModalsState({ connectWalletModal: { visible: false } })}
         />
       </div>
     </ModalWithTitle>
@@ -53,8 +50,7 @@ export const Web3ConnectModal = () => {
 const WalletConnectorsList = () => {
   const modalState = useModalStore((state) => state.connectWalletModal);
   const setModalsStore = useModalStore((state) => state.setState);
-  const { connectAsync, connectors, isLoading, pendingConnector } =
-    useConnect();
+  const { connectAsync, connectors, isLoading, pendingConnector } = useConnect();
   const toaster = useToaster();
 
   return (
@@ -83,9 +79,7 @@ const WalletConnectorsList = () => {
             });
           }}
           disabled={
-            isLoading ||
-            connector.id === pendingConnector?.id ||
-            !connector.ready
+            isLoading || connector.id === pendingConnector?.id || !connector.ready
           }
         >
           {getConnectorIcon(connector.name)}

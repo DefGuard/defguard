@@ -60,25 +60,19 @@ export const summarizeUsersNetworkStats = (
 export const getMaxDeviceStats = (data: NetworkUserStats[]): number => {
   const download: number[] = [];
   data.forEach((obj) =>
-    obj.devices.forEach((obj) =>
-      obj.stats.forEach((obj) => download.push(obj.download))
-    )
+    obj.devices.forEach((obj) => obj.stats.forEach((obj) => download.push(obj.download)))
   );
 
   const upload: number[] = [];
   data.forEach((obj) =>
-    obj.devices.forEach((obj) =>
-      obj.stats.forEach((obj) => upload.push(obj.upload))
-    )
+    obj.devices.forEach((obj) => obj.stats.forEach((obj) => upload.push(obj.upload)))
   );
   const maxDownload = Math.max.apply(null, download);
   const maxUpload = Math.max.apply(null, upload);
   return maxUpload > maxDownload ? maxUpload : maxDownload;
 };
 
-export const summarizeDeviceStats = (
-  data: NetworkDeviceStats[]
-): NetworkSpeedStats[] => {
+export const summarizeDeviceStats = (data: NetworkDeviceStats[]): NetworkSpeedStats[] => {
   const merge: MergeStruct = {};
   data.forEach((device) => {
     device.stats.forEach((stat) => {
@@ -101,17 +95,12 @@ export const summarizeDeviceStats = (
   }));
 };
 
-export interface StatsChartData
-  extends Pick<NetworkSpeedStats, 'download' | 'upload'> {
+export interface StatsChartData extends Pick<NetworkSpeedStats, 'download' | 'upload'> {
   collected_at: number;
 }
 
-export const parseStatsForCharts = (
-  data: NetworkSpeedStats[]
-): StatsChartData[] => {
-  const filtered = data.filter(
-    (stats) => stats.download > 0 || stats.upload > 0
-  );
+export const parseStatsForCharts = (data: NetworkSpeedStats[]): StatsChartData[] => {
+  const filtered = data.filter((stats) => stats.download > 0 || stats.upload > 0);
   const formatted = filtered.map((stats) => ({
     ...stats,
     collected_at: dayjs.utc(stats.collected_at).toDate().getTime(),

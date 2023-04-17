@@ -3,8 +3,9 @@ import './style.scss';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clone, isUndefined, orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -19,22 +20,16 @@ import {
 } from '../../shared/components/layout/EditButton/EditButtonOption';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
-import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { Search } from '../../shared/components/layout/Search/Search';
-import {
-  Select,
-  SelectOption,
-} from '../../shared/components/layout/Select/Select';
+import { Select, SelectOption } from '../../shared/components/layout/Select/Select';
 import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
   VirtualizedList,
 } from '../../shared/components/layout/VirtualizedList/VirtualizedList';
-import {
-  IconCheckmarkGreen,
-  IconDeactivated,
-} from '../../shared/components/svg';
+import { IconCheckmarkGreen, IconDeactivated } from '../../shared/components/svg';
 import SvgIconPlusWhite from '../../shared/components/svg/IconPlusWhite';
 import { deviceBreakpoints } from '../../shared/constants';
 import { useModalStore } from '../../shared/hooks/store/useModalStore';
@@ -44,16 +39,13 @@ import { MutationKeys } from '../../shared/mutations';
 import { QueryKeys } from '../../shared/queries';
 import { Webhook } from '../../shared/types';
 import { WebhookModal } from './modals/WebhookModal/WebhookModal';
-import { useI18nContext } from '../../i18n/i18n-react';
 
 export const WebhooksListPage = () => {
   const { LL, locale } = useI18nContext();
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [webhookToDelete, setWebhookToDelete] = useState<Webhook | undefined>(
-    undefined
-  );
+  const [webhookToDelete, setWebhookToDelete] = useState<Webhook | undefined>(undefined);
   const [searchValue, setSearchValue] = useState<string>('');
   const [filteredWebhooks, setFilteredWebhooks] = useState<Webhook[]>([]);
   const setWebhookModalState = useModalStore((state) => state.setWebhookModal);
@@ -108,10 +100,7 @@ export const WebhooksListPage = () => {
       },
     });
 
-  const { data: webhooks, isLoading } = useQuery(
-    [QueryKeys.FETCH_WEBHOOKS],
-    getWebhooks
-  );
+  const { data: webhooks, isLoading } = useQuery([QueryKeys.FETCH_WEBHOOKS], getWebhooks);
 
   const getHeaders = useMemo(() => {
     const res: ListHeader[] = [
@@ -174,9 +163,7 @@ export const WebhooksListPage = () => {
           <EditButton>
             <EditButtonOption
               text={LL.webhooksOverview.list.editButton.edit()}
-              onClick={() =>
-                setWebhookModalState({ visible: true, webhook: context })
-              }
+              onClick={() => setWebhookModalState({ visible: true, webhook: context })}
             />
             <EditButtonOption
               disabled={changeWebhookIsLoading}
@@ -296,9 +283,7 @@ export const WebhooksListPage = () => {
           )}
           <Button
             className="add-item"
-            onClick={() =>
-              setWebhookModalState({ visible: true, webhook: undefined })
-            }
+            onClick={() => setWebhookModalState({ visible: true, webhook: undefined })}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             text={LL.webhooksOverview.addNewWebhook()}

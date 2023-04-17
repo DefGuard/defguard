@@ -5,8 +5,8 @@ import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
-import { useI18nContext } from '../../../../i18n/i18n-react';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormCheckBox } from '../../../../shared/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
@@ -66,10 +66,7 @@ export const WebhookForm = () => {
   } = useApi();
   const modalState = useModalStore((state) => state.webhookModal);
   const setModalState = useModalStore((state) => state.setWebhookModal);
-  const editMode = useMemo(
-    () => !isUndefined(modalState.webhook),
-    [modalState.webhook]
-  );
+  const editMode = useMemo(() => !isUndefined(modalState.webhook), [modalState.webhook]);
   const defaultFormState: FormInputs = useMemo(() => {
     if (!isUndefined(modalState.webhook)) {
       return modalState.webhook;
@@ -84,13 +81,8 @@ export const WebhookForm = () => {
         .shape({
           url: yup
             .string()
-            .required(
-              LL.modals.webhookModal.form.error.urlRequired
-            )
-            .matches(
-              patternValidUrl,
-              LL.modals.webhookModal.form.error.validUrl
-            ),
+            .required(LL.modals.webhookModal.form.error.urlRequired)
+            .matches(patternValidUrl, LL.modals.webhookModal.form.error.validUrl),
           description: yup
             .string()
             .min(4, LL.form.error.minimumLength)
@@ -100,18 +92,9 @@ export const WebhookForm = () => {
             .string()
             .required(LL.modals.webhookModal.form.error.tokenRequired())
             .matches(patternAtLeastOneDigit, LL.form.error.oneDigit())
-            .matches(
-              patternAtLeastOneUpperCaseChar,
-              LL.form.error.oneUppercase(),
-            )
-            .matches(
-              patternAtLeastOneSpecialChar,
-              LL.form.error.oneSpecial(),
-            )
-            .matches(
-              patternAtLeastOneLowerCaseChar,
-              LL.form.error.oneLowercase(),
-            )
+            .matches(patternAtLeastOneUpperCaseChar, LL.form.error.oneUppercase())
+            .matches(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
+            .matches(patternAtLeastOneLowerCaseChar, LL.form.error.oneLowercase())
             .max(250, LL.form.error.maximumLength()),
           enabled: yup.boolean(),
           on_user_created: yup.boolean().test({
@@ -145,8 +128,10 @@ export const WebhookForm = () => {
     mode: 'all',
   });
 
-  const { mutate: addWebhookMutation, isLoading: addWebhookIsLoading } =
-    useMutation([MutationKeys.EDIT_WEBHOOK], addWebhook, {
+  const { mutate: addWebhookMutation, isLoading: addWebhookIsLoading } = useMutation(
+    [MutationKeys.EDIT_WEBHOOK],
+    addWebhook,
+    {
       onSuccess: () => {
         toaster.success(LL.modals.webhookModal.form.messages.successAdd());
         setModalState({ visible: false, webhook: undefined });
@@ -156,9 +141,12 @@ export const WebhookForm = () => {
         setModalState({ visible: false, webhook: undefined });
         console.error(err);
       },
-    });
-  const { mutate: editWebhookMutation, isLoading: editMutationIsLoading } =
-    useMutation([MutationKeys.EDIT_WEBHOOK], editWebhook, {
+    }
+  );
+  const { mutate: editWebhookMutation, isLoading: editMutationIsLoading } = useMutation(
+    [MutationKeys.EDIT_WEBHOOK],
+    editWebhook,
+    {
       onSuccess: () => {
         toaster.success(LL.modals.webhookModal.form.messages.successModify());
         setModalState({ visible: false, webhook: undefined });
@@ -168,7 +156,8 @@ export const WebhookForm = () => {
         setModalState({ visible: false, webhook: undefined });
         console.error(err);
       },
-    });
+    }
+  );
 
   const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
     if (editMode) {

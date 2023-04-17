@@ -50,11 +50,7 @@ export const NetworkUsageChart = ({
           domain={['dataMin', 'dataMax + 1']}
           interval={'preserveStartEnd'}
         />
-        <YAxis
-          hide={true}
-          padding={{ bottom: 2 }}
-          domain={['dataMin', dataMax]}
-        />
+        <YAxis hide={true} padding={{ bottom: 2 }} domain={['dataMin', dataMax]} />
         <Bar dataKey="download" fill={ColorsRGB.Primary} />
         <Bar dataKey="upload" fill={ColorsRGB.Error} />
       </BarChart>
@@ -62,5 +58,4 @@ export const NetworkUsageChart = ({
   );
 };
 
-const formatXTick = (tickData: number) =>
-  dayjs.utc(tickData).local().format('HH:mm');
+const formatXTick = (tickData: number) => dayjs.utc(tickData).local().format('HH:mm');

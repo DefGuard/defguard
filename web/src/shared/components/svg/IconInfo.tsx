@@ -5,9 +5,7 @@ const SvgIconInfo = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} {...props}>
     <defs>
       <style>
-        {
-          '\n      .icon-info_svg__a{fill:#899ca8}.icon-info_svg__b{fill:#fff}\n    '
-        }
+        {'\n      .icon-info_svg__a{fill:#899ca8}.icon-info_svg__b{fill:#fff}\n    '}
       </style>
     </defs>
     <g transform="translate(-786 -145)">

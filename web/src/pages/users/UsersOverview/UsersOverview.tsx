@@ -3,9 +3,8 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { orderBy } from 'lodash-es';
-import { useEffect, useState } from 'react';
-import { useMemo } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { useEffect, useMemo, useState } from 'react';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import Button, {
@@ -14,10 +13,7 @@ import Button, {
 } from '../../../shared/components/layout/Button/Button';
 import LoaderSpinner from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import { Search } from '../../../shared/components/layout/Search/Search';
-import {
-  Select,
-  SelectOption,
-} from '../../../shared/components/layout/Select/Select';
+import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
 import SvgIconUserAddNew from '../../../shared/components/svg/IconUserAddNew';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
@@ -64,10 +60,7 @@ export const UsersOverview = () => {
   const {
     user: { getUsers },
   } = useApi();
-  const { data: users, isLoading } = useQuery(
-    [QueryKeys.FETCH_USERS],
-    getUsers
-  );
+  const { data: users, isLoading } = useQuery([QueryKeys.FETCH_USERS], getUsers);
 
   const [usersSearchValue, setUsersSearchValue] = useState('');
 
@@ -109,10 +102,7 @@ export const UsersOverview = () => {
   }, [selectedFilter.value, users, usersSearchValue]);
 
   useEffect(() => {
-    if (
-      breakpoint !== 'desktop' &&
-      selectedFilter.value !== FilterOptions.ALL
-    ) {
+    if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOptions.ALL) {
       setSelectedFilter(filterSelectOptions[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,7 +125,7 @@ export const UsersOverview = () => {
       <motion.section className="actions">
         <div className="items-count">
           <span>{LL.usersOverview.usersCount()}</span>
-          <div className="count" data-test="users-count">
+          <div className="count" data-testid="users-count">
             <span>{users && users.length ? users.length : 0}</span>
           </div>
         </div>

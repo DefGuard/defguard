@@ -17,10 +17,7 @@ const SvgIconHamburgerMenu1 = (props: SVGProps<SVGSVGElement>) => (
         }
       </style>
     </defs>
-    <g
-      transform="translate(-308 -223)"
-      className="icon-hamburger-menu-1_svg__b"
-    >
+    <g transform="translate(-308 -223)" className="icon-hamburger-menu-1_svg__b">
       <rect
         className="icon-hamburger-menu-1_svg__c"
         width={20}

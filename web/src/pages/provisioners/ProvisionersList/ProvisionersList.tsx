@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import ConfirmModal, {
   ConfirmModalType,
 } from '../../../shared/components/layout/ConfirmModal/ConfirmModal';
@@ -18,16 +19,12 @@ import {
   ListSortDirection,
   VirtualizedList,
 } from '../../../shared/components/layout/VirtualizedList/VirtualizedList';
-import {
-  IconCheckmarkGreen,
-  IconDeactivated,
-} from '../../../shared/components/svg';
+import { IconCheckmarkGreen, IconDeactivated } from '../../../shared/components/svg';
 import { deviceBreakpoints } from '../../../shared/constants';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Provisioner } from '../../../shared/types';
-import { useI18nContext } from '../../../i18n/i18n-react';
 
 interface Props {
   provisioners: Provisioner[];
@@ -76,9 +73,7 @@ export const ProvisionersList = ({ provisioners }: Props) => {
         key: 'name',
         render: (value: Provisioner) => (
           <>
-            <span className={classNames({ connected: value.connected })}>
-              {value.id}
-            </span>
+            <span className={classNames({ connected: value.connected })}>{value.id}</span>
           </>
         ),
       },
@@ -107,9 +102,7 @@ export const ProvisionersList = ({ provisioners }: Props) => {
       {
         key: 'ip',
         render: (value: Provisioner) => (
-          <span className={classNames({ connected: value.connected })}>
-            {value.ip}
-          </span>
+          <span className={classNames({ connected: value.connected })}>{value.ip}</span>
         ),
       },
       {

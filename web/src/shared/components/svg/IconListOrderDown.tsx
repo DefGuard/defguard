@@ -15,12 +15,7 @@ const SvgIconListOrderDown = (props: SVGProps<SVGSVGElement>) => (
     </defs>
     <g className="icon-list-order-down_svg__b">
       <g transform="translate(8 6)">
-        <rect
-          className="icon-list-order-down_svg__c"
-          width={14}
-          height={2}
-          rx={1}
-        />
+        <rect className="icon-list-order-down_svg__c" width={14} height={2} rx={1} />
         <rect
           className="icon-list-order-down_svg__c"
           width={10}

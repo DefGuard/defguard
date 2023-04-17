@@ -23,6 +23,7 @@ export enum UserMFAMethod {
 }
 
 export interface User {
+  id?: number;
   username: string;
   last_name: string;
   first_name: string;
@@ -79,6 +80,7 @@ export interface Device {
   config: string;
   created: string;
 }
+
 export interface AddDeviceRequest {
   username: string;
   name: string;
@@ -101,6 +103,16 @@ export interface ModifyNetworkRequest
   allowed_ips: string;
 }
 
+export interface ImportNetworkRequest {
+  name: string;
+  endpoint: string;
+  config: string;
+}
+
+export interface CreateUserDevicesRequest {
+  devices: ImportedDevice[];
+}
+
 export interface NetworkToken {
   token: string;
 }
@@ -110,15 +122,12 @@ export interface LoginData {
   password: string;
 }
 
-export interface AuthStore {
+export type LoginSubjectData = {
   user?: User;
-  isAdmin?: boolean;
-  setState: (newState: Partial<AuthStore>) => void;
-  logIn: (user: User) => void;
-  logOut: () => void;
-  // This is used in OAuth / OpenId flows to return into originally requested url after auth is completed.
-  authLocation?: string;
-}
+  // URL of an already authorized application
+  url?: string;
+  mfa?: MFALoginResponse;
+};
 
 export interface DeleteUserModal {
   visible: boolean;
@@ -251,6 +260,19 @@ export interface MFAFinishResponse {
   user?: User;
 }
 
+export interface ImportNetworkResponse {
+  network: Network;
+  devices: ImportedDevice[];
+}
+
+export interface ImportedDevice {
+  id?: string;
+  name: string;
+  wireguard_ip: string;
+  wireguard_pubkey: string;
+  user_id: number;
+}
+
 export interface ApiHook {
   getVersion: () => Promise<VersionResponse>;
   oAuth: {
@@ -285,17 +307,15 @@ export interface ApiHook {
   };
   network: {
     addNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
+    importNetwork: (network: ImportNetworkRequest) => Promise<ImportNetworkResponse>;
+    createUserDevices: (devices: CreateUserDevicesRequest) => EmptyApiResponse;
     getNetwork: (networkId: string) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (network: Network) => EmptyApiResponse;
-    getUsersStats: (
-      data?: GetNetworkStatsRequest
-    ) => Promise<NetworkUserStats[]>;
+    getUsersStats: (data?: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
     getNetworkToken: (networkId: string) => Promise<NetworkToken>;
-    getNetworkStats: (
-      data?: GetNetworkStatsRequest
-    ) => Promise<WireguardNetworkStats>;
+    getNetworkStats: (data?: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewayStatus: () => Promise<ConnectionInfo>;
   };
   auth: {
@@ -307,12 +327,8 @@ export interface ApiHook {
       recovery: (data: RecoveryLoginRequest) => Promise<MFAFinishResponse>;
       webauthn: {
         register: {
-          start: (data: {
-            name: string;
-          }) => Promise<CredentialCreationOptionsJSON>;
-          finish: (
-            data: WebAuthnRegistrationRequest
-          ) => MFARecoveryCodesResponse;
+          start: (data: { name: string }) => Promise<CredentialCreationOptionsJSON>;
+          finish: (data: WebAuthnRegistrationRequest) => MFARecoveryCodesResponse;
         };
         start: () => Promise<CredentialRequestOptionsJSON>;
         finish: (
@@ -329,18 +345,14 @@ export interface ApiHook {
       web3: {
         start: (data: Web3StartRequest) => Promise<{ challenge: string }>;
         finish: (data: WalletSignature) => Promise<MFAFinishResponse>;
-        updateWalletMFA: (
-          data: EditWalletMFARequest
-        ) => MFARecoveryCodesResponse;
+        updateWalletMFA: (data: EditWalletMFARequest) => MFARecoveryCodesResponse;
       };
     };
   };
   provisioning: {
     getWorkers: () => Promise<Provisioner[]>;
     deleteWorker: (id: string) => EmptyApiResponse;
-    provisionYubiKey: (
-      request_data: WorkerJobRequest
-    ) => Promise<WorkerJobResponse>;
+    provisionYubiKey: (request_data: WorkerJobRequest) => Promise<WorkerJobResponse>;
     getJobStatus: (job_id?: number) => Promise<WorkerJobStatus>;
     getWorkerToken: () => Promise<WorkerToken>;
   };
@@ -356,9 +368,7 @@ export interface ApiHook {
     addOpenidClient: (data: AddOpenidClientRequest) => EmptyApiResponse;
     getOpenidClient: (id: string) => Promise<OpenidClient>;
     editOpenidClient: (data: EditOpenidClientRequest) => EmptyApiResponse;
-    changeOpenidClientState: (
-      data: ChangeOpenidClientStateRequest
-    ) => EmptyApiResponse;
+    changeOpenidClientState: (data: ChangeOpenidClientStateRequest) => EmptyApiResponse;
     deleteOpenidClient: (client_id: string) => EmptyApiResponse;
     verifyOpenidClient: (data: VerifyOpenidClientRequest) => EmptyApiResponse;
     getUserClients: (username: string) => Promise<AuthorizedClient[]>;
@@ -379,10 +389,12 @@ export interface NavigationStore {
   user?: User;
   webhook?: Webhook;
   openidclient?: OpenidClient;
+  enableWizard?: boolean;
   setNavigationOpen: (v: boolean) => void;
   setNavigationUser: (user: User) => void;
   setNavigationWebhook: (webhook: Webhook) => void;
   setNavigationOpenidClient: (openidclient: OpenidClient) => void;
+  setState: (newState: Partial<NavigationStore>) => void;
 }
 
 export interface SelectOption<T> {
@@ -572,9 +584,7 @@ export interface UseAppStore {
 
 export interface UseOpenIDStore {
   openIDRedirect?: boolean;
-  setOpenIDStore: (
-    newValues: Partial<Omit<UseOpenIDStore, 'setOpenIdStore'>>
-  ) => void;
+  setOpenIDStore: (newValues: Partial<Omit<UseOpenIDStore, 'setOpenIdStore'>>) => void;
 }
 
 export interface Settings {

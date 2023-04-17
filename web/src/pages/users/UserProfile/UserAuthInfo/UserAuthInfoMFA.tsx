@@ -55,20 +55,16 @@ export const UserAuthInfoMFA = () => {
 
   const toaster = useToaster();
 
-  const { mutate: disableMFA } = useMutation(
-    [MutationKeys.DISABLE_MFA],
-    disable,
-    {
-      onSuccess: () => {
-        refreshUserQueries();
-        toaster.success(LL.userPage.userAuthInfo.mfa.messages.mfaDisabled());
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
-    }
-  );
+  const { mutate: disableMFA } = useMutation([MutationKeys.DISABLE_MFA], disable, {
+    onSuccess: () => {
+      refreshUserQueries();
+      toaster.success(LL.userPage.userAuthInfo.mfa.messages.mfaDisabled());
+    },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
 
   const { mutate: disableTOTPMutation } = useMutation(
     [MutationKeys.DISABLE_TOTP],
@@ -85,21 +81,15 @@ export const UserAuthInfoMFA = () => {
     }
   );
 
-  const { mutate: editUserMutation } = useMutation(
-    [MutationKeys.EDIT_USER],
-    editUser,
-    {
-      onSuccess: () => {
-        toaster.success(
-          LL.userPage.userAuthInfo.mfa.messages.changeMFAMethod()
-        );
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-      },
-      onError: () => {
-        toaster.error(LL.messages.error());
-      },
-    }
-  );
+  const { mutate: editUserMutation } = useMutation([MutationKeys.EDIT_USER], editUser, {
+    onSuccess: () => {
+      toaster.success(LL.userPage.userAuthInfo.mfa.messages.changeMFAMethod());
+      queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+    },
+    onError: () => {
+      toaster.error(LL.messages.error());
+    },
+  });
 
   const changeDefaultMFAMethod = (mfaMethod: UserMFAMethod) => {
     if (user) {
@@ -210,9 +200,7 @@ export const UserAuthInfoMFA = () => {
                 {!user?.totp_enabled && (
                   <EditButtonOption
                     text={LL.userPage.userAuthInfo.mfa.editMode.enable()}
-                    onClick={() =>
-                      setModalsState({ registerTOTP: { visible: true } })
-                    }
+                    onClick={() => setModalsState({ registerTOTP: { visible: true } })}
                   />
                 )}
                 <EditButtonOption
@@ -221,9 +209,7 @@ export const UserAuthInfoMFA = () => {
                     user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD
                   }
                   text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
-                  onClick={() =>
-                    changeDefaultMFAMethod(UserMFAMethod.ONE_TIME_PASSWORD)
-                  }
+                  onClick={() => changeDefaultMFAMethod(UserMFAMethod.ONE_TIME_PASSWORD)}
                 />
               </EditButton>
             </div>
@@ -243,13 +229,10 @@ export const UserAuthInfoMFA = () => {
                 />
                 <EditButtonOption
                   disabled={
-                    user?.mfa_method === UserMFAMethod.WEB_AUTH_N ||
-                    !mfaWebAuthNEnabled
+                    user?.mfa_method === UserMFAMethod.WEB_AUTH_N || !mfaWebAuthNEnabled
                   }
                   text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
-                  onClick={() =>
-                    changeDefaultMFAMethod(UserMFAMethod.WEB_AUTH_N)
-                  }
+                  onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB_AUTH_N)}
                 />
               </EditButton>
             </div>
@@ -260,9 +243,7 @@ export const UserAuthInfoMFA = () => {
               <span>{getWalletsInfoText}</span>
               <EditButton>
                 <EditButtonOption
-                  disabled={
-                    user?.mfa_method === UserMFAMethod.WEB3 || !mfaWeb3Enabled
-                  }
+                  disabled={user?.mfa_method === UserMFAMethod.WEB3 || !mfaWeb3Enabled}
                   text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
                   onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB3)}
                 />

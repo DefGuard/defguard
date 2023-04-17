@@ -3,7 +3,7 @@
 .virtualized-list-container {
   display: grid;
   overflow: hidden;
-  grid-template-rows: 28px 1fr;
+  grid-template-rows: 1fr;
   grid-template-columns: 1fr;
 
   & > .headers {
@@ -24,28 +24,34 @@
     & > .header {
       display: flex;
       flex-flow: row nowrap;
-      column-gap: 5px;
       align-items: center;
       align-content: center;
       justify-content: flex-start;
+      overflow: hidden;
 
       &.clickable {
         cursor: pointer;
       }
 
       & > span {
+        user-select: none;
         @include label-text;
 
         color: var(--gray-light);
       }
 
-      & > svg {
-        opacity: 0;
+      & > .floating-header-icon {
+        height: 22px;
+        width: 22px;
         display: none;
+        & > svg {
+          user-select: none;
+          opacity: 0;
+        }
       }
 
       &.sortable {
-        & > svg {
+        & > .floating-header-icon {
           display: block;
         }
       }
@@ -54,16 +60,17 @@
         & > span {
           color: var(--text-main);
         }
+        & > .floating-header-icon {
+          & > svg {
+            opacity: 1;
 
-        & > svg {
-          opacity: 1;
+            &.asc {
+              transform: rotateZ(180deg) translateZ(0);
+            }
 
-          &.asc {
-            transform: rotateZ(180deg) translateZ(0);
-          }
-
-          &.desc {
-            transform: rotateZ(0deg) translateZ(0);
+            &.desc {
+              transform: rotateZ(0deg) translateZ(0);
+            }
           }
         }
       }
@@ -71,7 +78,7 @@
   }
 
   & > .scroll-container {
-    grid-row: 2;
+    grid-row: 1;
     grid-column: 1;
     max-height: 100%;
     overflow-y: auto;
@@ -89,6 +96,14 @@
         width: 100%;
         box-sizing: border-box;
       }
+    }
+  }
+
+  &.with-headers {
+    grid-template-rows: 28px 1fr;
+
+    & > .scroll-container {
+      grid-row: 2;
     }
   }
 }

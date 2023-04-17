@@ -5,8 +5,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
 import * as yup from 'yup';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
@@ -14,10 +16,9 @@ import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox'
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
+import { QueryKeys } from '../../../shared/queries';
 import { ModifyNetworkRequest, Network } from '../../../shared/types';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
-import { useI18nContext } from '../../../i18n/i18n-react';
-import { QueryKeys } from '../../../shared/queries';
 
 type FormInputs = ModifyNetworkRequest;
 
@@ -39,7 +40,7 @@ const networkToForm = (data?: Network): FormInputs | undefined => {
   return { ...defaultValues, ...omited } as FormInputs;
 };
 
-export const NetworkConfiguration = () => {
+export const NetworkConfiguration: React.FC = () => {
   const toaster = useToaster();
   const {
     network: { addNetwork, editNetwork },
@@ -51,15 +52,13 @@ export const NetworkConfiguration = () => {
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
 
-  const { mutate: editNetworkMutation, isLoading: editLoading } = useMutation(
+  const { mutateAsync: editNetworkMutation, isLoading: editLoading } = useMutation(
     [MutationKeys.CHANGE_NETWORK],
     editNetwork,
     {
       onSuccess: async (response) => {
         setStoreState({ network: response });
-        toaster.success(
-          LL.networkConfiguration.form.messages.networkModified()
-        );
+        toaster.success(LL.networkConfiguration.form.messages.networkModified());
         await queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
       },
       onError: (err) => {
@@ -68,7 +67,7 @@ export const NetworkConfiguration = () => {
       },
     }
   );
-  const { mutate: addNetworkMutation, isLoading: addLoading } = useMutation(
+  const { mutateAsync: addNetworkMutation, isLoading: addLoading } = useMutation(
     [MutationKeys.ADD_NETWORK],
     addNetwork,
     {
@@ -127,13 +126,15 @@ export const NetworkConfiguration = () => {
     resolver: yupResolver(schema),
   });
 
-  const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
-    if (network) {
-      editNetworkMutation({ ...network, ...values });
-    } else {
-      addNetworkMutation(values);
-    }
+  const navigate = useNavigate();
+  const onValidSubmit: SubmitHandler<FormInputs> = async (values) => {
     setStoreState({ loading: true });
+    if (network) {
+      await editNetworkMutation({ ...network, ...values });
+    } else {
+      await addNetworkMutation(values);
+    }
+    navigate('/admin/network');
   };
 
   useEffect(() => {

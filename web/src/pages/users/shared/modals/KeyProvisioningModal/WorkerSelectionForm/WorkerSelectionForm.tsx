@@ -25,19 +25,13 @@ interface FormValues {
   worker: string;
 }
 
-export const WorkerSelectionForm = ({
-  setIsOpen,
-  afterSubmit,
-  workers,
-}: Props) => {
+export const WorkerSelectionForm = ({ setIsOpen, afterSubmit, workers }: Props) => {
   const { LL } = useI18nContext();
   const {
     provisioning: { provisionYubiKey },
   } = useApi();
 
-  const username = useModalStore(
-    (state) => state.provisionKeyModal.user?.username
-  );
+  const username = useModalStore((state) => state.provisionKeyModal.user?.username);
 
   const { mutate: createJob } = useMutation(provisionYubiKey, {
     onSuccess: (responseData) => {

@@ -18,6 +18,7 @@ export const SelectArrowIcon = ({ active = false, ...rest }: Props) => {
       <defs>
         <style>
           {
+            // eslint-disable-next-line max-len
             '.icon-arrow-gray-down_svg__a,.icon-arrow-gray-down_svg__c{fill:#899ca8}.icon-arrow-gray-down_svg__a{opacity:0}'
           }
         </style>

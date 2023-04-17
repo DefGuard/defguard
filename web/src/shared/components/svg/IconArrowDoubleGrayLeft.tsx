@@ -5,12 +5,7 @@ const SvgIconArrowDoubleGrayLeft = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} {...props}>
     <defs>
       <clipPath id="icon-arrow-double-gray-left_svg__a">
-        <path
-          data-name="Rectangle 2785"
-          fill="#899ca8"
-          opacity={0}
-          d="M0 0h22v22H0z"
-        />
+        <path data-name="Rectangle 2785" fill="#899ca8" opacity={0} d="M0 0h22v22H0z" />
       </clipPath>
     </defs>
     <g clipPath="url(#icon-arrow-double-gray-left_svg__a)" fill="#899ca8">

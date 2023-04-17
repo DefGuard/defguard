@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMemo, useState } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
@@ -51,10 +51,7 @@ export const DeviceCard = ({ device }: Props) => {
       });
   };
 
-  const formattedCreationDate = useMemo(
-    () => displayDate(device.created),
-    [device]
-  );
+  const formattedCreationDate = useMemo(() => displayDate(device.created), [device]);
 
   if (!user) return null;
 
@@ -72,7 +69,7 @@ export const DeviceCard = ({ device }: Props) => {
         <AvatarBox>
           <DeviceAvatar deviceId={Number(device.id)} />
         </AvatarBox>
-        <h3 data-test="device-name">{device.name}</h3>
+        <h3 data-testid="device-name">{device.name}</h3>
       </header>
       <div className="content">
         <div className="info">
@@ -104,9 +101,7 @@ export const DeviceCard = ({ device }: Props) => {
         <EditButtonOption
           styleVariant={EditButtonOptionStyleVariant.WARNING}
           text={LL.userPage.devices.card.edit.delete()}
-          onClick={() =>
-            setDeleteUserDeviceModal({ visible: true, device: device })
-          }
+          onClick={() => setDeleteUserDeviceModal({ visible: true, device: device })}
         />
       </EditButton>
     </Card>

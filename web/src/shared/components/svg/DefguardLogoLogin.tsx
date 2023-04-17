@@ -2,17 +2,10 @@ import * as React from 'react';
 import { SVGProps } from 'react';
 
 const SvgDefguardLogoLogin = (props: SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={251.997}
-    height={101}
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={251.997} height={101} {...props}>
     <defs>
       <style>
-        {
-          '\n      .defguard-logo-login_svg__defguard-logo-login-a{fill:#fff}\n    '
-        }
+        {'\n      .defguard-logo-login_svg__defguard-logo-login-a{fill:#fff}\n    '}
       </style>
     </defs>
     <path

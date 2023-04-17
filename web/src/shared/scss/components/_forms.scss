@@ -51,11 +51,10 @@ form {
 
   & > .input-group {
     display: flex;
-    flex-direction: row;
+    flex-flow: row wrap;
     align-content: flex-start;
     align-items: flex-start;
     justify-content: flex-start;
-    flex-wrap: wrap;
     row-gap: 2.5rem;
     column-gap: 2rem;
     margin-top: 1.5rem;

@@ -1,0 +1,11 @@
+@use '@scss/helpers' as *;
+
+#wizard-setup-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  height: 100%;
+  column-gap: 50px;
+  box-sizing: border-box;
+  padding: 55px;
+}

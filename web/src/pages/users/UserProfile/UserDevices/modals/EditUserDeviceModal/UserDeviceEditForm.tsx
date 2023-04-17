@@ -58,8 +58,7 @@ export const EditUserDeviceForm = () => {
     resolver: yupResolver(schema),
     defaultValues: {
       name: device?.name ?? defaultFormValues.name,
-      wireguard_pubkey:
-        device?.wireguard_pubkey ?? defaultFormValues.wireguard_pubkey,
+      wireguard_pubkey: device?.wireguard_pubkey ?? defaultFormValues.wireguard_pubkey,
     },
     mode: 'all',
   });

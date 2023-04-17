@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import clipboard from 'clipboardy';
 import { useMemo } from 'react';
-import { useI18nContext } from '../../i18n/i18n-react';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import {
   ActionButton,
   ActionButtonVariant,

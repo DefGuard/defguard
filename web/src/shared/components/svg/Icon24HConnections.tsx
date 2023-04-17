@@ -4,9 +4,7 @@ import { SVGProps } from 'react';
 const SvgIcon24HConnections = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} {...props}>
     <defs>
-      <style>
-        {'\n      .icon-24h-connections_svg__b{fill:#899ca8}\n    '}
-      </style>
+      <style>{'\n      .icon-24h-connections_svg__b{fill:#899ca8}\n    '}</style>
     </defs>
     <path
       className="icon-24h-connections_svg__b"

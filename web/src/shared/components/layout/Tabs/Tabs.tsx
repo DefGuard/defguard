@@ -1,11 +1,6 @@
 import './style.scss';
 
-import {
-  AnimatePresence,
-  HTMLMotionProps,
-  motion,
-  Variants,
-} from 'framer-motion';
+import { AnimatePresence, HTMLMotionProps, motion, Variants } from 'framer-motion';
 import React, { ReactNode, useState } from 'react';
 
 import { ColorsRGB } from '../../../constants';

@@ -1,17 +1,9 @@
-import 'tippy.js/dist/svg-arrow.css';
-import 'tippy.js/dist/tippy.css';
-import 'tippy.js/animations/scale.css';
 import './App.scss';
 
-import {
-  BrowserRouter as Router,
-  Navigate,
-  Route,
-  Routes,
-} from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
-import AuthPage from '../../pages/auth/AuthPage';
+import { AuthPage } from '../../pages/auth/AuthPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
@@ -21,11 +13,11 @@ import { UserProfile } from '../../pages/users/UserProfile/UserProfile';
 import { UsersPage } from '../../pages/users/UsersPage';
 import { UsersSharedModals } from '../../pages/users/UsersSharedModals';
 import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
-import PageContainer from '../../shared/components/layout/PageContainer/PageContainer';
+import { WizardPage } from '../../pages/wizard/WizardPage';
+import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
-import ProtectedRoute from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
+import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
-import OpenIDRoute from '../../shared/components/Router/Guards/OpenIDRoute/OpenIDRoute';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
@@ -43,6 +35,14 @@ const App = () => {
                 element={
                   <ProtectedRoute allowedGroups={['admin']}>
                     <NetworkPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="wizard/*"
+                element={
+                  <ProtectedRoute allowedGroups={['admin']}>
+                    <WizardPage />
                   </ProtectedRoute>
                 }
               />
@@ -122,9 +122,9 @@ const App = () => {
             <Route
               path="consent/*"
               element={
-                <OpenIDRoute moduleRequired="openid_enabled">
+                <ProtectedRoute allowUnauthorized moduleRequired="openid_enabled">
                   <OpenidAllowPage />
-                </OpenIDRoute>
+                </ProtectedRoute>
               }
             />
             <Route

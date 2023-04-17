@@ -1,5 +1,4 @@
 use super::{device::Device, error::ModelError, DbPool, User, UserInfo};
-use base64;
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;

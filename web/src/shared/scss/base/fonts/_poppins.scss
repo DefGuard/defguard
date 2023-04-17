@@ -27,8 +27,7 @@
   font-family: Poppins;
   font-style: italic;
   font-weight: 300;
-  src: local(''),
-    url('@fonts/Poppins/Poppins-LightItalic.woff2') format('woff2');
+  src: local(''), url('@fonts/Poppins/Poppins-LightItalic.woff2') format('woff2');
 }
 
 /* poppins-regular - latin */
@@ -60,8 +59,7 @@
   font-family: Poppins;
   font-style: italic;
   font-weight: 500;
-  src: local(''),
-    url('@fonts/Poppins/Poppins-MediumItalic.woff2') format('woff2');
+  src: local(''), url('@fonts/Poppins/Poppins-MediumItalic.woff2') format('woff2');
 }
 
 /* poppins-600 - latin */
@@ -77,8 +75,7 @@
   font-family: Poppins;
   font-style: italic;
   font-weight: 600;
-  src: local(''),
-    url('@fonts/Poppins/Poppins-SemiBoldItalic.woff2') format('woff2');
+  src: local(''), url('@fonts/Poppins/Poppins-SemiBoldItalic.woff2') format('woff2');
 }
 
 /* poppins-700 - latin */

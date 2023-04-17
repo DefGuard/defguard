@@ -55,10 +55,7 @@ const SvgIconUserListExpanded = (props: SVGProps<SVGSVGElement>) => (
           transform="translate(320 241)"
         />
       </g>
-      <g
-        className="icon-user-list-expanded_svg__d"
-        transform="rotate(-90 22 4)"
-      >
+      <g className="icon-user-list-expanded_svg__d" transform="rotate(-90 22 4)">
         <rect
           className="icon-user-list-expanded_svg__a"
           width={8}

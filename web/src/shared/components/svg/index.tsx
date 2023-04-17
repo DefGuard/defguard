@@ -99,3 +99,5 @@ export { default as IconWarning } from './IconWarning';
 export { default as ImageMeshNetwork } from './ImageMeshNetwork';
 export { default as ImageRegularNetwork } from './ImageRegularNetwork';
 export { default as LogoDefguardWhite } from './LogoDefguardWhite';
+export { default as ImportConfig } from './ImportConfig';
+export { default as ManualConfig } from './ManualConfig';

@@ -10,10 +10,7 @@ const SvgIconActivityWarning = (props: SVGProps<SVGSVGElement>) => (
         }
       </style>
     </defs>
-    <g
-      transform="translate(-784 -142.59)"
-      className="icon-activity-warning_svg__b"
-    >
+    <g transform="translate(-784 -142.59)" className="icon-activity-warning_svg__b">
       <circle
         className="icon-activity-warning_svg__a"
         cx={6}

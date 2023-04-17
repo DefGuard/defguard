@@ -59,8 +59,7 @@
     @include media-breakpoint-down(lg) {
       grid-row: 1;
       grid-column: 1;
-      flex-direction: row;
-      flex-wrap: wrap;
+      flex-flow: row wrap;
       row-gap: 1.5rem;
       margin: 1.5rem 0;
       box-sizing: border-box;

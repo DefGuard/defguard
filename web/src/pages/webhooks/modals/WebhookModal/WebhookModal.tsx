@@ -3,10 +3,10 @@ import './style.scss';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { ModalWithTitle } from '../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { WebhookForm } from './WebhookForm';
-import { useI18nContext } from '../../../../i18n/i18n-react';
 
 export const WebhookModal = () => {
   const { LL, locale } = useI18nContext();

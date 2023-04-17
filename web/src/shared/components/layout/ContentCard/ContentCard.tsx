@@ -5,7 +5,7 @@ import { HTMLMotionProps } from 'framer-motion';
 import { ReactNode, useMemo } from 'react';
 
 import { Card } from '../Card/Card';
-import Divider from '../Divider/Divider';
+import { Divider } from '../Divider/Divider';
 
 interface Props extends HTMLMotionProps<'div'> {
   children: ReactNode;
@@ -13,13 +13,7 @@ interface Props extends HTMLMotionProps<'div'> {
   footer?: ReactNode;
 }
 
-export const ContentCard = ({
-  children,
-  header,
-  footer,
-  className,
-  ...rest
-}: Props) => {
+export const ContentCard = ({ children, header, footer, className, ...rest }: Props) => {
   const cn = useMemo(() => classNames('content-card', className), [className]);
   return (
     <Card className={cn} {...rest}>

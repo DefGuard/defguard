@@ -16,33 +16,18 @@ const SvgMetamaskIcon = (props: SVGProps<SVGSVGElement>) => (
           data-name="Path 5617"
           d="m19.936 16.622-2.494 3.821 5.336 1.468 1.534-5.2Z"
         />
-        <path
-          data-name="Path 5618"
-          d="m.698 16.707 1.525 5.2 5.336-1.468-2.494-3.817Z"
-        />
-        <path
-          data-name="Path 5619"
-          d="m7.258 10.165-1.487 2.25 5.3.235-.188-5.694Z"
-        />
+        <path data-name="Path 5618" d="m.698 16.707 1.525 5.2 5.336-1.468-2.494-3.817Z" />
+        <path data-name="Path 5619" d="m7.258 10.165-1.487 2.25 5.3.235-.188-5.694Z" />
         <path
           data-name="Path 5620"
           d="m17.733 10.166-3.671-3.275-.122 5.76 5.289-.235Z"
         />
-        <path
-          data-name="Path 5621"
-          d="m7.559 20.445 3.181-1.553-2.748-2.146Z"
-        />
+        <path data-name="Path 5621" d="m7.559 20.445 3.181-1.553-2.748-2.146Z" />
         <path data-name="Path 5622" d="m14.251 18.891 3.191 1.553-.442-3.7Z" />
       </g>
       <g data-name="Group 4693" fill="#d7c1b3" stroke="#d7c1b3">
-        <path
-          data-name="Path 5623"
-          d="m17.442 20.444-3.191-1.553.254 2.08-.028.875Z"
-        />
-        <path
-          data-name="Path 5624"
-          d="m7.559 20.444 2.965 1.4-.019-.875.235-2.08Z"
-        />
+        <path data-name="Path 5623" d="m17.442 20.444-3.191-1.553.254 2.08-.028.875Z" />
+        <path data-name="Path 5624" d="m7.559 20.444 2.965 1.4-.019-.875.235-2.08Z" />
       </g>
       <path
         data-name="Path 5625"
@@ -70,18 +55,9 @@ const SvgMetamaskIcon = (props: SVGProps<SVGSVGElement>) => (
       </g>
       <g data-name="Group 4695" fill="#e4751f" stroke="#e4751f">
         <path data-name="Path 5631" d="m5.771 12.415 2.221 4.329-.075-2.155Z" />
-        <path
-          data-name="Path 5632"
-          d="m17.093 14.589-.094 2.155 2.231-4.329Z"
-        />
-        <path
-          data-name="Path 5633"
-          d="m11.071 12.65-.5 2.72.621 3.209.141-4.226Z"
-        />
-        <path
-          data-name="Path 5634"
-          d="m13.94 12.65-.254 1.694.113 4.235.631-3.209Z"
-        />
+        <path data-name="Path 5632" d="m17.093 14.589-.094 2.155 2.231-4.329Z" />
+        <path data-name="Path 5633" d="m11.071 12.65-.5 2.72.621 3.209.141-4.226Z" />
+        <path data-name="Path 5634" d="m13.94 12.65-.254 1.694.113 4.235.631-3.209Z" />
       </g>
       <path
         data-name="Path 5635"

@@ -32,9 +32,7 @@ const OptionsPopover: React.FC<Props> = ({
   isOpen,
   setIsOpen,
 }) => {
-  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(
-    null
-  );
+  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLDivElement | null>(null);
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     strategy: 'fixed',
@@ -55,10 +53,7 @@ const OptionsPopover: React.FC<Props> = ({
     if (isOpen) {
       referenceElement.className = `${referenceElement.className} active`;
     } else {
-      referenceElement.className = referenceElement.className.replace(
-        'active',
-        ''
-      );
+      referenceElement.className = referenceElement.className.replace('active', '');
     }
   }, [isOpen, referenceElement]);
 

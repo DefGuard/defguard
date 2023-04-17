@@ -1,0 +1,32 @@
+@use '@scss/helpers' as *;
+
+#wizard-page {
+  .wizard-network-option {
+    display: flex;
+    flex-flow: column;
+    box-sizing: border-box;
+    padding: 34px 0;
+    row-gap: 45px;
+    align-items: center;
+    justify-content: center;
+
+    & > header {
+      @include typography(24px, 36px, semiBold, var(--text-main), 'Poppins');
+
+      width: 100%;
+      text-align: center;
+    }
+
+    & > p {
+      @include typography(15px, 18px, medium, var(--gray-light), 'Roboto');
+
+      width: 100%;
+      text-align: center;
+    }
+
+    & > .btn {
+      height: 47px;
+      width: 255px;
+    }
+  }
+}

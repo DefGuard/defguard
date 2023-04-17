@@ -9,14 +9,9 @@ import {
   Variants,
 } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
-import React, { ReactNode, useId, useMemo, useRef } from 'react';
-import { useState } from 'react';
+import React, { ReactNode, useId, useMemo, useRef, useState } from 'react';
 
-import {
-  buttonsBoxShadow,
-  ColorsRGB,
-  inactiveBoxShadow,
-} from '../../../constants';
+import { buttonsBoxShadow, ColorsRGB, inactiveBoxShadow } from '../../../constants';
 import SvgIconAsterix from '../../svg/IconAsterix';
 import SvgIconCheckmarkGreen from '../../svg/IconCheckmarkGreen';
 import SvgIconPopupClose from '../../svg/IconPopupClose';
@@ -30,7 +25,7 @@ export interface InputProps extends HTMLMotionProps<'input'> {
   validate?: (v?: unknown) => void;
   valid?: boolean;
   innerLabel?: boolean;
-  outerLabel?: string;
+  outerLabel?: string | ReactNode;
   disableOuterLabelColon?: boolean;
   errorMessage?: string;
 }
@@ -143,7 +138,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
     return (
       <>
-        {outerLabel && outerLabel.length > 0 && (
+        {outerLabel && (
           <motion.label
             className={getOuterLabelClassName}
             htmlFor={componentId}

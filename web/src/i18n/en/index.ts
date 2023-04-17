@@ -243,8 +243,7 @@ const en: BaseTranslation = {
       infoBox: `The selected provisioner must have a <b>clean</b> YubiKey
                 plugged in be provisioned. To clean a used YubiKey
                 <b>gpg --card-edit </b> before provisioning.`,
-      selectionLabel:
-        'Select one of the following provisioners to provision a YubiKey:',
+      selectionLabel: 'Select one of the following provisioners to provision a YubiKey:',
       noData: {
         workers: 'No workers found, waiting...',
       },
@@ -524,9 +523,10 @@ const en: BaseTranslation = {
   },
   navigation: {
     bar: {
+      wizard: 'VPN Wizard',
       overview: 'VPN Overview',
       users: 'Users',
-      provisioners: 'Yubikey Provisioners',
+      provisioners: 'Yubikey',
       webhooks: 'Webhooks',
       openId: 'OpenID Apps',
       myProfile: 'My Profile',
@@ -534,10 +534,11 @@ const en: BaseTranslation = {
       logOut: 'Log out',
     },
     mobileTitles: {
+      wizard: 'VPN Wizard',
       users: 'Users',
       settings: 'Defguard Global Settings',
       user: 'User Profile',
-      provisioners: 'Yubikey Provisioners',
+      provisioners: 'Yubikey',
       webhooks: 'Webhooks',
       openId: 'OpenId Apps',
       overview: 'Network Overview',
@@ -551,7 +552,7 @@ const en: BaseTranslation = {
     copy: 'Copy',
     saveChanges: 'Save changes',
     submit: 'Submit',
-		login: 'Sign in',
+    login: 'Sign in',
     cancel: 'Cancel',
     close: 'Close',
     placeholders: {
@@ -654,12 +655,12 @@ const en: BaseTranslation = {
           },
           mainLogoUrl: {
             label: 'Login logo url',
-						helper: '<p>Maximum picture size is 250x100  px</p>',
+            helper: '<p>Maximum picture size is 250x100  px</p>',
             placeholder: 'Default image',
           },
           navLogoUrl: {
             label: 'Menu & navigation small logo',
-						helper: '<p>Maximum picture size is 100x100 px</p>',
+            helper: '<p>Maximum picture size is 100x100 px</p>',
             placeholder: 'Default image',
           },
         },
@@ -789,7 +790,7 @@ const en: BaseTranslation = {
     modals: {
       openidClientModal: {
         title: {
-          addApp: 'Add app.',
+          addApp: 'Add Application',
           editApp: 'Edit {appName: string} app',
         },
         scopes: 'Scopes:',
@@ -918,8 +919,7 @@ const en: BaseTranslation = {
     header: '{name: string} would like to:',
     scopes: {
       openid: 'Use your profile data for future logins.',
-      profile:
-        'Know basic information from your profile like name, profile picture etc.',
+      profile: 'Know basic information from your profile like name, profile picture etc.',
       email: 'Know your email address.',
       phone: 'Know your phone number.',
     },
@@ -970,6 +970,7 @@ const en: BaseTranslation = {
   },
   networkConfiguration: {
     header: 'Network configuration',
+    importHeader: 'Network import',
     form: {
       messages: {
         gateway: 'Gateway public address, used by VPN users to connect',
@@ -1033,6 +1034,7 @@ const en: BaseTranslation = {
   loginPage: {
     pageTitle: 'Enter your credentials',
     mfa: {
+      title: 'Two-factor authentication',
       controls: {
         useAuthenticator: 'Use Authenticator app instead',
         useWallet: 'Use your wallet instead',
@@ -1040,8 +1042,7 @@ const en: BaseTranslation = {
         useRecoveryCode: 'Use recovery code instead',
       },
       totp: {
-        header:
-          'Use code from your authentication app and click button to proceed.',
+        header: 'Use code from your authentication app and click button to proceed.',
         form: {
           fields: {
             code: {
@@ -1054,8 +1055,7 @@ const en: BaseTranslation = {
         },
       },
       recoveryCode: {
-        header:
-          'Enter one of active recovery codes and click button to log in.',
+        header: 'Enter one of active recovery codes and click button to log in.',
         form: {
           fields: {
             code: {
@@ -1087,6 +1087,65 @@ const en: BaseTranslation = {
         messages: {
           error: 'Failed to read key. Please try again.',
         },
+      },
+    },
+  },
+  wizard: {
+    completed: 'Network setup completed',
+    configuration: {
+      successMessage: 'Network created',
+    },
+    welcome: {
+      header: 'Welcome to defguard!',
+      sub: 'Before you start, you need to setup your network environment first. When in doubt hover on <React> icon.',
+    },
+    navigation: {
+      top: 'Network setup',
+      titles: {
+        welcome: 'Network setup',
+        choseNetworkSetup: 'Chose network setup',
+        importConfig: 'Import existing network',
+        manualConfig: 'Configure network',
+        mapDevices: 'Map imported devices',
+      },
+      buttons: {
+        next: 'Next',
+        back: 'Back',
+      },
+    },
+    deviceMap: {
+      crateSuccess: 'Devices added',
+      list: {
+        headers: {
+          deviceName: 'Device Name',
+          deviceIP: 'IP',
+          user: 'User',
+        },
+      },
+    },
+    wizardType: {
+      manual: {
+        title: 'Manual Configuration',
+        description: 'Manual network configuration',
+      },
+      import: {
+        title: 'Import From File',
+        description: 'Import from WireGuard config file',
+      },
+      createNetwork: 'Create WireGuard network',
+    },
+    common: {
+      select: 'Select',
+    },
+    locations: {
+      form: {
+        name: 'Name',
+        ip: 'IP address',
+        user: 'User',
+        fileName: 'File',
+        selectFile: 'Select file',
+        messages: { devicesCreated: 'Devices created' },
+        validation: { invalidAddress: 'Invalid address' },
       },
     },
   },

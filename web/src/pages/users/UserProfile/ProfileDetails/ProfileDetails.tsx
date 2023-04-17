@@ -98,9 +98,7 @@ const ViewMode = () => {
             <Tag disposable={false} text={titleCase(group)} key={group} />
           ))}
           {!sortedGroups.length && (
-            <NoData
-              customMessage={LL.userPage.userDetails.fields.groups.noData()}
-            />
+            <NoData customMessage={LL.userPage.userDetails.fields.groups.noData()} />
           )}
         </div>
       </div>
@@ -124,11 +122,7 @@ const ViewMode = () => {
             user.authorized_apps &&
             user?.authorized_apps.length &&
             user?.authorized_apps?.length > 0
-          ) && (
-            <NoData
-              customMessage={LL.userPage.userDetails.fields.apps.noData()}
-            />
-          )}
+          ) && <NoData customMessage={LL.userPage.userDetails.fields.apps.noData()} />}
         </div>
       </div>
     </>

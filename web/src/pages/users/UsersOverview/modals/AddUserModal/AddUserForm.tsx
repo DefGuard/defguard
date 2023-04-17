@@ -2,8 +2,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosResponse } from 'axios';
 import { useEffect, useMemo, useState } from 'react';
-import { useController, useForm } from 'react-hook-form';
-import { SubmitHandler } from 'react-hook-form';
+import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import { BehaviorSubject, Subject } from 'rxjs';
 import {
   debounceTime,
@@ -63,11 +62,8 @@ export const AddUserForm = () => {
             .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
             .matches(patternDigitOrLowercase, LL.form.error.invalid())
             .min(4, LL.form.error.minimumLength)
-            .test(
-              'username-available',
-              LL.form.error.usernameTaken(),
-              (value?: string) =>
-                value ? !usernamesTaken.getValue().includes(value) : false
+            .test('username-available', LL.form.error.usernameTaken(), (value?: string) =>
+              value ? !usernamesTaken.getValue().includes(value) : false
             ),
           password: yup
             .string()
@@ -135,8 +131,7 @@ export const AddUserForm = () => {
     },
   });
 
-  const onSubmit: SubmitHandler<Inputs> = (data) =>
-    addUserMutation.mutate(data);
+  const onSubmit: SubmitHandler<Inputs> = (data) => addUserMutation.mutate(data);
 
   useEffect(() => {
     if (usernameSubject) {
@@ -250,4 +245,3 @@ export const AddUserForm = () => {
     </form>
   );
 };
-

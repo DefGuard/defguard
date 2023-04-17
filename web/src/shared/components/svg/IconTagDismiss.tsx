@@ -2,13 +2,7 @@ import * as React from 'react';
 import { SVGProps } from 'react';
 
 const SvgIconTagDismiss = (props: SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={16}
-    height={16}
-    role="img"
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} role="img" {...props}>
     <defs>
       <clipPath id="icon-tag-dismiss_svg__a">
         <path data-name="Rectangle 2114" fill="#cbd3d8" d="M0 0h16v16H0z" />

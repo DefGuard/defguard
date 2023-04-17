@@ -5,12 +5,7 @@ const SvgIconArrowGraySmall = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} {...props}>
     <defs>
       <clipPath id="icon-arrow-gray-small_svg__a">
-        <path
-          data-name="Rectangle 2812"
-          fill="#899ca8"
-          opacity={0}
-          d="M0 0h22v22H0z"
-        />
+        <path data-name="Rectangle 2812" fill="#899ca8" opacity={0} d="M0 0h22v22H0z" />
       </clipPath>
     </defs>
     <g clipPath="url(#icon-arrow-gray-small_svg__a)" fill="#899ca8">

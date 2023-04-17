@@ -9,6 +9,7 @@ use crate::{
         WireguardNetwork,
     },
     grpc::GatewayState,
+    wg_config::parse_wireguard_config,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -45,9 +46,27 @@ impl WireguardNetworkData {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct UserDevices {
+    pub devices: Vec<Device>,
+}
+
 #[derive(Serialize)]
 struct ConnectionInfo {
     connected: bool,
+}
+
+#[derive(Deserialize)]
+pub struct ImportNetworkData {
+    pub name: String,
+    pub endpoint: String,
+    pub config: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ImportedNetworkData {
+    pub network: WireguardNetwork,
+    pub devices: Vec<Device>,
 }
 
 #[post("/", format = "json", data = "<data>")]
@@ -173,6 +192,53 @@ pub async fn network_details(
     })
 }
 
+#[post("/import", format = "json", data = "<data>")]
+pub async fn import_network(
+    _admin: AdminRole,
+    appstate: &State<AppState>,
+    data: Json<ImportNetworkData>,
+) -> ApiResult {
+    let data = data.into_inner();
+    let (mut network, devices) = parse_wireguard_config(&data.config)
+        .map_err(|_| OriWebError::Http(Status::UnprocessableEntity))?;
+    network.name = data.name;
+    network.endpoint = data.endpoint;
+    network.save(&appstate.pool).await?;
+    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.clone()));
+    Ok(ApiResponse {
+        json: json!(ImportedNetworkData { network, devices }),
+        status: Status::Created,
+    })
+}
+
+#[post("/devices", format = "json", data = "<data>")]
+pub async fn add_user_devices(
+    session: SessionInfo,
+    appstate: &State<AppState>,
+    data: Json<UserDevices>,
+) -> ApiResult {
+    let mut data = data.into_inner();
+    debug!(
+        "User {} adding {} devices",
+        session.user.username,
+        data.devices.len()
+    );
+    for device in data.devices.as_mut_slice() {
+        device.save(&appstate.pool).await?;
+        appstate.send_wireguard_event(GatewayEvent::DeviceCreated(device.clone()));
+    }
+    info!(
+        "User {} added {} devices",
+        session.user.username,
+        data.devices.len()
+    );
+
+    Ok(ApiResponse {
+        json: json!(data),
+        status: Status::Created,
+    })
+}
+
 #[post("/device/<username>", format = "json", data = "<data>")]
 pub async fn add_device(
     session: SessionInfo,
@@ -190,7 +256,7 @@ pub async fn add_device(
     if let Ok(Some(network)) = WireguardNetwork::find_by_id(&appstate.pool, 1).await {
         if network.pubkey == data.wireguard_pubkey {
             return Ok(ApiResponse {
-                json: json!({"msg": "device's pubkey must be differnet from server's pubkey"}),
+                json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
                 status: Status::BadRequest,
             });
         }
@@ -238,7 +304,7 @@ pub async fn modify_device(
     if let Ok(Some(network)) = WireguardNetwork::find_by_id(&appstate.pool, 1).await {
         if network.pubkey == data.wireguard_pubkey {
             return Ok(ApiResponse {
-                json: json!({"msg": "device's pubkey must be differnet from server's pubkey"}),
+                json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
                 status: Status::BadRequest,
             });
         }

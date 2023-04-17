@@ -2,10 +2,10 @@ import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined, orderBy } from 'lodash-es';
-import { useEffect, useState } from 'react';
-import { useMemo } from 'react';
-import useBreakpoint from 'use-breakpoint';
+import { useEffect, useMemo, useState } from 'react';
+import { useBreakpoint } from 'use-breakpoint';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
@@ -20,24 +20,19 @@ import {
 } from '../../../shared/components/layout/EditButton/EditButtonOption';
 import LoaderSpinner from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../../shared/components/layout/NoData/NoData';
-import PageContainer from '../../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../../shared/components/layout/PageContainer/PageContainer';
 import { Search } from '../../../shared/components/layout/Search/Search';
-import {
-  Select,
-  SelectOption,
-} from '../../../shared/components/layout/Select/Select';
+import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
 import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
   VirtualizedList,
 } from '../../../shared/components/layout/VirtualizedList/VirtualizedList';
-import {
-  IconCheckmarkGreen,
-  IconDeactivated,
-} from '../../../shared/components/svg';
+import { IconCheckmarkGreen, IconDeactivated } from '../../../shared/components/svg';
 import SvgIconPlusWhite from '../../../shared/components/svg/IconPlusWhite';
 import { deviceBreakpoints } from '../../../shared/constants';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -45,50 +40,48 @@ import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { OpenidClient } from '../../../shared/types';
 import { OpenIdClientModal } from '../modals/OpenIdClientModal/OpenIdClientModal';
-import { useI18nContext } from '../../../i18n/i18n-react';
 
 export const OpenidClientsListPage = () => {
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [deleteClientModalOpen, setDeleteClientModalOpen] = useState(false);
-  const [deleteClient, setDeleteClient] = useState<OpenidClient | undefined>(
-    undefined
-  );
+  const [deleteClient, setDeleteClient] = useState<OpenidClient | undefined>(undefined);
   const [searchValue, setSearchValue] = useState('');
   const {
     openid: { getOpenidClients, changeOpenidClientState, deleteOpenidClient },
-    license: { getLicense },
   } = useApi();
-  const setOpenIdClientModalState = useModalStore(
-    (state) => state.setOpenIdClientModal
+  const license = useAppStore((state) => state.license);
+  const setOpenIdClientModalState = useModalStore((state) => state.setOpenIdClientModal);
+
+  const selectOptions = useMemo(
+    (): SelectOption<FilterOption>[] => [
+      {
+        key: 1,
+        label: LL.openidOverview.filterLabels.all(),
+        value: FilterOption.ALL,
+      },
+      {
+        key: 3,
+        label: LL.openidOverview.filterLabels.enabled(),
+        value: FilterOption.ENABLED,
+      },
+      {
+        key: 2,
+        label: LL.openidOverview.filterLabels.disabled(),
+        value: FilterOption.DISABLED,
+      },
+    ],
+    [LL]
   );
-
-  const { data: license } = useQuery([QueryKeys.FETCH_LICENSE], getLicense);
-
-  const selectOptions: SelectOption<FilterOption>[] = [
-    {
-      key: 1,
-      label: LL.openidOverview.filterLabels.all(),
-      value: FilterOption.ALL,
-    },
-    {
-      key: 3,
-      label: LL.openidOverview.filterLabels.enabled(),
-      value: FilterOption.ENABLED,
-    },
-    {
-      key: 2,
-      label: LL.openidOverview.filterLabels.disabled(),
-      value: FilterOption.DISABLED,
-    },
-  ];
 
   const [selectedFilter, setSelectedFilter] = useState(selectOptions[0]);
 
-  const { mutate: deleteClientMutation, isLoading: deleteClientLoading } =
-    useMutation([MutationKeys.DELETE_OPENID_CLIENT], deleteOpenidClient, {
+  const { mutate: deleteClientMutation, isLoading: deleteClientLoading } = useMutation(
+    [MutationKeys.DELETE_OPENID_CLIENT],
+    deleteOpenidClient,
+    {
       onSuccess: () => {
         toaster.success(LL.openidOverview.deleteApp.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
@@ -99,7 +92,8 @@ export const OpenidClientsListPage = () => {
         setDeleteClientModalOpen(false);
         console.error(err);
       },
-    });
+    }
+  );
 
   const { mutate: editClientStatusMutation } = useMutation(
     (client: OpenidClient) =>
@@ -136,9 +130,7 @@ export const OpenidClientsListPage = () => {
   const filteredClients = useMemo(() => {
     if (!clients || (clients && clients.length === 0)) return [];
     let res = orderBy(clients, ['name'], ['asc']);
-    res = res.filter((c) =>
-      c.name.toLowerCase().includes(searchValue.toLowerCase())
-    );
+    res = res.filter((c) => c.name.toLowerCase().includes(searchValue.toLowerCase()));
     switch (selectedFilter.value) {
       case FilterOption.ALL:
         break;
@@ -171,7 +163,7 @@ export const OpenidClientsListPage = () => {
       },
     ];
     return res;
-  }, [locale]);
+  }, [LL.openidOverview.list.headers]);
 
   const listCells = useMemo(() => {
     const res: ListRowCell<OpenidClient>[] = [
@@ -191,8 +183,7 @@ export const OpenidClientsListPage = () => {
             </>
           ) : (
             <>
-              <IconDeactivated />{' '}
-              <span>{LL.openidOverview.list.status.disabled()}</span>
+              <IconDeactivated /> <span>{LL.openidOverview.list.status.disabled()}</span>
             </>
           ),
       },
@@ -231,7 +222,12 @@ export const OpenidClientsListPage = () => {
       },
     ];
     return res;
-  }, [editClientStatusMutation, setOpenIdClientModalState]);
+  }, [
+    LL.openidOverview.list.editButton,
+    LL.openidOverview.list.status,
+    editClientStatusMutation,
+    setOpenIdClientModalState,
+  ]);
 
   const getListPadding = useMemo(() => {
     if (breakpoint === 'desktop') {
@@ -250,7 +246,7 @@ export const OpenidClientsListPage = () => {
     if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOption.ALL) {
       setSelectedFilter(selectOptions[0]);
     }
-  }, [breakpoint, selectedFilter.value]);
+  }, [breakpoint, selectOptions, selectedFilter.value]);
 
   return (
     <PageContainer id="openid-clients-list">
@@ -267,7 +263,7 @@ export const OpenidClientsListPage = () => {
       <section className="actions">
         <div className="clients-count">
           <span>{LL.openidOverview.clientCount()}</span>
-          <div className="count" data-test="clients-count">
+          <div className="count" data-testid="clients-count">
             <span>{clients && clients.length > 0 ? clients.length : 0}</span>
           </div>
         </div>

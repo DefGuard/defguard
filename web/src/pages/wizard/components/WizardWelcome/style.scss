@@ -1,0 +1,39 @@
+@use '@scss/helpers' as *;
+
+#wizard-welcome {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding: 50px 88px;
+
+  & > header {
+    @include typography(20px, 30px, semiBold, var(--text-main), 'Poppins');
+
+    margin-bottom: 20px;
+  }
+
+  & > p {
+    @include list-text;
+
+    color: var(--gray-light);
+    max-width: 345px;
+    white-space: normal;
+    text-align: center;
+    margin-bottom: 100px;
+
+    & > svg {
+      transform: scale(66.67%) translateY(25%);
+    }
+  }
+
+  & > .btn {
+    width: 100%;
+  }
+  @include media-breakpoint-up(lg) {
+    width: 520px !important;
+    margin-top: 180px;
+    height: 380px;
+  }
+}

@@ -1,17 +1,16 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useAccount, useSignMessage, useSignTypedData } from 'wagmi';
-import shallow from 'zustand/shallow';
-import { useI18nContext } from '../../../../i18n/i18n-react';
+import { useAccount, useSignTypedData } from 'wagmi';
+import { shallow } from 'zustand/shallow';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
-import { useOpenIDStore } from '../../../../shared/hooks/store/useOpenIdStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
@@ -29,36 +28,18 @@ export const MFAWeb3 = () => {
 
   const { isConnected, isConnecting, address } = useAccount();
   const setModalsState = useModalStore((state) => state.setState);
-  const logIn = useAuthStore((state) => state.logIn);
-  const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore);
-  const resetMFAStore = useMFAStore((state) => state.resetState);
   const toaster = useToaster();
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
-    (state) => [
-      state.totp_available,
-      state.web3_available,
-      state.webauthn_available,
-    ],
+    (state) => [state.totp_available, state.web3_available, state.webauthn_available],
     shallow
   );
+  const loginSubject = useAuthStore((state) => state.loginSubject);
 
   const { mutate: mfaFinishMutation, isLoading: finishLoading } = useMutation(
     [MutationKeys.WEB3_MFA_FINISH],
     finish,
     {
-      onSuccess: (data) => {
-        const { user, url } = data;
-        if (user && url) {
-          resetMFAStore();
-          setOpenIDStore({ openIDRedirect: true });
-          window.location.replace(url);
-          return;
-        }
-        if (user) {
-          resetMFAStore();
-          logIn(user);
-        }
-      },
+      onSuccess: (data) => loginSubject.next(data),
       onError: (err) => {
         console.error(err);
         toaster.error(LL.loginPage.mfa.wallet.messages.walletErrorMfa());

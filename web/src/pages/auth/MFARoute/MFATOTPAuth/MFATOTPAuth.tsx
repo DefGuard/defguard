@@ -4,16 +4,15 @@ import { useEffect } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import * as yup from 'yup';
-import shallow from 'zustand/shallow';
-import { useI18nContext } from '../../../../i18n/i18n-react';
+import { shallow } from 'zustand/shallow';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
-import { useOpenIDStore } from '../../../../shared/hooks/store/useOpenIdStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
@@ -24,17 +23,11 @@ interface Inputs {
 
 export const MFATOTPAuth = () => {
   const navigate = useNavigate();
-  const clearMFAStore = useMFAStore((state) => state.resetState);
-  const setOpenIDStore = useOpenIDStore((state) => state.setOpenIDStore);
+  const loginSubject = useAuthStore((state) => state.loginSubject);
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
-    (state) => [
-      state.totp_available,
-      state.web3_available,
-      state.webauthn_available,
-    ],
+    (state) => [state.totp_available, state.web3_available, state.webauthn_available],
     shallow
   );
-  const logIn = useAuthStore((state) => state.logIn);
   const {
     auth: {
       mfa: {
@@ -44,30 +37,14 @@ export const MFATOTPAuth = () => {
   } = useApi();
   const { LL } = useI18nContext();
 
-  const { mutate, isLoading } = useMutation(
-    [MutationKeys.VERIFY_TOTP],
-    verify,
-    {
-      onSuccess: (data) => {
-        const { user, url } = data;
-        if (user && url) {
-          clearMFAStore();
-          setOpenIDStore({ openIDRedirect: true });
-          window.location.replace(url);
-          return;
-        }
-        if (user) {
-          clearMFAStore();
-          logIn(user);
-        }
-      },
-      onError: (err) => {
-        console.error(err);
-        setValue('code', '');
-        setError('code', { message: 'Enter a valid code' });
-      },
-    }
-  );
+  const { mutate, isLoading } = useMutation([MutationKeys.VERIFY_TOTP], verify, {
+    onSuccess: (data) => loginSubject.next(data),
+    onError: (err) => {
+      console.error(err);
+      setValue('code', '');
+      setError('code', { message: 'Enter a valid code' });
+    },
+  });
   const schema = yup
     .object()
     .shape({

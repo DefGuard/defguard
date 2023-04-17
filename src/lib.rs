@@ -18,8 +18,11 @@ use crate::handlers::{
 };
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
-use crate::license::License;
-use crate::{db::models::oauth2client::OAuth2Client, grpc::WorkerState};
+use crate::{
+    db::models::oauth2client::OAuth2Client, grpc::WorkerState,
+    handlers::wireguard::add_user_devices,
+};
+use crate::{handlers::wireguard::import_network, license::License};
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
@@ -74,6 +77,7 @@ pub mod hex;
 pub mod ldap;
 pub mod license;
 pub(crate) mod random;
+pub mod wg_config;
 
 #[macro_use]
 extern crate rocket;
@@ -202,6 +206,8 @@ pub async fn build_webapp(
             modify_network,
             list_networks,
             network_details,
+            import_network,
+            add_user_devices,
             create_network_token,
             user_stats,
             network_stats,

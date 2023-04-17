@@ -20,10 +20,7 @@ import {
 import UserInitials, {
   UserInitialsType,
 } from '../../../../shared/components/layout/UserInitials/UserInitials';
-import {
-  IconPacketsIn,
-  IconPacketsOut,
-} from '../../../../shared/components/svg';
+import { IconPacketsIn, IconPacketsOut } from '../../../../shared/components/svg';
 import SvgIconConnected from '../../../../shared/components/svg/IconConnected';
 import SvgIconUserList from '../../../../shared/components/svg/IconUserList';
 import SvgIconUserListElement from '../../../../shared/components/svg/IconUserListElement';
@@ -52,10 +49,7 @@ export const UserConnectionListItem = ({ data, dataMax }: Props) => {
 
   return (
     <div className={getClassName}>
-      <ExpandButton
-        expanded={expanded}
-        onExpand={() => setExpanded((state) => !state)}
-      />
+      <ExpandButton expanded={expanded} onExpand={() => setExpanded((state) => !state)} />
       <UserRow data={data} dataMax={dataMax} />
       {expanded &&
         data.devices.map((device) => (
@@ -115,7 +109,7 @@ const UserRow = ({ data, dataMax }: UserRowProps) => {
             <NetworkSpeed
               speedValue={downloadSummary}
               direction={NetworkDirection.DOWNLOAD}
-              data-test="download"
+              data-testid="download"
             />
           </span>
           <span className="transfer">
@@ -123,7 +117,7 @@ const UserRow = ({ data, dataMax }: UserRowProps) => {
             <NetworkSpeed
               speedValue={uploadSummary}
               direction={NetworkDirection.UPLOAD}
-              data-test="upload"
+              data-testid="upload"
             />
           </span>
         </div>
@@ -174,7 +168,7 @@ const DeviceRow = ({ data, dataMax }: DeviceRowProps) => {
             <NetworkSpeed
               speedValue={downloadSummary}
               direction={NetworkDirection.DOWNLOAD}
-              data-test="download"
+              data-testid="download"
             />
           </span>
           <span className="transfer">
@@ -182,7 +176,7 @@ const DeviceRow = ({ data, dataMax }: DeviceRowProps) => {
             <NetworkSpeed
               speedValue={uploadSummary}
               direction={NetworkDirection.UPLOAD}
-              data-test="upload"
+              data-testid="upload"
             />
           </span>
         </div>
@@ -248,21 +242,9 @@ const DeviceIps = ({ publicIp, wireguardIp }: DeviceIpsProps) => {
 const Connections = () => {
   return (
     <div className="connections">
-      <UserInitials
-        first_name="Z"
-        last_name="K"
-        type={UserInitialsType.SMALL}
-      />
-      <UserInitials
-        first_name="A"
-        last_name="P"
-        type={UserInitialsType.SMALL}
-      />
-      <UserInitials
-        first_name="R"
-        last_name="O"
-        type={UserInitialsType.SMALL}
-      />
+      <UserInitials first_name="Z" last_name="K" type={UserInitialsType.SMALL} />
+      <UserInitials first_name="A" last_name="P" type={UserInitialsType.SMALL} />
+      <UserInitials first_name="R" last_name="O" type={UserInitialsType.SMALL} />
     </div>
   );
 };

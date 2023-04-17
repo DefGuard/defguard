@@ -1,9 +1,5 @@
 import { useMemo } from 'react';
-import {
-  FieldValues,
-  useController,
-  UseControllerProps,
-} from 'react-hook-form';
+import { FieldValues, useController, UseControllerProps } from 'react-hook-form';
 
 import { CheckBox, CheckBoxProps } from '../../layout/Checkbox/CheckBox';
 

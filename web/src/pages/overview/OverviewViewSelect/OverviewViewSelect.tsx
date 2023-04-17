@@ -1,11 +1,8 @@
 import { useEffect, useMemo } from 'react';
-import useBreakpoint from 'use-breakpoint';
-import { useI18nContext } from '../../../i18n/i18n-react';
+import { useBreakpoint } from 'use-breakpoint';
 
-import {
-  Select,
-  SelectOption,
-} from '../../../shared/components/layout/Select/Select';
+import { useI18nContext } from '../../../i18n/i18n-react';
+import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
@@ -27,7 +24,7 @@ export const OverviewViewSelect = () => {
         {
           key: 0,
           value: OverviewLayoutType.GRID,
-          label: LL.networkOverview.filterLabels.grid()
+          label: LL.networkOverview.filterLabels.grid(),
         },
         {
           key: 1,
@@ -54,8 +51,16 @@ export const OverviewViewSelect = () => {
       ];
     }
     return [
-      { key: 0, value: OverviewLayoutType.GRID, label: LL.networkOverview.filterLabels.grid()},
-      { key: 1, value: OverviewLayoutType.LIST, label: LL.networkOverview.filterLabels.list(),},
+      {
+        key: 0,
+        value: OverviewLayoutType.GRID,
+        label: LL.networkOverview.filterLabels.grid(),
+      },
+      {
+        key: 1,
+        value: OverviewLayoutType.LIST,
+        label: LL.networkOverview.filterLabels.list(),
+      },
     ];
   }, [breakpoint, locale]);
 

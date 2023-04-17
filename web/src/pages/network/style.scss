@@ -7,7 +7,7 @@
     overflow-y: auto;
     display: grid;
     row-gap: 3rem;
-    grid-template-rows: 60px auto auto;
+    grid-template-rows: repeat(2, auto);
     grid-template-columns: 1fr;
     grid-template-areas:
       'header'

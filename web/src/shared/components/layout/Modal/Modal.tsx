@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
 import React, { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
+import { BehaviorSubject } from 'rxjs';
 
 export interface ModalProps {
   backdrop?: boolean;
@@ -159,9 +159,7 @@ const Modal = ({
               >
                 {children}
                 {stepsEnabled && steps && !isUndefined(step) ? (
-                  <div className={`step-content step-${step}`}>
-                    {steps[step]}
-                  </div>
+                  <div className={`step-content step-${step}`}>{steps[step]}</div>
                 ) : null}
               </motion.div>
             </motion.div>
