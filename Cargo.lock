@@ -958,7 +958,7 @@ checksum = "23d8666cb01533c39dde32bcbab8e227b4ed6679b2c925eba05feabea39508fb"
 
 [[package]]
 name = "defguard"
-version = "0.4.12"
+version = "0.4.13"
 dependencies = [
  "anyhow",
  "argon2",
