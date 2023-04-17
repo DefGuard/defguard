@@ -106,7 +106,16 @@ async fn test_list_users() {
     let response = client.get("/api/v1/user").dispatch().await;
     assert_eq!(response.status(), Status::Unauthorized);
 
+    // normal user cannot list users
     let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let response = client.get("/api/v1/user").dispatch().await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    // admin can list users
+    let auth = Auth::new("admin".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
