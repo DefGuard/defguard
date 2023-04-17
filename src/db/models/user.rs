@@ -522,13 +522,12 @@ mod test {
         albus.save(&pool).await.unwrap();
 
         let users = User::all(&pool).await.unwrap();
-        // Including "admin" user from migrations.
-        assert_eq!(users.len(), 3);
+        assert_eq!(users.len(), 2);
 
         albus.delete(&pool).await.unwrap();
 
         let users = User::all(&pool).await.unwrap();
-        assert_eq!(users.len(), 2);
+        assert_eq!(users.len(), 1);
     }
 
     #[sqlx::test]
