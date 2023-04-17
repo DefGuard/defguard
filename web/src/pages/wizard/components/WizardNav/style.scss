@@ -4,11 +4,16 @@
   #wizard-nav {
     user-select: none;
     width: 100%;
+    margin-bottom: 30px;
+
+    @include media-breakpoint-up(lg) {
+      margin: 0;
+    }
 
     & > .top {
       display: none;
 
-      @include media-breakpoint-up(lg) {
+      @include media-breakpoint-up(xl) {
         display: flex;
         height: 40px;
         flex-direction: row;
@@ -28,38 +33,83 @@
 
     & > .bottom {
       display: flex;
-      flex-direction: row;
       align-items: center;
-      height: 60px;
+      flex-flow: row wrap;
+      row-gap: 20px;
+
+      @include media-breakpoint-up(lg) {
+        min-height: 60px;
+        margin: 0;
+      }
 
       & > h1 {
-        @include page-header;
+        white-space: nowrap;
+        width: 100%;
+        text-align: center;
+        text-transform: uppercase;
+
+        @include typography(15px, 23px, semiBold, var(--text-main), 'Poppins');
+
+        @include media-breakpoint-up(lg) {
+          width: unset;
+          text-align: left;
+          text-transform: none;
+          @include page-header;
+        }
       }
 
       & > .controls {
-        display: flex;
-        flex-flow: row nowrap;
-        column-gap: 30px;
-        margin-left: auto;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        z-index: 2;
+        display: grid;
+        grid-template-rows: auto;
+        grid-template-columns: 1fr 1fr;
+        box-sizing: border-box;
+        column-gap: 15px;
+        width: 100%;
+        padding: 20px;
+        background-color: var(--white);
+        border-top: 1px solid var(--gray-border);
+
+        @include media-breakpoint-up(lg) {
+          width: auto;
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          padding: 0;
+          position: static;
+          column-gap: 30px;
+          margin-left: auto;
+          border-top: 0px solid transparent;
+          background-color: transparent;
+          margin-left: auto;
+        }
 
         & > .btn {
-          height: 60px;
-
-          &:nth-of-type(1) {
-            width: 120px;
-            max-width: 120px;
-            min-width: 120px;
-          }
+          height: 50px;
 
           &:nth-of-type(2) {
-            width: 170px;
-            max-width: 170px;
-            min-width: 170px;
-
             svg {
               rect {
                 fill: var(--white);
               }
+            }
+          }
+
+          @include media-breakpoint-up(lg) {
+            height: 60px;
+            &:nth-of-type(1) {
+              width: 120px;
+              max-width: 120px;
+              min-width: 120px;
+            }
+
+            &:nth-of-type(2) {
+              width: 170px;
+              max-width: 170px;
+              min-width: 170px;
             }
           }
         }

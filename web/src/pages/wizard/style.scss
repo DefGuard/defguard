@@ -3,11 +3,18 @@
 #wizard-page {
   max-height: 100%;
   overflow-y: auto;
+  background-color: var(--white);
+
+  @include media-breakpoint-up(xl) {
+    background-color: var(--bg-light);
+  }
+
   #wizard-content {
     position: relative;
+    box-sizing: border-box;
+    padding: 30px 20px 90px 20px;
     @include media-breakpoint-up(lg) {
-      box-sizing: border-box;
-      padding: 54px 0;
+      padding: 54px 20px;
       display: grid;
       grid-template-columns: repeat(12, 1fr);
       grid-template-rows: min-content;
@@ -16,16 +23,25 @@
       justify-items: center;
 
       & > * {
-        grid-column: 3 / 11;
+        grid-column: 1 / 13;
       }
 
       & > .card {
         width: calc(100% - 50px);
         max-width: 955px;
       }
+    }
 
-      .card {
-        box-shadow: 0 12px 24px rgb(0 0 0 / 8%) !important;
+    @include media-breakpoint-up(xl) {
+      padding: 54px 0;
+      & > * {
+        grid-column: 2 / 12;
+      }
+    }
+
+    @include media-breakpoint-up(xxl) {
+      & > * {
+        grid-column: 3 / 11;
       }
     }
   }

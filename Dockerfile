@@ -29,13 +29,13 @@ COPY migrations migrations
 ENV SQLX_OFFLINE true
 RUN cargo install --locked --path . --root /build
 
-FROM node:19.8-alpine3.16 as web
+FROM node:19-alpine3.16 as web
 
 WORKDIR /app
 COPY web/package.json .
 COPY web/pnpm-lock.yaml .
 COPY web/.npmrc .
-RUN npm i -g pnpm@8.1.1
+RUN npm i -g pnpm@8.2.0
 RUN pnpm config set loglevel=debug
 RUN pnpm install --ignore-scripts --frozen-lockfile
 COPY web/ .

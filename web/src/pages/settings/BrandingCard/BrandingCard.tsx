@@ -26,7 +26,7 @@ import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
 
 export const BrandingCard = () => {
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     settings: { editSettings, setDefaultBranding },
@@ -87,7 +87,7 @@ export const BrandingCard = () => {
             .required(LL.form.error.required()),
         })
         .required(),
-    [locale]
+    [LL.form.error]
   );
   const { control, handleSubmit, reset } = useForm<Settings>({
     defaultValues: useMemo(() => {
@@ -102,7 +102,13 @@ export const BrandingCard = () => {
             ? ''
             : settings?.nav_logo_url,
       };
-    }, [settings]),
+    }, [
+      defaultSettings.main_logo_url,
+      defaultSettings.nav_logo_url,
+      settings?.instance_name,
+      settings?.main_logo_url,
+      settings?.nav_logo_url,
+    ]),
     resolver: yupResolver(formSchema),
     mode: 'all',
   });

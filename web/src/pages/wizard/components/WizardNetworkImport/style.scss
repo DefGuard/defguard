@@ -1,8 +1,13 @@
 @use '@scss/helpers' as *;
 
 #wizard-network-import {
-  box-sizing: border-box;
-  padding: 55px;
+  box-shadow: none;
+
+  @include media-breakpoint-up(xl) {
+    box-sizing: border-box;
+    padding: 55px;
+    box-shadow: var(--card-shadow);
+  }
 
   & > form {
     & > * {

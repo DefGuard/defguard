@@ -137,7 +137,7 @@ export const WizardNetworkImport = () => {
   }, [submitSubject]);
 
   return (
-    <Card id="wizard-network-import">
+    <Card id="wizard-network-import" shaded>
       <form onSubmit={handleSubmit(onValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}

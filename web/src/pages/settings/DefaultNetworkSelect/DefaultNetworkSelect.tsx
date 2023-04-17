@@ -64,7 +64,7 @@ export const DefaultNetworkSelect = () => {
         label: LL.settingsPage.defaultNetworkSelect.filterLabels.list(),
       },
     ];
-  }, [breakpoint]);
+  }, [LL.settingsPage.defaultNetworkSelect.filterLabels, breakpoint]);
 
   const getSelectValue = useMemo(() => {
     return getSelectOptions.find((o) => o.value === defaultViewMode);

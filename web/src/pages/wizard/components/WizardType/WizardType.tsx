@@ -39,7 +39,7 @@ export const WizardType = () => {
   }, [submitSubject, nextStepSubject]);
 
   return (
-    <Card id="wizard-setup-choice">
+    <Card id="wizard-setup-choice" shaded>
       <WizardTypeOptionCard
         title={LL.wizard.wizardType.import.title()}
         subtitle={LL.wizard.wizardType.import.description()}

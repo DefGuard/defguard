@@ -96,7 +96,7 @@ export const WizardMapDevices = () => {
   if (isLoading || !devices || createLoading) return <LoaderSpinner />;
 
   return (
-    <Card id="wizard-map-devices">
+    <Card id="wizard-map-devices" shaded>
       <VirtualizedList<ImportedDevice>
         customRowRender={renderRow}
         data={devices}

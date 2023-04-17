@@ -1,7 +1,10 @@
 .card {
   display: block;
   border-radius: 15px;
-  box-shadow: var(--card-shadow);
   background-color: var(--white);
   box-sizing: border-box;
+
+  &.shaded {
+    box-shadow: var(--card-shadow);
+  }
 }

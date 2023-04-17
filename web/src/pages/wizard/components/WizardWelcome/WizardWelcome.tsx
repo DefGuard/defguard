@@ -14,7 +14,7 @@ export const WizardWelcome = () => {
   const nextStep = useWizardStore((state) => state.nextStep);
   const { LL } = useI18nContext();
   return (
-    <Card id="wizard-welcome">
+    <Card id="wizard-welcome" shaded>
       <header>
         <p>{LL.wizard.welcome.header()}</p>
       </header>

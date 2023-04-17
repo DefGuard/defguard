@@ -54,7 +54,7 @@ export const WizardNav = ({ title, lastStep }: Props) => {
       }
     });
     return () => sub?.unsubscribe();
-  }, [lastStep, next, nextSubject]);
+  }, [LL.wizard, lastStep, next, nextSubject, resetState, setNavigationState, toaster]);
 
   if (currentStep === 0) return null;
 

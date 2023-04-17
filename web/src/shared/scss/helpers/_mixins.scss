@@ -117,3 +117,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+@mixin apply-card {
+  border-radius: 15px;
+  box-shadow: var(--card-shadow);
+  background-color: var(--white);
+  box-sizing: border-box;
+}

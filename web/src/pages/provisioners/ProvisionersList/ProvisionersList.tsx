@@ -32,7 +32,7 @@ interface Props {
 
 export const ProvisionersList = ({ provisioners }: Props) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const {
     provisioning: { deleteWorker },
   } = useApi();
@@ -122,7 +122,11 @@ export const ProvisionersList = ({ provisioners }: Props) => {
       res.splice(1, 1);
     }
     return res;
-  }, [breakpoint]);
+  }, [
+    LL.provisionersOverview.list.editButton,
+    LL.provisionersOverview.list.status,
+    breakpoint,
+  ]);
 
   const getListHeaders = useMemo(() => {
     const res: ListHeader[] = [
@@ -153,7 +157,7 @@ export const ProvisionersList = ({ provisioners }: Props) => {
       res.splice(1, 1);
     }
     return res;
-  }, [breakpoint, locale]);
+  }, [LL.provisionersOverview.list.headers, breakpoint]);
 
   return (
     <>

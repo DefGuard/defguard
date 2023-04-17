@@ -5,14 +5,11 @@
     "build": "tsc && vite build",
     "serve": "vite preview",
     "generate-translation-types": "typesafe-i18n --no-watch",
-    "lint": "tsc && eslint ./*.ts ./src/**/*.ts ./src/**/*.tsx && prettier --check ./src/**/*.ts ./src/**/*.tsx",
-    "eslint-fix": "eslint --fix ./src/**/*.ts && eslint --fix ./src/**/*.tsx",
-    "lint-ci": "tsc && eslint --quiet ./src/**/*.ts ./src/**/*.tsx",
-    "prettier-fix": "prettier -w src/**/*.ts -w src/**/*.tsx",
+    "lint": "pnpm tsc && pnpm eslint 'src/**/**.ts' && pnpm eslint 'src/**/**.tsx' && pnpm prettier --check 'src/**/*.ts' 'src/**/*.tsx'",
+    "fix": "pnpm prettier -w 'src/**/*.ts' 'src/**/*.tsx' && pnpm eslint --fix 'src/**/*.ts' 'src/**/*.tsx' && pnpm tsc",
     "parse-svgs": "svgr --ignore-existing --svgo-config ./svgo.config.js --prettier-config ./.prettierrc --jsx-runtime classic --out-dir ./src/shared/components/svg/ --typescript ./src/shared/images/svg/",
     "build-doc-ci": "typedoc --readme ./docs/README.md --out ./docs --entryPointStrategy expand --tsconfig ./tsconfig.json ./src/shared/components/layout ./src/shared/components/modals ./src/shared/components/Router ./src/shared/components/Toasts",
     "typesafe-i18n": "typesafe-i18n",
-    "fix": "pnpm run eslint-fix && pnpm run prettier-fix",
     "vite": "vite"
   },
   "browserslist": {
