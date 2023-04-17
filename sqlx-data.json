@@ -1623,6 +1623,26 @@
     },
     "query": "INSERT INTO \"oauth2client\" (\"client_id\", \"client_secret\", \"redirect_uri\", \"scope\", \"name\", \"enabled\") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
   },
+  "6e1a03b05c4522a63ffa580d23489b4e6339580d2d28d228cd002e8590b359a3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') ON CONFLICT DO NOTHING RETURNING id"
+  },
   "70b5b63584104574a50adab52f16af095b8c20883075d038f82aa623ea839153": {
     "describe": {
       "columns": [
