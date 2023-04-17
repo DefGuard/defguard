@@ -8,3 +8,4 @@ dist-ssr
 *.local
 build
 ladle-build
+.idea/
