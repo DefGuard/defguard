@@ -433,6 +433,35 @@ impl User {
         }
         Ok(())
     }
+
+    /// Create admin user if one doesn't exist yet
+    pub async fn init_admin_user(
+        pool: &DbPool,
+        default_admin_pass: &str,
+    ) -> Result<(), anyhow::Error> {
+        let password_hash = Self::hash_password(default_admin_pass)?;
+
+        // create admin user
+        let result = query_scalar!(
+            "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
+            VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
+            ON CONFLICT DO NOTHING \
+            RETURNING id",
+            password_hash
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        // if new user was created add them to admin group (ID 1)
+        if let Some(new_user_id) = result {
+            query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
+                .bind(new_user_id)
+                .execute(pool)
+                .await?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

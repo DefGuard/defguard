@@ -1,4 +1,5 @@
 use clap::Parser;
+use defguard::db::User;
 use defguard::{
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent},
@@ -42,7 +43,7 @@ fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), SetLoggerError> {
+async fn main() -> Result<(), anyhow::Error> {
     let config = DefGuardConfig::parse();
     logger_setup(&config.log_level)?;
     match config.openid_signing_key {
@@ -67,6 +68,9 @@ async fn main() -> Result<(), SetLoggerError> {
         &config.database_password,
     )
     .await;
+
+    // initialize admin user
+    User::init_admin_user(&pool, &config.default_admin_password).await?;
 
     // read grpc TLS cert and key
     let grpc_cert = config
