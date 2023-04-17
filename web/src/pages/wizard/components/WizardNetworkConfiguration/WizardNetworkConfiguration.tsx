@@ -92,7 +92,7 @@ export const WizardNetworkConfiguration = () => {
   }, [submitSubject]);
 
   return (
-    <Card id="wizard-manual-network-configuration">
+    <Card id="wizard-manual-network-configuration" shaded>
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}

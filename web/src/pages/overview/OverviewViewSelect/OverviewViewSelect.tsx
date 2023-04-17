@@ -12,7 +12,7 @@ export const OverviewViewSelect = () => {
   const defaultViewMode = useOverviewStore((state) => state.defaultViewMode);
   const viewMode = useOverviewStore((state) => state.viewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
 
   useEffect(() => {
     setOverViewStore({ viewMode: defaultViewMode });
@@ -62,7 +62,7 @@ export const OverviewViewSelect = () => {
         label: LL.networkOverview.filterLabels.list(),
       },
     ];
-  }, [breakpoint, locale]);
+  }, [LL.networkOverview.filterLabels, breakpoint]);
 
   const getSelectValue = useMemo(() => {
     return getSelectOptions.find((o) => o.value === viewMode);

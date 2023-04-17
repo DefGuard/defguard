@@ -1,9 +1,17 @@
 @use '@scss/helpers' as *;
 
 #wizard-manual-network-configuration {
+  box-shadow: none;
+
+  @include media-breakpoint-up(xl) {
+    box-shadow: var(--card-shadow);
+  }
+
   & > form {
-    box-sizing: border-box;
-    padding: 47px 55px;
+    @include media-breakpoint-up(xl) {
+      box-sizing: border-box;
+      padding: 47px 55px;
+    }
 
     & > * {
       width: 100%;

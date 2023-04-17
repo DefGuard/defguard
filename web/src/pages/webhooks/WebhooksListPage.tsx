@@ -41,7 +41,7 @@ import { Webhook } from '../../shared/types';
 import { WebhookModal } from './modals/WebhookModal/WebhookModal';
 
 export const WebhooksListPage = () => {
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -55,24 +55,26 @@ export const WebhooksListPage = () => {
   } = useApi();
 
   const toaster = useToaster();
-  const filterOptions: SelectOption<FilterOption>[] = [
-    {
-      value: FilterOption.ALL,
-      label: LL.webhooksOverview.filterLabels.all(),
-      key: 1,
-    },
-    {
-      value: FilterOption.ENABLED,
-      label: LL.webhooksOverview.filterLabels.enabled(),
-      key: 2,
-    },
-    {
-      value: FilterOption.DISABLED,
-      label: LL.webhooksOverview.filterLabels.disabled(),
-      key: 3,
-    },
-  ];
-
+  const filterOptions: SelectOption<FilterOption>[] = useMemo(
+    () => [
+      {
+        value: FilterOption.ALL,
+        label: LL.webhooksOverview.filterLabels.all(),
+        key: 1,
+      },
+      {
+        value: FilterOption.ENABLED,
+        label: LL.webhooksOverview.filterLabels.enabled(),
+        key: 2,
+      },
+      {
+        value: FilterOption.DISABLED,
+        label: LL.webhooksOverview.filterLabels.disabled(),
+        key: 3,
+      },
+    ],
+    [LL.webhooksOverview.filterLabels]
+  );
   const [selectedFilter, setSelectedFilter] = useState(filterOptions[0]);
   const { mutate: deleteWebhookMutation, isLoading: deleteWebhookIsLoading } =
     useMutation([MutationKeys.DELETE_WEBHOOK], deleteWebhook, {
@@ -130,7 +132,7 @@ export const WebhooksListPage = () => {
       res.splice(1, 2);
     }
     return res;
-  }, [breakpoint, locale]);
+  }, [LL.webhooksOverview.list.headers, breakpoint]);
 
   const getCells = useMemo(() => {
     const res: ListRowCell<Webhook>[] = [
@@ -199,6 +201,8 @@ export const WebhooksListPage = () => {
     }
     return res;
   }, [
+    LL.webhooksOverview.list.editButton,
+    LL.webhooksOverview.list.status,
     breakpoint,
     changeWebhookIsLoading,
     changeWebhookMutation,
@@ -236,7 +240,7 @@ export const WebhooksListPage = () => {
     if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOption.ALL) {
       setSelectedFilter(filterOptions[0]);
     }
-  }, [breakpoint, selectedFilter.value]);
+  }, [breakpoint, filterOptions, selectedFilter.value]);
 
   const getListPadding = useMemo(() => {
     if (breakpoint === 'desktop') {

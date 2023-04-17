@@ -23,23 +23,27 @@ import { ProvisioningStationSetup } from './ProvisioningStationSetup';
 export const ProvisionersPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const { LL } = useI18nContext();
-  const filterSelectOptions: SelectOption<FilterOptions>[] = [
-    {
-      key: 1,
-      label: LL.provisionersOverview.filterLabels.all(),
-      value: FilterOptions.ALL,
-    },
-    {
-      key: 2,
-      label: LL.provisionersOverview.filterLabels.available(),
-      value: FilterOptions.AVAILABLE,
-    },
-    {
-      key: 3,
-      label: LL.provisionersOverview.filterLabels.unavailable(),
-      value: FilterOptions.UNAVAILABLE,
-    },
-  ];
+  const filterSelectOptions: SelectOption<FilterOptions>[] = useMemo(
+    () => [
+      {
+        key: 1,
+        label: LL.provisionersOverview.filterLabels.all(),
+        value: FilterOptions.ALL,
+      },
+      {
+        key: 2,
+        label: LL.provisionersOverview.filterLabels.available(),
+        value: FilterOptions.AVAILABLE,
+      },
+      {
+        key: 3,
+        label: LL.provisionersOverview.filterLabels.unavailable(),
+        value: FilterOptions.UNAVAILABLE,
+      },
+    ],
+    [LL.provisionersOverview.filterLabels]
+  );
+
   const [selectedFilterOption, setSelectedFilterOption] = useState(
     filterSelectOptions[0]
   );
@@ -88,7 +92,7 @@ export const ProvisionersPage = () => {
     if (breakpoint !== 'desktop' && selectedFilterOption.value === FilterOptions.ALL) {
       setSelectedFilterOption(filterSelectOptions[0]);
     }
-  }, [breakpoint, selectedFilterOption.value]);
+  }, [breakpoint, filterSelectOptions, selectedFilterOption.value]);
 
   return (
     <PageContainer id="provisioners-page">

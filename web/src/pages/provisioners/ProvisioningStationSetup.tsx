@@ -53,7 +53,7 @@ export const ProvisioningStationSetup = ({ hasAccess = false }: Props) => {
         }}
       />,
     ],
-    [command, toaster]
+    [LL.messages, LL.provisionersOverview.messages, command, toaster]
   );
 
   return (

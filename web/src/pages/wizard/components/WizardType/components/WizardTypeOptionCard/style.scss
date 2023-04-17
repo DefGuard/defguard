@@ -3,25 +3,55 @@
 #wizard-page {
   .wizard-network-option {
     display: flex;
-    flex-flow: column;
+    flex-flow: row nowrap;
     box-sizing: border-box;
-    padding: 34px 0;
-    row-gap: 45px;
     align-items: center;
-    justify-content: center;
 
-    & > header {
-      @include typography(24px, 36px, semiBold, var(--text-main), 'Poppins');
-
-      width: 100%;
-      text-align: center;
+    & > svg,
+    & > img,
+    & > p {
+      display: none;
     }
 
-    & > p {
-      @include typography(15px, 18px, medium, var(--gray-light), 'Roboto');
+    @include media-breakpoint-down(xl) {
+      box-shadow: none;
+      justify-content: space-between;
+      padding: 20px;
+      background-color: var(--bg-light);
+    }
 
-      width: 100%;
+    @include media-breakpoint-up(xl) {
+      flex-flow: column;
+      padding: 34px 0;
+      row-gap: 45px;
+      align-items: center;
+      justify-content: center;
+
+      & > svg,
+      & > img {
+        display: block;
+      }
+      & > p {
+        display: block;
+        @include typography(15px, 18px, medium, var(--gray-light), 'Roboto');
+
+        width: 100%;
+        text-align: center;
+      }
+    }
+
+    & > header {
+      user-select: none;
+      @include typography(15px, 23px, semiBold, var(--text-main), 'Poppins');
       text-align: center;
+
+      @include media-breakpoint-up(lg) {
+        @include typography(24px, 36px, semiBold, var(--text-main), 'Poppins');
+      }
+
+      @include media-breakpoint-up(xl) {
+        width: 100%;
+      }
     }
 
     & > .btn {

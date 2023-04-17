@@ -26,7 +26,7 @@ export const WizardTypeOptionCard = ({
 }: Props) => {
   const { LL } = useI18nContext();
   return (
-    <Card className="wizard-network-option">
+    <Card className="wizard-network-option" shaded>
       <header>
         <p>{title}</p>
       </header>

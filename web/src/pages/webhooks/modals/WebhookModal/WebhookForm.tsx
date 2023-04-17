@@ -59,7 +59,7 @@ const defaultValues: FormInputs = {
 };
 
 export const WebhookForm = () => {
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     webhook: { addWebhook, editWebhook },
@@ -119,7 +119,7 @@ export const WebhookForm = () => {
           }),
         })
         .required(),
-    [locale]
+    [LL.form.error, LL.modals.webhookModal.form.error]
   );
 
   const { control, handleSubmit } = useForm<FormInputs>({
