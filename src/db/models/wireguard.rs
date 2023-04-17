@@ -74,7 +74,7 @@ impl WireguardNetwork {
         dns: Option<String>,
         allowed_ips: Vec<IpNetwork>,
     ) -> Result<Self, IpNetworkError> {
-        let prvkey = StaticSecret::new(OsRng);
+        let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
         Ok(Self {
             id: None,
@@ -101,7 +101,7 @@ impl WireguardNetwork {
     /// Utility method to create wireguard keypair
     #[must_use]
     pub fn genkey() -> WireguardKey {
-        let private = StaticSecret::new(OsRng);
+        let private = StaticSecret::random_from_rng(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
             private: base64::encode(private.to_bytes()),
