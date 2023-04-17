@@ -61,6 +61,7 @@ webauthn-rs = { version = "0.4", features = [
 x25519-dalek = { version = "2.0.0-pre.0" }
 ethers = {version = "1.0.2", features = ["eip712"]}
 ethabi = "18.0.0"
+anyhow = "1.0.70"
 
 [dev-dependencies]
 matches = "0.1"
