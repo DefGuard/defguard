@@ -439,6 +439,7 @@ impl User {
         pool: &DbPool,
         default_admin_pass: &str,
     ) -> Result<(), anyhow::Error> {
+        info!("Initializing admin user");
         let password_hash = Self::hash_password(default_admin_pass)?;
 
         // create admin user
@@ -454,6 +455,7 @@ impl User {
 
         // if new user was created add them to admin group (ID 1)
         if let Some(new_user_id) = result {
+            info!("New admin user was created, adding to Admin group...");
             query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
                 .bind(new_user_id)
                 .execute(pool)
