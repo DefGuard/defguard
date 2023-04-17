@@ -29,7 +29,7 @@ COPY migrations migrations
 ENV SQLX_OFFLINE true
 RUN cargo install --locked --path . --root /build
 
-FROM node:19.9-alpine.3.16 as web
+FROM node:19-alpine3.16 as web
 
 WORKDIR /app
 COPY web/package.json .
