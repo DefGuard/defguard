@@ -87,7 +87,7 @@ const ViewMode = () => {
           <p>{user.phone}</p>
         </div>
         <div className="info">
-          <Label>{LL.userPage.userDetails.fields.phone.label()}</Label>
+          <Label>{LL.userPage.userDetails.fields.email.label()}</Label>
           <p>{user.email}</p>
         </div>
       </div>
