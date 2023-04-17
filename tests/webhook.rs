@@ -21,7 +21,9 @@ async fn test_webhooks() {
     let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    User::init_admin_user(&pool, &config.default_admin_password).await.unwrap();
+    User::init_admin_user(&pool, &config.default_admin_password)
+        .await
+        .unwrap();
 
     let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
     let client = Client::tracked(webapp).await.unwrap();

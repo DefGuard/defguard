@@ -529,13 +529,25 @@ mod test {
     use super::*;
 
     async fn add_devices(pool: &DbPool, network: &WireguardNetwork, count: usize) {
-        let mut user = User::new("testuser".to_string(), "hunter2", "Tester".to_string(), "Test".to_string(), "test@test.com".to_string(), None);
+        let mut user = User::new(
+            "testuser".to_string(),
+            "hunter2",
+            "Tester".to_string(),
+            "Test".to_string(),
+            "test@test.com".to_string(),
+            None,
+        );
         user.save(&pool).await.unwrap();
         for i in 0..count {
-            let mut device =
-                Device::assign_device_ip(pool, user.id.unwrap(), format!("dev{i}"), format!("key{i}"), network)
-                    .await
-                    .unwrap();
+            let mut device = Device::assign_device_ip(
+                pool,
+                user.id.unwrap(),
+                format!("dev{i}"),
+                format!("key{i}"),
+                network,
+            )
+            .await
+            .unwrap();
             device.save(pool).await.unwrap();
         }
     }
@@ -590,9 +602,21 @@ mod test {
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(pool: DbPool) {
-        let mut user = User::new("testuser".to_string(), "hunter2", "Tester".to_string(), "Test".to_string(), "test@test.com".to_string(), None);
+        let mut user = User::new(
+            "testuser".to_string(),
+            "hunter2",
+            "Tester".to_string(),
+            "Test".to_string(),
+            "test@test.com".to_string(),
+            None,
+        );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(String::new(), String::new(), String::new(), user.id.unwrap());
+        let mut device = Device::new(
+            String::new(),
+            String::new(),
+            String::new(),
+            user.id.unwrap(),
+        );
         device.save(&pool).await.unwrap();
 
         // insert stats
@@ -628,9 +652,21 @@ mod test {
 
     #[sqlx::test]
     async fn test_connected_at_always_connected(pool: DbPool) {
-        let mut user = User::new("testuser".to_string(), "hunter2", "Tester".to_string(), "Test".to_string(), "test@test.com".to_string(), None);
+        let mut user = User::new(
+            "testuser".to_string(),
+            "hunter2",
+            "Tester".to_string(),
+            "Test".to_string(),
+            "test@test.com".to_string(),
+            None,
+        );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(String::new(), String::new(), String::new(), user.id.unwrap());
+        let mut device = Device::new(
+            String::new(),
+            String::new(),
+            String::new(),
+            user.id.unwrap(),
+        );
         device.save(&pool).await.unwrap();
 
         // insert stats
