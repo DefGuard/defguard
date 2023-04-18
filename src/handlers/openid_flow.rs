@@ -262,7 +262,7 @@ async fn generate_auth_code_redirect(
     Ok(url.to_string())
 }
 
-/// Helper function to redirect unauthroized user to login page
+/// Helper function to redirect unauthorized user to login page
 /// and store information about OpenID authorize url in cookie to redirect later
 async fn login_redirect(
     appstate: &State<AppState>,
