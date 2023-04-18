@@ -1,3 +1,4 @@
+use crate::auth::AdminRole;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
@@ -12,6 +13,7 @@ use rocket::{
 
 #[post("/", format = "json", data = "<data>")]
 pub async fn add_openid_client(
+    _admin: AdminRole,
     session: SessionInfo,
     appstate: &State<AppState>,
     data: Json<NewOpenIDClient>,
@@ -33,7 +35,7 @@ pub async fn add_openid_client(
 }
 
 #[get("/", format = "json")]
-pub async fn list_openid_clients(_session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+pub async fn list_openid_clients(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
     let openid_clients = OAuth2Client::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(openid_clients),
@@ -43,7 +45,7 @@ pub async fn list_openid_clients(_session: SessionInfo, appstate: &State<AppStat
 
 #[get("/<client_id>", format = "json")]
 pub async fn get_openid_client(
-    _session: SessionInfo,
+    _admin: AdminRole,
     appstate: &State<AppState>,
     client_id: &str,
 ) -> ApiResult {
@@ -61,6 +63,7 @@ pub async fn get_openid_client(
 
 #[put("/<client_id>", format = "json", data = "<data>")]
 pub async fn change_openid_client(
+    _admin: AdminRole,
     session: SessionInfo,
     appstate: &State<AppState>,
     client_id: &str,
@@ -94,6 +97,7 @@ pub async fn change_openid_client(
 
 #[post("/<client_id>", format = "json", data = "<data>")]
 pub async fn change_openid_client_state(
+    _admin: AdminRole,
     session: SessionInfo,
     appstate: &State<AppState>,
     client_id: &str,
@@ -123,6 +127,7 @@ pub async fn change_openid_client_state(
 
 #[delete("/<client_id>")]
 pub async fn delete_openid_client(
+    _admin: AdminRole,
     session: SessionInfo,
     appstate: &State<AppState>,
     client_id: &str,

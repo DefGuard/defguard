@@ -1,5 +1,5 @@
 use crate::db::{Device, WireguardNetwork};
-use base64::DecodeError;
+use base64::{DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
 use std::array::TryFromSliceError;
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -49,10 +49,12 @@ pub fn parse_wireguard_config(
     let prvkey = interface_section
         .get("PrivateKey")
         .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PrivateKey".to_string()))?;
-    let prvkey_bytes: [u8; 32] = base64::decode(prvkey.as_bytes())?
+    let prvkey_bytes: [u8; 32] = base64::prelude::BASE64_STANDARD
+        .decode(prvkey.as_bytes())?
         .try_into()
         .map_err(|_| WireguardConfigParseError::InvalidKey(prvkey.to_string()))?;
-    let pubkey = base64::encode(PublicKey::from(&StaticSecret::from(prvkey_bytes)).to_bytes());
+    let pubkey = base64::prelude::BASE64_STANDARD
+        .encode(PublicKey::from(&StaticSecret::from(prvkey_bytes)).to_bytes());
     let address = interface_section
         .get("Address")
         .ok_or_else(|| WireguardConfigParseError::KeyNotFound("Address".to_string()))?;

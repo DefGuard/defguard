@@ -1,4 +1,5 @@
 use super::{device::Device, error::ModelError, DbPool, User, UserInfo};
+use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
@@ -81,8 +82,8 @@ impl WireguardNetwork {
             name,
             address,
             port,
-            pubkey: base64::encode(pubkey.to_bytes()),
-            prvkey: base64::encode(prvkey.to_bytes()),
+            pubkey: base64::prelude::BASE64_STANDARD.encode(pubkey.to_bytes()),
+            prvkey: base64::prelude::BASE64_STANDARD.encode(prvkey.to_bytes()),
             endpoint,
             dns,
             allowed_ips,
@@ -104,8 +105,8 @@ impl WireguardNetwork {
         let private = StaticSecret::random_from_rng(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
-            private: base64::encode(private.to_bytes()),
-            public: base64::encode(public.to_bytes()),
+            private: base64::prelude::BASE64_STANDARD.encode(private.to_bytes()),
+            public: base64::prelude::BASE64_STANDARD.encode(public.to_bytes()),
         }
     }
 
