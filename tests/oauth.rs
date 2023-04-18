@@ -4,6 +4,7 @@ use defguard::{
     grpc::{GatewayState, WorkerState},
     handlers::Auth,
 };
+use rocket::serde::json::json;
 use rocket::{
     http::{ContentType, Status},
     local::asynchronous::Client,
@@ -13,6 +14,7 @@ use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
 use common::{init_test_db, LICENSE_ENTERPRISE};
+use defguard::db::models::oauth2client::OAuth2Client;
 use defguard::db::User;
 
 async fn make_client() -> Client {
@@ -22,6 +24,16 @@ async fn make_client() -> Client {
     User::init_admin_user(&pool, &config.default_admin_password)
         .await
         .unwrap();
+
+    let mut user = User::new(
+        "hpotter".into(),
+        "pass123",
+        "Potter".into(),
+        "Harry".into(),
+        "h.potter@hogwart.edu.uk".into(),
+        None,
+    );
+    user.save(&pool).await.unwrap();
 
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
@@ -80,6 +92,169 @@ async fn test_authorize() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Found);
+}
+
+#[rocket::async_test]
+async fn test_openid_app_management_access() {
+    let client = make_client().await;
+
+    // login as admin
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // add app
+    let oauth2client = NewOpenIDClient {
+        name: "My test client".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+
+    // list apps
+    let response = client.get("/api/v1/oauth").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    assert_eq!(apps.len(), 1);
+    let test_app = &apps[0];
+    assert_eq!(test_app.name, oauth2client.name);
+
+    // fetch app details
+    let response = client
+        .get(format!("/api/v1/oauth/{}", test_app.client_id))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    let app: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(app.name, oauth2client.name);
+
+    // edit app
+    let oauth2client = NewOpenIDClient {
+        name: "Changed test client".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        scope: vec!["openid email".into()],
+        enabled: true,
+    };
+    let response = client
+        .put(format!("/api/v1/oauth/{}", test_app.client_id))
+        .json(&oauth2client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // change app state
+    let data = json!(
+        {"enabled": false}
+    );
+    let response = client
+        .post(format!("/api/v1/oauth/{}", test_app.client_id))
+        .json(&data)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // fetch changed app details
+    let response = client
+        .get(format!("/api/v1/oauth/{}", test_app.client_id))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    let app: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(app.name, oauth2client.name);
+    assert_eq!(app.enabled, false);
+
+    // delete app
+    let response = client
+        .delete(format!("/api/v1/oauth/{}", test_app.client_id))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // list apps
+    let response = client.get("/api/v1/oauth").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    assert_eq!(apps.len(), 0);
+
+    // add another app for further testing
+    let oauth2client = NewOpenIDClient {
+        name: "New test client".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        scope: vec!["openid phone".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let response = client.get("/api/v1/oauth").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    let test_app = &apps[0];
+
+    // // login as standard user
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // standard user cannot list apps
+    let response = client.get("/api/v1/oauth").dispatch().await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    // standard user cannot get app details
+    let response = client
+        .get(format!("/api/v1/oauth/{}", test_app.client_id))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    // standard user cannot add apps
+    let oauth2client = NewOpenIDClient {
+        name: "Another test client".into(),
+        redirect_uri: vec!["http://test.com/redirect".into()],
+        scope: vec!["openid profile".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    // standard user cannot edit apps
+    let response = client
+        .put(format!("/api/v1/oauth/{}", test_app.client_id))
+        .json(&oauth2client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    // standard user cannot change app status
+    let data = json!(
+        {"enabled": false}
+    );
+    let response = client
+        .post(format!("/api/v1/oauth/{}", test_app.client_id))
+        .json(&data)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    // standard user cannot delete apps
+    let response = client
+        .delete(format!("/api/v1/oauth/{}", test_app.client_id))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
 }
 
 // #[rocket::async_test]

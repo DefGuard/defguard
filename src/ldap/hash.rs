@@ -1,3 +1,4 @@
+use base64::Engine;
 use md4::Md4;
 use rand_core::{OsRng, RngCore};
 use sha1::{
@@ -18,7 +19,10 @@ pub fn salted_sha1_hash(password: &str) -> String {
     let checksum = Sha1::digest(pass);
     let checksum = checksum.concat(GenericArray::from(salt));
 
-    format!("{{SSHA}}{}", base64::encode(checksum))
+    format!(
+        "{{SSHA}}{}",
+        base64::prelude::BASE64_STANDARD.encode(checksum)
+    )
 }
 
 /// Calculate Windows NT-HASH; used for `sambaNTPassword`.
