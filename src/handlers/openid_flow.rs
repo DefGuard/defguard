@@ -9,6 +9,7 @@ use crate::{
     error::OriWebError,
     handlers::{ApiResponse, ApiResult},
 };
+use base64::Engine;
 use chrono::{Duration, Utc};
 use openidconnect::{
     core::{
@@ -95,7 +96,7 @@ impl<'r> FromRequest<'r> for OAuth2Client {
                 }
             })
         {
-            if let Ok(decoded) = base64::decode(basic_auth) {
+            if let Ok(decoded) = base64::prelude::BASE64_STANDARD.decode(basic_auth) {
                 if let Ok(auth_pair) = String::from_utf8(decoded) {
                     if let Some((client_id, client_secret)) = auth_pair.split_once(':') {
                         if let Ok(Some(oauth2client)) =
