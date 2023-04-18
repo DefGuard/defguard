@@ -145,6 +145,7 @@ impl<'r> FromRequest<'r> for Session {
     }
 }
 
+// Extension of base user session including user data fetched from DB
 pub struct SessionInfo {
     pub user: User,
     pub is_admin: bool,
@@ -163,71 +164,82 @@ impl<'r> FromRequest<'r> for SessionInfo {
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         if let Some(state) = request.rocket().state::<AppState>() {
-            let user = {
-                if let Some(token) = request
-                    .headers()
-                    .get_one("Authorization")
-                    .and_then(|value| {
-                        if value.to_lowercase().starts_with("bearer ") {
-                            value.get(7..)
-                        } else {
-                            None
-                        }
-                    })
-                {
-                    // TODO: #[cfg(feature = "openid")]
-                    match OAuth2Token::find_access_token(&state.pool, token).await {
-                        Ok(Some(oauth2token)) => {
-                            match OAuth2AuthorizedApp::find_by_id(
-                                &state.pool,
-                                oauth2token.oauth2authorizedapp_id,
-                            )
-                            .await
-                            {
-                                Ok(Some(authorized_app)) => {
-                                    User::find_by_id(&state.pool, authorized_app.user_id).await
-                                }
-                                Ok(None) => {
-                                    return Outcome::Failure((
-                                        Status::Unauthorized,
-                                        OriWebError::Authorization(
-                                            "Authorized app not found".into(),
-                                        ),
-                                    ));
-                                }
-
-                                Err(err) => {
-                                    return Outcome::Failure((
-                                        Status::InternalServerError,
-                                        err.into(),
-                                    ));
-                                }
-                            }
-                        }
-                        Ok(None) => {
-                            return Outcome::Failure((
-                                Status::Unauthorized,
-                                OriWebError::Authorization("Invalid token".into()),
-                            ));
-                        }
-                        Err(err) => {
-                            return Outcome::Failure((Status::InternalServerError, err.into()));
-                        }
-                    }
-                } else {
-                    let session = try_outcome!(request.guard::<Session>().await);
-                    let user = User::find_by_id(&state.pool, session.user_id).await;
-                    if let Ok(Some(user)) = &user {
-                        if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
-                            return Outcome::Failure((
-                                Status::Unauthorized,
-                                OriWebError::Authorization("MFA not verified".into()),
-                            ));
-                        }
-                    }
-                    user
+            let session = try_outcome!(request.guard::<Session>().await);
+            let user = User::find_by_id(&state.pool, session.user_id).await;
+            if let Ok(Some(user)) = &user {
+                if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
+                    return Outcome::Failure((
+                        Status::Unauthorized,
+                        OriWebError::Authorization("MFA not verified".into()),
+                    ));
                 }
-            };
+            }
+            // user
+            // let user = {
+            //     if let Some(token) = request
+            //         .headers()
+            //         .get_one("Authorization")
+            //         .and_then(|value| {
+            //             if value.to_lowercase().starts_with("bearer ") {
+            //                 value.get(7..)
+            //             } else {
+            //                 None
+            //             }
+            //         })
+            //     {
+            // // TODO: #[cfg(feature = "openid")]
+            // match OAuth2Token::find_access_token(&state.pool, token).await {
+            //     Ok(Some(oauth2token)) => {
+            //         match OAuth2AuthorizedApp::find_by_id(
+            //             &state.pool,
+            //             oauth2token.oauth2authorizedapp_id,
+            //         )
+            //         .await
+            //         {
+            //             Ok(Some(authorized_app)) => {
+            //                 User::find_by_id(&state.pool, authorized_app.user_id).await
+            //             }
+            //             Ok(None) => {
+            //                 return Outcome::Failure((
+            //                     Status::Unauthorized,
+            //                     OriWebError::Authorization(
+            //                         "Authorized app not found".into(),
+            //                     ),
+            //                 ));
+            //             }
+            //
+            //             Err(err) => {
+            //                 return Outcome::Failure((
+            //                     Status::InternalServerError,
+            //                     err.into(),
+            //                 ));
+            //             }
+            //         }
+            //     }
+            //     Ok(None) => {
+            //         return Outcome::Failure((
+            //             Status::Unauthorized,
+            //             OriWebError::Authorization("Invalid token".into()),
+            //         ));
+            //     }
+            //     Err(err) => {
+            //         return Outcome::Failure((Status::InternalServerError, err.into()));
+            //     }
+            // }
+            // } else {
+            //     let session = try_outcome!(request.guard::<Session>().await);
+            //     let user = User::find_by_id(&state.pool, session.user_id).await;
+            //     if let Ok(Some(user)) = &user {
+            //         if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
+            //             return Outcome::Failure((
+            //                 Status::Unauthorized,
+            //                 OriWebError::Authorization("MFA not verified".into()),
+            //             ));
+            //         }
+            //     }
+            //     user
+            // }
+            // };
 
             return match user {
                 Ok(Some(user)) => {
@@ -267,5 +279,73 @@ impl<'r> FromRequest<'r> for AdminRole {
                 OriWebError::Forbidden("access denied".into()),
             ))
         }
+    }
+}
+
+// User authenticated by a valid access token
+pub struct AccessUserInfo(pub(crate) User);
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for AccessUserInfo {
+    type Error = OriWebError;
+
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        if let Some(state) = request.rocket().state::<AppState>() {
+            if let Some(token) = request
+                .headers()
+                .get_one("Authorization")
+                .and_then(|value| {
+                    if value.to_lowercase().starts_with("bearer ") {
+                        value.get(7..)
+                    } else {
+                        None
+                    }
+                })
+            {
+                // TODO: #[cfg(feature = "openid")]
+                match OAuth2Token::find_access_token(&state.pool, token).await {
+                    Ok(Some(oauth2token)) => {
+                        match OAuth2AuthorizedApp::find_by_id(
+                            &state.pool,
+                            oauth2token.oauth2authorizedapp_id,
+                        )
+                        .await
+                        {
+                            Ok(Some(authorized_app)) => {
+                                if let Ok(Some(user)) =
+                                    User::find_by_id(&state.pool, authorized_app.user_id).await
+                                {
+                                    return Outcome::Success(AccessUserInfo(user));
+                                }
+                            }
+                            Ok(None) => {
+                                return Outcome::Failure((
+                                    Status::Unauthorized,
+                                    OriWebError::Authorization("Authorized app not found".into()),
+                                ));
+                            }
+
+                            Err(err) => {
+                                return Outcome::Failure((Status::InternalServerError, err.into()));
+                            }
+                        }
+                    }
+                    Ok(None) => {
+                        return Outcome::Failure((
+                            Status::Unauthorized,
+                            OriWebError::Authorization("Invalid token".into()),
+                        ));
+                    }
+                    Err(err) => {
+                        return Outcome::Failure((Status::InternalServerError, err.into()));
+                    }
+                }
+            }
+        }
+
+        Outcome::Failure((
+            Status::Unauthorized,
+            OriWebError::Authorization("Invalid session".into()),
+        ))
     }
 }
