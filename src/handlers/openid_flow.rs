@@ -630,6 +630,11 @@ pub async fn token(
                     // copy data before removing used token
                     let auth_code = stored_auth_code.clone();
                     // remove authorization_code from DB so it cannot be reused
+                    debug!(
+                        "Removing used authorization_code {}, client_id {}",
+                        code,
+                        form.client_id.unwrap_or("N/A")
+                    );
                     stored_auth_code.consume(&appstate.pool).await?;
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
                         if let Some(user) =
