@@ -274,15 +274,17 @@ async fn test_openid_flow() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    // check used code
+    // check code cannot be reused
     let response = client
         .post("/api/v1/oauth/token")
         .header(ContentType::Form)
         .body(format!(
             "grant_type=authorization_code&\
             code={}&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-            auth_response.code
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            client_id={}&\
+            client_secret={}",
+            auth_response.code, openid_client.client_id, openid_client.client_secret
         ))
         .dispatch()
         .await;
