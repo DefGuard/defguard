@@ -11,6 +11,8 @@ pub enum SessionState {
     MultiFactorVerified,
 }
 
+// Representation of a Defguard server user session
+// derived from session cookies
 #[derive(Clone)]
 pub struct Session {
     pub id: String,

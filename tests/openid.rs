@@ -9,6 +9,7 @@ use defguard::{
     handlers::Auth,
 };
 
+use openidconnect::core::CoreTokenResponse;
 use openidconnect::{
     core::{CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType},
     http::{
@@ -244,6 +245,33 @@ async fn test_openid_flow() {
         ))
         .dispatch()
         .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // make sure access token cannot be used to manage defguard server itself
+    client.post("/api/v1/auth/logout").dispatch().await;
+    let token_response: CoreTokenResponse = response.into_json().await.unwrap();
+    let response = client
+        .get("/api/v1/network")
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token_response.access_token().secret()),
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client
+        .get("/api/v1/user")
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token_response.access_token().secret()),
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Unauthorized);
+
+    // log back in
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
     // check used code

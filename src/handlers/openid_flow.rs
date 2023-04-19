@@ -35,6 +35,7 @@ use rocket::{
     State,
 };
 
+use crate::auth::AccessUserInfo;
 use std::ops::{Deref, DerefMut};
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
@@ -263,7 +264,7 @@ async fn generate_auth_code_redirect(
     Ok(url.to_string())
 }
 
-/// Helper function to redirect unauthroized user to login page
+/// Helper function to redirect unauthorized user to login page
 /// and store information about OpenID authorize url in cookie to redirect later
 async fn login_redirect(
     appstate: &State<AppState>,
@@ -749,8 +750,8 @@ pub async fn token(
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
 #[get("/userinfo", format = "json")]
-pub fn userinfo(session_info: SessionInfo) -> ApiResult {
-    let userclaims = StandardClaims::<CoreGenderClaim>::from(&session_info.user);
+pub fn userinfo(user_info: AccessUserInfo) -> ApiResult {
+    let userclaims = StandardClaims::<CoreGenderClaim>::from(&user_info.0);
     Ok(ApiResponse {
         json: json!(userclaims),
         status: Status::Ok,
