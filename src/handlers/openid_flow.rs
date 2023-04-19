@@ -626,7 +626,11 @@ pub async fn token(
         "authorization_code" => {
             debug!("Staring authorization_code flow");
             if let Some(code) = form.code {
-                if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
+                if let Some(stored_auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
+                    // copy data before removing used token
+                    let auth_code = stored_auth_code.clone();
+                    // remove authorization_code from DB so it cannot be reused
+                    stored_auth_code.consume(&appstate.pool).await?;
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
                         if let Some(user) =
                             User::find_by_id(&appstate.pool, auth_code.user_id).await?

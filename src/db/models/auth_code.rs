@@ -3,7 +3,7 @@ use chrono::Utc;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};
 
-#[derive(Model)]
+#[derive(Model, Clone)]
 #[table(authorization_code)]
 pub struct AuthCode {
     id: Option<i64>,
@@ -51,5 +51,10 @@ impl AuthCode {
         )
         .fetch_optional(pool)
         .await
+    }
+
+    // Remove a used authorization_code
+    pub async fn consume(self, pool: &DbPool) -> Result<(), SqlxError> {
+        self.delete(pool).await
     }
 }
