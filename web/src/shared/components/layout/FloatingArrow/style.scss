@@ -1,0 +1,27 @@
+@use '../../../scss/helpers' as *;
+
+.floating-ui-arrow {
+  position: absolute;
+  height: 0;
+  width: 0;
+  content: '';
+  display: block;
+  border-style: solid;
+
+  &.left {
+    border-width: 7px 0 7px 8px;
+    border-color: transparent transparent transparent var(--gray-lighter);
+  }
+  &.right {
+    border-width: 7px 8px 7px 0;
+    border-color: transparent var(--gray-lighter) transparent transparent;
+  }
+  &.bottom {
+    border-width: 8px 7px 0 7px;
+    border-color: var(--gray-lighter) transparent transparent transparent;
+  }
+  &.top {
+    border-width: 0 7px 8px 7px;
+    border-color: transparent transparent var(--gray-lighter) transparent;
+  }
+}

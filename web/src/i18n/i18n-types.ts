@@ -1343,6 +1343,12 @@ type RootTranslation = {
 			 */
 			validCode: string
 		}
+		floatingErrors: {
+			/**
+			 * P​l​e​a​s​e​ ​c​o​r​r​e​c​t​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​:
+			 */
+			title: string
+		}
 	}
 	components: {
 		noLicenseBox: {
@@ -3938,6 +3944,12 @@ export type TranslationFunctions = {
 			 * Code should have 6 digits.
 			 */
 			validCode: () => LocalizedString
+		}
+		floatingErrors: {
+			/**
+			 * Please correct the following:
+			 */
+			title: () => LocalizedString
 		}
 	}
 	components: {

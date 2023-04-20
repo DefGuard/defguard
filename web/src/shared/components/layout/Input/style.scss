@@ -8,7 +8,6 @@
   height: auto;
   margin-bottom: 2.5rem;
   border-radius: 1rem;
-  z-index: 1;
   opacity: 1;
 
   &.disabled {
@@ -132,6 +131,42 @@ label {
 
     &.disabled {
       opacity: 0.5;
+    }
+  }
+}
+
+.floating-input-errors {
+  & > p {
+    white-space: nowrap;
+
+    @include text-overflow-dots;
+    @include label-text;
+    color: var(--text-main);
+    margin-bottom: 20px;
+  }
+
+  & > .errors {
+    display: flex;
+    flex-flow: column;
+    row-gap: 10px;
+
+    & > .error {
+      @include label-text;
+      @include text-weight(medium);
+      color: var(--text-main);
+      display: flex;
+      flex-flow: row nowrap;
+      overflow: hidden;
+      column-gap: 5px;
+      align-items: center;
+
+      svg {
+        transform: scale(66.67%);
+      }
+
+      & > p {
+        white-space: normal;
+      }
     }
   }
 }

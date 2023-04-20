@@ -92,6 +92,7 @@ export const ChangePasswordForm = () => {
       new_password: '',
       repeat: '',
     },
+    criteriaMode: 'all',
     resolver: yupResolver(schema),
     mode: 'all',
   });
@@ -110,6 +111,9 @@ export const ChangePasswordForm = () => {
       <FormInput
         outerLabel={LL.modals.changeUserPassword.form.fields.newPassword.label()}
         controller={{ control, name: 'new_password' }}
+        floatingErrors={{
+          title: LL.form.floatingErrors.title(),
+        }}
         type="password"
       />
       <FormInput
