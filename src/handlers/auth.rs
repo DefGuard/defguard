@@ -147,7 +147,11 @@ pub async fn mfa_disable(session_info: SessionInfo, appstate: &State<AppState>) 
 
 /// Initialize WebAuthn registration
 #[post("/auth/webauthn/init")]
-pub async fn webauthn_init(mut session: Session, appstate: &State<AppState>) -> ApiResult {
+pub async fn webauthn_init(
+    _session: SessionInfo,
+    mut session: Session,
+    appstate: &State<AppState>,
+) -> ApiResult {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         debug!(
             "Initializing WebAuthn registration for user {}",
