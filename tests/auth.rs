@@ -277,6 +277,19 @@ async fn test_webauthn() {
     let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
     assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login again
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+
     // WebAuthn authentication
     let response = client.post("/api/v1/auth/webauthn/start").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
