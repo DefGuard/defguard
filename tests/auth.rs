@@ -115,18 +115,18 @@ async fn test_cannot_enable_mfa() {
     assert_eq!(response.status(), Status::NotModified);
 }
 
+fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
+    let auth = TOTP::from_base32(auth_totp.secret.clone()).unwrap();
+    let timestamp = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    AuthCode::new(auth.generate(TOTP_CODE_VALIDITY_PERIOD, timestamp))
+}
+
 #[rocket::async_test]
 async fn test_totp() {
     let client = make_client().await;
-
-    fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
-        let auth = TOTP::from_base32(auth_totp.secret.clone()).unwrap();
-        let timestamp = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        AuthCode::new(auth.generate(TOTP_CODE_VALIDITY_PERIOD, timestamp))
-    }
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
