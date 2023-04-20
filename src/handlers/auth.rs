@@ -188,6 +188,7 @@ pub async fn webauthn_init(
 /// Finish WebAuthn registration
 #[post("/auth/webauthn/finish", format = "json", data = "<data>")]
 pub async fn webauthn_finish(
+    _session: SessionInfo,
     session: Session,
     appstate: &State<AppState>,
     data: Json<WebAuthnRegistration>,
