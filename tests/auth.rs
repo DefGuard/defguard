@@ -115,18 +115,18 @@ async fn test_cannot_enable_mfa() {
     assert_eq!(response.status(), Status::NotModified);
 }
 
+fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
+    let auth = TOTP::from_base32(auth_totp.secret.clone()).unwrap();
+    let timestamp = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    AuthCode::new(auth.generate(TOTP_CODE_VALIDITY_PERIOD, timestamp))
+}
+
 #[rocket::async_test]
 async fn test_totp() {
     let client = make_client().await;
-
-    fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
-        let auth = TOTP::from_base32(auth_totp.secret.clone()).unwrap();
-        let timestamp = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        AuthCode::new(auth.generate(TOTP_CODE_VALIDITY_PERIOD, timestamp))
-    }
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
@@ -277,6 +277,19 @@ async fn test_webauthn() {
     let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
     assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login again
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+
     // WebAuthn authentication
     let response = client.post("/api/v1/auth/webauthn/start").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
@@ -313,6 +326,91 @@ async fn test_webauthn() {
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
+}
+
+#[rocket::async_test]
+async fn test_cannot_skip_otp_by_adding_yubikey() {
+    let client = make_client().await;
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // new TOTP secret
+    let response = client.post("/api/v1/auth/totp/init").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let auth_totp: AuthTotp = response.into_json().await.unwrap();
+
+    // enable TOTP
+    let code = totp_code(&auth_totp);
+    let response = client
+        .post("/api/v1/auth/totp")
+        .json(&code)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login again, this time a different status code is returned
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+
+    // instead of continuing TOTP login try to add a new YubiKey
+    let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
+    assert_eq!(response.status(), Status::Unauthorized);
+}
+
+#[rocket::async_test]
+async fn test_cannot_skip_security_key_by_adding_yubikey() {
+    let client = make_client().await;
+
+    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new());
+    let origin = Url::parse("http://localhost:8000").unwrap();
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // WebAuthn registration
+    let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let ccr: CreationChallengeResponse = response.into_json().await.unwrap();
+    let rpkc = authenticator.do_registration(origin.clone(), ccr).unwrap();
+    let response = client
+        .post("/api/v1/auth/webauthn/finish")
+        .json(&json!({
+            "name": "My security key",
+            "rpkc": &rpkc
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login again
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+
+    // instead of continuing TOTP login try to add a new YubiKey
+    let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
+    assert_eq!(response.status(), Status::Unauthorized);
 }
 
 #[rocket::async_test]
