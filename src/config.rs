@@ -50,8 +50,8 @@ pub struct DefGuardConfig {
     pub openid_signing_key: Option<RsaPrivateKey>,
 
     // relying party id and relying party origin for WebAuthn
-    #[clap(long, env = "DEFGUARD_WEBAUTHN_RP_ID", default_value = "localhost")]
-    pub webauthn_rp_id: String,
+    #[clap(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
+    pub webauthn_rp_id: Option<String>,
     #[clap(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     pub url: Url,
 
