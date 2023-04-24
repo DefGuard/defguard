@@ -11,8 +11,6 @@ on:
 jobs:
   test:
     runs-on: self-hosted
-    container:
-      image: ubuntu:latest
     steps:
       - uses: actions/checkout@v3
       - name: Set up Docker Buildx
