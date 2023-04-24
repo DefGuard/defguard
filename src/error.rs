@@ -7,6 +7,7 @@ use std::{error::Error, fmt};
 pub enum OriWebError {
     Grpc(String),
     Ldap(String),
+    WebauthnRegistration(String),
     IncorrectUsername(String),
     ObjectNotFound(String),
     Serialization(String),
@@ -22,6 +23,9 @@ impl fmt::Display for OriWebError {
         match self {
             OriWebError::Grpc(msg) => write!(f, "GRPC error: {}", msg),
             OriWebError::Ldap(msg) => write!(f, "LDAP error: {}", msg),
+            OriWebError::WebauthnRegistration(msg) => {
+                write!(f, "Webauthn registration error: {}", msg)
+            }
             OriWebError::IncorrectUsername(username) => {
                 write!(f, "Incorrect username: {}", username)
             }
