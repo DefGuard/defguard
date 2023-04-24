@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  core:
+    image: ghcr.io/defguard/core:latest
+    environment:
+      DEFGUARD_AUTH_SECRET: defguard-auth-secret
+      DEFGUARD_GATEWAY_SECRET: defguard-gateway-secret
+      DEFGUARD_YUBIBRIDGE_SECRET: defguard-yubibridge-secret
+      DEFGUARD_DB_HOST: db
+      DEFGUARD_DB_PORT: 5432
+      DEFGUARD_DB_USER: defguard
+      DEFGUARD_DB_PASSWORD: defguard
+      DEFGUARD_DB_NAME: defguard
+      DEFGUARD_URL: http://localhost:8000
+      RUST_BACKTRACE: 1
+    ports:
+      # rest api
+      - "8000:8000"
+      # grpc
+      - "50055:50055"
+    depends_on:
+      - db
+
+  gateway:
+    image: ghcr.io/defguard/gateway:latest
+    environment:
+      DEFGUARD_GRPC_URL: http://core:50055
+      DEFGUARD_STATS_PERIOD: 60
+      DEFGUARD_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEZWZHdWFyZCIsInN1YiI6IlRlc3ROZXQiLCJjbGllbnRfaWQiOiIiLCJleHAiOjU5NjE3NDcwNzYsIm5iZiI6MTY2Njc3OTc4MSwicm9sZXMiOltdfQ.uEUMnw_gO23W0K2q3N1lToeP0D2zAY1swr8N-84sRHA
+      RUST_LOG: debug
+    ports:
+      # wireguard endpoint
+      - "50051:50051/udp"
+    depends_on:
+      - core
+    cap_add:
+      - NET_ADMIN
+
+  db:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: defguard
+      POSTGRES_USER: defguard
+      POSTGRES_PASSWORD: defguard
+    ports:
+      - "5432:5432"
