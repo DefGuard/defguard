@@ -146,15 +146,21 @@ impl<'r> FromRequest<'r> for Session {
 }
 
 // Extension of base user session including user data fetched from DB
+// This represents a session for a user who completed the login process (including MFA if enabled)
 pub struct SessionInfo {
+    pub session: Session,
     pub user: User,
     pub is_admin: bool,
 }
 
 impl SessionInfo {
     #[must_use]
-    pub fn new(user: User, is_admin: bool) -> Self {
-        Self { user, is_admin }
+    pub fn new(session: Session, user: User, is_admin: bool) -> Self {
+        Self {
+            session,
+            user,
+            is_admin,
+        }
     }
 }
 
@@ -181,7 +187,7 @@ impl<'r> FromRequest<'r> for SessionInfo {
                         Ok(groups) => groups.contains(&state.config.admin_groupname),
                         _ => false,
                     };
-                    Outcome::Success(SessionInfo::new(user, is_admin))
+                    Outcome::Success(SessionInfo::new(session, user, is_admin))
                 }
                 _ => Outcome::Failure((
                     Status::Unauthorized,
