@@ -33,7 +33,7 @@ jobs:
         working-directory: ./e2e
         run: pnpm playwright install --with-deps
       - name: Start compose
-        run: docker compose -d -f ./docker-compose.e2e.yaml
+        run: docker compose -f ./docker-compose.e2e.yaml up -d
       - name: Run Playwright tests
         working-directory: ./e2e
         timeout-minutes: 60
