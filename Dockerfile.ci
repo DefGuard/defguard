@@ -4,7 +4,7 @@ COPY web/package.json .
 COPY web/pnpm-lock.yaml .
 COPY web/.npmrc .
 RUN npm i -g pnpm
-RUN pnpm install --ignore-scripts
+RUN pnpm i --frozen-lockfile --ignore-scripts
 COPY web/ .
 RUN pnpm build
 
