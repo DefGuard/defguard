@@ -1,4 +1,3 @@
-use clap::Parser;
 use defguard::{
     config::DefGuardConfig,
     db::{init_db, DbPool},
@@ -6,7 +5,7 @@ use defguard::{
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
 
 pub(super) async fn init_test_db() -> (DbPool, DefGuardConfig) {
-    let config = DefGuardConfig::parse();
+    let config = DefGuardConfig::new();
     let opts = PgConnectOptions::new()
         .host(&config.database_host)
         .port(config.database_port)
