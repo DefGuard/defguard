@@ -11,7 +11,8 @@ on:
 jobs:
   test:
     runs-on: self-hosted
-    container: ubuntu-latest
+    container:
+      image: ubuntu:latest
     steps:
       - uses: actions/checkout@v3
       - name: Login to private container registry
