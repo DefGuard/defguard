@@ -215,7 +215,11 @@ export const Navigation = () => {
                   enabled: true,
                 }}
               />
-              <button className="log-out" onClick={() => logOutMutation.mutate()}>
+              <button
+                data-testid="logout"
+                className="log-out"
+                onClick={() => logOutMutation.mutate()}
+              >
                 <SvgIconNavLogout />
                 <span>{LL.navigation.bar.logOut()}</span>
               </button>

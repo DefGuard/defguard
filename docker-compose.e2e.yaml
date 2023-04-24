@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   core:
-    image: ghcr.io/defguard/core:latest
+    image: ghcr.io/defguard/defguard:latest
     environment:
       DEFGUARD_AUTH_SECRET: defguard-auth-secret
       DEFGUARD_GATEWAY_SECRET: defguard-gateway-secret

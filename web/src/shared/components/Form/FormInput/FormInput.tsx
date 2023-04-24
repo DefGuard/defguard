@@ -61,6 +61,7 @@ export const FormInput = <T extends FieldValues>({
 
   return (
     <Input
+      data-testid={`field-${controller.name}`}
       {...rest}
       {...field}
       invalid={isInvalid}
