@@ -38,7 +38,7 @@ jobs:
         working-directory: ./e2e
         timeout-minutes: 60
         run: |
-          export BASE_URL=http://127.0.0.1:8000
+          export BASE_URL=http://localhost:8000
           pnpm playwright test
       - name: Stop compose
         if: always()
