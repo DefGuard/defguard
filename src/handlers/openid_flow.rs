@@ -211,11 +211,18 @@ impl<'r> AuthenticationRequest<'r> {
 
         // assume `client_id` is the same here and in `oauth2client`
 
-        // check `redirect_uri`
+        // check `redirect_uri` matches client config (ignoring trailing slashes)
+        let parsed_redirect_uris: Vec<String> = oauth2client
+            .redirect_uri
+            .clone()
+            .into_iter()
+            .map(|uri| uri.trim_end_matches('/').into())
+            .collect();
         if self
             .redirect_uri
             .split(' ')
-            .all(|uri| !oauth2client.redirect_uri.contains(&uri.to_owned()))
+            .map(|uri| uri.trim_end_matches('/'))
+            .all(|uri| !parsed_redirect_uris.contains(&uri.to_owned()))
         {
             error!(
                 "Invalid redirect_uri for client {}: {} not in [{}]",
@@ -510,7 +517,7 @@ impl<'r> TokenRequest<'r> {
     {
         // assume self.grant_type == "authorization_code"
         if let (Some(code), Some(redirect_uri)) = (self.code, self.redirect_uri) {
-            if redirect_uri != auth_code.redirect_uri {
+            if redirect_uri.trim_end_matches('/') != auth_code.redirect_uri.trim_end_matches('/') {
                 error!(
                     "Redirect URIs don't match for client_id {}: {} != {}",
                     self.client_id.unwrap_or("Unknown"),

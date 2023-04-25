@@ -198,7 +198,7 @@ async fn test_openid_flow() {
             "/api/v1/oauth/authorize?\
             response_type=code&\
             client_id={}&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000&\
             scope=openid&\
             state=ABCDEF&\
             allow=true&\
