@@ -37,7 +37,7 @@ interface FormValues {
 }
 
 export const SetupStep = () => {
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const setModalState = useModalStore((state) => state.setUserDeviceModal);
   const nextStep = useModalStore((state) => state.userDeviceModal.nextStep);
@@ -57,8 +57,7 @@ export const SetupStep = () => {
       },
     ];
     return res;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+  }, [LL.modals.addDevice.web.steps.setup.options]);
 
   const schema = useMemo(
     () =>
@@ -70,20 +69,22 @@ export const SetupStep = () => {
             .string()
             .min(4, LL.form.error.minimumLength())
             .required(LL.form.error.required()),
-          publicKey: yup.string().when('choice', (choice, schema) => {
-            if (choice === AddDeviceSetupChoice.MANUAL_CONFIG) {
-              return schema
-                .min(44, LL.form.error.minimumLength())
-                .max(44, LL.form.error.maximumLength())
-                .required(LL.form.error.required())
-                .matches(patternValidWireguardKey, LL.form.error.invalid());
-            }
-            return schema.optional();
+          publicKey: yup.string().when('choice', {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            //@ts-ignore
+            is: (choice: number | undefined) =>
+              choice === AddDeviceSetupChoice.MANUAL_CONFIG,
+            then: yup
+              .string()
+              .min(44, LL.form.error.minimumLength())
+              .max(44, LL.form.error.maximumLength())
+              .required(LL.form.error.required())
+              .matches(patternValidWireguardKey, LL.form.error.invalid()),
+            otherwise: yup.string().optional(),
           }),
         })
         .required(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale]
+    [LL.form.error]
   );
 
   const {

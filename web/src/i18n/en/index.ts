@@ -577,6 +577,9 @@ const en: BaseTranslation = {
       validPort: 'Enter a valid port.',
       validCode: 'Code should have 6 digits.',
     },
+    floatingErrors: {
+      title: 'Please correct the following:',
+    },
   },
   components: {
     noLicenseBox: {

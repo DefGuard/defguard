@@ -4,7 +4,7 @@ use defguard::{
 };
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
 
-pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
+pub(super) async fn init_test_db() -> (DbPool, DefGuardConfig) {
     let config = DefGuardConfig::new();
     let opts = PgConnectOptions::new()
         .host(&config.database_host)

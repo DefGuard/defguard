@@ -1,5 +1,13 @@
 import './style.scss';
 
+import {
+  arrow,
+  autoUpdate,
+  flip,
+  FloatingPortal,
+  offset,
+  useFloating,
+} from '@floating-ui/react-dom-interactions';
 import classNames from 'classnames';
 import {
   AnimatePresence,
@@ -9,13 +17,20 @@ import {
   Variants,
 } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
-import React, { ReactNode, useId, useMemo, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { buttonsBoxShadow, ColorsRGB, inactiveBoxShadow } from '../../../constants';
 import SvgIconAsterix from '../../svg/IconAsterix';
 import SvgIconCheckmarkGreen from '../../svg/IconCheckmarkGreen';
 import SvgIconPopupClose from '../../svg/IconPopupClose';
 import SvgIconWarning from '../../svg/IconWarning';
+import { FloatingArrow } from '../FloatingArrow/FloatingArrow';
+import { FloatingBox } from '../FloatingBox/FloatingBox';
+
+export type InputFloatingErrors = {
+  title: string;
+  errorMessages: string[];
+};
 
 export interface InputProps extends HTMLMotionProps<'input'> {
   required?: boolean;
@@ -28,6 +43,7 @@ export interface InputProps extends HTMLMotionProps<'input'> {
   outerLabel?: string | ReactNode;
   disableOuterLabelColon?: boolean;
   errorMessage?: string;
+  floatingErrors?: InputFloatingErrors;
 }
 
 interface PlaceholderCustom {
@@ -56,6 +72,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       errorMessage,
       outerLabel,
       disableOuterLabelColon,
+      floatingErrors,
       ...props
     },
     forwardedRef
@@ -64,6 +81,23 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const [focused, setFocused] = useState(false);
     const [hovered, setHovered] = useState(false);
     const componentId = useId();
+    const [floatingErrorsOpen, setFloatingErrorsOpen] = useState(false);
+    const floatingErrorsArrow = useRef<HTMLDivElement | null>(null);
+    const { reference, floating, x, y, strategy, placement, middlewareData } =
+      useFloating({
+        open: floatingErrorsOpen,
+        onOpenChange: setFloatingErrorsOpen,
+        placement: 'bottom-end',
+        middleware: [
+          offset(10),
+          flip(),
+          arrow({
+            element: floatingErrorsArrow,
+          }),
+        ],
+        whileElementsMounted: (refElement, floatingElement, updateFunc) =>
+          autoUpdate(refElement, floatingElement, updateFunc),
+      });
 
     const getClassName = useMemo(() => {
       const hasErrorMessage = !isUndefined(errorMessage);
@@ -136,6 +170,27 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       return null;
     }, [disabled, invalid, required, valid]);
 
+    // control floatingErrors while typing
+    useEffect(() => {
+      if (
+        focused &&
+        floatingErrors &&
+        floatingErrors.errorMessages.length > 0 &&
+        !floatingErrorsOpen
+      ) {
+        setFloatingErrorsOpen(true);
+      }
+      if (
+        (!focused && floatingErrorsOpen) ||
+        (floatingErrorsOpen &&
+          floatingErrors &&
+          floatingErrors.errorMessages.length === 0)
+      ) {
+        setFloatingErrorsOpen(false);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [floatingErrors, floatingErrorsOpen]);
+
     return (
       <>
         {outerLabel && (
@@ -157,9 +212,20 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           </motion.label>
         )}
         <motion.div
+          ref={reference}
           className={getClassName}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={() => {
+            setFocused(true);
+            if (floatingErrors && floatingErrors.errorMessages.length) {
+              setFloatingErrorsOpen(true);
+            }
+          }}
+          onBlur={() => {
+            setFocused(false);
+            if (floatingErrorsOpen) {
+              setFloatingErrorsOpen(false);
+            }
+          }}
           onHoverStart={() => setHovered(true)}
           onHoverEnd={() => setHovered(false)}
           onClick={() => {
@@ -255,6 +321,34 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ) : null}
           </AnimatePresence>
         </motion.div>
+        <FloatingPortal>
+          {floatingErrorsOpen && floatingErrors && (
+            <FloatingBox
+              className="floating-input-errors"
+              ref={floating}
+              style={{
+                position: strategy,
+                left: x || 0,
+                top: y || 0,
+              }}
+            >
+              <p className="title">{floatingErrors.title}</p>
+              <div className="errors">
+                {floatingErrors.errorMessages.map((errorMessage) => (
+                  <p className="error" key={errorMessage}>
+                    <SvgIconWarning />
+                    {errorMessage}
+                  </p>
+                ))}
+              </div>
+              <FloatingArrow
+                placement={placement}
+                ref={floatingErrorsArrow}
+                data={middlewareData.arrow}
+              />
+            </FloatingBox>
+          )}
+        </FloatingPortal>
       </>
     );
   }
