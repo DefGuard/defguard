@@ -90,7 +90,7 @@ pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> Api
     .map_err(|_| OriWebError::Authorization("Failed to create bridge token".into()))?;
     Ok(ApiResponse {
         json: json!({ "token": token }),
-        status: Status::Ok,
+        status: Status::Created,
     })
 }
 
