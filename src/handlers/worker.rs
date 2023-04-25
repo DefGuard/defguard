@@ -88,10 +88,7 @@ pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> Api
 }
 
 #[get("/", format = "json")]
-pub fn list_workers(
-    _session: SessionInfo,
-    worker_state: &State<Arc<Mutex<WorkerState>>>,
-) -> ApiResult {
+pub fn list_workers(_admin: AdminRole, worker_state: &State<Arc<Mutex<WorkerState>>>) -> ApiResult {
     let state = worker_state.lock().unwrap();
     let workers = state.list_workers();
     Ok(ApiResponse {
@@ -102,6 +99,7 @@ pub fn list_workers(
 
 #[delete("/<worker_id>")]
 pub async fn remove_worker(
+    _admin: AdminRole,
     session: SessionInfo,
     worker_state: &State<Arc<Mutex<WorkerState>>>,
     worker_id: &str,
