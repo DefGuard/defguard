@@ -189,7 +189,7 @@ export const UserAuthInfoMFA = () => {
             <p>One time password</p>
             <div className="right">
               <span>{getTOTPInfoText}</span>
-              <EditButton>
+              <EditButton data-testid="edit-totp">
                 {user?.totp_enabled && (
                   <EditButtonOption
                     onClick={() => disableTOTPMutation()}
@@ -199,6 +199,7 @@ export const UserAuthInfoMFA = () => {
                 )}
                 {!user?.totp_enabled && (
                   <EditButtonOption
+                    data-testid="enable-totp-option"
                     text={LL.userPage.userAuthInfo.mfa.editMode.enable()}
                     onClick={() => setModalsState({ registerTOTP: { visible: true } })}
                   />

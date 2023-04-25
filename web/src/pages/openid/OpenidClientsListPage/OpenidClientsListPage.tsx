@@ -170,8 +170,6 @@ export const OpenidClientsListPage = () => {
       {
         key: 'name',
         render: (client) => <span>{client.name}</span>,
-        onClick: (client) =>
-          setOpenIdClientModalState({ visible: true, client, viewMode: true }),
       },
       {
         key: 'status',
@@ -319,6 +317,9 @@ export const OpenidClientsListPage = () => {
             left: 50,
             right: 15,
           }}
+          onDefaultRowClick={(client) =>
+            setOpenIdClientModalState({ visible: true, client, viewMode: true })
+          }
         />
       )}
       <OpenIdClientModal />

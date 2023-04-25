@@ -21,8 +21,10 @@ export const testsConfig: TestsConfig = {
 
 export const routes = {
   base: testsConfig.BASE_URL,
+  me: '/me',
   auth: {
     login: '/auth/login',
+    totp: '/auth/mfa/totp',
   },
   admin: {
     wizard: '/admin/wizard',

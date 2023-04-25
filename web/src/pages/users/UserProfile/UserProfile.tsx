@@ -108,6 +108,7 @@ const ViewModeControls = () => {
     <>
       <div className="right">
         <Button
+          data-testid="edit-user"
           text={breakpoint === 'desktop' ? LL.userPage.controls.editButton() : undefined}
           icon={<IconEdit />}
           styleVariant={
@@ -146,7 +147,7 @@ const EditModeControls = () => {
       {isAdmin && !isMe && breakpoint === 'desktop' ? (
         <div className="left">
           <Button
-            text="Delete user"
+            text={LL.userPage.controls.deleteAccount()}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.WARNING}
             onClick={handleDeleteUser}
@@ -165,6 +166,7 @@ const EditModeControls = () => {
           </EditButton>
         )}
         <Button
+          data-testid="user-edit-cancel"
           text={LL.form.cancel()}
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.STANDARD}
@@ -177,6 +179,7 @@ const EditModeControls = () => {
           }}
         />
         <Button
+          data-testid="user-edit-save"
           text={LL.form.saveChanges()}
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}

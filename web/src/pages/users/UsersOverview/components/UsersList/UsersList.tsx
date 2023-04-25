@@ -71,8 +71,6 @@ export const UsersList = ({ users }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [breakpoint, locale]);
 
-  const onCellClick = useCallback((user: User) => navigateToUser(user), [navigateToUser]);
-
   const listCells = useMemo((): ListRowCell<User>[] => {
     const allCells = [
       {
@@ -85,12 +83,10 @@ export const UsersList = ({ users }: Props) => {
             {`${user.first_name} ${user.last_name}`}
           </p>
         ),
-        onClick: onCellClick,
       },
       {
         key: 'username',
         render: (user: User) => <span className="username">{user.username}</span>,
-        onClick: onCellClick,
       },
       {
         key: 'phone',
@@ -105,7 +101,7 @@ export const UsersList = ({ users }: Props) => {
       return allCells;
     }
     return [allCells[0], allCells[3]];
-  }, [breakpoint, onCellClick]);
+  }, [breakpoint]);
 
   const getListPadding = useMemo(() => {
     if (breakpoint === 'desktop') {
@@ -132,6 +128,7 @@ export const UsersList = ({ users }: Props) => {
         right: 15,
       }}
       padding={getListPadding}
+      onDefaultRowClick={(user) => navigateToUser(user)}
     />
   );
 };

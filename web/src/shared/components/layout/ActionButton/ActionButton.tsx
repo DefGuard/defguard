@@ -1,7 +1,7 @@
 import './style.scss';
 
 import classNames from 'classnames';
-import { motion, Variant, Variants } from 'framer-motion';
+import { HTMLMotionProps, motion, Variant, Variants } from 'framer-motion';
 import { useMemo, useState } from 'react';
 
 import { ColorsRGB } from '../../../constants';
@@ -15,7 +15,7 @@ export enum ActionButtonVariant {
   QRCODE = 'qrcode',
 }
 
-interface Props {
+interface Props extends HTMLMotionProps<'button'> {
   variant: ActionButtonVariant;
   disabled?: boolean;
   className?: string;
@@ -32,6 +32,7 @@ export const ActionButton = ({
   onClick,
   disabled = false,
   forcedActive = false,
+  ...rest
 }: Props) => {
   const getIcon = useMemo(() => {
     switch (variant) {
@@ -65,6 +66,7 @@ export const ActionButton = ({
 
   return (
     <motion.button
+      {...rest}
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
       animate={getAnimate}

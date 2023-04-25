@@ -276,6 +276,7 @@ export const OpenIdClientModalForm = () => {
             title={LL.openidOverview.modals.openidClientModal.clientId()}
             actions={[
               <ActionButton
+                data-testid="copy-client-id"
                 key={1}
                 variant={ActionButtonVariant.COPY}
                 onClick={() =>
