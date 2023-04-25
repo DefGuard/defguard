@@ -1,0 +1,12 @@
+@use '../../../scss/helpers' as *;
+
+.floating-box {
+  z-index: 3;
+  border: 1px solid var(--gray-lighter);
+  background-color: var(--white);
+  color: var(--text-main);
+  border-radius: 10px;
+  filter: drop-shadow(var(--floating-shadow));
+  box-sizing: border-box;
+  padding: 20px;
+}

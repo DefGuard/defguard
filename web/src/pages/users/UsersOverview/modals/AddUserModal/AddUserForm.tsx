@@ -69,11 +69,11 @@ export const AddUserForm = () => {
             .string()
             .min(8, LL.form.error.minimumLength())
             .max(32, LL.form.error.maximumLength())
-            .matches(patternAtLeastOneDigit, LL.form.error.invalid())
-            .matches(patternAtLeastOneSpecialChar, LL.form.error.invalid())
-            .matches(patternAtLeastOneUpperCaseChar, LL.form.error.invalid())
-            .matches(patternAtLeastOneLowerCaseChar, LL.form.error.invalid())
-            .required(),
+            .matches(patternAtLeastOneDigit, LL.form.error.oneDigit())
+            .matches(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
+            .matches(patternAtLeastOneUpperCaseChar, LL.form.error.oneUppercase())
+            .matches(patternAtLeastOneLowerCaseChar, LL.form.error.oneLowercase())
+            .required(LL.form.error.required()),
           email: yup
             .string()
             .required(LL.form.error.required())
@@ -103,6 +103,7 @@ export const AddUserForm = () => {
   } = useForm<Inputs>({
     resolver: yupResolver(formSchema),
     mode: 'all',
+    criteriaMode: 'all',
     defaultValues: {
       email: '',
       first_name: '',
@@ -175,8 +176,7 @@ export const AddUserForm = () => {
     return () => {
       subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usernameSubject, locale]);
+  }, [LL.form.error, setError, usernameAvailable, usernameSubject, usernamesTaken]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -192,6 +192,9 @@ export const AddUserForm = () => {
             outerLabel={LL.modals.addUser.form.fields.password.label()}
             placeholder={LL.modals.addUser.form.fields.password.placeholder()}
             controller={{ control, name: 'password' }}
+            floatingErrors={{
+              title: LL.form.floatingErrors.title(),
+            }}
             type="password"
             required
           />
