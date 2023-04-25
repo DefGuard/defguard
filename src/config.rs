@@ -50,8 +50,8 @@ pub struct DefGuardConfig {
     pub openid_signing_key: Option<RsaPrivateKey>,
 
     // relying party id and relying party origin for WebAuthn
-    #[clap(long, env = "DEFGUARD_WEBAUTHN_RP_ID", default_value = "localhost")]
-    pub webauthn_rp_id: String,
+    #[clap(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
+    pub webauthn_rp_id: Option<String>,
     #[clap(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     pub url: Url,
 
@@ -132,6 +132,20 @@ pub enum Command {
 }
 
 impl DefGuardConfig {
+    pub fn new() -> Self {
+        let mut config = Self::parse();
+        if config.webauthn_rp_id.is_none() {
+            config.webauthn_rp_id = Some(
+                config
+                    .url
+                    .domain()
+                    .expect("Unable to get domain for server URL.")
+                    .to_string(),
+            )
+        }
+        config
+    }
+
     /// Constructs user distinguished name.
     #[must_use]
     pub fn user_dn(&self, username: &str) -> String {
@@ -162,5 +176,41 @@ impl DefGuardConfig {
         } else {
             None
         }
+    }
+}
+
+impl Default for DefGuardConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    #[test]
+    fn verify_cli() {
+        use clap::CommandFactory;
+        DefGuardConfig::command().debug_assert()
+    }
+
+    #[test]
+    fn test_generate_rp_id() {
+        env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+
+        let config = DefGuardConfig::new();
+
+        assert_eq!(
+            config.webauthn_rp_id,
+            Some("defguard.example.com".to_string())
+        );
+
+        env::set_var("DEFGUARD_WEBAUTHN_RP_ID", "example.com");
+
+        let config = DefGuardConfig::new();
+
+        assert_eq!(config.webauthn_rp_id, Some("example.com".to_string()));
     }
 }

@@ -1,4 +1,3 @@
-use clap::Parser;
 use defguard::db::User;
 use defguard::{
     config::{Command, DefGuardConfig},
@@ -44,7 +43,7 @@ fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let config = DefGuardConfig::parse();
+    let config = DefGuardConfig::new();
     logger_setup(&config.log_level)?;
     match config.openid_signing_key {
         Some(_) => log::info!("Using RSA OpenID signing key"),

@@ -188,33 +188,39 @@ pub async fn webauthn_init(
 /// Finish WebAuthn registration
 #[post("/auth/webauthn/finish", format = "json", data = "<data>")]
 pub async fn webauthn_finish(
-    _session: SessionInfo,
-    session: Session,
+    session: SessionInfo,
     appstate: &State<AppState>,
     data: Json<WebAuthnRegistration>,
 ) -> ApiResult {
-    if let Some(passkey_reg) = session.get_passkey_registration() {
-        let webauth_reg = data.into_inner();
-        if let Ok(passkey) = appstate
-            .webauthn
-            .finish_passkey_registration(&webauth_reg.rpkc, &passkey_reg)
-        {
-            if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
-                user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
-                    .await?;
-                let recovery_codes =
-                    RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
-                let mut webauthn = WebAuthn::new(session.user_id, webauth_reg.name, &passkey)?;
-                webauthn.save(&appstate.pool).await?;
-                info!("Finished Webauthn registration for user {}", user.username);
-                return Ok(ApiResponse {
-                    json: json!(recovery_codes),
-                    status: Status::Ok,
-                });
-            }
-        }
-    }
-    Err(OriWebError::Http(Status::BadRequest))
+    let passkey_reg =
+        session
+            .session
+            .get_passkey_registration()
+            .ok_or(OriWebError::WebauthnRegistration(
+                "Passkey registration session not found".into(),
+            ))?;
+
+    let webauth_reg = data.into_inner();
+
+    let passkey = appstate
+        .webauthn
+        .finish_passkey_registration(&webauth_reg.rpkc, &passkey_reg)
+        .map_err(|err| OriWebError::WebauthnRegistration(err.to_string()))?;
+    let mut user = User::find_by_id(&appstate.pool, session.session.user_id)
+        .await?
+        .ok_or(OriWebError::WebauthnRegistration("User not found".into()))?;
+
+    user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
+        .await?;
+    let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
+    let mut webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
+    webauthn.save(&appstate.pool).await?;
+    info!("Finished Webauthn registration for user {}", user.username);
+
+    Ok(ApiResponse {
+        json: json!(recovery_codes),
+        status: Status::Ok,
+    })
 }
 
 /// Start WebAuthn authentication

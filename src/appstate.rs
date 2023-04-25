@@ -83,8 +83,14 @@ impl AppState {
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
-        let webauthn_builder = WebauthnBuilder::new(&config.webauthn_rp_id, &config.url)
-            .expect("Invalid WebAuthn configuration");
+        let webauthn_builder = WebauthnBuilder::new(
+            config
+                .webauthn_rp_id
+                .as_ref()
+                .expect("Webauth RP ID configuration is required"),
+            &config.url,
+        )
+        .expect("Invalid WebAuthn configuration");
         let webauthn = webauthn_builder
             .build()
             .expect("Invalid WebAuthn configuration");

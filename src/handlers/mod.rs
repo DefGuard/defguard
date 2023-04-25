@@ -63,6 +63,7 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
             OriWebError::DbError(msg) => internal_server_error(&msg),
             OriWebError::Grpc(msg) => internal_server_error(&msg),
             OriWebError::Ldap(msg) => internal_server_error(&msg),
+            OriWebError::WebauthnRegistration(msg) => internal_server_error(&msg),
             OriWebError::IncorrectUsername(msg) => {
                 error!("{}", msg);
                 (json!({ "msg": msg }), Status::BadRequest)
