@@ -14,7 +14,7 @@ use rocket::{
 };
 use std::sync::{Arc, Mutex};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct JobData {
     pub username: String,
     pub worker: String,
