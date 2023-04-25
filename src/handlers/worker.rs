@@ -48,7 +48,7 @@ pub async fn create_job(
             // only admins should be able to create jobs for other users
             if user != session.user && !session.is_admin {
                 return Err(OriWebError::Forbidden(
-                    "Cannot schedule jobs for other users.".to_string(),
+                    "Cannot schedule jobs for other users.".into(),
                 ));
             };
 

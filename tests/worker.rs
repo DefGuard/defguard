@@ -1,8 +1,9 @@
-use defguard::build_webapp;
-use defguard::db::{AppEvent, GatewayEvent, User};
-use defguard::grpc::{GatewayState, WorkerState};
-use defguard::handlers::worker::JobData;
-use defguard::handlers::Auth;
+use defguard::{
+    build_webapp,
+    db::{AppEvent, GatewayEvent, User},
+    grpc::{GatewayState, WorkerState},
+    handlers::{worker::JobData, Auth},
+};
 use rocket::http::Status;
 use rocket::local::asynchronous::Client;
 use std::sync::{Arc, Mutex};
