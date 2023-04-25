@@ -45,6 +45,13 @@ pub async fn create_job(
     let job_data = data.into_inner();
     match User::find_by_username(&appstate.pool, &job_data.username).await? {
         Some(user) => {
+            // only admins should be able to create jobs for other users
+            if user != session.user && !session.is_admin {
+                return Err(OriWebError::Forbidden(
+                    "Cannot schedule jobs for other users.".to_string(),
+                ));
+            };
+
             let mut state = worker_state.lock().unwrap();
             debug!("Creating job");
             let id = state.create_job(
