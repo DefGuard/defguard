@@ -154,23 +154,16 @@ impl WorkerState {
         self.workers.remove_entry(id).is_some()
     }
 
-    pub fn set_job_status(
-        &mut self,
-        job_id: u32,
-        success: bool,
-        pgp_key: String,
-        pgp_cert_id: String,
-        ssh_key: String,
-        error: String,
-    ) {
+    pub fn set_job_status(&mut self, status: JobStatus, username: String) {
         self.job_status.insert(
-            job_id,
+            status.job_id,
             JobResponse {
-                success,
-                pgp_key,
-                pgp_cert_id,
-                ssh_key,
-                error,
+                success: status.success,
+                pgp_key: status.public_key,
+                pgp_cert_id: status.fingerprint,
+                ssh_key: status.ssh_key,
+                error: status.error,
+                username,
             },
         );
     }
@@ -226,26 +219,20 @@ impl worker_service_server::WorkerService for WorkerServer {
 
     async fn set_job_done(&self, request: Request<JobStatus>) -> Result<Response<()>, Status> {
         let message = request.into_inner();
-        // Remove job and set status
-        if let Some(job_done) = {
+        info!(
+            "Marking job {} on worker {} as done.",
+            message.job_id, message.id
+        );
+        // Mutex manipulation is done explicitly in a separate block to avoid compiler errors
+        // https://github.com/rust-lang/rust/issues/57478
+        let username: Option<String> = {
             let mut state = self.state.lock().unwrap();
-            state.set_job_status(
-                message.job_id,
-                message.success,
-                message.public_key.clone(),
-                message.fingerprint.clone(),
-                message.ssh_key.clone(),
-                message.error,
-            );
-            #[allow(clippy::let_and_return)]
+            // Remove job from worker
             let job = state.remove_job(&message.id, message.job_id);
-            job
-        } {
-            if message.success {
-                {
-                    // FIXME: locked again
-                    let state = self.state.lock().unwrap();
-                    let _ = state
+            if let Some(job_done) = job {
+                state.set_job_status(message.clone(), job_done.username.clone());
+                if message.success {
+                    state
                         .webhook_tx
                         .send(AppEvent::HWKeyProvision(HWKeyUserData {
                             username: job_done.username.clone(),
@@ -253,9 +240,18 @@ impl worker_service_server::WorkerService for WorkerServer {
                             ssh_key: message.ssh_key.clone(),
                             pgp_key: message.public_key.clone(),
                             pgp_cert_id: message.fingerprint.clone(),
-                        }));
+                        }))
+                        .expect("Failed to send event.");
                 }
-                match User::find_by_username(&self.pool, &job_done.username).await {
+                Some(job_done.username)
+            } else {
+                None
+            }
+        };
+
+        if let Some(username) = username {
+            if message.success {
+                match User::find_by_username(&self.pool, &username).await {
                     Ok(Some(mut user)) => {
                         user.ssh_key = Some(message.ssh_key);
                         user.pgp_key = Some(message.public_key);
@@ -264,11 +260,12 @@ impl worker_service_server::WorkerService for WorkerServer {
                             .await
                             .map_err(|_| Status::internal("database error"))?;
                     }
-                    Ok(None) => info!("User {} not found", job_done.username),
+                    Ok(None) => info!("User {} not found", username),
                     Err(err) => error!("Error {}", err),
                 }
             }
         }
+
         Ok(Response::new(()))
     }
 }

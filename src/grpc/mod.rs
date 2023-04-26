@@ -102,6 +102,8 @@ pub struct JobResponse {
     pgp_cert_id: String,
     ssh_key: String,
     pub error: String,
+    #[serde(skip)]
+    pub username: String,
 }
 
 #[cfg(feature = "worker")]
@@ -120,7 +122,7 @@ pub struct WorkerState {
 }
 
 #[cfg(feature = "worker")]
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct WorkerDetail {
     id: String,
     ip: IpAddr,

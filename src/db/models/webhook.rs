@@ -4,6 +4,7 @@ use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError, FromRow};
 
 /// App events which triggers webhook action
+#[derive(Debug)]
 pub enum AppEvent {
     UserCreated(UserInfo),
     UserModified(UserInfo),
@@ -11,7 +12,7 @@ pub enum AppEvent {
     HWKeyProvision(HWKeyUserData),
 }
 /// User data send on HWKeyProvision AppEvent
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct HWKeyUserData {
     pub username: String,
     pub email: String,

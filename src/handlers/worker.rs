@@ -20,7 +20,7 @@ pub struct JobData {
     pub worker: String,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Jobid {
     pub id: u32,
 }
@@ -62,8 +62,8 @@ pub async fn create_job(
                 job_data.username,
             );
             info!(
-                "User {} created a worker job for worker {} and user {}",
-                session.user.username, worker, username
+                "User {} created a worker job (ID {}) for worker {} and user {}",
+                session.user.username, id, worker, username
             );
             Ok(ApiResponse {
                 json: json!(Jobid { id }),
@@ -90,7 +90,7 @@ pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> Api
     .map_err(|_| OriWebError::Authorization("Failed to create bridge token".into()))?;
     Ok(ApiResponse {
         json: json!({ "token": token }),
-        status: Status::Ok,
+        status: Status::Created,
     })
 }
 
@@ -133,14 +133,20 @@ pub async fn remove_worker(
 
 #[get("/<job_id>", format = "json")]
 pub async fn job_status(
-    _session: SessionInfo,
+    session: SessionInfo,
     worker_state: &State<Arc<Mutex<WorkerState>>>,
     job_id: u32,
 ) -> ApiResult {
     let state = worker_state.lock().unwrap();
     let job_response = state.get_job_status(job_id);
-    if job_response.is_some() {
-        if job_response.unwrap().success {
+    if let Some(response) = job_response {
+        // prevent non-admin users from accessing other users' jobs status
+        if !session.is_admin && response.username != session.user.username {
+            return Err(OriWebError::Forbidden(
+                "Cannot fetch job status for other users' jobs.".into(),
+            ));
+        }
+        if response.success {
             Ok(ApiResponse {
                 json: json!(job_response),
                 status: Status::Ok,
@@ -148,7 +154,7 @@ pub async fn job_status(
         } else {
             Ok(ApiResponse {
                 json: json!(JobResponseError {
-                    message: job_response.unwrap().error.clone()
+                    message: response.error.clone()
                 }),
                 status: Status::NotFound,
             })
