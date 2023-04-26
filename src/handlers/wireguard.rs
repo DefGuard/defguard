@@ -213,14 +213,16 @@ pub async fn import_network(
 
 #[post("/devices", format = "json", data = "<data>")]
 pub async fn add_user_devices(
+    _admin: AdminRole,
     session: SessionInfo,
     appstate: &State<AppState>,
     data: Json<UserDevices>,
 ) -> ApiResult {
     let mut data = data.into_inner();
+    let user = session.user;
     debug!(
         "User {} adding {} devices",
-        session.user.username,
+        user.username,
         data.devices.len()
     );
     for device in data.devices.as_mut_slice() {
@@ -229,7 +231,7 @@ pub async fn add_user_devices(
     }
     info!(
         "User {} added {} devices",
-        session.user.username,
+        user.username,
         data.devices.len()
     );
 
@@ -361,10 +363,14 @@ pub async fn list_devices(_admin: AdminRole, appstate: &State<AppState>) -> ApiR
 
 #[get("/device/user/<username>", format = "json")]
 pub async fn list_user_devices(
-    _session: SessionInfo,
+    session: SessionInfo,
     appstate: &State<AppState>,
     username: &str,
 ) -> ApiResult {
+    // only allow for admin or user themselves
+    if !session.is_admin && session.user.username != username {
+        return Err(OriWebError::Forbidden("Admin access required".into()));
+    };
     debug!("Listing devices for user: {}", username);
     let devices = Device::all_for_username(&appstate.pool, username).await?;
     info!("Listed devices for user: {}", username);

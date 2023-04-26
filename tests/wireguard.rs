@@ -36,6 +36,16 @@ async fn make_client(pool: DbPool, config: DefGuardConfig) -> (Client, Arc<Mutex
         .await
         .unwrap();
 
+    let mut user = User::new(
+        "hpotter".into(),
+        "pass123",
+        "Potter".into(),
+        "Harry".into(),
+        "h.potter@hogwart.edu.uk".into(),
+        None,
+    );
+    user.save(&pool).await.unwrap();
+
     let webapp = build_webapp(
         config,
         tx,
@@ -264,6 +274,150 @@ async fn test_device() {
     assert_eq!(response.status(), Status::Ok);
     let devices: Vec<Device> = response.into_json().await.unwrap();
     assert!(devices.is_empty());
+}
+
+#[rocket::async_test]
+async fn test_device_permissions() {
+    let (pool, config) = init_test_db().await;
+    let (client, _gateway_state) = make_client(pool, config).await;
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&make_network())
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+
+    // admin can add devices for other users
+    let device = json!({
+        "name": "device_1",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let device = json!({"devices": [{
+        "name": "device_2",
+        "wireguard_ip": "10.0.0.3",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "user_id": 1,
+        "created": "2023-05-05T23:56:04"
+    }]});
+    let response = client
+        .post("/api/v1/network/devices")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+
+    let device = json!({
+        "name": "device_3",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let device = json!({"devices": [{
+        "name": "device_4",
+        "wireguard_ip": "10.0.0.5",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "user_id": 2,
+        "created": "2023-05-05T23:56:04"
+    }]});
+    let response = client
+        .post("/api/v1/network/devices")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+
+    // normal user cannot add devices for other users or import multiple devices
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let device = json!({
+        "name": "device_5",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let device = json!({"devices": [{
+        "name": "device_6",
+        "wireguard_ip": "10.0.0.7",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "user_id": 2,
+        "created": "2023-05-05T23:56:04"
+    }]});
+    let response = client
+        .post("/api/v1/network/devices")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    let device = json!({
+        "name": "device_7",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
+    let device = json!({"devices": [{
+        "name": "device_8",
+        "wireguard_ip": "10.0.0.9",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "user_id": 1,
+        "created": "2023-05-05T23:56:04"
+    }]});
+    let response = client
+        .post("/api/v1/network/devices")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    // normal user cannot list devices of other users
+    let response = client.get("/api/v1/device/user/admin").dispatch().await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    let response = client.get("/api/v1/device/user/hpotter").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let user_devices: Vec<Device> = response.into_json().await.unwrap();
+    assert_eq!(user_devices.len(), 3);
+
+    // admin can list devices of other users
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let response = client.get("/api/v1/device/user/admin").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let user_devices: Vec<Device> = response.into_json().await.unwrap();
+    assert_eq!(user_devices.len(), 2);
+
+    let response = client.get("/api/v1/device/user/hpotter").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let user_devices: Vec<Device> = response.into_json().await.unwrap();
+    assert_eq!(user_devices.len(), 3);
 }
 
 #[rocket::async_test]
@@ -827,15 +981,6 @@ async fn test_config_import_nonadmin() {
         PersistentKeepalive = 300
     ";
     let (pool, config) = init_test_db().await;
-    let mut user = User::new(
-        "hpotter".into(),
-        "pass123",
-        "Potter".into(),
-        "Harry".into(),
-        "h.potter@hogwart.edu.uk".into(),
-        None,
-    );
-    user.save(&pool).await.unwrap();
     let (client, _) = make_client(pool, config).await;
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
