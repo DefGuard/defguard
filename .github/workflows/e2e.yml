@@ -47,8 +47,7 @@ jobs:
         if: failure()
         with:
           name: playwright-report
-          working-directory: ./e2e
           path: |
-            ./playwright-report
-            ./test-results
+            ./e2e/playwright-report
+            ./e2e/test-results
           retention-days: 7
