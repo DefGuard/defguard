@@ -213,14 +213,16 @@ pub async fn import_network(
 
 #[post("/devices", format = "json", data = "<data>")]
 pub async fn add_user_devices(
+    _admin: AdminRole,
     session: SessionInfo,
     appstate: &State<AppState>,
     data: Json<UserDevices>,
 ) -> ApiResult {
     let mut data = data.into_inner();
+    let user = session.user;
     debug!(
         "User {} adding {} devices",
-        session.user.username,
+        user.username,
         data.devices.len()
     );
     for device in data.devices.as_mut_slice() {
@@ -229,7 +231,7 @@ pub async fn add_user_devices(
     }
     info!(
         "User {} added {} devices",
-        session.user.username,
+        user.username,
         data.devices.len()
     );
 
