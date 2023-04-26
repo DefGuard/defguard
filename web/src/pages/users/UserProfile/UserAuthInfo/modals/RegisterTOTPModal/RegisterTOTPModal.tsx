@@ -104,6 +104,7 @@ const TOTPRegisterQRCode = () => {
       <QRCode value={qrData} size={250} />
       <div className="actions">
         <Button
+          data-testid="copy-totp"
           icon={<IconCopy />}
           size={ButtonSize.BIG}
           text={LL.modals.registerTOTP.copyPath()}
@@ -174,7 +175,7 @@ const TOTPRegisterForm = () => {
     });
   };
   return (
-    <form onSubmit={handleSubmit(onValidSubmit)}>
+    <form data-testid="register-totp-form" onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
         controller={{ control, name: 'code' }}
         outerLabel={LL.modals.registerTOTP.form.fields.code.label()}

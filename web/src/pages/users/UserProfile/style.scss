@@ -134,8 +134,15 @@
     @include media-breakpoint-up(lg) {
       row-gap: 0;
       column-gap: 35px;
-      grid-template-columns: 1fr repeat(2, 369px);
+      grid-template-columns: 1fr 369px;
       grid-template-rows: auto;
+      grid-template-areas:
+        'wide-cards cards-1'
+        'wide-cards cards-2';
+    }
+
+    @include media-breakpoint-up(xxl) {
+      grid-template-columns: 1fr repeat(2, 369px);
       grid-template-areas: 'wide-cards cards-1 cards-2';
     }
 

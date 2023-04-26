@@ -65,7 +65,7 @@ const ModalContent = () => {
       <MessageBox type={MessageBoxType.INFO}>
         {parse(LL.modals.recoveryCodes.infoMessage())}
       </MessageBox>
-      <div className="codes">
+      <div className="codes" data-testid="recovery-codes">
         {codes.map((code) => (
           <p key={code}>{code}</p>
         ))}
@@ -86,6 +86,7 @@ const ModalContent = () => {
           }}
         />
         <Button
+          data-testid="copy-recovery"
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.STANDARD}
           icon={<IconCopy />}
@@ -107,6 +108,7 @@ const ModalContent = () => {
       </div>
       <div className="controls">
         <Button
+          data-testid="accept-recovery"
           text={LL.modals.recoveryCodes.submit()}
           onClick={() => mutate()}
           styleVariant={ButtonStyleVariant.WARNING}

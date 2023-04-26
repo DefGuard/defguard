@@ -10,17 +10,16 @@ import {
   useFloating,
 } from '@floating-ui/react-dom-interactions';
 import classNames from 'classnames';
-import { motion } from 'framer-motion';
+import { HTMLMotionProps, motion } from 'framer-motion';
 import { ReactNode, useMemo, useRef, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
 
 import { EditButtonIcon } from './EditButtonIcon';
 
-interface EditButtonProps {
+interface EditButtonProps extends HTMLMotionProps<'button'> {
   disabled?: boolean;
   visible?: boolean;
   children: ReactNode;
-  className?: string;
 }
 
 interface PlacementMap {
@@ -28,13 +27,14 @@ interface PlacementMap {
 }
 
 /**
- * Meant to replace old OptionsPopover
+ * Replaces OptionsPopover
  * **/
 export const EditButton = ({
   children,
   disabled = false,
   visible = true,
   className,
+  ...rest
 }: EditButtonProps) => {
   const [hovered, setHovered] = useState(false);
   const [open, setOpen] = useState(false);
@@ -85,10 +85,13 @@ export const EditButton = ({
   return (
     <>
       <motion.button
+        {...rest}
         className={cn}
         onHoverStart={() => setHovered(true)}
         onHoverEnd={() => setHovered(false)}
-        onClick={() => {
+        onClick={(ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
           if (visible) {
             setOpen((state) => !state);
           }
@@ -109,7 +112,11 @@ export const EditButton = ({
                 top: y ?? 0,
                 left: x ?? 0,
               }}
-              onClick={() => setOpen(false)}
+              onClick={(env) => {
+                env.stopPropagation();
+                env.preventDefault();
+                setOpen(false);
+              }}
             >
               {children}
               <motion.div

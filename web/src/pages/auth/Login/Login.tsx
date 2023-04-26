@@ -89,6 +89,8 @@ export const Login = () => {
         <FormInput
           controller={{ control, name: 'username' }}
           placeholder={LL.form.placeholders.username()}
+          autoComplete="username"
+          data-testid="login-form-username"
           innerLabel
           required
         />
@@ -96,6 +98,8 @@ export const Login = () => {
           controller={{ control, name: 'password' }}
           placeholder={LL.form.placeholders.password()}
           type="password"
+          autoComplete="password"
+          data-testid="login-form-password"
           innerLabel
           required
         />
@@ -106,6 +110,7 @@ export const Login = () => {
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.form.login()}
+          data-testid="login-form-submit"
         />
       </form>
     </section>
