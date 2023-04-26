@@ -74,13 +74,13 @@ export const SetupStep = () => {
             //@ts-ignore
             is: (choice: number | undefined) =>
               choice === AddDeviceSetupChoice.MANUAL_CONFIG,
-            then: yup
+            then: () => yup
               .string()
               .min(44, LL.form.error.minimumLength())
               .max(44, LL.form.error.maximumLength())
               .required(LL.form.error.required())
               .matches(patternValidWireguardKey, LL.form.error.invalid()),
-            otherwise: yup.string().optional(),
+            otherwise: () => yup.string().optional(),
           }),
         })
         .required(),
