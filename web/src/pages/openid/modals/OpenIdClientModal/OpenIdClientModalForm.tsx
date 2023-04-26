@@ -162,7 +162,7 @@ export const OpenIdClientModalForm = () => {
   );
 
   return (
-    <form onSubmit={handleSubmit(onValidSubmit)}>
+    <form onSubmit={handleSubmit(onValidSubmit)} data-testid="openid-client-form">
       <FormInput
         controller={{ control, name: 'name' }}
         outerLabel={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
@@ -197,6 +197,7 @@ export const OpenIdClientModalForm = () => {
       <h3>{LL.openidOverview.modals.openidClientModal.scopes()}</h3>
       <div className="scopes">
         <FormCheckBox
+          data-testid="field-scope-openid"
           label={LL.openidOverview.modals.openidClientModal.form.fields.openid.label()}
           disabled={modalState.viewMode}
           labelPosition="right"
@@ -215,6 +216,7 @@ export const OpenIdClientModalForm = () => {
           }}
         />
         <FormCheckBox
+          data-testid="field-scope-profile"
           disabled={modalState.viewMode}
           label={LL.openidOverview.modals.openidClientModal.form.fields.profile.label()}
           labelPosition="right"
@@ -233,6 +235,7 @@ export const OpenIdClientModalForm = () => {
           }}
         />
         <FormCheckBox
+          data-testid="field-scope-email"
           disabled={modalState.viewMode}
           label={LL.openidOverview.modals.openidClientModal.form.fields.email.label()}
           labelPosition="right"
@@ -251,6 +254,7 @@ export const OpenIdClientModalForm = () => {
           }}
         />
         <FormCheckBox
+          data-testid="field-scope-phone"
           disabled={modalState.viewMode}
           label={LL.openidOverview.modals.openidClientModal.form.fields.phone.label()}
           labelPosition="right"

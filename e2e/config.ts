@@ -22,6 +22,7 @@ export const testsConfig: TestsConfig = {
 export const routes = {
   base: testsConfig.BASE_URL,
   me: '/me',
+  consent: '/consent',
   auth: {
     login: '/auth/login',
     totp: '/auth/mfa/totp',
@@ -29,7 +30,9 @@ export const routes = {
   admin: {
     wizard: '/admin/wizard',
     users: '/admin/users',
+    openid: '/admin/openid',
   },
+  authorize: '/api/v1/oauth/authorize',
 };
 
 export const defaultUserAdmin = {
