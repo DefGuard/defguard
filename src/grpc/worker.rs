@@ -154,24 +154,15 @@ impl WorkerState {
         self.workers.remove_entry(id).is_some()
     }
 
-    pub fn set_job_status(
-        &mut self,
-        job_id: u32,
-        success: bool,
-        pgp_key: String,
-        pgp_cert_id: String,
-        ssh_key: String,
-        error: String,
-        username: String,
-    ) {
+    pub fn set_job_status(&mut self, status: JobStatus, username: String) {
         self.job_status.insert(
-            job_id,
+            status.job_id,
             JobResponse {
-                success,
-                pgp_key,
-                pgp_cert_id,
-                ssh_key,
-                error,
+                success: status.success,
+                pgp_key: status.public_key,
+                pgp_cert_id: status.fingerprint,
+                ssh_key: status.ssh_key,
+                error: status.error,
                 username,
             },
         );
@@ -239,15 +230,7 @@ impl worker_service_server::WorkerService for WorkerServer {
             // Remove job from worker
             let job = state.remove_job(&message.id, message.job_id);
             if let Some(job_done) = job {
-                state.set_job_status(
-                    message.job_id,
-                    message.success,
-                    message.public_key.clone(),
-                    message.fingerprint.clone(),
-                    message.ssh_key.clone(),
-                    message.error,
-                    job_done.username.clone(),
-                );
+                state.set_job_status(message.clone(), job_done.username.clone());
                 if message.success {
                     state
                         .webhook_tx
