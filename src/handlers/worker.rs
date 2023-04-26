@@ -20,7 +20,7 @@ pub struct JobData {
     pub worker: String,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Jobid {
     pub id: u32,
 }
@@ -62,8 +62,8 @@ pub async fn create_job(
                 job_data.username,
             );
             info!(
-                "User {} created a worker job for worker {} and user {}",
-                session.user.username, worker, username
+                "User {} created a worker job (ID {}) for worker {} and user {}",
+                session.user.username, id, worker, username
             );
             Ok(ApiResponse {
                 json: json!(Jobid { id }),
