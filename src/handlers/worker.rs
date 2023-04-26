@@ -133,13 +133,19 @@ pub async fn remove_worker(
 
 #[get("/<job_id>", format = "json")]
 pub async fn job_status(
-    _session: SessionInfo,
+    session: SessionInfo,
     worker_state: &State<Arc<Mutex<WorkerState>>>,
     job_id: u32,
 ) -> ApiResult {
     let state = worker_state.lock().unwrap();
     let job_response = state.get_job_status(job_id);
     if let Some(response) = job_response {
+        // prevent non-admin users from accessing other users' jobs status
+        if !session.is_admin && response.username != session.user.username {
+            return Err(OriWebError::Forbidden(
+                "Cannot fetch job status for other users' jobs.".into(),
+            ));
+        }
         if response.success {
             Ok(ApiResponse {
                 json: json!(job_response),
