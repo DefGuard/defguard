@@ -31,7 +31,7 @@ pub struct NewOpenIDClient {
     pub enabled: bool,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct WalletInfo {
     pub address: String,
     pub name: String,
@@ -39,7 +39,7 @@ pub struct WalletInfo {
     pub use_for_mfa: bool,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct OAuth2AuthorizedAppInfo {
     pub oauth2client_id: i64,
     pub user_id: i64,
@@ -47,13 +47,13 @@ pub struct OAuth2AuthorizedAppInfo {
 }
 
 /// Only `id` and `name` from [`WebAuthn`].
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct SecurityKey {
     pub id: i64,
     pub name: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct UserInfo {
     pub id: Option<i64>,
     pub username: String,

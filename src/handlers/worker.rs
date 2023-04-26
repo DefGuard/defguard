@@ -139,8 +139,8 @@ pub async fn job_status(
 ) -> ApiResult {
     let state = worker_state.lock().unwrap();
     let job_response = state.get_job_status(job_id);
-    if job_response.is_some() {
-        if job_response.unwrap().success {
+    if let Some(response) = job_response {
+        if response.success {
             Ok(ApiResponse {
                 json: json!(job_response),
                 status: Status::Ok,
@@ -148,7 +148,7 @@ pub async fn job_status(
         } else {
             Ok(ApiResponse {
                 json: json!(JobResponseError {
-                    message: job_response.unwrap().error.clone()
+                    message: response.error.clone()
                 }),
                 status: Status::NotFound,
             })
