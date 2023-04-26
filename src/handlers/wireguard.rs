@@ -363,10 +363,14 @@ pub async fn list_devices(_admin: AdminRole, appstate: &State<AppState>) -> ApiR
 
 #[get("/device/user/<username>", format = "json")]
 pub async fn list_user_devices(
-    _session: SessionInfo,
+    session: SessionInfo,
     appstate: &State<AppState>,
     username: &str,
 ) -> ApiResult {
+    // only allow for admin or user themselves
+    if !session.is_admin && session.user.username != username {
+        return Err(OriWebError::Forbidden("Admin access required".into()));
+    };
     debug!("Listing devices for user: {}", username);
     let devices = Device::all_for_username(&appstate.pool, username).await?;
     info!("Listed devices for user: {}", username);

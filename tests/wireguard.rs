@@ -394,6 +394,30 @@ async fn test_device_permissions() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Forbidden);
+
+    // normal user cannot list devices of other users
+    let response = client.get("/api/v1/device/user/admin").dispatch().await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    let response = client.get("/api/v1/device/user/hpotter").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let user_devices: Vec<Device> = response.into_json().await.unwrap();
+    assert_eq!(user_devices.len(), 3);
+
+    // admin can list devices of other users
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let response = client.get("/api/v1/device/user/admin").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let user_devices: Vec<Device> = response.into_json().await.unwrap();
+    assert_eq!(user_devices.len(), 2);
+
+    let response = client.get("/api/v1/device/user/hpotter").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let user_devices: Vec<Device> = response.into_json().await.unwrap();
+    assert_eq!(user_devices.len(), 3);
 }
 
 #[rocket::async_test]
