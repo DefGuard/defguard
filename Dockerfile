@@ -35,8 +35,7 @@ WORKDIR /app
 COPY web/package.json .
 COPY web/pnpm-lock.yaml .
 COPY web/.npmrc .
-RUN npm i -g pnpm@8.2.0
-RUN pnpm config set loglevel=debug
+RUN npm i -g pnpm
 RUN pnpm install --ignore-scripts --frozen-lockfile
 COPY web/ .
 RUN pnpm run generate-translation-types

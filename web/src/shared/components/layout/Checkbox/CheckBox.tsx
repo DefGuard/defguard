@@ -1,12 +1,12 @@
 import './style.scss';
 
 import classNames from 'classnames';
-import { motion, Variants } from 'framer-motion';
+import { HTMLMotionProps, motion, Variants } from 'framer-motion';
 import { ReactNode, useMemo } from 'react';
 
 import { ColorsRGB } from '../../../constants';
 
-export interface CheckBoxProps {
+export interface CheckBoxProps extends Omit<HTMLMotionProps<'div'>, 'onChange'> {
   label?: string | ReactNode;
   value: boolean;
   labelPosition?: 'left' | 'right';
@@ -20,6 +20,7 @@ export const CheckBox = ({
   onChange,
   labelPosition = 'right',
   disabled = false,
+  ...rest
 }: CheckBoxProps) => {
   const checked = useMemo(() => (Number(value) ? true : false), [value]);
 
@@ -36,6 +37,7 @@ export const CheckBox = ({
 
   return (
     <motion.div
+      {...rest}
       className={cn}
       onClick={() => {
         if (onChange && !disabled) {

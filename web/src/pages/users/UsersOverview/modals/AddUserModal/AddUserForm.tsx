@@ -179,13 +179,14 @@ export const AddUserForm = () => {
   }, [LL.form.error, setError, usernameAvailable, usernameSubject, usernamesTaken]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form data-testid="add-user-form" onSubmit={handleSubmit(onSubmit)}>
       <div className="row">
         <div className="item">
           <FormInput
             placeholder={LL.modals.addUser.form.fields.username.placeholder()}
             controller={{ control, name: 'username' }}
             outerLabel={LL.modals.addUser.form.fields.username.label()}
+            autoComplete="username"
             required
           />
           <FormInput
@@ -196,12 +197,14 @@ export const AddUserForm = () => {
               title: LL.form.floatingErrors.title(),
             }}
             type="password"
+            autoComplete="password"
             required
           />
           <FormInput
             outerLabel={LL.modals.addUser.form.fields.email.label()}
             placeholder={LL.modals.addUser.form.fields.email.placeholder()}
             controller={{ control, name: 'email' }}
+            autoComplete="email"
             required
           />
         </div>
@@ -210,18 +213,21 @@ export const AddUserForm = () => {
             outerLabel={LL.modals.addUser.form.fields.firstName.label()}
             controller={{ control, name: 'first_name' }}
             placeholder={LL.modals.addUser.form.fields.firstName.placeholder()}
+            autoComplete="given-name"
             required
           />
           <FormInput
             outerLabel={LL.modals.addUser.form.fields.lastName.label()}
             controller={{ control, name: 'last_name' }}
             placeholder={LL.modals.addUser.form.fields.lastName.placeholder()}
+            autoComplete="family-name"
             required
           />
           <FormInput
             controller={{ control, name: 'phone' }}
             outerLabel={LL.modals.addUser.form.fields.phone.label()}
             placeholder={LL.modals.addUser.form.fields.phone.placeholder()}
+            autoComplete="tel"
             required
           />
         </div>

@@ -1,4 +1,4 @@
-version: "3"
+version: "3.9"
 
 services:
   core:
@@ -24,36 +24,11 @@ services:
     depends_on:
       - db
 
-  gateway:
-    image: ghcr.io/defguard/gateway:latest
-    environment:
-      DEFGUARD_GRPC_URL: http://core:50055
-      DEFGUARD_STATS_PERIOD: 60
-      DEFGUARD_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEZWZHdWFyZCIsInN1YiI6IlRlc3ROZXQiLCJjbGllbnRfaWQiOiIiLCJleHAiOjU5NjE3NDcwNzYsIm5iZiI6MTY2Njc3OTc4MSwicm9sZXMiOltdfQ.uEUMnw_gO23W0K2q3N1lToeP0D2zAY1swr8N-84sRHA
-      RUST_LOG: debug
-    ports:
-      # wireguard endpoint
-      - "50051:50051/udp"
-    depends_on:
-      - core
-    cap_add:
-      - NET_ADMIN
-
   db:
     image: postgres:14-alpine
     environment:
       POSTGRES_DB: defguard
       POSTGRES_USER: defguard
       POSTGRES_PASSWORD: defguard
-    volumes:
-      - ./.volumes/db:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-
-  device:
-    build:
-      dockerfile: Dockerfile.device
-    depends_on:
-      - gateway
-    cap_add:
-      - NET_ADMIN

@@ -23,6 +23,7 @@ export const VirtualizedList = <T extends object>({
   mobile,
   padding,
   headerPadding,
+  onDefaultRowClick,
 }: Props<T>) => {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +66,7 @@ export const VirtualizedList = <T extends object>({
     }
   }, []);
 
-  const renderRow = (value: T) => {
+  const renderRow = (value: T, onDefaultRowClick?: (context: T) => void) => {
     if (breakpoint !== 'desktop' && mobile?.enabled && mobile.renderer) {
       return mobile.renderer(value);
     }
@@ -73,7 +74,11 @@ export const VirtualizedList = <T extends object>({
       return customRowRender(value);
     }
     return (
-      <DefaultRowRender>
+      <DefaultRowRender
+        onClick={() => {
+          onDefaultRowClick?.(value);
+        }}
+      >
         {cells?.map(({ render, onClick }, index) => (
           <div
             className={`cell-${index}`}
@@ -184,7 +189,7 @@ export const VirtualizedList = <T extends object>({
                 }px)`,
               }}
             >
-              {renderRow(data[virtualItem.index])}
+              {renderRow(data[virtualItem.index], onDefaultRowClick)}
             </div>
           ))}
         </div>
@@ -287,9 +292,10 @@ const ListHeader = ({
 
 type DefaultRowRenderProps = {
   children?: ReactNode;
+  onClick?: () => void;
 };
 
-const DefaultRowRender = ({ children }: DefaultRowRenderProps) => {
+const DefaultRowRender = ({ children, onClick }: DefaultRowRenderProps) => {
   const [hovered, setHovered] = useState(false);
   return (
     <motion.div
@@ -299,6 +305,7 @@ const DefaultRowRender = ({ children }: DefaultRowRenderProps) => {
       animate={hovered ? 'hovered' : 'idle'}
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
+      onClick={onClick}
     >
       {children}
     </motion.div>
@@ -380,4 +387,5 @@ interface Props<T extends object> {
   };
   padding?: ListPadding;
   headerPadding?: ListPadding;
+  onDefaultRowClick?: (context: T) => void;
 }

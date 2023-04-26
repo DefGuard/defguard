@@ -762,6 +762,7 @@ const en: BaseTranslation = {
         delete: 'Delete app',
         disable: 'Disable',
         enable: 'Enable',
+        copy: 'Copy client ID',
       },
       status: {
         enabled: 'Enabled',
@@ -769,6 +770,7 @@ const en: BaseTranslation = {
       },
     },
     messages: {
+      copySuccess: 'Client ID copied.',
       noLicenseMessage: "You don't have a license for this feature.",
       noClientsFound: 'No results found.',
     },

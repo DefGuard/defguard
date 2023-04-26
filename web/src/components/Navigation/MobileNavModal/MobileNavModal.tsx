@@ -49,7 +49,7 @@ export const MobileNavModal = ({ isOpen, setIsOpen, links, onLogOut }: Props) =>
           }}
         />
       </div>
-      <button className="log-out" onClick={() => onLogOut()}>
+      <button data-testid="logout" className="log-out" onClick={() => onLogOut()}>
         <SvgIconNavLogout /> <span>{LL.navigation.bar.logOut()}</span>
       </button>
       <Divider key="app-version-divider" />

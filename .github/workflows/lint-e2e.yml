@@ -1,0 +1,28 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "e2e/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "e2e/**"
+
+jobs:
+  lint-e2e:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 19
+      - name: install deps
+        working-directory: ./e2e
+        run: |
+          npm i -g pnpm
+          pnpm i --frozen-lockfile
+      - name: Lint
+        working-directory: ./e2e
+        run: pnpm lint

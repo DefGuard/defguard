@@ -1712,6 +1712,10 @@ type RootTranslation = {
 				 * E​n​a​b​l​e
 				 */
 				enable: string
+				/**
+				 * C​o​p​y​ ​c​l​i​e​n​t​ ​I​D
+				 */
+				copy: string
 			}
 			status: {
 				/**
@@ -1725,6 +1729,10 @@ type RootTranslation = {
 			}
 		}
 		messages: {
+			/**
+			 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+			 */
+			copySuccess: string
 			/**
 			 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
 			 */
@@ -4312,6 +4320,10 @@ export type TranslationFunctions = {
 				 * Enable
 				 */
 				enable: () => LocalizedString
+				/**
+				 * Copy client ID
+				 */
+				copy: () => LocalizedString
 			}
 			status: {
 				/**
@@ -4325,6 +4337,10 @@ export type TranslationFunctions = {
 			}
 		}
 		messages: {
+			/**
+			 * Client ID copied.
+			 */
+			copySuccess: () => LocalizedString
 			/**
 			 * You don't have a license for this feature.
 			 */

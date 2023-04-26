@@ -1,6 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import clipboard from 'clipboardy';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
@@ -170,8 +171,6 @@ export const OpenidClientsListPage = () => {
       {
         key: 'name',
         render: (client) => <span>{client.name}</span>,
-        onClick: (client) =>
-          setOpenIdClientModalState({ visible: true, client, viewMode: true }),
       },
       {
         key: 'status',
@@ -190,7 +189,7 @@ export const OpenidClientsListPage = () => {
       {
         key: 'actions',
         render: (client) => (
-          <EditButton>
+          <EditButton data-testid={`edit-openid-client-${client.id}`}>
             <EditButtonOption
               text={LL.openidOverview.list.editButton.edit()}
               onClick={() =>
@@ -210,6 +209,20 @@ export const OpenidClientsListPage = () => {
               onClick={() => editClientStatusMutation(client)}
             />
             <EditButtonOption
+              data-testid="copy-openid-client-id"
+              text={LL.openidOverview.list.editButton.copy()}
+              onClick={() => {
+                clipboard
+                  .write(client.client_id)
+                  .then(() => {
+                    toaster.success(LL.openidOverview.messages.copySuccess());
+                  })
+                  .catch(() => {
+                    toaster.error(LL.messages.clipboardError());
+                  });
+              }}
+            />
+            <EditButtonOption
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               text={LL.openidOverview.list.editButton.delete()}
               onClick={() => {
@@ -223,10 +236,13 @@ export const OpenidClientsListPage = () => {
     ];
     return res;
   }, [
+    LL.messages,
     LL.openidOverview.list.editButton,
     LL.openidOverview.list.status,
+    LL.openidOverview.messages,
     editClientStatusMutation,
     setOpenIdClientModalState,
+    toaster,
   ]);
 
   const getListPadding = useMemo(() => {
@@ -280,6 +296,7 @@ export const OpenidClientsListPage = () => {
             />
           )}
           <Button
+            data-testid="add-openid-client"
             className="add-client"
             onClick={() =>
               setOpenIdClientModalState({
@@ -319,6 +336,9 @@ export const OpenidClientsListPage = () => {
             left: 50,
             right: 15,
           }}
+          onDefaultRowClick={(client) =>
+            setOpenIdClientModalState({ visible: true, client, viewMode: true })
+          }
         />
       )}
       <OpenIdClientModal />

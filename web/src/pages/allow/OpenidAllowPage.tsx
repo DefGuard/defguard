@@ -83,6 +83,8 @@ export const OpenidAllowPage = () => {
             setAuthStore({ openIdParams: params });
             setLoadingInfo(false);
             navigate('/auth', { replace: true });
+          } else {
+            navigate('/', { replace: true });
           }
         });
     }
@@ -116,6 +118,7 @@ export const OpenidAllowPage = () => {
         </ul>
         <div className="controls">
           <Button
+            data-testid="openid-allow"
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconCheckmarkWhite />}
@@ -124,6 +127,7 @@ export const OpenidAllowPage = () => {
             onClick={() => handleSubmit(true)}
           />
           <Button
+            data-testid="openid-cancel"
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.STANDARD}
             icon={<SvgIconDelete />}

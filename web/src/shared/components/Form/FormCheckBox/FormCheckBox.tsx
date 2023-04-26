@@ -28,6 +28,7 @@ export const FormCheckBox = <T extends FieldValues>({
   }, [customValue, value]);
   return (
     <CheckBox
+      data-testid={`field-${controller.name}`}
       {...rest}
       value={checkBoxValue}
       onChange={(e) => {
