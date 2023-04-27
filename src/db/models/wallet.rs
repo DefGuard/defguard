@@ -1,10 +1,8 @@
-use crate::{
-    hex::{hex_decode, to_lower_hex},
-    DbPool,
-};
+use crate::{hex::hex_decode, DbPool};
 use chrono::{NaiveDateTime, Utc};
 use ethers::core::types::transaction::eip712::{Eip712, TypedData};
 use model_derive::Model;
+use openidconnect::Nonce;
 use rocket::serde::json::serde_json;
 use secp256k1::{
     ecdsa::{RecoverableSignature, RecoveryId},
@@ -144,7 +142,7 @@ impl Wallet {
 
     /// Prepare challenge message using EIP-712 format
     pub fn format_challenge(address: &str, challenge_message: &str) -> String {
-        let nonce = to_lower_hex(&keccak256(address.as_bytes()));
+        let nonce = Nonce::new_random();
 
         format!(
             r#"{{
@@ -167,7 +165,9 @@ impl Wallet {
                 "nonce": "{}"
 	}}}}
         "#,
-            address, challenge_message, nonce
+            address,
+            challenge_message,
+            nonce.secret()
         )
         .chars()
         .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
