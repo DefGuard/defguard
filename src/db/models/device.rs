@@ -170,11 +170,11 @@ impl Device {
         Err(ModelError::CannotCreate)
     }
 
-    pub fn validate_pubkey(pubkey: String) -> Result<(), String> {
+    pub fn validate_pubkey(pubkey: &str) -> Result<(), String> {
         lazy_static! {
             static ref RE: Regex = Regex::new("^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=$").unwrap();
         }
-        if RE.is_match(&pubkey) {
+        if RE.is_match(pubkey) {
             Ok(())
         } else {
             Err(format!("{} is not a valid pubkey", pubkey))
@@ -221,10 +221,10 @@ mod test {
 
     #[test]
     fn test_pubkey_validation() {
-        let invalid_test_key = "invalid_key".to_string();
+        let invalid_test_key = "invalid_key";
         assert_err!(Device::validate_pubkey(invalid_test_key));
 
-        let valid_test_key = "sejIy0WCLvOR7vWNchP9Elsayp3UTK/QCnEJmhsHKTc=".to_string();
+        let valid_test_key = "sejIy0WCLvOR7vWNchP9Elsayp3UTK/QCnEJmhsHKTc=";
         assert_ok!(Device::validate_pubkey(valid_test_key));
     }
 }
