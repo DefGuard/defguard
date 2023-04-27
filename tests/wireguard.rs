@@ -900,6 +900,31 @@ async fn test_config_import_missing_interface() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::UnprocessableEntity);
+
+    // invalid device pubkey
+    let wg_config = "
+        [Interface]
+        PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+        Address = 10.0.0.1/24
+        ListenPort = 55055
+        DNS = 10.0.0.2
+
+        [Peer]
+        PublicKey = invalid_key
+        AllowedIPs = 10.0.0.10/24
+        PersistentKeepalive = 300
+
+        [Peer]
+        PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
+        AllowedIPs = 10.0.0.11/24
+        PersistentKeepalive = 300
+    ";
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::UnprocessableEntity);
 }
 
 #[rocket::async_test]

@@ -92,6 +92,7 @@ pub fn parse_wireguard_config(
         let pubkey = peer
             .get("PublicKey")
             .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PublicKey".to_string()))?;
+        Device::validate_pubkey(pubkey).map_err(WireguardConfigParseError::InvalidKey)?;
 
         devices.push(Device::new(pubkey.to_string(), ip, pubkey.to_string(), -1));
     }
