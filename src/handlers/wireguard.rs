@@ -220,20 +220,23 @@ pub async fn add_user_devices(
 ) -> ApiResult {
     let mut data = data.into_inner();
     let user = session.user;
-    debug!(
-        "User {} adding {} devices",
-        user.username,
-        data.devices.len()
-    );
+    let device_count = data.devices.len();
+    debug!("User {} adding {} devices", user.username, device_count);
+
+    // wrap loop in transaction to abort if a device is invalid
+    let mut transaction = appstate.pool.begin().await?;
     for device in data.devices.as_mut_slice() {
-        device.save(&appstate.pool).await?;
+        Device::validate_pubkey(&device.wireguard_pubkey).map_err(OriWebError::PubkeyValidation)?;
+        device.save(&mut transaction).await?;
+    }
+    transaction.commit().await?;
+
+    // send gRPC event after DB transaction succeeds
+    for device in data.devices.as_mut_slice() {
         appstate.send_wireguard_event(GatewayEvent::DeviceCreated(device.clone()));
     }
-    info!(
-        "User {} added {} devices",
-        user.username,
-        data.devices.len()
-    );
+
+    info!("User {} added {} devices", user.username, device_count);
 
     Ok(ApiResponse {
         json: json!(data),
@@ -256,6 +259,7 @@ pub async fn add_device(
     let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     // FIXME: hard-coded network id
     if let Ok(Some(network)) = WireguardNetwork::find_by_id(&appstate.pool, 1).await {
+        Device::validate_pubkey(&data.wireguard_pubkey).map_err(OriWebError::PubkeyValidation)?;
         if network.pubkey == data.wireguard_pubkey {
             return Ok(ApiResponse {
                 json: json!({"msg": "device's pubkey must be different from server's pubkey"}),

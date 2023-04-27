@@ -538,7 +538,7 @@ mod test {
             "test@test.com".to_string(),
             None,
         );
-        user.save(&pool).await.unwrap();
+        user.save(pool).await.unwrap();
         for i in 0..count {
             let mut device = Device::assign_device_ip(
                 pool,

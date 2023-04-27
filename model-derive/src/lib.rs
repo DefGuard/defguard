@@ -152,30 +152,42 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
     quote! {
         impl #name {
-            pub async fn find_by_id(pool: &DbPool, id: i64) -> Result<Option<Self>, sqlx::Error> {
-                sqlx::query_as!(Self, #find_by_id_query, id).fetch_optional(pool).await
+            pub async fn find_by_id<'e, E>(executor: E, id: i64) -> Result<Option<Self>, sqlx::Error>
+            where
+                E: sqlx::Executor<'e, Database = sqlx::Postgres>
+            {
+                sqlx::query_as!(Self, #find_by_id_query, id).fetch_optional(executor).await
             }
 
             // TODO: add limit and offset
-            pub async fn all(pool: &DbPool) -> Result<Vec<Self>, sqlx::Error> {
-                sqlx::query_as!(Self, #all_query).fetch_all(pool).await
+            pub async fn all<'e, E>(executor: E) -> Result<Vec<Self>, sqlx::Error>
+            where
+                E: sqlx::Executor<'e, Database = sqlx::Postgres>
+            {
+                sqlx::query_as!(Self, #all_query).fetch_all(executor).await
             }
 
-            pub async fn delete(self, pool: &DbPool) -> Result<(), sqlx::Error> {
+            pub async fn delete<'e, E>(self, executor: E) -> Result<(), sqlx::Error>
+            where
+                E: sqlx::Executor<'e, Database = sqlx::Postgres>
+            {
                 if let Some(id) = self.id {
-                    sqlx::query!(#delete_query, id).execute(pool).await?;
+                    sqlx::query!(#delete_query, id).execute(executor).await?;
                 }
                 Ok(())
             }
 
-            pub async fn save(&mut self, pool: &DbPool) -> Result<(), sqlx::Error> {
+            pub async fn save<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+            where
+                E: sqlx::Executor<'e, Database = sqlx::Postgres>
+            {
                 match self.id {
                     None => {
-                        let id = sqlx::query_scalar!(#insert_query, #(#insert_args,)*).fetch_one(pool).await?;
+                        let id = sqlx::query_scalar!(#insert_query, #(#insert_args,)*).fetch_one(executor).await?;
                         self.id = Some(id);
                     }
                     Some(id) => {
-                        sqlx::query!(#update_query, id, #(#update_args,)*).execute(pool).await?;
+                        sqlx::query!(#update_query, id, #(#update_args,)*).execute(executor).await?;
                     }
                 }
                 Ok(())

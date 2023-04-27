@@ -1,4 +1,3 @@
-use crate::DbPool;
 use model_derive::Model;
 
 #[derive(Model, Serialize, Deserialize, Debug, Eq, PartialEq)]

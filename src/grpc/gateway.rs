@@ -99,7 +99,7 @@ impl GatewayServer {
             .await
         {
             let msg = format!(
-                "Failed to send network update, network {}, update type: {}, error: {}",
+                "Failed to send network update, device {}, update type: {}, error: {}",
                 device.name, update_type, err,
             );
             error!("{}", msg);

@@ -457,6 +457,18 @@ async fn test_device_pubkey() {
         .await;
     assert_eq!(response.status(), Status::BadRequest);
 
+    // create another bad device
+    let device = json!({
+        "name": "device",
+        "wireguard_pubkey": "invalid_key",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
+
     // create good device
     let device = json!({
         "name": "device",
@@ -484,6 +496,34 @@ async fn test_device_pubkey() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::BadRequest);
+
+    // try to create multiple devices
+    let devices = json!({"devices": [{
+        "name": "device_2",
+        "wireguard_ip": "10.0.0.9",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "user_id": 1,
+        "created": "2023-05-05T23:56:04"
+    },
+    {
+        "name": "device_3",
+        "wireguard_ip": "10.0.0.10",
+        "wireguard_pubkey": "invalid_key",
+        "user_id": 1,
+        "created": "2023-05-05T23:56:04"
+    }]});
+    let response = client
+        .post("/api/v1/network/devices")
+        .json(&devices)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
+
+    // make sure no device was created
+    let response = client.get("/api/v1/device").json(&device).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let devices: Vec<Device> = response.into_json().await.unwrap();
+    assert_eq!(devices.len(), 1);
 }
 
 #[rocket::async_test]
@@ -517,8 +557,7 @@ async fn test_stats() {
 
     let device = json!({
         "name": "device-2",
-        "wireguard_pubkey": "sIhx53MsX+iLk83sssybHrD7M+5m+CmpLzWL/zo8C38=
-    ",
+        "wireguard_pubkey": "sIhx53MsX+iLk83sssybHrD7M+5m+CmpLzWL/zo8C38=",
     });
     let response = client
         .post("/api/v1/device/admin")
@@ -918,6 +957,31 @@ async fn test_config_import_invalid_key() {
     assert_eq!(response.status(), Status::Ok);
 
     // import network
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::UnprocessableEntity);
+
+    // invalid device pubkey
+    let wg_config = "
+        [Interface]
+        PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+        Address = 10.0.0.1/24
+        ListenPort = 55055
+        DNS = 10.0.0.2
+
+        [Peer]
+        PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
+        AllowedIPs = 10.0.0.10/24
+        PersistentKeepalive = 300
+
+        [Peer]
+        PublicKey = invalid_key
+        AllowedIPs = 10.0.0.11/24
+        PersistentKeepalive = 300
+    ";
     let response = client
         .post("/api/v1/network/import")
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))

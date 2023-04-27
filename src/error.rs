@@ -15,6 +15,7 @@ pub enum OriWebError {
     Forbidden(String),
     DbError(String),
     ModelError(String),
+    PubkeyValidation(String),
     Http(rocket::http::Status),
 }
 
@@ -35,6 +36,7 @@ impl fmt::Display for OriWebError {
             OriWebError::Forbidden(msg) => write!(f, "Forbidden error: {}", msg),
             OriWebError::DbError(msg) => write!(f, "Database error: {}", msg),
             OriWebError::ModelError(msg) => write!(f, "Model error: {}", msg),
+            OriWebError::PubkeyValidation(msg) => write!(f, "{}", msg),
             OriWebError::Http(status) => write!(f, "HTTP error: {}", status),
         }
     }
