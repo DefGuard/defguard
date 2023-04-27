@@ -457,6 +457,18 @@ async fn test_device_pubkey() {
         .await;
     assert_eq!(response.status(), Status::BadRequest);
 
+    // create another bad device
+    let device = json!({
+        "name": "device",
+        "wireguard_pubkey": "invalid_key",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
+
     // create good device
     let device = json!({
         "name": "device",
@@ -517,8 +529,7 @@ async fn test_stats() {
 
     let device = json!({
         "name": "device-2",
-        "wireguard_pubkey": "sIhx53MsX+iLk83sssybHrD7M+5m+CmpLzWL/zo8C38=
-    ",
+        "wireguard_pubkey": "sIhx53MsX+iLk83sssybHrD7M+5m+CmpLzWL/zo8C38=",
     });
     let response = client
         .post("/api/v1/device/admin")
