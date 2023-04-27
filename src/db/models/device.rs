@@ -1,10 +1,12 @@
 use super::{error::ModelError, wireguard::WireguardNetwork, DbPool};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
+use lazy_static::lazy_static;
 use model_derive::Model;
+use regex::Regex;
 use sqlx::{query_as, Error as SqlxError};
 
-#[derive(Clone, Deserialize, Model, Serialize, Debug)]
+#[derive(Clone, Deserialize, Model, Serialize, Debug, PartialEq)]
 pub struct Device {
     pub id: Option<i64>,
     pub name: String,
@@ -167,12 +169,24 @@ impl Device {
         }
         Err(ModelError::CannotCreate)
     }
+
+    pub fn validate_pubkey(self) -> Result<Self, String> {
+        lazy_static! {
+            static ref RE: Regex = Regex::new("^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=$").unwrap();
+        }
+        if RE.is_match(&self.wireguard_pubkey) {
+            Ok(self)
+        } else {
+            Err(format!("{} is not a valid pubkey", self.wireguard_pubkey))
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::db::User;
+    use claims::{assert_err, assert_ok_eq};
 
     #[sqlx::test]
     async fn test_assign_device_ip(pool: DbPool) {
@@ -203,5 +217,25 @@ mod test {
         let device =
             Device::assign_device_ip(&pool, 1, "dev4".into(), "key4".into(), &network).await;
         assert!(device.is_err());
+    }
+
+    #[test]
+    fn test_pubkey_validation() {
+        let test_device = Device::new(
+            "test_device".to_string(),
+            "10.1.1.2".to_string(),
+            "invalid_key".to_string(),
+            0,
+        );
+        assert_err!(test_device.validate_pubkey());
+
+        let test_device = Device::new(
+            "another_test_device".to_string(),
+            "10.1.1.3".to_string(),
+            "sejIy0WCLvOR7vWNchP9Elsayp3UTK/QCnEJmhsHKTc=".to_string(),
+            0,
+        );
+        let reference = test_device.clone();
+        assert_ok_eq!(test_device.validate_pubkey(), reference);
     }
 }
