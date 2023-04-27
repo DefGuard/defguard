@@ -5,6 +5,8 @@ import { OpenIdClient } from '../types';
 import { loginBasic } from '../utils/controllers/login';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
 import { getPageClipboard } from '../utils/getPageClipboard';
+import { waitForPromise } from '../utils/waitForPromise';
+import { waitForRoute } from '../utils/waitForRoute';
 
 // FIXME containerize test client so tests can run without external testing client
 
@@ -15,7 +17,7 @@ test('Authorize openId client.', async ({ page }) => {
     scopes: ['openid'],
   };
   await loginBasic(page, defaultUserAdmin);
-  await page.waitForURL(routes.base + routes.admin.wizard, { waitUntil: 'networkidle' });
+  await waitForRoute(page, routes.admin.wizard);
   await CreateOpenIdClient(page, client);
   await page.getByTestId('edit-openid-client-1').click();
   await page.getByTestId('copy-openid-client-id').click();
@@ -24,9 +26,10 @@ test('Authorize openId client.', async ({ page }) => {
   await page.locator('#authorizeUri').type(routes.base + routes.authorize);
   await page.locator('#clientId').type(clientId);
   await page.locator('.debug__form-submit').click();
-  await page.waitForURL(routes.base + routes.consent + '**');
+  await waitForRoute(page, routes.consent);
   await page.getByTestId('openid-allow').click();
-  await page.waitForURL('https://oidcdebugger.com/**', { waitUntil: 'networkidle' });
+  await waitForRoute(page, 'https://oidcdebugger.com/');
+  await waitForPromise(2000);
   const headerMessage = await page
     .locator('.debug__callback-header')
     .locator('h1')

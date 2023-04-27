@@ -100,8 +100,11 @@ export const AuthPage = () => {
         if (isAdmin) {
           // check if VPN needs wizard
           if (!wizardEnabled) {
-            const networks = await getNetworks();
-            if (networks.length === 0) {
+            const networks = await getNetworks().catch((err) => {
+              toaster.error(LL.messages.error());
+              console.error(err);
+            });
+            if (!networks || (networks && networks.length === 0)) {
               setNavigation({ enableWizard: true });
               navigateURL = '/admin/wizard';
             } else {
