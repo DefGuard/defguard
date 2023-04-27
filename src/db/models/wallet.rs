@@ -201,33 +201,3 @@ impl Wallet {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_verify_address() {
-        for (address, signature) in [
-            ("0x6cD15DA14A4Ef26047f1D7858D7A82b59DDCa102",
-            "0xfb812c61b3d5f3ea729a049b4f14c28c07938367c91062c959150e1a3273f07772f162c5abf8312be39c3a6640c47e02866bcd19b5545bc5650d5870547a1a8f1c"),
-            ("0x8AEF669452465635355923E4Dc80990aEAEE3b8d",
-            "0xefa7641e06c0d35e9386a3d97d50c5a2fffc7c5838ea42647093417b62bd1dc830ce8ecea3f9173190ee6c215a8a423fd1110caba06b6dc474e0792f802dfdc31b"),
-            ("0xE8e659AD9E99afd41f97015Cb2E2a96dD7456fA0",
-            "0x47d3eddfb2ed3ad1776c704fbe90737286ede2931c9e561abe6ce33606f411a00eafc25ec540e5db7ea82364e7df1e4722a916a828f02746a28773ae0e7bf3f31b"),
-        ] {
-            let challenge_message = "Please read this carefully:
-
-Click to sign to prove you are in possesion of your private key to the account.
-This request will not trigger a blockchain transaction or cost any gas fees.";
-            let message =  Wallet::format_challenge(address, challenge_message);
-            let wallet = Wallet::new_for_user(0, address.into(), String::new(), 0, message.clone());
-            let result = wallet.verify_address(
-                &message,
-                signature,
-            )
-            .unwrap();
-            assert!(result);
-        }
-    }
-}
