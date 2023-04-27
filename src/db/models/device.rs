@@ -6,7 +6,7 @@ use model_derive::Model;
 use regex::Regex;
 use sqlx::{query_as, Error as SqlxError};
 
-#[derive(Clone, Deserialize, Model, Serialize, Debug, PartialEq)]
+#[derive(Clone, Deserialize, Model, Serialize, Debug)]
 pub struct Device {
     pub id: Option<i64>,
     pub name: String,
