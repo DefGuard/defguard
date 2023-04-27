@@ -256,6 +256,7 @@ pub async fn add_device(
     let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     // FIXME: hard-coded network id
     if let Ok(Some(network)) = WireguardNetwork::find_by_id(&appstate.pool, 1).await {
+        Device::validate_pubkey(&data.wireguard_pubkey).map_err(OriWebError::PubkeyValidation)?;
         if network.pubkey == data.wireguard_pubkey {
             return Ok(ApiResponse {
                 json: json!({"msg": "device's pubkey must be different from server's pubkey"}),

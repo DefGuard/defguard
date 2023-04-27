@@ -70,6 +70,10 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
             }
             OriWebError::Serialization(msg) => internal_server_error(&msg),
             OriWebError::ModelError(msg) => internal_server_error(&msg),
+            OriWebError::PubkeyValidation(msg) => {
+                error!("{}", msg);
+                (json!({ "msg": msg }), Status::BadRequest)
+            }
             OriWebError::Http(status) => {
                 error!("{}", status);
                 (json!({ "msg": status.reason_lossy() }), status)
