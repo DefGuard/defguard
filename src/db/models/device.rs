@@ -170,14 +170,14 @@ impl Device {
         Err(ModelError::CannotCreate)
     }
 
-    pub fn validate_pubkey(self) -> Result<Self, String> {
+    pub fn validate_pubkey(pubkey: String) -> Result<(), String> {
         lazy_static! {
             static ref RE: Regex = Regex::new("^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=$").unwrap();
         }
-        if RE.is_match(&self.wireguard_pubkey) {
-            Ok(self)
+        if RE.is_match(&pubkey) {
+            Ok(())
         } else {
-            Err(format!("{} is not a valid pubkey", self.wireguard_pubkey))
+            Err(format!("{} is not a valid pubkey", pubkey))
         }
     }
 }
@@ -186,7 +186,7 @@ impl Device {
 mod test {
     use super::*;
     use crate::db::User;
-    use claims::{assert_err, assert_ok_eq};
+    use claims::{assert_err, assert_ok};
 
     #[sqlx::test]
     async fn test_assign_device_ip(pool: DbPool) {
@@ -221,21 +221,10 @@ mod test {
 
     #[test]
     fn test_pubkey_validation() {
-        let test_device = Device::new(
-            "test_device".to_string(),
-            "10.1.1.2".to_string(),
-            "invalid_key".to_string(),
-            0,
-        );
-        assert_err!(test_device.validate_pubkey());
+        let invalid_test_key = "invalid_key".to_string();
+        assert_err!(Device::validate_pubkey(invalid_test_key));
 
-        let test_device = Device::new(
-            "another_test_device".to_string(),
-            "10.1.1.3".to_string(),
-            "sejIy0WCLvOR7vWNchP9Elsayp3UTK/QCnEJmhsHKTc=".to_string(),
-            0,
-        );
-        let reference = test_device.clone();
-        assert_ok_eq!(test_device.validate_pubkey(), reference);
+        let valid_test_key = "sejIy0WCLvOR7vWNchP9Elsayp3UTK/QCnEJmhsHKTc=".to_string();
+        assert_ok!(Device::validate_pubkey(valid_test_key));
     }
 }
