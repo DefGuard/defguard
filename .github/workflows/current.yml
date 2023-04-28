@@ -30,5 +30,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ghcr.io/DefGuard/defguard:current
           labels: ${{ steps.meta.outputs.labels }}

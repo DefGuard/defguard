@@ -1,9 +1,12 @@
 name: E2E tests
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - "Build current image"
+    branches: [main]
+    types:
+      - completed
 
 jobs:
   test:
