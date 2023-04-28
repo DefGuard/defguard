@@ -1,5 +1,4 @@
 version: "3.9"
-
 services:
   core:
     # image: ghcr.io/defguard/defguard:current
@@ -15,7 +14,8 @@ services:
       DEFGUARD_DB_USER: defguard
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
-      DEFGUARD_URL: http://core:8000
+      DEFGUARD_URL: http://localhost:8000
+      UNSECURE_DISABLE_SECURE_COOKIES: 1
       RUST_BACKTRACE: 1
     ports:
       # rest api
@@ -30,10 +30,11 @@ services:
       context: ./e2e
       dockerfile: Dockerfile
     environment:
-      BASE_URL: http://core:8000
+      BASE_URL: http://localhost:8000
     volumes:
       - "./.volumes/e2e:/app/playwright-report"
       - "./.volumes/e2e:/app/test-results"
+    network_mode: host
 
   db:
     image: postgres:14-alpine
@@ -57,3 +58,5 @@ services:
       - core
     cap_add:
       - NET_ADMIN
+    links:
+      - core

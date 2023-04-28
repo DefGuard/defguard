@@ -15,5 +15,5 @@ export const createUser = async (page: Page, user: User) => {
   await formElement.getByTestId('field-email').type(user.mail);
   await formElement.getByTestId('field-phone').type(user.phone);
   await formElement.locator('button[type="submit"]').click();
-  await formElement.waitFor({ state: 'hidden' });
+  await formElement.waitFor({ state: 'hidden', timeout: 2000 });
 };

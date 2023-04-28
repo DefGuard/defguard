@@ -19,7 +19,6 @@ export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
   const responsePromise = page.waitForResponse('**/auth');
   await page.getByTestId('login-form-submit').click();
   const response = await responsePromise;
-  console.log(response.status());
   expect([200, 201].includes(response.status())).toBeTruthy();
   await waitForPromise(2000);
 };
