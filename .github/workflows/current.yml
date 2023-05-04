@@ -13,7 +13,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ghcr.io/DefGuard/defguard
+            ghcr.io/defguard/defguard
           tags: |
             type=raw,value=current
             type=ref,event=branch
@@ -30,6 +30,5 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: |
-            ghcr.io/DefGuard/defguard:current
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
