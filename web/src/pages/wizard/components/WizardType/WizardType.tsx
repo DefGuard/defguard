@@ -13,21 +13,11 @@ import { WizardTypeOptionCard } from './components/WizardTypeOptionCard/WizardTy
 export const WizardType = () => {
   const { LL } = useI18nContext();
   const setupType = useWizardStore((state) => state.setupType);
-  const disableNext = useWizardStore((state) => state.disableNext);
   const [setWizardState, nextStepSubject] = useWizardStore(
     (state) => [state.setState, state.nextStepSubject],
     shallow
   );
   const submitSubject = useWizardStore((state) => state.submitSubject);
-
-  useEffect(() => {
-    if (!setupType && !disableNext) {
-      setWizardState({ disableNext: true });
-    }
-    if (setupType && disableNext) {
-      setWizardState({ disableNext: false });
-    }
-  }, [disableNext, setWizardState, setupType]);
 
   useEffect(() => {
     if (submitSubject && submitSubject.subscribe) {
