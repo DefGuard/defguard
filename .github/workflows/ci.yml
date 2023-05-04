@@ -46,8 +46,8 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Set database URL
-        run: sed -i -e 's,localhost,postgres,' .env
+#      - name: Set database URL
+#        run: sed -i -e 's,localhost,postgres,' .env
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
       - name: Check format
@@ -61,5 +61,6 @@ jobs:
           DEFGUARD_DB_NAME: defguard
           DEFGUARD_DB_USER: defguard
           DEFGUARD_DB_PASSWORD: defguard
+          DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
           SQLX_OFFLINE: true
         run: cargo test --locked --no-fail-fast
