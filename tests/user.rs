@@ -262,8 +262,12 @@ async fn test_wallet() {
     let response = client.get(challenge_query.clone()).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     let challenge: WalletChallenge = response.into_json().await.unwrap();
+
+    let parsed_data: TypedData =
+        rocket::serde::json::serde_json::from_str(&challenge.message).unwrap();
+    let parsed_message = parsed_data.message;
+
     // see migrations for the default message
-    let nonce = to_lower_hex(&keccak256(wallet_address.as_bytes()));
     let challenge_message = "Please read this carefully:
 
 Click to sign to prove you are in possesion of your private key to the account.
@@ -286,10 +290,12 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
 	"message": {{
 		"wallet": "{}",
 		"content": "{}",
-                "nonce": "{}"
+                "nonce": {}
 	}}}}
         "#,
-        wallet_address, challenge_message, nonce,
+        wallet_address,
+        challenge_message,
+        parsed_message.get("nonce").unwrap(),
     )
     .chars()
     .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')

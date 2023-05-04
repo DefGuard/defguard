@@ -21,6 +21,7 @@ use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
 mod common;
 use common::init_test_db;
+use defguard::hex::to_lower_hex;
 
 #[derive(Deserialize)]
 pub struct RecoveryCodes {
@@ -418,20 +419,6 @@ async fn test_web3() {
     let secp = Secp256k1::new();
     let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
 
-    pub fn to_lower_hex(bytes: &[u8]) -> String {
-        let mut hex = String::with_capacity(bytes.len() + 2);
-        let to_char = |nibble: u8| -> char {
-            (match nibble {
-                0..=9 => b'0' + nibble,
-                _ => nibble + b'a' - 10,
-            }) as char
-        };
-        bytes.iter().for_each(|byte| {
-            hex.push(to_char(*byte >> 4));
-            hex.push(to_char(*byte & 0xf));
-        });
-        hex
-    }
     // create eth wallet address
     let public_key = public_key.serialize_uncompressed();
     let hash = keccak256(&public_key[1..]);
@@ -478,7 +465,10 @@ async fn test_web3() {
     assert_eq!(response.status(), Status::Ok);
     let data: Challenge = response.into_json().await.unwrap();
 
-    let nonce = to_lower_hex(&keccak256(wallet_address.as_bytes()));
+    let parsed_data: TypedData =
+        rocket::serde::json::serde_json::from_str(&data.challenge).unwrap();
+    let parsed_message = parsed_data.message;
+
     let challenge_message = "Please read this carefully:
 
 Click to sign to prove you are in possesion of your private key to the account.
@@ -501,10 +491,12 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
 	"message": {{
 		"wallet": "{}",
 		"content": "{}",
-                "nonce": "{}"
+                "nonce": {}
 	}}}}
         "#,
-        wallet_address, challenge_message, nonce,
+        wallet_address,
+        challenge_message,
+        parsed_message.get("nonce").unwrap(),
     )
     .chars()
     .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')

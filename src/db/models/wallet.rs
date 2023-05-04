@@ -1,10 +1,8 @@
-use crate::{
-    hex::{hex_decode, to_lower_hex},
-    DbPool,
-};
+use crate::{hex::hex_decode, DbPool};
 use chrono::{NaiveDateTime, Utc};
 use ethers::core::types::transaction::eip712::{Eip712, TypedData};
 use model_derive::Model;
+use openidconnect::Nonce;
 use rocket::serde::json::serde_json;
 use secp256k1::{
     ecdsa::{RecoverableSignature, RecoveryId},
@@ -144,7 +142,7 @@ impl Wallet {
 
     /// Prepare challenge message using EIP-712 format
     pub fn format_challenge(address: &str, challenge_message: &str) -> String {
-        let nonce = to_lower_hex(&keccak256(address.as_bytes()));
+        let nonce = Nonce::new_random();
 
         format!(
             r#"{{
@@ -167,7 +165,9 @@ impl Wallet {
                 "nonce": "{}"
 	}}}}
         "#,
-            address, challenge_message, nonce
+            address,
+            challenge_message,
+            nonce.secret()
         )
         .chars()
         .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
@@ -199,35 +199,5 @@ impl Wallet {
         .execute(pool)
         .await?;
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_verify_address() {
-        for (address, signature) in [
-            ("0x6cD15DA14A4Ef26047f1D7858D7A82b59DDCa102",
-            "0xfb812c61b3d5f3ea729a049b4f14c28c07938367c91062c959150e1a3273f07772f162c5abf8312be39c3a6640c47e02866bcd19b5545bc5650d5870547a1a8f1c"),
-            ("0x8AEF669452465635355923E4Dc80990aEAEE3b8d",
-            "0xefa7641e06c0d35e9386a3d97d50c5a2fffc7c5838ea42647093417b62bd1dc830ce8ecea3f9173190ee6c215a8a423fd1110caba06b6dc474e0792f802dfdc31b"),
-            ("0xE8e659AD9E99afd41f97015Cb2E2a96dD7456fA0",
-            "0x47d3eddfb2ed3ad1776c704fbe90737286ede2931c9e561abe6ce33606f411a00eafc25ec540e5db7ea82364e7df1e4722a916a828f02746a28773ae0e7bf3f31b"),
-        ] {
-            let challenge_message = "Please read this carefully:
-
-Click to sign to prove you are in possesion of your private key to the account.
-This request will not trigger a blockchain transaction or cost any gas fees.";
-            let message =  Wallet::format_challenge(address, challenge_message);
-            let wallet = Wallet::new_for_user(0, address.into(), String::new(), 0, message.clone());
-            let result = wallet.verify_address(
-                &message,
-                signature,
-            )
-            .unwrap();
-            assert!(result);
-        }
     }
 }
