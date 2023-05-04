@@ -19,6 +19,7 @@ import MessageBox from '../../../../shared/components/layout/MessageBox/MessageB
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
+import { patternValidIpOrDomain } from '../../../../shared/patterns';
 import { ImportNetworkRequest } from '../../../../shared/types';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
@@ -52,11 +53,7 @@ export const WizardNetworkImport = () => {
           endpoint: yup
             .string()
             .required(LL.form.error.required())
-            .matches(
-              // eslint-disable-next-line max-len
-              /((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
-              LL.form.error.endpoint()
-            ),
+            .matches(patternValidIpOrDomain, LL.form.error.endpoint()),
           fileName: yup.string().required(LL.form.error.required()),
           config: yup.string().required(),
         })

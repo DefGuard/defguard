@@ -1342,6 +1342,10 @@ type RootTranslation = {
 			 * C​o​d​e​ ​s​h​o​u​l​d​ ​h​a​v​e​ ​6​ ​d​i​g​i​t​s​.
 			 */
 			validCode: string
+			/**
+			 * O​n​l​y​ ​v​a​l​i​d​ ​I​P​ ​o​r​ ​d​o​m​a​i​n​ ​a​l​l​o​w​e​d
+			 */
+			allowedIps: string
 		}
 		floatingErrors: {
 			/**
@@ -2245,6 +2249,10 @@ type RootTranslation = {
 		form: {
 			messages: {
 				/**
+				 * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)
+				 */
+				address: string
+				/**
 				 * G​a​t​e​w​a​y​ ​p​u​b​l​i​c​ ​a​d​d​r​e​s​s​,​ ​u​s​e​d​ ​b​y​ ​V​P​N​ ​u​s​e​r​s​ ​t​o​ ​c​o​n​n​e​c​t
 				 */
 				gateway: string
@@ -2274,7 +2282,7 @@ type RootTranslation = {
 				}
 				address: {
 					/**
-					 * V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​a​n​d​ ​m​a​s​k
+					 * G​a​t​e​w​a​y​ ​V​P​N​ ​i​p​ ​a​d​d​r​e​s​s​ ​a​n​d​ ​n​e​t​m​a​s​k
 					 */
 					label: string
 				}
@@ -3952,6 +3960,10 @@ export type TranslationFunctions = {
 			 * Code should have 6 digits.
 			 */
 			validCode: () => LocalizedString
+			/**
+			 * Only valid IP or domain allowed
+			 */
+			allowedIps: () => LocalizedString
 		}
 		floatingErrors: {
 			/**
@@ -4846,6 +4858,10 @@ export type TranslationFunctions = {
 		form: {
 			messages: {
 				/**
+				 * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)
+				 */
+				address: () => LocalizedString
+				/**
 				 * Gateway public address, used by VPN users to connect
 				 */
 				gateway: () => LocalizedString
@@ -4875,7 +4891,7 @@ export type TranslationFunctions = {
 				}
 				address: {
 					/**
-					 * VPN network address and mask
+					 * Gateway VPN ip address and netmask
 					 */
 					label: () => LocalizedString
 				}
