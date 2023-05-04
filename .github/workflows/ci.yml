@@ -61,5 +61,6 @@ jobs:
           DEFGUARD_DB_NAME: defguard
           DEFGUARD_DB_USER: defguard
           DEFGUARD_DB_PASSWORD: defguard
+          DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
           SQLX_OFFLINE: true
         run: cargo test --locked --no-fail-fast
