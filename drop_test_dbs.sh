@@ -6,7 +6,7 @@ set -eo pipefail
 
 if [ -f .env ]
 then
-  export $(cat .env | xargs)
+  export $(cat .env | sed 's/#.*//g'| xargs)
 fi
 
 if ! [ -x "$(command -v psql)" ]; then
