@@ -8,4 +8,4 @@ FROM base as runner
 COPY --from=base /app /app
 WORKDIR /app
 COPY . .
-CMD pnpm run test
+CMD pnpm playwright test

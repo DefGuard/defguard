@@ -1,14 +1,38 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices, ReporterDescription } from '@playwright/test';
 
 import { routes } from './config';
+import { loadEnv } from './utils/loadEnv';
+
+loadEnv();
+
+let reporter:
+  | 'html'
+  | 'list'
+  | 'dot'
+  | 'line'
+  | 'github'
+  | 'json'
+  | 'junit'
+  | 'null'
+  | ReporterDescription[]
+  | undefined = [['html', { open: 'never' }]];
+
+if (process.env.CI) {
+  reporter = 'github';
+}
+
+if (process.env.SHOW_REPORT) {
+  reporter = [['html', { open: 'always' }]];
+}
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
+  timeout: 60 * 1000,
   testDir: './tests',
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
@@ -16,7 +40,7 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: reporter,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     baseURL: routes.base,

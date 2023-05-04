@@ -1,7 +1,3 @@
-import { loadEnv } from './utils/loadEnv';
-
-loadEnv();
-
 type TestsConfig = {
   BASE_URL: string;
 };

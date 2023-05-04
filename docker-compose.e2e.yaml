@@ -1,10 +1,7 @@
 version: "3.9"
-
 services:
   core:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/defguard/defguard:current
     environment:
       DEFGUARD_AUTH_SECRET: defguard-auth-secret
       DEFGUARD_GATEWAY_SECRET: defguard-gateway-secret
@@ -23,6 +20,17 @@ services:
       - "50055:50055"
     depends_on:
       - db
+
+  e2e:
+    build:
+      context: ./e2e
+      dockerfile: Dockerfile
+    environment:
+      BASE_URL: http://localhost:8000
+    volumes:
+      - "./.volumes/e2e:/app/playwright-report"
+      - "./.volumes/e2e:/app/test-results"
+    network_mode: host
 
   db:
     image: postgres:14-alpine
