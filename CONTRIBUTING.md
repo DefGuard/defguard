@@ -25,6 +25,7 @@ docker-compose up
 Following environment variables can be set to configure orion core service:
 
 * **DEFGUARD_ADMIN_GROUPNAME**: groupname that give a user privileged access
+* **DEFGUARD_DEFAULT_ADMIN_PASSWORD**: initial password of the default `admin` user
 
 ### Authorization
 
@@ -37,7 +38,7 @@ Following environment variables can be set to configure orion core service:
 * **DEFGUARD_LDAP_USER_SEARCH_BASE**: user search base, default: `dc=example,dc=org`
 * **DEFGUARD_LDAP_USER_OBJ_CLASS**: user object class, default: `inetOrgPerson`
 * **DEFGUARD_LDAP_GROUP_OBJ_CLASS**: group object class, default: `groupOfUniqueNames`
-* **DEFGUARD_LDAP_USERNAME_ATTR**: naming attribute for users, should be `cn` or `uid`, default: `cn` 
+* **DEFGUARD_LDAP_USERNAME_ATTR**: naming attribute for users, should be `cn` or `uid`, default: `cn`
 * **DEFGUARD_LDAP_GROUPNAME_ATTR**: naming attribute for groups, default: `cn`
 * **DEFGUARD_LDAP_MEMBER_ATTR**: user attribute for group membership
 * **DEFGUARD_LDAP_GROUP_MEMBER_ATTR**: group attibute for memebers
@@ -49,5 +50,3 @@ Following environment variables can be set to configure orion core service:
 ### HTTP server
 
 * **DEFGUARD_WEB_PORT**: web services bind port, default = `8000`
-* **DEFGUARD_OAUTH_ENABLED**: enable OAuth 2.0 support
-* **DEFGUARD_WG_SERVICE_URL**: WireGuard service instance to connect to
