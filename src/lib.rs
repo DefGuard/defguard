@@ -1,6 +1,7 @@
 #![allow(clippy::derive_partial_eq_without_eq)]
 // Rocket macro
 #![allow(clippy::unnecessary_lazy_evaluations)]
+#![allow(clippy::too_many_arguments)]
 
 use crate::auth::failed_login::FailedLoginMap;
 #[cfg(feature = "worker")]

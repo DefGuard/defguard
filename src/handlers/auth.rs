@@ -4,10 +4,7 @@ use super::{
 };
 use crate::{
     appstate::AppState,
-    auth::{
-        failed_login::{FailedLogin, FailedLoginMap},
-        SessionInfo,
-    },
+    auth::SessionInfo,
     db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::OriWebError,
     ldap::utils::user_from_ldap,
@@ -20,7 +17,6 @@ use rocket::{
 };
 use sqlx::types::Uuid;
 use std::ops::DerefMut;
-use std::sync::{Arc, Mutex};
 use webauthn_rs::prelude::PublicKeyCredential;
 
 /// For successful login, return:
