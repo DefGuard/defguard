@@ -993,7 +993,7 @@ const en: BaseTranslation = {
           label: 'Network name',
         },
         address: {
-          label: 'Gateway VPN ip address and netmask',
+          label: 'Gateway VPN IP address and netmask',
         },
         endpoint: {
           label: 'Gateway address',
