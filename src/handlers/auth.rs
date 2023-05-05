@@ -29,6 +29,14 @@ pub async fn authenticate(
     cookies: &CookieJar<'_>,
 ) -> ApiResult {
     debug!("Authenticating user {}", data.username);
+    // check if user can proceed with login
+    {
+        let mut failed_logins = appstate
+            .failed_logins
+            .lock()
+            .expect("Failed to get a lock on failed login map.");
+        failed_logins.deref_mut().verify_username(&data.username)?;
+    }
     data.username = data.username.to_lowercase();
     let user = match User::find_by_username(&appstate.pool, &data.username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {

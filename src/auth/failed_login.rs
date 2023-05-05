@@ -1,10 +1,6 @@
-// #[derive(Error)]
-// enum FailedLoginError(
-//
-// )
-
 use chrono::{DateTime, Duration, Local};
 use std::collections::HashMap;
+use thiserror::Error;
 
 // Time window in seconds
 const FAILED_LOGIN_WINDOW: u32 = 60;
@@ -12,6 +8,10 @@ const FAILED_LOGIN_WINDOW: u32 = 60;
 const FAILED_LOGIN_COUNT: u32 = 5;
 // How long (in seconds) to lock users out after crossing the threshold
 const FAILED_LOGIN_TIMEOUT: u32 = 5 * 60;
+
+#[derive(Error, Debug)]
+#[error("Too many login attempts")]
+pub struct FailedLoginError;
 
 pub struct FailedLoginMap(HashMap<String, FailedLogin>);
 
@@ -91,11 +91,17 @@ impl FailedLoginMap {
     }
 
     // Check if user can proceed with login process or should be locked out
-    pub fn verify_username(&mut self, _username: &str) {
-        unimplemented!()
-        // if let Some(failed_login) = self.0.get(username) {
-        //     if failed_login.attempt_count >= 10 && Local::now().signed_duration_since(failed_login.last_attempt)
-        // }
-        // Ok(())
+    pub fn verify_username(&mut self, username: &str) -> Result<(), FailedLoginError> {
+        if let Some(failed_login) = self.0.get_mut(username) {
+            if failed_login.attempt_count >= 10
+                && failed_login.time_since_last_attempt()
+                    <= Duration::seconds(FAILED_LOGIN_TIMEOUT as i64)
+            {
+                // log a failed attempt to prolong timeout
+                failed_login.increment();
+                return Err(FailedLoginError);
+            }
+        }
+        Ok(())
     }
 }
