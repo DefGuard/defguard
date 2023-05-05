@@ -1,48 +1,38 @@
+use crate::auth::failed_login::FailedLoginError;
 use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
 use sqlx::error::Error as SqlxError;
-use std::{error::Error, fmt};
+use thiserror::Error;
 
 /// Represents kinds of error that occurred
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum OriWebError {
+    #[error("GRPC error: {0}")]
     Grpc(String),
+    #[error("LDAP error: {0}")]
     Ldap(String),
+    #[error("Webauthn registration error: {0}")]
     WebauthnRegistration(String),
+    #[error("Incorrect username: {0}")]
     IncorrectUsername(String),
+    #[error("Object not found: {0}")]
     ObjectNotFound(String),
+    #[error("Serialization error: {0}")]
     Serialization(String),
+    #[error("Authorization error: {0}")]
     Authorization(String),
+    #[error("Forbidden error: {0}")]
     Forbidden(String),
+    #[error("Database error: {0}")]
     DbError(String),
+    #[error("Model error: {0}")]
     ModelError(String),
+    #[error("{0}")]
     PubkeyValidation(String),
+    #[error("HTTP error: {0}")]
     Http(rocket::http::Status),
+    #[error(transparent)]
+    TooManyLoginAttempts(#[from] FailedLoginError),
 }
-
-impl fmt::Display for OriWebError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            OriWebError::Grpc(msg) => write!(f, "GRPC error: {}", msg),
-            OriWebError::Ldap(msg) => write!(f, "LDAP error: {}", msg),
-            OriWebError::WebauthnRegistration(msg) => {
-                write!(f, "Webauthn registration error: {}", msg)
-            }
-            OriWebError::IncorrectUsername(username) => {
-                write!(f, "Incorrect username: {}", username)
-            }
-            OriWebError::ObjectNotFound(msg) => write!(f, "Object not found: {}", msg),
-            OriWebError::Serialization(msg) => write!(f, "Serialization error: {}", msg),
-            OriWebError::Authorization(msg) => write!(f, "Authorization error: {}", msg),
-            OriWebError::Forbidden(msg) => write!(f, "Forbidden error: {}", msg),
-            OriWebError::DbError(msg) => write!(f, "Database error: {}", msg),
-            OriWebError::ModelError(msg) => write!(f, "Model error: {}", msg),
-            OriWebError::PubkeyValidation(msg) => write!(f, "{}", msg),
-            OriWebError::Http(status) => write!(f, "HTTP error: {}", status),
-        }
-    }
-}
-
-impl Error for OriWebError {}
 
 impl From<tonic::Status> for OriWebError {
     fn from(status: tonic::Status) -> Self {
