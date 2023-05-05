@@ -1,33 +1,14 @@
-use defguard::grpc::{GatewayState, WorkerState};
-use defguard::{
-    build_webapp,
-    db::{AppEvent, GatewayEvent},
-    handlers::Auth,
-};
+use defguard::handlers::Auth;
 use rocket::{http::Status, local::asynchronous::Client};
-use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc::unbounded_channel;
 
 mod common;
-use common::{init_test_db, LICENSE_ENTERPRISE, LICENSE_EXPIRED, LICENSE_WITHOUT_OPENID};
-use defguard::db::User;
+use common::{
+    make_license_test_client, LICENSE_ENTERPRISE, LICENSE_EXPIRED, LICENSE_WITHOUT_OPENID,
+};
 
 async fn make_client(license: &str) -> Client {
-    let (pool, mut config) = init_test_db().await;
-    config.license = license.into();
+    let (client, _) = make_license_test_client(license).await;
 
-    User::init_admin_user(&pool, &config.default_admin_password)
-        .await
-        .unwrap();
-
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
-
-    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
-
-    let client = Client::tracked(webapp).await.unwrap();
     {
         let auth = Auth::new("admin".into(), "pass123".into());
         let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;

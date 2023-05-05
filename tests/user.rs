@@ -1,43 +1,18 @@
 use defguard::{
-    build_webapp,
-    db::{models::wallet::keccak256, AppEvent, GatewayEvent, User, UserInfo},
-    grpc::{GatewayState, WorkerState},
+    db::{models::wallet::keccak256, UserInfo},
     handlers::{AddUserData, Auth, PasswordChange, Username, WalletChallenge},
     hex::to_lower_hex,
 };
 use ethers::core::types::transaction::eip712::{Eip712, TypedData};
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
-use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc::unbounded_channel;
 
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 mod common;
-use common::init_test_db;
+use crate::common::make_test_client;
 
 async fn make_client() -> Client {
-    let (pool, config) = init_test_db().await;
-
-    let mut user = User::new(
-        "hpotter".into(),
-        "pass123",
-        "Potter".into(),
-        "Harry".into(),
-        "h.potter@hogwart.edu.uk".into(),
-        None,
-    );
-    user.save(&pool).await.unwrap();
-
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
-
-    User::init_admin_user(&pool, &config.default_admin_password)
-        .await
-        .unwrap();
-
-    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
-    Client::tracked(webapp).await.unwrap()
+    let (client, _) = make_test_client().await;
+    client
 }
 
 #[rocket::async_test]

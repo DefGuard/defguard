@@ -1,8 +1,6 @@
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
-    build_webapp,
-    db::{models::wallet::keccak256, AppEvent, GatewayEvent, User, UserInfo, Wallet},
-    grpc::{GatewayState, WorkerState},
+    db::{models::wallet::keccak256, UserInfo, Wallet},
     handlers::AuthResponse,
     handlers::{Auth, AuthCode, AuthTotp},
 };
@@ -11,17 +9,12 @@ use otpauth::TOTP;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde::Deserialize;
-use std::{
-    sync::{Arc, Mutex},
-    time::SystemTime,
-};
-use tokio::sync::mpsc::unbounded_channel;
+use std::time::SystemTime;
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
 mod common;
-use common::init_test_db;
-use defguard::auth::failed_login::FailedLoginMap;
+use crate::common::make_test_client;
 use defguard::hex::to_lower_hex;
 
 #[derive(Deserialize)]
@@ -30,86 +23,33 @@ pub struct RecoveryCodes {
 }
 
 async fn make_client() -> Client {
-    let (pool, config) = init_test_db().await;
-
-    let mut user = User::new(
-        "hpotter".into(),
-        "pass123",
-        "Potter".into(),
-        "Harry".into(),
-        "h.potter@hogwart.edu.uk".into(),
-        None,
-    );
-    user.save(&pool).await.unwrap();
+    let (client, client_state) = make_test_client().await;
 
     let mut wallet = Wallet::new_for_user(
-        user.id.unwrap(),
+        client_state.test_user.id.unwrap(),
         "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
         "test".into(),
         5,
         String::new(),
     );
-    wallet.save(&pool).await.unwrap();
+    wallet.save(&client_state.pool).await.unwrap();
 
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
-
-    let failed_logins = FailedLoginMap::new();
-    let failed_logins = Arc::new(Mutex::new(failed_logins));
-
-    let webapp = build_webapp(
-        config,
-        tx,
-        rx,
-        wg_tx,
-        worker_state,
-        gateway_state,
-        pool,
-        failed_logins,
-    )
-    .await;
-    Client::tracked(webapp).await.unwrap()
+    client
 }
 
 async fn make_client_with_wallet(address: String) -> Client {
-    let (pool, config) = init_test_db().await;
+    let (client, client_state) = make_test_client().await;
 
-    let mut user = User::new(
-        "hpotter".into(),
-        "pass123",
-        "Potter".into(),
-        "Harry".into(),
-        "h.potter@hogwart.edu.uk".into(),
-        None,
+    let mut wallet = Wallet::new_for_user(
+        client_state.test_user.id.unwrap(),
+        address,
+        "test".into(),
+        5,
+        String::new(),
     );
-    user.save(&pool).await.unwrap();
+    wallet.save(&client_state.pool).await.unwrap();
 
-    let mut wallet =
-        Wallet::new_for_user(user.id.unwrap(), address, "test".into(), 5, String::new());
-    wallet.save(&pool).await.unwrap();
-
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
-
-    let failed_logins = FailedLoginMap::new();
-    let failed_logins = Arc::new(Mutex::new(failed_logins));
-
-    let webapp = build_webapp(
-        config,
-        tx,
-        rx,
-        wg_tx,
-        worker_state,
-        gateway_state,
-        pool,
-        failed_logins,
-    )
-    .await;
-    Client::tracked(webapp).await.unwrap()
+    client
 }
 
 #[rocket::async_test]
