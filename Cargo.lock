@@ -1138,6 +1138,7 @@ dependencies = [
  "serde_urlencoded",
  "sha-1",
  "sqlx",
+ "thiserror",
  "tiny-keccak",
  "tokio",
  "tokio-stream",

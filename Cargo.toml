@@ -65,6 +65,7 @@ anyhow = "1.0.70"
 rust-ini = "0.18.0"
 regex = "1.8"
 lazy_static = "1.4"
+thiserror = "1.0.40"
 
 [dev-dependencies]
 matches = "0.1"
