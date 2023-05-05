@@ -93,7 +93,7 @@ impl FailedLoginMap {
     // Check if user can proceed with login process or should be locked out
     pub fn verify_username(&mut self, username: &str) -> Result<(), FailedLoginError> {
         if let Some(failed_login) = self.0.get_mut(username) {
-            if failed_login.attempt_count >= 10
+            if failed_login.attempt_count >= FAILED_LOGIN_COUNT
                 && failed_login.time_since_last_attempt()
                     <= Duration::seconds(FAILED_LOGIN_TIMEOUT as i64)
             {

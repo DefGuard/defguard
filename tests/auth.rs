@@ -21,6 +21,7 @@ use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
 mod common;
 use common::init_test_db;
+use defguard::auth::failed_login::FailedLoginMap;
 use defguard::hex::to_lower_hex;
 
 #[derive(Deserialize)]
@@ -55,7 +56,20 @@ async fn make_client() -> Client {
     let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
+    let failed_logins = FailedLoginMap::new();
+    let failed_logins = Arc::new(Mutex::new(failed_logins));
+
+    let webapp = build_webapp(
+        config,
+        tx,
+        rx,
+        wg_tx,
+        worker_state,
+        gateway_state,
+        pool,
+        failed_logins,
+    )
+    .await;
     Client::tracked(webapp).await.unwrap()
 }
 
@@ -81,7 +95,20 @@ async fn make_client_with_wallet(address: String) -> Client {
     let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
     let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
 
-    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
+    let failed_logins = FailedLoginMap::new();
+    let failed_logins = Arc::new(Mutex::new(failed_logins));
+
+    let webapp = build_webapp(
+        config,
+        tx,
+        rx,
+        wg_tx,
+        worker_state,
+        gateway_state,
+        pool,
+        failed_logins,
+    )
+    .await;
     Client::tracked(webapp).await.unwrap()
 }
 
@@ -101,6 +128,30 @@ async fn test_logout() {
 
     let response = client.get("/api/v1/me").dispatch().await;
     assert_eq!(response.status(), Status::Unauthorized);
+}
+
+#[rocket::async_test]
+async fn test_login_bruteforce() {
+    let client = make_client().await;
+
+    let invalid_auth = Auth::new("hpotter".into(), "invalid".into());
+
+    // fail login 5 times in a row
+    for _ in 1..6 {
+        let response = client
+            .post("/api/v1/auth")
+            .json(&invalid_auth)
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Unauthorized);
+    }
+
+    let response = client
+        .post("/api/v1/auth")
+        .json(&invalid_auth)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::TooManyRequests);
 }
 
 #[rocket::async_test]
