@@ -1,3 +1,5 @@
+pub mod failed_login;
+
 use crate::{
     appstate::AppState,
     db::{OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},

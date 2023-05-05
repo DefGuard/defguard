@@ -1,7 +1,7 @@
-use defguard::db::User;
 use defguard::{
+    auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
-    db::{init_db, AppEvent, GatewayEvent},
+    db::{init_db, AppEvent, GatewayEvent, User},
     grpc::{run_grpc_server, GatewayState, WorkerState},
     init_dev_env, run_web_server,
 };
@@ -81,10 +81,14 @@ async fn main() -> Result<(), anyhow::Error> {
         .as_ref()
         .and_then(|path| read_to_string(path).ok());
 
+    // initialize failed login attempt tracker
+    let failed_logins = FailedLoginMap::new();
+    let failed_logins = Arc::new(Mutex::new(failed_logins));
+
     // run services
     tokio::select! {
         _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), grpc_cert, grpc_key) => (),
-        _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool) => (),
+        _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins) => (),
     };
     Ok(())
 }

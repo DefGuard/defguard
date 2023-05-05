@@ -4,7 +4,10 @@ use super::{
 };
 use crate::{
     appstate::AppState,
-    auth::SessionInfo,
+    auth::{
+        failed_login::{FailedLogin, FailedLoginMap},
+        SessionInfo,
+    },
     db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::OriWebError,
     ldap::utils::user_from_ldap,
@@ -16,6 +19,8 @@ use rocket::{
     State,
 };
 use sqlx::types::Uuid;
+use std::ops::DerefMut;
+use std::sync::{Arc, Mutex};
 use webauthn_rs::prelude::PublicKeyCredential;
 
 /// For successful login, return:
@@ -34,6 +39,14 @@ pub async fn authenticate(
             Ok(_) => user,
             Err(err) => {
                 info!("Failed to authenticate user {}: {}", data.username, err);
+                // update failed login tracker
+                {
+                    let mut failed_logins = appstate
+                        .failed_logins
+                        .lock()
+                        .expect("Failed to get a lock on failed login map.");
+                    failed_logins.deref_mut().log_failed_attempt(&data.username);
+                }
                 return Err(OriWebError::Authorization(err.to_string()));
             }
         },
