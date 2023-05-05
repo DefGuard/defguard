@@ -82,10 +82,12 @@ export const WizardNetworkImport = () => {
         importedNetworkDevices: response.devices,
         importedNetworkConfig: response.network,
         disableBack: true,
+        loading: false,
       });
       nextStepSubject.next();
     },
     onError: (err) => {
+      setWizardState({ loading: false });
       toaster.error(LL.messages.error());
       resetField('fileName');
       resetField('config');
@@ -96,10 +98,11 @@ export const WizardNetworkImport = () => {
   const onValidSubmit: SubmitHandler<FormInputs> = useCallback(
     (data) => {
       if (!isLoading) {
+        setWizardState({ loading: true });
         importNetworkMutation(data);
       }
     },
-    [importNetworkMutation, isLoading]
+    [importNetworkMutation, isLoading, setWizardState]
   );
 
   const handleConfigUpload = () => {

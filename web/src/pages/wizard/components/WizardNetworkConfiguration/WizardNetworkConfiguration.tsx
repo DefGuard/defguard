@@ -22,8 +22,8 @@ export const WizardNetworkConfiguration = () => {
     network: { addNetwork },
   } = useApi();
 
-  const [submitSubject, nextSubject] = useWizardStore(
-    (state) => [state.submitSubject, state.nextStepSubject],
+  const [submitSubject, nextSubject, setWizardState] = useWizardStore(
+    (state) => [state.submitSubject, state.nextStepSubject, state.setState],
     shallow
   );
 
@@ -33,10 +33,12 @@ export const WizardNetworkConfiguration = () => {
   const { LL } = useI18nContext();
   const { mutate: addNetworkMutation, isLoading } = useMutation(addNetwork, {
     onSuccess: () => {
+      setWizardState({ loading: false });
       toaster.success(LL.wizard.configuration.successMessage());
       nextSubject.next();
     },
     onError: (err) => {
+      setWizardState({ loading: false });
       toaster.error(LL.messages.error());
       console.error(err);
     },
@@ -80,6 +82,7 @@ export const WizardNetworkConfiguration = () => {
 
   const handleValidSubmit: SubmitHandler<ModifyNetworkRequest> = (values) => {
     if (!isLoading) {
+      setWizardState({ loading: true });
       addNetworkMutation(values);
     }
   };

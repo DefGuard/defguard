@@ -28,8 +28,8 @@ export const WizardNav = ({ title, lastStep }: Props) => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const setNavigationState = useNavigationStore((state) => state.setState);
-  const [backDisabled, nextDisabled, currentStep] = useWizardStore(
-    (state) => [state.disableBack, state.disableNext, state.currentStep],
+  const [backDisabled, currentStep, loading] = useWizardStore(
+    (state) => [state.disableBack, state.currentStep, state.loading],
     shallow
   );
   const [back, submitSubject, next, nextSubject, resetState] = useWizardStore(
@@ -73,7 +73,7 @@ export const WizardNav = ({ title, lastStep }: Props) => {
             size={ButtonSize.BIG}
             text="Back"
             icon={<SvgIconArrowGrayLeft />}
-            disabled={backDisabled}
+            disabled={backDisabled || loading}
           />
           <Button
             data-testid="next"
@@ -81,7 +81,7 @@ export const WizardNav = ({ title, lastStep }: Props) => {
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={!lastStep ? <SvgIconArrowGrayRight /> : null}
-            disabled={nextDisabled}
+            loading={loading}
             onClick={() => submitSubject?.next()}
           />
         </div>

@@ -9,7 +9,7 @@ export const useWizardStore = create<WizardStore>()(
   persist(
     (set, get) => ({
       disableBack: false,
-      disableNext: false,
+      loading: false,
       currentStep: 0,
       setupType: WizardSetupType.MANUAL,
       importedNetworkDevices: undefined,
@@ -45,7 +45,7 @@ export const useWizardStore = create<WizardStore>()(
       resetState: () =>
         set({
           disableBack: false,
-          disableNext: false,
+          loading: false,
           currentStep: 0,
           setupType: WizardSetupType.MANUAL,
           importedNetworkDevices: undefined,
@@ -75,10 +75,10 @@ export enum WizardSetupType {
 
 export type WizardStore = {
   disableBack: boolean;
-  disableNext: boolean;
   currentStep: number;
   submitSubject: Subject<void>;
   nextStepSubject: Subject<void>;
+  loading: boolean;
   setupType?: WizardSetupType;
   importedNetworkConfig?: Network;
   manualNetworkConfig: {

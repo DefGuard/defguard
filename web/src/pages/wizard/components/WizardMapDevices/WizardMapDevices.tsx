@@ -41,12 +41,12 @@ export const WizardMapDevices = () => {
   });
   const { isLoading: createLoading, mutate } = useMutation(createUserDevices, {
     onSuccess: () => {
-      setWizardState({ disableNext: false });
+      setWizardState({ loading: false });
       toaster.success(LL.wizard.deviceMap.crateSuccess());
       nextStepSubject.next();
     },
     onError: (err) => {
-      setWizardState({ disableNext: false });
+      setWizardState({ loading: false });
       toaster.error(LL.messages.error());
       console.error(err);
     },
@@ -85,7 +85,7 @@ export const WizardMapDevices = () => {
         if (deviceWithoutUser) {
           toaster.error('Please assign all remaining devices.');
         } else {
-          setWizardState({ disableNext: true });
+          setWizardState({ loading: true });
           mutate({ devices });
         }
       }
