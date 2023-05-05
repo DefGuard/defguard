@@ -576,7 +576,7 @@ const en: BaseTranslation = {
       address: 'Enter a valid address.',
       validPort: 'Enter a valid port.',
       validCode: 'Code should have 6 digits.',
-      allowedIps: 'Only valid IP or domain allowed',
+      allowedIps: 'Only valid IP or domain is allowed.',
     },
     floatingErrors: {
       title: 'Please correct the following:',
