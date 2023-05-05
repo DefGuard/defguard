@@ -198,7 +198,8 @@ mod tests {
 
     #[test]
     fn test_generate_rp_id() {
-        // unset variable
+        // unset variables
+        env::remove_var("DEFGUARD_URL");
         env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
 
         env::set_var("DEFGUARD_URL", "https://defguard.example.com");
