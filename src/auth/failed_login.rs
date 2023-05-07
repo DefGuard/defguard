@@ -1,5 +1,7 @@
 use chrono::{DateTime, Duration, Local};
 use std::collections::HashMap;
+use std::ops::DerefMut;
+use std::sync::{Arc, Mutex};
 use thiserror::Error;
 
 // Time window in seconds
@@ -104,4 +106,23 @@ impl FailedLoginMap {
         }
         Ok(())
     }
+}
+
+// Check if auth request with a given username can proceed
+pub fn check_username(
+    failed_logins: &Arc<Mutex<FailedLoginMap>>,
+    username: &str,
+) -> Result<(), FailedLoginError> {
+    let mut failed_logins = failed_logins
+        .lock()
+        .expect("Failed to get a lock on failed login map.");
+    failed_logins.deref_mut().verify_username(username)
+}
+
+// Helper to log failed login attempt
+pub fn log_failed_login_attempt(failed_logins: &Arc<Mutex<FailedLoginMap>>, username: &str) {
+    let mut failed_logins = failed_logins
+        .lock()
+        .expect("Failed to get a lock on failed login map.");
+    failed_logins.deref_mut().log_failed_attempt(username);
 }

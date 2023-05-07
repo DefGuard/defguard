@@ -2,6 +2,7 @@ use super::{
     ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
     WalletAddress, WalletSignature, WebAuthnRegistration,
 };
+use crate::auth::failed_login::{check_username, log_failed_login_attempt};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
@@ -16,7 +17,6 @@ use rocket::{
     State,
 };
 use sqlx::types::Uuid;
-use std::ops::DerefMut;
 use webauthn_rs::prelude::PublicKeyCredential;
 
 /// For successful login, return:
@@ -30,27 +30,15 @@ pub async fn authenticate(
 ) -> ApiResult {
     debug!("Authenticating user {}", data.username);
     // check if user can proceed with login
-    {
-        let mut failed_logins = appstate
-            .failed_logins
-            .lock()
-            .expect("Failed to get a lock on failed login map.");
-        failed_logins.deref_mut().verify_username(&data.username)?;
-    }
+    check_username(&appstate.failed_logins, &data.username)?;
+
     data.username = data.username.to_lowercase();
     let user = match User::find_by_username(&appstate.pool, &data.username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
             Ok(_) => user,
             Err(err) => {
                 info!("Failed to authenticate user {}: {}", data.username, err);
-                // update failed login tracker
-                {
-                    let mut failed_logins = appstate
-                        .failed_logins
-                        .lock()
-                        .expect("Failed to get a lock on failed login map.");
-                    failed_logins.deref_mut().log_failed_attempt(&data.username);
-                }
+                log_failed_login_attempt(&appstate.failed_logins, &data.username);
                 return Err(OriWebError::Authorization(err.to_string()));
             }
         },
@@ -72,14 +60,7 @@ pub async fn authenticate(
                     user
                 } else {
                     info!("Failed to authenticate user {} with LDAP", data.username);
-                    // update failed login tracker
-                    {
-                        let mut failed_logins = appstate
-                            .failed_logins
-                            .lock()
-                            .expect("Failed to get a lock on failed login map.");
-                        failed_logins.deref_mut().log_failed_attempt(&data.username);
-                    }
+                    log_failed_login_attempt(&appstate.failed_logins, &data.username);
                     return Err(OriWebError::Authorization("user not found".into()));
                 }
             } else {
@@ -87,14 +68,7 @@ pub async fn authenticate(
                     "User {} not found in DB and LDAP is disabled",
                     data.username
                 );
-                // update failed login tracker
-                {
-                    let mut failed_logins = appstate
-                        .failed_logins
-                        .lock()
-                        .expect("Failed to get a lock on failed login map.");
-                    failed_logins.deref_mut().log_failed_attempt(&data.username);
-                }
+                log_failed_login_attempt(&appstate.failed_logins, &data.username);
                 return Err(OriWebError::Authorization("LDAP feature disabled".into()));
             }
         }
