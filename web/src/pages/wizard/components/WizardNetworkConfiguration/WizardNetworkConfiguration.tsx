@@ -13,6 +13,12 @@ import { Card } from '../../../../shared/components/layout/Card/Card';
 import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
+import {
+  patternValidIpAndMaskNoZeroHostId,
+  patternValidIpOptionalMaskList,
+  patternValidIpOrDomain,
+  patternValidIpOrDomainList,
+} from '../../../../shared/patterns';
 import { ModifyNetworkRequest } from '../../../../shared/types';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
@@ -52,24 +58,24 @@ export const WizardNetworkConfiguration = () => {
           address: yup
             .string()
             .required(LL.form.error.required())
-            .matches(
-              /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([1-9]|[12][0-9]|3[012])\b)?$/,
-              LL.form.error.address()
-            ),
+            .matches(patternValidIpAndMaskNoZeroHostId, LL.form.error.address()),
           endpoint: yup
             .string()
             .required(LL.form.error.required())
-            .matches(
-              /((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
-              LL.form.error.endpoint()
-            ),
+            .matches(patternValidIpOrDomain, LL.form.error.endpoint()),
           port: yup
             .number()
             .max(65535, LL.form.error.portMax())
             .typeError(LL.form.error.validPort())
             .required(LL.form.error.required()),
-          allowed_ips: yup.string(),
-          dns: yup.string(),
+          allowed_ips: yup
+            .string()
+            .optional()
+            .matches(patternValidIpOptionalMaskList, LL.form.error.address()),
+          dns: yup
+            .string()
+            .optional()
+            .matches(patternValidIpOrDomainList, LL.form.error.allowedIps()),
         })
         .required(),
     [LL.form.error]
@@ -101,6 +107,9 @@ export const WizardNetworkConfiguration = () => {
           controller={{ control, name: 'name' }}
           outerLabel={LL.networkConfiguration.form.fields.name.label()}
         />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.messages.address()}</p>
+        </MessageBox>
         <FormInput
           controller={{ control, name: 'address' }}
           outerLabel={LL.networkConfiguration.form.fields.address.label()}
