@@ -1,20 +1,26 @@
+use crate::auth::failed_login::FailedLoginMap;
 use crate::{
     auth::{Claims, ClaimsType, SESSION_TIMEOUT},
     db::{DbPool, User},
 };
 use jsonwebtoken::errors::Error as JWTError;
+use std::sync::{Arc, Mutex};
 use tonic::{Request, Response, Status};
 
 tonic::include_proto!("auth");
 
 pub struct AuthServer {
     pool: DbPool,
+    failed_logins: Arc<Mutex<FailedLoginMap>>,
 }
 
 impl AuthServer {
     #[must_use]
-    pub fn new(pool: DbPool) -> Self {
-        Self { pool }
+    pub fn new(pool: DbPool, failed_logins: Arc<Mutex<FailedLoginMap>>) -> Self {
+        Self {
+            pool,
+            failed_logins,
+        }
     }
 
     /// Creates JWT token for specified user

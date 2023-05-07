@@ -18,6 +18,7 @@ use std::{
 use tokio::sync::{mpsc::UnboundedReceiver, Mutex as AsyncMutex};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
+use crate::auth::failed_login::FailedLoginMap;
 use crate::db::AppEvent;
 use serde::Serialize;
 use std::{collections::hash_map::HashMap, time::Instant};
@@ -54,9 +55,10 @@ pub async fn run_grpc_server(
     gateway_state: Arc<Mutex<GatewayState>>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
+    failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Build gRPC services
-    let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone()));
+    let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
