@@ -61,11 +61,11 @@ webauthn-rs = { version = "0.4", features = [
 x25519-dalek = { version = "2.0.0-rc.2", features = ["static_secrets"] }
 ethers = {version = "2.0.3", features = ["eip712"]}
 ethabi = "18.0.0"
-anyhow = "1.0.70"
-rust-ini = "0.18.0"
+anyhow = "1.0"
+rust-ini = "0.19"
 regex = "1.8"
 lazy_static = "1.4"
-thiserror = "1.0.40"
+thiserror = "1.0"
 
 [dev-dependencies]
 matches = "0.1"
