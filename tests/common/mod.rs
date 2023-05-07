@@ -1,11 +1,10 @@
 #[cfg(test)]
-use defguard::auth::failed_login::FailedLoginMap;
-use defguard::db::{AppEvent, GatewayEvent, User};
-use defguard::grpc::{GatewayState, WorkerState};
 use defguard::{
+    auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
-    db::{init_db, DbPool},
+    db::{init_db, AppEvent, DbPool, GatewayEvent, User},
+    grpc::{GatewayState, WorkerState},
 };
 use rocket::local::asynchronous::Client;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};

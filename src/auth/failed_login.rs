@@ -63,6 +63,7 @@ impl Default for FailedLoginMap {
 }
 
 impl FailedLoginMap {
+    #[must_use]
     pub fn new() -> Self {
         Self(HashMap::new())
     }
