@@ -46,8 +46,6 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-#      - name: Set database URL
-#        run: sed -i -e 's,localhost,postgres,' .env
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
       - name: Check format
