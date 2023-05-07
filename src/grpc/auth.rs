@@ -4,6 +4,7 @@ use crate::{
     db::{DbPool, User},
 };
 use jsonwebtoken::errors::Error as JWTError;
+use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
 use tonic::{Request, Response, Status};
 
@@ -39,6 +40,17 @@ impl auth_service_server::AuthService for AuthServer {
     ) -> Result<Response<AuthenticateResponse>, Status> {
         let request = request.into_inner();
         debug!("Authenticating user {}", &request.username);
+        // check if user can proceed with login
+        {
+            let mut failed_logins = self
+                .failed_logins
+                .lock()
+                .expect("Failed to get a lock on failed login map.");
+            failed_logins
+                .deref_mut()
+                .verify_username(&request.username)
+                .map_err(|_| Status::resource_exhausted("too many login requests"))?;
+        }
         match User::find_by_username(&self.pool, &request.username).await {
             Ok(Some(user)) => match user.verify_password(&request.password) {
                 Ok(_) => {
