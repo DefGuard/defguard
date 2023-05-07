@@ -56,7 +56,7 @@ pub async fn run_grpc_server(
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
     #[cfg(feature = "worker")]
