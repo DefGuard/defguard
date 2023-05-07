@@ -209,7 +209,7 @@ type RootTranslation = {
 			title: string
 			/**
 			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​d​e​v​i​c​e​N​a​m​e​}​ ​d​e​v​i​c​e​ ​?
-			 * @param {string} deviceName
+			 * @param {unknown} deviceName
 			 */
 			message: RequiredParams<'deviceName'>
 			/**
@@ -1343,7 +1343,7 @@ type RootTranslation = {
 			 */
 			validCode: string
 			/**
-			 * O​n​l​y​ ​v​a​l​i​d​ ​I​P​ ​o​r​ ​d​o​m​a​i​n​ ​a​l​l​o​w​e​d
+			 * O​n​l​y​ ​v​a​l​i​d​ ​I​P​ ​o​r​ ​d​o​m​a​i​n​ ​i​s​ ​a​l​l​o​w​e​d​.
 			 */
 			allowedIps: string
 		}
@@ -2282,7 +2282,7 @@ type RootTranslation = {
 				}
 				address: {
 					/**
-					 * G​a​t​e​w​a​y​ ​V​P​N​ ​i​p​ ​a​d​d​r​e​s​s​ ​a​n​d​ ​n​e​t​m​a​s​k
+					 * G​a​t​e​w​a​y​ ​V​P​N​ ​I​P​ ​a​d​d​r​e​s​s​ ​a​n​d​ ​n​e​t​m​a​s​k
 					 */
 					label: string
 				}
@@ -2835,7 +2835,7 @@ export type TranslationFunctions = {
 			/**
 			 * Do you want to delete {deviceName} device ?
 			 */
-			message: (arg: { deviceName: string }) => LocalizedString
+			message: (arg: { deviceName: unknown }) => LocalizedString
 			/**
 			 * Delete device
 			 */
@@ -3961,7 +3961,7 @@ export type TranslationFunctions = {
 			 */
 			validCode: () => LocalizedString
 			/**
-			 * Only valid IP or domain allowed
+			 * Only valid IP or domain is allowed.
 			 */
 			allowedIps: () => LocalizedString
 		}
@@ -4891,7 +4891,7 @@ export type TranslationFunctions = {
 				}
 				address: {
 					/**
-					 * Gateway VPN ip address and netmask
+					 * Gateway VPN IP address and netmask
 					 */
 					label: () => LocalizedString
 				}

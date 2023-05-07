@@ -101,7 +101,7 @@ const en: BaseTranslation = {
     },
     deleteDevice: {
       title: 'Delete device',
-      message: 'Do you want to delete {deviceName: string} device ?',
+      message: 'Do you want to delete {deviceName} device ?',
       submit: 'Delete device',
       messages: {
         success: 'Device deleted.',
