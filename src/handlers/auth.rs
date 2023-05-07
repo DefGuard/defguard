@@ -122,8 +122,15 @@ pub async fn authenticate(
 
 /// Logout - forget the session cookie.
 #[post("/auth/logout")]
-pub fn logout(cookies: &CookieJar<'_>) -> ApiResult {
+pub async fn logout(
+    cookies: &CookieJar<'_>,
+    session: Session,
+    appstate: &State<AppState>,
+) -> ApiResult {
+    // remove auth cookie
     cookies.remove(Cookie::named("defguard_session"));
+    // remove stored session
+    session.delete(&appstate.pool).await?;
     Ok(ApiResponse::default())
 }
 
