@@ -72,6 +72,14 @@ pub async fn authenticate(
                     user
                 } else {
                     info!("Failed to authenticate user {} with LDAP", data.username);
+                    // update failed login tracker
+                    {
+                        let mut failed_logins = appstate
+                            .failed_logins
+                            .lock()
+                            .expect("Failed to get a lock on failed login map.");
+                        failed_logins.deref_mut().log_failed_attempt(&data.username);
+                    }
                     return Err(OriWebError::Authorization("user not found".into()));
                 }
             } else {
@@ -79,6 +87,14 @@ pub async fn authenticate(
                     "User {} not found in DB and LDAP is disabled",
                     data.username
                 );
+                // update failed login tracker
+                {
+                    let mut failed_logins = appstate
+                        .failed_logins
+                        .lock()
+                        .expect("Failed to get a lock on failed login map.");
+                    failed_logins.deref_mut().log_failed_attempt(&data.username);
+                }
                 return Err(OriWebError::Authorization("LDAP feature disabled".into()));
             }
         }
