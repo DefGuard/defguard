@@ -391,6 +391,7 @@ pub async fn authorization(
     let mut url =
         Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
     url.query_pairs_mut().append_pair("error", error.as_ref());
+    url.query_pairs_mut().append_pair("state", data.state);
     Ok(Redirect::found(url.to_string()))
 }
 
@@ -466,6 +467,7 @@ pub async fn secure_authorization(
     }
 
     url.query_pairs_mut().append_pair("error", error.as_ref());
+    url.query_pairs_mut().append_pair("state", data.state);
     Ok(Redirect::found(url.to_string()))
 }
 
