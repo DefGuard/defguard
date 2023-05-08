@@ -11,7 +11,7 @@ use rocket::{
     local::asynchronous::Client,
     serde::json::json,
 };
-use std::{borrow::Cow, fmt::format};
+use std::borrow::Cow;
 
 mod common;
 use crate::common::make_enterprise_test_client;
