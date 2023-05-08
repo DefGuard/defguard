@@ -1,8 +1,6 @@
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
-    build_webapp,
-    db::{models::wallet::keccak256, AppEvent, GatewayEvent, User, UserInfo, Wallet},
-    grpc::{GatewayState, WorkerState},
+    db::{models::wallet::keccak256, UserInfo, Wallet},
     handlers::AuthResponse,
     handlers::{Auth, AuthCode, AuthTotp},
 };
@@ -11,16 +9,12 @@ use otpauth::TOTP;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde::Deserialize;
-use std::{
-    sync::{Arc, Mutex},
-    time::SystemTime,
-};
-use tokio::sync::mpsc::unbounded_channel;
+use std::time::SystemTime;
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
 mod common;
-use common::init_test_db;
+use crate::common::make_test_client;
 use defguard::hex::to_lower_hex;
 
 #[derive(Deserialize)]
@@ -29,60 +23,33 @@ pub struct RecoveryCodes {
 }
 
 async fn make_client() -> Client {
-    let (pool, config) = init_test_db().await;
-
-    let mut user = User::new(
-        "hpotter".into(),
-        "pass123",
-        "Potter".into(),
-        "Harry".into(),
-        "h.potter@hogwart.edu.uk".into(),
-        None,
-    );
-    user.save(&pool).await.unwrap();
+    let (client, client_state) = make_test_client().await;
 
     let mut wallet = Wallet::new_for_user(
-        user.id.unwrap(),
+        client_state.test_user.id.unwrap(),
         "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
         "test".into(),
         5,
         String::new(),
     );
-    wallet.save(&pool).await.unwrap();
+    wallet.save(&client_state.pool).await.unwrap();
 
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
-
-    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
-    Client::tracked(webapp).await.unwrap()
+    client
 }
 
 async fn make_client_with_wallet(address: String) -> Client {
-    let (pool, config) = init_test_db().await;
+    let (client, client_state) = make_test_client().await;
 
-    let mut user = User::new(
-        "hpotter".into(),
-        "pass123",
-        "Potter".into(),
-        "Harry".into(),
-        "h.potter@hogwart.edu.uk".into(),
-        None,
+    let mut wallet = Wallet::new_for_user(
+        client_state.test_user.id.unwrap(),
+        address,
+        "test".into(),
+        5,
+        String::new(),
     );
-    user.save(&pool).await.unwrap();
+    wallet.save(&client_state.pool).await.unwrap();
 
-    let mut wallet =
-        Wallet::new_for_user(user.id.unwrap(), address, "test".into(), 5, String::new());
-    wallet.save(&pool).await.unwrap();
-
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
-
-    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
-    Client::tracked(webapp).await.unwrap()
+    client
 }
 
 #[rocket::async_test]
@@ -101,6 +68,30 @@ async fn test_logout() {
 
     let response = client.get("/api/v1/me").dispatch().await;
     assert_eq!(response.status(), Status::Unauthorized);
+}
+
+#[rocket::async_test]
+async fn test_login_bruteforce() {
+    let client = make_client().await;
+
+    let invalid_auth = Auth::new("hpotter".into(), "invalid".into());
+
+    // fail login 5 times in a row
+    for _ in 1..6 {
+        let response = client
+            .post("/api/v1/auth")
+            .json(&invalid_auth)
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Unauthorized);
+    }
+
+    let response = client
+        .post("/api/v1/auth")
+        .json(&invalid_auth)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::TooManyRequests);
 }
 
 #[rocket::async_test]

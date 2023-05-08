@@ -1,14 +1,11 @@
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
-    build_webapp,
-    config::DefGuardConfig,
     db::{
         models::wireguard::{
             WireguardDeviceTransferRow, WireguardNetworkStats, WireguardUserStatsRow,
         },
-        AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork, WireguardPeerStats,
+        Device, GatewayEvent, WireguardNetwork, WireguardPeerStats,
     },
-    grpc::{GatewayState, WorkerState},
     handlers::{
         wireguard::{ImportedNetworkData, UserDevices, WireguardNetworkData},
         Auth,
@@ -17,47 +14,13 @@ use defguard::{
 use matches::assert_matches;
 use rocket::{
     http::Status,
-    local::asynchronous::Client,
     serde::json::{serde_json::json, Value},
 };
-use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc::{error::TryRecvError, unbounded_channel};
+use std::sync::Arc;
+use tokio::sync::mpsc::error::TryRecvError;
 
 mod common;
-use common::init_test_db;
-
-async fn make_client(pool: DbPool, config: DefGuardConfig) -> (Client, Arc<Mutex<GatewayState>>) {
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
-
-    User::init_admin_user(&pool, &config.default_admin_password)
-        .await
-        .unwrap();
-
-    let mut user = User::new(
-        "hpotter".into(),
-        "pass123",
-        "Potter".into(),
-        "Harry".into(),
-        "h.potter@hogwart.edu.uk".into(),
-        None,
-    );
-    user.save(&pool).await.unwrap();
-
-    let webapp = build_webapp(
-        config,
-        tx,
-        rx,
-        wg_tx,
-        worker_state,
-        Arc::clone(&gateway_state),
-        pool,
-    )
-    .await;
-    (Client::tracked(webapp).await.unwrap(), gateway_state)
-}
+use crate::common::make_test_client;
 
 fn make_network() -> Value {
     json!({
@@ -72,8 +35,9 @@ fn make_network() -> Value {
 
 #[rocket::async_test]
 async fn test_network() {
-    let (pool, config) = init_test_db().await;
-    let (client, gateway_state) = make_client(pool, config).await;
+    let (client, client_state) = make_test_client().await;
+    let gateway_state = client_state.gateway_state;
+
     let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
 
     let auth = Auth::new("admin".into(), "pass123".into());
@@ -139,8 +103,9 @@ async fn test_network() {
 
 #[rocket::async_test]
 async fn test_device() {
-    let (pool, config) = init_test_db().await;
-    let (client, gateway_state) = make_client(pool, config).await;
+    let (client, client_state) = make_test_client().await;
+    let gateway_state = client_state.gateway_state;
+
     let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
 
     let auth = Auth::new("admin".into(), "pass123".into());
@@ -278,8 +243,7 @@ async fn test_device() {
 
 #[rocket::async_test]
 async fn test_device_permissions() {
-    let (pool, config) = init_test_db().await;
-    let (client, _gateway_state) = make_client(pool, config).await;
+    let (client, _) = make_test_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -422,8 +386,9 @@ async fn test_device_permissions() {
 
 #[rocket::async_test]
 async fn test_device_pubkey() {
-    let (pool, config) = init_test_db().await;
-    let (client, gateway_state) = make_client(pool, config).await;
+    let (client, client_state) = make_test_client().await;
+    let gateway_state = client_state.gateway_state;
+
     let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
 
     let auth = Auth::new("admin".into(), "pass123".into());
@@ -528,8 +493,8 @@ async fn test_device_pubkey() {
 
 #[rocket::async_test]
 async fn test_stats() {
-    let (pool, config) = init_test_db().await;
-    let (client, _) = make_client(pool.clone(), config).await;
+    let (client, client_state) = make_test_client().await;
+    let pool = client_state.pool;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -801,8 +766,9 @@ async fn test_config_import() {
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
     ";
-    let (pool, config) = init_test_db().await;
-    let (client, gateway_state) = make_client(pool, config).await;
+    let (client, client_state) = make_test_client().await;
+    let gateway_state = client_state.gateway_state;
+
     let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
 
     let auth = Auth::new("admin".into(), "pass123".into());
@@ -914,8 +880,7 @@ async fn test_config_import_missing_interface() {
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
     ";
-    let (pool, config) = init_test_db().await;
-    let (client, _) = make_client(pool, config).await;
+    let (client, _) = make_test_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -949,8 +914,7 @@ async fn test_config_import_invalid_key() {
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
     ";
-    let (pool, config) = init_test_db().await;
-    let (client, _) = make_client(pool, config).await;
+    let (client, _) = make_test_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -1009,8 +973,7 @@ async fn test_config_import_invalid_ip() {
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
     ";
-    let (pool, config) = init_test_db().await;
-    let (client, _) = make_client(pool, config).await;
+    let (client, _) = make_test_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -1044,8 +1007,7 @@ async fn test_config_import_nonadmin() {
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
     ";
-    let (pool, config) = init_test_db().await;
-    let (client, _) = make_client(pool, config).await;
+    let (client, _) = make_test_client().await;
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);

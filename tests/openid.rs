@@ -1,11 +1,9 @@
 use defguard::{
-    build_webapp,
     config::DefGuardConfig,
     db::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},
-        AppEvent, DbPool, GatewayEvent,
+        DbPool,
     },
-    grpc::{GatewayState, WorkerState},
     handlers::Auth,
 };
 
@@ -26,45 +24,20 @@ use rocket::{
 };
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
-use std::{
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
-use tokio::sync::mpsc::unbounded_channel;
+use std::str::FromStr;
 
 mod common;
+use crate::common::{make_base_client, make_enterprise_test_client};
 use common::{init_test_db, LICENSE_ENTERPRISE};
-use defguard::db::User;
 
 async fn make_client() -> Client {
-    let (pool, mut config) = init_test_db().await;
-    config.license = LICENSE_ENTERPRISE.into();
-
-    User::init_admin_user(&pool, &config.default_admin_password)
-        .await
-        .unwrap();
-
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
-
-    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
-    Client::tracked(webapp).await.unwrap()
+    let (client, _) = make_enterprise_test_client().await;
+    client
 }
 
 async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> Client {
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
-
-    User::init_admin_user(&pool, &config.default_admin_password)
-        .await
-        .unwrap();
-    let webapp = build_webapp(config, tx, rx, wg_tx, worker_state, gateway_state, pool).await;
-
-    Client::tracked(webapp).await.unwrap()
+    let (client, _) = make_base_client(pool, config).await;
+    client
 }
 
 #[derive(Deserialize)]

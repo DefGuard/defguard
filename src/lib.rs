@@ -1,7 +1,9 @@
 #![allow(clippy::derive_partial_eq_without_eq)]
 // Rocket macro
 #![allow(clippy::unnecessary_lazy_evaluations)]
+#![allow(clippy::too_many_arguments)]
 
+use crate::auth::failed_login::FailedLoginMap;
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
@@ -109,6 +111,7 @@ pub async fn build_webapp(
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayState>>,
     pool: DbPool,
+    failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Rocket<Build> {
     // configure Rocket webapp
     let cfg = Config {
@@ -262,6 +265,7 @@ pub async fn build_webapp(
             webhook_rx,
             wireguard_tx,
             license_decoded,
+            failed_logins,
         )
         .await,
     )
@@ -276,6 +280,7 @@ pub async fn run_web_server(
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: UnboundedSender<GatewayEvent>,
     pool: DbPool,
+    failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<Rocket<Ignite>, RocketError> {
     let webapp = build_webapp(
         config.clone(),
@@ -285,6 +290,7 @@ pub async fn run_web_server(
         worker_state,
         gateway_state,
         pool,
+        failed_logins,
     )
     .await;
     info!("Started web services");

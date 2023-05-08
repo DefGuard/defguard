@@ -1,10 +1,12 @@
 use crate::{
+    auth::failed_login::FailedLoginMap,
     config::DefGuardConfig,
     db::{AppEvent, DbPool, GatewayEvent, WebHook},
     license::License,
 };
 use reqwest::Client;
 use rocket::serde::json::serde_json::json;
+use std::sync::{Arc, Mutex};
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     task::spawn,
@@ -18,6 +20,7 @@ pub struct AppState {
     wireguard_tx: UnboundedSender<GatewayEvent>,
     pub license: License,
     pub webauthn: Webauthn,
+    pub failed_logins: Arc<Mutex<FailedLoginMap>>,
 }
 
 impl AppState {
@@ -80,6 +83,7 @@ impl AppState {
         rx: UnboundedReceiver<AppEvent>,
         wireguard_tx: UnboundedSender<GatewayEvent>,
         license: License,
+        failed_logins: Arc<Mutex<FailedLoginMap>>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
@@ -102,6 +106,7 @@ impl AppState {
             wireguard_tx,
             license,
             webauthn,
+            failed_logins,
         }
     }
 }
