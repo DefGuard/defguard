@@ -7,11 +7,11 @@ use std::{
 use thiserror::Error;
 
 // Time window in seconds
-const FAILED_LOGIN_WINDOW: u32 = 60;
+const FAILED_LOGIN_WINDOW: i64 = 60;
 // Failed login count threshold
 const FAILED_LOGIN_COUNT: u32 = 5;
 // How long (in seconds) to lock users out after crossing the threshold
-const FAILED_LOGIN_TIMEOUT: u32 = 5 * 60;
+const FAILED_LOGIN_TIMEOUT: i64 = 5 * 60;
 
 #[derive(Error, Debug)]
 #[error("Too many login attempts")]
@@ -60,16 +60,16 @@ impl FailedLogin {
     // Check if user login attempt should be stopped
     fn should_prevent_login(&self) -> bool {
         self.attempt_count >= FAILED_LOGIN_COUNT
-            && self.time_since_last_attempt() <= Duration::seconds(FAILED_LOGIN_TIMEOUT as i64)
+            && self.time_since_last_attempt() <= Duration::seconds(FAILED_LOGIN_TIMEOUT)
     }
 
     // Check if attempt counter can be reset.
     // Counter can be reset after enough time has passed since the initial attempt.
     // If user was blocked we also check if enough time (timeout) has passed since last attempt.
     fn should_reset_counter(&self) -> bool {
-        if self.time_since_first_attempt() > Duration::seconds(FAILED_LOGIN_WINDOW as i64)
+        if self.time_since_first_attempt() > Duration::seconds(FAILED_LOGIN_WINDOW)
             && self.attempt_count < FAILED_LOGIN_COUNT
-            || self.time_since_last_attempt() > Duration::seconds(FAILED_LOGIN_TIMEOUT as i64)
+            || self.time_since_last_attempt() > Duration::seconds(FAILED_LOGIN_TIMEOUT)
         {
             return true;
         }
