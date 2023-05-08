@@ -6,6 +6,7 @@ use defguard::{
 };
 use ethers::core::types::transaction::eip712::{Eip712, TypedData};
 use otpauth::TOTP;
+use rocket::http::Cookie;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde::Deserialize;
@@ -60,6 +61,9 @@ async fn test_logout() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
+    // store auth cookie for later use
+    let auth_cookie = response.cookies().get("defguard_session").unwrap().value();
+
     let response = client.get("/api/v1/me").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
@@ -67,6 +71,14 @@ async fn test_logout() {
     assert_eq!(response.status(), Status::Ok);
 
     let response = client.get("/api/v1/me").dispatch().await;
+    assert_eq!(response.status(), Status::Unauthorized);
+
+    // try reusing auth cookie
+    let response = client
+        .get("/api/v1/me")
+        .cookie(Cookie::new("defguard_session", auth_cookie))
+        .dispatch()
+        .await;
     assert_eq!(response.status(), Status::Unauthorized);
 }
 
