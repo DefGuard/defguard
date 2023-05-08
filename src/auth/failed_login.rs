@@ -1,15 +1,17 @@
 use chrono::{DateTime, Duration, Local};
-use std::collections::HashMap;
-use std::ops::DerefMut;
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    ops::DerefMut,
+    sync::{Arc, Mutex},
+};
 use thiserror::Error;
 
 // Time window in seconds
-const FAILED_LOGIN_WINDOW: u32 = 60;
+const FAILED_LOGIN_WINDOW: i64 = 60;
 // Failed login count threshold
 const FAILED_LOGIN_COUNT: u32 = 5;
 // How long (in seconds) to lock users out after crossing the threshold
-const FAILED_LOGIN_TIMEOUT: u32 = 5 * 60;
+const FAILED_LOGIN_TIMEOUT: i64 = 5 * 60;
 
 #[derive(Error, Debug)]
 #[error("Too many login attempts")]
@@ -54,6 +56,26 @@ impl FailedLogin {
         self.first_attempt = Local::now();
         self.last_attempt = Local::now();
     }
+
+    // Check if user login attempt should be stopped
+    fn should_prevent_login(&self) -> bool {
+        self.attempt_count >= FAILED_LOGIN_COUNT
+            && self.time_since_last_attempt() <= Duration::seconds(FAILED_LOGIN_TIMEOUT)
+    }
+
+    // Check if attempt counter can be reset.
+    // Counter can be reset after enough time has passed since the initial attempt.
+    // If user was blocked we also check if enough time (timeout) has passed since last attempt.
+    fn should_reset_counter(&self) -> bool {
+        if self.time_since_first_attempt() > Duration::seconds(FAILED_LOGIN_WINDOW)
+            && self.attempt_count < FAILED_LOGIN_COUNT
+            || self.time_since_last_attempt() > Duration::seconds(FAILED_LOGIN_TIMEOUT)
+        {
+            return true;
+        }
+
+        false
+    }
 }
 
 impl Default for FailedLoginMap {
@@ -76,15 +98,7 @@ impl FailedLoginMap {
                 self.0.insert(username.into(), FailedLogin::default());
             }
             Some(failed_login) => {
-                // reset counter if enough time has elapsed since first attempt
-                // if the attempt count threshold has been reached
-                // check if the timeout since last attempt has also ended
-                if failed_login.time_since_first_attempt()
-                    > Duration::seconds(FAILED_LOGIN_WINDOW as i64)
-                    && (failed_login.attempt_count < FAILED_LOGIN_COUNT
-                        || failed_login.time_since_last_attempt()
-                            > Duration::seconds(FAILED_LOGIN_TIMEOUT as i64))
-                {
+                if failed_login.should_reset_counter() {
                     failed_login.reset()
                 } else {
                     failed_login.increment()
@@ -95,11 +109,10 @@ impl FailedLoginMap {
 
     // Check if user can proceed with login process or should be locked out
     pub fn verify_username(&mut self, username: &str) -> Result<(), FailedLoginError> {
+        debug!("Checking if user {} can proceed with login", username);
         if let Some(failed_login) = self.0.get_mut(username) {
-            if failed_login.attempt_count >= FAILED_LOGIN_COUNT
-                && failed_login.time_since_last_attempt()
-                    <= Duration::seconds(FAILED_LOGIN_TIMEOUT as i64)
-            {
+            if failed_login.should_prevent_login() {
+                debug!("Preventing user {} from logging in", username);
                 // log a failed attempt to prolong timeout
                 failed_login.increment();
                 return Err(FailedLoginError);

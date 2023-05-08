@@ -1,17 +1,20 @@
-use defguard::{db::models::NewOpenIDClient, handlers::Auth};
+use defguard::{
+    db::{
+        models::{oauth2client::OAuth2Client, NewOpenIDClient},
+        DbPool, OAuth2AuthorizedApp,
+    },
+    handlers::Auth,
+};
 use reqwest::Url;
-use rocket::serde::json::json;
 use rocket::{
     http::{ContentType, Status},
     local::asynchronous::Client,
+    serde::json::json,
 };
-use std::borrow::Cow;
-use std::fmt::format;
+use std::{borrow::Cow, fmt::format};
 
 mod common;
 use crate::common::make_enterprise_test_client;
-use defguard::db::models::oauth2client::OAuth2Client;
-use defguard::db::{DbPool, OAuth2AuthorizedApp};
 
 async fn make_client() -> (Client, DbPool) {
     let (client, client_state) = make_enterprise_test_client().await;

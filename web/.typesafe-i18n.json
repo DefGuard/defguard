@@ -1,4 +1,5 @@
 {
    "adapter": "react",
-   "$schema": "https://unpkg.com/typesafe-i18n@5.24.3/schema/typesafe-i18n.json"
+   "$schema": "https://unpkg.com/typesafe-i18n@5.24.3/schema/typesafe-i18n.json",
+  "baseLocale": "en"
 }

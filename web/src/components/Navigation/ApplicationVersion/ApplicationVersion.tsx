@@ -14,7 +14,16 @@ export const ApplicationVersion = () => {
           teonite
         </a>
       </p>
-      {version && <p>{LL.navigation.version({ version })}</p>}
+      {version && (
+        <p>
+          <a
+            rel="noreferrer"
+            href={`https://github.com/DefGuard/defguard/releases/tag/v${version}`}
+          >
+            {LL.navigation.version({ version })}
+          </a>
+        </p>
+      )}
     </div>
   );
 };
