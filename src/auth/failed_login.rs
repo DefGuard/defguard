@@ -109,8 +109,10 @@ impl FailedLoginMap {
 
     // Check if user can proceed with login process or should be locked out
     pub fn verify_username(&mut self, username: &str) -> Result<(), FailedLoginError> {
+        debug!("Checking if user {} can proceed with login", username);
         if let Some(failed_login) = self.0.get_mut(username) {
             if failed_login.should_prevent_login() {
+                debug!("Preventing user {} from logging in", username);
                 // log a failed attempt to prolong timeout
                 failed_login.increment();
                 return Err(FailedLoginError);
