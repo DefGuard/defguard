@@ -1,22 +1,25 @@
 use defguard::{db::models::NewOpenIDClient, handlers::Auth};
+use reqwest::Url;
 use rocket::serde::json::json;
 use rocket::{
     http::{ContentType, Status},
     local::asynchronous::Client,
 };
+use std::borrow::Cow;
 
 mod common;
 use crate::common::make_enterprise_test_client;
 use defguard::db::models::oauth2client::OAuth2Client;
+use defguard::db::{DbPool, OAuth2AuthorizedApp};
 
-async fn make_client() -> Client {
-    let (client, _) = make_enterprise_test_client().await;
-    client
+async fn make_client() -> (Client, DbPool) {
+    let (client, client_state) = make_enterprise_test_client().await;
+    (client, client_state.pool)
 }
 
 #[rocket::async_test]
 async fn test_authorize() {
-    let client = make_client().await;
+    let (client, pool) = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -35,6 +38,11 @@ async fn test_authorize() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
+    let oauth_client: OAuth2Client = response.into_json().await.unwrap();
+
+    // authorize client for test user
+    let mut app = OAuth2AuthorizedApp::new(1, oauth_client.id.unwrap());
+    app.save(&pool).await.unwrap();
 
     // wrong response type
     let response = client
@@ -50,23 +58,61 @@ async fn test_authorize() {
         .await;
     assert_eq!(response.status(), Status::NotFound);
 
+    // error response
     let response = client
         .get(
             "/api/v1/oauth/authorize?\
             response_type=code&\
             client_id=MyClient&\
             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-            scope=default-scope&\
+            scope=openid&\
             state=ABCDEF",
         )
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Found);
+    let redirect_url = Url::parse(response.headers().get_one("Location").unwrap()).unwrap();
+    assert_eq!(redirect_url.domain().unwrap(), "localhost");
+    let mut pairs = redirect_url.query_pairs();
+    assert_eq!(pairs.count(), 2);
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("error"), Cow::Borrowed("unauthorized_client")))
+    );
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("state"), Cow::Borrowed("ABCDEF")))
+    );
+
+    // successful response
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=ABCDEF",
+            oauth_client.client_id
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Found);
+    let redirect_url = Url::parse(response.headers().get_one("Location").unwrap()).unwrap();
+    println!("{}", redirect_url);
+    assert_eq!(redirect_url.domain().unwrap(), "test.server.tnt");
+    let mut pairs = redirect_url.query_pairs();
+    assert_eq!(pairs.count(), 2);
+    assert_eq!(pairs.next().unwrap().0, Cow::Borrowed("code"),);
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("state"), Cow::Borrowed("ABCDEF")))
+    );
 }
 
 #[rocket::async_test]
 async fn test_openid_app_management_access() {
-    let client = make_client().await;
+    let (client, _) = make_client().await;
 
     // login as admin
     let auth = Auth::new("admin".into(), "pass123".into());
@@ -310,7 +356,7 @@ async fn test_openid_app_management_access() {
 
 #[rocket::async_test]
 async fn test_token_client_credentials() {
-    let client = make_client().await;
+    let (client, _) = make_client().await;
 
     let response = client
         .post("/api/v1/oauth/token")
