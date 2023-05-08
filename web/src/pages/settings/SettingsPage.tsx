@@ -28,7 +28,6 @@ export const SettingsPage = () => {
         <Web3Settings />
       </div>
       <div className="right">
-        {/* <LicenseCard /> */}
         <SupportCard />
         <BuiltByCard />
       </div>

@@ -1625,30 +1625,18 @@ type RootTranslation = {
 			 * S​u​p​p​o​r​t
 			 */
 			title: string
-			body: {
-				/**
-				 * 
-			​ ​ ​ ​ ​ ​ ​<​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​s​u​p​p​o​r​t​ ​p​l​e​a​s​e​ ​c​o​n​t​a​c​t​:​ ​
-			​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​m​a​i​l​t​o​:​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​"​>​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​<​/​a​>​
-			​ ​ ​ ​ ​ ​ ​<​/​p​>​
-			​	​	​	​<​b​r​/​>​
-			​ ​ ​ ​ ​ ​ ​<​p​>​Y​o​u​ ​c​a​n​ ​a​l​s​o​ ​v​i​s​i​t​ ​o​u​r​ ​C​o​m​m​u​n​i​t​y​ ​s​u​p​p​o​r​t​:​<​/​p​>​
-			​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​g​u​a​r​d​/​d​e​f​g​u​a​r​d​"​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​g​u​a​r​d​/​d​e​f​g​u​a​r​d​
-			​ ​ ​ ​ ​ ​ ​<​/​a​>​
-			​	​	​
-				 */
-				enterprise: string
-				/**
-				 * <​p​>​F​o​r​ ​C​o​m​m​u​n​i​t​y​ ​s​u​p​p​o​r​t​ ​P​l​e​a​s​e​ ​v​i​s​i​t​:​<​/​p​>​
-			​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​g​u​a​r​d​/​d​e​f​g​u​a​r​d​"​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​g​u​a​r​d​/​d​e​f​g​u​a​r​d​
-			​ ​ ​ ​ ​ ​ ​<​/​a​>​
-			​	​	​
-				 */
-				community: string
-			}
+			/**
+			 * 
+		​B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​]​(​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​)​
+		​
+		​T​o​ ​s​u​b​m​i​t​:​
+		​*​ ​B​u​g​s​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​b​u​g​&​t​e​m​p​l​a​t​e​=​b​u​g​_​r​e​p​o​r​t​.​m​d​&​t​i​t​l​e​=​)​
+		​*​ ​F​e​a​t​u​r​e​ ​r​e​q​u​e​s​t​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​f​e​a​t​u​r​e​&​t​e​m​p​l​a​t​e​=​f​e​a​t​u​r​e​_​r​e​q​u​e​s​t​.​m​d​&​t​i​t​l​e​=​)​
+		​
+		​A​n​y​ ​o​t​h​e​r​ ​r​e​q​u​e​s​t​s​ ​y​o​u​ ​c​a​n​ ​r​e​a​c​h​ ​u​s​ ​a​t​:​ ​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​
+	
+			 */
+			body: string
 		}
 	}
 	openidOverview: {
@@ -4241,30 +4229,18 @@ export type TranslationFunctions = {
 			 * Support
 			 */
 			title: () => LocalizedString
-			body: {
-				/**
-				 * 
-			      <p>
-			        For support please contact: 
-			        <a href="mailto:support@defguard.net">support@defguard.net</a>
-			      </p>
-						<br/>
-			      <p>You can also visit our Community support:</p>
-			      <a href="https://github.com/Defguard/defguard">
-			        https://github.com/Defguard/defguard
-			      </a>
-					
-				 */
-				enterprise: () => LocalizedString
-				/**
-				 * <p>For Community support Please visit:</p>
-			      <a href="https://github.com/Defguard/defguard">
-			        https://github.com/Defguard/defguard
-			      </a>
-					
-				 */
-				community: () => LocalizedString
-			}
+			/**
+			 * 
+		Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
+	
+		To submit:
+		* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+		* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
+	
+		Any other requests you can reach us at: support@defguard.net
+	
+			 */
+			body: () => LocalizedString
 		}
 	}
 	openidOverview: {
