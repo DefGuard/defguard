@@ -719,24 +719,15 @@ const pl: Translation = {
     },
     supportCard: {
       title: 'Wsparcie',
-      body: {
-        enterprise: `
-      <p>
-			Po wsparcie proszę kontaktuj się na:
-        <a href="mailto:support@defguard.net">support@defguard.net</a>
-      </p>
-			<br/>
-      <p>Możesz również odwiedzić nasze wsparcie dla społeczności:</p>
-      <a href="https://github.com/Defguard/defguard">
-        https://github.com/Defguard/defguard
-      </a>
-			`,
-        community: `<p>W celu uzyskania wsparcia community odwiedź:</p>
-      <a href="https://github.com/Defguard/defguard">
-        https://github.com/Defguard/defguard
-      </a>
-			`,
-      },
+      body: `
+Przed zgłoszeniem problemów na Github należy zapoznać z dokumentacją dostępną na [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/) 
+
+Aby zgłosić:
+* Problem - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+* Prośbę o nową funkcjonalność - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=) 
+
+W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
+`,
     },
   },
   openidOverview: {
