@@ -101,7 +101,7 @@ const en: BaseTranslation = {
     },
     deleteDevice: {
       title: 'Delete device',
-      message: 'Do you want to delete {deviceName: string} device ?',
+      message: 'Do you want to delete {deviceName} device ?',
       submit: 'Delete device',
       messages: {
         success: 'Device deleted.',
@@ -576,6 +576,7 @@ const en: BaseTranslation = {
       address: 'Enter a valid address.',
       validPort: 'Enter a valid port.',
       validCode: 'Code should have 6 digits.',
+      allowedIps: 'Only valid IP or domain is allowed.',
     },
     floatingErrors: {
       title: 'Please correct the following:',
@@ -978,6 +979,8 @@ const en: BaseTranslation = {
     importHeader: 'Network import',
     form: {
       messages: {
+        address:
+          'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)',
         gateway: 'Gateway public address, used by VPN users to connect',
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:
@@ -990,7 +993,7 @@ const en: BaseTranslation = {
           label: 'Network name',
         },
         address: {
-          label: 'VPN network address and mask',
+          label: 'Gateway VPN IP address and netmask',
         },
         endpoint: {
           label: 'Gateway address',

@@ -1,10 +1,10 @@
-import type { BaseTranslation } from '../i18n-types';
+import type { Translation } from '../i18n-types';
 
-const pl: BaseTranslation = {
+const pl: Translation = {
   messages: {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
-    succcessClipboard: 'Skopiowano do schowka',
+    successClipboard: 'Skopiowano do schowka',
     errorVersion: 'Nie udało się uzyskać wersji aplikacji.',
     errorLicense: 'Nie udało się uzyskać licencji.',
     clipboardError: 'Schowek nie jest dostępny.',
@@ -101,7 +101,7 @@ const pl: BaseTranslation = {
     },
     deleteDevice: {
       title: 'Usuń urządzenie',
-      message: 'Czy chcesz usunąć urządzenie {deviceName: string} ?',
+      message: 'Czy chcesz usunąć urządzenie {deviceName} ?',
       submit: 'Usuń urządzenie',
       messages: {
         success: 'Urządzenie usunięte.',
@@ -203,9 +203,9 @@ const pl: BaseTranslation = {
       controls: {
         submit: 'Usuń użytkownika',
       },
-      message: 'Czy chcesz trwale usunąć konto {username: string} ?',
+      message: 'Czy chcesz trwale usunąć konto {username} ?',
       messages: {
-        success: '{username: string} usunięte.',
+        success: '{username} usunięte.',
       },
     },
     deleteProvisioner: {
@@ -213,9 +213,9 @@ const pl: BaseTranslation = {
       controls: {
         submit: 'Usuń provisionera',
       },
-      message: 'Czy chcesz usunąć {id: string} provisionera?',
+      message: 'Czy chcesz usunąć {id} provisionera?',
       messages: {
-        success: '{provisioner: string} usunięty.',
+        success: '{provisioner} usunięty.',
       },
     },
     changeUserPassword: {
@@ -264,7 +264,7 @@ const pl: BaseTranslation = {
             placeholder: 'login',
             label: 'Login',
           },
-          hasło: {
+          password: {
             placeholder: 'Hasło',
             label: 'Hasło',
           },
@@ -338,7 +338,7 @@ const pl: BaseTranslation = {
     },
     deleteWebhook: {
       title: 'Usuń webhook',
-      message: 'Czy chcesz usunąć {name: string} webhook ?',
+      message: 'Czy chcesz usunąć {name} webhook ?',
       submit: 'Usuń',
       messages: {
         success: 'Webhook usunięty.',
@@ -458,7 +458,7 @@ const pl: BaseTranslation = {
     },
     wallets: {
       messages: {
-        duplikat: {
+        duplicate: {
           primary: 'Podłączony portfel jest już zarejestrowany',
           sub: 'Proszę połączyć nieużywany portfel.',
         },
@@ -523,6 +523,7 @@ const pl: BaseTranslation = {
   },
   navigation: {
     bar: {
+      wizard: 'Konfiguracja VPN',
       overview: 'Przegląd sieci',
       users: 'Użytkownicy',
       provisioners: 'Yubikey Provisioners',
@@ -533,6 +534,7 @@ const pl: BaseTranslation = {
       logOut: 'Wyloguj się',
     },
     mobileTitles: {
+      wizard: 'Konfiguracja VPN',
       users: 'Użytkownicy',
       settings: 'Defguard ustaawienia globalne',
       user: 'Profil użytkownika',
@@ -543,7 +545,7 @@ const pl: BaseTranslation = {
       networkSettings: 'Ustawienia sieci',
     },
     copyright: 'Copyright \u00A9 2023',
-    version: 'Wersja aplikacji: {version: string}',
+    version: 'Wersja aplikacji: {version}',
   },
   form: {
     download: 'Pobierz',
@@ -573,7 +575,11 @@ const pl: BaseTranslation = {
       endpoint: 'Wpisz prawidłowy punkt końcowy.',
       address: 'Wprowadź poprawny adres.',
       validPort: 'Wprowadź prawidłowy port.',
-      validCode: 'Kod powinien mieć 6 cyfr',
+      validCode: 'Kod powinien mieć 6 cyfr.',
+      allowedIps: 'Tylko poprawne adresy IP oraz domeny.',
+    },
+    floatingErrors: {
+      title: 'Popraw następujące błędy:',
     },
   },
   components: {
@@ -707,8 +713,8 @@ const pl: BaseTranslation = {
           <br />`,
       },
       footer: {
-        company: 'licencjonowany dla: {company: string}',
-        expiration: 'data ważności: {expiration: string}',
+        company: 'licencjonowany dla: {company}',
+        expiration: 'data ważności: {expiration}',
       },
     },
     supportCard: {
@@ -756,6 +762,7 @@ const pl: BaseTranslation = {
         delete: 'Usuń aplikację',
         disable: 'Wyłącz',
         enable: 'Włącz',
+        copy: 'Skopuj ID',
       },
       status: {
         enabled: 'Włączona',
@@ -765,10 +772,11 @@ const pl: BaseTranslation = {
     messages: {
       noLicenseMessage: 'Nie masz licencji na tę funkcję.',
       noClientsFound: 'Nie znaleziono żadnych wyników.',
+      copySuccess: 'ID skopiowane',
     },
     deleteApp: {
       title: 'Usuń aplikację',
-      message: 'Czy chcesz usunąć aplikację {appName: string} ?',
+      message: 'Czy chcesz usunąć aplikację {appName} ?',
       submit: 'Usuń aplikację',
       messages: {
         success: 'Aplikacja usunięta.',
@@ -788,7 +796,7 @@ const pl: BaseTranslation = {
       openidClientModal: {
         title: {
           addApp: 'Dodaj aplikację',
-          editApp: 'Edytuj aplikację: {appName: string}',
+          editApp: 'Edytuj aplikację: {appName}',
         },
         scopes: 'Zakresy:',
         messages: {
@@ -810,7 +818,7 @@ const pl: BaseTranslation = {
               label: 'Nazwa aplikacji',
             },
             redirectUri: {
-              label: 'Przekierowujący URL {count: number}',
+              label: 'Przekierowujący URL {count}',
               placeholder: 'https://example.com/redirect',
             },
             openid: {
@@ -913,7 +921,7 @@ const pl: BaseTranslation = {
     },
   },
   openidAllow: {
-    header: '{name: string} chciałby:',
+    header: '{name} chciałby:',
     scopes: {
       openid: 'Użyć danych z twojego profilu do przyszłych logowań.',
       profile:
@@ -939,10 +947,10 @@ const pl: BaseTranslation = {
     stats: {
       currentlyActiveUsers: 'Obecnie aktywni użytkownicy',
       currentlyActiveDevices: 'Obecnie aktywne urządzenia',
-      activeUsersFilter: 'Aktywni użytkownicy w {hour: number}H',
-      activeDevicesFilter: 'Aktywne urządzenia w {hour: number}H',
+      activeUsersFilter: 'Aktywni użytkownicy w {hour}H',
+      activeDevicesFilter: 'Aktywne urządzenia w {hour}H',
       totalTransfer: 'Całkowity transfer:',
-      activityIn: 'Aktywność w {hour: number}H',
+      activityIn: 'Aktywność w {hour}H',
       in: 'Przychodzący:',
       out: 'Wychodzący:',
       gatewayDisconnected: 'Gateway rozłączony',
@@ -971,6 +979,8 @@ const pl: BaseTranslation = {
     importHeader: 'Import sieci',
     form: {
       messages: {
+        address:
+          'Od tego adresu będzie stworzona sieć VPN, np. 10.10.10.1/24 (sieć VPN będzie: 10.10.10.0/24)',
         gateway:
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
         dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs wireguard jest aktywny.',
@@ -1032,6 +1042,7 @@ const pl: BaseTranslation = {
   loginPage: {
     pageTitle: 'Wprowadź swoje dane logowania',
     mfa: {
+      title: 'Autorzyacja dwuetapowa.',
       controls: {
         useAuthenticator: 'Zamiast tego użyj aplikacji Authenticator',
         useWallet: 'Zamiast tego użyj swojego portfela kryptowalutowego',
@@ -1090,11 +1101,36 @@ const pl: BaseTranslation = {
     },
   },
   wizard: {
+    completed: 'Sieć skonfigurowa',
+    configuration: {
+      successMessage: 'Sieć utworzona',
+    },
     navigation: {
+      top: 'Konfiguracja sieci',
       titles: {
-        step1: 'Typ kreatora',
-        step2: 'Konfiguracja sieci',
-        step3: 'Urządzenia',
+        welcome: 'Konfiguracja sieci',
+        choseNetworkSetup: 'Wybierz tryb konfiguracji',
+        importConfig: 'Importuj istnijącą sieć',
+        manualConfig: 'Konfiguracja sieci',
+        mapDevices: 'Mapowanie importowanych urządzeń',
+      },
+      buttons: {
+        next: 'Dalej',
+        back: 'Wróć',
+      },
+    },
+    welcome: {
+      header: 'Witaj w asystencie konfiguracji sieci!',
+      sub: 'Zanim zaczniesz, musisz wybrać tryb konfiguracji. Ikony <React> zawierają przydane informacje.',
+    },
+    deviceMap: {
+      crateSuccess: 'Urządzenia dodane',
+      list: {
+        headers: {
+          deviceName: 'Nazwa',
+          deviceIP: 'IP',
+          user: 'Użytkownik',
+        },
       },
     },
     wizardType: {

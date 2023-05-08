@@ -107,6 +107,30 @@ async fn test_login_bruteforce() {
 }
 
 #[rocket::async_test]
+async fn test_login_bruteforce() {
+    let client = make_client().await;
+
+    let invalid_auth = Auth::new("hpotter".into(), "invalid".into());
+
+    // fail login 5 times in a row
+    for _ in 1..6 {
+        let response = client
+            .post("/api/v1/auth")
+            .json(&invalid_auth)
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Unauthorized);
+    }
+
+    let response = client
+        .post("/api/v1/auth")
+        .json(&invalid_auth)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::TooManyRequests);
+}
+
+#[rocket::async_test]
 async fn test_cannot_enable_mfa() {
     let client = make_client().await;
 
