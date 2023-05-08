@@ -54,6 +54,26 @@ impl FailedLogin {
         self.first_attempt = Local::now();
         self.last_attempt = Local::now();
     }
+
+    // Check if user login attempt should be stopped
+    fn should_prevent_login(&self) -> bool {
+        self.attempt_count >= FAILED_LOGIN_COUNT
+            && self.time_since_last_attempt() <= Duration::seconds(FAILED_LOGIN_TIMEOUT as i64)
+    }
+
+    // Check if attempt counter can be reset.
+    // Counter can be reset after enough time has passed since the initial attempt.
+    // If user was blocked we also check if enough time (timeout) has passed since last attempt.
+    fn should_reset_counter(&self) -> bool {
+        if self.time_since_first_attempt() > Duration::seconds(FAILED_LOGIN_WINDOW as i64)
+            && self.attempt_count < FAILED_LOGIN_COUNT
+            || self.time_since_last_attempt() > Duration::seconds(FAILED_LOGIN_TIMEOUT as i64)
+        {
+            return true;
+        }
+
+        false
+    }
 }
 
 impl Default for FailedLoginMap {
@@ -76,15 +96,7 @@ impl FailedLoginMap {
                 self.0.insert(username.into(), FailedLogin::default());
             }
             Some(failed_login) => {
-                // reset counter if enough time has elapsed since first attempt
-                // if the attempt count threshold has been reached
-                // check if the timeout since last attempt has also ended
-                if failed_login.time_since_first_attempt()
-                    > Duration::seconds(FAILED_LOGIN_WINDOW as i64)
-                    && (failed_login.attempt_count < FAILED_LOGIN_COUNT
-                        || failed_login.time_since_last_attempt()
-                            > Duration::seconds(FAILED_LOGIN_TIMEOUT as i64))
-                {
+                if failed_login.should_reset_counter() {
                     failed_login.reset()
                 } else {
                     failed_login.increment()
@@ -96,10 +108,7 @@ impl FailedLoginMap {
     // Check if user can proceed with login process or should be locked out
     pub fn verify_username(&mut self, username: &str) -> Result<(), FailedLoginError> {
         if let Some(failed_login) = self.0.get_mut(username) {
-            if failed_login.attempt_count >= FAILED_LOGIN_COUNT
-                && failed_login.time_since_last_attempt()
-                    <= Duration::seconds(FAILED_LOGIN_TIMEOUT as i64)
-            {
+            if failed_login.should_prevent_login() {
                 // log a failed attempt to prolong timeout
                 failed_login.increment();
                 return Err(FailedLoginError);
