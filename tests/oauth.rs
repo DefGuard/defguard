@@ -6,6 +6,7 @@ use rocket::{
     local::asynchronous::Client,
 };
 use std::borrow::Cow;
+use std::fmt::format;
 
 mod common;
 use crate::common::make_enterprise_test_client;
@@ -82,6 +83,28 @@ async fn test_authorize() {
     assert_eq!(
         pairs.next(),
         Some((Cow::Borrowed("state"), Cow::Borrowed("ABCDEF")))
+    );
+
+    // error response without state
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+            scope=invalid",
+            oauth_client.client_id
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Found);
+    let redirect_url = Url::parse(response.headers().get_one("Location").unwrap()).unwrap();
+    assert_eq!(redirect_url.domain().unwrap(), "localhost");
+    let mut pairs = redirect_url.query_pairs();
+    assert_eq!(pairs.count(), 1);
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("error"), Cow::Borrowed("invalid_scope")))
     );
 
     // successful response

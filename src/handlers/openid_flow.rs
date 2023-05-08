@@ -167,7 +167,7 @@ pub struct AuthenticationRequest<'r> {
     client_id: &'r str,
     // client_secret: Option<&'r str>,
     redirect_uri: &'r str,
-    state: &'r str,
+    state: Option<&'r str>,
     // response_mode: Option<&'r str>,
     nonce: Option<&'r str>,
     // display: Option<&'r str>,
@@ -265,9 +265,15 @@ async fn generate_auth_code_redirect(
         data.code_challenge.map(str::to_owned),
     );
     auth_code.save(&appstate.pool).await?;
-    url.query_pairs_mut()
-        .append_pair("code", auth_code.code.as_str())
-        .append_pair("state", data.state);
+
+    {
+        let mut query_pairs = url.query_pairs_mut();
+        query_pairs.append_pair("code", auth_code.code.as_str());
+        if let Some(state) = data.state {
+            query_pairs.append_pair("state", state);
+        };
+    };
+
     Ok(url.to_string())
 }
 
@@ -390,8 +396,15 @@ pub async fn authorization(
 
     let mut url =
         Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
-    url.query_pairs_mut().append_pair("error", error.as_ref());
-    url.query_pairs_mut().append_pair("state", data.state);
+
+    {
+        let mut query_pairs = url.query_pairs_mut();
+        query_pairs.append_pair("error", error.as_ref());
+        if let Some(state) = data.state {
+            query_pairs.append_pair("state", state);
+        };
+    };
+
     Ok(Redirect::found(url.to_string()))
 }
 
@@ -466,8 +479,14 @@ pub async fn secure_authorization(
         error = CoreAuthErrorResponseType::AccessDenied;
     }
 
-    url.query_pairs_mut().append_pair("error", error.as_ref());
-    url.query_pairs_mut().append_pair("state", data.state);
+    {
+        let mut query_pairs = url.query_pairs_mut();
+        query_pairs.append_pair("error", error.as_ref());
+        if let Some(state) = data.state {
+            query_pairs.append_pair("state", state);
+        };
+    };
+
     Ok(Redirect::found(url.to_string()))
 }
 
