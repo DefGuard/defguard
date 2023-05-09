@@ -16,14 +16,14 @@ import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox'
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
-import {
-  patternValidIpAndMaskNoZeroHostId,
-  patternValidIpOptionalMaskOrDomainList,
-  patternValidIpOrDomain,
-  patternValidIpOrDomainList,
-} from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
 import { ModifyNetworkRequest, Network } from '../../../shared/types';
+import {
+  validateIp,
+  validateIpList,
+  validateIpOrDomain,
+  validateIpOrDomainList,
+} from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
 type FormInputs = ModifyNetworkRequest;
@@ -106,11 +106,18 @@ export const NetworkConfiguration: React.FC = () => {
       address: yup
         .string()
         .required(LL.form.error.required())
-        .matches(patternValidIpAndMaskNoZeroHostId, LL.form.error.address()),
+        .test(LL.form.error.address(), (value: string) => {
+          const ipValid = validateIp(value, true);
+          if (ipValid) {
+            const host = value.split('.')[3].split('/')[0];
+            if (host === '0') return false;
+          }
+          return ipValid;
+        }),
       endpoint: yup
         .string()
         .required(LL.form.error.required())
-        .matches(patternValidIpOrDomain, LL.form.error.endpoint()),
+        .test(LL.form.error.endpoint(), (val: string) => validateIpOrDomain(val)),
       port: yup
         .number()
         .max(65535, LL.form.error.portMax())
@@ -119,11 +126,21 @@ export const NetworkConfiguration: React.FC = () => {
       allowed_ips: yup
         .string()
         .optional()
-        .matches(patternValidIpOptionalMaskOrDomainList, LL.form.error.address()),
+        .test(LL.form.error.allowedIps(), (val?: string) => {
+          if (val === '' || !val) {
+            return true;
+          }
+          return validateIpList(val, ',', true);
+        }),
       dns: yup
         .string()
         .optional()
-        .matches(patternValidIpOrDomainList, LL.form.error.allowedIps()),
+        .test(LL.form.error.allowedIps(), (val?: string) => {
+          if (val === '' || !val) {
+            return true;
+          }
+          return validateIpOrDomainList(val, ',', true);
+        }),
     })
     .required();
 

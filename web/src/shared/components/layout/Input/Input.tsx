@@ -118,22 +118,6 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       [disabled]
     );
 
-    const getIconProp = useMemo(() => {
-      if (disabled) {
-        return 'idle';
-      }
-      if (required && !invalid && !valid) {
-        return 'required';
-      }
-      if (invalid) {
-        return 'invalid';
-      }
-      if (valid) {
-        return 'valid';
-      }
-      return 'idle';
-    }, [disabled, required, invalid, valid]);
-
     const getContainerVariant = useMemo(() => {
       if (disabled) {
         return 'idle';
@@ -259,18 +243,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={componentId}
             disabled={disabled}
           />
-          <AnimatePresence mode="wait">
-            <motion.span
-              className="icon-container"
-              variants={iconContainerVariants}
-              initial="hidden"
-              animate={getIconProp}
-              exit="hidden"
-              key={getIconProp}
-            >
-              {getInputIcon}
-            </motion.span>
-          </AnimatePresence>
+          <span className="icon-container">{getInputIcon}</span>
           {!disabled && disposable && hovered ? (
             <div
               className="dispose"
@@ -446,31 +419,5 @@ const outerLabelVariants: Variants = {
       res.opacity = 0.5;
     }
     return res;
-  },
-};
-
-const iconContainerVariants: Variants = {
-  required: {
-    opacity: 1,
-    width: '22px',
-    height: '22px',
-  },
-  valid: {
-    opacity: 1,
-    width: '22px',
-    height: '22px',
-  },
-  invalid: {
-    opacity: 1,
-    width: '18px',
-    height: '18px',
-  },
-  idle: {
-    opacity: 1,
-    width: '22px',
-    height: '22px',
-  },
-  hidden: {
-    opacity: 0,
   },
 };
