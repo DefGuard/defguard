@@ -19,8 +19,8 @@ import MessageBox from '../../../../shared/components/layout/MessageBox/MessageB
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
-import { patternValidIpOrDomain } from '../../../../shared/patterns';
 import { ImportNetworkRequest } from '../../../../shared/types';
+import { validateIpOrDomain } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 interface FormInputs extends ImportNetworkRequest {
@@ -53,7 +53,7 @@ export const WizardNetworkImport = () => {
           endpoint: yup
             .string()
             .required(LL.form.error.required())
-            .matches(patternValidIpOrDomain, LL.form.error.endpoint()),
+            .test(LL.form.error.endpoint(), (val: string) => validateIpOrDomain(val)),
           fileName: yup.string().required(LL.form.error.required()),
           config: yup.string().required(),
         })

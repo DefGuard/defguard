@@ -13,13 +13,13 @@ import { Card } from '../../../../shared/components/layout/Card/Card';
 import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
-import {
-  patternValidIpAndMaskNoZeroHostId,
-  patternValidIpOptionalMaskList,
-  patternValidIpOrDomain,
-  patternValidIpOrDomainList,
-} from '../../../../shared/patterns';
 import { ModifyNetworkRequest } from '../../../../shared/types';
+import {
+  validateIp,
+  validateIpList,
+  validateIpOrDomain,
+  validateIpOrDomainList,
+} from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 export const WizardNetworkConfiguration = () => {
@@ -58,11 +58,18 @@ export const WizardNetworkConfiguration = () => {
           address: yup
             .string()
             .required(LL.form.error.required())
-            .matches(patternValidIpAndMaskNoZeroHostId, LL.form.error.address()),
+            .test(LL.form.error.address(), (value: string) => {
+              const ipValid = validateIp(value, true);
+              if (ipValid) {
+                const host = value.split('.')[3].split('/')[0];
+                if (host === '0') return false;
+              }
+              return ipValid;
+            }),
           endpoint: yup
             .string()
             .required(LL.form.error.required())
-            .matches(patternValidIpOrDomain, LL.form.error.endpoint()),
+            .test(LL.form.error.endpoint(), (val: string) => validateIpOrDomain(val)),
           port: yup
             .number()
             .max(65535, LL.form.error.portMax())
@@ -71,11 +78,21 @@ export const WizardNetworkConfiguration = () => {
           allowed_ips: yup
             .string()
             .optional()
-            .matches(patternValidIpOptionalMaskList, LL.form.error.address()),
+            .test(LL.form.error.allowedIps(), (val?: string) => {
+              if (val === '' || !val) {
+                return true;
+              }
+              return validateIpList(val, ',', true);
+            }),
           dns: yup
             .string()
             .optional()
-            .matches(patternValidIpOrDomainList, LL.form.error.allowedIps()),
+            .test(LL.form.error.allowedIps(), (val?: string) => {
+              if (val === '' || !val) {
+                return true;
+              }
+              return validateIpOrDomainList(val, ',', true);
+            }),
         })
         .required(),
     [LL.form.error]
