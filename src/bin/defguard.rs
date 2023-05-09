@@ -27,12 +27,23 @@ fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
         .error(Color::BrightRed);
     Dispatch::new()
         .format(move |out, message, record| {
+            // explicitly handle potentially malicious escape sequences
+            let mut formatted_message = String::new();
+            for c in message.to_string().chars() {
+                match c {
+                    '\n' => formatted_message.push_str("\\n"),
+                    '\r' => formatted_message.push_str("\\r"),
+                    '\u{0008}' => formatted_message.push_str("\\u{{0008}}"),
+                    _ => formatted_message.push(c),
+                }
+            }
+
             out.finish(format_args!(
                 "[{}][{}][{}] {}",
                 chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
                 colors.color(record.level()),
                 record.target(),
-                message
+                formatted_message
             ));
         })
         .level(LevelFilter::from_str(log_level).unwrap_or(LevelFilter::Info))
