@@ -42,6 +42,10 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
 }
 
 async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
+    User::init_admin_user(pool, &config.default_admin_password)
+        .await
+        .unwrap();
+
     let mut test_user = User::new(
         "hpotter".into(),
         "pass123",
@@ -51,10 +55,6 @@ async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
         None,
     );
     test_user.save(pool).await.unwrap();
-
-    User::init_admin_user(pool, &config.default_admin_password)
-        .await
-        .unwrap();
 }
 
 pub struct ClientState {
