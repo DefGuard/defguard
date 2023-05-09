@@ -66,6 +66,7 @@ rust-ini = "0.19"
 regex = "1.8"
 lazy_static = "1.4"
 thiserror = "1.0"
+dotenvy = "0.15.7"
 
 [dev-dependencies]
 matches = "0.1"
@@ -84,9 +85,6 @@ wireguard = []
 
 [profile.dev]
 strip = "debuginfo"
-
-[profile.dev.package.sqlx-macros]
-opt-level = 2
 
 [profile.release]
 lto = "thin"

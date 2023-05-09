@@ -1132,6 +1132,7 @@ dependencies = [
  "chrono",
  "claims",
  "clap 4.2.7",
+ "dotenvy",
  "ethabi",
  "ethers",
  "fern",
