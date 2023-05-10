@@ -88,7 +88,7 @@ pub async fn authenticate(
     let auth_cookie = Cookie::build("defguard_session", session.id)
         .http_only(true)
         .secure(true)
-        .same_site(SameSite::Strict)
+        .same_site(SameSite::Lax)
         .finish();
     cookies.add(auth_cookie);
 
