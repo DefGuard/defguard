@@ -25,7 +25,7 @@ test('Authorize openId client.', async ({ page }) => {
   await page.locator('#authorizeUri').type(routes.base + routes.authorize);
   await page.locator('#clientId').type(clientId);
   await page.locator('.debug__form-submit').click();
-  await page.waitForURL(routes.base + routes.consent);
+  await page.waitForURL(routes.base + routes.consent + '**');
   await page.getByTestId('openid-allow').click();
   await page.waitForURL('https://oidcdebugger.com/**');
   await waitForPromise(2000);
