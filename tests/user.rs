@@ -9,6 +9,7 @@ use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json:
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 mod common;
 use crate::common::make_test_client;
+use tokio_stream::{self as stream, StreamExt};
 
 async fn make_client() -> Client {
     let (client, _) = make_test_client().await;
@@ -55,8 +56,10 @@ async fn test_change_password() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
+    let new_password = "newPassword43$!";
+
     let password = PasswordChange {
-        new_password: "lumos".into(),
+        new_password: new_password.clone().into(),
     };
     let response = client
         .put("/api/v1/user/hpotter/password")
@@ -69,7 +72,7 @@ async fn test_change_password() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Unauthorized);
 
-    let auth = Auth::new("hpotter".into(), "lumos".into());
+    let auth = Auth::new("hpotter".into(), new_password.into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 }
@@ -170,7 +173,7 @@ async fn test_crud_user() {
         first_name: "Albus".into(),
         email: "a.dumbledore@hogwart.edu.uk".into(),
         phone: "1234".into(),
-        password: "Alohomora!".into(),
+        password: "Password1234543$!".into(),
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
@@ -351,4 +354,45 @@ async fn test_check_username() {
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::BadRequest);
+}
+
+#[rocket::async_test]
+async fn test_check_password_strength()  {
+    let client = make_client().await;
+
+    // auth session with admin
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // test 
+    let strong_password = "strongPass1234$!";
+    let too_short = "1H$";
+    let no_upper = "notsostrong1!";
+    let no_numbers = "notSostrong!";
+    let no_specials = "noSoStrong1234";
+    let weak_passwords = [too_short, no_upper, no_specials, no_numbers];
+    let mut stream = stream::iter(weak_passwords.iter().enumerate());
+    while let Some((index, password)) = stream.next().await {
+    let weak_password_user = AddUserData {
+        username: format!("weakpass{}", index),
+        first_name: "testpassfn".into(),
+        last_name: "testpassln".into(),
+        email: format!("testpass{}@test.test", index),
+        phone: "123456789".into(),
+        password: password.clone().into(),
+    };
+        let response = client.post("/api/v1/user").json(&weak_password_user).dispatch().await;
+        assert_eq!(response.status(), Status::BadRequest);
+    }
+    let strong_password_user = AddUserData {
+        username: "strongpass".into(),
+        first_name: "Strong".into(),
+        last_name: "Pass".into(),
+        email: "strongpass@test.test".into(),
+        phone: "123456789".into(),
+        password: strong_password.into(),
+    };
+    let response = client.post("/api/v1/user").json(&strong_password_user).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
 }

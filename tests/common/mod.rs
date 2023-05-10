@@ -11,6 +11,7 @@ use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
+
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     let config = DefGuardConfig::new();
     let opts = PgConnectOptions::new()
