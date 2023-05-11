@@ -2,27 +2,33 @@
     <img src="docs/header.png" alt="defguard">
  </p>
 
-Defguard is an open-source identity management system made with the aim to make company managment as easy as possible.
+Defguard is an open-source security army knif (Identity, MFA, VPN, Yubikey, Web3).
 
-**Problems that DefGuard adresses and solves**
-
-* Your company has a self-hosted services, e.g.: Git/Jira/Slack etc. and wants an easy-to-use central logging system with simple and nice UI
-* Fast and easy to setup VPN (Remote access to company resources as above)
-* Webhooks triggered after taking specified actions on user sending user data to provided URL which allows you to automate stuff like sending welcome mail or creating accounts in different services
+Building a secure organization has always been difficult and costly. Defguard provides a beautiful, easy-to-use (business users) and deploy (admin/devops) fundament to make your organization secure.
 
 **Features:**
 
-* OpenID connect provider
-* Wireguard VPN management
-* LDAP synchronization
+* OpenID Connect provider (with OpenLDAP synchronization)
+* Wireguard :tm: VPN Management
+* Multi-Factor Authentication:
+ - Time-based One-Time Password Algorithm (TOTP - e.g. Google Authenticator)
+ - WebAuthn / FIDO2 - for hardware key authentication support
+ - Web3 - authentication with crypto software and hardware wallets using Metamask, Wallet Connect, Ledger Extension
+* [Yubikey harware keys](https://www.yubico.com/) provisioning
 * Webhooks
-* Yubikey Provisioning
+* Web3 wallect validation
 
  <p align="center">
     <img src="docs/network-overview.png" alt="defguard">
  </p>
 
+### Looking for docs?
+
 See the [documentation](https://defguard.gitbook.io) for more information.
+
+### Community or Support
+
+Find us on Matrix: `#defgurd:teonite.com <https://matrix.to/#/#defguard:teonite.com>`
 
 # Development environment setup
 
@@ -85,3 +91,4 @@ Once that's done, you can run backend with:
 ```
 cargo run
 ```
+
