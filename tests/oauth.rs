@@ -209,7 +209,7 @@ async fn test_openid_app_management_access() {
     assert_eq!(response.status(), Status::Ok);
     let app: OAuth2Client = response.into_json().await.unwrap();
     assert_eq!(app.name, oauth2client.name);
-    assert_eq!(app.enabled, false);
+    assert!(!app.enabled);
 
     // delete app
     let response = client
