@@ -176,7 +176,7 @@ pub async fn webauthn_init(
         let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
         match appstate.webauthn.start_passkey_registration(
             Uuid::new_v4(),
-            &user.email,
+            &user.username,
             &user.username,
             Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
         ) {

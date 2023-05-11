@@ -57,7 +57,6 @@ export const RegisterWebAuthNForm = () => {
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
-        setModalState({ manageWebAuthNKeysModal: { visible: false } });
         console.error(err);
       },
     }
@@ -126,8 +125,8 @@ export const RegisterWebAuthNForm = () => {
               const responseData = await start({
                 name: formValues.name,
               }).catch((err) => {
-                console.error(err);
                 toaster.error(LL.messages.error());
+                console.error(err);
               });
               if (!responseData) {
                 setWaitingForSecurityKey(false);
@@ -140,6 +139,7 @@ export const RegisterWebAuthNForm = () => {
               });
               setWaitingForSecurityKey(false);
               if (!response) {
+                toaster.error(LL.messages.error());
                 return;
               }
               if (response) {
