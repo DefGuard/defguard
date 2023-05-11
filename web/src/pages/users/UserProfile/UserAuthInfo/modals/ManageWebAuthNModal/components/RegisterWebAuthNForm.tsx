@@ -143,7 +143,6 @@ export const RegisterWebAuthNForm = () => {
                 return;
               }
               if (response) {
-                console.log(response);
                 registerKeyFinish({
                   name: formValues.name,
                   rpkc: response.toJSON(),
