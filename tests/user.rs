@@ -59,7 +59,7 @@ async fn test_change_password() {
     let new_password = "newPassword43$!";
 
     let password = PasswordChange {
-        new_password: new_password.clone().into(),
+        new_password: new_password.into(),
     };
     let response = client
         .put("/api/v1/user/hpotter/password")
@@ -357,7 +357,7 @@ async fn test_check_username() {
 }
 
 #[rocket::async_test]
-async fn test_check_password_strength()  {
+async fn test_check_password_strength() {
     let client = make_client().await;
 
     // auth session with admin
@@ -365,7 +365,7 @@ async fn test_check_password_strength()  {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    // test 
+    // test
     let strong_password = "strongPass1234$!";
     let too_short = "1H$";
     let no_upper = "notsostrong1!";
@@ -374,15 +374,19 @@ async fn test_check_password_strength()  {
     let weak_passwords = [too_short, no_upper, no_specials, no_numbers];
     let mut stream = stream::iter(weak_passwords.iter().enumerate());
     while let Some((index, password)) = stream.next().await {
-    let weak_password_user = AddUserData {
-        username: format!("weakpass{}", index),
-        first_name: "testpassfn".into(),
-        last_name: "testpassln".into(),
-        email: format!("testpass{}@test.test", index),
-        phone: "123456789".into(),
-        password: password.clone().into(),
-    };
-        let response = client.post("/api/v1/user").json(&weak_password_user).dispatch().await;
+        let weak_password_user = AddUserData {
+            username: format!("weakpass{}", index),
+            first_name: "testpassfn".into(),
+            last_name: "testpassln".into(),
+            email: format!("testpass{}@test.test", index),
+            phone: "123456789".into(),
+            password: password.to_owned().into(),
+        };
+        let response = client
+            .post("/api/v1/user")
+            .json(&weak_password_user)
+            .dispatch()
+            .await;
         assert_eq!(response.status(), Status::BadRequest);
     }
     let strong_password_user = AddUserData {
@@ -393,6 +397,10 @@ async fn test_check_password_strength()  {
         phone: "123456789".into(),
         password: strong_password.into(),
     };
-    let response = client.post("/api/v1/user").json(&strong_password_user).dispatch().await;
+    let response = client
+        .post("/api/v1/user")
+        .json(&strong_password_user)
+        .dispatch()
+        .await;
     assert_eq!(response.status(), Status::Created);
 }

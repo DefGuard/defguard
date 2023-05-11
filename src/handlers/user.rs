@@ -32,24 +32,32 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
 
 fn check_password_strength(password: &str) -> Result<(), OriWebError> {
     let password_length = password.len();
-    let special_chars_expression = Regex::new(r#"[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]"#).unwrap();
+    let special_chars_expression = Regex::new(r#"[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?~]"#).unwrap();
     let numbers_expression = Regex::new(r"[0-9]").unwrap();
     let lowercase_expression = Regex::new(r"[a-z]").unwrap();
     let uppercase_expression = Regex::new(r"[A-Z]").unwrap();
-    if password_length < 8 || password_length > 32 {
-        return Err(OriWebError::Serialization("Incorrect password length".into()));
+    if !(8..=32).contains(&password_length) {
+        return Err(OriWebError::Serialization(
+            "Incorrect password length".into(),
+        ));
     }
     if !special_chars_expression.is_match(password) {
-        return Err(OriWebError::Serialization("No special characters in password".into()));
+        return Err(OriWebError::Serialization(
+            "No special characters in password".into(),
+        ));
     }
     if !numbers_expression.is_match(password) {
-        return Err(OriWebError::Serialization("No numbers in password".into()))
+        return Err(OriWebError::Serialization("No numbers in password".into()));
     }
     if !lowercase_expression.is_match(password) {
-        return Err(OriWebError::Serialization("No lowercase characters in password".into()));
+        return Err(OriWebError::Serialization(
+            "No lowercase characters in password".into(),
+        ));
     }
     if !uppercase_expression.is_match(password) {
-        return Err(OriWebError::Serialization("No uppercase characters in password".into()))
+        return Err(OriWebError::Serialization(
+            "No uppercase characters in password".into(),
+        ));
     }
     Ok(())
 }
@@ -91,10 +99,12 @@ pub async fn add_user(
     let username = data.username.clone();
     debug!("User {} adding user {}", session.user.username, username);
     let user_data = data.into_inner();
-    let password = user_data.password.clone();
-    if let Err(err) = check_password_strength(&password) {
+    if let Err(err) = check_password_strength(&user_data.password) {
         debug!("Pasword not strong enough: {}", err);
-        return Ok(ApiResponse { json: json!({}), status: Status::BadRequest });
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
     }
     check_username(&user_data.username)?;
     let mut user = User::new(
@@ -107,7 +117,7 @@ pub async fn add_user(
     );
     user.save(&appstate.pool).await?;
     if appstate.license.validate(&Features::Ldap) {
-        let _result = ldap_add_user(&appstate.config, &user, &password).await;
+        let _result = ldap_add_user(&appstate.config, &user, &user_data.password).await;
     };
     let user_info = UserInfo::from_user(&appstate.pool, user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info));
@@ -202,10 +212,12 @@ pub async fn change_password(
         "User {} changing password for user {}",
         session.user.username, username
     );
-    let password = &data.new_password.clone();
-    if let Err(err) = check_password_strength(&password) {
+    if let Err(err) = check_password_strength(&data.new_password) {
         debug!("Pasword not strong enough: {}", err);
-        return Ok(ApiResponse { json: json!({}), status: Status::BadRequest });
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
     }
     let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     user.set_password(&data.new_password);
