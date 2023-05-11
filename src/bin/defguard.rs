@@ -54,7 +54,7 @@ fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    if let Err(_) = dotenvy::from_filename(".env.local") {
+    if dotenvy::from_filename(".env.local").is_err() {
         dotenvy::dotenv().ok();
     }
     let config = DefGuardConfig::new();
