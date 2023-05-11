@@ -2,7 +2,7 @@
     <img src="docs/header.png" alt="defguard">
  </p>
 
-Defguard is an open-source security army knif (Identity, MFA, VPN, Yubikey, Web3).
+Defguard is an open-source security army knife (Identity, MFA, VPN, Yubikey, Web3).
 
 Building a secure organization has always been difficult and costly. Defguard provides a beautiful, easy-to-use (business users) and deploy (admin/devops) fundament to make your organization secure.
 
@@ -22,13 +22,18 @@ Building a secure organization has always been difficult and costly. Defguard pr
     <img src="docs/network-overview.png" alt="defguard">
  </p>
 
-### Looking for docs?
+# Documentation
 
 See the [documentation](https://defguard.gitbook.io) for more information.
 
-### Community or Support
+# Community and Support
 
 Find us on Matrix: [#defgurd:teonite.com](https://matrix.to/#/#defguard:teonite.com)
+
+# Deployment
+
+* Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
+* Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
 
 # Development environment setup
 
