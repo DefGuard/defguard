@@ -11,9 +11,9 @@ Building a secure organization has always been difficult and costly. Defguard pr
 * OpenID Connect provider (with OpenLDAP synchronization)
 * Wireguard :tm: VPN Management
 * Multi-Factor Authentication:
- - Time-based One-Time Password Algorithm (TOTP - e.g. Google Authenticator)
- - WebAuthn / FIDO2 - for hardware key authentication support
- - Web3 - authentication with crypto software and hardware wallets using Metamask, Wallet Connect, Ledger Extension
+  - Time-based One-Time Password Algorithm (TOTP - e.g. Google Authenticator)
+  - WebAuthn / FIDO2 - for hardware key authentication support
+  - Web3 - authentication with crypto software and hardware wallets using Metamask, Wallet Connect, Ledger Extension
 * [Yubikey harware keys](https://www.yubico.com/) provisioning
 * Webhooks
 * Web3 wallect validation
@@ -28,7 +28,7 @@ See the [documentation](https://defguard.gitbook.io) for more information.
 
 ### Community or Support
 
-Find us on Matrix: `#defgurd:teonite.com <https://matrix.to/#/#defguard:teonite.com>`
+Find us on Matrix: `[#defgurd:teonite.com](https://matrix.to/#/#defguard:teonite.com)`
 
 # Development environment setup
 
