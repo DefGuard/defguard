@@ -16,7 +16,7 @@ Building a secure organization has always been difficult and costly. Defguard pr
   - Web3 - authentication with crypto software and hardware wallets using Metamask, Wallet Connect, Ledger Extension
 * [Yubikey harware keys](https://www.yubico.com/) provisioning
 * Webhooks
-* Web3 wallect validation
+* Web3 wallet validation
 
  <p align="center">
     <img src="docs/network-overview.png" alt="defguard">
@@ -28,7 +28,7 @@ See the [documentation](https://defguard.gitbook.io) for more information.
 
 ### Community or Support
 
-Find us on Matrix: `[#defgurd:teonite.com](https://matrix.to/#/#defguard:teonite.com)`
+Find us on Matrix: [#defgurd:teonite.com](https://matrix.to/#/#defguard:teonite.com)
 
 # Development environment setup
 
