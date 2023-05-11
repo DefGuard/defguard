@@ -6,7 +6,7 @@ import { navigatorDetector } from 'typesafe-i18n/detectors';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../i18n/i18n-react';
-import { detectLocale } from '../i18n/i18n-util';
+import { baseLocale, detectLocale, locales } from '../i18n/i18n-util';
 import { loadLocaleAsync } from '../i18n/i18n-util.async';
 import LoaderPage from '../pages/loader/LoaderPage';
 import { isUserAdmin } from '../shared/helpers/isUserAdmin';
@@ -36,7 +36,7 @@ export const AppLoader = () => {
   } = useApi();
   const [userLoading, setUserLoading] = useState(true);
   const { setLocale } = useI18nContext();
-  const localLanguage = useAppStore((state) => state.language);
+  const activeLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setAppStore);
   const setNavigation = useNavigationStore((state) => state.setState);
   const license = useAppStore((state) => state.license);
@@ -105,17 +105,24 @@ export const AppLoader = () => {
   });
 
   useEffect(() => {
-    if (!localLanguage) {
-      const lang = detectLocale(navigatorDetector);
+    if (!activeLanguage) {
+      let lang = detectLocale(navigatorDetector);
+      if (!locales.includes(lang)) {
+        lang = baseLocale;
+      }
       setAppStore({ language: lang });
     } else {
-      loadLocaleAsync(localLanguage).then(() => {
-        setLocale(localLanguage);
-        document.documentElement.setAttribute('lang', localLanguage);
-      });
+      if (locales.includes(activeLanguage)) {
+        loadLocaleAsync(activeLanguage).then(() => {
+          setLocale(activeLanguage);
+          document.documentElement.setAttribute('lang', activeLanguage);
+        });
+      } else {
+        setAppStore({ language: baseLocale });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localLanguage]);
+  }, [activeLanguage]);
 
   useEffect(() => {
     if (appSettings && appSettings.instance_name) {
@@ -129,8 +136,9 @@ export const AppLoader = () => {
     userLoading ||
     (settingsLoading && isUndefined(appSettings)) ||
     (licenseLoading && isUndefined(license))
-  )
+  ) {
     return <LoaderPage />;
+  }
 
   return (
     <Suspense fallback={<LoaderPage />}>

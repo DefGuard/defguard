@@ -4,6 +4,7 @@ use crate::{
     db::{AppEvent, DbPool, GatewayEvent, WebHook},
     license::License,
 };
+use log::debug;
 use reqwest::Client;
 use rocket::serde::json::serde_json::json;
 use std::sync::{Arc, Mutex};

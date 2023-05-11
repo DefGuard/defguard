@@ -2,9 +2,9 @@ import { pick } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { UseAppStore } from '../../types';
+import { AppStore } from '../../types';
 
-export const useAppStore = create<UseAppStore>()(
+export const useAppStore = create<AppStore>()(
   persist(
     (set) => ({
       backendVersion: undefined,
@@ -16,7 +16,7 @@ export const useAppStore = create<UseAppStore>()(
     }),
     {
       name: 'app-store',
-      partialize: (store) => pick(store, ['settings']),
+      partialize: (store) => pick(store, ['settings', 'language']),
       storage: createJSONStorage(() => sessionStorage),
     }
   )

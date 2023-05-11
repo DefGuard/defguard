@@ -573,13 +573,13 @@ export interface UseModalStore {
   setLicenseModal: ModalSetter<StandardModalState>;
 }
 
-export interface UseAppStore {
+export interface AppStore {
   backendVersion?: string;
   settings?: Settings;
   license?: License;
   version?: string;
   language?: Locales;
-  setAppStore: (newValues: Partial<Omit<UseAppStore, 'setAppStore'>>) => void;
+  setAppStore: (newValues: Partial<Omit<AppStore, 'setAppStore'>>) => void;
 }
 
 export interface UseOpenIDStore {

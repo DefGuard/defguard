@@ -54,7 +54,9 @@ fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    dotenvy::dotenv().ok();
+    if let Err(_) = dotenvy::from_filename(".env.local") {
+        dotenvy::dotenv().ok();
+    }
     let config = DefGuardConfig::new();
     logger_setup(&config.log_level)?;
     match config.openid_signing_key {
