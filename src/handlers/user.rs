@@ -28,12 +28,14 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
         )));
     }
     // Check if all characters are ascii
-    if !username
-        .chars()
-        .all(|c| c.is_ascii_digit() || c.is_ascii_lowercase())
-    {
+    if !username.is_ascii() {
         return Err(OriWebError::Serialization(
             "Username contained not ascii charaters".into(),
+        ));
+    }
+    if !username.chars().all(|c| c.is_lowercase()) {
+        return Err(OriWebError::Serialization(
+            "Username is not in lowercase".into(),
         ));
     }
     Ok(())
@@ -149,7 +151,13 @@ pub async fn username_available(
     appstate: &State<AppState>,
     data: Json<Username>,
 ) -> ApiResult {
-    check_username(&data.username)?;
+    if let Err(err) = check_username(&data.username) {
+        debug!("{}", err);
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
+    };
     let status = match User::find_by_username(&appstate.pool, &data.username).await? {
         Some(_) => Status::BadRequest,
         None => Status::Ok,
