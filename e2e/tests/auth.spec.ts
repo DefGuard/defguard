@@ -37,7 +37,7 @@ test('Create user and login', async ({ page }) => {
 
 test('Login with TOTP', async ({ page }) => {
   const testUser: User = {
-    username: 'test2',
+    username: 'testtotp',
     firstName: 'test first name',
     lastName: 'test last name',
     password: 'defguarD123!',
@@ -58,14 +58,13 @@ test('Login with TOTP', async ({ page }) => {
   expect(totpURL).toBeDefined();
   const secret = totpURL.split('secret=')[1];
   expect(secret.length).toBeGreaterThan(0);
-  let token = totp(secret);
+  const token = totp(secret);
   const totpForm = page.getByTestId('register-totp-form');
   await totpForm.getByTestId('field-code').type(token);
   await totpForm.locator('button[type="submit"]').click();
   await totpForm.waitFor({ state: 'hidden' });
   await acceptRecovery(page);
-  token = totp(secret);
-  await loginTOTP(page, testUser, token);
+  await loginTOTP(page, testUser, secret);
   await waitForRoute(page, routes.me);
   await page.waitForURL('**' + routes.me);
   expect(page.url()).toBe(routes.base + routes.me);
