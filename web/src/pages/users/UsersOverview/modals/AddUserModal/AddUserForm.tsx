@@ -61,7 +61,8 @@ export const AddUserForm = () => {
             .required(LL.form.error.required())
             .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
             .matches(patternDigitOrLowercase, LL.form.error.invalid())
-            .min(4, LL.form.error.minimumLength)
+            .min(4, LL.form.error.minimumLength())
+            .max(64, LL.form.error.maximumLength())
             .test('username-available', LL.form.error.usernameTaken(), (value?: string) =>
               value ? !usernamesTaken.getValue().includes(value) : false
             ),

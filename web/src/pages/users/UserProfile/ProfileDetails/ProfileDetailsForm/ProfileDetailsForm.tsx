@@ -72,7 +72,8 @@ export const ProfileDetailsForm = () => {
             .string()
             .required(LL.form.error.required())
             .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
-            .max(32, LL.form.error.maximumLength()),
+            .min(4, LL.form.error.minimumLength())
+            .max(64, LL.form.error.maximumLength()),
           first_name: yup
             .string()
             .required(LL.form.error.required())

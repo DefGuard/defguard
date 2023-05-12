@@ -18,16 +18,25 @@ use rocket::{
     State,
 };
 
-/// Verify the given username consists of all ASCII digits or lowercase characters.
+/// Verify the given username
 fn check_username(username: &str) -> Result<(), OriWebError> {
-    if username
+    let length = username.len();
+    if !(4..64).contains(&length) {
+        return Err(OriWebError::Serialization(format!(
+            "Username ({}) has incorrect length",
+            username
+        )));
+    }
+    // Check if all characters are ascii
+    if !username
         .chars()
         .all(|c| c.is_ascii_digit() || c.is_ascii_lowercase())
     {
-        Ok(())
-    } else {
-        Err(OriWebError::IncorrectUsername(username.into()))
+        return Err(OriWebError::Serialization(
+            "Username contained not ascii charaters".into(),
+        ));
     }
+    Ok(())
 }
 
 fn check_password_strength(password: &str) -> Result<(), OriWebError> {
@@ -106,7 +115,13 @@ pub async fn add_user(
             status: Status::BadRequest,
         });
     }
-    check_username(&user_data.username)?;
+    if let Err(err) = check_username(&username) {
+        debug!("{}", err);
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
+    }
     let mut user = User::new(
         user_data.username,
         &user_data.password,
@@ -155,6 +170,13 @@ pub async fn modify_user(
     debug!("User {} updating user {}", session.user.username, username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     let user_info = data.into_inner();
+    if let Err(err) = check_username(&user_info.username) {
+        debug!("{}", err);
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
+    }
     if session.is_admin {
         user_info
             .into_user_all_fields(&appstate.pool, &mut user)
@@ -181,6 +203,13 @@ pub async fn delete_user(
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} deleting user {}", session.user.username, username);
+    if session.user.username == username {
+        debug!("User {} attempted to delete himself", username);
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
+    }
     match User::find_by_username(&appstate.pool, username).await? {
         Some(user) => {
             user.delete(&appstate.pool).await?;
@@ -214,6 +243,13 @@ pub async fn change_password(
     );
     if let Err(err) = check_password_strength(&data.new_password) {
         debug!("Pasword not strong enough: {}", err);
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
+    }
+    if let Err(err) = check_username(username) {
+        debug!("Invalid Username: {}", err);
         return Ok(ApiResponse {
             json: json!({}),
             status: Status::BadRequest,
