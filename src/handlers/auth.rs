@@ -474,12 +474,24 @@ pub async fn web3auth_end(
                             Ok(ApiResponse::default())
                         }
                     }
-                    _ => Err(OriWebError::Authorization("Signature not verified".into())),
+                    _ => {
+                        debug!(
+                            "{}",
+                            OriWebError::Authorization("Signature not verified".into())
+                        );
+                        return Ok(ApiResponse {
+                            json: json!({}),
+                            status: Status::BadRequest,
+                        });
+                    }
                 };
             }
         }
     }
-    Err(OriWebError::Http(Status::BadRequest))
+    Ok(ApiResponse {
+        json: json!({}),
+        status: Status::BadRequest,
+    })
 }
 
 /// Authenticate with a recovery code.
