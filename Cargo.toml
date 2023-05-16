@@ -27,7 +27,7 @@ rand_core = { version = "0.6", default-features = false, features = [
     "getrandom",
 ] }
 reqwest = { version = "0.11", features = ["json"] }
-rocket = { version = "0.5.0-rc.2", features = ["json"] }
+rocket = { version = "0.5.0-rc.3", features = ["json"] }
 rsa = {version = "0.8", features = ["pem"]}
 secp256k1 = { version = "0.27", features = ["recovery", "rand-std", "global-context"] }
 serde = { version = "1.0", features = ["derive"] }
