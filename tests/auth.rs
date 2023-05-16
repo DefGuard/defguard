@@ -5,7 +5,6 @@ use defguard::{
     handlers::{Auth, AuthCode, AuthTotp},
 };
 use ethers::core::types::transaction::eip712::{Eip712, TypedData};
-use log::debug;
 use otpauth::TOTP;
 use rocket::http::Cookie;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
