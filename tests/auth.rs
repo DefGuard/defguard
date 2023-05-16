@@ -530,11 +530,6 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
         .dispatch()
         .await;
 
-    debug!(
-        "Response status: {}",
-        invalid_request_response.status().code
-    );
-
     assert_eq!(invalid_request_response.status(), Status::Unauthorized);
 
     // Web3 authentication
