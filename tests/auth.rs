@@ -5,6 +5,7 @@ use defguard::{
     handlers::{Auth, AuthCode, AuthTotp},
 };
 use ethers::core::types::transaction::eip712::{Eip712, TypedData};
+use log::debug;
 use otpauth::TOTP;
 use rocket::http::Cookie;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
@@ -517,6 +518,24 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     let mut sig_arr = [0; 65];
     sig_arr[0..64].copy_from_slice(&sig[0..64]);
     sig_arr[64] = rec_id.to_i32() as u8;
+
+    // Check if invalid signature results into 401
+
+    let invalid_request_response = client
+        .post("/api/v1/auth/web3")
+        .json(&json!({
+            "address": wallet_address.clone(),
+            "signature": "0x00"
+        }))
+        .dispatch()
+        .await;
+
+    debug!(
+        "Response status: {}",
+        invalid_request_response.status().code
+    );
+
+    assert_eq!(invalid_request_response.status(), Status::Unauthorized);
 
     // Web3 authentication
     let response = client
