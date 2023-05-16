@@ -20,6 +20,7 @@ pub enum Web3Error {
     Decode,
     InvalidMessage,
     InvalidRecoveryId,
+    InvalidSignature,
     ParseSignature,
     Recovery,
     VerifyAddress,
@@ -33,6 +34,7 @@ impl Display for Web3Error {
             Self::Decode => write!(f, "hex decoding error"),
             Self::InvalidMessage => write!(f, "invalid message"),
             Self::InvalidRecoveryId => write!(f, "invalid recovery id"),
+            Self::InvalidSignature => write!(f, "invalid signature"),
             Self::ParseSignature => write!(f, "error parsing signature"),
             Self::Recovery => write!(f, "recovery error"),
             Self::VerifyAddress => write!(f, "error veryfing address"),
@@ -99,6 +101,9 @@ impl Wallet {
         let typed_data: TypedData = serde_json::from_str(message).map_err(|_| Web3Error::Decode)?;
         let hash_msg = typed_data.encode_eip712().map_err(|_| Web3Error::Decode)?;
         let message = Message::from_slice(&hash_msg).map_err(|_| Web3Error::InvalidMessage)?;
+        if signature_array.len() != 65 {
+            return Err(Web3Error::InvalidMessage);
+        }
         let id = match signature_array[64] {
             0 | 27 => 0,
             1 | 28 => 1,

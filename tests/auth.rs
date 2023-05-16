@@ -518,6 +518,19 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     sig_arr[0..64].copy_from_slice(&sig[0..64]);
     sig_arr[64] = rec_id.to_i32() as u8;
 
+    // Check if invalid signature results into 401
+
+    let invalid_request_response = client
+        .post("/api/v1/auth/web3")
+        .json(&json!({
+            "address": wallet_address.clone(),
+            "signature": "0x00"
+        }))
+        .dispatch()
+        .await;
+
+    assert_eq!(invalid_request_response.status(), Status::Unauthorized);
+
     // Web3 authentication
     let response = client
         .post("/api/v1/auth/web3")
