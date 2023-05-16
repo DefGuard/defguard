@@ -33,7 +33,10 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
             "Username contained not ascii charaters".into(),
         ));
     }
-    if !username.chars().all(|c| c.is_lowercase()) {
+    if !username
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+    {
         return Err(OriWebError::Serialization(
             "Username is not in lowercase".into(),
         ));

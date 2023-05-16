@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { Page } from 'playwright';
+import totp from 'totp-generator';
 
 import { routes, testsConfig } from '../../config';
 import { User } from '../../types';
@@ -23,9 +24,15 @@ export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
   await waitForPromise(2000);
 };
 
-export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpToken: string) => {
+export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: string) => {
   await loginBasic(page, userInfo);
   await waitForRoute(page, routes.auth.totp);
-  await page.getByTestId('field-code').type(totpToken);
+  const codeField = page.getByTestId('field-code');
+  await codeField.clear();
+  const responsePromise = page.waitForResponse('**/totp/verify');
+  const token = totp(totpSecret);
+  await codeField.type(token);
   await page.locator('button[type="submit"]').click();
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
 };
