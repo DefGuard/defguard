@@ -198,14 +198,10 @@ impl User {
                 if info.totp_available {
                     self.set_mfa_method(pool, MFAMethod::OneTimePassword)
                         .await?;
-                } else {
-                    if info.webauthn_available {
-                        self.set_mfa_method(pool, MFAMethod::Webauthn).await?;
-                    } else {
-                        if info.web3_available {
-                            self.set_mfa_method(pool, MFAMethod::Web3).await?;
-                        }
-                    }
+                } else if info.webauthn_available {
+                    self.set_mfa_method(pool, MFAMethod::Webauthn).await?;
+                } else if info.web3_available {
+                    self.set_mfa_method(pool, MFAMethod::Web3).await?;
                 }
             }
         };
