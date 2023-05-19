@@ -14,7 +14,7 @@ Building a secure organization has always been difficult and costly. Defguard pr
   - Time-based One-Time Password Algorithm (TOTP - e.g. Google Authenticator)
   - WebAuthn / FIDO2 - for hardware key authentication support
   - Web3 - authentication with crypto software and hardware wallets using Metamask, Wallet Connect, Ledger Extension
-* [Yubikey harware keys](https://www.yubico.com/) provisioning
+* [Yubikey hardware keys](https://www.yubico.com/) provisioning
 * Webhooks
 * Web3 wallet validation
 
@@ -28,7 +28,7 @@ See the [documentation](https://defguard.gitbook.io) for more information.
 
 # Community and Support
 
-Find us on Matrix: [#defgurd:teonite.com](https://matrix.to/#/#defguard:teonite.com)
+Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite.com)
 
 # Deployment
 
