@@ -387,22 +387,35 @@ pub async fn update_wallet(
         Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await?
     {
         if Some(wallet.user_id) == user.id {
+            let mfa_change = wallet.use_for_mfa != data.use_for_mfa;
             wallet.use_for_mfa = data.use_for_mfa;
-            let recovery_codes = if data.use_for_mfa {
-                user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
-                user.get_recovery_codes(&appstate.pool).await?
-            } else {
-                None
-            };
             wallet.save(&appstate.pool).await?;
+            if mfa_change {
+                if data.use_for_mfa {
+                    debug!("Wallet {} MFA flag enabled", wallet.address);
+                    if !user.mfa_enabled {
+                        user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
+                        let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;
+                        info!("User {} MFA enabled", username);
+                        info!(
+                            "User {} updated wallet {} for user {}",
+                            session.user.username, address, username
+                        );
+                        return Ok(ApiResponse {
+                            json: json!(RecoveryCodes::new(recovery_codes)),
+                            status: Status::Ok,
+                        });
+                    }
+                } else {
+                    debug!("Wallet {} MFA flag removed", wallet.address);
+                    user.verify_mfa_state(&appstate.pool).await?;
+                }
+            }
             info!(
                 "User {} updated wallet {} for user {}",
                 session.user.username, address, username
             );
-            Ok(ApiResponse {
-                json: json!(RecoveryCodes::new(recovery_codes)),
-                status: Status::Ok,
-            })
+            Ok(ApiResponse::default())
         } else {
             Err(OriWebError::ObjectNotFound("wrong wallet".into()))
         }

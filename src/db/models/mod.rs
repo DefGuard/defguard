@@ -196,6 +196,9 @@ impl MFAInfo {
             Ok(None)
         }
     }
+    pub fn mfa_available(&self) -> bool {
+        self.webauthn_available || self.totp_available || self.web3_available
+    }
 }
 
 #[cfg(test)]

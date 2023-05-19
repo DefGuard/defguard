@@ -1,7 +1,10 @@
-use super::{device::Device, group::Group, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo};
+use super::{
+    device::Device, group::Group, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
+};
 use crate::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{Wallet, WebAuthn},
+    error::OriWebError,
     random::gen_alphanumeric,
     DbPool,
 };
@@ -12,6 +15,7 @@ use argon2::{
     },
     Argon2,
 };
+use log::debug;
 use model_derive::Model;
 use otpauth::TOTP;
 use rand::{thread_rng, Rng};
@@ -165,32 +169,54 @@ impl User {
         }
     }
 
-    /// Verify the state of `mfa_enabled` flag is correct.
-    /// Use this function after removing some of the authentication factors.
-    pub async fn verify_mfa_state(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
-        let mfa_enabled = self.check_mfa(pool).await?;
-        if self.mfa_enabled != mfa_enabled {
-            if let Some(id) = self.id {
-                query!(
-                    "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1",
-                    id,
-                    mfa_enabled
-                )
-                .execute(pool)
-                .await?;
+    /// Verify the state of mfa flags are correct.
+    /// Recovers from invalid mfa_method
+    /// Use this function after removing any of the authentication factors.
+    pub async fn verify_mfa_state(&mut self, pool: &DbPool) -> Result<(), OriWebError> {
+        if let Some(info) = MFAInfo::for_user(pool, self).await? {
+            let factors_present = MFAInfo::mfa_available(&info);
+            if self.mfa_enabled != factors_present {
+                if let Some(id) = self.id {
+                    query!(
+                        "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1",
+                        id,
+                        factors_present
+                    )
+                    .execute(pool)
+                    .await?;
+                }
+                if !factors_present && self.mfa_method != MFAMethod::None {
+                    debug!("MFA for user {} disabled", self.username);
+                    self.set_mfa_method(pool, MFAMethod::None).await?;
+                }
+                self.mfa_enabled = factors_present;
             }
-            self.mfa_enabled = mfa_enabled;
-        }
 
+            if (info.webauthn_available || info.totp_available || info.web3_available)
+                && info.mfa_method == MFAMethod::None
+            {
+                if info.totp_available {
+                    self.set_mfa_method(pool, MFAMethod::OneTimePassword)
+                        .await?;
+                } else {
+                    if info.webauthn_available {
+                        self.set_mfa_method(pool, MFAMethod::Webauthn).await?;
+                    } else {
+                        if info.web3_available {
+                            self.set_mfa_method(pool, MFAMethod::Web3).await?;
+                        }
+                    }
+                }
+            }
+        };
         Ok(())
     }
 
     /// Enable MFA. At least one of the authenticator factors must be configured.
-    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<(), OriWebError> {
         if !self.mfa_enabled {
             self.verify_mfa_state(pool).await?;
         }
-
         Ok(())
     }
 

@@ -94,11 +94,14 @@ pub async fn authenticate(
 
     info!("Authenticated user {}", data.username);
     if user.mfa_enabled {
-        let mfa_info = MFAInfo::for_user(&appstate.pool, &user).await?;
-        Ok(ApiResponse {
-            json: json!(mfa_info),
-            status: Status::Created,
-        })
+        if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
+            Ok(ApiResponse {
+                json: json!(mfa_info),
+                status: Status::Created,
+            })
+        } else {
+            Err(OriWebError::DbError("MFA info read error".into()))
+        }
     } else {
         let user_info = UserInfo::from_user(&appstate.pool, user).await?;
         if let Some(openid_cookie) = cookies.get("known_sign_in") {
