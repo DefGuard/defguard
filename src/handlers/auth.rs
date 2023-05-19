@@ -3,6 +3,7 @@ use super::{
     WalletAddress, WalletSignature, WebAuthnRegistration,
 };
 use crate::auth::failed_login::{check_username, log_failed_login_attempt};
+use crate::db::MFAMethod;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
@@ -230,7 +231,10 @@ pub async fn webauthn_finish(
     let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
     let mut webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
     webauthn.save(&appstate.pool).await?;
-    user.verify_mfa_state(&appstate.pool).await?;
+    if user.mfa_method == MFAMethod::None {
+        user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
+            .await?;
+    }
     info!("Finished Webauthn registration for user {}", user.username);
 
     Ok(ApiResponse {
@@ -335,7 +339,10 @@ pub async fn totp_enable(
     if user.verify_code(data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_totp(&appstate.pool).await?;
-        user.verify_mfa_state(&appstate.pool).await?;
+        if user.mfa_method == MFAMethod::None {
+            user.set_mfa_method(&appstate.pool, MFAMethod::OneTimePassword)
+                .await?;
+        }
         info!("Enabled TOTP for user {}", user.username);
         Ok(ApiResponse {
             json: json!(recovery_codes),

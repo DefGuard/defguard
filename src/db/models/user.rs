@@ -174,7 +174,7 @@ impl User {
     /// Use this function after removing any of the authentication factors.
     pub async fn verify_mfa_state(&mut self, pool: &DbPool) -> Result<(), OriWebError> {
         if let Some(info) = MFAInfo::for_user(pool, self).await? {
-            let factors_present = MFAInfo::mfa_available(&info);
+            let factors_present = info.mfa_available();
             if self.mfa_enabled != factors_present {
                 if let Some(id) = self.id {
                     query!(
@@ -192,9 +192,7 @@ impl User {
                 self.mfa_enabled = factors_present;
             }
 
-            if (info.webauthn_available || info.totp_available || info.web3_available)
-                && info.mfa_method == MFAMethod::None
-            {
+            if factors_present && info.mfa_method == MFAMethod::None {
                 if info.totp_available {
                     self.set_mfa_method(pool, MFAMethod::OneTimePassword)
                         .await?;
