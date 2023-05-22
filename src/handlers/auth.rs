@@ -3,10 +3,11 @@ use super::{
     WalletAddress, WalletSignature, WebAuthnRegistration,
 };
 use crate::auth::failed_login::{check_username, log_failed_login_attempt};
+use crate::db::MFAMethod;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
+    db::{MFAInfo, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::OriWebError,
     ldap::utils::user_from_ldap,
     license::Features,
@@ -94,11 +95,14 @@ pub async fn authenticate(
 
     info!("Authenticated user {}", data.username);
     if user.mfa_enabled {
-        let mfa_info = MFAInfo::for_user(&appstate.pool, &user).await?;
-        Ok(ApiResponse {
-            json: json!(mfa_info),
-            status: Status::Created,
-        })
+        if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
+            Ok(ApiResponse {
+                json: json!(mfa_info),
+                status: Status::Created,
+            })
+        } else {
+            Err(OriWebError::DbError("MFA info read error".into()))
+        }
     } else {
         let user_info = UserInfo::from_user(&appstate.pool, user).await?;
         if let Some(openid_cookie) = cookies.get("known_sign_in") {
@@ -224,12 +228,13 @@ pub async fn webauthn_finish(
     let mut user = User::find_by_id(&appstate.pool, session.session.user_id)
         .await?
         .ok_or(OriWebError::WebauthnRegistration("User not found".into()))?;
-
-    user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
-        .await?;
     let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
     let mut webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
     webauthn.save(&appstate.pool).await?;
+    if user.mfa_method == MFAMethod::None {
+        user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
+            .await?;
+    }
     info!("Finished Webauthn registration for user {}", user.username);
 
     Ok(ApiResponse {
@@ -333,9 +338,11 @@ pub async fn totp_enable(
     debug!("Enabling TOTP for user {}", user.username);
     if user.verify_code(data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
-        user.set_mfa_method(&appstate.pool, MFAMethod::OneTimePassword)
-            .await?;
         user.enable_totp(&appstate.pool).await?;
+        if user.mfa_method == MFAMethod::None {
+            user.set_mfa_method(&appstate.pool, MFAMethod::OneTimePassword)
+                .await?;
+        }
         info!("Enabled TOTP for user {}", user.username);
         Ok(ApiResponse {
             json: json!(recovery_codes),
@@ -352,6 +359,7 @@ pub async fn totp_disable(session: SessionInfo, appstate: &State<AppState>) -> A
     let mut user = session.user;
     debug!("Disabling TOTP for user {}", user.username);
     user.disable_totp(&appstate.pool).await?;
+    user.verify_mfa_state(&appstate.pool).await?;
     info!("Disabled TOTP for user {}", user.username);
     Ok(ApiResponse::default())
 }
