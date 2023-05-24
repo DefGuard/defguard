@@ -13,14 +13,22 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 **Features:**
 
 * OpenID Connect provider (with OpenLDAP synchronization)
-* Wireguard :tm: VPN Management
+* Wireguard:tm: VPN Management with:
+  - *easy* device setup by users themselves
+  - dashboard and statistics overview of connected users/devices for admins
 * Multi-Factor Authentication:
   - Time-based One-Time Password Algorithm (TOTP - e.g. Google Authenticator)
   - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
   - Web3 - authentication with crypto software and hardware wallets using Metamask, Wallet Connect, Ledger Extension
-* [Yubikey hardware keys](https://www.yubico.com/) provisioning
-* Webhooks
-* Web3 wallet validation (
+* [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
+* Webhooks & REST API
+* Web3 wallet validation
+* Build with [Rust](https://www.rust-lang.org/) for portability, security, and speed
+* Fronted in TypeScript with
+  - a set of components for layout
+  - Responsive Web Design (supporting mobile phones, tablets, etc..)
+  - [iOS Web App](https://www.macrumors.com/how-to/use-web-apps-iphone-ipad/)
+* Checked by professional security researchers (see [comprehensive security report](https://defguard.net/images/decap/isec-defguard.pdf))
 
  <p align="center">
     <img src="docs/network-overview.png" alt="defguard">
