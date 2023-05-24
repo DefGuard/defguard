@@ -458,6 +458,7 @@ const pl: Translation = {
     },
     wallets: {
       messages: {
+        addressCopied: 'Adres skopiowany.',
         duplicate: {
           primary: 'Podłączony portfel jest już zarejestrowany',
           sub: 'Proszę połączyć nieużywany portfel.',
@@ -472,6 +473,7 @@ const pl: Translation = {
           enableMFA: 'Włącz MFA',
           disableMFA: 'Wyłącz MFA',
           delete: 'Usuń',
+          copyAddress: 'Skopuj adres',
         },
         messages: {
           deleteSuccess: 'Portfel usunięty',

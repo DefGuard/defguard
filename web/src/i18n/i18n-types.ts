@@ -986,6 +986,10 @@ type RootTranslation = {
 		}
 		wallets: {
 			messages: {
+				/**
+				 * A​d​d​r​e​s​s​ ​c​o​p​i​e​d​.
+				 */
+				addressCopied: string
 				duplicate: {
 					/**
 					 * C​o​n​n​e​c​t​e​d​ ​w​a​l​l​e​t​ ​i​s​ ​a​l​r​e​a​d​y​ ​r​e​g​i​s​t​e​r​e​d
@@ -1027,6 +1031,10 @@ type RootTranslation = {
 					 * D​e​l​e​t​e
 					 */
 					'delete': string
+					/**
+					 * C​o​p​y​ ​a​d​d​r​e​s​s
+					 */
+					copyAddress: string
 				}
 				messages: {
 					/**
@@ -3593,6 +3601,10 @@ export type TranslationFunctions = {
 		}
 		wallets: {
 			messages: {
+				/**
+				 * Address copied.
+				 */
+				addressCopied: () => LocalizedString
 				duplicate: {
 					/**
 					 * Connected wallet is already registered
@@ -3634,6 +3646,10 @@ export type TranslationFunctions = {
 					 * Delete
 					 */
 					'delete': () => LocalizedString
+					/**
+					 * Copy address
+					 */
+					copyAddress: () => LocalizedString
 				}
 				messages: {
 					/**

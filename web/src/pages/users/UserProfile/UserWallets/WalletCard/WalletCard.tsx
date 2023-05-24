@@ -1,7 +1,8 @@
 import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import clipboard from 'clipboardy';
+import { useCallback, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -88,6 +89,17 @@ export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props
     }
   );
 
+  const copyWalletAddress = useCallback(() => {
+    clipboard
+      .write(wallet.address)
+      .then(() => {
+        toaster.success(LL.userPage.wallets.messages.addressCopied());
+      })
+      .catch(() => {
+        toaster.error(LL.messages.clipboardError());
+      });
+  }, [LL.messages, LL.userPage.wallets.messages, toaster, wallet.address]);
+
   return (
     <Card
       className="wallet-card"
@@ -95,6 +107,10 @@ export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props
       onHoverEnd={() => setHovered(false)}
     >
       <EditButton visible={hovered || breakpoint !== 'desktop'}>
+        <EditButtonOption
+          text={LL.userPage.wallets.card.edit.copyAddress()}
+          onClick={copyWalletAddress}
+        />
         {!wallet.use_for_mfa && showMFA && (
           <EditButtonOption
             text={LL.userPage.wallets.card.edit.enableMFA()}
