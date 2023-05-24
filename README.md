@@ -13,7 +13,8 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 **Features:**
 
 * OpenID Connect provider (with OpenLDAP synchronization)
-* Wireguard:tm: VPN Management with:
+* [Wireguard:tm:](https://www.wireguard.com/) VPN management with:
+  - import your current configuration (with a wizzard!)
   - *easy* device setup by users themselves
   - dashboard and statistics overview of connected users/devices for admins
 * Multi-Factor Authentication:
@@ -24,11 +25,12 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 * Webhooks & REST API
 * Web3 wallet validation
 * Build with [Rust](https://www.rust-lang.org/) for portability, security, and speed
-* Fronted in TypeScript with
+* Fronted in TypeScript with:
   - a set of components for layout
   - Responsive Web Design (supporting mobile phones, tablets, etc..)
   - [iOS Web App](https://www.macrumors.com/how-to/use-web-apps-iphone-ipad/)
 * Checked by professional security researchers (see [comprehensive security report](https://defguard.net/images/decap/isec-defguard.pdf))
+* End2End tests
 
  <p align="center">
     <img src="docs/network-overview.png" alt="defguard">
