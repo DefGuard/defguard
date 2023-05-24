@@ -6,6 +6,10 @@ Defguard is an open-source security army knife (Identity, MFA, VPN, Yubikey, Web
 
 Building a secure organization has always been difficult and costly. Defguard provides a beautiful, easy-to-use (business users) and deploy (admin/devops) fundament to make your organization secure.
 
+**Why?**
+
+The story and motivation behind defguard [can be found here: https://teonite.com/blog/defguard/](https://teonite.com/blog/defguard/)
+
 **Features:**
 
 * OpenID Connect provider (with OpenLDAP synchronization)
