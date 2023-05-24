@@ -458,6 +458,7 @@ const en: BaseTranslation = {
     },
     wallets: {
       messages: {
+        addressCopied: 'Address copied.',
         duplicate: {
           primary: 'Connected wallet is already registered',
           sub: 'Please connect unused wallet.',
@@ -472,6 +473,7 @@ const en: BaseTranslation = {
           enableMFA: 'Enable MFA',
           disableMFA: 'Disable MFA',
           delete: 'Delete',
+          copyAddress: 'Copy address',
         },
         messages: {
           deleteSuccess: 'Wallet deleted',
