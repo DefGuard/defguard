@@ -1,3 +1,5 @@
+use std::sync::{MutexGuard, PoisonError};
+
 use crate::auth::failed_login::FailedLoginError;
 use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
 use sqlx::error::Error as SqlxError;
@@ -32,6 +34,12 @@ pub enum OriWebError {
     Http(rocket::http::Status),
     #[error(transparent)]
     TooManyLoginAttempts(#[from] FailedLoginError),
+    #[error("OpenID url parsing error: {0}")]
+    OpenIdUrlParsing(String),
+    #[error("Mutex lock failed: {0}")]
+    MutexPoison(String),
+    #[error("Web error: {0}")]
+    WebError(String),
 }
 
 impl From<tonic::Status> for OriWebError {
@@ -64,5 +72,23 @@ impl From<SqlxError> for OriWebError {
 impl From<ModelError> for OriWebError {
     fn from(error: ModelError) -> Self {
         Self::ModelError(error.to_string())
+    }
+}
+
+impl From<serde_urlencoded::ser::Error> for OriWebError {
+    fn from(error: serde_urlencoded::ser::Error) -> Self {
+        Self::Serialization(error.to_string())
+    }
+}
+
+impl From<openidconnect::url::ParseError> for OriWebError {
+    fn from(error: openidconnect::url::ParseError) -> Self {
+        Self::OpenIdUrlParsing(error.to_string())
+    }
+}
+
+impl<T> From<PoisonError<MutexGuard<'_, T>>> for OriWebError {
+    fn from(error: PoisonError<MutexGuard<'_, T>>) -> Self {
+        Self::MutexPoison(error.to_string())
     }
 }

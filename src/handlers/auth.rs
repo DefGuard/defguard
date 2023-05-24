@@ -105,14 +105,29 @@ pub async fn authenticate(
         }
     } else {
         let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-        if let Some(openid_cookie) = cookies.get("known_sign_in") {
-            Ok(ApiResponse {
-                json: json!(AuthResponse {
-                    user: user_info,
-                    url: Some(openid_cookie.value().to_string())
-                }),
-                status: Status::Ok,
-            })
+        if let Some(openid_cookie) = cookies.get("defguard_openid_session") {
+            let session_key = openid_cookie.value().to_string();
+            let mut guard = appstate.openid_sessions.lock()?;
+            let sessions = &mut *guard;
+            cookies.remove(Cookie::named("defguard_openid_session"));
+            if let Some(user_session) = sessions.remove(&session_key) {
+                Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: Some(user_session.redirect_url)
+                    }),
+                    status: Status::Ok,
+                })
+            } else {
+                debug!("User {} openid session expired.", user_info.username);
+                Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
+                    status: Status::Ok,
+                })
+            }
         } else {
             Ok(ApiResponse {
                 json: json!(AuthResponse {
@@ -288,14 +303,30 @@ pub async fn webauthn_end(
                 .await?;
             return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
                 let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-                if let Some(openid_cookie) = cookies.get("known_sign_in") {
-                    Ok(ApiResponse {
-                        json: json!(AuthResponse {
-                            user: user_info,
-                            url: Some(openid_cookie.value().to_string())
-                        }),
-                        status: Status::Ok,
-                    })
+
+                if let Some(openid_cookie) = cookies.get("defguard_openid_session") {
+                    let session_key = openid_cookie.value().to_string();
+                    let mut guard = appstate.openid_sessions.lock()?;
+                    let sessions = &mut *guard;
+                    cookies.remove(Cookie::named("defguard_openid_session"));
+                    if let Some(user_session) = sessions.remove(&session_key) {
+                        Ok(ApiResponse {
+                            json: json!(AuthResponse {
+                                user: user_info,
+                                url: Some(user_session.redirect_url)
+                            }),
+                            status: Status::Ok,
+                        })
+                    } else {
+                        debug!("User {} openid session expired.", user_info.username);
+                        Ok(ApiResponse {
+                            json: json!(AuthResponse {
+                                user: user_info,
+                                url: None,
+                            }),
+                            status: Status::Ok,
+                        })
+                    }
                 } else {
                     Ok(ApiResponse {
                         json: json!(AuthResponse {
@@ -381,14 +412,29 @@ pub async fn totp_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
             info!("Verified TOTP for user {}", username);
-            if let Some(openid_cookie) = cookies.get("known_sign_in") {
-                Ok(ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: Some(openid_cookie.value().to_string())
-                    }),
-                    status: Status::Ok,
-                })
+            if let Some(openid_cookie) = cookies.get("defguard_openid_session") {
+                let session_key = openid_cookie.value().to_string();
+                let mut guard = appstate.openid_sessions.lock()?;
+                let sessions = &mut *guard;
+                cookies.remove(Cookie::named("defguard_openid_session"));
+                if let Some(user_session) = sessions.remove(&session_key) {
+                    Ok(ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: Some(user_session.redirect_url)
+                        }),
+                        status: Status::Ok,
+                    })
+                } else {
+                    debug!("User {} openid session expired.", user_info.username);
+                    Ok(ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: None,
+                        }),
+                        status: Status::Ok,
+                    })
+                }
             } else {
                 Ok(ApiResponse {
                     json: json!(AuthResponse {
@@ -461,14 +507,29 @@ pub async fn web3auth_end(
                                 "User {} authenticated with wallet {}",
                                 username, signature.address
                             );
-                            if let Some(openid_cookie) = cookies.get("known_sign_in") {
-                                Ok(ApiResponse {
-                                    json: json!(AuthResponse {
-                                        user: user_info,
-                                        url: Some(openid_cookie.value().to_string())
-                                    }),
-                                    status: Status::Ok,
-                                })
+                            if let Some(openid_cookie) = cookies.get("defguard_openid_session") {
+                                let session_key = openid_cookie.value().to_string();
+                                let mut guard = appstate.openid_sessions.lock()?;
+                                let sessions = &mut *guard;
+                                cookies.remove(Cookie::named("defguard_openid_session"));
+                                if let Some(user_session) = sessions.remove(&session_key) {
+                                    Ok(ApiResponse {
+                                        json: json!(AuthResponse {
+                                            user: user_info,
+                                            url: Some(user_session.redirect_url)
+                                        }),
+                                        status: Status::Ok,
+                                    })
+                                } else {
+                                    debug!("User {} openid session expired.", user_info.username);
+                                    Ok(ApiResponse {
+                                        json: json!(AuthResponse {
+                                            user: user_info,
+                                            url: None,
+                                        }),
+                                        status: Status::Ok,
+                                    })
+                                }
                             } else {
                                 Ok(ApiResponse {
                                     json: json!(AuthResponse {
@@ -510,14 +571,29 @@ pub async fn recovery_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
             info!("Authenticated user {} with recovery code", username);
-            if let Some(openid_cookie) = cookies.get("known_sign_in") {
-                return Ok(ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: Some(openid_cookie.value().to_string())
-                    }),
-                    status: Status::Ok,
-                });
+            if let Some(openid_cookie) = cookies.get("defguard_openid_session") {
+                let session_key = openid_cookie.value().to_string();
+                let mut guard = appstate.openid_sessions.lock()?;
+                let sessions = &mut *guard;
+                cookies.remove(Cookie::named("defguard_openid_session"));
+                if let Some(user_session) = sessions.remove(&session_key) {
+                    return Ok(ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: Some(user_session.redirect_url)
+                        }),
+                        status: Status::Ok,
+                    });
+                } else {
+                    debug!("User {} openid session expired.", user_info.username);
+                    return Ok(ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: None,
+                        }),
+                        status: Status::Ok,
+                    });
+                }
             } else {
                 return Ok(ApiResponse {
                     json: json!(AuthResponse {

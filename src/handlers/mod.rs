@@ -82,6 +82,15 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
                 json!({ "msg": "Too many login attempts" }),
                 Status::TooManyRequests,
             ),
+            OriWebError::MutexPoison(msg) => {
+                error!("{}", msg);
+                (json!({}), Status::InternalServerError)
+            }
+            OriWebError::OpenIdUrlParsing(msg) => {
+                error!("{}", &msg);
+                (json!({}), Status::BadRequest)
+            }
+            OriWebError::WebError(msg) => internal_server_error(&msg),
         };
         Response::build_from(json.respond_to(request)?)
             .status(status)

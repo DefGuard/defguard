@@ -1,4 +1,5 @@
 pub mod failed_login;
+pub mod openid;
 
 use crate::{
     appstate::AppState,

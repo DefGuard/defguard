@@ -1,5 +1,5 @@
 use crate::{
-    auth::failed_login::FailedLoginMap,
+    auth::{failed_login::FailedLoginMap, openid::OpenIdSessionMap},
     config::DefGuardConfig,
     db::{AppEvent, DbPool, GatewayEvent, WebHook},
     license::License,
@@ -21,6 +21,7 @@ pub struct AppState {
     pub license: License,
     pub webauthn: Webauthn,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
+    pub openid_sessions: Arc<Mutex<OpenIdSessionMap>>,
 }
 
 impl AppState {
@@ -84,6 +85,7 @@ impl AppState {
         wireguard_tx: UnboundedSender<GatewayEvent>,
         license: License,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
+        openid_sessions: Arc<Mutex<OpenIdSessionMap>>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
@@ -107,6 +109,7 @@ impl AppState {
             license,
             webauthn,
             failed_logins,
+            openid_sessions,
         }
     }
 }

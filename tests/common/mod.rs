@@ -1,3 +1,4 @@
+use defguard::auth::openid::OpenIdSessionMap;
 #[cfg(test)]
 use defguard::{
     auth::failed_login::FailedLoginMap,
@@ -95,6 +96,8 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
+    let openid_sessions = Arc::new(Mutex::new(OpenIdSessionMap::new()));
+
     let client_state = ClientState::new(
         pool.clone(),
         worker_state.clone(),
@@ -116,6 +119,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
         gateway_state,
         pool,
         failed_logins,
+        openid_sessions,
     )
     .await;
     (Client::tracked(webapp).await.unwrap(), client_state)

@@ -1,6 +1,6 @@
 use crate::{
     appstate::AppState,
-    auth::{SessionInfo, SESSION_TIMEOUT},
+    auth::{openid::OpenIdSession, SessionInfo, SESSION_TIMEOUT},
     db::{
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
         OAuth2AuthorizedApp, OAuth2Token,
@@ -32,6 +32,7 @@ use rocket::{
     request::{FromRequest, Outcome, Request},
     response::Redirect,
     serde::json::serde_json::json,
+    time::OffsetDateTime,
     State,
 };
 
@@ -284,15 +285,21 @@ async fn login_redirect(
     data: &AuthenticationRequest<'_>,
     cookies: &CookieJar<'_>,
 ) -> Result<Redirect, OriWebError> {
-    let base_url = appstate.config.url.join("api/v1/oauth/authorize").unwrap();
-    cookies.add(Cookie::new(
-        "known_sign_in",
-        format!(
-            "{}?{}",
-            base_url,
-            serde_urlencoded::to_string(data).unwrap()
-        ),
-    ));
+    let base_url = appstate.config.url.join("api/v1/oauth/authorize")?;
+    let encoded_url = serde_urlencoded::to_string(data)?;
+    let openid_session = OpenIdSession::new(format!("{}?{}", base_url, encoded_url));
+    {
+        let mut sessions_guard = appstate.openid_sessions.lock()?;
+        let sessions = &mut *sessions_guard;
+        let session_id = sessions.add(openid_session.clone())?;
+        let expiration = OffsetDateTime::now_utc() + openid_session.lifetime;
+        let cookie = Cookie::build("defguard_openid_session", session_id)
+            .secure(true)
+            .http_only(true)
+            .same_site(rocket::http::SameSite::Strict)
+            .expires(expiration);
+        cookies.add(cookie.finish());
+    }
     Ok(Redirect::found("/login".to_string()))
 }
 
@@ -343,7 +350,8 @@ pub async fn authorization(
                                     {
                                         Some(app) => {
                                             info!("OAuth client id {} authorized by user id {}, returning auth code", app.oauth2client_id, session.user_id);
-                                            cookies.remove(Cookie::named("known_sign_in"));
+                                            cookies
+                                                .remove(Cookie::named("defguard_openid_session"));
                                             let location = generate_auth_code_redirect(
                                                 appstate,
                                                 &data,
@@ -444,8 +452,9 @@ pub async fn secure_authorization(
                         "User {} allowed login with client {}",
                         session_info.user.username, oauth2client.name
                     );
-                    if let Some(cookie) = cookies.get("known_sign_in") {
+                    if let Some(cookie) = cookies.get("defguard_openid_session") {
                         cookies.remove(cookie.to_owned());
+                        debug!("Openid session cookie removed.");
                     };
                     let location =
                         generate_auth_code_redirect(appstate, &data, session_info.user.id).await?;

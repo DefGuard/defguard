@@ -95,3 +95,21 @@ impl OAuth2Client {
         .await
     }
 }
+
+// Safe to show for normal users striped from any sesnsitve data
+#[derive(Debug, Deserialize, Serialize)]
+pub struct OAuth2ClientSafe {
+    pub client_id: String,
+    pub scope: Vec<String>,
+    pub name: String,
+}
+
+impl From<OAuth2Client> for OAuth2ClientSafe {
+    fn from(client: OAuth2Client) -> OAuth2ClientSafe {
+        OAuth2ClientSafe {
+            client_id: client.client_id,
+            scope: client.scope,
+            name: client.name,
+        }
+    }
+}

@@ -1,6 +1,9 @@
 use defguard::{
     db::{
-        models::{oauth2client::OAuth2Client, NewOpenIDClient},
+        models::{
+            oauth2client::{OAuth2Client, OAuth2ClientSafe},
+            NewOpenIDClient,
+        },
         DbPool, OAuth2AuthorizedApp,
     },
     handlers::Auth,
@@ -9,8 +12,9 @@ use reqwest::Url;
 use rocket::{
     http::{ContentType, Status},
     local::asynchronous::Client,
-    serde::json::json,
+    serde::json::{from_str, json},
 };
+use serde::Deserialize;
 use std::borrow::Cow;
 
 mod common;
@@ -251,13 +255,14 @@ async fn test_openid_app_management_access() {
     let response = client.get("/api/v1/oauth").dispatch().await;
     assert_eq!(response.status(), Status::Forbidden);
 
-    // standard user cannot get app details
+    // standard user cannot get full app details
     let response = client
         .get(format!("/api/v1/oauth/{}", test_app.client_id))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Forbidden);
-
+    assert_eq!(response.status(), Status::Ok);
+    let response_details = response.into_json::<OAuth2ClientSafe>().await;
+    assert_eq!(response_details.is_some(), true);
     // standard user cannot add apps
     let oauth2client = NewOpenIDClient {
         name: "Another test client".into(),

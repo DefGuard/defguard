@@ -1,5 +1,5 @@
 use defguard::{
-    auth::failed_login::FailedLoginMap,
+    auth::{failed_login::FailedLoginMap, openid::OpenIdSessionMap},
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, User},
     grpc::{run_grpc_server, GatewayState, WorkerState},
@@ -99,10 +99,13 @@ async fn main() -> Result<(), anyhow::Error> {
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
+    // initialize openid session map and hasher
+    let openid_sessions = Arc::new(Mutex::new(OpenIdSessionMap::new()));
+
     // run services
     tokio::select! {
         _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), grpc_cert, grpc_key, failed_logins.clone()) => (),
-        _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins) => (),
+        _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins, openid_sessions) => (),
     };
     Ok(())
 }

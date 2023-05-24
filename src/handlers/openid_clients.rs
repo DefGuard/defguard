@@ -1,4 +1,5 @@
 use crate::auth::AdminRole;
+use crate::db::models::oauth2client::OAuth2ClientSafe;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
@@ -45,15 +46,24 @@ pub async fn list_openid_clients(_admin: AdminRole, appstate: &State<AppState>) 
 
 #[get("/<client_id>", format = "json")]
 pub async fn get_openid_client(
-    _admin: AdminRole,
     appstate: &State<AppState>,
     client_id: &str,
+    session: SessionInfo,
 ) -> ApiResult {
     match OAuth2Client::find_by_client_id(&appstate.pool, client_id).await? {
-        Some(openid_client) => Ok(ApiResponse {
-            json: json!(openid_client),
-            status: Status::Ok,
-        }),
+        Some(openid_client) => {
+            if session.is_admin {
+                Ok(ApiResponse {
+                    json: json!(openid_client),
+                    status: Status::Ok,
+                })
+            } else {
+                Ok(ApiResponse {
+                    json: json!(OAuth2ClientSafe::from(openid_client)),
+                    status: Status::Ok,
+                })
+            }
+        }
         None => Ok(ApiResponse {
             json: json!({}),
             status: Status::NotFound,

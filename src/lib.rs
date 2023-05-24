@@ -26,6 +26,7 @@ use crate::{
 };
 use crate::{handlers::wireguard::import_network, license::License};
 use appstate::AppState;
+use auth::openid::OpenIdSessionMap;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
 use grpc::GatewayState;
@@ -112,6 +113,7 @@ pub async fn build_webapp(
     gateway_state: Arc<Mutex<GatewayState>>,
     pool: DbPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    openid_sessions: Arc<Mutex<OpenIdSessionMap>>,
 ) -> Rocket<Build> {
     // configure Rocket webapp
     let cfg = Config {
@@ -266,6 +268,7 @@ pub async fn build_webapp(
             wireguard_tx,
             license_decoded,
             failed_logins,
+            openid_sessions,
         )
         .await,
     )
@@ -281,6 +284,7 @@ pub async fn run_web_server(
     wireguard_tx: UnboundedSender<GatewayEvent>,
     pool: DbPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    openid_sessions: Arc<Mutex<OpenIdSessionMap>>,
 ) -> Result<Rocket<Ignite>, RocketError> {
     let webapp = build_webapp(
         config.clone(),
@@ -291,6 +295,7 @@ pub async fn run_web_server(
         gateway_state,
         pool,
         failed_logins,
+        openid_sessions,
     )
     .await;
     info!("Started web services");
