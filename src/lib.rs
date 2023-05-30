@@ -56,7 +56,7 @@ use handlers::{
     wireguard::connection_info,
 };
 use rocket::{
-    config::Config,
+    config::{Config, SecretKey},
     error::Error as RocketError,
     fs::{FileServer, NamedFile, Options},
     Build, Ignite, Rocket,
@@ -117,6 +117,7 @@ pub async fn build_webapp(
     let cfg = Config {
         address: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
         port: config.http_port,
+        secret_key: SecretKey::from(config.secret_key.as_bytes()),
         ..Config::default()
     };
     let license_decoded = License::decode(&config.license);

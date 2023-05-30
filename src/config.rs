@@ -9,6 +9,9 @@ pub struct DefGuardConfig {
     #[clap(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,
 
+    #[clap(long, env = "DEFGUARD_SECRET_KEY")]
+    pub secret_key: String,
+
     #[clap(long, env = "DEFGUARD_DB_HOST", default_value = "localhost")]
     pub database_host: String,
 

@@ -32,6 +32,7 @@ use rocket::{
     request::{FromRequest, Outcome, Request},
     response::Redirect,
     serde::json::serde_json::json,
+    time::{Duration as RocketDuration, OffsetDateTime},
     State,
 };
 
@@ -285,14 +286,23 @@ async fn login_redirect(
     cookies: &CookieJar<'_>,
 ) -> Result<Redirect, OriWebError> {
     let base_url = appstate.config.url.join("api/v1/oauth/authorize").unwrap();
-    cookies.add(Cookie::new(
+    let expires = OffsetDateTime::now_utc()
+        .checked_add(RocketDuration::minutes(10))
+        .ok_or(OriWebError::Http(Status::InternalServerError))?;
+    let cookie = Cookie::build(
         "known_sign_in",
         format!(
             "{}?{}",
             base_url,
             serde_urlencoded::to_string(data).unwrap()
         ),
-    ));
+    )
+    .secure(true)
+    .same_site(rocket::http::SameSite::Strict)
+    .http_only(true)
+    .expires(expires)
+    .finish();
+    cookies.add_private(cookie);
     Ok(Redirect::found("/login".to_string()))
 }
 
@@ -343,7 +353,7 @@ pub async fn authorization(
                                     {
                                         Some(app) => {
                                             info!("OAuth client id {} authorized by user id {}, returning auth code", app.oauth2client_id, session.user_id);
-                                            cookies.remove(Cookie::named("known_sign_in"));
+                                            cookies.remove_private(Cookie::named("known_sign_in"));
                                             let location = generate_auth_code_redirect(
                                                 appstate,
                                                 &data,
@@ -444,7 +454,7 @@ pub async fn secure_authorization(
                         "User {} allowed login with client {}",
                         session_info.user.username, oauth2client.name
                     );
-                    if let Some(cookie) = cookies.get("known_sign_in") {
+                    if let Some(cookie) = cookies.get_private("known_sign_in") {
                         cookies.remove(cookie.to_owned());
                     };
                     let location =

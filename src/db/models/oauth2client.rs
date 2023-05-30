@@ -95,3 +95,21 @@ impl OAuth2Client {
         .await
     }
 }
+
+// Safe to show for not priviliged users
+#[derive(Deserialize, Serialize)]
+pub struct OAuth2ClientSafe {
+    pub client_id: String,
+    pub name: String,
+    pub scope: Vec<String>,
+}
+
+impl From<OAuth2Client> for OAuth2ClientSafe {
+    fn from(client: OAuth2Client) -> Self {
+        OAuth2ClientSafe {
+            client_id: client.client_id,
+            name: client.name,
+            scope: client.scope,
+        }
+    }
+}

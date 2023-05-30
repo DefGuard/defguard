@@ -105,7 +105,8 @@ pub async fn authenticate(
         }
     } else {
         let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-        if let Some(openid_cookie) = cookies.get("known_sign_in") {
+        if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
+            debug!("Found openid session cookie.");
             Ok(ApiResponse {
                 json: json!(AuthResponse {
                     user: user_info,
@@ -288,7 +289,8 @@ pub async fn webauthn_end(
                 .await?;
             return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
                 let user_info = UserInfo::from_user(&appstate.pool, user).await?;
-                if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
+                    debug!("Found openid session cookie.");
                     Ok(ApiResponse {
                         json: json!(AuthResponse {
                             user: user_info,
@@ -381,7 +383,8 @@ pub async fn totp_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
             info!("Verified TOTP for user {}", username);
-            if let Some(openid_cookie) = cookies.get("known_sign_in") {
+            if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
+                debug!("Found openid session cookie.");
                 Ok(ApiResponse {
                     json: json!(AuthResponse {
                         user: user_info,
@@ -461,7 +464,8 @@ pub async fn web3auth_end(
                                 "User {} authenticated with wallet {}",
                                 username, signature.address
                             );
-                            if let Some(openid_cookie) = cookies.get("known_sign_in") {
+                            if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
+                                debug!("Found openid session cookie.");
                                 Ok(ApiResponse {
                                     json: json!(AuthResponse {
                                         user: user_info,
@@ -510,7 +514,8 @@ pub async fn recovery_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, user).await?;
             info!("Authenticated user {} with recovery code", username);
-            if let Some(openid_cookie) = cookies.get("known_sign_in") {
+            if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
+                debug!("Found openid session cookie.");
                 return Ok(ApiResponse {
                     json: json!(AuthResponse {
                         user: user_info,
