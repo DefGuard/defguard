@@ -96,7 +96,7 @@ impl OAuth2Client {
     }
 }
 
-// Safe to show for not priviliged users
+// Safe to show for not privileged users
 #[derive(Deserialize, Serialize)]
 pub struct OAuth2ClientSafe {
     pub client_id: String,
