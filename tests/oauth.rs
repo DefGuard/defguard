@@ -261,7 +261,7 @@ async fn test_openid_app_management_access() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let response_details = response.into_json::<OAuth2ClientSafe>().await;
-    assert_eq!(response_details.is_some(), true);
+    assert!(response_details.is_some());
 
     // standard user cannot add apps
     let oauth2client = NewOpenIDClient {
