@@ -2,7 +2,7 @@ import { Page } from 'playwright';
 
 import { getPageClipboard } from '../getPageClipboard';
 
-export const acceptRecovery = async (page: Page) => {
+export const acceptRecovery = async (page: Page): Promise<string[]> => {
   const modalElement = page.locator('#view-recovery-codes');
   await modalElement.waitFor({ state: 'visible' });
   await page.getByTestId('copy-recovery').click();
