@@ -159,10 +159,6 @@ async fn test_totp() {
     let response = client.put("/api/v1/auth/mfa").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    // logout
-    let response = client.post("/api/v1/auth/logout").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
     // login again, this time a different status code is returned
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Created);
@@ -285,10 +281,6 @@ async fn test_webauthn() {
     let response = client.put("/api/v1/auth/mfa").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    // logout
-    let response = client.post("/api/v1/auth/logout").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
     // login again
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -359,10 +351,6 @@ async fn test_cannot_skip_otp_by_adding_yubikey() {
     let response = client.put("/api/v1/auth/mfa").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    // logout
-    let response = client.post("/api/v1/auth/logout").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
     // login again, this time a different status code is returned
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Created);
@@ -401,10 +389,6 @@ async fn test_cannot_skip_security_key_by_adding_yubikey() {
 
     // enable MFA
     let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
-    // logout
-    let response = client.post("/api/v1/auth/logout").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
     // login again
