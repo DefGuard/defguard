@@ -28,11 +28,11 @@ use openidconnect::{
 };
 use rocket::{
     form::{self, Form, FromFormField, ValueField},
-    http::{Cookie, CookieJar, Status},
+    http::{Cookie, CookieJar, SameSite, Status},
     request::{FromRequest, Outcome, Request},
     response::Redirect,
     serde::json::serde_json::json,
-    time::{Duration as RocketDuration, OffsetDateTime},
+    time::{Duration as TimeDuration, OffsetDateTime},
     State,
 };
 
@@ -287,7 +287,7 @@ async fn login_redirect(
 ) -> Result<Redirect, OriWebError> {
     let base_url = appstate.config.url.join("api/v1/oauth/authorize").unwrap();
     let expires = OffsetDateTime::now_utc()
-        .checked_add(RocketDuration::minutes(10))
+        .checked_add(TimeDuration::minutes(10))
         .ok_or(OriWebError::Http(Status::InternalServerError))?;
     let cookie = Cookie::build(
         "known_sign_in",
@@ -298,7 +298,7 @@ async fn login_redirect(
         ),
     )
     .secure(true)
-    .same_site(rocket::http::SameSite::Strict)
+    .same_site(SameSite::Strict)
     .http_only(true)
     .expires(expires)
     .finish();

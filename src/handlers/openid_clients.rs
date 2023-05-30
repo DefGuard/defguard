@@ -1,9 +1,11 @@
 use crate::auth::AdminRole;
-use crate::db::models::oauth2client::OAuth2ClientSafe;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::models::{oauth2client::OAuth2Client, NewOpenIDClient},
+    db::models::{
+        oauth2client::{OAuth2Client, OAuth2ClientSafe},
+        NewOpenIDClient,
+    },
     handlers::{webhooks::ChangeStateData, ApiResponse, ApiResult},
 };
 use rocket::{
