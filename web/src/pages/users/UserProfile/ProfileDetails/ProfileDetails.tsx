@@ -104,7 +104,7 @@ const ViewMode = () => {
       </div>
       <div className="row tags">
         <Label>{LL.userPage.userDetails.fields.apps.label()}</Label>
-        <div className="tags">
+        <div className="tags" data-testid="authorized-apps">
           {user?.authorized_apps?.map((app) => (
             <Tag
               disposable={true}

@@ -142,12 +142,23 @@ pub async fn logout(
 
 /// Enable MFA
 #[put("/auth/mfa")]
-pub async fn mfa_enable(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
-    let mut user = session.user;
+pub async fn mfa_enable(
+    session: Session,
+    session_info: SessionInfo,
+    appstate: &State<AppState>,
+    cookies: &CookieJar<'_>,
+) -> ApiResult {
+    let mut user = session_info.user;
     debug!("Enabling MFA for user {}", user.username);
     user.enable_mfa(&appstate.pool).await?;
     if user.mfa_enabled {
         info!("Enabled MFA for user {}", user.username);
+        cookies.remove(Cookie::named("defguard_sesssion"));
+        session.delete(&appstate.pool).await?;
+        debug!(
+            "Removed auth session for user {} after enabling MFA",
+            user.username
+        );
         Ok(ApiResponse::default())
     } else {
         error!("Error enabling MFA for user {}", user.username);
