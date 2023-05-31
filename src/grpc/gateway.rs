@@ -9,6 +9,7 @@ use std::{
     task::{Context, Poll},
 };
 use tokio::sync::mpsc::{self, Receiver};
+use tokio::task::JoinHandle;
 use tokio_stream::Stream;
 use tonic::{Request, Response, Status};
 
@@ -174,6 +175,7 @@ impl From<PeerStats> for WireguardPeerStats {
 }
 
 pub struct GatewayUpdatesStream {
+    task_handle: JoinHandle<()>,
     rx: Receiver<Result<Update, Status>>,
     gateway_state: Arc<Mutex<GatewayState>>,
 }
@@ -181,10 +183,15 @@ pub struct GatewayUpdatesStream {
 impl GatewayUpdatesStream {
     #[must_use]
     pub fn new(
+        task_handle: JoinHandle<()>,
         rx: Receiver<Result<Update, Status>>,
         gateway_state: Arc<Mutex<GatewayState>>,
     ) -> Self {
-        Self { rx, gateway_state }
+        Self {
+            task_handle,
+            rx,
+            gateway_state,
+        }
     }
 }
 
@@ -200,6 +207,8 @@ impl Drop for GatewayUpdatesStream {
     fn drop(&mut self) {
         info!("Client disconnected");
         self.gateway_state.lock().unwrap().connected = false;
+        // terminate update task
+        self.task_handle.abort();
     }
 }
 
@@ -279,7 +288,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let mut state = self.state.lock().unwrap();
         let events_rx = Arc::clone(&state.wireguard_rx);
         state.connected = true;
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
+            info!("Starting update steam to gateway");
             while let Some(update) = events_rx.lock().await.recv().await {
                 let result = match update {
                     GatewayEvent::NetworkCreated(network) => {
@@ -302,11 +312,13 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     }
                 };
                 if result.is_err() {
+                    error!("Closing update steam to gateway");
                     break;
                 }
             }
         });
         Ok(Response::new(GatewayUpdatesStream::new(
+            handle,
             rx,
             Arc::clone(&self.state),
         )))
