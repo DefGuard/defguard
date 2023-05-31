@@ -270,7 +270,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // check if a gateway is already connected
             let state = self.state.lock().unwrap();
             if state.connected {
-                debug!("Gateway is already connected. Cannot configure another gateway.");
+                debug!("Gateway is already connected. Cannot configure another one.");
                 return Err(Status::failed_precondition(
                     "Gateway is already connected.",
                 ));
