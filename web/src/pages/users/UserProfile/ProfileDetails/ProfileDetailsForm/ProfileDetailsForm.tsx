@@ -263,6 +263,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormSelect
+            data-testid="groups-select"
             styleVariant={SelectStyleVariant.WHITE}
             options={groupsOptions}
             controller={{ control, name: 'groups' }}
