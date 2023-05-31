@@ -36,3 +36,20 @@ export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: stri
   const response = await responsePromise;
   expect(response.status()).toBe(200);
 };
+
+export const loginRecoveryCodes = async (
+  page: Page,
+  userInfo: AuthInfo,
+  code: string
+): Promise<void> => {
+  await loginBasic(page, userInfo);
+  await page.goto(routes.base + routes.auth.recovery, {
+    waitUntil: 'networkidle',
+  });
+  await page.getByTestId('field-code').clear();
+  await page.getByTestId('field-code').type(code);
+  const responsePromise = page.waitForResponse('**/auth/recovery');
+  await page.locator('form button[type=submit]').click();
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+};

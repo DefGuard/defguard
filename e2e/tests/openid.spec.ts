@@ -19,14 +19,7 @@ test.describe.configure({
 });
 
 test.describe('Authorize OpenID client.', () => {
-  const testUser: User = {
-    username: 'testopenid',
-    firstName: 'test first name',
-    lastName: 'test last name',
-    password: 'defguarD123!',
-    mail: 'test@test.com',
-    phone: '123456789',
-  };
+  let testUser: User;
 
   const client: OpenIdClient = {
     name: 'test 01',
@@ -37,11 +30,11 @@ test.describe('Authorize OpenID client.', () => {
   let page: Page;
 
   // Setup client and user for tests
-  test.beforeAll(async ({ browser }) => {
+  test.beforeAll(async ({ browser, context }) => {
+    testUser = await createUser(context, 'testopenid');
     page = await browser.newPage();
     await loginBasic(page, defaultUserAdmin);
     await waitForRoute(page, routes.admin.wizard);
-    await createUser(page, testUser);
     await CreateOpenIdClient(page, client);
     await page.getByTestId('edit-openid-client-1').click();
     await page.getByTestId('copy-openid-client-id').click();
