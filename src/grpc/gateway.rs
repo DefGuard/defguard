@@ -264,6 +264,18 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn config(&self, _request: Request<()>) -> Result<Response<Configuration>, Status> {
+        {
+            // check if a gateway is already connected
+            let state = self.state.lock().unwrap();
+            if state.connected {
+                debug!("Gateway is already connected. Cannot configure another gateway.");
+                return Err(Status::failed_precondition(
+                    "A gateway is already connected.",
+                ));
+            }
+        }
+
+        info!("Sending configuration to gateway client.");
         let pool = self.pool.clone();
         let mut network = WireguardNetwork::find_by_id(&pool, 1)
             .await
@@ -283,9 +295,17 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn updates(&self, _: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
+        let mut state = self.state.lock().unwrap();
+        if state.connected {
+            debug!("Gateway is already connected. Cannot connect another gateway.");
+            return Err(Status::failed_precondition(
+                "A gateway is already connected.",
+            ));
+        }
+
         info!("New client connected to updates stream");
         let (tx, rx) = mpsc::channel(4);
-        let mut state = self.state.lock().unwrap();
+
         let events_rx = Arc::clone(&state.wireguard_rx);
         state.connected = true;
         let handle = tokio::spawn(async move {
