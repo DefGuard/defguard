@@ -158,6 +158,7 @@ const EditModeControls = () => {
         {breakpoint !== 'desktop' && isAdmin && (
           <EditButton visible={isAdmin}>
             <EditButtonOption
+              data-testid="user-edit-delete-acccount"
               text={LL.userPage.controls.deleteAccount()}
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               disabled={!isAdmin || isMe}

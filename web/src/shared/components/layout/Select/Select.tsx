@@ -64,6 +64,7 @@ export interface SelectProps<T> {
   disableOpen?: boolean;
   styleVariant?: SelectStyleVariant;
   sizeVariant?: SelectSizeVariant;
+  'data-testid'?: string;
 }
 
 const defaultOnRemove = <T,>(v: SelectOption<T>, pool: SelectOption<T>[]) =>
@@ -90,6 +91,7 @@ export const Select = <T,>({
   disableOpen = false,
   styleVariant = SelectStyleVariant.LIGHT,
   sizeVariant = SelectSizeVariant.STANDARD,
+  'data-testid': testId,
 }: SelectProps<T>) => {
   const selectId = useId();
   const [open, setOpen] = useState(false);
@@ -192,7 +194,9 @@ export const Select = <T,>({
   }, [searchValue?.length, placeholder]);
 
   const renderTags = useMemo(() => {
-    if (isUndefined(selected) && !Array.isArray(selected) && !multi) return null;
+    if (isUndefined(selected) && !Array.isArray(selected) && !multi) {
+      return null;
+    }
     if (Array.isArray(selected)) {
       return selected.map((option) => (
         <Tag
@@ -315,6 +319,7 @@ export const Select = <T,>({
         }}
         ref={reference}
         id={selectId}
+        data-testid={testId}
       >
         <div className="inner-frame">
           {renderInner}

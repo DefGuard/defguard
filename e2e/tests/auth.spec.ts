@@ -1,52 +1,27 @@
 import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../config';
-import { User } from '../types';
 import { acceptRecovery } from '../utils/controllers/acceptRecovery';
 import { createUser } from '../utils/controllers/createUser';
-import { loginBasic, loginTOTP } from '../utils/controllers/login';
-import { logout } from '../utils/controllers/logout';
+import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/login';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { waitForRoute } from '../utils/waitForRoute';
 
-test('Basic auth', async ({ page }) => {
+test('Basic auth with default admin', async ({ page }) => {
   await loginBasic(page, defaultUserAdmin);
   await waitForRoute(page, routes.admin.wizard);
   expect(page.url()).toBe(routes.base + routes.admin.wizard);
 });
 
-test('Create user and login', async ({ page }) => {
-  const testUser: User = {
-    username: 'test',
-    firstName: 'test first name',
-    lastName: 'test last name',
-    password: 'defguarD123!',
-    mail: 'test@test.com',
-    phone: '123456789',
-  };
-  await loginBasic(page, defaultUserAdmin);
-  await waitForRoute(page, routes.admin.wizard);
-  await createUser(page, testUser);
-  await logout(page);
-  await waitForRoute(page, routes.auth.login);
+test('Create user and login as him', async ({ page, context }) => {
+  const testUser = await createUser(context, 'testauth01');
   await loginBasic(page, testUser);
   await waitForRoute(page, routes.me);
   expect(page.url()).toBe(routes.base + routes.me);
 });
 
-test('Login with TOTP', async ({ page }) => {
-  const testUser: User = {
-    username: 'testtotp',
-    firstName: 'test first name',
-    lastName: 'test last name',
-    password: 'defguarD123!',
-    mail: 'test@test.com',
-    phone: '123456789',
-  };
-  await loginBasic(page, defaultUserAdmin);
-  await waitForRoute(page, routes.admin.wizard);
-  await createUser(page, testUser);
-  await logout(page);
+test('Login with admin user TOTP', async ({ page, context }) => {
+  const testUser = await createUser(context, 'testtotp1', ['Admin']);
   await loginBasic(page, testUser);
   await waitForRoute(page, routes.me);
   const secret = await enableTOTP(page);
@@ -54,5 +29,28 @@ test('Login with TOTP', async ({ page }) => {
   await loginTOTP(page, testUser, secret);
   await waitForRoute(page, routes.me);
   await page.waitForURL('**' + routes.me);
+  expect(page.url()).toBe(routes.base + routes.me);
+});
+
+test('Login with user TOTP', async ({ page, context }) => {
+  const testUser = await createUser(context, 'testtotp2');
+  await loginBasic(page, testUser);
+  await waitForRoute(page, routes.me);
+  const secret = await enableTOTP(page);
+  await acceptRecovery(page);
+  await loginTOTP(page, testUser, secret);
+  await waitForRoute(page, routes.me);
+  expect(page.url()).toBe(routes.base + routes.me);
+});
+
+test('Recovery code login', async ({ page, context }) => {
+  const testUser = await createUser(context, 'recovery');
+  await loginBasic(page, testUser);
+  await waitForRoute(page, routes.me);
+  await enableTOTP(page);
+  const recoveryCodes = await acceptRecovery(page);
+  await waitForRoute(page, routes.auth.login);
+  await loginRecoveryCodes(page, testUser, recoveryCodes[0]);
+  await waitForRoute(page, routes.me);
   expect(page.url()).toBe(routes.base + routes.me);
 });

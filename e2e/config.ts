@@ -22,6 +22,7 @@ export const routes = {
   auth: {
     login: '/auth/login',
     totp: '/auth/mfa/totp',
+    recovery: '/auth/mfa/recovery',
   },
   admin: {
     wizard: '/admin/wizard',
@@ -34,4 +35,12 @@ export const routes = {
 export const defaultUserAdmin = {
   username: 'admin',
   password: 'pass123',
+};
+
+export const testUserTemplate = {
+  firstName: 'test first name',
+  lastName: 'test last name',
+  password: 'defguarD123!',
+  mail: 'test@test.com',
+  phone: '123456789',
 };
