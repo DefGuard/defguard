@@ -272,7 +272,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             if state.connected {
                 debug!("Gateway is already connected. Cannot configure another gateway.");
                 return Err(Status::failed_precondition(
-                    "A gateway is already connected.",
+                    "Gateway is already connected.",
                 ));
             }
         }
