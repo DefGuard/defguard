@@ -271,9 +271,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             let state = self.state.lock().unwrap();
             if state.connected {
                 debug!("Gateway is already connected. Cannot configure another one.");
-                return Err(Status::failed_precondition(
-                    "Gateway is already connected.",
-                ));
+                return Err(Status::failed_precondition("Gateway is already connected."));
             }
         }
 
@@ -300,9 +298,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let mut state = self.state.lock().unwrap();
         if state.connected {
             debug!("Gateway is already connected. Cannot connect another gateway.");
-            return Err(Status::failed_precondition(
-                "Gateway is already connected.",
-            ));
+            return Err(Status::failed_precondition("Gateway is already connected."));
         }
 
         info!("New client connected to updates stream");
