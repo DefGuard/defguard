@@ -17,6 +17,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - import your current configuration (with a wizzard!)
   - *easy* device setup by users themselves
   - dashboard and statistics overview of connected users/devices for admins
+  - *defguard is not an official WireGuard project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
 * Multi-Factor Authentication:
   - Time-based One-Time Password Algorithm (TOTP - e.g. Google Authenticator)
   - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
