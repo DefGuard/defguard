@@ -8,8 +8,10 @@ use std::{
     sync::{Arc, Mutex},
     task::{Context, Poll},
 };
-use tokio::sync::mpsc::{self, Receiver};
-use tokio::task::JoinHandle;
+use tokio::{
+    sync::mpsc::{self, Receiver},
+    task::JoinHandle,
+};
 use tokio_stream::Stream;
 use tonic::{Request, Response, Status};
 
