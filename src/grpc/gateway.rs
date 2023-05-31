@@ -311,7 +311,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let events_rx = Arc::clone(&state.wireguard_rx);
         state.connected = true;
         let handle = tokio::spawn(async move {
-            info!("Starting update steam to gateway");
+            info!("Starting update stream to gateway");
             while let Some(update) = events_rx.lock().await.recv().await {
                 let result = match update {
                     GatewayEvent::NetworkCreated(network) => {
