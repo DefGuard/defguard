@@ -184,7 +184,7 @@ pub async fn webauthn_init(
     appstate: &State<AppState>,
 ) -> ApiResult {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
-        debug!(
+        info!(
             "Initializing WebAuthn registration for user {}",
             user.username
         );
@@ -223,6 +223,10 @@ pub async fn webauthn_finish(
     appstate: &State<AppState>,
     data: Json<WebAuthnRegistration>,
 ) -> ApiResult {
+    info!(
+        "Finishing WebAuthn registration for user {}",
+        session.user.username
+    );
     let passkey_reg =
         session
             .session
