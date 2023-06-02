@@ -178,41 +178,36 @@ pub async fn mfa_disable(session_info: SessionInfo, appstate: &State<AppState>) 
 
 /// Initialize WebAuthn registration
 #[post("/auth/webauthn/init")]
-pub async fn webauthn_init(
-    _session: SessionInfo,
-    mut session: Session,
-    appstate: &State<AppState>,
-) -> ApiResult {
-    if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
-        info!(
-            "Initializing WebAuthn registration for user {}",
-            user.username
-        );
-        // passkeys to exclude
-        let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
-        match appstate.webauthn.start_passkey_registration(
-            Uuid::new_v4(),
-            &user.username,
-            &user.username,
-            Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
-        ) {
-            Ok((ccr, passkey_reg)) => {
-                session
-                    .set_passkey_registration(&appstate.pool, &passkey_reg)
-                    .await?;
-                info!(
-                    "Initialized WebAuthn registration for user {}",
-                    user.username
-                );
-                Ok(ApiResponse {
-                    json: json!(ccr),
-                    status: Status::Ok,
-                })
-            }
-            Err(err) => Err(OriWebError::WebauthnRegistration(err.to_string())),
+pub async fn webauthn_init(mut session_info: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+    let user = session_info.user;
+    info!(
+        "Initializing WebAuthn registration for user {}",
+        user.username
+    );
+    // passkeys to exclude
+    let passkeys =
+        WebAuthn::passkeys_for_user(&appstate.pool, user.id.expect("User ID missing")).await?;
+    match appstate.webauthn.start_passkey_registration(
+        Uuid::new_v4(),
+        &user.username,
+        &user.username,
+        Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
+    ) {
+        Ok((ccr, passkey_reg)) => {
+            session_info
+                .session
+                .set_passkey_registration(&appstate.pool, &passkey_reg)
+                .await?;
+            info!(
+                "Initialized WebAuthn registration for user {}",
+                user.username
+            );
+            Ok(ApiResponse {
+                json: json!(ccr),
+                status: Status::Ok,
+            })
         }
-    } else {
-        Err(OriWebError::ObjectNotFound("invalid user".into()))
+        Err(err) => Err(OriWebError::WebauthnRegistration(err.to_string())),
     }
 }
 
