@@ -209,7 +209,7 @@ pub async fn webauthn_init(
                     status: Status::Ok,
                 })
             }
-            Err(_err) => Err(OriWebError::Http(Status::BadRequest)),
+            Err(err) => Err(OriWebError::WebauthnRegistration(err.to_string())),
         }
     } else {
         Err(OriWebError::ObjectNotFound("invalid user".into()))
