@@ -35,7 +35,7 @@ export const SelectOption = ({
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
     >
-      {label}
+      <span>{label}</span>
     </motion.button>
   );
 };

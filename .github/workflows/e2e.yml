@@ -21,14 +21,41 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: './e2e/.nvmrc'
+      - name: Install pnpm
+        id: pnpm-install
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
       - name: Pull images
         run: docker-compose --file './docker-compose.e2e.yaml' pull
-      - name: Build e2e
-        run: docker-compose --file './docker-compose.e2e.yaml' build e2e
       - name: Start compose
-        run: docker-compose --file './docker-compose.e2e.yaml' up -d core db
-      - name: Run E2E tests
-        run: docker-compose --file './docker-compose.e2e.yaml' run e2e
+        run: docker-compose --file './docker-compose.e2e.yaml' up -d core db gateway
+      - name: Install E2E dependencies
+        working-directory: ./e2e
+        run: pnpm install --frozen-lockfile
+      - name: Install playwright chromium
+        run: npx playwright install --with-deps chromium
+      - name: run tests
+        working-directory: ./e2e
+        run: pnpm test
       - name: Stop compose
         if: always()
         run: docker-compose --file './docker-compose.e2e.yaml' down
@@ -37,5 +64,5 @@ jobs:
         with:
           name: playwright-report
           path: |
-            ./.volumes/e2e
+            ./e2e/playwright-report
           retention-days: 7

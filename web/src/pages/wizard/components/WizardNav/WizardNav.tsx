@@ -68,7 +68,7 @@ export const WizardNav = ({ title, lastStep }: Props) => {
         <h1>{title}</h1>
         <div className="controls">
           <Button
-            data-testid="back"
+            data-testid="wizard-back"
             onClick={() => back()}
             size={ButtonSize.BIG}
             text="Back"
@@ -76,7 +76,7 @@ export const WizardNav = ({ title, lastStep }: Props) => {
             disabled={backDisabled || loading}
           />
           <Button
-            data-testid="next"
+            data-testid="wizard-next"
             text={lastStep ? 'Finish' : 'Next'}
             size={ButtonSize.BIG}
             styleVariant={ButtonStyleVariant.PRIMARY}

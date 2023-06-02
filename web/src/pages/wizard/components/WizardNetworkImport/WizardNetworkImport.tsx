@@ -163,6 +163,7 @@ export const WizardNetworkImport = () => {
           styleVariant={ButtonStyleVariant.STANDARD}
           onClick={() => handleConfigUpload()}
           className="upload"
+          data-testid="upload-config"
         />
         <input className="visually-hidden" type="submit" ref={submitRef} />
       </form>

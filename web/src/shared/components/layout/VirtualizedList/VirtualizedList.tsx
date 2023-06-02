@@ -66,12 +66,16 @@ export const VirtualizedList = <T extends object>({
     }
   }, []);
 
-  const renderRow = (value: T, onDefaultRowClick?: (context: T) => void) => {
+  const renderRow = (
+    value: T,
+    onDefaultRowClick?: (context: T) => void,
+    index?: number
+  ) => {
     if (breakpoint !== 'desktop' && mobile?.enabled && mobile.renderer) {
-      return mobile.renderer(value);
+      return mobile.renderer(value, index);
     }
     if (customRowRender) {
-      return customRowRender(value);
+      return customRowRender(value, index);
     }
     return (
       <DefaultRowRender
@@ -174,7 +178,7 @@ export const VirtualizedList = <T extends object>({
             ...getRowPadding,
           }}
         >
-          {rowVirtualizer.getVirtualItems().map((virtualItem) => (
+          {rowVirtualizer.getVirtualItems().map((virtualItem, index) => (
             <div
               className="virtual-row"
               key={virtualItem.key}
@@ -189,7 +193,7 @@ export const VirtualizedList = <T extends object>({
                 }px)`,
               }}
             >
-              {renderRow(data[virtualItem.index], onDefaultRowClick)}
+              {renderRow(data[virtualItem.index], onDefaultRowClick, index)}
             </div>
           ))}
         </div>
@@ -377,13 +381,13 @@ interface Props<T extends object> {
   data: T[];
   headers?: ListHeader[];
   cells?: ListRowCell<T>[];
-  customRowRender?: (context: T) => ReactNode;
+  customRowRender?: (context: T, index?: number) => ReactNode;
   className?: string;
   id?: string;
   mobile?: {
     enabled: boolean;
     mobileRowSize: number;
-    renderer: (context: T) => ReactNode;
+    renderer: (context: T, index?: number) => ReactNode;
   };
   padding?: ListPadding;
   headerPadding?: ListPadding;

@@ -58,6 +58,7 @@ export const WizardMapDevices = () => {
         value: user.id as number,
         label: `${user.first_name} ${user.last_name}`,
         key: user.id as number,
+        meta: user.username,
       })) ?? [],
     [users]
   );
@@ -72,8 +73,12 @@ export const WizardMapDevices = () => {
   );
 
   const renderRow = useCallback(
-    (device: ImportedDevice) => (
-      <MapDeviceRow options={getUsersOptions} device={device} />
+    (device: ImportedDevice, index?: number) => (
+      <MapDeviceRow
+        options={getUsersOptions}
+        device={device}
+        testId={`map-device-${index}`}
+      />
     ),
     [getUsersOptions]
   );

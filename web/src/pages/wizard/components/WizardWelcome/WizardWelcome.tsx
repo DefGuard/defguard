@@ -29,6 +29,7 @@ export const WizardWelcome = () => {
         size={ButtonSize.BIG}
         styleVariant={ButtonStyleVariant.PRIMARY}
         text="Setup my network"
+        data-testid="setup-network"
       />
     </Card>
   );

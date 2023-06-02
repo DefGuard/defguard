@@ -1,19 +1,21 @@
+import { mergeObjects } from './utils/utils';
+
 type TestsConfig = {
   BASE_URL: string;
+  CORE_BASE_URL: string;
 };
 
 const defaultConfig: TestsConfig = {
-  BASE_URL: 'http://127.0.0.1:3000',
+  BASE_URL: 'http://localhost:8000',
+  CORE_BASE_URL: 'http://localhost:8000/api/v1',
 };
 
 const envConfig: Partial<TestsConfig> = {
   BASE_URL: process.env.BASE_URL,
+  CORE_BASE_URL: process.env.CORE_BASE_URL,
 };
 
-export const testsConfig: TestsConfig = {
-  ...defaultConfig,
-  ...envConfig,
-};
+export const testsConfig: TestsConfig = mergeObjects(envConfig, defaultConfig);
 
 export const routes = {
   base: testsConfig.BASE_URL,

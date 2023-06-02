@@ -27,12 +27,7 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
             username
         )));
     }
-    // Check if all characters are ascii
-    if !username.is_ascii() {
-        return Err(OriWebError::Serialization(
-            "Username contained not ascii charaters".into(),
-        ));
-    }
+
     if !username
         .chars()
         .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
