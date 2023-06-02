@@ -36,6 +36,7 @@ export const WizardType = () => {
         icon={<SvgImportConfig />}
         selected={setupType === WizardSetupType.IMPORT}
         onClick={() => setWizardState({ setupType: WizardSetupType.IMPORT })}
+        testId="setup-option-import"
       />
       <WizardTypeOptionCard
         title={LL.wizard.wizardType.manual.title()}
@@ -43,6 +44,7 @@ export const WizardType = () => {
         icon={<SvgManualConfig />}
         selected={setupType === WizardSetupType.MANUAL}
         onClick={() => setWizardState({ setupType: WizardSetupType.MANUAL })}
+        testId="setup-option-manual"
       />
     </Card>
   );

@@ -2,6 +2,7 @@ import { BrowserContext } from 'playwright';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
 import { User } from '../../types';
+import { waitForBase } from '../waitForBase';
 import { loginBasic } from './login';
 import { logout } from './logout';
 
@@ -12,6 +13,7 @@ export const createUser = async (
 ): Promise<User> => {
   const user: User = { ...testUserTemplate, username };
   const page = await context.newPage();
+  await waitForBase(page);
   await page.goto(routes.base + routes.auth.login);
   await loginBasic(page, defaultUserAdmin);
   await page.goto(routes.base + routes.admin.users);

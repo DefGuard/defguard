@@ -1,4 +1,4 @@
-import { expect, Page, test } from '@playwright/test';
+import { BrowserContext, expect, Page, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../config';
 import { OpenIdClient, User } from '../types';
@@ -8,7 +8,9 @@ import { loginBasic, loginTOTP } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
+import { dockerRestart } from '../utils/docker';
 import { getPageClipboard } from '../utils/getPageClipboard';
+import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
@@ -28,11 +30,14 @@ test.describe('Authorize OpenID client.', () => {
   };
 
   let page: Page;
+  let context: BrowserContext;
 
   // Setup client and user for tests
-  test.beforeAll(async ({ browser, context }) => {
+  test.beforeAll(async ({ browser }) => {
+    context = await browser.newContext();
     testUser = await createUser(context, 'testopenid');
-    page = await browser.newPage();
+    page = await context.newPage();
+    await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
     await waitForRoute(page, routes.admin.wizard);
     await CreateOpenIdClient(page, client);
@@ -41,6 +46,10 @@ test.describe('Authorize OpenID client.', () => {
     const clientId = await getPageClipboard(page);
     client.clientID = clientId;
     await logout(page);
+  });
+
+  test.afterAll(() => {
+    dockerRestart();
   });
 
   test('Authorize when session is active.', async () => {

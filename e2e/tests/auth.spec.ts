@@ -5,15 +5,23 @@ import { acceptRecovery } from '../utils/controllers/acceptRecovery';
 import { createUser } from '../utils/controllers/createUser';
 import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/login';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
+import { dockerRestart } from '../utils/docker';
+import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
 
+test.afterEach(async () => {
+  dockerRestart();
+});
+
 test('Basic auth with default admin', async ({ page }) => {
+  await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
   await waitForRoute(page, routes.admin.wizard);
   expect(page.url()).toBe(routes.base + routes.admin.wizard);
 });
 
 test('Create user and login as him', async ({ page, context }) => {
+  await waitForBase(page);
   const testUser = await createUser(context, 'testauth01');
   await loginBasic(page, testUser);
   await waitForRoute(page, routes.me);
@@ -21,6 +29,7 @@ test('Create user and login as him', async ({ page, context }) => {
 });
 
 test('Login with admin user TOTP', async ({ page, context }) => {
+  await waitForBase(page);
   const testUser = await createUser(context, 'testtotp1', ['Admin']);
   await loginBasic(page, testUser);
   await waitForRoute(page, routes.me);
@@ -33,6 +42,7 @@ test('Login with admin user TOTP', async ({ page, context }) => {
 });
 
 test('Login with user TOTP', async ({ page, context }) => {
+  await waitForBase(page);
   const testUser = await createUser(context, 'testtotp2');
   await loginBasic(page, testUser);
   await waitForRoute(page, routes.me);
@@ -44,6 +54,7 @@ test('Login with user TOTP', async ({ page, context }) => {
 });
 
 test('Recovery code login', async ({ page, context }) => {
+  await waitForBase(page);
   const testUser = await createUser(context, 'recovery');
   await loginBasic(page, testUser);
   await waitForRoute(page, routes.me);

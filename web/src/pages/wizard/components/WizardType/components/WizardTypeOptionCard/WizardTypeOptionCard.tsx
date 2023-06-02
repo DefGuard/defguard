@@ -16,6 +16,7 @@ type Props = {
   subtitle: string;
   onClick: () => void;
   selected: boolean;
+  testId?: string;
 };
 export const WizardTypeOptionCard = ({
   icon,
@@ -23,6 +24,7 @@ export const WizardTypeOptionCard = ({
   subtitle,
   onClick,
   selected,
+  testId,
 }: Props) => {
   const { LL } = useI18nContext();
   return (
@@ -40,6 +42,7 @@ export const WizardTypeOptionCard = ({
         text={!selected ? LL.wizard.common.select() : undefined}
         onClick={onClick}
         size={ButtonSize.BIG}
+        data-testid={testId}
       />
     </Card>
   );

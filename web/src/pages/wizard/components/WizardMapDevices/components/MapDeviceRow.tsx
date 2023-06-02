@@ -13,14 +13,17 @@ import { useWizardStore } from '../../../hooks/useWizardStore';
 type Props = {
   device: ImportedDevice;
   options: SelectOption<number>[];
+  testId?: string;
 };
-export const MapDeviceRow = ({ options, device }: Props) => {
+export const MapDeviceRow = ({ options, device, testId }: Props) => {
   const mapDevice = useWizardStore((state) => state.mapDevice);
   const [search, setSearch] = useState<string | undefined>();
   const getOptions = useMemo(() => {
     if (search && search.length) {
-      return options.filter((o) =>
-        o.label.toLocaleLowerCase().includes(search.toLocaleLowerCase())
+      return options.filter(
+        (o) =>
+          o.label.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
+          (o.meta as string).includes(search.toLowerCase())
       );
     }
     return options;
@@ -30,7 +33,7 @@ export const MapDeviceRow = ({ options, device }: Props) => {
     [device.user_id, options]
   );
   return (
-    <RowBox className="device">
+    <RowBox className="device" data-testid={testId}>
       <span className="name">{device.name}</span>
       <span className="ip">{device.wireguard_ip}</span>
       <Select
