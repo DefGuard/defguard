@@ -107,6 +107,10 @@ export const NetworkConfiguration: React.FC = () => {
         .string()
         .required(LL.form.error.required())
         .test(LL.form.error.address(), (value: string) => {
+          const netmaskPresent = value.split('/').length == 2;
+          if (!netmaskPresent) {
+            return false;
+          }
           const ipValid = validateIp(value, true);
           if (ipValid) {
             const host = value.split('.')[3].split('/')[0];

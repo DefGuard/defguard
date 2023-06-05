@@ -42,6 +42,7 @@ export const UserDevices = () => {
             </div>
           )}
           <AddComponentBox
+            data-testid="add-device"
             text={LL.userPage.devices.addDevice.web()}
             callback={() =>
               setUserDeviceModalState({
