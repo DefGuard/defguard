@@ -24,7 +24,10 @@
   },
   "dependencies": {
     "@playwright/test": "^1.32.3",
+    "@types/lodash": "^4.14.195",
+    "axios": "^1.4.0",
     "dotenv": "^16.0.3",
+    "lodash": "^4.17.21",
     "playwright": "^1.32.3",
     "totp-generator": "^0.0.14"
   }

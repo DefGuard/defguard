@@ -128,7 +128,7 @@ export const ProfileDetailsForm = () => {
   const { control, handleSubmit, setValue, getValues } = useForm<Inputs>({
     resolver: yupResolver(schema),
     mode: 'all',
-    defaultValues: formDefaultValues as Inputs,
+    defaultValues: formDefaultValues,
   });
 
   const { data: availableGroups, isLoading: groupsLoading } = useQuery(

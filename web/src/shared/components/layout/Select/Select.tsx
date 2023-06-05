@@ -28,6 +28,8 @@ export interface SelectOption<T> {
   label: string;
   disabled?: boolean;
   key: Key;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  meta?: any;
 }
 
 export type SelectResult<T> = SelectOption<T> | SelectOption<T>[] | undefined;
@@ -261,14 +263,14 @@ export const Select = <T,>({
 
   useEffect(() => {
     const clickHandler = (env: MouseEvent) => {
-      if (!refs.floating.current) return;
       const selectRect = refs.reference.current?.getBoundingClientRect();
       const floatingRect = refs.floating.current?.getBoundingClientRect();
-      if (selectRect && floatingRect) {
-        const clickedInside = detectClickInside(env, [
-          selectRect as DOMRect,
-          floatingRect,
-        ]);
+      if (selectRect) {
+        const rects = [selectRect as DOMRect];
+        if (floatingRect) {
+          rects.push(floatingRect);
+        }
+        const clickedInside = detectClickInside(env, rects);
         if (!clickedInside) {
           setOpen(false);
         }
@@ -292,13 +294,8 @@ export const Select = <T,>({
         className={getClassName}
         onClick={() => {
           if (open) {
-            if (!searchable && !multi) {
-              setOpen(false);
-            }
             if (searchable) {
-              if (multi || !selected) {
-                focusSearch();
-              }
+              focusSearch();
             }
           } else {
             if (!disabled && !loading && !disableOpen) {
@@ -368,6 +365,7 @@ export const Select = <T,>({
                   placeholder={showSelectInnerPlaceholder ? placeholder : undefined}
                   style={{
                     width: `${getSearchInputLength}px`,
+                    color: searchFocused ? ColorsRGB.TextMain : 'transparent',
                   }}
                 />
               </div>
