@@ -1,4 +1,5 @@
-use defguard::db::{MFAInfo, MFAMethod};
+use claims::assert_none;
+use defguard::db::{DbPool, MFAInfo, MFAMethod};
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{models::wallet::keccak256, UserInfo, Wallet},
@@ -11,6 +12,7 @@ use rocket::http::Cookie;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde::Deserialize;
+use sqlx::query;
 use std::time::SystemTime;
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
@@ -37,6 +39,21 @@ async fn make_client() -> Client {
     wallet.save(&client_state.pool).await.unwrap();
 
     client
+}
+
+async fn make_client_with_db() -> (Client, DbPool) {
+    let (client, client_state) = make_test_client().await;
+
+    let mut wallet = Wallet::new_for_user(
+        client_state.test_user.id.unwrap(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
+        "test".into(),
+        5,
+        String::new(),
+    );
+    wallet.save(&client_state.pool).await.unwrap();
+
+    (client, client_state.pool)
 }
 
 async fn make_client_with_wallet(address: String) -> Client {
@@ -249,7 +266,7 @@ async fn test_totp() {
 
 #[rocket::async_test]
 async fn test_webauthn() {
-    let client = make_client().await;
+    let (client, pool) = make_client_with_db().await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new());
     let origin = Url::parse("http://localhost:8000").unwrap();
@@ -319,6 +336,16 @@ async fn test_webauthn() {
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
+
+    // check that recovery codes were cleared since last MFA method was removed
+    let recovery_codes = query!(
+        "SELECT recovery_codes FROM \"user\" WHERE id = $1",
+        user_info.id,
+    )
+    .fetch_optional(&pool)
+    .await
+    .unwrap();
+    assert_none!(recovery_codes);
 }
 
 #[rocket::async_test]
