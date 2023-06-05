@@ -3,8 +3,10 @@ import lodash from 'lodash';
 import path from 'path';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
+import { NetworkForm } from '../../types';
 import { apiCreateUsersBulk, apiGetUsers } from '../../utils/api/users';
 import { loginBasic } from '../../utils/controllers/login';
+import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForPromise } from '../../utils/waitForPromise';
@@ -67,11 +69,13 @@ test.describe('Setup VPN (wizard) ', () => {
     }
   });
 
-  // test('Wizard Manual', async ({ page }) => {
-  //   await loginBasic(page, defaultUserAdmin);
-  //   await page.goto(routes.base + routes.admin.wizard);
-  //   const navNext = page.getByTestId('wizard-next');
-  //   await page.getByTestId('setup-option-manual').click();
-  //   await navNext.click();
-  // });
+  test('Wizard Manual', async ({ context }) => {
+    const network: NetworkForm = {
+      name: 'test manual',
+      address: '10.10.10.1/24',
+      endpoint: '127.0.0.1',
+      port: '5055',
+    };
+    await createNetwork(context, network);
+  });
 });

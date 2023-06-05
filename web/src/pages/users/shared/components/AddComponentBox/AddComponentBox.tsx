@@ -11,9 +11,15 @@ interface Props {
   callback: () => void;
   text: string;
   disabled?: boolean;
+  'data-testid'?: string;
 }
 
-export const AddComponentBox = ({ callback, text, disabled = false }: Props) => {
+export const AddComponentBox = ({
+  callback,
+  text,
+  disabled = false,
+  'data-testid': testId,
+}: Props) => {
   const [hovered, setHovered] = useState(false);
 
   const cn = useMemo(
@@ -33,6 +39,7 @@ export const AddComponentBox = ({ callback, text, disabled = false }: Props) => 
 
   return (
     <motion.div
+      data-testid={testId}
       className={cn}
       initial="idle"
       animate={getAnimate}
