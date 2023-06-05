@@ -12,6 +12,7 @@ use crate::{
     ldap::utils::user_from_ldap,
     license::Features,
 };
+use rocket::serde::json::serde_json;
 use rocket::{
     http::{Cookie, CookieJar, SameSite, Status},
     serde::json::{serde_json::json, Json},
@@ -19,6 +20,7 @@ use rocket::{
 };
 use sqlx::types::Uuid;
 use webauthn_rs::prelude::PublicKeyCredential;
+use webauthn_rs_proto::options::CollectedClientData;
 
 /// For successful login, return:
 /// * 200 with MFA disabled
@@ -231,6 +233,28 @@ pub async fn webauthn_finish(
             ))?;
 
     let webauth_reg = data.into_inner();
+
+    let ccdj: CollectedClientData = serde_json::from_slice(
+        webauth_reg.rpkc.response.client_data_json.as_ref(),
+    )
+    .map_err(|_| {
+        OriWebError::WebauthnRegistration(
+            "Failed to parse passkey registration request data".into(),
+        )
+    })?;
+    info!(
+        "Passkey registration request origin: {:?}",
+        ccdj.origin.to_string()
+    );
+    info!(
+        "Allowed origins: {:?}",
+        appstate
+            .webauthn
+            .get_allowed_origins()
+            .iter()
+            .map(|url| url.to_string())
+            .collect::<Vec<String>>()
+    );
 
     let passkey = appstate
         .webauthn
