@@ -13,6 +13,16 @@ export const apiGetUsers = async (page: Page): Promise<ApiUser[]> => {
   return users;
 };
 
+export const apiGetMe = async (page: Page): Promise<ApiUser> => {
+  const url = testsConfig.CORE_BASE_URL + '/me';
+  const userData = await page.evaluate(async (url) => {
+    return await fetch(url, {
+      method: 'GET',
+    }).then((res) => res.json());
+  }, url);
+  return userData;
+};
+
 export const apiCreateUsersBulk = async (page: Page, users: User[]): Promise<void> => {
   const url = testsConfig.CORE_BASE_URL + '/user/';
   for (const user of users) {

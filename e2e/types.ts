@@ -1,7 +1,7 @@
 export type ApiDevice = {
   id?: string;
   name: string;
-  wireguard_id: string;
+  wireguard_ip: string;
   wireguard_pubKey: string;
 };
 
@@ -28,6 +28,15 @@ export type OpenIdClient = {
   clientID?: string;
   redirectURL: string;
   scopes: OpenIdScope[];
+};
+
+export type NetworkForm = {
+  name: string;
+  address: string;
+  endpoint: string;
+  port: string;
+  allowed_ips?: string;
+  dns?: string;
 };
 
 export type OpenIdScope = 'openid' | 'profile' | 'email' | 'phone';
