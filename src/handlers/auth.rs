@@ -243,7 +243,7 @@ pub async fn webauthn_finish(
         )
     })?;
     info!(
-        "Passkey registration request origin: {:?}",
+        "Passkey registration request origin: {}",
         ccdj.origin.to_string()
     );
     info!(
