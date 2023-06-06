@@ -136,10 +136,8 @@ export const RegisterWebAuthNForm = () => {
               const response = await create(options).catch((err) => {
                 let errorType: string;
                 const split = String(err).split(':');
-                console.log(split);
                 if (split.length > 1) {
                   errorType = split[0];
-                  console.log(errorType);
                   if (errorType === 'InvalidStateError') {
                     toaster.error(
                       LL.modals.manageWebAuthNKeys.messages.duplicateKeyError()
