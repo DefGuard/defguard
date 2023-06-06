@@ -5,9 +5,7 @@ use super::{
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{
-        AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserInfo, Wallet, WebAuthn,
-    },
+    db::{AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserInfo, Wallet, WebAuthn},
     error::OriWebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     license::Features,
@@ -194,10 +192,7 @@ pub async fn modify_user(
     let db_apps = user.oauth2authorizedapps(&appstate.pool).await?;
     let removed_apps: Vec<i64> = db_apps
         .iter()
-        .filter_map(|app| match request_app_ids.contains(&app.oauth2client_id) {
-            true => None,
-            false => Some(app),
-        })
+        .filter(|app| request_app_ids.contains(&app.oauth2client_id))
         .map(|app| app.oauth2client_id)
         .collect();
     if !removed_apps.is_empty() {
