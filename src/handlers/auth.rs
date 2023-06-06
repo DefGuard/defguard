@@ -12,6 +12,7 @@ use crate::{
     ldap::utils::user_from_ldap,
     license::Features,
 };
+use rocket::serde::json::serde_json;
 use rocket::{
     http::{Cookie, CookieJar, SameSite, Status},
     serde::json::{serde_json::json, Json},
@@ -19,6 +20,7 @@ use rocket::{
 };
 use sqlx::types::Uuid;
 use webauthn_rs::prelude::PublicKeyCredential;
+use webauthn_rs_proto::options::CollectedClientData;
 
 /// For successful login, return:
 /// * 200 with MFA disabled
@@ -178,41 +180,36 @@ pub async fn mfa_disable(session_info: SessionInfo, appstate: &State<AppState>) 
 
 /// Initialize WebAuthn registration
 #[post("/auth/webauthn/init")]
-pub async fn webauthn_init(
-    _session: SessionInfo,
-    mut session: Session,
-    appstate: &State<AppState>,
-) -> ApiResult {
-    if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
-        debug!(
-            "Initializing WebAuthn registration for user {}",
-            user.username
-        );
-        // passkeys to exclude
-        let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
-        match appstate.webauthn.start_passkey_registration(
-            Uuid::new_v4(),
-            &user.username,
-            &user.username,
-            Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
-        ) {
-            Ok((ccr, passkey_reg)) => {
-                session
-                    .set_passkey_registration(&appstate.pool, &passkey_reg)
-                    .await?;
-                info!(
-                    "Initialized WebAuthn registration for user {}",
-                    user.username
-                );
-                Ok(ApiResponse {
-                    json: json!(ccr),
-                    status: Status::Ok,
-                })
-            }
-            Err(_err) => Err(OriWebError::Http(Status::BadRequest)),
+pub async fn webauthn_init(mut session_info: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+    let user = session_info.user;
+    info!(
+        "Initializing WebAuthn registration for user {}",
+        user.username
+    );
+    // passkeys to exclude
+    let passkeys =
+        WebAuthn::passkeys_for_user(&appstate.pool, user.id.expect("User ID missing")).await?;
+    match appstate.webauthn.start_passkey_registration(
+        Uuid::new_v4(),
+        &user.username,
+        &user.username,
+        Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
+    ) {
+        Ok((ccr, passkey_reg)) => {
+            session_info
+                .session
+                .set_passkey_registration(&appstate.pool, &passkey_reg)
+                .await?;
+            info!(
+                "Initialized WebAuthn registration for user {}",
+                user.username
+            );
+            Ok(ApiResponse {
+                json: json!(ccr),
+                status: Status::Ok,
+            })
         }
-    } else {
-        Err(OriWebError::ObjectNotFound("invalid user".into()))
+        Err(err) => Err(OriWebError::WebauthnRegistration(err.to_string())),
     }
 }
 
@@ -223,6 +220,10 @@ pub async fn webauthn_finish(
     appstate: &State<AppState>,
     data: Json<WebAuthnRegistration>,
 ) -> ApiResult {
+    info!(
+        "Finishing WebAuthn registration for user {}",
+        session.user.username
+    );
     let passkey_reg =
         session
             .session
@@ -232,6 +233,28 @@ pub async fn webauthn_finish(
             ))?;
 
     let webauth_reg = data.into_inner();
+
+    let ccdj: CollectedClientData = serde_json::from_slice(
+        webauth_reg.rpkc.response.client_data_json.as_ref(),
+    )
+    .map_err(|_| {
+        OriWebError::WebauthnRegistration(
+            "Failed to parse passkey registration request data".into(),
+        )
+    })?;
+    info!(
+        "Passkey registration request origin: {}",
+        ccdj.origin.to_string()
+    );
+    info!(
+        "Allowed origins: {:?}",
+        appstate
+            .webauthn
+            .get_allowed_origins()
+            .iter()
+            .map(|url| url.to_string())
+            .collect::<Vec<String>>()
+    );
 
     let passkey = appstate
         .webauthn
