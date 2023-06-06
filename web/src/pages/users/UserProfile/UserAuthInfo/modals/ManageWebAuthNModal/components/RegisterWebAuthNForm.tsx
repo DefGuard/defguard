@@ -134,12 +134,24 @@ export const RegisterWebAuthNForm = () => {
               }
               const options = parseCreationOptionsFromJSON(responseData);
               const response = await create(options).catch((err) => {
-                console.error(err);
+                let errorType: string;
+                const split = String(err).split(':');
+                console.log(split);
+                if (split.length > 1) {
+                  errorType = split[0];
+                  console.log(errorType);
+                  if (errorType === 'InvalidStateError') {
+                    toaster.error(
+                      LL.modals.manageWebAuthNKeys.messages.duplicateKeyError()
+                    );
+                  }
+                } else {
+                  toaster.error(LL.messages.error());
+                }
                 return null;
               });
               setWaitingForSecurityKey(false);
               if (!response) {
-                toaster.error(LL.messages.error());
                 return;
               }
               if (response) {
