@@ -176,19 +176,31 @@ impl User {
         if let Some(info) = MFAInfo::for_user(pool, self).await? {
             let factors_present = info.mfa_available();
             if self.mfa_enabled != factors_present {
-                if let Some(id) = self.id {
-                    query!(
-                        "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1",
-                        id,
-                        factors_present
-                    )
-                    .execute(pool)
-                    .await?;
-                }
+                // store correct value for MFA flag in the DB
+                if self.mfa_enabled {
+                    // last factor was removed so we have to disable MFA
+                    self.disable_mfa(pool).await?;
+                } else {
+                    // first factor was added so MFA needs to be enabled
+                    if let Some(id) = self.id {
+                        query!(
+                            "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1",
+                            id,
+                            factors_present
+                        )
+                        .execute(pool)
+                        .await?;
+                    }
+                };
+
                 if !factors_present && self.mfa_method != MFAMethod::None {
-                    debug!("MFA for user {} disabled", self.username);
+                    debug!(
+                        "MFA for user {} disabled, updating MFA method to None",
+                        self.username
+                    );
                     self.set_mfa_method(pool, MFAMethod::None).await?;
                 }
+
                 self.mfa_enabled = factors_present;
             }
 
