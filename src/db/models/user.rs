@@ -19,6 +19,7 @@ use log::debug;
 use model_derive::Model;
 use otpauth::TOTP;
 use rand::{thread_rng, Rng};
+use rocket::http::Status;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, Type};
 use std::time::SystemTime;
 
@@ -128,6 +129,10 @@ impl User {
         pool: &DbPool,
         mfa_method: MFAMethod,
     ) -> Result<(), SqlxError> {
+        info!(
+            "Setting MFA method for user {} to {:?}",
+            self.username, mfa_method
+        );
         if mfa_method == MFAMethod::None || self.mfa_method == MFAMethod::None {
             if let Some(id) = self.id {
                 query!(
@@ -204,14 +209,25 @@ impl User {
                 self.mfa_enabled = factors_present;
             }
 
-            if factors_present && info.mfa_method == MFAMethod::None {
-                if info.totp_available {
-                    self.set_mfa_method(pool, MFAMethod::OneTimePassword)
-                        .await?;
-                } else if info.webauthn_available {
-                    self.set_mfa_method(pool, MFAMethod::Webauthn).await?;
-                } else if info.web3_available {
-                    self.set_mfa_method(pool, MFAMethod::Web3).await?;
+            // set correct value for default method
+            if factors_present {
+                match info.list_available_methods() {
+                    None => {
+                        error!("Incorrect MFA info state for user {}", self.username);
+                        return Err(OriWebError::Http(Status::InternalServerError));
+                    }
+                    Some(methods) => {
+                        info!(
+                            "Checking if {:?} in in available methods {:?}, {}",
+                            info.mfa_method,
+                            methods,
+                            methods.contains(&info.mfa_method)
+                        );
+                        if !methods.contains(&info.mfa_method) {
+                            self.set_mfa_method(pool, methods.into_iter().next().unwrap())
+                                .await?;
+                        }
+                    }
                 }
             }
         };
