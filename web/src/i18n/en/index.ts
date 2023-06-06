@@ -19,6 +19,7 @@ const en: BaseTranslation = {
       title: 'Security keys',
       messages: {
         deleted: 'WebAuthN key deleted.',
+        duplicateKeyError: 'Key is already registered',
       },
       infoMessage: `
         <p>
