@@ -200,7 +200,7 @@ impl MFAInfo {
         self.webauthn_available || self.totp_available || self.web3_available
     }
 
-    pub fn mfa_method(&self) -> &MFAMethod {
+    pub fn current_mfa_method(&self) -> &MFAMethod {
         &self.mfa_method
     }
 }

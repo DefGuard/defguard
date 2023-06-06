@@ -516,7 +516,7 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Created);
     let mfa_info: MFAInfo = response.into_json().await.unwrap();
-    assert_eq!(mfa_info.mfa_method(), &MFAMethod::OneTimePassword);
+    assert_eq!(mfa_info.current_mfa_method(), &MFAMethod::OneTimePassword);
 }
 
 #[rocket::async_test]
