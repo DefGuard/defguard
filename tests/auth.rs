@@ -338,14 +338,14 @@ async fn test_webauthn() {
     assert_eq!(response.status(), Status::Ok);
 
     // check that recovery codes were cleared since last MFA method was removed
-    let recovery_codes = query!(
+    let record = query!(
         "SELECT recovery_codes FROM \"user\" WHERE id = $1",
         user_info.id,
     )
-    .fetch_optional(&pool)
+    .fetch_one(&pool)
     .await
     .unwrap();
-    assert_none!(recovery_codes);
+    assert_eq!(record.recovery_codes.len(), 0);
 }
 
 #[rocket::async_test]
