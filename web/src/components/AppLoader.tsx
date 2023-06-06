@@ -28,7 +28,7 @@ export const AppLoader = () => {
   );
   const appSettings = useAppStore((state) => state.settings);
   const {
-    getVersion,
+    getAppInfo,
     user: { getMe },
     settings: { getSettings },
     license: { getLicense },
@@ -67,15 +67,15 @@ export const AppLoader = () => {
     retry: false,
   });
 
-  useQuery([QueryKeys.FETCH_APP_VERSION], getVersion, {
+  useQuery([QueryKeys.FETCH_APP_INFO], getAppInfo, {
     onSuccess: (data) => {
-      setAppStore({ version: data.version });
+      setAppStore({ appInfo: data });
     },
     onError: (err) => {
       toaster.error(LL.messages.errorVersion());
       console.error(err);
     },
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     retry: false,
   });
 

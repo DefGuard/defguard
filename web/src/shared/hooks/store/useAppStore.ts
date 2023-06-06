@@ -7,11 +7,10 @@ import { AppStore } from '../../types';
 export const useAppStore = create<AppStore>()(
   persist(
     (set) => ({
-      backendVersion: undefined,
       settings: undefined,
       license: undefined,
-      version: undefined,
       language: undefined,
+      appInfo: undefined,
       setAppStore: (data) => set((state) => ({ ...state, ...data })),
     }),
     {

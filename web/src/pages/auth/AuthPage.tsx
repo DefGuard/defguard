@@ -10,7 +10,6 @@ import { isUserAdmin } from '../../shared/helpers/isUserAdmin';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
-import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { UserMFAMethod } from '../../shared/types';
 import { Login } from './Login/Login';
@@ -20,9 +19,6 @@ import { useMFAStore } from './shared/hooks/useMFAStore';
 export const AuthPage = () => {
   const { LL } = useI18nContext();
   const navigate = useNavigate();
-  const {
-    network: { getNetworks },
-  } = useApi();
 
   const loginSubject = useAuthStore((state) => state.loginSubject);
 
@@ -44,7 +40,10 @@ export const AuthPage = () => {
     shallow
   );
 
-  const settings = useAppStore((state) => state.settings);
+  const [settings, appInfo] = useAppStore(
+    (state) => [state.settings, state.appInfo],
+    shallow
+  );
 
   const toaster = useToaster();
 
@@ -100,11 +99,7 @@ export const AuthPage = () => {
         if (isAdmin) {
           // check if VPN needs wizard
           if (!wizardEnabled) {
-            const networks = await getNetworks().catch((err) => {
-              toaster.error(LL.messages.error());
-              console.error(err);
-            });
-            if (!networks || (networks && networks.length === 0)) {
+            if (appInfo?.network_present) {
               setNavigation({ enableWizard: true });
               navigateURL = '/admin/wizard';
             } else {

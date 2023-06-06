@@ -273,8 +273,13 @@ export interface ImportedDevice {
   user_id: number;
 }
 
+export interface AppInfo {
+  version: string;
+  network_present: boolean;
+}
+
 export interface ApiHook {
-  getVersion: () => Promise<VersionResponse>;
+  getAppInfo: () => Promise<AppInfo>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
@@ -574,11 +579,10 @@ export interface UseModalStore {
 }
 
 export interface AppStore {
-  backendVersion?: string;
   settings?: Settings;
   license?: License;
-  version?: string;
   language?: Locales;
+  appInfo?: AppInfo;
   setAppStore: (newValues: Partial<Omit<AppStore, 'setAppStore'>>) => void;
 }
 

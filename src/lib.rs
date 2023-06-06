@@ -3,7 +3,7 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::auth::failed_login::FailedLoginMap;
+use crate::{auth::failed_login::FailedLoginMap, handlers::app_info::get_app_info};
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
@@ -49,7 +49,6 @@ use handlers::{
         delete_wallet, get_user, list_users, me, modify_user, set_wallet, update_wallet,
         username_available, wallet_challenge,
     },
-    version::get_version,
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
     },
@@ -153,7 +152,6 @@ pub async fn build_webapp(
                 add_group_member,
                 remove_group_member,
                 get_license,
-                get_version,
                 get_settings,
                 update_settings,
                 set_default_branding,
@@ -170,7 +168,8 @@ pub async fn build_webapp(
                 web3auth_start,
                 web3auth_end,
                 delete_authorized_app,
-                recovery_code
+                recovery_code,
+                get_app_info
             ],
         )
         .mount(
