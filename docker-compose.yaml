@@ -15,7 +15,7 @@ services:
       DEFGUARD_DB_USER: defguard
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
-      DEFGUARD_URL: http://localhost:8000
+      DEFGUARD_URL: http://localhost:3000
       RUST_BACKTRACE: 1
     ports:
       # rest api

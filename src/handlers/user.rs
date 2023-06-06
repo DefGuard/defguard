@@ -5,7 +5,9 @@ use super::{
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserInfo, Wallet, WebAuthn},
+    db::{
+        AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserInfo, Wallet, WebAuthn,
+    },
     error::OriWebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     license::Features,
@@ -182,6 +184,25 @@ pub async fn modify_user(
             json: json!({}),
             status: Status::BadRequest,
         });
+    }
+    // remove authorized apps if needed
+    let request_app_ids: Vec<i64> = user_info
+        .authorized_apps
+        .iter()
+        .map(|app| app.oauth2client_id)
+        .collect();
+    let db_apps = user.oauth2authorizedapps(&appstate.pool).await?;
+    let removed_apps: Vec<i64> = db_apps
+        .iter()
+        .filter_map(|app| match request_app_ids.contains(&app.oauth2client_id) {
+            true => None,
+            false => Some(app),
+        })
+        .map(|app| app.oauth2client_id)
+        .collect();
+    if !removed_apps.is_empty() {
+        user.remove_oauth2_authorized_apps(&appstate.pool, &removed_apps)
+            .await?;
     }
     if session.is_admin {
         user_info

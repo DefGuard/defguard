@@ -2,7 +2,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
+import { Controller, SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router';
 import * as yup from 'yup';
 
@@ -27,6 +27,7 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
+import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
 
 interface Inputs {
   username: string;
@@ -35,7 +36,7 @@ interface Inputs {
   phone: string;
   email: string;
   groups: SelectOption<string>[];
-  oauth_tokens: SelectOption<OAuth2AuthorizedApps>[];
+  authorized_apps: OAuth2AuthorizedApps[];
 }
 
 const defaultValues: Inputs = {
@@ -45,7 +46,7 @@ const defaultValues: Inputs = {
   phone: '',
   email: '',
   groups: [],
-  oauth_tokens: [],
+  authorized_apps: [],
 };
 
 export const ProfileDetailsForm = () => {
@@ -91,7 +92,13 @@ export const ProfileDetailsForm = () => {
             .required(LL.form.error.required())
             .matches(patternValidEmail, LL.form.error.invalid()),
           groups: yup.array(),
-          authorized_apps: yup.array(),
+          authorized_apps: yup.array().of(
+            yup.object().shape({
+              oauth2client_id: yup.string().required(),
+              oauth2client_name: yup.string().required(),
+              user_id: yup.string().required(),
+            })
+          ),
         })
         .required(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,17 +117,6 @@ export const ProfileDetailsForm = () => {
       res.groups = groupOptions;
     } else {
       res.groups = [];
-    }
-    if (ommited.authorized_apps) {
-      const appsOptions: SelectOption<OAuth2AuthorizedApps>[] =
-        ommited.authorized_apps.map((a) => ({
-          key: a.oauth2client_id,
-          value: a,
-          label: a.oauth2client_name,
-        }));
-      res.oauth_tokens = appsOptions;
-    } else {
-      res.oauth_tokens = [];
     }
     return res as Inputs;
   }, [user]);
@@ -174,7 +170,6 @@ export const ProfileDetailsForm = () => {
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
     if (user) {
       const groups = values.groups.map((g) => g.value);
-      const apps = values.oauth_tokens.map((a) => a.value);
       mutate({
         username: user.username,
         data: {
@@ -182,7 +177,6 @@ export const ProfileDetailsForm = () => {
           ...values,
           groups: groups,
           totp_enabled: user.totp_enabled,
-          authorized_apps: apps,
         },
       });
     }
@@ -274,6 +268,15 @@ export const ProfileDetailsForm = () => {
             disabled={!isAdmin}
           />
         </div>
+      </div>
+      <div className="row tags">
+        <Controller
+          control={control}
+          name="authorized_apps"
+          render={({ field }) => (
+            <ProfileDetailsFormAppsField value={field.value} onChange={field.onChange} />
+          )}
+        />
       </div>
       <button type="submit" className="hidden" ref={submitButton} />
     </form>

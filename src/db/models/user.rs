@@ -454,6 +454,24 @@ impl User {
         Ok(())
     }
 
+    // Remove authoirzed apps by their client id's from user
+    pub async fn remove_oauth2_authorized_apps(
+        &self,
+        pool: &DbPool,
+        app_client_ids: &Vec<i64>,
+    ) -> Result<(), SqlxError> {
+        if let Some(id) = self.id {
+            query!(
+                "DELETE FROM oauth2authorizedapp WHERE user_id = $1 AND oauth2client_id = ANY($2)",
+                id,
+                app_client_ids
+            )
+            .execute(pool)
+            .await?;
+        }
+        Ok(())
+    }
+
     /// Create admin user if one doesn't exist yet
     pub async fn init_admin_user(
         pool: &DbPool,
