@@ -3,7 +3,6 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::{auth::failed_login::FailedLoginMap, handlers::app_info::get_app_info};
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
@@ -20,6 +19,7 @@ use crate::handlers::{
 };
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
+use crate::{auth::failed_login::FailedLoginMap, handlers::app_info::get_app_info};
 use crate::{
     db::models::oauth2client::OAuth2Client, grpc::WorkerState,
     handlers::wireguard::add_user_devices,
