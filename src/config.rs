@@ -143,7 +143,7 @@ impl DefGuardConfig {
 
     // this is an ugly workaround to avoid `cargo test` args being captured by `clap`
     pub fn new_test_config() -> Self {
-        let mut config = Self::parse_from::<Vec<_>, String>(vec![]);
+        let mut config = Self::parse_from::<[_; 0], String>([]);
         config.validate_rp_id();
         config
     }
