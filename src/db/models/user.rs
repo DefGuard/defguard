@@ -122,8 +122,6 @@ impl User {
         Ok(secret_base32)
     }
 
-    /// Update `mfa_method` only when it's set to `None`, or the new value is `None`.
-    /// That way last preferred MFA method is conserved.
     pub async fn set_mfa_method(
         &mut self,
         pool: &DbPool,
@@ -133,18 +131,17 @@ impl User {
             "Setting MFA method for user {} to {:?}",
             self.username, mfa_method
         );
-        if mfa_method == MFAMethod::None || self.mfa_method == MFAMethod::None {
-            if let Some(id) = self.id {
-                query!(
-                    "UPDATE \"user\" SET mfa_method = $2 WHERE id = $1",
-                    id,
-                    &mfa_method as &MFAMethod
-                )
-                .execute(pool)
-                .await?;
-            }
-            self.mfa_method = mfa_method;
+        if let Some(id) = self.id {
+            query!(
+                "UPDATE \"user\" SET mfa_method = $2 WHERE id = $1",
+                id,
+                &mfa_method as &MFAMethod
+            )
+            .execute(pool)
+            .await?;
         }
+        self.mfa_method = mfa_method;
+
         Ok(())
     }
 
