@@ -1,4 +1,3 @@
-use claims::assert_none;
 use defguard::db::{DbPool, MFAInfo, MFAMethod};
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
