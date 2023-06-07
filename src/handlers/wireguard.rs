@@ -1,6 +1,7 @@
 use super::{
     device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, OriWebError,
 };
+use crate::grpc::GatewayMap;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
@@ -8,7 +9,6 @@ use crate::{
         models::wireguard::DateTimeAggregation, AddDevice, DbPool, Device, GatewayEvent,
         WireguardNetwork,
     },
-    grpc::GatewayState,
     wg_config::parse_wireguard_config,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
@@ -484,11 +484,11 @@ pub async fn network_stats(
 #[get("/connection", format = "json")]
 pub async fn connection_info(
     _admin: AdminRole,
-    gateway_state: &State<Arc<Mutex<GatewayState>>>,
+    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Checking gateway connection info");
     let info = ConnectionInfo {
-        connected: gateway_state.lock().unwrap().connected,
+        connected: gateway_state.lock().unwrap().connected(),
     };
     info!("Checked gateway connection info");
 

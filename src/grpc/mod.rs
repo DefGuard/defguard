@@ -15,7 +15,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-use tokio::sync::{broadcast::Receiver, mpsc::UnboundedSender, Mutex as AsyncMutex};
+use tokio::sync::mpsc::UnboundedSender;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 use crate::auth::failed_login::FailedLoginMap;
@@ -32,18 +32,43 @@ mod interceptor;
 #[cfg(feature = "worker")]
 pub mod worker;
 
+pub struct GatewayMap(HashMap<SocketAddr, GatewayState>);
+
+impl GatewayMap {
+    #[must_use]
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn connect_gateway(&mut self, address: SocketAddr) {
+        match self.0.get_mut(&address) {
+            None => {
+                self.0.insert(address, GatewayState::new());
+            }
+            Some(state) => state.connected = true,
+        };
+    }
+
+    pub fn disconnect_gateway(&mut self, address: SocketAddr) {
+        if let Some(state) = self.0.get_mut(&address) {
+            state.connected = false
+        };
+    }
+
+    // return `true` if at least one gateway is connected
+    pub fn connected(&self) -> bool {
+        self.0.values().any(|gateway| gateway.connected)
+    }
+}
+
 pub struct GatewayState {
     pub connected: bool,
-    pub wireguard_rx: Arc<AsyncMutex<Receiver<GatewayEvent>>>,
 }
 
 impl GatewayState {
     #[must_use]
-    pub fn new(wireguard_rx: Receiver<GatewayEvent>) -> Self {
-        Self {
-            connected: false,
-            wireguard_rx: Arc::new(AsyncMutex::new(wireguard_rx)),
-        }
+    pub fn new() -> Self {
+        Self { connected: true }
     }
 }
 
@@ -52,7 +77,7 @@ pub async fn run_grpc_server(
     grpc_port: u16,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: DbPool,
-    gateway_state: Arc<Mutex<GatewayState>>,
+    gateway_state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,

@@ -2,7 +2,9 @@ use crate::db::{
     models::wireguard::{WireguardNetwork, WireguardPeerStats},
     DbPool, Device, GatewayEvent,
 };
+use crate::grpc::GatewayMap;
 use chrono::{NaiveDateTime, Utc};
+use std::net::SocketAddr;
 use std::{
     pin::Pin,
     sync::{Arc, Mutex},
@@ -18,13 +20,11 @@ use tokio::{
 use tokio_stream::Stream;
 use tonic::{Request, Response, Status};
 
-use super::GatewayState;
-
 tonic::include_proto!("gateway");
 
 pub struct GatewayServer {
     pool: DbPool,
-    state: Arc<Mutex<GatewayState>>,
+    state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
 }
 
@@ -33,7 +33,7 @@ impl GatewayServer {
     #[must_use]
     pub fn new(
         pool: DbPool,
-        state: Arc<Mutex<GatewayState>>,
+        state: Arc<Mutex<GatewayMap>>,
         wireguard_tx: Sender<GatewayEvent>,
     ) -> Self {
         Self {
@@ -191,7 +191,8 @@ impl From<PeerStats> for WireguardPeerStats {
 pub struct GatewayUpdatesStream {
     task_handle: JoinHandle<()>,
     rx: Receiver<Result<Update, Status>>,
-    gateway_state: Arc<Mutex<GatewayState>>,
+    gateway_addr: SocketAddr,
+    gateway_state: Arc<Mutex<GatewayMap>>,
 }
 
 impl GatewayUpdatesStream {
@@ -199,11 +200,13 @@ impl GatewayUpdatesStream {
     pub fn new(
         task_handle: JoinHandle<()>,
         rx: Receiver<Result<Update, Status>>,
-        gateway_state: Arc<Mutex<GatewayState>>,
+        gateway_addr: SocketAddr,
+        gateway_state: Arc<Mutex<GatewayMap>>,
     ) -> Self {
         Self {
             task_handle,
             rx,
+            gateway_addr,
             gateway_state,
         }
     }
@@ -220,7 +223,10 @@ impl Stream for GatewayUpdatesStream {
 impl Drop for GatewayUpdatesStream {
     fn drop(&mut self) {
         info!("Client disconnected");
-        self.gateway_state.lock().unwrap().connected = false;
+        self.gateway_state
+            .lock()
+            .unwrap()
+            .disconnect_gateway(self.gateway_addr);
         // terminate update task
         self.task_handle.abort();
     }
@@ -297,16 +303,17 @@ impl gateway_service_server::GatewayService for GatewayServer {
         Ok(Response::new(gen_config(&network, &devices)))
     }
 
-    async fn updates(&self, _: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
-        let mut state = self.state.lock().unwrap();
-
-        info!("New client connected to updates stream");
+    async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
+        let address = request.remote_addr().expect("Unable to get peer address.");
+        info!("New client connected to updates stream: {}", address);
         let (tx, rx) = mpsc::channel(4);
 
         let mut events_rx = self.wireguard_tx.subscribe();
-        state.connected = true;
+        let mut state = self.state.lock().unwrap();
+        state.connect_gateway(address.clone());
+
         let handle = tokio::spawn(async move {
-            info!("Starting update stream to gateway");
+            info!("Starting update stream to gateway: {}", address);
             while let Ok(update) = events_rx.recv().await {
                 let result = match update {
                     GatewayEvent::NetworkCreated(network) => {
@@ -329,7 +336,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     }
                 };
                 if result.is_err() {
-                    error!("Closing update steam to gateway");
+                    error!("Closing update steam to gateway: {}", address);
                     break;
                 }
             }
@@ -337,6 +344,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         Ok(Response::new(GatewayUpdatesStream::new(
             handle,
             rx,
+            address,
             Arc::clone(&self.state),
         )))
     }

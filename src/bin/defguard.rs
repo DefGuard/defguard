@@ -1,8 +1,9 @@
+use defguard::grpc::GatewayMap;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, User},
-    grpc::{run_grpc_server, GatewayState, WorkerState},
+    grpc::{run_grpc_server, WorkerState},
     init_dev_env, run_web_server,
 };
 use fern::{
@@ -70,9 +71,9 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
-    let (wireguard_tx, wireguard_rx) = broadcast::channel::<GatewayEvent>(16);
+    let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(16);
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wireguard_rx)));
+    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let pool = init_db(
         &config.database_host,
         config.database_port,
