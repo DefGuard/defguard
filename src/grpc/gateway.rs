@@ -295,7 +295,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         state.connected = true;
         let handle = tokio::spawn(async move {
             info!("Starting update stream to gateway");
-            while let Some(update) = events_rx.lock().await.recv().await {
+            while let Ok(update) = events_rx.lock().await.recv().await {
                 let result = match update {
                     GatewayEvent::NetworkCreated(network) => {
                         Self::send_network_update(&tx, &network, 0).await

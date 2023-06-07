@@ -1036,7 +1036,6 @@ dependencies = [
  "chrono",
  "claims",
  "clap",
- "crossbeam-channel",
  "dotenvy",
  "ethabi",
  "ethers",

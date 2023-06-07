@@ -66,7 +66,10 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::{
+    broadcast::Sender,
+    mpsc::{UnboundedReceiver, UnboundedSender},
+};
 
 pub mod appstate;
 pub mod auth;
@@ -107,7 +110,7 @@ pub async fn build_webapp(
     config: DefGuardConfig,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: UnboundedSender<GatewayEvent>,
+    wireguard_tx: Sender<GatewayEvent>,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayState>>,
     pool: DbPool,
@@ -279,7 +282,7 @@ pub async fn run_web_server(
     gateway_state: Arc<Mutex<GatewayState>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: UnboundedSender<GatewayEvent>,
+    wireguard_tx: Sender<GatewayEvent>,
     pool: DbPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<Rocket<Ignite>, RocketError> {

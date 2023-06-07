@@ -32,7 +32,7 @@ impl DateTimeAggregation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum GatewayEvent {
     NetworkCreated(WireguardNetwork),
     NetworkModified(WireguardNetwork),

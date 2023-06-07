@@ -15,14 +15,13 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-use tokio::sync::{mpsc::UnboundedReceiver, Mutex as AsyncMutex};
+use tokio::sync::{broadcast::Receiver, mpsc::UnboundedSender, Mutex as AsyncMutex};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 use crate::auth::failed_login::FailedLoginMap;
 use crate::db::AppEvent;
 use serde::Serialize;
 use std::{collections::hash_map::HashMap, time::Instant};
-use tokio::sync::mpsc::UnboundedSender;
 
 mod auth;
 #[cfg(feature = "wireguard")]
@@ -34,12 +33,12 @@ pub mod worker;
 
 pub struct GatewayState {
     pub connected: bool,
-    pub wireguard_rx: Arc<AsyncMutex<UnboundedReceiver<GatewayEvent>>>,
+    pub wireguard_rx: Arc<AsyncMutex<Receiver<GatewayEvent>>>,
 }
 
 impl GatewayState {
     #[must_use]
-    pub fn new(wireguard_rx: UnboundedReceiver<GatewayEvent>) -> Self {
+    pub fn new(wireguard_rx: Receiver<GatewayEvent>) -> Self {
         Self {
             connected: false,
             wireguard_rx: Arc::new(AsyncMutex::new(wireguard_rx)),

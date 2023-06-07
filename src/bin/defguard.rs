@@ -15,7 +15,7 @@ use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::unbounded_channel;
+use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
 /// Configures fern logging library.
 fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
@@ -70,7 +70,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
-    let (wireguard_tx, wireguard_rx) = unbounded_channel::<GatewayEvent>();
+    let (wireguard_tx, wireguard_rx) = broadcast::channel::<GatewayEvent>(16);
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayState::new(wireguard_rx)));
     let pool = init_db(

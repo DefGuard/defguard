@@ -8,7 +8,10 @@ use reqwest::Client;
 use rocket::serde::json::serde_json::json;
 use std::sync::{Arc, Mutex};
 use tokio::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    sync::{
+        broadcast::Sender,
+        mpsc::{UnboundedReceiver, UnboundedSender},
+    },
     task::spawn,
 };
 use webauthn_rs::prelude::*;
@@ -17,7 +20,7 @@ pub struct AppState {
     pub config: DefGuardConfig,
     pub pool: DbPool,
     tx: UnboundedSender<AppEvent>,
-    wireguard_tx: UnboundedSender<GatewayEvent>,
+    wireguard_tx: Sender<GatewayEvent>,
     pub license: License,
     pub webauthn: Webauthn,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -81,7 +84,7 @@ impl AppState {
         pool: DbPool,
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
-        wireguard_tx: UnboundedSender<GatewayEvent>,
+        wireguard_tx: Sender<GatewayEvent>,
         license: License,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
     ) -> Self {
