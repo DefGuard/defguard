@@ -101,7 +101,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
-        _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), grpc_cert, grpc_key, failed_logins.clone()) => (),
+        _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
         _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins) => (),
     };
     Ok(())

@@ -22,6 +22,7 @@ use crate::auth::failed_login::FailedLoginMap;
 use crate::db::AppEvent;
 use serde::Serialize;
 use std::{collections::hash_map::HashMap, time::Instant};
+use tokio::sync::broadcast::Sender;
 
 mod auth;
 #[cfg(feature = "wireguard")]
@@ -52,6 +53,7 @@ pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: DbPool,
     gateway_state: Arc<Mutex<GatewayState>>,
+    wireguard_tx: Sender<GatewayEvent>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -65,7 +67,7 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state),
+        GatewayServer::new(pool, gateway_state, wireguard_tx),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
     // Run gRPC server

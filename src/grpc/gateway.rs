@@ -9,7 +9,10 @@ use std::{
     task::{Context, Poll},
 };
 use tokio::{
-    sync::mpsc::{self, Receiver},
+    sync::{
+        broadcast::Sender,
+        mpsc::{self, Receiver},
+    },
     task::JoinHandle,
 };
 use tokio_stream::Stream;
@@ -22,13 +25,22 @@ tonic::include_proto!("gateway");
 pub struct GatewayServer {
     pool: DbPool,
     state: Arc<Mutex<GatewayState>>,
+    wireguard_tx: Sender<GatewayEvent>,
 }
 
 impl GatewayServer {
     /// Create new gateway server instance
     #[must_use]
-    pub fn new(pool: DbPool, state: Arc<Mutex<GatewayState>>) -> Self {
-        Self { pool, state }
+    pub fn new(
+        pool: DbPool,
+        state: Arc<Mutex<GatewayState>>,
+        wireguard_tx: Sender<GatewayEvent>,
+    ) -> Self {
+        Self {
+            pool,
+            state,
+            wireguard_tx,
+        }
     }
     /// Sends updated network configuration
     async fn send_network_update(
@@ -291,11 +303,11 @@ impl gateway_service_server::GatewayService for GatewayServer {
         info!("New client connected to updates stream");
         let (tx, rx) = mpsc::channel(4);
 
-        let events_rx = Arc::clone(&state.wireguard_rx);
+        let mut events_rx = self.wireguard_tx.subscribe();
         state.connected = true;
         let handle = tokio::spawn(async move {
             info!("Starting update stream to gateway");
-            while let Ok(update) = events_rx.lock().await.recv().await {
+            while let Ok(update) = events_rx.recv().await {
                 let result = match update {
                     GatewayEvent::NetworkCreated(network) => {
                         Self::send_network_update(&tx, &network, 0).await
