@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
-    let config = DefGuardConfig::new();
+    let config = DefGuardConfig::new_test_config();
     let opts = PgConnectOptions::new()
         .host(&config.database_host)
         .port(config.database_port)
