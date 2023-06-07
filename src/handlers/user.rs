@@ -192,7 +192,7 @@ pub async fn modify_user(
     let db_apps = user.oauth2authorizedapps(&appstate.pool).await?;
     let removed_apps: Vec<i64> = db_apps
         .iter()
-        .filter(|app| request_app_ids.contains(&app.oauth2client_id))
+        .filter(|app| !request_app_ids.contains(&app.oauth2client_id))
         .map(|app| app.oauth2client_id)
         .collect();
     if !removed_apps.is_empty() {
