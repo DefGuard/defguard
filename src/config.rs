@@ -137,16 +137,28 @@ pub enum Command {
 impl DefGuardConfig {
     pub fn new() -> Self {
         let mut config = Self::parse();
-        if config.webauthn_rp_id.is_none() {
-            config.webauthn_rp_id = Some(
-                config
-                    .url
+        config.validate_rp_id();
+        config
+    }
+
+    // this is an ugly workaround to avoid `cargo test` args being capture by clap
+    pub fn new_test_config() -> Self {
+        let mut config = Self::parse_from::<Vec<_>, String>(vec![]);
+        config.validate_rp_id();
+        config
+    }
+
+    // Check if RP ID value was provided.
+    // If not generate it based on URL.
+    fn validate_rp_id(&mut self) {
+        if self.webauthn_rp_id.is_none() {
+            self.webauthn_rp_id = Some(
+                self.url
                     .domain()
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
             )
         }
-        config
     }
 
     /// Constructs user distinguished name.
