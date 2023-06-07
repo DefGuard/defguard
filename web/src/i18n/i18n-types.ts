@@ -59,6 +59,10 @@ type RootTranslation = {
 				 * W​e​b​A​u​t​h​N​ ​k​e​y​ ​d​e​l​e​t​e​d​.
 				 */
 				deleted: string
+				/**
+				 * K​e​y​ ​i​s​ ​a​l​r​e​a​d​y​ ​r​e​g​i​s​t​e​r​e​d
+				 */
+				duplicateKeyError: string
 			}
 			/**
 			 * 
@@ -2680,6 +2684,10 @@ export type TranslationFunctions = {
 				 * WebAuthN key deleted.
 				 */
 				deleted: () => LocalizedString
+				/**
+				 * Key is already registered
+				 */
+				duplicateKeyError: () => LocalizedString
 			}
 			/**
 			 * 

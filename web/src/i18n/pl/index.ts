@@ -19,6 +19,7 @@ const pl: Translation = {
       title: 'Klucze bezpieczeństwa',
       messages: {
         deleted: 'Klucz WebAuthN usunięty.',
+        duplicateKeyError: 'Klucz jest już zarejestrowany',
       },
       infoMessage: `
         <p>
