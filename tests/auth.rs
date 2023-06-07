@@ -1,6 +1,6 @@
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
-    db::{models::wallet::keccak256, UserInfo, Wallet},
+    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, UserInfo, Wallet},
     handlers::AuthResponse,
     handlers::{Auth, AuthCode, AuthTotp},
 };
@@ -10,6 +10,7 @@ use rocket::http::Cookie;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde::Deserialize;
+use sqlx::query;
 use std::time::SystemTime;
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
@@ -36,6 +37,21 @@ async fn make_client() -> Client {
     wallet.save(&client_state.pool).await.unwrap();
 
     client
+}
+
+async fn make_client_with_db() -> (Client, DbPool) {
+    let (client, client_state) = make_test_client().await;
+
+    let mut wallet = Wallet::new_for_user(
+        client_state.test_user.id.unwrap(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
+        "test".into(),
+        5,
+        String::new(),
+    );
+    wallet.save(&client_state.pool).await.unwrap();
+
+    (client, client_state.pool)
 }
 
 async fn make_client_with_wallet(address: String) -> Client {
@@ -248,7 +264,7 @@ async fn test_totp() {
 
 #[rocket::async_test]
 async fn test_webauthn() {
-    let client = make_client().await;
+    let (client, pool) = make_client_with_db().await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new());
     let origin = Url::parse("http://localhost:8000").unwrap();
@@ -314,14 +330,20 @@ async fn test_webauthn() {
         .await;
     assert_eq!(response.status(), Status::Ok);
 
-    // disable MFA
-    let response = client.delete("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
     // login again
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
+
+    // check that recovery codes were cleared since last MFA method was removed
+    let record = query!(
+        "SELECT recovery_codes FROM \"user\" WHERE id = $1",
+        user_info.id,
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(record.recovery_codes.len(), 0);
 }
 
 #[rocket::async_test]
@@ -399,6 +421,102 @@ async fn test_cannot_skip_security_key_by_adding_yubikey() {
     // instead of continuing TOTP login try to add a new YubiKey
     let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
     assert_eq!(response.status(), Status::Unauthorized);
+}
+
+#[rocket::async_test]
+async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
+    let client = make_client().await;
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // new TOTP secret
+    let response = client.post("/api/v1/auth/totp/init").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let auth_totp: AuthTotp = response.into_json().await.unwrap();
+
+    // enable TOTP
+    let code = totp_code(&auth_totp);
+    let response = client
+        .post("/api/v1/auth/totp")
+        .json(&code)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // check recovery codes
+    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.codes.as_ref().unwrap().len(), 8); // RECOVERY_CODES_COUNT
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login again, this time a different status code is returned
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+
+    // provide correct TOTP code
+    let code = totp_code(&auth_totp);
+    let response = client
+        .post("/api/v1/auth/totp/verify")
+        .json(&code)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // WebAuthn registration
+    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new());
+    let origin = Url::parse("http://localhost:8000").unwrap();
+
+    let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let ccr: CreationChallengeResponse = response.into_json().await.unwrap();
+    let rpkc = authenticator.do_registration(origin.clone(), ccr).unwrap();
+    let response = client
+        .post("/api/v1/auth/webauthn/finish")
+        .json(&json!({
+            "name": "My security key",
+            "rpkc": &rpkc
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // get user info
+    let response = client.get("/api/v1/user/hpotter").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let mut user_info: UserInfo = response.into_json().await.unwrap();
+
+    // set default MFA method
+    user_info.mfa_method = MFAMethod::Webauthn;
+    let response = client
+        .put("/api/v1/user/hpotter")
+        .json(&user_info)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // delete security key
+    let response = client
+        .delete(format!(
+            "/api/v1/user/hpotter/security_key/{}",
+            user_info.security_keys[0].id
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login again
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+
+    // verify that MFA method was updated
+    let mfa_info: MFAInfo = response.into_json().await.unwrap();
+    assert_eq!(mfa_info.current_mfa_method(), &MFAMethod::OneTimePassword);
 }
 
 #[rocket::async_test]
