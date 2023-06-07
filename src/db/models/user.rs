@@ -19,6 +19,7 @@ use log::debug;
 use model_derive::Model;
 use otpauth::TOTP;
 use rand::{thread_rng, Rng};
+use rocket::http::Status;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, Type};
 use std::time::SystemTime;
 
@@ -121,25 +122,26 @@ impl User {
         Ok(secret_base32)
     }
 
-    /// Update `mfa_method` only when it's set to `None`, or the new value is `None`.
-    /// That way last preferred MFA method is conserved.
     pub async fn set_mfa_method(
         &mut self,
         pool: &DbPool,
         mfa_method: MFAMethod,
     ) -> Result<(), SqlxError> {
-        if mfa_method == MFAMethod::None || self.mfa_method == MFAMethod::None {
-            if let Some(id) = self.id {
-                query!(
-                    "UPDATE \"user\" SET mfa_method = $2 WHERE id = $1",
-                    id,
-                    &mfa_method as &MFAMethod
-                )
-                .execute(pool)
-                .await?;
-            }
-            self.mfa_method = mfa_method;
+        info!(
+            "Setting MFA method for user {} to {:?}",
+            self.username, mfa_method
+        );
+        if let Some(id) = self.id {
+            query!(
+                "UPDATE \"user\" SET mfa_method = $2 WHERE id = $1",
+                id,
+                &mfa_method as &MFAMethod
+            )
+            .execute(pool)
+            .await?;
         }
+        self.mfa_method = mfa_method;
+
         Ok(())
     }
 
@@ -176,30 +178,53 @@ impl User {
         if let Some(info) = MFAInfo::for_user(pool, self).await? {
             let factors_present = info.mfa_available();
             if self.mfa_enabled != factors_present {
-                if let Some(id) = self.id {
-                    query!(
-                        "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1",
-                        id,
-                        factors_present
-                    )
-                    .execute(pool)
-                    .await?;
-                }
+                // store correct value for MFA flag in the DB
+                if self.mfa_enabled {
+                    // last factor was removed so we have to disable MFA
+                    self.disable_mfa(pool).await?;
+                } else {
+                    // first factor was added so MFA needs to be enabled
+                    if let Some(id) = self.id {
+                        query!(
+                            "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1",
+                            id,
+                            factors_present
+                        )
+                        .execute(pool)
+                        .await?;
+                    }
+                };
+
                 if !factors_present && self.mfa_method != MFAMethod::None {
-                    debug!("MFA for user {} disabled", self.username);
+                    debug!(
+                        "MFA for user {} disabled, updating MFA method to None",
+                        self.username
+                    );
                     self.set_mfa_method(pool, MFAMethod::None).await?;
                 }
+
                 self.mfa_enabled = factors_present;
             }
 
-            if factors_present && info.mfa_method == MFAMethod::None {
-                if info.totp_available {
-                    self.set_mfa_method(pool, MFAMethod::OneTimePassword)
-                        .await?;
-                } else if info.webauthn_available {
-                    self.set_mfa_method(pool, MFAMethod::Webauthn).await?;
-                } else if info.web3_available {
-                    self.set_mfa_method(pool, MFAMethod::Web3).await?;
+            // set correct value for default method
+            if factors_present {
+                match info.list_available_methods() {
+                    None => {
+                        error!("Incorrect MFA info state for user {}", self.username);
+                        return Err(OriWebError::Http(Status::InternalServerError));
+                    }
+                    Some(methods) => {
+                        info!(
+                            "Checking if {:?} in in available methods {:?}, {}",
+                            info.mfa_method,
+                            methods,
+                            methods.contains(&info.mfa_method)
+                        );
+                        if !methods.contains(&info.mfa_method) {
+                            self.set_mfa_method(pool, methods.into_iter().next().unwrap())
+                                .await?;
+                        }
+                    }
                 }
             }
         };

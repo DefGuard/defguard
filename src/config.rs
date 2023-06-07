@@ -6,129 +6,129 @@ use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, R
 #[derive(Clone, Parser)]
 #[command(version)]
 pub struct DefGuardConfig {
-    #[clap(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
+    #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,
 
-    #[clap(long, env = "DEFGUARD_SECRET_KEY")]
+    #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     pub secret_key: String,
 
-    #[clap(long, env = "DEFGUARD_DB_HOST", default_value = "localhost")]
+    #[arg(long, env = "DEFGUARD_DB_HOST", default_value = "localhost")]
     pub database_host: String,
 
-    #[clap(long, env = "DEFGUARD_DB_PORT", default_value_t = 5432)]
+    #[arg(long, env = "DEFGUARD_DB_PORT", default_value_t = 5432)]
     pub database_port: u16,
 
-    #[clap(long, env = "DEFGUARD_DB_NAME", default_value = "defguard")]
+    #[arg(long, env = "DEFGUARD_DB_NAME", default_value = "defguard")]
     pub database_name: String,
 
-    #[clap(long, env = "DEFGUARD_DB_USER", default_value = "defguard")]
+    #[arg(long, env = "DEFGUARD_DB_USER", default_value = "defguard")]
     pub database_user: String,
 
-    #[clap(long, env = "DEFGUARD_DB_PASSWORD", default_value = "")]
+    #[arg(long, env = "DEFGUARD_DB_PASSWORD", default_value = "")]
     pub database_password: String,
 
-    #[clap(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
+    #[arg(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
     pub http_port: u16,
 
-    #[clap(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
+    #[arg(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
 
-    #[clap(long, env = "DEFGUARD_GRPC_CERT")]
+    #[arg(long, env = "DEFGUARD_GRPC_CERT")]
     pub grpc_cert: Option<String>,
 
-    #[clap(long, env = "DEFGUARD_GRPC_KEY")]
+    #[arg(long, env = "DEFGUARD_GRPC_KEY")]
     pub grpc_key: Option<String>,
 
-    #[clap(long, env = "DEFGUARD_ADMIN_GROUPNAME", default_value = "admin")]
+    #[arg(long, env = "DEFGUARD_ADMIN_GROUPNAME", default_value = "admin")]
     pub admin_groupname: String,
 
-    #[clap(
+    #[arg(
         long,
         env = "DEFGUARD_DEFAULT_ADMIN_PASSWORD",
         default_value = "pass123"
     )]
     pub default_admin_password: String,
 
-    #[clap(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
+    #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     pub openid_signing_key: Option<RsaPrivateKey>,
 
     // relying party id and relying party origin for WebAuthn
-    #[clap(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
+    #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
     pub webauthn_rp_id: Option<String>,
-    #[clap(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
+    #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     pub url: Url,
 
-    #[clap(
+    #[arg(
         long,
         env = "DEFGUARD_LDAP_URL",
         default_value = "ldap://localhost:389"
     )]
     pub ldap_url: String,
 
-    #[clap(
+    #[arg(
         long,
         env = "DEFGUARD_LDAP_BIND_USERNAME",
         default_value = "cn=admin,dc=example,dc=org"
     )]
     pub ldap_bind_username: String,
 
-    #[clap(long, env = "DEFGUARD_LDAP_BIND_PASSWORD", default_value = "")]
+    #[arg(long, env = "DEFGUARD_LDAP_BIND_PASSWORD", default_value = "")]
     pub ldap_bind_password: String,
 
-    #[clap(
+    #[arg(
         long,
         env = "DEFGUARD_LDAP_USER_SEARCH_BASE",
         default_value = "ou=users,dc=example,dc=org"
     )]
     pub ldap_user_search_base: String,
 
-    #[clap(
+    #[arg(
         long,
         env = "DEFGUARD_LDAP_GROUP_SEARCH_BASE",
         default_value = "ou=groups,dc=example,dc=org"
     )]
     pub ldap_group_search_base: String,
 
-    #[clap(
+    #[arg(
         long,
         env = "DEFGUARD_LDAP_USER_OBJ_CLASS",
         default_value = "inetOrgPerson"
     )]
     pub ldap_user_obj_class: String,
 
-    #[clap(
+    #[arg(
         long,
         env = "DEFGUARD_LDAP_GROUP_OBJ_CLASS",
         default_value = "groupOfUniqueNames"
     )]
     pub ldap_group_obj_class: String,
 
-    #[clap(long, env = "DEFGUARD_LDAP_USERNAME_ATTR", default_value = "cn")]
+    #[arg(long, env = "DEFGUARD_LDAP_USERNAME_ATTR", default_value = "cn")]
     pub ldap_username_attr: String,
 
-    #[clap(long, env = "DEFGUARD_LDAP_GROUPNAME_ATTR", default_value = "cn")]
+    #[arg(long, env = "DEFGUARD_LDAP_GROUPNAME_ATTR", default_value = "cn")]
     pub ldap_groupname_attr: String,
 
-    #[clap(long, env = "DEFGUARD_LDAP_MEMBER_ATTR", default_value = "memberOf")]
+    #[arg(long, env = "DEFGUARD_LDAP_MEMBER_ATTR", default_value = "memberOf")]
     pub ldap_member_attr: String,
 
-    #[clap(long, env = "DEFGUARD_LICENSE", default_value = "")]
+    #[arg(long, env = "DEFGUARD_LICENSE", default_value = "")]
     pub license: String,
 
-    #[clap(
+    #[arg(
         long,
         env = "DEFGUARD_LDAP_GROUP_MEMBER_ATTR",
         default_value = "uniqueMember"
     )]
     pub ldap_group_member_attr: String,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub cmd: Option<Command>,
 }
 
 #[derive(Clone, Parser)]
 pub enum Command {
-    #[clap(
+    #[command(
         about = "Initialize development environment. Inserts test network and device into database."
     )]
     InitDevEnv,
@@ -137,16 +137,28 @@ pub enum Command {
 impl DefGuardConfig {
     pub fn new() -> Self {
         let mut config = Self::parse();
-        if config.webauthn_rp_id.is_none() {
-            config.webauthn_rp_id = Some(
-                config
-                    .url
+        config.validate_rp_id();
+        config
+    }
+
+    // this is an ugly workaround to avoid `cargo test` args being captured by `clap`
+    pub fn new_test_config() -> Self {
+        let mut config = Self::parse_from::<[_; 0], String>([]);
+        config.validate_rp_id();
+        config
+    }
+
+    // Check if RP ID value was provided.
+    // If not generate it based on URL.
+    fn validate_rp_id(&mut self) {
+        if self.webauthn_rp_id.is_none() {
+            self.webauthn_rp_id = Some(
+                self.url
                     .domain()
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
             )
         }
-        config
     }
 
     /// Constructs user distinguished name.
