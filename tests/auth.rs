@@ -1,7 +1,6 @@
-use defguard::db::{DbPool, MFAInfo, MFAMethod};
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
-    db::{models::wallet::keccak256, UserInfo, Wallet},
+    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, UserInfo, Wallet},
     handlers::AuthResponse,
     handlers::{Auth, AuthCode, AuthTotp},
 };
