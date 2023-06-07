@@ -77,6 +77,7 @@ export const AppLoader = () => {
     },
     refetchOnWindowFocus: true,
     retry: false,
+    enabled: !isUndefined(currentUser),
   });
 
   const { isLoading: settingsLoading } = useQuery(

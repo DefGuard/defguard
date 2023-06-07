@@ -10,6 +10,7 @@ import { isUserAdmin } from '../../shared/helpers/isUserAdmin';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
+import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { UserMFAMethod } from '../../shared/types';
 import { Login } from './Login/Login';
@@ -17,6 +18,7 @@ import { MFARoute } from './MFARoute/MFARoute';
 import { useMFAStore } from './shared/hooks/useMFAStore';
 
 export const AuthPage = () => {
+  const { getAppInfo } = useApi();
   const { LL } = useI18nContext();
   const navigate = useNavigate();
 
@@ -40,12 +42,11 @@ export const AuthPage = () => {
     shallow
   );
 
-  const [settings, appInfo] = useAppStore(
-    (state) => [state.settings, state.appInfo],
-    shallow
-  );
+  const settings = useAppStore((state) => state.settings);
 
   const toaster = useToaster();
+
+  const setAppStore = useAppStore((state) => state.setAppStore);
 
   useEffect(() => {
     if (user && (!mfaMethod || mfaMethod === UserMFAMethod.NONE) && !openIdParams) {
@@ -98,14 +99,14 @@ export const AuthPage = () => {
         let navigateURL = '/me';
         if (isAdmin) {
           // check if VPN needs wizard
-          if (!wizardEnabled) {
-            if (appInfo?.network_present) {
-              setNavigation({ enableWizard: true });
-              navigateURL = '/admin/wizard';
-            } else {
-              setNavigation({ enableWizard: false });
-              navigateURL = '/admin/overview';
-            }
+          const appInfo = await getAppInfo();
+          setAppStore({ appInfo });
+          if (!appInfo?.network_present) {
+            setNavigation({ enableWizard: true });
+            navigateURL = '/admin/wizard';
+          } else {
+            setNavigation({ enableWizard: false });
+            navigateURL = '/admin/overview';
           }
         }
         setAuthStore({ user, isAdmin });
