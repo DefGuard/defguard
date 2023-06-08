@@ -420,7 +420,7 @@ pub async fn create_network_token(
         ))
     })?;
     Ok(ApiResponse {
-        json: json!({ "token": token }),
+        json: json!({ "token": token, "grpc_url": appstate.config.grpc_url.to_string() }),
         status: Status::Ok,
     })
 }
