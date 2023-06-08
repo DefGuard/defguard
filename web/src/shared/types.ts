@@ -491,6 +491,7 @@ export interface UserDeviceModal extends StandardModalState, ModalStepsState {
   config?: string;
   deviceName?: string;
   choice?: AddDeviceSetupChoice;
+  reserverdNames?: string[];
 }
 
 export interface Provisioner {

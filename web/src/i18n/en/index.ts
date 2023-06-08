@@ -161,6 +161,11 @@ const en: BaseTranslation = {
                   label: 'Provide Your Public Key',
                 },
               },
+              errors: {
+                name: {
+                  duplicatedName: 'Device with this name already exists',
+                },
+              },
             },
           },
         },
