@@ -58,6 +58,9 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     pub url: Url,
 
+    #[arg(long, env = "DEFGUARD_GRPC_URL", value_parser = Url::parse, default_value = "http://localhost:50055")]
+    pub grpc_url: Url,
+
     #[arg(
         long,
         env = "DEFGUARD_LDAP_URL",
