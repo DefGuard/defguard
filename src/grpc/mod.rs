@@ -61,6 +61,12 @@ impl GatewayMap {
     }
 }
 
+impl Default for GatewayMap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct GatewayState {
     pub connected: bool,
 }
@@ -69,6 +75,12 @@ impl GatewayState {
     #[must_use]
     pub fn new() -> Self {
         Self { connected: true }
+    }
+}
+
+impl Default for GatewayState {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

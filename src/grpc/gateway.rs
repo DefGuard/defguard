@@ -310,7 +310,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         let mut events_rx = self.wireguard_tx.subscribe();
         let mut state = self.state.lock().unwrap();
-        state.connect_gateway(address.clone());
+        state.connect_gateway(address);
 
         let handle = tokio::spawn(async move {
             info!("Starting update stream to gateway: {}", address);

@@ -123,17 +123,20 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
     (Client::tracked(webapp).await.unwrap(), client_state)
 }
 
+#[allow(dead_code)]
 pub async fn make_test_client() -> (Client, ClientState) {
     let (pool, config) = init_test_db().await;
     make_base_client(pool, config).await
 }
 
+#[allow(dead_code)]
 pub async fn make_license_test_client(license: &str) -> (Client, ClientState) {
     let (pool, mut config) = init_test_db().await;
     config.license = license.into();
     make_base_client(pool, config).await
 }
 
+#[allow(dead_code)]
 pub async fn make_enterprise_test_client() -> (Client, ClientState) {
     make_license_test_client(LICENSE_ENTERPRISE).await
 }
