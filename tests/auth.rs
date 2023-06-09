@@ -8,7 +8,7 @@ use ethers::core::types::transaction::eip712::{Eip712, TypedData};
 use otpauth::TOTP;
 use rocket::http::Cookie;
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
-use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
+use secp256k1::{rand::rngs::OsRng, All, Message, Secp256k1, SecretKey};
 use serde::Deserialize;
 use sqlx::query;
 use std::time::SystemTime;
@@ -519,39 +519,13 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     assert_eq!(mfa_info.current_mfa_method(), &MFAMethod::OneTimePassword);
 }
 
-#[rocket::async_test]
-async fn test_web3() {
-    let secp = Secp256k1::new();
-    let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
-
-    // create eth wallet address
-    let public_key = public_key.serialize_uncompressed();
-    let hash = keccak256(&public_key[1..]);
-    let addr = &hash[hash.len() - 20..];
-    let wallet_address = to_lower_hex(addr);
-
-    // create client
-    let client = make_client_with_wallet(wallet_address.clone()).await;
-
-    // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-
-    // set wallet for MFA
-    let response = client
-        .put(format!("/api/v1/user/hpotter/wallet/{wallet_address}"))
-        .json(&json!({
-            "use_for_mfa": true
-        }))
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
-
-    // check recovery codes
-    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
-    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
-
+// helper to perform login using a wallet
+async fn wallet_login(
+    client: &Client,
+    wallet_address: String,
+    secp: Secp256k1<All>,
+    secret_key: SecretKey,
+) {
     #[derive(Deserialize)]
     struct Challenge {
         challenge: String,
@@ -644,6 +618,50 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
         .await;
 
     assert_eq!(response.status(), Status::Ok);
+}
+
+#[rocket::async_test]
+async fn test_web3() {
+    let secp = Secp256k1::new();
+    let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
+
+    // create eth wallet address
+    let public_key = public_key.serialize_uncompressed();
+    let hash = keccak256(&public_key[1..]);
+    let addr = &hash[hash.len() - 20..];
+    let wallet_address = to_lower_hex(addr);
+
+    // create client
+    let client = make_client_with_wallet(wallet_address.clone()).await;
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // set wallet for MFA
+    let response = client
+        .put(format!("/api/v1/user/hpotter/wallet/{wallet_address}"))
+        .json(&json!({
+            "use_for_mfa": true
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // check recovery codes
+    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login with wallet
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+    wallet_login(&client, wallet_address, secp, secret_key).await;
 
     // disable MFA
     let response = client.delete("/api/v1/auth/mfa").dispatch().await;
