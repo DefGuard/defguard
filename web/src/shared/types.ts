@@ -115,6 +115,7 @@ export interface CreateUserDevicesRequest {
 
 export interface NetworkToken {
   token: string;
+  grpc_url: string;
 }
 
 export interface LoginData {
