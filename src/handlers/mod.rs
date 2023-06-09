@@ -14,6 +14,7 @@ use rocket::{
 use std::env;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
+pub(crate) mod app_info;
 pub(crate) mod auth;
 pub(crate) mod group;
 pub(crate) mod license;
@@ -23,7 +24,6 @@ pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod settings;
 pub(crate) mod user;
-pub(crate) mod version;
 pub(crate) mod webhooks;
 #[cfg(feature = "wireguard")]
 pub mod wireguard;

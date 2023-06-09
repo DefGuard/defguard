@@ -36,7 +36,6 @@ import {
   WorkerToken,
 } from '../types';
 import { removeNulls } from '../utils/removeNulls';
-import { useAppStore } from './store/useAppStore';
 
 interface HookProps {
   baseURL?: string;
@@ -53,11 +52,6 @@ client.defaults.headers.common['Content-Type'] = 'application/json';
 const unpackRequest = <T,>(res: AxiosResponse<T>): T => res.data;
 
 const useApi = (props?: HookProps): ApiHook => {
-  const [backendVersion, setAppStore] = useAppStore((state) => [
-    state.backendVersion,
-    state.setAppStore,
-  ]);
-
   if (props) {
     const { baseURL } = props;
     if (baseURL && baseURL.length) {
@@ -66,14 +60,6 @@ const useApi = (props?: HookProps): ApiHook => {
   }
 
   client.interceptors.response.use((res) => {
-    if (res && res.headers) {
-      const version = res.headers['x-defguard-version'] as string | undefined;
-      if (version && version.length) {
-        if (backendVersion !== version) {
-          setAppStore({ backendVersion: version });
-        }
-      }
-    }
     // API sometimes returns null in optional fields.
     if (res.data) {
       res.data = removeNulls(res.data);
@@ -338,7 +324,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
     client.post('/auth/recovery', data).then(unpackRequest);
 
-  const getVersion = () => client.get('/version').then(unpackRequest);
+  const getAppInfo: ApiHook['getAppInfo'] = () => client.get('/info').then(unpackRequest);
 
   const getGatewayStatus = () => client.get('/connection').then(unpackRequest);
 
@@ -346,7 +332,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.get(`/settings/${id}`).then(unpackRequest);
 
   return {
-    getVersion,
+    getAppInfo,
     oAuth: {
       consent: oAuthConsent,
     },

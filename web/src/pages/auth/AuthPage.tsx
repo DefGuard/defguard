@@ -18,11 +18,9 @@ import { MFARoute } from './MFARoute/MFARoute';
 import { useMFAStore } from './shared/hooks/useMFAStore';
 
 export const AuthPage = () => {
+  const { getAppInfo } = useApi();
   const { LL } = useI18nContext();
   const navigate = useNavigate();
-  const {
-    network: { getNetworks },
-  } = useApi();
 
   const loginSubject = useAuthStore((state) => state.loginSubject);
 
@@ -47,6 +45,8 @@ export const AuthPage = () => {
   const settings = useAppStore((state) => state.settings);
 
   const toaster = useToaster();
+
+  const setAppStore = useAppStore((state) => state.setAppStore);
 
   useEffect(() => {
     if (user && (!mfaMethod || mfaMethod === UserMFAMethod.NONE) && !openIdParams) {
@@ -99,18 +99,14 @@ export const AuthPage = () => {
         let navigateURL = '/me';
         if (isAdmin) {
           // check if VPN needs wizard
-          if (!wizardEnabled) {
-            const networks = await getNetworks().catch((err) => {
-              toaster.error(LL.messages.error());
-              console.error(err);
-            });
-            if (!networks || (networks && networks.length === 0)) {
-              setNavigation({ enableWizard: true });
-              navigateURL = '/admin/wizard';
-            } else {
-              setNavigation({ enableWizard: false });
-              navigateURL = '/admin/overview';
-            }
+          const appInfo = await getAppInfo();
+          setAppStore({ appInfo });
+          if (!appInfo?.network_present) {
+            setNavigation({ enableWizard: true });
+            navigateURL = '/admin/wizard';
+          } else {
+            setNavigation({ enableWizard: false });
+            navigateURL = '/admin/overview';
           }
         }
         setAuthStore({ user, isAdmin });

@@ -4,7 +4,7 @@ import { useI18nContext } from '../../../i18n/i18n-react';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 
 export const ApplicationVersion = () => {
-  const version = useAppStore((store) => store.version);
+  const version = useAppStore((store) => store.appInfo?.version);
   const { LL } = useI18nContext();
   return (
     <div className="app-version">

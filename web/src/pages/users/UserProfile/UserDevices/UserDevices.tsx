@@ -5,6 +5,7 @@ import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
@@ -15,6 +16,7 @@ import { DeleteUserDeviceModal } from './modals/DeleteUserDeviceModal/DeleteUser
 import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDeviceModal';
 
 export const UserDevices = () => {
+  const appInfo = useAppStore((state) => state.appInfo);
   const { LL } = useI18nContext();
   const isDesktopApp = useMemo(() => !isUndefined(window.__TAURI__), []);
   const isDeviceConfigPresent = useMemo(async () => {
@@ -44,6 +46,7 @@ export const UserDevices = () => {
           <AddComponentBox
             data-testid="add-device"
             text={LL.userPage.devices.addDevice.web()}
+            disabled={!appInfo?.network_present}
             callback={() =>
               setUserDeviceModalState({
                 visible: true,
@@ -56,6 +59,7 @@ export const UserDevices = () => {
           />
           {isDesktopApp && !isDeviceConfigPresent && (
             <AddComponentBox
+              disabled={!appInfo?.network_present}
               text={LL.userPage.devices.addDevice.desktop()}
               callback={() => {
                 setModalsState({ addDeviceDesktopModal: { visible: true } });

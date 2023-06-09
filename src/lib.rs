@@ -19,7 +19,9 @@ use crate::handlers::{
 };
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
-use crate::{auth::failed_login::FailedLoginMap, grpc::GatewayMap};
+use crate::{
+    auth::failed_login::FailedLoginMap, grpc::GatewayMap, handlers::app_info::get_app_info,
+};
 use crate::{
     db::models::oauth2client::OAuth2Client, grpc::WorkerState,
     handlers::wireguard::add_user_devices,
@@ -48,7 +50,6 @@ use handlers::{
         delete_wallet, get_user, list_users, me, modify_user, set_wallet, update_wallet,
         username_available, wallet_challenge,
     },
-    version::get_version,
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
     },
@@ -155,7 +156,6 @@ pub async fn build_webapp(
                 add_group_member,
                 remove_group_member,
                 get_license,
-                get_version,
                 get_settings,
                 update_settings,
                 set_default_branding,
@@ -172,7 +172,8 @@ pub async fn build_webapp(
                 web3auth_start,
                 web3auth_end,
                 delete_authorized_app,
-                recovery_code
+                recovery_code,
+                get_app_info
             ],
         )
         .mount(
