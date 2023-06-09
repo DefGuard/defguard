@@ -8,7 +8,7 @@ use crate::{
         models::wireguard::DateTimeAggregation, AddDevice, DbPool, Device, GatewayEvent,
         WireguardNetwork,
     },
-    grpc::GatewayState,
+    grpc::GatewayMap,
     wg_config::parse_wireguard_config,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
@@ -485,11 +485,11 @@ pub async fn network_stats(
 #[get("/connection", format = "json")]
 pub async fn connection_info(
     _admin: AdminRole,
-    gateway_state: &State<Arc<Mutex<GatewayState>>>,
+    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Checking gateway connection info");
     let info = ConnectionInfo {
-        connected: gateway_state.lock().unwrap().connected,
+        connected: gateway_state.lock().unwrap().connected(),
     };
     info!("Checked gateway connection info");
 

@@ -15,14 +15,14 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-use tokio::sync::{mpsc::UnboundedReceiver, Mutex as AsyncMutex};
+use tokio::sync::mpsc::UnboundedSender;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 use crate::auth::failed_login::FailedLoginMap;
 use crate::db::AppEvent;
 use serde::Serialize;
 use std::{collections::hash_map::HashMap, time::Instant};
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::broadcast::Sender;
 
 mod auth;
 #[cfg(feature = "wireguard")]
@@ -32,18 +32,55 @@ mod interceptor;
 #[cfg(feature = "worker")]
 pub mod worker;
 
+pub struct GatewayMap(HashMap<SocketAddr, GatewayState>);
+
+impl GatewayMap {
+    #[must_use]
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn connect_gateway(&mut self, address: SocketAddr) {
+        match self.0.get_mut(&address) {
+            None => {
+                self.0.insert(address, GatewayState::new());
+            }
+            Some(state) => state.connected = true,
+        };
+    }
+
+    pub fn disconnect_gateway(&mut self, address: SocketAddr) {
+        if let Some(state) = self.0.get_mut(&address) {
+            state.connected = false
+        };
+    }
+
+    // return `true` if at least one gateway is connected
+    pub fn connected(&self) -> bool {
+        self.0.values().any(|gateway| gateway.connected)
+    }
+}
+
+impl Default for GatewayMap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct GatewayState {
     pub connected: bool,
-    pub wireguard_rx: Arc<AsyncMutex<UnboundedReceiver<GatewayEvent>>>,
 }
 
 impl GatewayState {
     #[must_use]
-    pub fn new(wireguard_rx: UnboundedReceiver<GatewayEvent>) -> Self {
-        Self {
-            connected: false,
-            wireguard_rx: Arc::new(AsyncMutex::new(wireguard_rx)),
-        }
+    pub fn new() -> Self {
+        Self { connected: true }
+    }
+}
+
+impl Default for GatewayState {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -52,7 +89,8 @@ pub async fn run_grpc_server(
     grpc_port: u16,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: DbPool,
-    gateway_state: Arc<Mutex<GatewayState>>,
+    gateway_state: Arc<Mutex<GatewayMap>>,
+    wireguard_tx: Sender<GatewayEvent>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -66,7 +104,7 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state),
+        GatewayServer::new(pool, gateway_state, wireguard_tx),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
     // Run gRPC server
