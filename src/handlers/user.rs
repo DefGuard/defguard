@@ -390,7 +390,6 @@ pub async fn update_wallet(
                     debug!("Wallet {} MFA flag enabled", wallet.address);
                     if !user.mfa_enabled {
                         user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
-                        user.verify_mfa_state(&appstate.pool).await?;
                         let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;
                         info!("User {} MFA enabled", username);
                         info!(
