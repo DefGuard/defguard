@@ -19,7 +19,9 @@ use crate::handlers::{
 };
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
-use crate::{auth::failed_login::FailedLoginMap, handlers::app_info::get_app_info, grpc::GatewayMap};
+use crate::{
+    auth::failed_login::FailedLoginMap, grpc::GatewayMap, handlers::app_info::get_app_info,
+};
 use crate::{
     db::models::oauth2client::OAuth2Client, grpc::WorkerState,
     handlers::wireguard::add_user_devices,
