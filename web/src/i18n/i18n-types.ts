@@ -324,6 +324,14 @@ type RootTranslation = {
 									label: string
 								}
 							}
+							errors: {
+								name: {
+									/**
+									 * D​e​v​i​c​e​ ​w​i​t​h​ ​t​h​i​s​ ​n​a​m​e​ ​a​l​r​e​a​d​y​ ​e​x​i​s​t​s
+									 */
+									duplicatedName: string
+								}
+							}
 						}
 					}
 				}
@@ -2946,6 +2954,14 @@ export type TranslationFunctions = {
 									 * Provide Your Public Key
 									 */
 									label: () => LocalizedString
+								}
+							}
+							errors: {
+								name: {
+									/**
+									 * Device with this name already exists
+									 */
+									duplicatedName: () => LocalizedString
 								}
 							}
 						}

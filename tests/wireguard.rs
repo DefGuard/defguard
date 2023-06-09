@@ -16,8 +16,7 @@ use rocket::{
     http::Status,
     serde::json::{serde_json::json, Value},
 };
-use std::sync::Arc;
-use tokio::sync::mpsc::error::TryRecvError;
+use tokio::sync::broadcast::error::TryRecvError;
 
 mod common;
 use crate::common::make_test_client;
@@ -36,9 +35,8 @@ fn make_network() -> Value {
 #[rocket::async_test]
 async fn test_network() {
     let (client, client_state) = make_test_client().await;
-    let gateway_state = client_state.gateway_state;
 
-    let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
+    let mut wg_rx = client_state.wireguard_rx;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -53,7 +51,7 @@ async fn test_network() {
     assert_eq!(response.status(), Status::Created);
     let network: WireguardNetwork = response.into_json().await.unwrap();
     assert_eq!(network.name, "network");
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(_));
 
     // modify network
@@ -71,7 +69,7 @@ async fn test_network() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkModified(_));
 
     // list networks
@@ -97,16 +95,15 @@ async fn test_network() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkDeleted(_));
 }
 
 #[rocket::async_test]
 async fn test_device() {
     let (client, client_state) = make_test_client().await;
-    let gateway_state = client_state.gateway_state;
 
-    let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
+    let mut wg_rx = client_state.wireguard_rx;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -119,7 +116,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(_));
 
     // network details
@@ -138,7 +135,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceCreated(_));
 
     // list devices
@@ -177,7 +174,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceModified(_));
 
     // device details
@@ -223,7 +220,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkDeleted(_));
 
     // delete device
@@ -232,7 +229,7 @@ async fn test_device() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceDeleted(_));
 
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
@@ -387,9 +384,8 @@ async fn test_device_permissions() {
 #[rocket::async_test]
 async fn test_device_pubkey() {
     let (client, client_state) = make_test_client().await;
-    let gateway_state = client_state.gateway_state;
 
-    let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
+    let mut wg_rx = client_state.wireguard_rx;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -402,7 +398,7 @@ async fn test_device_pubkey() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(_));
 
     // network details
@@ -767,9 +763,8 @@ async fn test_config_import() {
         PersistentKeepalive = 300
     ";
     let (client, client_state) = make_test_client().await;
-    let gateway_state = client_state.gateway_state;
 
-    let wg_rx = Arc::clone(&gateway_state.lock().unwrap().wireguard_rx);
+    let mut wg_rx = client_state.wireguard_rx;
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
@@ -799,7 +794,7 @@ async fn test_config_import() {
     assert_eq!(network.dns, Some("10.0.0.2".to_string()));
     assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
     assert_eq!(network.connected_at, None);
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(_));
 
     // device assertions
@@ -852,13 +847,13 @@ async fn test_config_import() {
     assert_eq!(device2.user_id, 1);
 
     // assert events
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceCreated(_));
 
-    let event = wg_rx.lock().await.try_recv().unwrap();
+    let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceCreated(_));
 
-    let event = wg_rx.lock().await.try_recv();
+    let event = wg_rx.try_recv();
     assert_matches!(event, Err(TryRecvError::Empty));
 }
 

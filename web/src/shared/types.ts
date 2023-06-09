@@ -115,6 +115,7 @@ export interface CreateUserDevicesRequest {
 
 export interface NetworkToken {
   token: string;
+  grpc_url: string;
 }
 
 export interface LoginData {
@@ -491,6 +492,7 @@ export interface UserDeviceModal extends StandardModalState, ModalStepsState {
   config?: string;
   deviceName?: string;
   choice?: AddDeviceSetupChoice;
+  reserverdNames?: string[];
 }
 
 export interface Provisioner {

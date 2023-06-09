@@ -48,7 +48,7 @@ export const NetworkGatewaySetup = () => {
 
   const command = useCallback(() => {
     // eslint-disable-next-line max-len
-    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} ghcr.io/defguard/gateway:latest`;
+    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} -e DEFGUARD_GRPC_URL=${networkToken?.grpc_url} --restart unless-stopped --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`;
   }, [networkToken]);
 
   const getActions = useMemo(

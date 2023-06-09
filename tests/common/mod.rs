@@ -4,11 +4,13 @@ use defguard::{
     build_webapp,
     config::DefGuardConfig,
     db::{init_db, AppEvent, DbPool, GatewayEvent, User},
-    grpc::{GatewayState, WorkerState},
+    grpc::{GatewayMap, WorkerState},
 };
 use rocket::local::asynchronous::Client;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
 use std::sync::{Arc, Mutex};
+use tokio::sync::broadcast;
+use tokio::sync::broadcast::Receiver;
 use tokio::sync::mpsc::unbounded_channel;
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
@@ -60,7 +62,7 @@ async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
 pub struct ClientState {
     pub pool: DbPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
-    pub gateway_state: Arc<Mutex<GatewayState>>,
+    pub wireguard_rx: Receiver<GatewayEvent>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     pub test_user: User,
     pub config: DefGuardConfig,
@@ -70,7 +72,7 @@ impl ClientState {
     pub fn new(
         pool: DbPool,
         worker_state: Arc<Mutex<WorkerState>>,
-        gateway_state: Arc<Mutex<GatewayState>>,
+        wireguard_rx: Receiver<GatewayEvent>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         test_user: User,
         config: DefGuardConfig,
@@ -78,7 +80,7 @@ impl ClientState {
         Self {
             pool,
             worker_state,
-            gateway_state,
+            wireguard_rx,
             failed_logins,
             test_user,
             config,
@@ -89,8 +91,8 @@ impl ClientState {
 pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, ClientState) {
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = unbounded_channel::<GatewayEvent>();
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wg_rx)));
+    let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
+    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
@@ -98,7 +100,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
     let client_state = ClientState::new(
         pool.clone(),
         worker_state.clone(),
-        gateway_state.clone(),
+        wg_rx,
         failed_logins.clone(),
         User::find_by_username(&pool, "hpotter")
             .await
@@ -121,17 +123,20 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
     (Client::tracked(webapp).await.unwrap(), client_state)
 }
 
+#[allow(dead_code)]
 pub async fn make_test_client() -> (Client, ClientState) {
     let (pool, config) = init_test_db().await;
     make_base_client(pool, config).await
 }
 
+#[allow(dead_code)]
 pub async fn make_license_test_client(license: &str) -> (Client, ClientState) {
     let (pool, mut config) = init_test_db().await;
     config.license = license.into();
     make_base_client(pool, config).await
 }
 
+#[allow(dead_code)]
 pub async fn make_enterprise_test_client() -> (Client, ClientState) {
     make_license_test_client(LICENSE_ENTERPRISE).await
 }
