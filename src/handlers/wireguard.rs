@@ -404,6 +404,7 @@ pub async fn create_network_token(
     appstate: &State<AppState>,
     id: i64,
 ) -> ApiResult {
+    info!("Generating a new token for network ID {}", id);
     let network = find_network(id, &appstate.pool).await?;
     let token = Claims::new(
         ClaimsType::Gateway,
@@ -419,7 +420,7 @@ pub async fn create_network_token(
         ))
     })?;
     Ok(ApiResponse {
-        json: json!({ "token": token }),
+        json: json!({ "token": token, "grpc_url": appstate.config.grpc_url.to_string() }),
         status: Status::Ok,
     })
 }
