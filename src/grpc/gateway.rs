@@ -1,11 +1,13 @@
-use crate::db::{
-    models::wireguard::{WireguardNetwork, WireguardPeerStats},
-    DbPool, Device, GatewayEvent,
+use crate::{
+    db::{
+        models::wireguard::{WireguardNetwork, WireguardPeerStats},
+        DbPool, Device, GatewayEvent,
+    },
+    grpc::GatewayMap,
 };
-use crate::grpc::GatewayMap;
 use chrono::{NaiveDateTime, Utc};
-use std::net::SocketAddr;
 use std::{
+    net::SocketAddr,
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},

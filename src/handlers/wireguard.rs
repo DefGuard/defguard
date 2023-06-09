@@ -1,7 +1,6 @@
 use super::{
     device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, OriWebError,
 };
-use crate::grpc::GatewayMap;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
@@ -9,6 +8,7 @@ use crate::{
         models::wireguard::DateTimeAggregation, AddDevice, DbPool, Device, GatewayEvent,
         WireguardNetwork,
     },
+    grpc::GatewayMap,
     wg_config::parse_wireguard_config,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
