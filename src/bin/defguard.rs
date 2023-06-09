@@ -1,8 +1,9 @@
+use defguard::grpc::GatewayMap;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, User},
-    grpc::{run_grpc_server, GatewayState, WorkerState},
+    grpc::{run_grpc_server, WorkerState},
     init_dev_env, run_web_server,
 };
 use fern::{
@@ -15,7 +16,7 @@ use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::unbounded_channel;
+use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
 /// Configures fern logging library.
 fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
@@ -70,9 +71,9 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
-    let (wireguard_tx, wireguard_rx) = unbounded_channel::<GatewayEvent>();
+    let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(16);
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
-    let gateway_state = Arc::new(Mutex::new(GatewayState::new(wireguard_rx)));
+    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let pool = init_db(
         &config.database_host,
         config.database_port,
@@ -101,7 +102,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
-        _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), grpc_cert, grpc_key, failed_logins.clone()) => (),
+        _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
         _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins) => (),
     };
     Ok(())

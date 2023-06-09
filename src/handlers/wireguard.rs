@@ -8,7 +8,7 @@ use crate::{
         models::wireguard::DateTimeAggregation, AddDevice, DbPool, Device, GatewayEvent,
         WireguardNetwork,
     },
-    grpc::GatewayState,
+    grpc::GatewayMap,
     wg_config::parse_wireguard_config,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
@@ -404,6 +404,7 @@ pub async fn create_network_token(
     appstate: &State<AppState>,
     id: i64,
 ) -> ApiResult {
+    info!("Generating a new token for network ID {}", id);
     let network = find_network(id, &appstate.pool).await?;
     let token = Claims::new(
         ClaimsType::Gateway,
@@ -419,7 +420,7 @@ pub async fn create_network_token(
         ))
     })?;
     Ok(ApiResponse {
-        json: json!({ "token": token }),
+        json: json!({ "token": token, "grpc_url": appstate.config.grpc_url.to_string() }),
         status: Status::Ok,
     })
 }
@@ -484,11 +485,11 @@ pub async fn network_stats(
 #[get("/connection", format = "json")]
 pub async fn connection_info(
     _admin: AdminRole,
-    gateway_state: &State<Arc<Mutex<GatewayState>>>,
+    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Checking gateway connection info");
     let info = ConnectionInfo {
-        connected: gateway_state.lock().unwrap().connected,
+        connected: gateway_state.lock().unwrap().connected(),
     };
     info!("Checked gateway connection info");
 

@@ -1,5 +1,8 @@
 use defguard::{
-    db::{models::wallet::keccak256, UserInfo},
+    db::{
+        models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
+        UserInfo,
+    },
     handlers::{AddUserData, Auth, PasswordChange, Username, WalletChallenge},
     hex::to_lower_hex,
 };
@@ -403,4 +406,54 @@ async fn test_check_password_strength() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
+}
+
+#[rocket::async_test]
+async fn test_user_unregister_authorized_app() {
+    let client = make_client().await;
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let openid_client = NewOpenIDClient {
+        name: "Test".into(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&openid_client)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let openid_client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(openid_client.name, "Test");
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000&\
+            scope=openid&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Found);
+    let response = client.get("/api/v1/me").dispatch().await;
+    let mut user_info: UserInfo = response.into_json().await.unwrap();
+    assert_eq!(user_info.authorized_apps.len(), 1);
+    user_info.authorized_apps = [].into();
+    let response = client
+        .put("/api/v1/user/admin")
+        .json(&user_info)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/me").dispatch().await;
+    let user_info: UserInfo = response.into_json().await.unwrap();
+    assert_eq!(user_info.authorized_apps.len(), 0);
 }

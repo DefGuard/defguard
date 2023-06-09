@@ -183,6 +183,22 @@ pub async fn modify_user(
             status: Status::BadRequest,
         });
     }
+    // remove authorized apps if needed
+    let request_app_ids: Vec<i64> = user_info
+        .authorized_apps
+        .iter()
+        .map(|app| app.oauth2client_id)
+        .collect();
+    let db_apps = user.oauth2authorizedapps(&appstate.pool).await?;
+    let removed_apps: Vec<i64> = db_apps
+        .iter()
+        .filter(|app| !request_app_ids.contains(&app.oauth2client_id))
+        .map(|app| app.oauth2client_id)
+        .collect();
+    if !removed_apps.is_empty() {
+        user.remove_oauth2_authorized_apps(&appstate.pool, &removed_apps)
+            .await?;
+    }
     if session.is_admin {
         user_info
             .into_user_all_fields(&appstate.pool, &mut user)
@@ -390,7 +406,6 @@ pub async fn update_wallet(
                     debug!("Wallet {} MFA flag enabled", wallet.address);
                     if !user.mfa_enabled {
                         user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
-                        user.verify_mfa_state(&appstate.pool).await?;
                         let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;
                         info!("User {} MFA enabled", username);
                         info!(

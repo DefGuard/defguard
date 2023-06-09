@@ -1373,6 +1373,19 @@
     },
     "query": "UPDATE \"wireguard_peer_stats\" SET \"device_id\" = $2, \"collected_at\" = $3, \"network\" = $4, \"endpoint\" = $5, \"upload\" = $6, \"download\" = $7, \"latest_handshake\" = $8, \"allowed_ips\" = $9 WHERE id = $1"
   },
+  "52b8921f5ee56c73d44d71200514b84a1d5421bd9dd7d604cbc9ccbc2fe36039": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8Array"
+        ]
+      }
+    },
+    "query": "DELETE FROM oauth2authorizedapp WHERE user_id = $1 AND oauth2client_id = ANY($2)"
+  },
   "57f9cef4b6b89be730168450c5dfe5bac9d102aecdb8c82f940b4f34e2b9ccd2": {
     "describe": {
       "columns": [

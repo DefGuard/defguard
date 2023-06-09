@@ -40,6 +40,7 @@ export const SetupStep = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const setModalState = useModalStore((state) => state.setUserDeviceModal);
+  const reservedNames = useModalStore((state) => state.userDeviceModal.reserverdNames);
   const nextStep = useModalStore((state) => state.userDeviceModal.nextStep);
   const {
     device: { addDevice },
@@ -68,7 +69,12 @@ export const SetupStep = () => {
           name: yup
             .string()
             .min(4, LL.form.error.minimumLength())
-            .required(LL.form.error.required()),
+            .required(LL.form.error.required())
+            .test(
+              'is-duplicated',
+              LL.modals.addDevice.web.steps.setup.form.errors.name.duplicatedName(),
+              (value) => !reservedNames?.includes(value)
+            ),
           publicKey: yup.string().when('choice', {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             //@ts-ignore
@@ -85,7 +91,7 @@ export const SetupStep = () => {
           }),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error, LL.modals.addDevice.web.steps.setup.form.errors.name, reservedNames]
   );
 
   const {

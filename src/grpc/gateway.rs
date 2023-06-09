@@ -1,34 +1,48 @@
-use crate::db::{
-    models::wireguard::{WireguardNetwork, WireguardPeerStats},
-    DbPool, Device, GatewayEvent,
+use crate::{
+    db::{
+        models::wireguard::{WireguardNetwork, WireguardPeerStats},
+        DbPool, Device, GatewayEvent,
+    },
+    grpc::GatewayMap,
 };
 use chrono::{NaiveDateTime, Utc};
 use std::{
+    net::SocketAddr,
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
 };
 use tokio::{
-    sync::mpsc::{self, Receiver},
+    sync::{
+        broadcast::Sender,
+        mpsc::{self, Receiver},
+    },
     task::JoinHandle,
 };
 use tokio_stream::Stream;
 use tonic::{Request, Response, Status};
 
-use super::GatewayState;
-
 tonic::include_proto!("gateway");
 
 pub struct GatewayServer {
     pool: DbPool,
-    state: Arc<Mutex<GatewayState>>,
+    state: Arc<Mutex<GatewayMap>>,
+    wireguard_tx: Sender<GatewayEvent>,
 }
 
 impl GatewayServer {
     /// Create new gateway server instance
     #[must_use]
-    pub fn new(pool: DbPool, state: Arc<Mutex<GatewayState>>) -> Self {
-        Self { pool, state }
+    pub fn new(
+        pool: DbPool,
+        state: Arc<Mutex<GatewayMap>>,
+        wireguard_tx: Sender<GatewayEvent>,
+    ) -> Self {
+        Self {
+            pool,
+            state,
+            wireguard_tx,
+        }
     }
     /// Sends updated network configuration
     async fn send_network_update(
@@ -179,7 +193,8 @@ impl From<PeerStats> for WireguardPeerStats {
 pub struct GatewayUpdatesStream {
     task_handle: JoinHandle<()>,
     rx: Receiver<Result<Update, Status>>,
-    gateway_state: Arc<Mutex<GatewayState>>,
+    gateway_addr: SocketAddr,
+    gateway_state: Arc<Mutex<GatewayMap>>,
 }
 
 impl GatewayUpdatesStream {
@@ -187,11 +202,13 @@ impl GatewayUpdatesStream {
     pub fn new(
         task_handle: JoinHandle<()>,
         rx: Receiver<Result<Update, Status>>,
-        gateway_state: Arc<Mutex<GatewayState>>,
+        gateway_addr: SocketAddr,
+        gateway_state: Arc<Mutex<GatewayMap>>,
     ) -> Self {
         Self {
             task_handle,
             rx,
+            gateway_addr,
             gateway_state,
         }
     }
@@ -208,7 +225,10 @@ impl Stream for GatewayUpdatesStream {
 impl Drop for GatewayUpdatesStream {
     fn drop(&mut self) {
         info!("Client disconnected");
-        self.gateway_state.lock().unwrap().connected = false;
+        self.gateway_state
+            .lock()
+            .unwrap()
+            .disconnect_gateway(self.gateway_addr);
         // terminate update task
         self.task_handle.abort();
     }
@@ -266,15 +286,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn config(&self, _request: Request<()>) -> Result<Response<Configuration>, Status> {
-        {
-            // check if a gateway is already connected
-            let state = self.state.lock().unwrap();
-            if state.connected {
-                debug!("Gateway is already connected. Cannot configure another one.");
-                return Err(Status::failed_precondition("Gateway is already connected."));
-            }
-        }
-
         info!("Sending configuration to gateway client.");
         let pool = self.pool.clone();
         let mut network = WireguardNetwork::find_by_id(&pool, 1)
@@ -294,21 +305,18 @@ impl gateway_service_server::GatewayService for GatewayServer {
         Ok(Response::new(gen_config(&network, &devices)))
     }
 
-    async fn updates(&self, _: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
-        let mut state = self.state.lock().unwrap();
-        if state.connected {
-            debug!("Gateway is already connected. Cannot connect another gateway.");
-            return Err(Status::failed_precondition("Gateway is already connected."));
-        }
-
-        info!("New client connected to updates stream");
+    async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
+        let address = request.remote_addr().expect("Unable to get peer address.");
+        info!("New client connected to updates stream: {}", address);
         let (tx, rx) = mpsc::channel(4);
 
-        let events_rx = Arc::clone(&state.wireguard_rx);
-        state.connected = true;
+        let mut events_rx = self.wireguard_tx.subscribe();
+        let mut state = self.state.lock().unwrap();
+        state.connect_gateway(address);
+
         let handle = tokio::spawn(async move {
-            info!("Starting update stream to gateway");
-            while let Some(update) = events_rx.lock().await.recv().await {
+            info!("Starting update stream to gateway: {}", address);
+            while let Ok(update) = events_rx.recv().await {
                 let result = match update {
                     GatewayEvent::NetworkCreated(network) => {
                         Self::send_network_update(&tx, &network, 0).await
@@ -330,7 +338,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     }
                 };
                 if result.is_err() {
-                    error!("Closing update steam to gateway");
+                    error!("Closing update steam to gateway: {}", address);
                     break;
                 }
             }
@@ -338,6 +346,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         Ok(Response::new(GatewayUpdatesStream::new(
             handle,
             rx,
+            address,
             Arc::clone(&self.state),
         )))
     }

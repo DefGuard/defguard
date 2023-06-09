@@ -19,7 +19,7 @@ use crate::handlers::{
 };
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::license::Features;
-use crate::{auth::failed_login::FailedLoginMap, handlers::app_info::get_app_info};
+use crate::{auth::failed_login::FailedLoginMap, handlers::app_info::get_app_info, grpc::GatewayMap};
 use crate::{
     db::models::oauth2client::OAuth2Client, grpc::WorkerState,
     handlers::wireguard::add_user_devices,
@@ -28,7 +28,6 @@ use crate::{handlers::wireguard::import_network, license::License};
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
-use grpc::GatewayState;
 #[cfg(feature = "wireguard")]
 use handlers::wireguard::{
     add_device, create_network, create_network_token, delete_device, delete_network,
@@ -65,7 +64,10 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::{
+    broadcast::Sender,
+    mpsc::{UnboundedReceiver, UnboundedSender},
+};
 
 pub mod appstate;
 pub mod auth;
@@ -106,9 +108,9 @@ pub async fn build_webapp(
     config: DefGuardConfig,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: UnboundedSender<GatewayEvent>,
+    wireguard_tx: Sender<GatewayEvent>,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayState>>,
+    gateway_state: Arc<Mutex<GatewayMap>>,
     pool: DbPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Rocket<Build> {
@@ -275,10 +277,10 @@ pub async fn build_webapp(
 pub async fn run_web_server(
     config: DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayState>>,
+    gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: UnboundedSender<GatewayEvent>,
+    wireguard_tx: Sender<GatewayEvent>,
     pool: DbPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<Rocket<Ignite>, RocketError> {

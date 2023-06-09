@@ -53,6 +53,7 @@ export const UserDevices = () => {
                 currentStep: 0,
                 config: undefined,
                 deviceName: undefined,
+                reserverdNames: user.devices.map((d) => d.name),
               })
             }
           />

@@ -151,6 +151,11 @@ const pl: Translation = {
               manual: 'Użyj mojego własnego klucza publicznego',
             },
             form: {
+              errors: {
+                name: {
+                  duplicatedName: 'Urządzenie o tej nazwie już istnieje',
+                },
+              },
               submit: 'Stwórz konfigurację',
               fields: {
                 name: {
