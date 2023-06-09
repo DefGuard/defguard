@@ -1,3 +1,4 @@
+use defguard::handlers::WalletChallenge;
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, UserInfo, Wallet},
@@ -519,18 +520,18 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     assert_eq!(mfa_info.current_mfa_method(), &MFAMethod::OneTimePassword);
 }
 
+#[derive(Deserialize)]
+struct Challenge {
+    challenge: String,
+}
+
 // helper to perform login using a wallet
 async fn wallet_login(
     client: &Client,
     wallet_address: String,
-    secp: Secp256k1<All>,
+    secp: &Secp256k1<All>,
     secret_key: SecretKey,
 ) {
-    #[derive(Deserialize)]
-    struct Challenge {
-        challenge: String,
-    }
-
     let wallet_address_request = json!({
         "address": wallet_address.clone(),
     });
@@ -583,19 +584,9 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert_eq!(data.challenge, message);
 
     // Sign message
-    let typed_data: TypedData = rocket::serde::json::serde_json::from_str(&message).unwrap();
-    let hash_msg = typed_data.encode_eip712().unwrap();
-    let message = Message::from_slice(&hash_msg).unwrap();
-    let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
-    let (rec_id, sig) = sig_r.serialize_compact();
-
-    // Create recoverable_signature array
-    let mut sig_arr = [0; 65];
-    sig_arr[0..64].copy_from_slice(&sig[0..64]);
-    sig_arr[64] = rec_id.to_i32() as u8;
+    let signature = sign_message(data.challenge, &secp, secret_key);
 
     // Check if invalid signature results into 401
-
     let invalid_request_response = client
         .post("/api/v1/auth/web3")
         .json(&json!({
@@ -612,12 +603,27 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
         .post("/api/v1/auth/web3")
         .json(&json!({
             "address": wallet_address.clone(),
-            "signature": to_lower_hex(&sig_arr),
+            "signature": signature,
         }))
         .dispatch()
         .await;
 
     assert_eq!(response.status(), Status::Ok);
+}
+
+fn sign_message(message: String, secp: &Secp256k1<All>, secret_key: SecretKey) -> String {
+    let typed_data: TypedData = rocket::serde::json::serde_json::from_str(&message).unwrap();
+    let hash_msg = typed_data.encode_eip712().unwrap();
+    let message = Message::from_slice(&hash_msg).unwrap();
+    let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
+    let (rec_id, sig) = sig_r.serialize_compact();
+
+    // Create recoverable_signature array
+    let mut sig_arr = [0; 65];
+    sig_arr[0..64].copy_from_slice(&sig[0..64]);
+    sig_arr[64] = rec_id.to_i32() as u8;
+
+    to_lower_hex(&sig_arr)
 }
 
 #[rocket::async_test]
@@ -661,7 +667,7 @@ async fn test_web3() {
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Created);
-    wallet_login(&client, wallet_address, secp, secret_key).await;
+    wallet_login(&client, wallet_address, &secp, secret_key).await;
 
     // disable MFA
     let response = client.delete("/api/v1/auth/mfa").dispatch().await;
@@ -671,4 +677,138 @@ async fn test_web3() {
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
+}
+
+#[rocket::async_test]
+async fn test_re_adding_wallet() {
+    let secp = Secp256k1::new();
+    let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
+
+    // create eth wallet address
+    let public_key = public_key.serialize_uncompressed();
+    let hash = keccak256(&public_key[1..]);
+    let addr = &hash[hash.len() - 20..];
+    let wallet_address = to_lower_hex(addr);
+
+    // create client
+    let client = make_client().await;
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // add wallet
+    let response = client
+        .get(format!(
+            "/api/v1/user/hpotter/challenge?address={}&name=TestWallet&chain_id=1",
+            &wallet_address
+        ))
+        .dispatch()
+        .await;
+    let challenge: WalletChallenge = response.into_json().await.unwrap();
+    let signature = sign_message(challenge.message, &secp, secret_key);
+    let response = client
+        .put(format!("/api/v1/user/hpotter/wallet"))
+        .json(&json!({
+            "address": wallet_address,
+            "chain_id": 1,
+            "name": "TestWallet",
+            "signature": signature
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // enable wallet for MFA
+    let response = client
+        .put(format!("/api/v1/user/hpotter/wallet/{}", &wallet_address))
+        .json(&json!({
+            "use_for_mfa": true
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // check recovery codes
+    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login with wallet
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+    wallet_login(&client, wallet_address.clone(), &secp, secret_key).await;
+
+    // remove wallet
+    let response = client
+        .delete(format!("/api/v1/user/hpotter/wallet/{}", &wallet_address))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login without MFA
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // add the same wallet and enable MFA
+    let response = client
+        .get(format!(
+            "/api/v1/user/hpotter/challenge?address={}&name=TestWallet&chain_id=1",
+            &wallet_address
+        ))
+        .dispatch()
+        .await;
+    let challenge: WalletChallenge = response.into_json().await.unwrap();
+    let signature = sign_message(challenge.message, &secp, secret_key);
+    let response = client
+        .put(format!("/api/v1/user/hpotter/wallet"))
+        .json(&json!({
+            "address": wallet_address,
+            "chain_id": 1,
+            "name": "TestWallet",
+            "signature": signature
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    let response = client
+        .put(format!("/api/v1/user/hpotter/wallet/{}", &wallet_address))
+        .json(&json!({
+            "use_for_mfa": true
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // check recovery codes
+    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // logout
+    let response = client.post("/api/v1/auth/logout").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // login with wallet
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Created);
+    wallet_login(&client, wallet_address.clone(), &secp, secret_key).await;
 }
