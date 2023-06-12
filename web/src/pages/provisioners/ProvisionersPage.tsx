@@ -1,7 +1,6 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import parse from 'html-react-parser';
 import { orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
@@ -9,12 +8,10 @@ import { useBreakpoint } from 'use-breakpoint';
 import { useI18nContext } from '../../i18n/i18n-react';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
-import { NoLicenseBox } from '../../shared/components/layout/NoLicenseBox/NoLicenseBox';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { Search } from '../../shared/components/layout/Search/Search';
 import { Select, SelectOption } from '../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../shared/constants';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { ProvisionersList } from './ProvisionersList/ProvisionersList';
@@ -53,20 +50,10 @@ export const ProvisionersPage = () => {
     provisioning: { getWorkers },
   } = useApi();
 
-  const license = useAppStore((state) => state.license);
-
-  const hasAccess = useMemo(() => {
-    if (!license) {
-      return false;
-    }
-    return license.enterprise || license.worker;
-  }, [license]);
-
   const { data: provisioners, isLoading } = useQuery(
     [QueryKeys.FETCH_WORKERS],
     getWorkers,
     {
-      enabled: hasAccess,
       refetchOnWindowFocus: false,
       refetchInterval: 5000,
     }
@@ -127,31 +114,21 @@ export const ProvisionersPage = () => {
             />
           )}
         </div>
+        {!isLoading && filteredProvisioners && filteredProvisioners.length > 0 && (
+          <ProvisionersList provisioners={filteredProvisioners} />
+        )}
         {!isLoading &&
-          hasAccess &&
-          filteredProvisioners &&
-          filteredProvisioners.length > 0 && (
-            <ProvisionersList provisioners={filteredProvisioners} />
-          )}
-        {!isLoading &&
-          ((hasAccess && !filteredProvisioners) || filteredProvisioners.length === 0 ? (
+          (!filteredProvisioners || !filteredProvisioners.length ? (
             <NoData customMessage={LL.provisionersOverview.noProvisionersFound()} />
           ) : null)}
-        {!hasAccess && (
-          <NoData customMessage={LL.provisionersOverview.noLicenseMessage()} />
-        )}
-        {isLoading && hasAccess && (
+        {isLoading && (
           <div className="loader">
             <LoaderSpinner size={130} />
           </div>
         )}
       </div>
       <div className="setup-container">
-        {hasAccess ? (
-          <ProvisioningStationSetup hasAccess={hasAccess} />
-        ) : (
-          <NoLicenseBox>{parse(LL.provisionersOverview.noLicenseBox())}</NoLicenseBox>
-        )}
+        <ProvisioningStationSetup />
       </div>
     </PageContainer>
   );

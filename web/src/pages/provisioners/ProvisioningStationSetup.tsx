@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import clipboard from 'clipboardy';
 import { useMemo } from 'react';
+import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import {
@@ -14,26 +15,27 @@ import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { QueryKeys } from '../../shared/queries';
 
-interface Props {
-  hasAccess: boolean;
-}
-
-export const ProvisioningStationSetup = ({ hasAccess = false }: Props) => {
+export const ProvisioningStationSetup = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     provisioning: { getWorkerToken },
   } = useApi();
 
-  const { data } = useQuery([QueryKeys.FETCH_WORKER_TOKEN], getWorkerToken, {
-    enabled: hasAccess,
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
-  });
+  const { data, isLoading: tokenLoading } = useQuery(
+    [QueryKeys.FETCH_WORKER_TOKEN],
+    getWorkerToken,
+    {
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+    }
+  );
 
-  const command = hasAccess
-    ? `docker compose run yubi-bridge --grpc --worker-token ${data?.token}`
-    : '';
+  const command = useMemo(
+    () =>
+      `docker compose run yubi-bridge --worker-token ${data?.token} --id <WORKER_NAME>  --grpc <DEFGUARD_GRPC_URL>`,
+    [data?.token]
+  );
 
   const getActions = useMemo(
     () => [
@@ -63,14 +65,17 @@ export const ProvisioningStationSetup = ({ hasAccess = false }: Props) => {
       <div className="image-row">
         <YubikeyProvisioningGraphic />
       </div>
-      <ExpandableCard
-        title={LL.provisionersOverview.provisioningStation.cardTitle()}
-        disableExpand={true}
-        expanded={true}
-        actions={getActions}
-      >
-        <p>{command}</p>
-      </ExpandableCard>
+      {!tokenLoading && (
+        <ExpandableCard
+          title={LL.provisionersOverview.provisioningStation.cardTitle()}
+          disableExpand={true}
+          expanded={true}
+          actions={getActions}
+        >
+          <p>{command}</p>
+        </ExpandableCard>
+      )}
+      {tokenLoading && <Skeleton className="command-skeleton" />}
     </Card>
   );
 };

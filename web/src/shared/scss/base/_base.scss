@@ -160,3 +160,8 @@ select:focus {
 .hidden {
   @include visually-hidden;
 }
+
+:root {
+  --nav-links-animation-duration: 250ms;
+  --nav-collapse-duration: 250ms;
+}
