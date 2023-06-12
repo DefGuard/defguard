@@ -21,7 +21,6 @@
       "vite/client",
     ],
     "rootDir": "src",
-    "watch": false,
     "module": "ESNext"
   },
   "include": [
