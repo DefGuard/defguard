@@ -46,6 +46,7 @@ export default defineConfig({
       '@fonts': path.resolve(__dirname, '/src/shared/fonts'),
       '@shared': path.resolve(__dirname, '/src/shared'),
       '@scss': path.resolve(__dirname, '/src/shared/scss'),
+      '@scssutils': path.resolve(__dirname, '/src/shared/scss/helpers'),
     },
   },
   build: {
