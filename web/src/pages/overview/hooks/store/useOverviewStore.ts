@@ -1,3 +1,4 @@
+import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -14,11 +15,16 @@ export const useOverviewStore = create<
 >(
   persist(
     (set) => ({
+      selectedNetworkId: 1,
       viewMode: OverviewLayoutType.GRID,
       defaultViewMode: OverviewLayoutType.GRID,
       statsFilter: 1,
       setState: (newValues) => set((state) => ({ ...state, ...newValues })),
     }),
-    { name: 'overview-store', storage: createJSONStorage(() => sessionStorage) }
+    {
+      name: 'overview-store',
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (store) => omit(store, ['setState']),
+    }
   )
 );

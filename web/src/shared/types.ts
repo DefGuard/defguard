@@ -88,7 +88,7 @@ export interface AddDeviceRequest {
 }
 
 export interface Network {
-  id: string;
+  id: number;
   name: string;
   address: string;
   port: number;
@@ -98,10 +98,12 @@ export interface Network {
   dns?: string;
 }
 
-export interface ModifyNetworkRequest
-  extends Omit<Network, 'id' | 'connected_at' | 'allowed_ips'> {
-  allowed_ips: string;
-}
+export type ModifyNetworkRequest = {
+  id: number;
+  network: Omit<Network, 'id' | 'connected_at' | 'allowed_ips'> & {
+    allowed_ips: string;
+  };
+};
 
 export interface ImportNetworkRequest {
   name: string;
@@ -207,6 +209,7 @@ export interface ChangeUserPasswordRequest {
 export interface GetNetworkStatsRequest {
   /**UTC date parsed to ISO string. This sets how far back stats will be returned. */
   from?: string;
+  id: Network['id'];
 }
 
 export interface UserEditRequest {
@@ -395,7 +398,6 @@ export interface NavigationStore {
   user?: User;
   webhook?: Webhook;
   openidclient?: OpenidClient;
-  enableWizard?: boolean;
   setNavigationOpen: (v: boolean) => void;
   setNavigationUser: (user: User) => void;
   setNavigationWebhook: (webhook: Webhook) => void;
@@ -681,6 +683,7 @@ export enum OverviewLayoutType {
 }
 
 export interface OverviewStore {
+  selectedNetworkId: number;
   viewMode: OverviewLayoutType;
   defaultViewMode: OverviewLayoutType;
   statsFilter: number;

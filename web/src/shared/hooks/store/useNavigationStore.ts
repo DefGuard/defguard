@@ -12,7 +12,6 @@ export const useNavigationStore = create<NavigationStore>()(
       user: undefined,
       webhook: undefined,
       openidclient: undefined,
-      enableWizard: undefined,
       setNavigationUser: (user) => set(() => ({ user: user })),
       setNavigationWebhook: (webhook) => set(() => ({ webhook: webhook })),
       setNavigationOpenidClient: (openidclient) =>
@@ -21,7 +20,7 @@ export const useNavigationStore = create<NavigationStore>()(
       setState: (newState) => set({ ...get(), ...newState }),
     }),
     {
-      version: 1.2,
+      version: 1.3,
       name: 'navigation-store',
       partialize: (state) => pick(state, ['isNavigationOpen', 'enableWizard']),
     }

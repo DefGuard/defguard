@@ -112,8 +112,8 @@ const useApi = (props?: HookProps): ApiHook => {
     client.get<Network>(`/network/${id}`).then((res) => res.data);
 
   // For now there is only one network
-  const modifyNetwork: ApiHook['network']['editNetwork'] = async (network) =>
-    client.put<Network>(`/network/1`, network).then((res) => res.data);
+  const modifyNetwork: ApiHook['network']['editNetwork'] = async (data) =>
+    client.put<Network>(`/network/${data.id}`, data.network).then((res) => res.data);
 
   const deleteNetwork = async (network: Network) =>
     client.delete<EmptyApiResponse>(`/network/${network.id}`);
@@ -241,9 +241,9 @@ const useApi = (props?: HookProps): ApiHook => {
       })
       .then((res) => res.data);
 
-  const getUsersStats = (data?: GetNetworkStatsRequest) =>
+  const getUsersStats = (data: GetNetworkStatsRequest) =>
     client
-      .get<NetworkUserStats[]>('/network/stats/users', {
+      .get<NetworkUserStats[]>(`/network/${data.id}/stats/users`, {
         params: {
           ...data,
         },
@@ -253,9 +253,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const getNetworkToken = (id: string) =>
     client.get<NetworkToken>(`/network/token/${id}`).then(unpackRequest);
 
-  const getNetworkStats = (data?: GetNetworkStatsRequest) =>
+  const getNetworkStats = (data: GetNetworkStatsRequest) =>
     client
-      .get<WireguardNetworkStats>('/network/stats', {
+      .get<WireguardNetworkStats>(`/network/${data.id}/stats`, {
         params: {
           ...data,
         },

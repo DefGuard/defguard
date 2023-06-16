@@ -1,4 +1,8 @@
-use super::{device::Device, error::ModelError, DbPool, User, UserInfo};
+use super::{
+    device::{Device, DeviceNetworkInfo},
+    error::ModelError,
+    DbPool, User, UserInfo,
+};
 use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
@@ -124,6 +128,12 @@ impl WireguardNetwork {
         pool: &DbPool,
         new_address: IpNetwork,
     ) -> Result<(), ModelError> {
+        let network_id = match self.id {
+            Some(id) => id,
+            None => {
+                return Err(ModelError::CannotModify);
+            }
+        };
         let old_address = self.address;
 
         // check if new network size will fit all existing devices
@@ -160,8 +170,15 @@ impl WireguardNetwork {
                 }
                 match devices_iter.next() {
                     Some(device) => {
-                        device.wireguard_ip = ip.to_string();
-                        device.save(pool).await?;
+                        let device_id = match device.id {
+                            Some(id) => id,
+                            None => {
+                                return Err(ModelError::CannotModify);
+                            }
+                        };
+                        let device_network_info =
+                            DeviceNetworkInfo::new(network_id, device_id, ip.to_string());
+                        device_network_info.update(pool).await?;
                     }
                     None => break,
                 }
@@ -297,6 +314,7 @@ impl WireguardNetwork {
 
     /// Retrieves network stats grouped by currently active users since `from` timestamp
     pub async fn user_stats(
+        &self,
         conn: &DbPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
@@ -314,7 +332,7 @@ impl WireguardNetwork {
                 ORDER BY device_id, latest_handshake DESC
             )
             SELECT
-                d.id "id?", d.name, d.wireguard_ip, d.wireguard_pubkey, d.user_id, d.created
+                d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
             FROM device d
             JOIN s ON d.id = s.device_id
             WHERE s.latest_handshake > $1
@@ -527,6 +545,8 @@ pub struct WireguardNetworkStats {
 mod test {
     use chrono::{Duration, SubsecRound};
 
+    use crate::db::models::device::DeviceNetworkInfo;
+
     use super::*;
 
     async fn add_devices(pool: &DbPool, network: &WireguardNetwork, count: usize) {
@@ -540,7 +560,7 @@ mod test {
         );
         user.save(pool).await.unwrap();
         for i in 0..count {
-            let mut device = Device::assign_device_ip(
+            Device::new_with_ip(
                 pool,
                 user.id.unwrap(),
                 format!("dev{i}"),
@@ -549,7 +569,6 @@ mod test {
             )
             .await
             .unwrap();
-            device.save(pool).await.unwrap();
         }
     }
 
@@ -564,24 +583,21 @@ mod test {
             .change_address(&pool, "10.2.2.2/28".parse().unwrap())
             .await
             .unwrap();
+        let keys = vec!["key0", "key1", "key2"];
+        let ips = vec!["10.2.2.1", "10.2.2.3", "10.2.2.4"];
 
-        let dev0 = Device::find_by_pubkey(&pool, "key0")
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(dev0.wireguard_ip, "10.2.2.1");
-
-        let dev1 = Device::find_by_pubkey(&pool, "key1")
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(dev1.wireguard_ip, "10.2.2.3");
-
-        let dev2 = Device::find_by_pubkey(&pool, "key2")
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(dev2.wireguard_ip, "10.2.2.4");
+        for (index, pubKey) in keys.iter().enumerate() {
+            let device = Device::find_by_pubkey(&pool, pubKey)
+                .await
+                .unwrap()
+                .unwrap();
+            let device_network_info =
+                DeviceNetworkInfo::find(&pool, device.id.unwrap(), network.id.unwrap())
+                    .await
+                    .unwrap()
+                    .unwrap();
+            assert_eq!(device_network_info.wireguard_ip, ips[index])
+        }
     }
 
     #[sqlx::test]
@@ -612,12 +628,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(
-            String::new(),
-            String::new(),
-            String::new(),
-            user.id.unwrap(),
-        );
+        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
         device.save(&pool).await.unwrap();
 
         // insert stats
@@ -662,12 +673,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(
-            String::new(),
-            String::new(),
-            String::new(),
-            user.id.unwrap(),
-        );
+        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
         device.save(&pool).await.unwrap();
 
         // insert stats

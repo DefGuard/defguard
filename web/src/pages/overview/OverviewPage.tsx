@@ -13,7 +13,6 @@ import NoData from '../../shared/components/layout/NoData/NoData';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
-import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
@@ -35,27 +34,55 @@ export const OverviewPage = () => {
   const setOverViewStore = useOverviewStore((state) => state.setState);
   const statsFilter = useOverviewStore((state) => state.statsFilter);
   const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
+  const selectedNetworkId = useOverviewStore((state) => state.selectedNetworkId);
   const { LL } = useI18nContext();
-  const wizardActive = useNavigationStore((state) => state.enableWizard);
 
   const {
     network: { getNetworks, getUsersStats, getNetworkStats, getGatewayStatus },
   } = useApi();
 
+  const { data: networks, isLoading: networksLoading } = useQuery(
+    [QueryKeys.FETCH_NETWORKS],
+    getNetworks,
+    {
+      onSuccess: (res) => {
+        if (!res.length) {
+          navigate('/admin/wizard', { replace: true });
+        }
+      },
+    }
+  );
+
+  const selectedNetwork = useMemo(() => {
+    if (networks && networks.length) {
+      return networks.find((n) => n.id === selectedNetworkId);
+    }
+    return undefined;
+  }, [networks, selectedNetworkId]);
+
   const { data: networkStats } = useQuery(
-    [QueryKeys.FETCH_NETWORK_STATS, statsFilter],
-    () => getNetworkStats({ from: getNetworkStatsFilterValue(statsFilter) }),
+    [QueryKeys.FETCH_NETWORK_STATS, statsFilter, selectedNetworkId],
+    () =>
+      getNetworkStats({
+        from: getNetworkStatsFilterValue(statsFilter),
+        id: selectedNetworkId,
+      }),
     {
       refetchOnWindowFocus: false,
       refetchInterval: STATUS_REFETCH_TIMEOUT,
+      enabled: !isUndefined(selectedNetworkId),
     }
   );
 
   const { data: networkUsersStats, isLoading: userStatsLoading } = useQuery(
-    [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter],
-    () => getUsersStats({ from: getNetworkStatsFilterValue(statsFilter) }),
+    [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter, selectedNetworkId],
+    () =>
+      getUsersStats({
+        from: getNetworkStatsFilterValue(statsFilter),
+        id: selectedNetworkId,
+      }),
     {
-      enabled: !isUndefined(statsFilter),
+      enabled: !isUndefined(statsFilter) && !isUndefined(selectedNetworkId),
       refetchOnWindowFocus: false,
       refetchInterval: STATUS_REFETCH_TIMEOUT,
     }
@@ -63,12 +90,10 @@ export const OverviewPage = () => {
 
   const { data: gatewayStatus, isLoading: gatewayStatusLoading } = useQuery(
     [QueryKeys.FETCH_GATEWAY_STATUS],
-    getGatewayStatus
-  );
-
-  const { data: networks, isLoading: networksLoading } = useQuery(
-    [QueryKeys.FETCH_NETWORKS],
-    getNetworks
+    getGatewayStatus,
+    {
+      enabled: !isUndefined(selectedNetworkId),
+    }
   );
 
   const getNetworkUsers = useMemo(() => {
@@ -96,18 +121,11 @@ export const OverviewPage = () => {
   }, [viewMode, breakpoint, setOverViewStore]);
 
   const handleNetworkAction = () => {
-    if (networks && networks.length) {
-      setNetworkPageStore({ network: networks[0] });
+    if (selectedNetwork) {
+      setNetworkPageStore({ network: selectedNetwork });
+      navigate('../network');
     }
-    navigate('../network');
   };
-
-  useEffect(() => {
-    if (wizardActive) {
-      navigate('/admin/wizard', { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <>
@@ -116,13 +134,9 @@ export const OverviewPage = () => {
           <div className="mobile-options">
             <Button
               styleVariant={ButtonStyleVariant.STANDARD}
-              text={
-                isUndefined(networks) || !networks?.length
-                  ? LL.networkOverview.controls.configureNetwork()
-                  : LL.networkOverview.controls.editNetwork()
-              }
+              text={LL.networkOverview.controls.editNetwork()}
               icon={<IconEditNetwork />}
-              disabled={networksLoading}
+              disabled={networksLoading || isUndefined(selectedNetwork)}
               onClick={handleNetworkAction}
             />
             <OverviewStatsFilterSelect />

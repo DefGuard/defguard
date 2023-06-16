@@ -26,8 +26,6 @@ export const AuthPage = () => {
 
   const setNavigation = useNavigationStore((state) => state.setState);
 
-  const wizardEnabled = useNavigationStore((state) => state.enableWizard);
-
   const setAuthStore = useAuthStore((state) => state.setState);
 
   const [openIdParams, user] = useAuthStore(
@@ -102,10 +100,8 @@ export const AuthPage = () => {
           const appInfo = await getAppInfo();
           setAppStore({ appInfo });
           if (!appInfo?.network_present) {
-            setNavigation({ enableWizard: true });
             navigateURL = '/admin/wizard';
           } else {
-            setNavigation({ enableWizard: false });
             navigateURL = '/admin/overview';
           }
         }
@@ -116,7 +112,7 @@ export const AuthPage = () => {
     });
     return () => sub?.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loginSubject, openIdParams, wizardEnabled]);
+  }, [loginSubject, openIdParams]);
 
   return (
     <div id="auth-container">

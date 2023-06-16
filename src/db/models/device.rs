@@ -4,46 +4,135 @@ use ipnetwork::IpNetwork;
 use lazy_static::lazy_static;
 use model_derive::Model;
 use regex::Regex;
-use sqlx::{query_as, Error as SqlxError};
+use sqlx::{query, query_as, Error as SqlxError, FromRow};
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
 pub struct Device {
     pub id: Option<i64>,
     pub name: String,
-    pub wireguard_ip: String,
     pub wireguard_pubkey: String,
     pub user_id: i64,
     pub created: NaiveDateTime,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
+pub struct DeviceNetworkInfo {
+    pub wireguard_network_id: Option<i64>,
+    pub wireguard_ip: String,
+    pub device_id: Option<i64>,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct AddDevice {
     pub name: String,
     pub wireguard_pubkey: String,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct ModifyDevice {
+    pub name: String,
+    pub wireguard_pubkey: String,
+}
+
+impl DeviceNetworkInfo {
+    pub fn new(network_id: i64, device_id: i64, wireguard_ip: String) -> Self {
+        Self {
+            wireguard_network_id: Some(network_id),
+            wireguard_ip,
+            device_id: Some(device_id),
+        }
+    }
+
+    pub async fn insert(&self, pool: &DbPool) -> Result<(), SqlxError> {
+        query!(
+            "INSERT INTO wireguard_network_device
+                (device_id, wireguard_network_id, wireguard_ip)
+                VALUES ($1, $2, $3)",
+            self.device_id,
+            self.wireguard_network_id,
+            self.wireguard_ip
+        )
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn update(&self, pool: &DbPool) -> Result<(), SqlxError> {
+        query!(
+            r#"
+        UPDATE wireguard_network_device
+        SET wireguard_ip = $3
+        WHERE device_id = $1 AND wireguard_network_id = $2
+        "#,
+            self.device_id,
+            self.wireguard_network_id,
+            self.wireguard_ip
+        )
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn find(
+        pool: &DbPool,
+        device_id: i64,
+        network_id: i64,
+    ) -> Result<Option<Self>, SqlxError> {
+        let res = query_as!(
+            Self,
+            "SELECT * FROM
+                            wireguard_network_device
+                            WHERE device_id = $1 AND wireguard_network_id = $2",
+            device_id,
+            network_id
+        )
+        .fetch_optional(pool)
+        .await?;
+        Ok(res)
+    }
+
+    pub async fn findy_by_device(
+        pool: &DbPool,
+        device_id: i64,
+    ) -> Result<Option<Vec<Self>>, SqlxError> {
+        let result = query_as!(
+            Self,
+            "SELECT *
+            FROM wireguard_network_device WHERE device_id = $1",
+            device_id
+        )
+        .fetch_all(pool)
+        .await?;
+        if !result.is_empty() {
+            return Ok(Some(result));
+        }
+        Ok(None)
+    }
+}
+
 impl Device {
     #[must_use]
-    pub fn new(name: String, wireguard_ip: String, wireguard_pubkey: String, user_id: i64) -> Self {
+    pub fn new(name: String, wireguard_pubkey: String, user_id: i64) -> Self {
         Self {
             id: None,
             name,
-            wireguard_ip,
             wireguard_pubkey,
             user_id,
             created: Utc::now().naive_utc(),
         }
     }
 
-    // FIXME: `other` should be a different struct
-    pub fn update_from(&mut self, other: Self) {
+    pub fn update_from(&mut self, other: ModifyDevice) {
         self.name = other.name;
-        self.wireguard_ip = other.wireguard_ip;
         self.wireguard_pubkey = other.wireguard_pubkey;
     }
     /// Create wireguard config for device
     #[must_use]
-    pub fn create_config(&self, network: WireguardNetwork) -> String {
+    pub fn create_config(
+        &self,
+        network: &WireguardNetwork,
+        device_network_info: &DeviceNetworkInfo,
+    ) -> String {
         let dns = match network.dns {
             Some(dns) => {
                 if dns.is_empty() {
@@ -71,16 +160,29 @@ impl Device {
             AllowedIPs = {}\n\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
-            self.wireguard_ip, dns, network.pubkey, allowed_ips, network.endpoint, network.port,
+            device_network_info.wireguard_ip,
+            dns,
+            network.pubkey,
+            allowed_ips,
+            network.endpoint,
+            network.port,
         )
     }
 
-    pub async fn find_by_ip(pool: &DbPool, ip: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_ip(
+        pool: &DbPool,
+        ip: &str,
+        network_id: i64,
+    ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created \
-            FROM device WHERE wireguard_ip = $1",
-            ip
+            "SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+            FROM device d 
+            JOIN wireguard_network_device wnd
+            ON d.id = wnd.device_id
+            WHERE wnd.wireguard_ip = $1 AND wnd.wireguard_network_id = $2",
+            ip,
+            network_id
         )
         .fetch_optional(pool)
         .await
@@ -89,7 +191,7 @@ impl Device {
     pub async fn find_by_pubkey(pool: &DbPool, pubkey: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created \
+            "SELECT id \"id?\", name, wireguard_pubkey, user_id, created \
             FROM device WHERE wireguard_pubkey = $1",
             pubkey
         )
@@ -104,7 +206,7 @@ impl Device {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created \
+            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".username = $2",
             id,
@@ -121,7 +223,7 @@ impl Device {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created \
+            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".id = $2",
             id,
@@ -134,7 +236,7 @@ impl Device {
     pub async fn all_for_username(pool: &DbPool, username: &str) -> Result<Vec<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created \
+            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE \"user\".username = $1",
             username
@@ -142,14 +244,20 @@ impl Device {
         .fetch_all(pool)
         .await
     }
-    /// Assign available ip address to device
-    pub async fn assign_device_ip(
+    /// Creates new device and assign IP in given network
+    pub async fn new_with_ip(
         pool: &DbPool,
         user_id: i64,
         name: String,
         pubkey: String,
         network: &WireguardNetwork,
-    ) -> Result<Self, ModelError> {
+    ) -> Result<(Self, DeviceNetworkInfo), ModelError> {
+        let network_id = match network.id {
+            Some(id) => id,
+            None => {
+                return Err(ModelError::CannotCreate);
+            }
+        };
         let net_ip = network.address.ip();
         let net_network = network.address.network();
         let net_broadcast = network.address.broadcast();
@@ -158,12 +266,55 @@ impl Device {
                 continue;
             }
             // Break loop if IP is unassigned and return device
-            match Self::find_by_ip(pool, &ip.to_string()).await? {
+            match Self::find_by_ip(pool, &ip.to_string(), network_id).await? {
                 Some(_) => (),
                 None => {
-                    info!("Created IP: {} for device: {}", ip, name);
-                    let device = Self::new(name, ip.to_string(), pubkey, user_id);
-                    return Ok(device);
+                    let mut device = Self::new(name.clone(), pubkey, user_id);
+                    device.save(pool).await?;
+                    info!("Created device: {}", device.name);
+                    debug!("For user: {}", device.user_id);
+                    let device_network_info =
+                        DeviceNetworkInfo::new(network_id, device.id.unwrap(), ip.to_string());
+                    device_network_info.insert(pool).await?;
+                    info!(
+                        "Assigned IP: {} for device: {} in network: {}",
+                        ip, name, network_id
+                    );
+                    return Ok((device, device_network_info));
+                }
+            }
+        }
+        Err(ModelError::CannotCreate)
+    }
+
+    // Assign IP to the device in given network
+    pub async fn assign_ip(
+        &self,
+        pool: &DbPool,
+        network: &WireguardNetwork,
+    ) -> Result<DeviceNetworkInfo, ModelError> {
+        let network_id = match network.id {
+            Some(id) => id,
+            None => {
+                return Err(ModelError::CannotCreate);
+            }
+        };
+        let net_ip = network.address.ip();
+        let net_network = network.address.network();
+        let net_broadcast = network.address.broadcast();
+        for ip in network.address.iter() {
+            if ip == net_ip || ip == net_network || ip == net_broadcast {
+                continue;
+            }
+            // Break loop if IP is unassigned and return device
+            match Self::find_by_ip(pool, &ip.to_string(), network_id).await? {
+                Some(_) => (),
+                None => {
+                    info!("Created IP: {} for device: {}", ip, self.name);
+                    let device_network_info =
+                        DeviceNetworkInfo::new(network_id, self.id.unwrap(), ip.to_string());
+                    device_network_info.insert(pool).await?;
+                    return Ok(device_network_info);
                 }
             }
         }
@@ -202,7 +353,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let mut device = Device::assign_device_ip(
+        let (device, device_network_info) = Device::new_with_ip(
             &pool,
             user.id.unwrap(),
             "dev1".into(),
@@ -211,11 +362,9 @@ mod test {
         )
         .await
         .unwrap();
-        assert_eq!(device.wireguard_ip, "10.1.1.2");
-        device.save(&pool).await.unwrap();
+        assert_eq!(device_network_info.wireguard_ip, "10.1.1.2");
 
-        let device =
-            Device::assign_device_ip(&pool, 1, "dev4".into(), "key4".into(), &network).await;
+        let device = Device::new_with_ip(&pool, 1, "dev4".into(), "key4".into(), &network).await;
         assert!(device.is_err());
     }
 

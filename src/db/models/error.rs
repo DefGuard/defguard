@@ -2,6 +2,7 @@ use std::{error, fmt};
 
 #[derive(Debug)]
 pub enum ModelError {
+    CannotModify,
     CannotCreate,
     NetworkTooSmall,
     SqlxError(sqlx::Error),
