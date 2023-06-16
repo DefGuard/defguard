@@ -41,8 +41,8 @@ pub enum GatewayEvent {
     NetworkCreated(WireguardNetwork),
     NetworkModified(WireguardNetwork),
     NetworkDeleted(String),
-    DeviceCreated(Device),
-    DeviceModified(Device),
+    DeviceCreated(Device, DeviceNetworkInfo),
+    DeviceModified(Device, DeviceNetworkInfo),
     DeviceDeleted(String),
 }
 

@@ -40,13 +40,21 @@ impl GatewayMap {
         Self(HashMap::new())
     }
 
-    pub fn connect_gateway(&mut self, address: SocketAddr) {
+    pub fn connect_gateway(&mut self, address: SocketAddr, network_id: i64) {
         match self.0.get_mut(&address) {
-            None => {
-                self.0.insert(address, GatewayState::new());
+            Some(state) => {
+                state.connected = true;
             }
-            Some(state) => state.connected = true,
-        };
+            None => {
+                self.0.insert(
+                    address,
+                    GatewayState {
+                        connected: true,
+                        network_id,
+                    },
+                );
+            }
+        }
     }
 
     pub fn disconnect_gateway(&mut self, address: SocketAddr) {
@@ -69,18 +77,16 @@ impl Default for GatewayMap {
 
 pub struct GatewayState {
     pub connected: bool,
+    pub network_id: i64,
 }
 
 impl GatewayState {
     #[must_use]
-    pub fn new() -> Self {
-        Self { connected: true }
-    }
-}
-
-impl Default for GatewayState {
-    fn default() -> Self {
-        Self::new()
+    pub fn new(network_id: i64) -> Self {
+        Self {
+            connected: true,
+            network_id,
+        }
     }
 }
 

@@ -188,6 +188,48 @@ impl Device {
         .await
     }
 
+    // find all devices by network id and return with assosieted network information
+    pub async fn find_by_network(
+        pool: &DbPool,
+        network_id: i64,
+    ) -> Result<Option<Vec<(Self, DeviceNetworkInfo)>>, SqlxError> {
+        let result = query!(
+            r#"
+            SELECT * FROM wireguard_network_device wnd
+            JOIN device d
+            ON wnd.device_id = d.id
+            WHERE wireguard_network_id = $1
+        "#,
+            network_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        if !result.is_empty() {
+            let res: Vec<(Self, DeviceNetworkInfo)> = result
+                .iter()
+                .map(|r| {
+                    let device = Self {
+                        id: Some(r.id),
+                        user_id: r.user_id,
+                        created: r.created,
+                        name: r.name.clone(),
+                        wireguard_pubkey: r.wireguard_pubkey.clone(),
+                    };
+                    let device_network_info = DeviceNetworkInfo {
+                        device_id: r.device_id,
+                        wireguard_network_id: r.wireguard_network_id,
+                        wireguard_ip: r.wireguard_ip.clone(),
+                    };
+                    (device, device_network_info)
+                })
+                .collect();
+            return Ok(Some(res));
+        };
+
+        Ok(None)
+    }
+
     pub async fn find_by_pubkey(pool: &DbPool, pubkey: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
@@ -231,6 +273,29 @@ impl Device {
         )
         .fetch_optional(pool)
         .await
+    }
+
+    pub async fn get_ip(
+        &self,
+        pool: &DbPool,
+        network_id: i64,
+    ) -> Result<Option<String>, SqlxError> {
+        if let Some(device_id) = self.id {
+            let result = query!(
+                r#"
+                SELECT wireguard_ip
+                FROM wireguard_network_device
+                WHERE device_id = $1 AND wireguard_network_id = $2
+            "#,
+                device_id,
+                network_id
+            )
+            .fetch_one(pool)
+            .await?;
+            return Ok(Some(result.wireguard_ip));
+        }
+
+        Ok(None)
     }
 
     pub async fn all_for_username(pool: &DbPool, username: &str) -> Result<Vec<Self>, SqlxError> {

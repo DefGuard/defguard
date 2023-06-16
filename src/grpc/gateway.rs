@@ -1,6 +1,9 @@
 use crate::{
     db::{
-        models::wireguard::{WireguardNetwork, WireguardPeerStats},
+        models::{
+            device::DeviceNetworkInfo,
+            wireguard::{WireguardNetwork, WireguardPeerStats},
+        },
         DbPool, Device, GatewayEvent,
     },
     grpc::GatewayMap,
@@ -20,7 +23,7 @@ use tokio::{
     task::JoinHandle,
 };
 use tokio_stream::Stream;
-use tonic::{Request, Response, Status};
+use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
 
 tonic::include_proto!("gateway");
 
@@ -103,6 +106,7 @@ impl GatewayServer {
     async fn send_peer_update(
         tx: &mpsc::Sender<Result<Update, Status>>,
         device: &Device,
+        device_network_info: &DeviceNetworkInfo,
         update_type: i32,
     ) -> Result<(), Status> {
         if let Err(err) = tx
@@ -110,7 +114,7 @@ impl GatewayServer {
                 update_type,
                 update: Some(update::Update::Peer(Peer {
                     pubkey: device.wireguard_pubkey.clone(),
-                    allowed_ips: vec![device.wireguard_ip.clone()],
+                    allowed_ips: vec![device_network_info.wireguard_ip.clone()],
                 })),
             }))
             .await
@@ -150,15 +154,7 @@ impl GatewayServer {
     }
 }
 
-fn gen_config(network: &WireguardNetwork, devices: &[Device]) -> Configuration {
-    let peers = devices
-        .iter()
-        .map(|d| Peer {
-            pubkey: d.wireguard_pubkey.clone(),
-            allowed_ips: vec![d.wireguard_ip.clone()],
-        })
-        .collect();
-
+fn gen_config(network: &WireguardNetwork, peers: Vec<Peer>) -> Configuration {
     Configuration {
         name: network.name.clone(),
         port: network.port as u32,
@@ -285,10 +281,19 @@ impl gateway_service_server::GatewayService for GatewayServer {
         Ok(Response::new(()))
     }
 
-    async fn config(&self, _request: Request<()>) -> Result<Response<Configuration>, Status> {
+    async fn config(&self, request: Request<()>) -> Result<Response<Configuration>, Status> {
         info!("Sending configuration to gateway client.");
+        let network_id = match get_network_id_from_metadata(request.metadata()) {
+            Some(m) => m,
+            None => {
+                return Err(Status::new(
+                    Code::Unauthenticated,
+                    "Network ID was not found in metadata",
+                ));
+            }
+        };
         let pool = self.pool.clone();
-        let mut network = WireguardNetwork::find_by_id(&pool, 1)
+        let mut network = WireguardNetwork::find_by_id(&pool, network_id)
             .await
             .map_err(|e| {
                 Status::new(
@@ -302,17 +307,40 @@ impl gateway_service_server::GatewayService for GatewayServer {
             error!("Failed to save network: {}", err);
         }
         let devices = Device::all(&pool).await.unwrap_or_default();
-        Ok(Response::new(gen_config(&network, &devices)))
+        let network_devices_info = Device::find_by_network(&pool, network_id).await;
+        let peers: Vec<Peer> = match network_devices_info {
+            Ok(devices_option) => match devices_option {
+                Some(network_devices_info) => network_devices_info
+                    .iter()
+                    .map(|(device, info)| Peer {
+                        pubkey: device.wireguard_pubkey,
+                        allowed_ips: vec![info.wireguard_ip],
+                    })
+                    .collect::<Vec<Peer>>(),
+                None => [].into(),
+            },
+            Err(_) => [].into(),
+        };
+        Ok(Response::new(gen_config(&network, peers)))
     }
 
     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
+        let network_id = match get_network_id_from_metadata(request.metadata()) {
+            Some(m) => m,
+            None => {
+                return Err(Status::new(
+                    Code::Unauthenticated,
+                    "Network ID was not found in metadata",
+                ));
+            }
+        };
         let address = request.remote_addr().expect("Unable to get peer address.");
         info!("New client connected to updates stream: {}", address);
         let (tx, rx) = mpsc::channel(4);
 
         let mut events_rx = self.wireguard_tx.subscribe();
         let mut state = self.state.lock().unwrap();
-        state.connect_gateway(address);
+        state.connect_gateway(address, network_id);
 
         let handle = tokio::spawn(async move {
             info!("Starting update stream to gateway: {}", address);
@@ -327,11 +355,11 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     GatewayEvent::NetworkDeleted(network_name) => {
                         Self::send_network_delete(&tx, &network_name).await
                     }
-                    GatewayEvent::DeviceCreated(device) => {
-                        Self::send_peer_update(&tx, &device, 0).await
+                    GatewayEvent::DeviceCreated(device, device_network_info) => {
+                        Self::send_peer_update(&tx, &device, &device_network_info, 0).await
                     }
-                    GatewayEvent::DeviceModified(device) => {
-                        Self::send_peer_update(&tx, &device, 1).await
+                    GatewayEvent::DeviceModified(device, device_network_info) => {
+                        Self::send_peer_update(&tx, &device, &device_network_info, 1).await
                     }
                     GatewayEvent::DeviceDeleted(device_name) => {
                         Self::send_peer_delete(&tx, &device_name).await
@@ -350,4 +378,19 @@ impl gateway_service_server::GatewayService for GatewayServer {
             Arc::clone(&self.state),
         )))
     }
+}
+
+// prase network id from gateway request metadata from intecepted information from JWT token
+fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<i64> {
+    if let Some(ascii_value) = metadata.get("gateway_network_id") {
+        match ascii_value.clone().to_str() {
+            Ok(slice) => {
+                if let Ok(id) = i64::from_str_radix(slice, 10) {
+                    return Some(id);
+                }
+            }
+            _ => (),
+        }
+    }
+    None
 }

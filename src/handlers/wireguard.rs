@@ -223,28 +223,38 @@ pub async fn add_user_devices(
     data: Json<UserDevices>,
     network_id: i64,
 ) -> ApiResult {
-    let mut data = data.into_inner();
+    let request_data = data.into_inner();
+    let mut devices = request_data.devices.clone();
     let user = session.user;
-    let device_count = data.devices.len();
+    let device_count = devices.len();
     debug!("User {} adding {} devices", user.username, device_count);
 
     // wrap loop in transaction to abort if a device is invalid
     let mut transaction = appstate.pool.begin().await?;
-    for device in data.devices.as_mut_slice() {
+    for device in devices.as_mut_slice() {
         Device::validate_pubkey(&device.wireguard_pubkey).map_err(OriWebError::PubkeyValidation)?;
         device.save(&mut transaction).await?;
     }
     transaction.commit().await?;
 
     // send gRPC event after DB transaction succeeds
-    for device in data.devices.as_mut_slice() {
-        appstate.send_wireguard_event(GatewayEvent::DeviceCreated(device.clone()));
+    for device in devices {
+        if let Some(device_id) = device.id {
+            if let Some(device_network_info) =
+                DeviceNetworkInfo::find(&appstate.pool, device_id, network_id).await?
+            {
+                appstate.send_wireguard_event(GatewayEvent::DeviceCreated(
+                    device.clone(),
+                    device_network_info,
+                ));
+            }
+        }
     }
 
     info!("User {} added {} devices", user.username, device_count);
 
     Ok(ApiResponse {
-        json: json!(data),
+        json: json!({}),
         status: Status::Created,
     })
 }
@@ -315,14 +325,21 @@ pub async fn add_device(
             None => return Err(OriWebError::ModelError("Network had no id".to_string())),
         };
         let device_network_info = device.assign_ip(&appstate.pool, &network).await?;
-        appstate.send_wireguard_event(GatewayEvent::DeviceCreated(device.clone()));
-        info!(
-            "User {} added device {} for user {}",
-            session.user.username, device_name, username
+        debug!(
+            "Assigned ip {} for device {:?} in network {}",
+            device_network_info.wireguard_ip, device.id, network_id
         );
+        appstate.send_wireguard_event(GatewayEvent::DeviceCreated(
+            device.clone(),
+            device_network_info.clone(),
+        ));
         let config = device.create_config(&network, &device_network_info);
         configs.push(DeviceConfig { network_id, config });
     }
+    info!(
+        "User {} added device {} for user {}",
+        session.user.username, device_name, username
+    );
 
     let result = AddDeviceResult { device, configs };
 
