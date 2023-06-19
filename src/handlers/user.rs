@@ -145,7 +145,7 @@ pub async fn add_user(
 
 #[post("/user/available", format = "json", data = "<data>")]
 pub async fn username_available(
-    _session: SessionInfo,
+    _admin: AdminRole,
     appstate: &State<AppState>,
     data: Json<Username>,
 ) -> ApiResult {
