@@ -55,13 +55,15 @@ impl auth_service_server::AuthService for AuthServer {
                     }))
                 }
                 Err(_) => {
+                    warn!("Invalid login credentials for user {}", &request.username);
                     log_failed_login_attempt(&self.failed_logins, &request.username);
                     Err(Status::unauthenticated("invalid credentials"))
                 }
             },
             _ => {
+                warn!("User {} not found", &request.username);
                 log_failed_login_attempt(&self.failed_logins, &request.username);
-                Err(Status::unauthenticated("user not found"))
+                Err(Status::unauthenticated("invalid credentials"))
             }
         }
     }
