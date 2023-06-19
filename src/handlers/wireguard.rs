@@ -395,17 +395,17 @@ pub async fn add_device(
             Some(id) => id,
             None => return Err(OriWebError::ModelError("Network had no id".to_string())),
         };
-        let device_network_info = device.assign_ip(&appstate.pool, &network).await?;
+        let wireguard_network_device = device.assign_ip(&appstate.pool, &network).await?;
         debug!(
             "Assigned ip {} for device {:?} in network {}",
-            device_network_info.wireguard_ip, device.id, network_id
+            wireguard_network_device.wireguard_ip, device.id, network_id
         );
         appstate.send_wireguard_event(GatewayEvent::DeviceCreated(
             network_id,
             device.clone(),
-            device_network_info.clone(),
+            wireguard_network_device.clone(),
         ));
-        let config = device.create_config(&network, &device_network_info);
+        let config = device.create_config(&network, &wireguard_network_device);
         configs.push(DeviceConfig { network_id, config });
     }
     info!(
@@ -460,14 +460,14 @@ pub async fn modify_device(
     for network in &networks {
         if let Some(network_id) = network.id {
             if let Some(device_id) = device.id {
-                let device_network_info =
+                let wireguard_network_device =
                     WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
-                match device_network_info {
-                    Some(device_network_info) => {
+                match wireguard_network_device {
+                    Some(wireguard_network_device) => {
                         appstate.send_wireguard_event(GatewayEvent::DeviceModified(
                             network_id,
                             device.clone(),
-                            device_network_info,
+                            wireguard_network_device,
                         ));
                     }
                     None => (),
@@ -561,10 +561,12 @@ pub async fn download_config(
 ) -> Result<String, OriWebError> {
     let network = find_network(network_id, &appstate.pool).await?;
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
-    let device_network_info =
+    let wireguard_network_device =
         WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
-    return match device_network_info {
-        Some(device_network_info) => Ok(device.create_config(&network, &device_network_info)),
+    return match wireguard_network_device {
+        Some(wireguard_network_device) => {
+            Ok(device.create_config(&network, &wireguard_network_device))
+        }
         None => {
             let device_id = match device.id {
                 Some(id) => id.to_string(),

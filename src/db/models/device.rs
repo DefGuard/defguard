@@ -149,7 +149,7 @@ impl Device {
     pub fn create_config(
         &self,
         network: &WireguardNetwork,
-        device_network_info: &WireguardNetworkDevice,
+        wireguard_network_device: &WireguardNetworkDevice,
     ) -> String {
         let dns = match &network.dns {
             Some(dns) => {
@@ -178,7 +178,7 @@ impl Device {
             AllowedIPs = {}\n\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
-            device_network_info.wireguard_ip,
+            wireguard_network_device.wireguard_ip,
             dns,
             network.pubkey,
             allowed_ips,
@@ -234,12 +234,12 @@ impl Device {
                         name: r.name.clone(),
                         wireguard_pubkey: r.wireguard_pubkey.clone(),
                     };
-                    let device_network_info = WireguardNetworkDevice {
+                    let wireguard_network_device = WireguardNetworkDevice {
                         device_id: r.device_id,
                         wireguard_network_id: r.wireguard_network_id,
                         wireguard_ip: r.wireguard_ip.clone(),
                     };
-                    (device, device_network_info)
+                    (device, wireguard_network_device)
                 })
                 .collect();
             return Ok(Some(res));
@@ -356,14 +356,14 @@ impl Device {
                     device.save(pool).await?;
                     info!("Created device: {}", device.name);
                     debug!("For user: {}", device.user_id);
-                    let device_network_info =
+                    let wireguard_network_device =
                         WireguardNetworkDevice::new(network_id, device.id.unwrap(), ip.to_string());
-                    device_network_info.insert(pool).await?;
+                    wireguard_network_device.insert(pool).await?;
                     info!(
                         "Assigned IP: {} for device: {} in network: {}",
                         ip, name, network_id
                     );
-                    return Ok((device, device_network_info));
+                    return Ok((device, wireguard_network_device));
                 }
             }
         }
@@ -394,10 +394,10 @@ impl Device {
                 Some(_) => (),
                 None => {
                     info!("Created IP: {} for device: {}", ip, self.name);
-                    let device_network_info =
+                    let wireguard_network_device =
                         WireguardNetworkDevice::new(network_id, self.id.unwrap(), ip.to_string());
-                    device_network_info.insert(pool).await?;
-                    return Ok(device_network_info);
+                    wireguard_network_device.insert(pool).await?;
+                    return Ok(wireguard_network_device);
                 }
             }
         }
@@ -472,7 +472,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let (device, device_network_info) = Device::new_with_ip(
+        let (device, wireguard_network_device) = Device::new_with_ip(
             &pool,
             user.id.unwrap(),
             "dev1".into(),
@@ -481,7 +481,7 @@ mod test {
         )
         .await
         .unwrap();
-        assert_eq!(device_network_info.wireguard_ip, "10.1.1.2");
+        assert_eq!(wireguard_network_device.wireguard_ip, "10.1.1.2");
 
         let device = Device::new_with_ip(&pool, 1, "dev4".into(), "key4".into(), &network).await;
         assert!(device.is_err());

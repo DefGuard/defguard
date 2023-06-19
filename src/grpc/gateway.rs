@@ -106,7 +106,7 @@ impl GatewayServer {
     async fn send_peer_update(
         tx: &mpsc::Sender<Result<Update, Status>>,
         device: &Device,
-        device_network_info: &WireguardNetworkDevice,
+        wireguard_network_device: &WireguardNetworkDevice,
         update_type: i32,
     ) -> Result<(), Status> {
         if let Err(err) = tx
@@ -114,7 +114,7 @@ impl GatewayServer {
                 update_type,
                 update: Some(update::Update::Peer(Peer {
                     pubkey: device.wireguard_pubkey.clone(),
-                    allowed_ips: vec![device_network_info.wireguard_ip.clone()],
+                    allowed_ips: vec![wireguard_network_device.wireguard_ip.clone()],
                 })),
             }))
             .await
@@ -366,16 +366,16 @@ impl gateway_service_server::GatewayService for GatewayServer {
                             Ok(())
                         }
                     }
-                    GatewayEvent::DeviceCreated(network_id, device, device_network_info) => {
+                    GatewayEvent::DeviceCreated(network_id, device, wireguard_network_device) => {
                         if network_id == gateway_network_id {
-                            Self::send_peer_update(&tx, &device, &device_network_info, 0).await
+                            Self::send_peer_update(&tx, &device, &wireguard_network_device, 0).await
                         } else {
                             Ok(())
                         }
                     }
-                    GatewayEvent::DeviceModified(network_id, device, device_network_info) => {
+                    GatewayEvent::DeviceModified(network_id, device, wireguard_network_device) => {
                         if network_id == gateway_network_id {
-                            Self::send_peer_update(&tx, &device, &device_network_info, 1).await
+                            Self::send_peer_update(&tx, &device, &wireguard_network_device, 1).await
                         } else {
                             Ok(())
                         }

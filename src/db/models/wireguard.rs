@@ -176,9 +176,9 @@ impl WireguardNetwork {
                                 return Err(ModelError::CannotModify);
                             }
                         };
-                        let device_network_info =
+                        let wireguard_network_device =
                             WireguardNetworkDevice::new(network_id, device_id, ip.to_string());
-                        device_network_info.update(pool).await?;
+                        wireguard_network_device.update(pool).await?;
                     }
                     None => break,
                 }
@@ -591,12 +591,12 @@ mod test {
                 .await
                 .unwrap()
                 .unwrap();
-            let device_network_info =
+            let wireguard_network_device =
                 WireguardNetworkDevice::find(&pool, device.id.unwrap(), network.id.unwrap())
                     .await
                     .unwrap()
                     .unwrap();
-            assert_eq!(device_network_info.wireguard_ip, ips[index])
+            assert_eq!(wireguard_network_device.wireguard_ip, ips[index])
         }
     }
 
