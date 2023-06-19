@@ -9,7 +9,7 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,
 
-    #[arg(long, env = "DEFGUARD_SECRET_KEY")]
+    #[arg(long, env = "DEFGUARD_SECRET_KEY", value_parser = validate_secret_key)]
     pub secret_key: String,
 
     #[arg(long, env = "DEFGUARD_DB_HOST", default_value = "localhost")]
@@ -135,6 +135,23 @@ pub enum Command {
         about = "Initialize development environment. Inserts test network and device into database."
     )]
     InitDevEnv,
+}
+
+fn validate_secret_key(secret_key: &str) -> Result<String, String> {
+    if secret_key.trim().len() != secret_key.len() {
+        return Err(String::from(
+            "SECRET_KEY cannot have leading and trailing space",
+        ));
+    }
+
+    if secret_key.len() < 64 {
+        return Err(format!(
+            "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
+            secret_key.len()
+        ));
+    }
+
+    Ok(secret_key.into())
 }
 
 impl DefGuardConfig {
