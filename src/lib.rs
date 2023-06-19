@@ -333,10 +333,13 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
 
     let mut device = Device::new(
         "TestDevice".to_string(),
-        "10.1.1.10".to_string(),
         "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
         1,
     );
+    device
+        .assign_ip(&pool, &network)
+        .await
+        .expect("Could not assign IP to device");
     device.save(&pool).await.expect("Could not save device");
 
     for app_id in 1..=3 {

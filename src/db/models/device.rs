@@ -15,8 +15,26 @@ pub struct Device {
     pub created: NaiveDateTime,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DeviceInfo {
+    pub id: Option<i64>,
+    pub name: String,
+    pub wireguard_pubkey: String,
+    pub user_id: i64,
+    pub created: NaiveDateTime,
+    pub network_info: Vec<DeviceNetworkInfo>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DeviceNetworkInfo {
+    pub network_id: i64,
+    pub network_ip: String,
+    pub network_name: String,
+    pub device_wireguard_ip: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
+pub struct WireguardNetworkDevice {
     pub wireguard_network_id: Option<i64>,
     pub wireguard_ip: String,
     pub device_id: Option<i64>,
@@ -34,7 +52,7 @@ pub struct ModifyDevice {
     pub wireguard_pubkey: String,
 }
 
-impl DeviceNetworkInfo {
+impl WireguardNetworkDevice {
     pub fn new(network_id: i64, device_id: i64, wireguard_ip: String) -> Self {
         Self {
             wireguard_network_id: Some(network_id),
@@ -131,9 +149,9 @@ impl Device {
     pub fn create_config(
         &self,
         network: &WireguardNetwork,
-        device_network_info: &DeviceNetworkInfo,
+        device_network_info: &WireguardNetworkDevice,
     ) -> String {
-        let dns = match network.dns {
+        let dns = match &network.dns {
             Some(dns) => {
                 if dns.is_empty() {
                     String::new()
@@ -141,7 +159,7 @@ impl Device {
                     format!("DNS = {}", dns)
                 }
             }
-            None => String::new(),
+            &None => String::new(),
         };
         let allowed_ips = network
             .allowed_ips
@@ -192,7 +210,7 @@ impl Device {
     pub async fn find_by_network(
         pool: &DbPool,
         network_id: i64,
-    ) -> Result<Option<Vec<(Self, DeviceNetworkInfo)>>, SqlxError> {
+    ) -> Result<Option<Vec<(Self, WireguardNetworkDevice)>>, SqlxError> {
         let result = query!(
             r#"
             SELECT * FROM wireguard_network_device wnd
@@ -206,7 +224,7 @@ impl Device {
         .await?;
 
         if !result.is_empty() {
-            let res: Vec<(Self, DeviceNetworkInfo)> = result
+            let res: Vec<(Self, WireguardNetworkDevice)> = result
                 .iter()
                 .map(|r| {
                     let device = Self {
@@ -216,7 +234,7 @@ impl Device {
                         name: r.name.clone(),
                         wireguard_pubkey: r.wireguard_pubkey.clone(),
                     };
-                    let device_network_info = DeviceNetworkInfo {
+                    let device_network_info = WireguardNetworkDevice {
                         device_id: r.device_id,
                         wireguard_network_id: r.wireguard_network_id,
                         wireguard_ip: r.wireguard_ip.clone(),
@@ -316,7 +334,7 @@ impl Device {
         name: String,
         pubkey: String,
         network: &WireguardNetwork,
-    ) -> Result<(Self, DeviceNetworkInfo), ModelError> {
+    ) -> Result<(Self, WireguardNetworkDevice), ModelError> {
         let network_id = match network.id {
             Some(id) => id,
             None => {
@@ -339,7 +357,7 @@ impl Device {
                     info!("Created device: {}", device.name);
                     debug!("For user: {}", device.user_id);
                     let device_network_info =
-                        DeviceNetworkInfo::new(network_id, device.id.unwrap(), ip.to_string());
+                        WireguardNetworkDevice::new(network_id, device.id.unwrap(), ip.to_string());
                     device_network_info.insert(pool).await?;
                     info!(
                         "Assigned IP: {} for device: {} in network: {}",
@@ -357,7 +375,7 @@ impl Device {
         &self,
         pool: &DbPool,
         network: &WireguardNetwork,
-    ) -> Result<DeviceNetworkInfo, ModelError> {
+    ) -> Result<WireguardNetworkDevice, ModelError> {
         let network_id = match network.id {
             Some(id) => id,
             None => {
@@ -377,7 +395,7 @@ impl Device {
                 None => {
                     info!("Created IP: {} for device: {}", ip, self.name);
                     let device_network_info =
-                        DeviceNetworkInfo::new(network_id, self.id.unwrap(), ip.to_string());
+                        WireguardNetworkDevice::new(network_id, self.id.unwrap(), ip.to_string());
                     device_network_info.insert(pool).await?;
                     return Ok(device_network_info);
                 }
@@ -395,6 +413,42 @@ impl Device {
         } else {
             Err(format!("{} is not a valid pubkey", pubkey))
         }
+    }
+}
+
+impl DeviceInfo {
+    pub async fn from_device(pool: &DbPool, device: &Device) -> Result<Option<Self>, SqlxError> {
+        if let Some(device_id) = device.id {
+            let result = query!(
+                r#"
+            SELECT n.id, n.address, n.name, wnd.wireguard_ip 
+            FROM wireguard_network_device wnd
+            JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
+            WHERE wnd.device_id = $1
+        "#,
+                device_id
+            )
+            .fetch_all(pool)
+            .await?;
+            let networks_info: Vec<DeviceNetworkInfo> = result
+                .iter()
+                .map(|r| DeviceNetworkInfo {
+                    network_id: r.id,
+                    network_ip: r.address.to_string(),
+                    network_name: r.name.clone(),
+                    device_wireguard_ip: r.wireguard_ip.clone(),
+                })
+                .collect();
+            return Ok(Some(Self {
+                id: device.id,
+                name: device.name.clone(),
+                user_id: device.user_id,
+                created: device.created,
+                network_info: networks_info,
+                wireguard_pubkey: device.wireguard_pubkey.clone(),
+            }));
+        }
+        Ok(None)
     }
 }
 

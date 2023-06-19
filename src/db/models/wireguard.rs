@@ -1,5 +1,5 @@
 use super::{
-    device::{Device, DeviceNetworkInfo},
+    device::{Device, WireguardNetworkDevice},
     error::ModelError,
     DbPool, User, UserInfo,
 };
@@ -38,11 +38,11 @@ impl DateTimeAggregation {
 
 #[derive(Clone, Debug)]
 pub enum GatewayEvent {
-    NetworkCreated(WireguardNetwork),
-    NetworkModified(WireguardNetwork),
-    NetworkDeleted(String),
-    DeviceCreated(Device, DeviceNetworkInfo),
-    DeviceModified(Device, DeviceNetworkInfo),
+    NetworkCreated(i64, WireguardNetwork),
+    NetworkModified(i64, WireguardNetwork),
+    NetworkDeleted(i64, String),
+    DeviceCreated(i64, Device, WireguardNetworkDevice),
+    DeviceModified(i64, Device, WireguardNetworkDevice),
     DeviceDeleted(String),
 }
 
@@ -177,7 +177,7 @@ impl WireguardNetwork {
                             }
                         };
                         let device_network_info =
-                            DeviceNetworkInfo::new(network_id, device_id, ip.to_string());
+                            WireguardNetworkDevice::new(network_id, device_id, ip.to_string());
                         device_network_info.update(pool).await?;
                     }
                     None => break,
@@ -545,7 +545,7 @@ pub struct WireguardNetworkStats {
 mod test {
     use chrono::{Duration, SubsecRound};
 
-    use crate::db::models::device::DeviceNetworkInfo;
+    use crate::db::models::device::WireguardNetworkDevice;
 
     use super::*;
 
@@ -592,7 +592,7 @@ mod test {
                 .unwrap()
                 .unwrap();
             let device_network_info =
-                DeviceNetworkInfo::find(&pool, device.id.unwrap(), network.id.unwrap())
+                WireguardNetworkDevice::find(&pool, device.id.unwrap(), network.id.unwrap())
                     .await
                     .unwrap()
                     .unwrap();

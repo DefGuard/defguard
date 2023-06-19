@@ -391,8 +391,10 @@ impl User {
         if let Some(id) = self.id {
             query_as!(
                 Device,
-                "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created \
-                FROM device WHERE user_id = $1",
+                r#"
+                SELECT device.id "id?", name, wireguard_pubkey, user_id, created
+                FROM device WHERE user_id = $1
+                "#,
                 id
             )
             .fetch_all(pool)

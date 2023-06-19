@@ -1,7 +1,7 @@
 use crate::{
     db::{
         models::{
-            device::DeviceNetworkInfo,
+            device::WireguardNetworkDevice,
             wireguard::{WireguardNetwork, WireguardPeerStats},
         },
         DbPool, Device, GatewayEvent,
@@ -106,7 +106,7 @@ impl GatewayServer {
     async fn send_peer_update(
         tx: &mpsc::Sender<Result<Update, Status>>,
         device: &Device,
-        device_network_info: &DeviceNetworkInfo,
+        device_network_info: &WireguardNetworkDevice,
         update_type: i32,
     ) -> Result<(), Status> {
         if let Err(err) = tx
@@ -306,15 +306,14 @@ impl gateway_service_server::GatewayService for GatewayServer {
         if let Err(err) = network.save(&pool).await {
             error!("Failed to save network: {}", err);
         }
-        let devices = Device::all(&pool).await.unwrap_or_default();
         let network_devices_info = Device::find_by_network(&pool, network_id).await;
         let peers: Vec<Peer> = match network_devices_info {
             Ok(devices_option) => match devices_option {
                 Some(network_devices_info) => network_devices_info
                     .iter()
                     .map(|(device, info)| Peer {
-                        pubkey: device.wireguard_pubkey,
-                        allowed_ips: vec![info.wireguard_ip],
+                        pubkey: device.wireguard_pubkey.clone(),
+                        allowed_ips: vec![info.wireguard_ip.clone()],
                     })
                     .collect::<Vec<Peer>>(),
                 None => [].into(),
@@ -325,7 +324,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
-        let network_id = match get_network_id_from_metadata(request.metadata()) {
+        let gateway_network_id = match get_network_id_from_metadata(request.metadata()) {
             Some(m) => m,
             None => {
                 return Err(Status::new(
@@ -340,29 +339,49 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         let mut events_rx = self.wireguard_tx.subscribe();
         let mut state = self.state.lock().unwrap();
-        state.connect_gateway(address, network_id);
+        state.connect_gateway(address, gateway_network_id);
 
         let handle = tokio::spawn(async move {
             info!("Starting update stream to gateway: {}", address);
             while let Ok(update) = events_rx.recv().await {
                 let result = match update {
-                    GatewayEvent::NetworkCreated(network) => {
-                        Self::send_network_update(&tx, &network, 0).await
+                    GatewayEvent::NetworkCreated(network_id, network) => {
+                        if network_id == gateway_network_id {
+                            Self::send_network_update(&tx, &network, 0).await
+                        } else {
+                            Ok(())
+                        }
                     }
-                    GatewayEvent::NetworkModified(network) => {
-                        Self::send_network_update(&tx, &network, 1).await
+                    GatewayEvent::NetworkModified(network_id, network) => {
+                        if network_id == gateway_network_id {
+                            Self::send_network_update(&tx, &network, 1).await
+                        } else {
+                            Ok(())
+                        }
                     }
-                    GatewayEvent::NetworkDeleted(network_name) => {
-                        Self::send_network_delete(&tx, &network_name).await
+                    GatewayEvent::NetworkDeleted(network_id, network_name) => {
+                        if network_id == gateway_network_id {
+                            Self::send_network_delete(&tx, &network_name).await
+                        } else {
+                            Ok(())
+                        }
                     }
-                    GatewayEvent::DeviceCreated(device, device_network_info) => {
-                        Self::send_peer_update(&tx, &device, &device_network_info, 0).await
+                    GatewayEvent::DeviceCreated(network_id, device, device_network_info) => {
+                        if network_id == gateway_network_id {
+                            Self::send_peer_update(&tx, &device, &device_network_info, 0).await
+                        } else {
+                            Ok(())
+                        }
                     }
-                    GatewayEvent::DeviceModified(device, device_network_info) => {
-                        Self::send_peer_update(&tx, &device, &device_network_info, 1).await
+                    GatewayEvent::DeviceModified(network_id, device, device_network_info) => {
+                        if network_id == gateway_network_id {
+                            Self::send_peer_update(&tx, &device, &device_network_info, 1).await
+                        } else {
+                            Ok(())
+                        }
                     }
-                    GatewayEvent::DeviceDeleted(device_name) => {
-                        Self::send_peer_delete(&tx, &device_name).await
+                    GatewayEvent::DeviceDeleted(device_pub_key) => {
+                        Self::send_peer_delete(&tx, &device_pub_key).await
                     }
                 };
                 if result.is_err() {

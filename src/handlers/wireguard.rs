@@ -6,13 +6,13 @@ use crate::{
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::{
         models::{
-            device::{DeviceNetworkInfo, ModifyDevice},
+            device::{ModifyDevice, WireguardNetworkDevice},
             wireguard::DateTimeAggregation,
         },
         AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
     },
     grpc::GatewayMap,
-    wg_config::parse_wireguard_config,
+    wg_config::{parse_wireguard_config, ImportedDevice},
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -49,9 +49,18 @@ impl WireguardNetworkData {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct UserDevices {
-    pub devices: Vec<Device>,
+// Used in process of importing network from wireguard config
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MappedDevice {
+    pub user_id: i64,
+    pub wireguard_pubkey: String,
+    pub wireguard_ip: String,
+}
+
+// Used in process of importing network from wireguard config
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MappedDevices {
+    pub devices: Vec<MappedDevice>,
 }
 
 #[derive(Serialize)]
@@ -69,7 +78,7 @@ pub struct ImportNetworkData {
 #[derive(Serialize, Deserialize)]
 pub struct ImportedNetworkData {
     pub network: WireguardNetwork,
-    pub devices: Vec<Device>,
+    pub devices: Vec<ImportedDevice>,
 }
 
 #[post("/", format = "json", data = "<data>")]
@@ -96,7 +105,19 @@ pub async fn create_network(
     )
     .map_err(|_| OriWebError::Serialization("Invalid network address".into()))?;
     network.save(&appstate.pool).await?;
-    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.clone()));
+    match &network.id {
+        Some(network_id) => {
+            appstate
+                .send_wireguard_event(GatewayEvent::NetworkCreated(*network_id, network.clone()));
+        }
+        &None => {
+            error!("Network {} id was not created during network creation, gateway event was not send!", &network.name);
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: Status::InternalServerError,
+            });
+        }
+    }
     info!(
         "User {} created WireGuard network {}",
         session.user.username, network_name
@@ -134,7 +155,18 @@ pub async fn modify_network(
     network.port = data.port;
     network.dns = data.dns;
     network.save(&appstate.pool).await?;
-    appstate.send_wireguard_event(GatewayEvent::NetworkModified(network.clone()));
+    match &network.id {
+        Some(network_id) => {
+            appstate
+                .send_wireguard_event(GatewayEvent::NetworkModified(*network_id, network.clone()));
+        }
+        &None => {
+            error!(
+                "Network {} id not found, gateway update not send!",
+                network.name
+            );
+        }
+    }
     info!(
         "User {} updated WireGuard network {}",
         session.user.username, id
@@ -159,7 +191,7 @@ pub async fn delete_network(
     let network = find_network(id, &appstate.pool).await?;
     let network_name = network.name.clone();
     network.delete(&appstate.pool).await?;
-    appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_name));
+    appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(id, network_name));
     info!(
         "User {} deleted WireGuard network {}",
         session.user.username, id
@@ -207,51 +239,90 @@ pub async fn import_network(
     network.name = data.name;
     network.endpoint = data.endpoint;
     network.save(&appstate.pool).await?;
-    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.clone()));
+    match network.id {
+        Some(network_id) => {
+            appstate
+                .send_wireguard_event(GatewayEvent::NetworkCreated(network_id, network.clone()));
+        }
+        None => {
+            error!(
+                "Network {} id not found, gateway event not sent!",
+                network.name
+            );
+        }
+    }
     Ok(ApiResponse {
         json: json!(ImportedNetworkData { network, devices }),
         status: Status::Created,
     })
 }
 
-// This is used exclusively during wizard
+// This is used exclusively during wizard for mapping imported devices to users
 #[post("/<network_id>/devices", format = "json", data = "<data>")]
 pub async fn add_user_devices(
     _admin: AdminRole,
     session: SessionInfo,
     appstate: &State<AppState>,
-    data: Json<UserDevices>,
+    data: Json<MappedDevices>,
     network_id: i64,
 ) -> ApiResult {
     let request_data = data.into_inner();
-    let mut devices = request_data.devices.clone();
+    let mapped_devices = request_data.devices.clone();
     let user = session.user;
-    let device_count = devices.len();
-    debug!("User {} adding {} devices", user.username, device_count);
-
-    // wrap loop in transaction to abort if a device is invalid
-    let mut transaction = appstate.pool.begin().await?;
-    for device in devices.as_mut_slice() {
-        Device::validate_pubkey(&device.wireguard_pubkey).map_err(OriWebError::PubkeyValidation)?;
-        device.save(&mut transaction).await?;
+    let device_count = mapped_devices.len();
+    if mapped_devices.is_empty() {
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
     }
-    transaction.commit().await?;
+    // checkPublic keys
+    for mapped_device in &mapped_devices {
+        if let Err(_) = Device::validate_pubkey(&mapped_device.wireguard_pubkey) {
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: Status::BadRequest,
+            });
+        }
+    }
+    debug!(
+        "User {} mapping {} devices for network {}",
+        user.username, device_count, network_id
+    );
+    // wrap loop in transaction to abort if a device is invalid
 
-    // send gRPC event after DB transaction succeeds
-    for device in devices {
-        if let Some(device_id) = device.id {
-            if let Some(device_network_info) =
-                DeviceNetworkInfo::find(&appstate.pool, device_id, network_id).await?
-            {
+    for mapped_device in &mapped_devices {
+        let mut device = Device::new(
+            mapped_device.wireguard_pubkey.clone(),
+            mapped_device.wireguard_pubkey.clone(),
+            network_id,
+        );
+        device.save(&appstate.pool).await?;
+        match device.id {
+            Some(device_id) => {
+                let wireguard_network_device = WireguardNetworkDevice::new(
+                    network_id,
+                    device_id,
+                    mapped_device.wireguard_ip.clone(),
+                );
+                wireguard_network_device.insert(&appstate.pool).await?;
+                // send device to connected gateway's
                 appstate.send_wireguard_event(GatewayEvent::DeviceCreated(
+                    network_id,
                     device.clone(),
-                    device_network_info,
+                    wireguard_network_device,
                 ));
+            }
+            None => {
+                error!("No device id assingned after device save");
             }
         }
     }
 
-    info!("User {} added {} devices", user.username, device_count);
+    info!(
+        "User {} mapped {} devices for {} network",
+        user.username, device_count, network_id
+    );
 
     Ok(ApiResponse {
         json: json!({}),
@@ -330,6 +401,7 @@ pub async fn add_device(
             device_network_info.wireguard_ip, device.id, network_id
         );
         appstate.send_wireguard_event(GatewayEvent::DeviceCreated(
+            network_id,
             device.clone(),
             device_network_info.clone(),
         ));
@@ -361,35 +433,56 @@ pub async fn modify_device(
         session.user.username, device_id
     );
     let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    let networks = WireguardNetwork::all(&appstate.pool).await?;
 
-    // FIXME: Handle multiple networks :C
-    // FIXME: hard-coded network id
-    if let Ok(Some(network)) = WireguardNetwork::find_by_id(&appstate.pool, 1).await {
+    if networks.is_empty() {
+        error!("No network found can't modify device");
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
+    }
+
+    // check pubkeys
+    for network in &networks {
         if network.pubkey == data.wireguard_pubkey {
             return Ok(ApiResponse {
                 json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
                 status: Status::BadRequest,
             });
         }
-
-        device.update_from(data.into_inner());
-        device.save(&appstate.pool).await?;
-        appstate.send_wireguard_event(GatewayEvent::DeviceModified(device.clone()));
-        info!(
-            "User {} updated device {}",
-            session.user.username, device_id
-        );
-        Ok(ApiResponse {
-            json: json!(device),
-            status: Status::Ok,
-        })
-    } else {
-        error!("No network found can't add device");
-        Ok(ApiResponse {
-            json: json!({}),
-            status: Status::BadRequest,
-        })
     }
+    // update device info
+    device.update_from(data.into_inner());
+    device.save(&appstate.pool).await?;
+
+    // send update to gateway's
+    for network in &networks {
+        if let Some(network_id) = network.id {
+            if let Some(device_id) = device.id {
+                let device_network_info =
+                    WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
+                match device_network_info {
+                    Some(device_network_info) => {
+                        appstate.send_wireguard_event(GatewayEvent::DeviceModified(
+                            network_id,
+                            device.clone(),
+                            device_network_info,
+                        ));
+                    }
+                    None => (),
+                }
+            }
+        }
+    }
+    info!(
+        "User {} updated device {}",
+        session.user.username, device_id
+    );
+    Ok(ApiResponse {
+        json: json!(device),
+        status: Status::Ok,
+    })
 }
 
 #[get("/device/<device_id>", format = "json")]
@@ -459,7 +552,6 @@ pub async fn list_user_devices(
     })
 }
 
-// FIXME: conflicts with /device/user/<username>
 #[get("/<network_id>/device/<device_id>/config", rank = 2, format = "json")]
 pub async fn download_config(
     session: SessionInfo,
@@ -470,7 +562,7 @@ pub async fn download_config(
     let network = find_network(network_id, &appstate.pool).await?;
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     let device_network_info =
-        DeviceNetworkInfo::find(&appstate.pool, device_id, network_id).await?;
+        WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
     return match device_network_info {
         Some(device_network_info) => Ok(device.create_config(&network, &device_network_info)),
         None => {

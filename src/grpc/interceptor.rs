@@ -30,9 +30,11 @@ impl Interceptor for JwtInterceptor {
         if let Ok(claims) = Claims::from_jwt(self.claims_type.clone(), token) {
             match self.claims_type {
                 ClaimsType::Gateway => {
-                    let split: Vec<&str> = claims.sub.clone().split('-').collect();
+                    let sub = claims.sub.clone();
+                    let split: Vec<&str> = sub.split('-').collect();
                     if let Ok(network_id) = split[2].parse::<MetadataValue<Ascii>>() {
-                        req.metadata_mut().insert("gateway_network_id", network_id);
+                        req.metadata_mut()
+                            .insert("gateway_network_id", network_id.clone());
                     }
                 }
                 _ => (),

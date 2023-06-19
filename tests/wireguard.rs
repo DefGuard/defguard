@@ -7,7 +7,7 @@ use defguard::{
         Device, GatewayEvent, WireguardNetwork, WireguardPeerStats,
     },
     handlers::{
-        wireguard::{ImportedNetworkData, UserDevices, WireguardNetworkData},
+        wireguard::{ImportedNetworkData, MappedDevices, WireguardNetworkData},
         Auth,
     },
 };
@@ -838,7 +838,7 @@ async fn test_config_import() {
     assert_eq!(response.status(), Status::Created);
 
     // assert modified devices
-    let response: UserDevices = response.into_json().await.unwrap();
+    let response: MappedDevices = response.into_json().await.unwrap();
     let device1 = response.devices[0].clone();
     assert_eq!(device1.name, "device1");
     assert_eq!(device1.user_id, 1);
