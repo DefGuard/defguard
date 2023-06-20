@@ -61,7 +61,10 @@ impl WireguardNetworkDevice {
         }
     }
 
-    pub async fn insert(&self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn insert<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         query!(
             "INSERT INTO wireguard_network_device
                 (device_id, wireguard_network_id, wireguard_ip)
@@ -70,12 +73,15 @@ impl WireguardNetworkDevice {
             self.wireguard_network_id,
             self.wireguard_ip
         )
-        .execute(pool)
+        .execute(executor)
         .await?;
         Ok(())
     }
 
-    pub async fn update(&self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn update<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         query!(
             r#"
         UPDATE wireguard_network_device
@@ -86,7 +92,7 @@ impl WireguardNetworkDevice {
             self.wireguard_network_id,
             self.wireguard_ip
         )
-        .execute(pool)
+        .execute(executor)
         .await?;
         Ok(())
     }
@@ -195,7 +201,7 @@ impl Device {
         query_as!(
             Self,
             "SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
-            FROM device d 
+            FROM device d
             JOIN wireguard_network_device wnd
             ON d.id = wnd.device_id
             WHERE wnd.wireguard_ip = $1 AND wnd.wireguard_network_id = $2",
@@ -421,7 +427,7 @@ impl DeviceInfo {
         if let Some(device_id) = device.id {
             let result = query!(
                 r#"
-            SELECT n.id, n.address, n.name, wnd.wireguard_ip 
+            SELECT n.id, n.address, n.name, wnd.wireguard_ip
             FROM wireguard_network_device wnd
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
             WHERE wnd.device_id = $1

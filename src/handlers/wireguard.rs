@@ -290,14 +290,14 @@ pub async fn add_user_devices(
         user.username, device_count, network_id
     );
     // wrap loop in transaction to abort if a device is invalid
-
+    let mut transaction = appstate.pool.begin().await?;
     for mapped_device in &mapped_devices {
         let mut device = Device::new(
             mapped_device.wireguard_pubkey.clone(),
             mapped_device.wireguard_pubkey.clone(),
             network_id,
         );
-        device.save(&appstate.pool).await?;
+        device.save(&mut transaction).await?;
         match device.id {
             Some(device_id) => {
                 let wireguard_network_device = WireguardNetworkDevice::new(
@@ -305,7 +305,7 @@ pub async fn add_user_devices(
                     device_id,
                     mapped_device.wireguard_ip.clone(),
                 );
-                wireguard_network_device.insert(&appstate.pool).await?;
+                wireguard_network_device.insert(&mut transaction).await?;
                 // send device to connected gateway's
                 appstate.send_wireguard_event(GatewayEvent::DeviceCreated(
                     network_id,
@@ -314,10 +314,11 @@ pub async fn add_user_devices(
                 ));
             }
             None => {
-                error!("No device id assingned after device save");
+                error!("No device id assigned after device save");
             }
         }
     }
+    transaction.commit().await?;
 
     info!(
         "User {} mapped {} devices for {} network",

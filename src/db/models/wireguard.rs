@@ -157,13 +157,13 @@ impl WireguardNetwork {
 
         // re-address all devices
         if new_address.network() != old_address.network() {
-            let transaction = pool.begin().await?;
-
             let mut devices = Device::all(pool).await?;
             let net_ip = new_address.ip();
             let net_network = new_address.network();
             let net_broadcast = new_address.broadcast();
             let mut devices_iter = devices.iter_mut();
+
+            let mut transaction = pool.begin().await?;
             for ip in new_address.iter() {
                 if ip == net_ip || ip == net_network || ip == net_broadcast {
                     continue;
@@ -178,12 +178,11 @@ impl WireguardNetwork {
                         };
                         let wireguard_network_device =
                             WireguardNetworkDevice::new(network_id, device_id, ip.to_string());
-                        wireguard_network_device.update(pool).await?;
+                        wireguard_network_device.update(&mut transaction).await?;
                     }
                     None => break,
                 }
             }
-
             transaction.commit().await?;
         }
 
