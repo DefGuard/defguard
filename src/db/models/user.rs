@@ -1,6 +1,7 @@
 use super::{
     device::Device, group::Group, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
+use crate::db::models::device::DeviceInfo;
 use crate::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{Wallet, WebAuthn},
@@ -387,9 +388,9 @@ impl User {
         }
     }
 
-    pub async fn devices(&self, pool: &DbPool) -> Result<Vec<Device>, SqlxError> {
+    pub async fn devices(&self, pool: &DbPool) -> Result<Vec<DeviceInfo>, SqlxError> {
         if let Some(id) = self.id {
-            query_as!(
+            let devices = query_as!(
                 Device,
                 r#"
                 SELECT device.id "id?", name, wireguard_pubkey, user_id, created
@@ -398,7 +399,14 @@ impl User {
                 id
             )
             .fetch_all(pool)
-            .await
+            .await?;
+            let mut device_info = Vec::new();
+            for device in devices.into_iter() {
+                if let Some(info) = DeviceInfo::from_device(pool, device).await? {
+                    device_info.push(info)
+                }
+            }
+            Ok(device_info)
         } else {
             Ok(Vec::new())
         }

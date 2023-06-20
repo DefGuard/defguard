@@ -17,11 +17,8 @@ pub struct Device {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DeviceInfo {
-    pub id: Option<i64>,
-    pub name: String,
-    pub wireguard_pubkey: String,
-    pub user_id: i64,
-    pub created: NaiveDateTime,
+    #[serde(flatten)]
+    pub device: Device,
     pub network_info: Vec<DeviceNetworkInfo>,
 }
 
@@ -105,8 +102,8 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT * FROM
-                            wireguard_network_device
-                            WHERE device_id = $1 AND wireguard_network_id = $2",
+            wireguard_network_device
+            WHERE device_id = $1 AND wireguard_network_id = $2",
             device_id,
             network_id
         )
@@ -333,7 +330,7 @@ impl Device {
         .fetch_all(pool)
         .await
     }
-    /// Creates new device and assign IP in given network
+    /// Create new device and assign IP in a given network
     pub async fn new_with_ip(
         pool: &DbPool,
         user_id: i64,
@@ -376,7 +373,7 @@ impl Device {
         Err(ModelError::CannotCreate)
     }
 
-    // Assign IP to the device in given network
+    // Assign IP to the device in a given network
     pub async fn assign_ip(
         &self,
         pool: &DbPool,
@@ -423,7 +420,7 @@ impl Device {
 }
 
 impl DeviceInfo {
-    pub async fn from_device(pool: &DbPool, device: &Device) -> Result<Option<Self>, SqlxError> {
+    pub async fn from_device(pool: &DbPool, device: Device) -> Result<Option<Self>, SqlxError> {
         if let Some(device_id) = device.id {
             let result = query!(
                 r#"
@@ -446,12 +443,8 @@ impl DeviceInfo {
                 })
                 .collect();
             return Ok(Some(Self {
-                id: device.id,
-                name: device.name.clone(),
-                user_id: device.user_id,
-                created: device.created,
+                device,
                 network_info: networks_info,
-                wireguard_pubkey: device.wireguard_pubkey.clone(),
             }));
         }
         Ok(None)

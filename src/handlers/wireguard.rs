@@ -375,8 +375,8 @@ pub async fn add_device(
     };
     let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, user_id);
     device.save(&appstate.pool).await?;
-    // assign ip's and generate config
 
+    // assign IPs and generate config
     #[derive(Serialize)]
     struct DeviceConfig {
         network_id: i64,

@@ -18,7 +18,7 @@ pub mod webhook;
 pub mod wireguard;
 
 use super::{DbPool, Group};
-use device::Device;
+use device::DeviceInfo;
 use sqlx::{query_as, Error as SqlxError};
 use user::{MFAMethod, User};
 
@@ -68,7 +68,7 @@ pub struct UserInfo {
     pub totp_enabled: bool,
     pub groups: Vec<String>,
     #[serde(default)]
-    pub devices: Vec<Device>,
+    pub devices: Vec<DeviceInfo>,
     #[serde(default)]
     pub wallets: Vec<WalletInfo>,
     #[serde(default)]
