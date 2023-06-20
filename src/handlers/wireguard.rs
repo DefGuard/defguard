@@ -278,7 +278,7 @@ pub async fn add_user_devices(
     }
     // checkPublic keys
     for mapped_device in &mapped_devices {
-        if let Err(_) = Device::validate_pubkey(&mapped_device.wireguard_pubkey) {
+        if Device::validate_pubkey(&mapped_device.wireguard_pubkey).is_err() {
             return Ok(ApiResponse {
                 json: json!({}),
                 status: Status::BadRequest,
@@ -462,15 +462,12 @@ pub async fn modify_device(
             if let Some(device_id) = device.id {
                 let wireguard_network_device =
                     WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
-                match wireguard_network_device {
-                    Some(wireguard_network_device) => {
-                        appstate.send_wireguard_event(GatewayEvent::DeviceModified(
-                            network_id,
-                            device.clone(),
-                            wireguard_network_device,
-                        ));
-                    }
-                    None => (),
+                if let Some(wireguard_network_device) = wireguard_network_device {
+                    appstate.send_wireguard_event(GatewayEvent::DeviceModified(
+                        network_id,
+                        device.clone(),
+                        wireguard_network_device,
+                    ));
                 }
             }
         }
@@ -563,7 +560,7 @@ pub async fn download_config(
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     let wireguard_network_device =
         WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
-    return match wireguard_network_device {
+    match wireguard_network_device {
         Some(wireguard_network_device) => {
             Ok(device.create_config(&network, &wireguard_network_device))
         }
@@ -577,7 +574,7 @@ pub async fn download_config(
                 device.name, device_id
             )))
         }
-    };
+    }
 }
 
 #[get("/token/<network_id>", format = "json")]

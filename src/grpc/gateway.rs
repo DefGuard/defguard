@@ -399,16 +399,13 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 }
 
-// prase network id from gateway request metadata from intecepted information from JWT token
+// parse network id from gateway request metadata from intercepted information from JWT token
 fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<i64> {
     if let Some(ascii_value) = metadata.get("gateway_network_id") {
-        match ascii_value.clone().to_str() {
-            Ok(slice) => {
-                if let Ok(id) = i64::from_str_radix(slice, 10) {
-                    return Some(id);
-                }
+        if let Ok(slice) = ascii_value.clone().to_str() {
+            if let Ok(id) = slice.parse::<i64>() {
+                return Some(id);
             }
-            _ => (),
         }
     }
     None
