@@ -588,7 +588,7 @@ pub async fn create_network_token(
     let token = Claims::new(
         ClaimsType::Gateway,
         format!("DEFGUARD-NETWORK-{}", network_id),
-        String::new(),
+        network_id.to_string(),
         u32::MAX.into(),
     )
     .to_jwt()
