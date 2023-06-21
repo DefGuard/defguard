@@ -381,7 +381,8 @@ impl WireguardNetwork {
         .await?;
         Ok(activity_stats)
     }
-    /// Retrievies currently connected users
+
+    /// Retrieves currently connected users
     async fn current_activity(conn: &DbPool) -> Result<WireguardNetworkActivityStats, SqlxError> {
         // Add 2 minutes margin because gateway sends stats in 1 minute period
         let from = Utc::now()

@@ -9,6 +9,7 @@ use crate::{
     grpc::GatewayMap,
 };
 use chrono::{NaiveDateTime, Utc};
+use sqlx::{query_as, Error as SqlxError};
 use std::{
     net::SocketAddr,
     pin::Pin,
@@ -31,6 +32,27 @@ pub struct GatewayServer {
     pool: DbPool,
     state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
+}
+
+impl WireguardNetwork {
+    /// Get a list of all peers
+    pub async fn get_peers(&self, pool: &DbPool) -> Result<Vec<Peer>, SqlxError> {
+        debug!("Fetching all peers for network {}", self.id.unwrap());
+        let result = query_as!(
+            Peer,
+            r#"
+            SELECT d.wireguard_pubkey as pubkey, array[wnd.wireguard_ip] as "allowed_ips!" FROM wireguard_network_device wnd
+            JOIN device d
+            ON wnd.device_id = d.id
+            WHERE wireguard_network_id = $1
+        "#,
+            self.id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(result)
+    }
 }
 
 impl GatewayServer {
@@ -282,44 +304,46 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn config(&self, request: Request<()>) -> Result<Response<Configuration>, Status> {
-        info!("Sending configuration to gateway client.");
+        debug!("Sending configuration to gateway client.");
         let network_id = match get_network_id_from_metadata(request.metadata()) {
             Some(m) => m,
             None => {
                 return Err(Status::new(
-                    Code::Unauthenticated,
+                    Code::Internal,
                     "Network ID was not found in metadata",
                 ));
             }
         };
+        info!(
+            "Sending configuration to gateway client, network ID {}.",
+            network_id
+        );
+
         let pool = self.pool.clone();
         let mut network = WireguardNetwork::find_by_id(&pool, network_id)
             .await
             .map_err(|e| {
+                error!("Network {} not found", network_id);
                 Status::new(
-                    tonic::Code::FailedPrecondition,
+                    tonic::Code::Internal,
                     format!("Failed to retrieve network: {}", e),
                 )
             })?
-            .ok_or_else(|| Status::new(tonic::Code::FailedPrecondition, "Network not found"))?;
+            .ok_or_else(|| Status::new(tonic::Code::Internal, "Network not found"))?;
+
         network.connected_at = Some(Utc::now().naive_utc());
         if let Err(err) = network.save(&pool).await {
-            error!("Failed to save network: {}", err);
+            error!("Failed to update network status: {}", err);
         }
-        let network_devices_info = Device::find_by_network(&pool, network_id).await;
-        let peers: Vec<Peer> = match network_devices_info {
-            Ok(devices_option) => match devices_option {
-                Some(network_devices_info) => network_devices_info
-                    .iter()
-                    .map(|(device, info)| Peer {
-                        pubkey: device.wireguard_pubkey.clone(),
-                        allowed_ips: vec![info.wireguard_ip.clone()],
-                    })
-                    .collect::<Vec<Peer>>(),
-                None => [].into(),
-            },
-            Err(_) => [].into(),
-        };
+
+        let peers = network.get_peers(&pool).await.map_err(|_| {
+            error!("Failed to fetch peers for network {}", network_id);
+            Status::new(
+                tonic::Code::Internal,
+                format!("Failed to retrieve peers for network: {}", network_id),
+            )
+        })?;
+
         Ok(Response::new(gen_config(&network, peers)))
     }
 

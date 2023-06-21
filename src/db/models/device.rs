@@ -209,48 +209,6 @@ impl Device {
         .await
     }
 
-    // find all devices by network id and return with assosieted network information
-    pub async fn find_by_network(
-        pool: &DbPool,
-        network_id: i64,
-    ) -> Result<Option<Vec<(Self, WireguardNetworkDevice)>>, SqlxError> {
-        let result = query!(
-            r#"
-            SELECT * FROM wireguard_network_device wnd
-            JOIN device d
-            ON wnd.device_id = d.id
-            WHERE wireguard_network_id = $1
-        "#,
-            network_id
-        )
-        .fetch_all(pool)
-        .await?;
-
-        if !result.is_empty() {
-            let res: Vec<(Self, WireguardNetworkDevice)> = result
-                .iter()
-                .map(|r| {
-                    let device = Self {
-                        id: Some(r.id),
-                        user_id: r.user_id,
-                        created: r.created,
-                        name: r.name.clone(),
-                        wireguard_pubkey: r.wireguard_pubkey.clone(),
-                    };
-                    let wireguard_network_device = WireguardNetworkDevice {
-                        device_id: r.device_id,
-                        wireguard_network_id: r.wireguard_network_id,
-                        wireguard_ip: r.wireguard_ip.clone(),
-                    };
-                    (device, wireguard_network_device)
-                })
-                .collect();
-            return Ok(Some(res));
-        };
-
-        Ok(None)
-    }
-
     pub async fn find_by_pubkey(pool: &DbPool, pubkey: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
