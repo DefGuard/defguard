@@ -9,6 +9,7 @@ use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
 use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow};
+use std::fmt::{Display, Formatter};
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -68,6 +69,15 @@ pub struct WireguardNetwork {
 pub struct WireguardKey {
     pub private: String,
     pub public: String,
+}
+
+impl Display for WireguardNetwork {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self.id {
+            Some(network_id) => write!(f, "[ID {}] {}", network_id, self.name),
+            None => write!(f, "{}", self.name),
+        }
+    }
 }
 
 impl WireguardNetwork {
