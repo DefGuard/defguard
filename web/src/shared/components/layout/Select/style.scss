@@ -51,6 +51,14 @@
       }
     }
 
+    & > .placeholder {
+      grid-row: 1;
+      grid-column: 1;
+      width: 100%;
+
+      @include typography(12px, 14px, medium, var(--text-main));
+    }
+
     & > .content-frame {
       height: 100%;
       grid-column: 1;
@@ -186,9 +194,23 @@
       border: 0 solid transparent;
       background-color: var(--white);
       cursor: pointer;
+      color: var(--gray-dark);
 
       & > span {
-        @include regular-text;
+        @include typography(12px, 14px, medium, inherit);
+      }
+
+      &.hovered {
+        background-color: var(--bg-light);
+      }
+
+      &.selected {
+        background-color: var(--bg-light);
+        color: var(--text-main);
+      }
+
+      &.create-option {
+        color: var(--primary);
       }
     }
   }

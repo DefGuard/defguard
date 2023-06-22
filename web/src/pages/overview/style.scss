@@ -88,6 +88,14 @@
         & > button {
           margin-left: auto;
         }
+
+        & > .select-skeleton {
+          width: 200px;
+          height: 40px;
+          & > span {
+            height: 100%;
+          }
+        }
       }
     }
 

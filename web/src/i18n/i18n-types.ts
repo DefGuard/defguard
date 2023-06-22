@@ -968,17 +968,21 @@ type RootTranslation = {
 			card: {
 				labels: {
 					/**
-					 * L​a​s​t​ ​l​o​c​a​t​i​o​n
+					 * L​a​s​t​ ​c​o​n​n​e​c​t​e​d​ ​f​r​o​m
 					 */
-					location: string
+					lastLocation: string
 					/**
-					 * L​a​s​t​ ​I​P​ ​a​d​d​r​e​s​s
+					 * L​a​s​t​ ​c​o​n​n​e​c​t​e​d
 					 */
-					lastIpAddress: string
+					lastConnected: string
 					/**
-					 * D​a​t​e​ ​a​d​d​e​d
+					 * A​s​s​i​g​n​e​d​ ​I​P
 					 */
-					date: string
+					assignedIp: string
+					/**
+					 * a​c​t​i​v​e
+					 */
+					active: string
 				}
 				edit: {
 					/**
@@ -986,9 +990,10 @@ type RootTranslation = {
 					 */
 					edit: string
 					/**
-					 * D​o​w​n​l​o​a​d​ ​c​o​n​f​i​g
+					 * D​o​w​n​l​o​a​d​ ​c​o​n​f​i​g​ ​f​o​r​ ​{​n​a​m​e​}
+					 * @param {string} name
 					 */
-					download: string
+					downloadConfig: RequiredParams<'name'>
 					/**
 					 * D​e​l​e​t​e​ ​d​e​v​i​c​e
 					 */
@@ -2132,18 +2137,20 @@ type RootTranslation = {
 	}
 	networkOverview: {
 		/**
-		 * N​e​t​w​o​r​k​ ​o​v​e​r​v​i​e​w
+		 * L​o​c​a​t​i​o​n​ ​o​v​e​r​v​i​e​w
 		 */
 		pageTitle: string
 		controls: {
 			/**
-			 * E​d​i​t​ ​n​e​t​w​o​r​k​ ​s​e​t​t​i​n​g​s
+			 * E​d​i​t​ ​L​o​c​a​t​i​o​n​s​ ​s​e​t​t​i​n​g​s
 			 */
-			editNetwork: string
-			/**
-			 * C​o​n​f​i​g​u​r​e​ ​n​e​t​w​o​r​k​ ​s​e​t​t​i​n​g​s
-			 */
-			configureNetwork: string
+			editNetworks: string
+			selectNetwork: {
+				/**
+				 * L​o​a​d​i​n​g​ ​l​o​c​a​t​i​o​n​s
+				 */
+				placeholder: string
+			}
 		}
 		filterLabels: {
 			/**
@@ -2231,7 +2238,7 @@ type RootTranslation = {
 	}
 	networkPage: {
 		/**
-		 * E​d​i​t​ ​n​e​t​w​o​r​k
+		 * E​d​i​t​ ​L​o​c​a​t​i​o​n
 		 */
 		pageTitle: string
 	}
@@ -2247,15 +2254,15 @@ type RootTranslation = {
 	}
 	networkConfiguration: {
 		/**
-		 * N​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+		 * L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		header: string
 		/**
-		 * N​e​t​w​o​r​k​ ​i​m​p​o​r​t
+		 * L​o​c​a​t​i​o​n​ ​i​m​p​o​r​t
 		 */
 		importHeader: string
 		form: {
-			messages: {
+			helpers: {
 				/**
 				 * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)
 				 */
@@ -2272,19 +2279,21 @@ type RootTranslation = {
 				 * L​i​s​t​ ​o​f​ ​a​d​d​r​e​s​s​e​s​/​m​a​s​k​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​r​o​u​t​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​n​e​t​w​o​r​k​.
 				 */
 				allowedIps: string
+			}
+			messages: {
 				/**
-				 * N​e​t​w​o​r​k​ ​m​o​d​i​f​i​e​d​.
+				 * L​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d​.
 				 */
 				networkModified: string
 				/**
-				 * N​e​t​w​o​r​k​ ​c​r​e​a​t​e​d​.
+				 * L​o​c​a​t​i​o​n​ ​c​r​e​a​t​e​d
 				 */
 				networkCreated: string
 			}
 			fields: {
 				name: {
 					/**
-					 * N​e​t​w​o​r​k​ ​n​a​m​e
+					 * L​o​c​a​t​i​o​n​ ​n​a​m​e
 					 */
 					label: string
 				}
@@ -2325,7 +2334,7 @@ type RootTranslation = {
 				 */
 				submit: string
 				/**
-				 * B​a​c​k
+				 * B​a​c​k​ ​t​o​ ​O​v​e​r​v​i​e​w
 				 */
 				cancel: string
 			}
@@ -2642,6 +2651,14 @@ type RootTranslation = {
 					invalidAddress: string
 				}
 			}
+		}
+	}
+	layout: {
+		select: {
+			/**
+			 * A​d​d​ ​n​e​w
+			 */
+			addNewOption: string
 		}
 	}
 }
@@ -3595,17 +3612,21 @@ export type TranslationFunctions = {
 			card: {
 				labels: {
 					/**
-					 * Last location
+					 * Last connected from
 					 */
-					location: () => LocalizedString
+					lastLocation: () => LocalizedString
 					/**
-					 * Last IP address
+					 * Last connected
 					 */
-					lastIpAddress: () => LocalizedString
+					lastConnected: () => LocalizedString
 					/**
-					 * Date added
+					 * Assigned IP
 					 */
-					date: () => LocalizedString
+					assignedIp: () => LocalizedString
+					/**
+					 * active
+					 */
+					active: () => LocalizedString
 				}
 				edit: {
 					/**
@@ -3613,9 +3634,9 @@ export type TranslationFunctions = {
 					 */
 					edit: () => LocalizedString
 					/**
-					 * Download config
+					 * Download config for {name}
 					 */
-					download: () => LocalizedString
+					downloadConfig: (arg: { name: string }) => LocalizedString
 					/**
 					 * Delete device
 					 */
@@ -4752,18 +4773,20 @@ export type TranslationFunctions = {
 	}
 	networkOverview: {
 		/**
-		 * Network overview
+		 * Location overview
 		 */
 		pageTitle: () => LocalizedString
 		controls: {
 			/**
-			 * Edit network settings
+			 * Edit Locations settings
 			 */
-			editNetwork: () => LocalizedString
-			/**
-			 * Configure network settings
-			 */
-			configureNetwork: () => LocalizedString
+			editNetworks: () => LocalizedString
+			selectNetwork: {
+				/**
+				 * Loading locations
+				 */
+				placeholder: () => LocalizedString
+			}
 		}
 		filterLabels: {
 			/**
@@ -4848,7 +4871,7 @@ export type TranslationFunctions = {
 	}
 	networkPage: {
 		/**
-		 * Edit network
+		 * Edit Location
 		 */
 		pageTitle: () => LocalizedString
 	}
@@ -4864,15 +4887,15 @@ export type TranslationFunctions = {
 	}
 	networkConfiguration: {
 		/**
-		 * Network configuration
+		 * Location configuration
 		 */
 		header: () => LocalizedString
 		/**
-		 * Network import
+		 * Location import
 		 */
 		importHeader: () => LocalizedString
 		form: {
-			messages: {
+			helpers: {
 				/**
 				 * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)
 				 */
@@ -4889,19 +4912,21 @@ export type TranslationFunctions = {
 				 * List of addresses/masks that should be routed through the VPN network.
 				 */
 				allowedIps: () => LocalizedString
+			}
+			messages: {
 				/**
-				 * Network modified.
+				 * Location modified.
 				 */
 				networkModified: () => LocalizedString
 				/**
-				 * Network created.
+				 * Location created
 				 */
 				networkCreated: () => LocalizedString
 			}
 			fields: {
 				name: {
 					/**
-					 * Network name
+					 * Location name
 					 */
 					label: () => LocalizedString
 				}
@@ -4942,7 +4967,7 @@ export type TranslationFunctions = {
 				 */
 				submit: () => LocalizedString
 				/**
-				 * Back
+				 * Back to Overview
 				 */
 				cancel: () => LocalizedString
 			}
@@ -5259,6 +5284,14 @@ export type TranslationFunctions = {
 					invalidAddress: () => LocalizedString
 				}
 			}
+		}
+	}
+	layout: {
+		select: {
+			/**
+			 * Add new
+			 */
+			addNewOption: () => LocalizedString
 		}
 	}
 }

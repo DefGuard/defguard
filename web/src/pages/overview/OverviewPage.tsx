@@ -7,23 +7,19 @@ import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import Button, { ButtonStyleVariant } from '../../shared/components/layout/Button/Button';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
-import { IconEditNetwork } from '../../shared/components/svg';
 import { deviceBreakpoints } from '../../shared/constants';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
 import { sortByDate } from '../../shared/utils/sortByDate';
-import { useNetworkPageStore } from '../network/hooks/useNetworkPageStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
+import { OverviewHeader } from './OverviewHeader/OverviewHeader';
 import { OverviewStats } from './OverviewStats/OverviewStats';
-import { OverviewStatsFilterSelect } from './OverviewStatsFilterSelect/OverviewStatsFilterSelect';
-import { OverviewViewSelect } from './OverviewViewSelect/OverviewViewSelect';
 
 const STATUS_REFETCH_TIMEOUT = 15 * 1000;
 
@@ -33,7 +29,6 @@ export const OverviewPage = () => {
   const viewMode = useOverviewStore((state) => state.viewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
   const statsFilter = useOverviewStore((state) => state.statsFilter);
-  const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
   const selectedNetworkId = useOverviewStore((state) => state.selectedNetworkId);
   const { LL } = useI18nContext();
 
@@ -41,24 +36,19 @@ export const OverviewPage = () => {
     network: { getNetworks, getUsersStats, getNetworkStats, getGatewayStatus },
   } = useApi();
 
-  const { data: networks, isLoading: networksLoading } = useQuery(
+  const { isLoading: networksLoading } = useQuery(
     [QueryKeys.FETCH_NETWORKS],
     getNetworks,
     {
       onSuccess: (res) => {
         if (!res.length) {
           navigate('/admin/wizard', { replace: true });
+        } else {
+          setOverViewStore({ networks: res });
         }
       },
     }
   );
-
-  const selectedNetwork = useMemo(() => {
-    if (networks && networks.length) {
-      return networks.find((n) => n.id === selectedNetworkId);
-    }
-    return undefined;
-  }, [networks, selectedNetworkId]);
 
   const { data: networkStats } = useQuery(
     [QueryKeys.FETCH_NETWORK_STATS, statsFilter, selectedNetworkId],
@@ -120,49 +110,10 @@ export const OverviewPage = () => {
     }
   }, [viewMode, breakpoint, setOverViewStore]);
 
-  const handleNetworkAction = () => {
-    if (selectedNetwork) {
-      setNetworkPageStore({ network: selectedNetwork });
-      navigate('../network');
-    }
-  };
-
   return (
     <>
       <PageContainer id="network-overview-page">
-        {breakpoint !== 'desktop' && (
-          <div className="mobile-options">
-            <Button
-              styleVariant={ButtonStyleVariant.STANDARD}
-              text={LL.networkOverview.controls.editNetwork()}
-              icon={<IconEditNetwork />}
-              disabled={networksLoading || isUndefined(selectedNetwork)}
-              onClick={handleNetworkAction}
-            />
-            <OverviewStatsFilterSelect />
-            <OverviewViewSelect />
-          </div>
-        )}
-        {breakpoint === 'desktop' && (
-          <header>
-            <h1>{LL.networkOverview.pageTitle()}</h1>
-            <div className="controls">
-              <OverviewViewSelect />
-              <OverviewStatsFilterSelect />
-              <Button
-                styleVariant={ButtonStyleVariant.STANDARD}
-                text={
-                  isUndefined(networks) || !networks?.length
-                    ? LL.networkOverview.controls.configureNetwork()
-                    : LL.networkOverview.controls.editNetwork()
-                }
-                icon={<IconEditNetwork />}
-                disabled={networksLoading}
-                onClick={handleNetworkAction}
-              />
-            </div>
-          </header>
-        )}
+        <OverviewHeader loading={networksLoading} />
         {networkStats && networkUsersStats && (
           <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
         )}

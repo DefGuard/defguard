@@ -322,8 +322,8 @@ export interface ApiHook {
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (network: Network) => EmptyApiResponse;
-    getUsersStats: (data?: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
-    getNetworkToken: (networkId: string) => Promise<NetworkToken>;
+    getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
+    getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
     getNetworkStats: (data?: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewayStatus: () => Promise<ConnectionInfo>;
   };
@@ -683,6 +683,7 @@ export enum OverviewLayoutType {
 }
 
 export interface OverviewStore {
+  networks?: Network[];
   selectedNetworkId: number;
   viewMode: OverviewLayoutType;
   defaultViewMode: OverviewLayoutType;

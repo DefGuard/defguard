@@ -1,7 +1,6 @@
 import './style.scss';
 
 import { useMemo, useState } from 'react';
-import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
@@ -13,7 +12,8 @@ import {
   EditButtonOptionStyleVariant,
 } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
-import { deviceBreakpoints } from '../../../../../shared/constants';
+import { Tag } from '../../../../../shared/components/layout/Tag/Tag';
+import { IconClip, IconCollapse, IconExpand } from '../../../../../shared/components/svg';
 import { displayDate } from '../../../../../shared/helpers/displayDate';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
@@ -21,17 +21,18 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { Device } from '../../../../../shared/types';
 import { downloadWGConfig } from '../../../../../shared/utils/downloadWGConfig';
+import { range } from 'lodash-es';
+import Badge from '../../../../../shared/components/layout/Badge/Badge';
 
 interface Props {
   device: Device;
 }
 
 export const DeviceCard = ({ device }: Props) => {
+  const [expanded, setExpanded] = useState(false);
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const user = useUserProfileStore((state) => state.user);
-  const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const [editButtonVisible, setEditButtonVisible] = useState(false);
   const setDeleteUserDeviceModal = useModalStore(
     (state) => state.setDeleteUserDeviceModal
   );
@@ -56,54 +57,93 @@ export const DeviceCard = ({ device }: Props) => {
   if (!user) return null;
 
   return (
-    <Card
-      className="device-card"
-      onHoverStart={() => {
-        setEditButtonVisible(true);
-      }}
-      onHoverEnd={() => {
-        setEditButtonVisible(false);
-      }}
-    >
+    <Card className="device-card">
+      <div className="content-container">
+        <section className="main-info">
+          <header>
+            <AvatarBox>
+              <DeviceAvatar deviceId={Number(device.id)} />
+            </AvatarBox>
+            <h3 data-testid="device-name">{device.name}</h3>
+          </header>
+          <div className="section-content">
+            <div>
+              <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
+              <p>{formattedCreationDate}</p>
+            </div>
+            <div>
+              <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
+              <p>{device.wireguard_ip}</p>
+            </div>
+          </div>
+        </section>
+        {range(0, 2, 1).map((index) => (
+          <DeviceLocation key={index} />
+        ))}
+      </div>
+      <div className="card-controls">
+        <EditButton visible={true}>
+          <EditButtonOption
+            text={LL.userPage.devices.card.edit.edit()}
+            onClick={() => {
+              setModalsState({
+                editUserDeviceModal: { visible: true, device: device },
+              });
+            }}
+          />
+          <EditButtonOption
+            text={LL.userPage.devices.card.edit.downloadConfig({
+              name: 'PLACEHOLDER',
+            })}
+            onClick={() => handleDownload()}
+          />
+          <EditButtonOption
+            styleVariant={EditButtonOptionStyleVariant.WARNING}
+            text={LL.userPage.devices.card.edit.delete()}
+            onClick={() => setDeleteUserDeviceModal({ visible: true, device: device })}
+          />
+        </EditButton>
+        <ExpandButton
+          expanded={expanded}
+          onClick={() => setExpanded((state) => !state)}
+        />
+      </div>
+    </Card>
+  );
+};
+
+const DeviceLocation = () => {
+  const { LL } = useI18nContext();
+  return (
+    <div className="location">
       <header>
-        <AvatarBox>
-          <DeviceAvatar deviceId={Number(device.id)} />
-        </AvatarBox>
-        <h3 data-testid="device-name">{device.name}</h3>
+        <IconClip />
+        <h2>Zurich</h2>
+        <Badge text={'10.10.4.4'} />
       </header>
-      <div className="content">
-        <div className="info">
-          <Label>{LL.userPage.devices.card.labels.location()}</Label>
-          <p data-text="device-location">Szczecin</p>
+      <div className="section-content">
+        <div>
+          <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
+          <p>13.06.20223 | 09:12</p>
         </div>
-        <div className="info">
-          <Label>{LL.userPage.devices.card.labels.lastIpAddress()}</Label>
-          <p>{device.wireguard_ip}</p>
-        </div>
-        <div className="info">
-          <Label>{LL.userPage.devices.card.labels.date()}</Label>
-          <p>{formattedCreationDate}</p>
+        <div>
+          <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
+          <p>10.6.0.1</p>
         </div>
       </div>
-      <EditButton visible={editButtonVisible || breakpoint !== 'desktop'}>
-        <EditButtonOption
-          text={LL.userPage.devices.card.edit.edit()}
-          onClick={() => {
-            setModalsState({
-              editUserDeviceModal: { visible: true, device: device },
-            });
-          }}
-        />
-        <EditButtonOption
-          text={LL.userPage.devices.card.edit.download()}
-          onClick={() => handleDownload()}
-        />
-        <EditButtonOption
-          styleVariant={EditButtonOptionStyleVariant.WARNING}
-          text={LL.userPage.devices.card.edit.delete()}
-          onClick={() => setDeleteUserDeviceModal({ visible: true, device: device })}
-        />
-      </EditButton>
-    </Card>
+    </div>
+  );
+};
+
+type ExpandButtonProps = {
+  expanded: boolean;
+  onClick: () => void;
+};
+
+const ExpandButton = ({ expanded, onClick }: ExpandButtonProps) => {
+  return (
+    <button className="device-card-expand" onClick={onClick}>
+      {expanded ? <IconExpand /> : <IconCollapse />}
+    </button>
   );
 };

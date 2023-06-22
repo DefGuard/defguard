@@ -250,10 +250,10 @@ const useApi = (props?: HookProps): ApiHook => {
       })
       .then(unpackRequest);
 
-  const getNetworkToken = (id: string) =>
-    client.get<NetworkToken>(`/network/token/${id}`).then(unpackRequest);
+  const getNetworkToken: ApiHook['network']['getNetworkToken'] = (networkId) =>
+    client.get<NetworkToken>(`/network/token/${networkId}`).then(unpackRequest);
 
-  const getNetworkStats = (data: GetNetworkStatsRequest) =>
+  const getNetworkStats: ApiHook['network']['getNetworkStats'] = (data) =>
     client
       .get<WireguardNetworkStats>(`/network/${data.id}/stats`, {
         params: {

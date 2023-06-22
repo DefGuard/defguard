@@ -1,4 +1,5 @@
 import { Story } from '@ladle/react';
+import { cloneDeep } from 'lodash-es';
 import { useMemo, useState } from 'react';
 
 import { Select, SelectOption } from './Select';
@@ -103,3 +104,40 @@ export const SingleOptionSelectStory: Story = () => {
 };
 
 SingleOptionSelectStory.storyName = 'Single option select';
+
+export const SingleOptionWithCreate: Story = () => {
+  const [selected, setSelected] = useState<SelectOption<number> | undefined>();
+  const [options, setOptions] = useState<SelectOption<number>[]>([]);
+  return (
+    <Select
+      options={options}
+      selected={selected}
+      onChange={(val) => {
+        if (!Array.isArray(val)) {
+          setSelected(val);
+        }
+      }}
+      onCreate={() => {
+        let option: SelectOption<number>;
+        if (options.length > 0) {
+          option = cloneDeep(options[options.length - 1]);
+          option.value += 1;
+        } else {
+          option = {
+            value: 0,
+            key: 0,
+            label: '',
+          };
+        }
+        option.label = `Option ${option.value}`;
+        option.key = option.value;
+        const clone = cloneDeep(options);
+        clone.push(option);
+        setOptions(clone);
+      }}
+      placeholder="Select with create"
+    />
+  );
+};
+
+SingleOptionWithCreate.storyName = 'Create options select';

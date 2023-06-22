@@ -1,0 +1,13 @@
+@use '@scssutils' as *;
+
+#network-page {
+  .network-controls {
+    column-gap: 20px;
+    display: flex;
+    flex-flow: row nowrap;
+    height: 100%;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-end;
+  }
+}

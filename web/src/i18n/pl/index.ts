@@ -934,10 +934,12 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
     },
   },
   networkOverview: {
-    pageTitle: 'Przegląd sieci',
+    pageTitle: 'Przegląd lokalizacji',
     controls: {
-      editNetwork: 'Edycja ustawień sieci',
-      configureNetwork: 'Konfiguracja ustawień sieci',
+      editNetworks: 'Edycja lokalizacji',
+      selectNetwork: {
+        placeholder: 'Oczekiwanie na lokalizacje',
+      },
     },
     filterLabels: {
       grid: 'Widok siatki',
@@ -967,29 +969,31 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
     },
   },
   networkPage: {
-    pageTitle: 'Edycja sieci',
+    pageTitle: 'Edycja lokalizacji',
   },
   activityOverview: {
     header: 'Strumien aktywności',
     noData: 'Obecnie nie wykryto żadnej aktywności',
   },
   networkConfiguration: {
-    header: 'Konfiguracja sieci',
-    importHeader: 'Import sieci',
+    header: 'Konfiguracja lokalizacji',
+    importHeader: 'Import lokalizacji',
     form: {
-      messages: {
+      helpers: {
         address:
           'Od tego adresu będzie stworzona sieć VPN, np. 10.10.10.1/24 (sieć VPN będzie: 10.10.10.0/24)',
         gateway:
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
         dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs wireguard jest aktywny.',
         allowedIps: 'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
-        networkModified: 'Sieć zmodyfikowana.',
-        networkCreated: 'Sieć utworzona.',
+      },
+      messages: {
+        networkModified: 'Lokalizacja zmodyfikowana',
+        networkCreated: 'Lokalizacja utworzona',
       },
       fields: {
         name: {
-          label: 'Nazwa sieci',
+          label: 'Nazwa lokalizacji',
         },
         address: {
           label: 'Adres i maska sieci VPN',
@@ -1009,7 +1013,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       },
       controls: {
         submit: 'Zapisz zmiany',
-        cancel: 'Cofnij',
+        cancel: 'Wróć',
       },
     },
   },
@@ -1156,6 +1160,11 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
         messages: { devicesCreated: 'Urządzenia utworzone.' },
         validation: { invalidAddress: 'Nieprawidłowy adres.' },
       },
+    },
+  },
+  layout: {
+    select: {
+      addNewOption: 'Dodaj',
     },
   },
 };
