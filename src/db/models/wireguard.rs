@@ -3,6 +3,7 @@ use super::{
     error::ModelError,
     DbPool, User, UserInfo,
 };
+use crate::db::models::device::DeviceInfo;
 use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
@@ -42,8 +43,8 @@ pub enum GatewayEvent {
     NetworkCreated(i64, WireguardNetwork),
     NetworkModified(i64, WireguardNetwork),
     NetworkDeleted(i64, String),
-    DeviceCreated(i64, Device, WireguardNetworkDevice),
-    DeviceModified(i64, Device, WireguardNetworkDevice),
+    DeviceCreated(DeviceInfo),
+    DeviceModified(DeviceInfo),
     DeviceDeleted(String),
 }
 

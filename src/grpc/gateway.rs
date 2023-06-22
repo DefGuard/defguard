@@ -1,9 +1,6 @@
 use crate::{
     db::{
-        models::{
-            device::WireguardNetworkDevice,
-            wireguard::{WireguardNetwork, WireguardPeerStats},
-        },
+        models::wireguard::{WireguardNetwork, WireguardPeerStats},
         DbPool, Device, GatewayEvent,
     },
     grpc::GatewayMap,
@@ -158,20 +155,44 @@ impl GatewayUpdatesHandler {
                         Ok(())
                     }
                 }
-                GatewayEvent::DeviceCreated(network_id, device, wireguard_network_device) => {
-                    if Some(network_id) == self.network.id {
-                        self.send_peer_update(&device, &wireguard_network_device, 0)
+                GatewayEvent::DeviceCreated(device) => {
+                    // check if a peer has to be added in the current network
+                    match device
+                        .network_info
+                        .iter()
+                        .find(|info| Some(info.network_id) == self.network.id)
+                    {
+                        Some(network_info) => {
+                            self.send_peer_update(
+                                Peer {
+                                    pubkey: device.device.wireguard_pubkey,
+                                    allowed_ips: vec![network_info.device_wireguard_ip.clone()],
+                                },
+                                0,
+                            )
                             .await
-                    } else {
-                        Ok(())
+                        }
+                        None => Ok(()),
                     }
                 }
-                GatewayEvent::DeviceModified(network_id, device, wireguard_network_device) => {
-                    if Some(network_id) == self.network.id {
-                        self.send_peer_update(&device, &wireguard_network_device, 1)
+                GatewayEvent::DeviceModified(device) => {
+                    // check if a peer has to be updated in the current network
+                    match device
+                        .network_info
+                        .iter()
+                        .find(|info| Some(info.network_id) == self.network.id)
+                    {
+                        Some(network_info) => {
+                            self.send_peer_update(
+                                Peer {
+                                    pubkey: device.device.wireguard_pubkey,
+                                    allowed_ips: vec![network_info.device_wireguard_ip.clone()],
+                                },
+                                1,
+                            )
                             .await
-                    } else {
-                        Ok(())
+                        }
+                        None => Ok(()),
                     }
                 }
                 GatewayEvent::DeviceDeleted(device_pub_key) => {
@@ -218,6 +239,7 @@ impl GatewayUpdatesHandler {
         }
         Ok(())
     }
+
     /// Sends delete network command to gateway
     async fn send_network_delete(&self, network_name: &str) -> Result<(), Status> {
         debug!(
@@ -247,28 +269,21 @@ impl GatewayUpdatesHandler {
         }
         Ok(())
     }
+
     /// Send update peer command to gateway
-    async fn send_peer_update(
-        &self,
-        device: &Device,
-        wireguard_network_device: &WireguardNetworkDevice,
-        update_type: i32,
-    ) -> Result<(), Status> {
+    async fn send_peer_update(&self, peer: Peer, update_type: i32) -> Result<(), Status> {
         debug!("Sending peer update for network {}", self.network);
         if let Err(err) = self
             .tx
             .send(Ok(Update {
                 update_type,
-                update: Some(update::Update::Peer(Peer {
-                    pubkey: device.wireguard_pubkey.clone(),
-                    allowed_ips: vec![wireguard_network_device.wireguard_ip.clone()],
-                })),
+                update: Some(update::Update::Peer(peer)),
             }))
             .await
         {
             let msg = format!(
-                "Failed to send peer update for network {}, device {}, update type: {}, error: {}",
-                self.network, device.name, update_type, err,
+                "Failed to send peer update for network {}, update type: {}, error: {}",
+                self.network, update_type, err,
             );
             error!("{}", msg);
             return Err(Status::new(tonic::Code::Internal, msg));

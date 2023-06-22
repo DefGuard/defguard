@@ -288,48 +288,6 @@ impl Device {
         .fetch_all(pool)
         .await
     }
-    /// Create new device and assign IP in a given network
-    pub async fn new_with_ip(
-        pool: &DbPool,
-        user_id: i64,
-        name: String,
-        pubkey: String,
-        network: &WireguardNetwork,
-    ) -> Result<(Self, WireguardNetworkDevice), ModelError> {
-        let network_id = match network.id {
-            Some(id) => id,
-            None => {
-                return Err(ModelError::CannotCreate);
-            }
-        };
-        let net_ip = network.address.ip();
-        let net_network = network.address.network();
-        let net_broadcast = network.address.broadcast();
-        for ip in network.address.iter() {
-            if ip == net_ip || ip == net_network || ip == net_broadcast {
-                continue;
-            }
-            // Break loop if IP is unassigned and return device
-            match Self::find_by_ip(pool, &ip.to_string(), network_id).await? {
-                Some(_) => (),
-                None => {
-                    let mut device = Self::new(name.clone(), pubkey, user_id);
-                    device.save(pool).await?;
-                    info!("Created device: {}", device.name);
-                    debug!("For user: {}", device.user_id);
-                    let wireguard_network_device =
-                        WireguardNetworkDevice::new(network_id, device.id.unwrap(), ip.to_string());
-                    wireguard_network_device.insert(pool).await?;
-                    info!(
-                        "Assigned IP: {} for device: {} in network: {}",
-                        ip, name, network_id
-                    );
-                    return Ok((device, wireguard_network_device));
-                }
-            }
-        }
-        Err(ModelError::CannotCreate)
-    }
 
     // Assign IP to the device in a given network
     pub async fn assign_ip(
@@ -414,6 +372,54 @@ mod test {
     use super::*;
     use crate::db::User;
     use claims::{assert_err, assert_ok};
+
+    impl Device {
+        /// Create new device and assign IP in a given network
+        pub async fn new_with_ip(
+            pool: &DbPool,
+            user_id: i64,
+            name: String,
+            pubkey: String,
+            network: &WireguardNetwork,
+        ) -> Result<(Self, WireguardNetworkDevice), ModelError> {
+            let network_id = match network.id {
+                Some(id) => id,
+                None => {
+                    return Err(ModelError::CannotCreate);
+                }
+            };
+            let net_ip = network.address.ip();
+            let net_network = network.address.network();
+            let net_broadcast = network.address.broadcast();
+            for ip in network.address.iter() {
+                if ip == net_ip || ip == net_network || ip == net_broadcast {
+                    continue;
+                }
+                // Break loop if IP is unassigned and return device
+                match Self::find_by_ip(pool, &ip.to_string(), network_id).await? {
+                    Some(_) => (),
+                    None => {
+                        let mut device = Self::new(name.clone(), pubkey, user_id);
+                        device.save(pool).await?;
+                        info!("Created device: {}", device.name);
+                        debug!("For user: {}", device.user_id);
+                        let wireguard_network_device = WireguardNetworkDevice::new(
+                            network_id,
+                            device.id.unwrap(),
+                            ip.to_string(),
+                        );
+                        wireguard_network_device.insert(pool).await?;
+                        info!(
+                            "Assigned IP: {} for device: {} in network: {}",
+                            ip, name, network_id
+                        );
+                        return Ok((device, wireguard_network_device));
+                    }
+                }
+            }
+            Err(ModelError::CannotCreate)
+        }
+    }
 
     #[sqlx::test]
     async fn test_assign_device_ip(pool: DbPool) {
