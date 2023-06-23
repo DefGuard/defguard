@@ -32,6 +32,7 @@ mod interceptor;
 #[cfg(feature = "worker")]
 pub mod worker;
 
+// Helper struct used to handle
 pub struct GatewayMap(HashMap<SocketAddr, GatewayState>);
 
 impl GatewayMap {
@@ -75,6 +76,7 @@ impl Default for GatewayMap {
     }
 }
 
+#[derive(Serialize, Clone, Debug)]
 pub struct GatewayState {
     pub connected: bool,
     pub network_id: i64,

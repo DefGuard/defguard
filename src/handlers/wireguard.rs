@@ -203,7 +203,12 @@ pub async fn delete_network(
 #[get("/", format = "json")]
 pub async fn list_networks(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
     debug!("Listing WireGuard networks");
+    // let network_info = Vec::new();
     let networks = WireguardNetwork::all(&appstate.pool).await?;
+    // get gateway status for network
+    // for network in networks {
+    //     unimplemented!()
+    // }
     info!("Listed WireGuard networks");
 
     Ok(ApiResponse {

@@ -4,6 +4,7 @@ use super::{
     DbPool, User, UserInfo,
 };
 use crate::db::models::device::DeviceInfo;
+use crate::grpc::GatewayState;
 use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
@@ -482,6 +483,13 @@ impl Default for WireguardNetwork {
             connected_at: Option::default(),
         }
     }
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct WireguardNetworkInfo {
+    #[serde(flatten)]
+    pub network: WireguardNetwork,
+    pub gateways: Vec<GatewayState>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
