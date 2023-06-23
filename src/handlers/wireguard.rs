@@ -217,6 +217,7 @@ pub async fn list_networks(
         let network_id = network.id.expect("Network does not have an ID");
         network_info.push(WireguardNetworkInfo {
             network,
+            connected: gateway_state.connected(network_id),
             gateways: gateway_state.get_network_gateway_status(network_id),
         })
     }
@@ -244,6 +245,7 @@ pub async fn network_details(
                 .expect("Failed to acquire gateway state lock");
             let network_info = WireguardNetworkInfo {
                 network,
+                connected: gateway_state.connected(network_id),
                 gateways: gateway_state.get_network_gateway_status(network_id),
             };
             ApiResponse {

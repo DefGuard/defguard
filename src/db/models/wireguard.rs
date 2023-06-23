@@ -489,6 +489,7 @@ impl Default for WireguardNetwork {
 pub struct WireguardNetworkInfo {
     #[serde(flatten)]
     pub network: WireguardNetwork,
+    pub connected: bool,
     pub gateways: Vec<GatewayState>,
 }
 
