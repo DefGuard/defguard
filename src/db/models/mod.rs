@@ -72,30 +72,24 @@ pub struct UserInfo {
 }
 
 impl UserInfo {
-    pub async fn from_user(pool: &DbPool, user: User) -> Result<Self, SqlxError> {
+    pub async fn from_user(pool: &DbPool, user: &User) -> Result<Self, SqlxError> {
         let groups = user.member_of(pool).await?;
-        // let devices = user.devices(pool).await?;
-        // let wallets = user.wallets(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
-        // let security_keys = user.security_keys(pool).await?;
 
         Ok(Self {
             id: user.id,
-            username: user.username,
-            last_name: user.last_name,
-            first_name: user.first_name,
-            email: user.email,
-            phone: user.phone,
-            ssh_key: user.ssh_key,
-            pgp_key: user.pgp_key,
-            pgp_cert_id: user.pgp_cert_id,
+            username: user.username.clone(),
+            last_name: user.last_name.clone(),
+            first_name: user.first_name.clone(),
+            email: user.email.clone(),
+            phone: user.phone.clone(),
+            ssh_key: user.ssh_key.clone(),
+            pgp_key: user.pgp_key.clone(),
+            pgp_cert_id: user.pgp_cert_id.clone(),
             mfa_enabled: user.mfa_enabled,
             totp_enabled: user.totp_enabled,
             groups,
-            // devices,
-            // wallets,
-            // security_keys,
-            mfa_method: user.mfa_method,
+            mfa_method: user.mfa_method.clone(),
             authorized_apps,
         })
     }
@@ -178,6 +172,21 @@ pub struct UserDetails {
     pub wallets: Vec<WalletInfo>,
     #[serde(default)]
     pub security_keys: Vec<SecurityKey>,
+}
+
+impl UserDetails {
+    pub async fn from_user(pool: &DbPool, user: &User) -> Result<Self, SqlxError> {
+        // let devices = user.devices(pool).await?;
+        let wallets = user.wallets(pool).await?;
+        let security_keys = user.security_keys(pool).await?;
+
+        Ok(Self {
+            user: UserInfo::from_user(pool, user).await?,
+            // devices,
+            wallets,
+            security_keys,
+        })
+    }
 }
 
 #[derive(Deserialize, Serialize)]

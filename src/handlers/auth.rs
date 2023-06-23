@@ -106,7 +106,7 @@ pub async fn authenticate(
             Err(OriWebError::DbError("MFA info read error".into()))
         }
     } else {
-        let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+        let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
         if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
             debug!("Found openid session cookie.");
             Ok(ApiResponse {
@@ -322,7 +322,7 @@ pub async fn webauthn_end(
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
             return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
-                let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+                let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
                 if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
                     debug!("Found openid session cookie.");
                     Ok(ApiResponse {
@@ -415,7 +415,7 @@ pub async fn totp_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+            let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Verified TOTP for user {}", username);
             if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
                 debug!("Found openid session cookie.");
@@ -493,7 +493,7 @@ pub async fn web3auth_end(
                             User::find_by_id(&appstate.pool, session.user_id).await?
                         {
                             let username = user.username.clone();
-                            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+                            let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
                             info!(
                                 "User {} authenticated with wallet {}",
                                 username, signature.address
@@ -546,7 +546,7 @@ pub async fn recovery_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+            let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Authenticated user {} with recovery code", username);
             if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
                 debug!("Found openid session cookie.");

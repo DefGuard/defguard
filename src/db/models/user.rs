@@ -25,7 +25,7 @@ use std::time::SystemTime;
 
 const RECOVERY_CODES_COUNT: usize = 8;
 
-#[derive(Deserialize, Serialize, PartialEq, Type, Debug)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
 pub enum MFAMethod {
     None,
