@@ -708,7 +708,7 @@ pub async fn connection_info(
 ) -> ApiResult {
     debug!("Checking gateway connection info");
     let info = ConnectionInfo {
-        connected: gateway_state.lock().unwrap().connected(),
+        connected: gateway_state.lock().unwrap().connected(1),
     };
     info!("Checked gateway connection info");
 

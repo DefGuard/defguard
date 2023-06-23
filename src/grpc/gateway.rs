@@ -319,6 +319,7 @@ impl GatewayUpdatesHandler {
 pub struct GatewayUpdatesStream {
     task_handle: JoinHandle<()>,
     rx: Receiver<Result<Update, Status>>,
+    network_id: i64,
     gateway_addr: SocketAddr,
     gateway_state: Arc<Mutex<GatewayMap>>,
 }
@@ -328,12 +329,14 @@ impl GatewayUpdatesStream {
     pub fn new(
         task_handle: JoinHandle<()>,
         rx: Receiver<Result<Update, Status>>,
+        network_id: i64,
         gateway_addr: SocketAddr,
         gateway_state: Arc<Mutex<GatewayMap>>,
     ) -> Self {
         Self {
             task_handle,
             rx,
+            network_id,
             gateway_addr,
             gateway_state,
         }
@@ -351,12 +354,14 @@ impl Stream for GatewayUpdatesStream {
 impl Drop for GatewayUpdatesStream {
     fn drop(&mut self) {
         info!("Client disconnected");
+        // terminate update task
+        self.task_handle.abort();
+        // update gateway state
         self.gateway_state
             .lock()
             .unwrap()
-            .disconnect_gateway(self.gateway_addr);
-        // terminate update task
-        self.task_handle.abort();
+            .disconnect_gateway(self.network_id, self.gateway_addr)
+            .expect("Unable to disconnect gateway.");
     }
 }
 
@@ -489,7 +494,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let (tx, rx) = mpsc::channel(4);
         let events_rx = self.wireguard_tx.subscribe();
         let mut state = self.state.lock().unwrap();
-        state.connect_gateway(address, gateway_network_id);
+        state.connect_gateway(gateway_network_id, address);
 
         let handle = tokio::spawn(async move {
             let mut update_handler = GatewayUpdatesHandler::new(network, address, events_rx, tx);
@@ -499,6 +504,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         Ok(Response::new(GatewayUpdatesStream::new(
             handle,
             rx,
+            gateway_network_id,
             address,
             Arc::clone(&self.state),
         )))
