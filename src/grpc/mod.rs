@@ -62,6 +62,8 @@ impl GatewayMap {
                         GatewayState {
                             connected: true,
                             network_id,
+                            name: None,
+                            ip: address.ip(),
                         },
                     );
                 }
@@ -74,6 +76,8 @@ impl GatewayMap {
                     GatewayState {
                         connected: true,
                         network_id,
+                        name: None,
+                        ip: address.ip(),
                     },
                 );
                 self.0.insert(network_id, network_gateway_map);
@@ -126,14 +130,18 @@ impl Default for GatewayMap {
 pub struct GatewayState {
     pub connected: bool,
     pub network_id: i64,
+    pub name: Option<String>,
+    pub ip: IpAddr,
 }
 
 impl GatewayState {
     #[must_use]
-    pub fn new(network_id: i64) -> Self {
+    pub fn new(network_id: i64, address: SocketAddr) -> Self {
         Self {
             connected: true,
             network_id,
+            name: None,
+            ip: address.ip(),
         }
     }
 }
