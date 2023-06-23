@@ -18,6 +18,7 @@ pub mod webhook;
 pub mod wireguard;
 
 use super::{DbPool, Group};
+use crate::db::models::device::UserDevice;
 use sqlx::{query_as, Error as SqlxError};
 use user::{MFAMethod, User};
 
@@ -166,8 +167,8 @@ impl UserInfo {
 pub struct UserDetails {
     #[serde(flatten)]
     user: UserInfo,
-    // #[serde(default)]
-    // pub devices: Vec<Device>,
+    #[serde(default)]
+    pub devices: Vec<UserDevice>,
     #[serde(default)]
     pub wallets: Vec<WalletInfo>,
     #[serde(default)]
@@ -176,13 +177,13 @@ pub struct UserDetails {
 
 impl UserDetails {
     pub async fn from_user(pool: &DbPool, user: &User) -> Result<Self, SqlxError> {
-        // let devices = user.devices(pool).await?;
+        let devices = user.devices(pool).await?;
         let wallets = user.wallets(pool).await?;
         let security_keys = user.security_keys(pool).await?;
 
         Ok(Self {
             user: UserInfo::from_user(pool, user).await?,
-            // devices,
+            devices,
             wallets,
             security_keys,
         })

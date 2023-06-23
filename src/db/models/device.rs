@@ -29,6 +29,64 @@ pub struct DeviceNetworkInfo {
     pub device_wireguard_ip: String,
 }
 
+// helper struct which includes full device info
+// including network activity metadata
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct UserDevice {
+    #[serde(flatten)]
+    pub device: Device,
+    pub network_info: Vec<UserDeviceNetworkInfo>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct UserDeviceNetworkInfo {
+    pub network_id: i64,
+    pub network_name: String,
+    pub network_gateway_ip: String,
+    pub device_wireguard_ip: String,
+    pub last_connected_ip: String,
+    pub last_connected_location: Option<String>,
+    pub last_connected_at: NaiveDateTime,
+    pub is_active: bool,
+}
+
+impl UserDevice {
+    pub async fn from_device(pool: &DbPool, device: Device) -> Result<Option<Self>, SqlxError> {
+        if let Some(device_id) = device.id {
+            let result = query!(
+                r#"
+            SELECT n.id, n.name, n.endpoint, wnd.wireguard_ip
+            FROM wireguard_network_device wnd
+            JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
+            WHERE wnd.device_id = $1
+        "#,
+                device_id
+            )
+            .fetch_all(pool)
+            .await?;
+            let networks_info: Vec<UserDeviceNetworkInfo> = result
+                .into_iter()
+                .map(|r| UserDeviceNetworkInfo {
+                    network_id: r.id,
+                    network_name: r.name,
+                    network_gateway_ip: r.endpoint,
+                    device_wireguard_ip: r.wireguard_ip,
+                    last_connected_ip: "".to_string(),
+                    last_connected_location: None,
+                    last_connected_at: Default::default(),
+                    is_active: false,
+                })
+                .collect();
+            // FIXME: populate current info based on peer stats
+            return Ok(Some(Self {
+                device,
+                network_info: networks_info,
+            }));
+        }
+        Ok(None)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
 pub struct WireguardNetworkDevice {
     pub wireguard_network_id: Option<i64>,
@@ -334,35 +392,35 @@ impl Device {
     }
 }
 
-impl DeviceInfo {
-    pub async fn from_device(pool: &DbPool, device: Device) -> Result<Option<Self>, SqlxError> {
-        if let Some(device_id) = device.id {
-            let result = query!(
-                r#"
-            SELECT n.id, n.endpoint, n.name, wnd.wireguard_ip
-            FROM wireguard_network_device wnd
-            JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
-            WHERE wnd.device_id = $1
-        "#,
-                device_id
-            )
-            .fetch_all(pool)
-            .await?;
-            let networks_info: Vec<DeviceNetworkInfo> = result
-                .iter()
-                .map(|r| DeviceNetworkInfo {
-                    network_id: r.id,
-                    device_wireguard_ip: r.wireguard_ip.clone(),
-                })
-                .collect();
-            return Ok(Some(Self {
-                device,
-                network_info: networks_info,
-            }));
-        }
-        Ok(None)
-    }
-}
+// impl DeviceInfo {
+//     pub async fn from_device(pool: &DbPool, device: Device) -> Result<Option<Self>, SqlxError> {
+//         if let Some(device_id) = device.id {
+//             let result = query!(
+//                 r#"
+//             SELECT n.id, n.endpoint, n.name, wnd.wireguard_ip
+//             FROM wireguard_network_device wnd
+//             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
+//             WHERE wnd.device_id = $1
+//         "#,
+//                 device_id
+//             )
+//             .fetch_all(pool)
+//             .await?;
+//             let networks_info: Vec<DeviceNetworkInfo> = result
+//                 .iter()
+//                 .map(|r| DeviceNetworkInfo {
+//                     network_id: r.id,
+//                     device_wireguard_ip: r.wireguard_ip.clone(),
+//                 })
+//                 .collect();
+//             return Ok(Some(Self {
+//                 device,
+//                 network_info: networks_info,
+//             }));
+//         }
+//         Ok(None)
+//     }
+// }
 
 #[cfg(test)]
 mod test {
