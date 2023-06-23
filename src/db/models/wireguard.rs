@@ -3,12 +3,14 @@ use super::{
     error::ModelError,
     DbPool, User, UserInfo,
 };
+use crate::db::models::device::DeviceInfo;
 use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
 use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow};
+use std::fmt::{Display, Formatter};
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -41,8 +43,8 @@ pub enum GatewayEvent {
     NetworkCreated(i64, WireguardNetwork),
     NetworkModified(i64, WireguardNetwork),
     NetworkDeleted(i64, String),
-    DeviceCreated(i64, Device, WireguardNetworkDevice),
-    DeviceModified(i64, Device, WireguardNetworkDevice),
+    DeviceCreated(DeviceInfo),
+    DeviceModified(DeviceInfo),
     DeviceDeleted(String),
 }
 
@@ -68,6 +70,15 @@ pub struct WireguardNetwork {
 pub struct WireguardKey {
     pub private: String,
     pub public: String,
+}
+
+impl Display for WireguardNetwork {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self.id {
+            Some(network_id) => write!(f, "[ID {}] {}", network_id, self.name),
+            None => write!(f, "{}", self.name),
+        }
+    }
 }
 
 impl WireguardNetwork {
@@ -157,13 +168,13 @@ impl WireguardNetwork {
 
         // re-address all devices
         if new_address.network() != old_address.network() {
-            let transaction = pool.begin().await?;
-
             let mut devices = Device::all(pool).await?;
             let net_ip = new_address.ip();
             let net_network = new_address.network();
             let net_broadcast = new_address.broadcast();
             let mut devices_iter = devices.iter_mut();
+
+            let mut transaction = pool.begin().await?;
             for ip in new_address.iter() {
                 if ip == net_ip || ip == net_network || ip == net_broadcast {
                     continue;
@@ -178,12 +189,11 @@ impl WireguardNetwork {
                         };
                         let wireguard_network_device =
                             WireguardNetworkDevice::new(network_id, device_id, ip.to_string());
-                        wireguard_network_device.update(pool).await?;
+                        wireguard_network_device.update(&mut transaction).await?;
                     }
                     None => break,
                 }
             }
-
             transaction.commit().await?;
         }
 
@@ -353,7 +363,7 @@ impl WireguardNetwork {
                 .await?
                 .ok_or(SqlxError::RowNotFound)?;
             stats.push(WireguardUserStatsRow {
-                user: UserInfo::from_user(conn, user).await?,
+                user: UserInfo::from_user(conn, &user).await?,
                 devices: u.1.clone(),
             });
         }
@@ -382,7 +392,8 @@ impl WireguardNetwork {
         .await?;
         Ok(activity_stats)
     }
-    /// Retrievies currently connected users
+
+    /// Retrieves currently connected users
     async fn current_activity(conn: &DbPool) -> Result<WireguardNetworkActivityStats, SqlxError> {
         // Add 2 minutes margin because gateway sends stats in 1 minute period
         let from = Utc::now()

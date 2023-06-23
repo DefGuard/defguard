@@ -1,9 +1,5 @@
 use crate::auth::{Claims, ClaimsType};
-use tonic::{
-    metadata::{Ascii, MetadataValue},
-    service::Interceptor,
-    Status,
-};
+use tonic::{service::Interceptor, Status};
 
 /// Auth interceptor used by GRPC services. Verifies JWT token sent
 /// in GRPC metadata under "authorization" key.
@@ -28,19 +24,20 @@ impl Interceptor for JwtInterceptor {
             None => return Err(Status::unauthenticated("Missing authorization header")),
         };
         if let Ok(claims) = Claims::from_jwt(self.claims_type.clone(), token) {
-            match self.claims_type {
-                ClaimsType::Gateway => {
-                    let sub = claims.sub.clone();
-                    let split: Vec<&str> = sub.split('-').collect();
-                    if let Ok(network_id) = split[2].parse::<MetadataValue<Ascii>>() {
-                        req.metadata_mut()
-                            .insert("gateway_network_id", network_id.clone());
-                    }
-                }
-                _ => (),
+            let request_metadata = req.metadata_mut();
+
+            if let ClaimsType::Gateway = self.claims_type {
+                request_metadata.insert(
+                    "gateway_network_id",
+                    claims
+                        .client_id
+                        .parse()
+                        .map_err(|_| Status::unknown("Network ID parsing error"))?,
+                );
             }
+
             // FIXME: can we push whole Claims object into metadata?
-            req.metadata_mut().insert(
+            request_metadata.insert(
                 "username",
                 claims
                     .sub

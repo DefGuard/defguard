@@ -1,6 +1,7 @@
 use super::{
     device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, OriWebError,
 };
+use crate::db::models::device::{DeviceInfo, DeviceNetworkInfo};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
@@ -278,7 +279,7 @@ pub async fn add_user_devices(
     }
     // checkPublic keys
     for mapped_device in &mapped_devices {
-        if let Err(_) = Device::validate_pubkey(&mapped_device.wireguard_pubkey) {
+        if Device::validate_pubkey(&mapped_device.wireguard_pubkey).is_err() {
             return Ok(ApiResponse {
                 json: json!({}),
                 status: Status::BadRequest,
@@ -290,34 +291,39 @@ pub async fn add_user_devices(
         user.username, device_count, network_id
     );
     // wrap loop in transaction to abort if a device is invalid
-
+    let mut transaction = appstate.pool.begin().await?;
     for mapped_device in &mapped_devices {
         let mut device = Device::new(
             mapped_device.wireguard_pubkey.clone(),
             mapped_device.wireguard_pubkey.clone(),
             network_id,
         );
-        device.save(&appstate.pool).await?;
+        device.save(&mut transaction).await?;
         match device.id {
             Some(device_id) => {
+                // FIXME: assign IPs in other networks
                 let wireguard_network_device = WireguardNetworkDevice::new(
                     network_id,
                     device_id,
                     mapped_device.wireguard_ip.clone(),
                 );
-                wireguard_network_device.insert(&appstate.pool).await?;
-                // send device to connected gateway's
-                appstate.send_wireguard_event(GatewayEvent::DeviceCreated(
-                    network_id,
-                    device.clone(),
-                    wireguard_network_device,
-                ));
+                wireguard_network_device.insert(&mut transaction).await?;
+                // send device to connected gateways
+                // FIXME: fill in actual network info
+                appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+                    device,
+                    network_info: vec![DeviceNetworkInfo {
+                        network_id,
+                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                    }],
+                }));
             }
             None => {
-                error!("No device id assingned after device save");
+                error!("No device id assigned after device save");
             }
         }
     }
+    transaction.commit().await?;
 
     info!(
         "User {} mapped {} devices for {} network",
@@ -373,9 +379,11 @@ pub async fn add_device(
         }
     };
     let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, user_id);
-    device.save(&appstate.pool).await?;
-    // assign ip's and generate config
 
+    // FIXME: wrap the whole process in a DB transaction
+    device.save(&appstate.pool).await?;
+
+    // assign IPs and generate config
     #[derive(Serialize)]
     struct DeviceConfig {
         network_id: i64,
@@ -388,26 +396,34 @@ pub async fn add_device(
         device: Device,
     }
 
-    let mut configs: Vec<DeviceConfig> = vec![];
-
+    // assign IP in each network
+    let mut configs = Vec::new();
+    let mut network_info = Vec::new();
     for network in networks {
         let network_id = match network.id {
             Some(id) => id,
-            None => return Err(OriWebError::ModelError("Network had no id".to_string())),
+            None => return Err(OriWebError::ModelError("Network had no ID".to_string())),
         };
         let wireguard_network_device = device.assign_ip(&appstate.pool, &network).await?;
         debug!(
             "Assigned ip {} for device {:?} in network {}",
             wireguard_network_device.wireguard_ip, device.id, network_id
         );
-        appstate.send_wireguard_event(GatewayEvent::DeviceCreated(
+        let device_network_info = DeviceNetworkInfo {
             network_id,
-            device.clone(),
-            wireguard_network_device.clone(),
-        ));
+            device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
+        };
+        network_info.push(device_network_info);
+
         let config = device.create_config(&network, &wireguard_network_device);
         configs.push(DeviceConfig { network_id, config });
     }
+
+    appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+        device: device.clone(),
+        network_info,
+    }));
+
     info!(
         "User {} added device {} for user {}",
         session.user.username, device_name, username
@@ -452,29 +468,33 @@ pub async fn modify_device(
             });
         }
     }
+    // FIXME: wrap update process in DB transaction
     // update device info
     device.update_from(data.into_inner());
     device.save(&appstate.pool).await?;
 
     // send update to gateway's
+    let mut network_info = Vec::new();
     for network in &networks {
         if let Some(network_id) = network.id {
             if let Some(device_id) = device.id {
                 let wireguard_network_device =
                     WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
-                match wireguard_network_device {
-                    Some(wireguard_network_device) => {
-                        appstate.send_wireguard_event(GatewayEvent::DeviceModified(
-                            network_id,
-                            device.clone(),
-                            wireguard_network_device,
-                        ));
-                    }
-                    None => (),
+                if let Some(wireguard_network_device) = wireguard_network_device {
+                    let device_network_info = DeviceNetworkInfo {
+                        network_id,
+                        device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
+                    };
+                    network_info.push(device_network_info)
                 }
             }
         }
     }
+    appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
+        device: device.clone(),
+        network_info,
+    }));
+
     info!(
         "User {} updated device {}",
         session.user.username, device_id
@@ -563,7 +583,7 @@ pub async fn download_config(
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     let wireguard_network_device =
         WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
-    return match wireguard_network_device {
+    match wireguard_network_device {
         Some(wireguard_network_device) => {
             Ok(device.create_config(&network, &wireguard_network_device))
         }
@@ -577,7 +597,7 @@ pub async fn download_config(
                 device.name, device_id
             )))
         }
-    };
+    }
 }
 
 #[get("/token/<network_id>", format = "json")]
@@ -591,7 +611,7 @@ pub async fn create_network_token(
     let token = Claims::new(
         ClaimsType::Gateway,
         format!("DEFGUARD-NETWORK-{}", network_id),
-        String::new(),
+        network_id.to_string(),
         u32::MAX.into(),
     )
     .to_jwt()
