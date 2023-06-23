@@ -281,7 +281,7 @@ type RootTranslation = {
 						 */
 						qrHelper: string
 						/**
-						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g
+						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
 						 */
 						qrCardTitle: string
 					}
@@ -2930,7 +2930,7 @@ export type TranslationFunctions = {
 						 */
 						qrHelper: () => LocalizedString
 						/**
-						 * WireGuard Config
+						 * WireGuard Config for location:
 						 */
 						qrCardTitle: () => LocalizedString
 					}

@@ -387,6 +387,7 @@ pub async fn add_device(
     #[derive(Serialize)]
     struct DeviceConfig {
         network_id: i64,
+        network_name: String,
         config: String,
     }
 
@@ -416,7 +417,7 @@ pub async fn add_device(
         network_info.push(device_network_info);
 
         let config = device.create_config(&network, &wireguard_network_device);
-        configs.push(DeviceConfig { network_id, config });
+        configs.push(DeviceConfig { network_id, config, network_name: network.name });
     }
 
     appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {

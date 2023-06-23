@@ -137,7 +137,7 @@ const pl: Translation = {
             <strong>ale musi być użyty na urządzeniu, które teraz dodajesz.</strong>
             <a>Przeczytaj więcej w dokumentacji.</a>
           </p>`,
-            qrCardTitle: 'Konfiguracja Wireguard',
+            qrCardTitle: 'Konfiguracja dla lokalizacji:',
           },
           setup: {
             infoMessage: `

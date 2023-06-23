@@ -138,7 +138,7 @@ const en: BaseTranslation = {
             <strong>on your device that you are adding now.</strong>
             <a>Read more in documentation.</a>
           </p>`,
-            qrCardTitle: 'WireGuard Config',
+            qrCardTitle: 'WireGuard Config for location:',
           },
           setup: {
             infoMessage: `

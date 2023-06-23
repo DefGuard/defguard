@@ -198,7 +198,6 @@ pub async fn build_webapp(
             modify_device,
             delete_device,
             list_devices,
-            download_config,
             connection_info,
         ],
     );
@@ -218,6 +217,7 @@ pub async fn build_webapp(
             create_network_token,
             user_stats,
             network_stats,
+            download_config,
         ],
     );
 

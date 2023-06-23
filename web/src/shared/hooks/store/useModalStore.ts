@@ -86,7 +86,7 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
     visible: false,
     currentStep: 0,
     endStep: 1,
-    config: undefined,
+    configs: undefined,
     deviceName: undefined,
     nextStep: () => {
       const { currentStep, endStep } = get().userDeviceModal;
