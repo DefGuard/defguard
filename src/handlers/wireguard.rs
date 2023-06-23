@@ -2,6 +2,7 @@ use super::{
     device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, OriWebError,
 };
 use crate::db::models::device::{DeviceInfo, DeviceNetworkInfo};
+use crate::db::models::wireguard::WireguardNetworkInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
@@ -15,6 +16,7 @@ use crate::{
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use ethers::utils::__serde_json::Value;
 use ipnetwork::IpNetwork;
 use rocket::{
     http::Status,
@@ -199,16 +201,19 @@ pub async fn delete_network(
 #[get("/", format = "json")]
 pub async fn list_networks(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
     debug!("Listing WireGuard networks");
-    // let network_info = Vec::new();
+    let mut network_info = Vec::new();
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     // get gateway status for network
-    // for network in networks {
-    //     unimplemented!()
-    // }
+    for network in networks {
+        network_info.push(WireguardNetworkInfo {
+            network,
+            gateways: vec![],
+        })
+    }
     info!("Listed WireGuard networks");
 
     Ok(ApiResponse {
-        json: json!(networks),
+        json: json!(network_info),
         status: Status::Ok,
     })
 }
@@ -221,12 +226,25 @@ pub async fn network_details(
 ) -> ApiResult {
     debug!("Displaying network details for network {}", network_id);
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id).await?;
+    let response = match network {
+        Some(network) => {
+            let network_info = WireguardNetworkInfo {
+                network,
+                gateways: vec![],
+            };
+            ApiResponse {
+                json: json!(network_info),
+                status: Status::Ok,
+            }
+        }
+        None => ApiResponse {
+            json: Value::Null,
+            status: Status::NotFound,
+        },
+    };
     info!("Displayed network details for network {}", network_id);
 
-    Ok(ApiResponse {
-        json: json!(network),
-        status: Status::Ok,
-    })
+    Ok(response)
 }
 
 #[post("/import", format = "json", data = "<data>")]
