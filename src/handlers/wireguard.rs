@@ -314,8 +314,6 @@ pub async fn add_user_devices(
                     device,
                     network_info: vec![DeviceNetworkInfo {
                         network_id,
-                        network_ip: "".to_string(),
-                        network_name: "".to_string(),
                         device_wireguard_ip: wireguard_network_device.wireguard_ip,
                     }],
                 }));
@@ -413,8 +411,6 @@ pub async fn add_device(
         );
         let device_network_info = DeviceNetworkInfo {
             network_id,
-            network_ip: network.address.to_string(),
-            network_name: network.name.clone(),
             device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
         };
         network_info.push(device_network_info);
@@ -487,8 +483,6 @@ pub async fn modify_device(
                 if let Some(wireguard_network_device) = wireguard_network_device {
                     let device_network_info = DeviceNetworkInfo {
                         network_id,
-                        network_ip: network.address.to_string(),
-                        network_name: network.name.clone(),
                         device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
                     };
                     network_info.push(device_network_info)

@@ -15,6 +15,7 @@ pub struct Device {
     pub created: NaiveDateTime,
 }
 
+// helper struct which includes network configurations for a given device
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DeviceInfo {
     #[serde(flatten)]
@@ -25,8 +26,6 @@ pub struct DeviceInfo {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DeviceNetworkInfo {
     pub network_id: i64,
-    pub network_ip: String,
-    pub network_name: String,
     pub device_wireguard_ip: String,
 }
 
@@ -340,7 +339,7 @@ impl DeviceInfo {
         if let Some(device_id) = device.id {
             let result = query!(
                 r#"
-            SELECT n.id, n.address, n.name, wnd.wireguard_ip
+            SELECT n.id, n.endpoint, n.name, wnd.wireguard_ip
             FROM wireguard_network_device wnd
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
             WHERE wnd.device_id = $1
@@ -353,8 +352,6 @@ impl DeviceInfo {
                 .iter()
                 .map(|r| DeviceNetworkInfo {
                     network_id: r.id,
-                    network_ip: r.address.to_string(),
-                    network_name: r.name.clone(),
                     device_wireguard_ip: r.wireguard_ip.clone(),
                 })
                 .collect();
