@@ -18,7 +18,6 @@ pub mod webhook;
 pub mod wireguard;
 
 use super::{DbPool, Group};
-use device::Device;
 use sqlx::{query_as, Error as SqlxError};
 use user::{MFAMethod, User};
 
@@ -53,6 +52,7 @@ pub struct SecurityKey {
     pub name: String,
 }
 
+// Basic user info used in user list, etc.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UserInfo {
     pub id: Option<i64>,
@@ -67,12 +67,6 @@ pub struct UserInfo {
     pub mfa_enabled: bool,
     pub totp_enabled: bool,
     pub groups: Vec<String>,
-    #[serde(default)]
-    pub devices: Vec<Device>,
-    #[serde(default)]
-    pub wallets: Vec<WalletInfo>,
-    #[serde(default)]
-    pub security_keys: Vec<SecurityKey>,
     pub mfa_method: MFAMethod,
     pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
 }
@@ -80,10 +74,10 @@ pub struct UserInfo {
 impl UserInfo {
     pub async fn from_user(pool: &DbPool, user: User) -> Result<Self, SqlxError> {
         let groups = user.member_of(pool).await?;
-        let devices = user.devices(pool).await?;
-        let wallets = user.wallets(pool).await?;
+        // let devices = user.devices(pool).await?;
+        // let wallets = user.wallets(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
-        let security_keys = user.security_keys(pool).await?;
+        // let security_keys = user.security_keys(pool).await?;
 
         Ok(Self {
             id: user.id,
@@ -98,9 +92,9 @@ impl UserInfo {
             mfa_enabled: user.mfa_enabled,
             totp_enabled: user.totp_enabled,
             groups,
-            devices,
-            wallets,
-            security_keys,
+            // devices,
+            // wallets,
+            // security_keys,
             mfa_method: user.mfa_method,
             authorized_apps,
         })
@@ -171,6 +165,19 @@ impl UserInfo {
 
         Ok(())
     }
+}
+
+// Full user info with related objects
+#[derive(Deserialize, Serialize, Debug)]
+pub struct UserDetails {
+    #[serde(flatten)]
+    user: UserInfo,
+    // #[serde(default)]
+    // pub devices: Vec<Device>,
+    #[serde(default)]
+    pub wallets: Vec<WalletInfo>,
+    #[serde(default)]
+    pub security_keys: Vec<SecurityKey>,
 }
 
 #[derive(Deserialize, Serialize)]
