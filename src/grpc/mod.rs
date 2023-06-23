@@ -106,6 +106,14 @@ impl GatewayMap {
             None => false,
         }
     }
+
+    // return a list af aff statuses af all gateways in a given network
+    pub fn get_network_gateway_status(&self, network_id: i64) -> Vec<GatewayState> {
+        match self.0.get(&network_id) {
+            Some(network_gateway_map) => network_gateway_map.clone().into_values().collect(),
+            None => Vec::new(),
+        }
+    }
 }
 
 impl Default for GatewayMap {

@@ -3,6 +3,7 @@ use super::{
 };
 use crate::db::models::device::{DeviceInfo, DeviceNetworkInfo};
 use crate::db::models::wireguard::WireguardNetworkInfo;
+use crate::grpc::GatewayMap;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
@@ -27,6 +28,7 @@ use rocket::{
     State,
 };
 use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 
 #[derive(Deserialize, Serialize)]
 pub struct WireguardNetworkData {
@@ -199,15 +201,23 @@ pub async fn delete_network(
 }
 
 #[get("/", format = "json")]
-pub async fn list_networks(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
+pub async fn list_networks(
+    _admin: AdminRole,
+    appstate: &State<AppState>,
+    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
+) -> ApiResult {
     debug!("Listing WireGuard networks");
     let mut network_info = Vec::new();
     let networks = WireguardNetwork::all(&appstate.pool).await?;
-    // get gateway status for network
+    // get gateway status for networks
+    let gateway_state = gateway_state
+        .lock()
+        .expect("Failed to acquire gateway state lock");
     for network in networks {
+        let network_id = network.id.expect("Network does not have an ID");
         network_info.push(WireguardNetworkInfo {
             network,
-            gateways: vec![],
+            gateways: gateway_state.get_network_gateway_status(network_id),
         })
     }
     info!("Listed WireGuard networks");
@@ -223,14 +233,18 @@ pub async fn network_details(
     network_id: i64,
     _admin: AdminRole,
     appstate: &State<AppState>,
+    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Displaying network details for network {}", network_id);
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id).await?;
     let response = match network {
         Some(network) => {
+            let gateway_state = gateway_state
+                .lock()
+                .expect("Failed to acquire gateway state lock");
             let network_info = WireguardNetworkInfo {
                 network,
-                gateways: vec![],
+                gateways: gateway_state.get_network_gateway_status(network_id),
             };
             ApiResponse {
                 json: json!(network_info),
