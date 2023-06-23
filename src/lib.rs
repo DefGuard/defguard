@@ -53,7 +53,6 @@ use handlers::{
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
     },
-    wireguard::connection_info,
 };
 use rocket::{
     config::{Config, SecretKey},
@@ -199,7 +198,6 @@ pub async fn build_webapp(
             delete_device,
             list_devices,
             download_config,
-            connection_info,
         ],
     );
 
