@@ -66,6 +66,28 @@ impl GatewayServer {
             wireguard_tx,
         }
     }
+
+    fn get_network_id(metadata: &MetadataMap) -> Result<i64, Status> {
+        match Self::get_network_id_from_metadata(metadata) {
+            Some(m) => Ok(m),
+            None => Err(Status::new(
+                Code::Internal,
+                "Network ID was not found in metadata",
+            )),
+        }
+    }
+
+    // parse network id from gateway request metadata from intercepted information from JWT token
+    fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<i64> {
+        if let Some(ascii_value) = metadata.get("gateway_network_id") {
+            if let Ok(slice) = ascii_value.clone().to_str() {
+                if let Ok(id) = slice.parse::<i64>() {
+                    return Some(id);
+                }
+            }
+        }
+        None
+    }
 }
 
 fn gen_config(network: &WireguardNetwork, peers: Vec<Peer>) -> Configuration {
@@ -78,16 +100,15 @@ fn gen_config(network: &WireguardNetwork, peers: Vec<Peer>) -> Configuration {
     }
 }
 
-impl From<PeerStats> for WireguardPeerStats {
-    fn from(stats: PeerStats) -> Self {
+impl WireguardPeerStats {
+    fn from_peer_stats(stats: PeerStats, network_id: i64) -> Self {
         let endpoint = match stats.endpoint {
             endpoint if endpoint.is_empty() => None,
             _ => Some(stats.endpoint),
         };
         Self {
             id: None,
-            // FIXME: hard-coded network id
-            network: 1,
+            network: network_id,
             endpoint,
             device_id: -1,
             collected_at: Utc::now().naive_utc(),
@@ -368,16 +389,19 @@ impl Drop for GatewayUpdatesStream {
 #[tonic::async_trait]
 impl gateway_service_server::GatewayService for GatewayServer {
     type UpdatesStream = GatewayUpdatesStream;
+
     /// Retrieve stats from gateway and save it to database
     async fn stats(
         &self,
         request: Request<tonic::Streaming<PeerStats>>,
     ) -> Result<Response<()>, Status> {
+        let network_id = Self::get_network_id(request.metadata())?;
         let mut stream = request.into_inner();
         while let Some(peer_stats) = stream.message().await? {
             let public_key = peer_stats.public_key.clone();
-            let mut stats = WireguardPeerStats::from(peer_stats);
+            let mut stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id);
             // Get device by public key and fill in stats.device_id
+            // FIXME: keep an in-memory device map to avoid repeated DB requests
             stats.device_id = match Device::find_by_pubkey(&self.pool, &public_key).await {
                 Ok(Some(device)) => device
                     .id
@@ -411,22 +435,14 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     format!("Saving WireGuard peer stats to db failed: {}", err),
                 ));
             }
-            debug!("Saved WireGuard peer stats to db: {:?}", stats);
+            info!("Saved WireGuard peer stats to db: {:?}", stats);
         }
         Ok(Response::new(()))
     }
 
     async fn config(&self, request: Request<()>) -> Result<Response<Configuration>, Status> {
         debug!("Sending configuration to gateway client.");
-        let network_id = match get_network_id_from_metadata(request.metadata()) {
-            Some(m) => m,
-            None => {
-                return Err(Status::new(
-                    Code::Internal,
-                    "Network ID was not found in metadata",
-                ));
-            }
-        };
+        let network_id = Self::get_network_id(request.metadata())?;
 
         let pool = self.pool.clone();
         let mut network = WireguardNetwork::find_by_id(&pool, network_id)
@@ -462,15 +478,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
-        let gateway_network_id = match get_network_id_from_metadata(request.metadata()) {
-            Some(m) => m,
-            None => {
-                return Err(Status::new(
-                    Code::Internal,
-                    "Network ID was not found in metadata",
-                ));
-            }
-        };
+        let gateway_network_id = Self::get_network_id(request.metadata())?;
         let address = request.remote_addr().expect("Unable to get peer address.");
 
         let network = match WireguardNetwork::find_by_id(&self.pool, gateway_network_id)
@@ -509,16 +517,4 @@ impl gateway_service_server::GatewayService for GatewayServer {
             Arc::clone(&self.state),
         )))
     }
-}
-
-// parse network id from gateway request metadata from intercepted information from JWT token
-fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<i64> {
-    if let Some(ascii_value) = metadata.get("gateway_network_id") {
-        if let Ok(slice) = ascii_value.clone().to_str() {
-            if let Ok(id) = slice.parse::<i64>() {
-                return Some(id);
-            }
-        }
-    }
-    None
 }
