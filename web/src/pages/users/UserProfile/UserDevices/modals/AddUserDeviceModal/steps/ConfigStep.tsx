@@ -24,6 +24,7 @@ import MessageBox, {
 import {
   Select,
   SelectOption,
+  SelectSizeVariant,
 } from '../../../../../../../shared/components/layout/Select/Select';
 import { useModalStore } from '../../../../../../../shared/hooks/store/useModalStore';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
@@ -32,7 +33,7 @@ import { downloadWGConfig } from '../../../../../../../shared/utils/downloadWGCo
 
 export const ConfigStep = () => {
   const { LL, locale } = useI18nContext();
-  const configs = useModalStore((state) => state.userDeviceModal.configs);
+  const configsData = useModalStore((state) => state.userDeviceModal.configs);
   const deviceName = useModalStore((state) => state.userDeviceModal.deviceName);
   const nextStep = useModalStore((state) => state.userDeviceModal.nextStep);
   const toaster = useToaster();
@@ -79,20 +80,20 @@ export const ConfigStep = () => {
       />,
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [configs, deviceName, toaster, locale]);
+  }, [configsData, deviceName, toaster, locale]);
 
   const getSelectOptions = useMemo((): SelectOption<AddDeviceConfig>[] => {
-    if (configs) {
-      return configs.map((c) => configToSelectOption(c));
+    if (configsData) {
+      return configsData.map((c) => configToSelectOption(c));
     }
     return [];
-  }, [configs]);
+  }, [configsData]);
 
   useEffect(() => {
-    if (configs && configs.length && isUndefined(selectedConfig)) {
-      setSelectedConfig(configToSelectOption(configs[0]));
+    if (configsData && configsData.length && isUndefined(selectedConfig)) {
+      setSelectedConfig(configToSelectOption(configsData[0]));
     }
-  }, [configs, selectedConfig]);
+  }, [configsData, selectedConfig]);
 
   return (
     <>
@@ -110,13 +111,7 @@ export const ConfigStep = () => {
       <div className="info">
         <p>{LL.modals.addDevice.web.steps.config.qrInfo()}</p>
       </div>
-      <div className="card-label">
-        <Label>{LL.modals.addDevice.web.steps.config.qrLabel()}</Label>
-        <Helper initialPlacement="right">
-          {parse(LL.modals.addDevice.web.steps.config.qrHelper())}
-        </Helper>
-      </div>
-      {configs && configs.length > 0 && (
+      {configsData && configsData.length > 0 && (
         <ExpandableCard
           title={LL.modals.addDevice.web.steps.config.qrCardTitle()}
           actions={expandableCardActions}
@@ -131,6 +126,7 @@ export const ConfigStep = () => {
               }}
               multi={false}
               searchable={false}
+              sizeVariant={SelectSizeVariant.STANDARD}
             />
           }
           expanded
@@ -152,9 +148,9 @@ export const ConfigStep = () => {
 };
 
 const configToSelectOption = (
-  config: AddDeviceConfig
+  configData: AddDeviceConfig
 ): SelectOption<AddDeviceConfig> => ({
-  value: config,
-  label: config.network_name,
-  key: config.network_id,
+  value: configData,
+  label: configData.network_name,
+  key: configData.network_id,
 });

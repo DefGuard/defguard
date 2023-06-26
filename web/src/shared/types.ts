@@ -297,6 +297,11 @@ export type GetDeviceConfigRequest = {
   network_id: number;
 };
 
+export type AddDeviceResponse = {
+  device: Device;
+  configs: AddDeviceConfig[];
+};
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   oAuth: {
@@ -321,7 +326,7 @@ export interface ApiHook {
     removeFromGroup: (data: UserGroupRequest) => EmptyApiResponse;
   };
   device: {
-    addDevice: (device: AddDeviceRequest) => Promise<string>;
+    addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
     getDevice: (deviceId: string) => Promise<Device>;
     getDevices: () => Promise<Device[]>;
     getUserDevices: (username: string) => Promise<Device[]>;

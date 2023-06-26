@@ -23,6 +23,10 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { downloadWGConfig } from '../../../../../shared/utils/downloadWGConfig';
+import classNames from 'classnames';
+import { TargetAndTransition } from 'framer-motion';
+import { ColorsRGB } from '../../../../../shared/constants';
+import { sortByDate } from '../../../../../shared/utils/sortByDate';
 
 dayjs.extend(utc);
 
@@ -37,6 +41,7 @@ interface Props {
 }
 
 export const DeviceCard = ({ device }: Props) => {
+  const [hovered, setHovered] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { LL } = useI18nContext();
   const toaster = useToaster();
@@ -83,31 +88,64 @@ export const DeviceCard = ({ device }: Props) => {
     ));
   }, [LL.userPage.devices.card.edit, device.network_info, handleDownload]);
 
-  const formattedCreationDate = useMemo(() => displayDate(device.created), [device]);
+  const cn = useMemo(
+    () =>
+      classNames('device-card', {
+        expanded,
+      }),
+    [expanded]
+  );
+
+  const getContainerAnimate = useMemo((): TargetAndTransition => {
+    const res: TargetAndTransition = {
+      borderColor: ColorsRGB.White,
+    };
+    if (expanded || hovered) {
+      res.borderColor = ColorsRGB.GrayBorder;
+    }
+    return res;
+  }, [expanded, hovered]);
+
+  const latestLocation = useMemo(() => {
+    const sorted = sortByDate(device.network_info, (i) => i.last_connected_at, true);
+    return sorted[0];
+  }, [device.network_info]);
 
   if (!user) return null;
 
   return (
-    <Card className="device-card">
-      <div className="content-container">
-        <section className="main-info">
-          <header>
-            <AvatarBox>
-              <DeviceAvatar deviceId={Number(device.id)} />
-            </AvatarBox>
-            <h3 data-testid="device-name">{device.name}</h3>
-          </header>
-          <div className="section-content">
-            <div>
-              <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
-              <p>{formattedCreationDate}</p>
-            </div>
-            <div>
-              <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-              <p>{}</p>
-            </div>
+    <Card
+      className={cn}
+      initial={false}
+      animate={getContainerAnimate}
+      onMouseOver={() => setHovered(true)}
+      onMouseOut={() => setHovered(false)}
+    >
+      <section className="main-info">
+        <header>
+          <AvatarBox>
+            <DeviceAvatar deviceId={Number(device.id)} />
+          </AvatarBox>
+          <h3 data-testid="device-name">{device.name}</h3>
+        </header>
+        <div className="section-content">
+          <div>
+            <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
+            <p data-testid="device-last-connected-from">
+              {latestLocation.network_gateway_ip}
+            </p>
           </div>
-        </section>
+          <div>
+            <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
+            <p>{formatDate(latestLocation.last_connected_at)}</p>
+          </div>
+          <div>
+            <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
+            <p>{latestLocation.device_wireguard_ip}</p>
+          </div>
+        </div>
+      </section>
+      <div className="locations">
         {device.network_info.map((n) => (
           <DeviceLocation key={n.network_id} network_info={n} />
         ))}
@@ -145,20 +183,29 @@ type DeviceLocationProps = {
 const DeviceLocation = ({ network_info }: DeviceLocationProps) => {
   const { LL } = useI18nContext();
   return (
-    <div className="location">
+    <div
+      className="location"
+      data-testid={`device-location-id-${network_info.network_id}`}
+    >
       <header>
         <IconClip />
-        <h2>{network_info.network_name}</h2>
+        <h3 data-testid="device-location-name">{network_info.network_name}</h3>
         <Badge text={network_info.network_gateway_ip} />
       </header>
       <div className="section-content">
         <div>
+          <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
+          <p data-testid="device-last-connected-from">{network_info.last_connected_ip}</p>
+        </div>
+        <div>
           <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
-          <p>{formatDate(network_info.last_connected_at)}</p>
+          <p data-testid="device-last-connected-at">
+            {formatDate(network_info.last_connected_at)}
+          </p>
         </div>
         <div>
           <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-          <p>{network_info.device_wireguard_ip}</p>
+          <p data-testid="device-assigned-ip">{network_info.device_wireguard_ip}</p>
         </div>
       </div>
     </div>
@@ -173,7 +220,7 @@ type ExpandButtonProps = {
 const ExpandButton = ({ expanded, onClick }: ExpandButtonProps) => {
   return (
     <button className="device-card-expand" onClick={onClick}>
-      {expanded ? <IconExpand /> : <IconCollapse />}
+      {!expanded ? <IconExpand /> : <IconCollapse />}
     </button>
   );
 };

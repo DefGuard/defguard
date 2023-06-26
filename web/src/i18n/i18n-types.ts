@@ -307,7 +307,7 @@ type RootTranslation = {
 						}
 						form: {
 							/**
-							 * G​e​n​e​r​a​t​e​ ​C​o​n​f​i​g
+							 * G​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 							 */
 							submit: string
 							fields: {
@@ -2956,7 +2956,7 @@ export type TranslationFunctions = {
 						}
 						form: {
 							/**
-							 * Generate Config
+							 * Generate configuration
 							 */
 							submit: () => LocalizedString
 							fields: {

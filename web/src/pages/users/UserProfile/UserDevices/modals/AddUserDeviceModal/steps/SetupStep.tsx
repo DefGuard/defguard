@@ -24,6 +24,7 @@ import { MutationKeys } from '../../../../../../../shared/mutations';
 import { patternValidWireguardKey } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../../shared/utils/generateWGKeys';
+import { IconDownload } from '../../../../../../../shared/components/svg';
 
 export enum AddDeviceSetupChoice {
   AUTO_CONFIG = 1,
@@ -135,11 +136,15 @@ export const SetupStep = () => {
         name: values.name,
         wireguard_pubkey: keys.publicKey,
         username: user.username,
-      }).then((config) => {
-        const res = config.replace('YOUR_PRIVATE_KEY', keys.privateKey);
+      }).then((response) => {
+        const configs = response.configs.map((c) => {
+          c.config.replace('YOUR_PRIVATE_KEY', keys.privateKey);
+          return c;
+        });
+        const device = response.device;
         setModalState({
-          config: res,
-          deviceName: values.name,
+          configs,
+          deviceName: device.name,
           choice: values.choice,
         });
         nextStep();
@@ -149,11 +154,14 @@ export const SetupStep = () => {
         name: values.name,
         wireguard_pubkey: values.publicKey as string,
         username: user.username,
-      }).then((config) => {
+      }).then((response) => {
         // This needs to be replaced with valid key so the wireguard mobile app can consume QRCode without errors
-        const res = config.replace('YOUR_PRIVATE_KEY', values.publicKey as string);
+        const configs = response.configs.map((c) => {
+          c.config.replace('YOUR_PRIVATE_KEY', values.publicKey as string);
+          return c;
+        });
         setModalState({
-          config: res,
+          configs,
           deviceName: values.name,
           choice: values.choice,
         });
@@ -184,25 +192,13 @@ export const SetupStep = () => {
         />
         <div className="controls">
           <Button
-            className="cancel"
-            type="button"
-            text={LL.form.cancel()}
-            styleVariant={ButtonStyleVariant.STANDARD}
-            size={ButtonSize.BIG}
-            onClick={() =>
-              setModalState({
-                visible: false,
-                currentStep: 0,
-              })
-            }
-          />
-          <Button
             type="submit"
             text={LL.modals.addDevice.web.steps.setup.form.submit()}
             styleVariant={ButtonStyleVariant.PRIMARY}
             size={ButtonSize.BIG}
             disabled={!isValid}
             loading={addDeviceLoading}
+            icon={<IconDownload />}
           />
         </div>
       </form>

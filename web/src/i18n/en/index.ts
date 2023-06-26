@@ -152,7 +152,7 @@ const en: BaseTranslation = {
               manual: 'Use my own public key',
             },
             form: {
-              submit: 'Generate Config',
+              submit: 'Generate configuration',
               fields: {
                 name: {
                   label: 'Device Name',

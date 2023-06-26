@@ -66,7 +66,7 @@ export const ExpandableCard = ({
           {expanded ? <SvgIconUserListExpanded /> : <SvgIconUserListHover />}
           <span>{title}</span>
         </button>
-        {topExtras}
+        {!isUndefined(topExtras) && <div className="extras">{topExtras}</div>}
         {actions && <div className="actions">{actions}</div>}
       </div>
       {children && (controlledOutside ? expanded : localExpanded) ? (

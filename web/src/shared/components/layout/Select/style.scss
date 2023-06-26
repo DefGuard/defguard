@@ -45,9 +45,11 @@
       max-width: 100%;
       @include text-overflow-dots;
       @include typography(12px, 14px, medium, var(--text-main));
+      user-select: none;
 
       & > span {
         @include typography(12px, 14px, medium, var(--text-main));
+        user-select: none;
       }
     }
 

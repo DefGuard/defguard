@@ -2,11 +2,12 @@ import './style.scss';
 
 import classNames from 'classnames';
 import equal from 'fast-deep-equal';
-import { motion, Variant, Variants } from 'framer-motion';
+import { motion, TargetAndTransition } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import { ColorsRGB } from '../../../constants';
+import { CheckBox } from '../Checkbox/CheckBox';
 
 export interface ToggleOption<T> {
   text: string;
@@ -85,6 +86,7 @@ const ToggleOption = <T,>({
   active,
   disabled = false,
 }: ToggleOptionProps<T>) => {
+  const [hovered, setHovered] = useState(false);
   const cn = useMemo(
     () =>
       classNames('toggle-option', {
@@ -93,46 +95,41 @@ const ToggleOption = <T,>({
       }),
     [active, disabled]
   );
+
+  const getAnimate = useMemo((): TargetAndTransition => {
+    const res: TargetAndTransition = {
+      opacity: 1,
+      color: ColorsRGB.GrayLight,
+      borderColor: ColorsRGB.GrayBorder,
+    };
+
+    if (disabled) {
+      res.opacity = 0.5;
+    }
+
+    if (active) {
+      res.color = ColorsRGB.TextMain;
+      res.borderColor = ColorsRGB.Primary;
+    }
+    if (hovered && !active) {
+      res.borderColor = ColorsRGB.GrayBorderDark;
+    }
+    return res;
+  }, [active, disabled, hovered]);
+
   return (
     <motion.button
-      variants={ToggleOptionVariants}
       className={cn}
       onClick={() => onClick()}
       disabled={disabled}
-      custom={{ disabled }}
-      animate={active ? 'active' : 'idle'}
+      initial={false}
       type="button"
+      animate={getAnimate}
+      onMouseOver={() => setHovered(true)}
+      onMouseOut={() => setHovered(false)}
     >
-      {text}
+      <CheckBox value={active} />
+      <span>{text}</span>
     </motion.button>
   );
-};
-
-type ToggleOptionCustom = {
-  disabled?: boolean;
-};
-
-const ToggleOptionVariants: Variants = {
-  idle: ({ disabled }: ToggleOptionCustom) => {
-    const res: Variant = {
-      backgroundColor: ColorsRGB.BgLight,
-      color: ColorsRGB.GrayDarker,
-      opacity: 1,
-    };
-    if (disabled) {
-      res.opacity = 0.5;
-    }
-    return res;
-  },
-  active: ({ disabled }: ToggleOptionCustom) => {
-    const res: Variant = {
-      opacity: 1,
-      color: ColorsRGB.White,
-      backgroundColor: ColorsRGB.Primary,
-    };
-    if (disabled) {
-      res.opacity = 0.5;
-    }
-    return res;
-  },
 };
