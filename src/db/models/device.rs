@@ -411,7 +411,11 @@ impl Device {
             network_info.push(device_network_info);
 
             let config = self.create_config(&network, &wireguard_network_device);
-            configs.push(DeviceConfig { network_id, config });
+            configs.push(DeviceConfig {
+                network_id,
+                network_name: network.name,
+                config,
+            });
         }
         Ok((network_info, configs))
     }

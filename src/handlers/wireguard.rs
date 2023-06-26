@@ -373,6 +373,7 @@ pub async fn add_user_devices(
 #[derive(Serialize)]
 pub struct DeviceConfig {
     pub(crate) network_id: i64,
+    pub(crate) network_name: String,
     pub(crate) config: String,
 }
 
