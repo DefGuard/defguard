@@ -109,8 +109,7 @@ impl WireguardNetwork {
 
     /// Return number of devices that use this network.
     async fn device_count(&self, pool: &DbPool) -> Result<i64, SqlxError> {
-        // FIXME: currently there is only one hard-coded network with id = 1.
-        query_scalar!("SELECT count(*) \"count!\" FROM device")
+        query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
             .fetch_one(pool)
             .await
     }
