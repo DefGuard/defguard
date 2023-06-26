@@ -316,6 +316,11 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         &config.database_password,
     )
     .await;
+    let mut transaction = pool
+        .begin()
+        .await
+        .expect("Failed to initialize transaction");
+
     let mut network = WireguardNetwork::new(
         "TestNet".to_string(),
         "10.1.1.1/24".parse().unwrap(),
@@ -327,7 +332,10 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     .expect("Could not create network");
     network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
     network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
-    network.save(&pool).await.expect("Could not save network");
+    network
+        .save(&mut transaction)
+        .await
+        .expect("Could not save network");
 
     let mut device = Device::new(
         "TestDevice".to_string(),
@@ -335,10 +343,13 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         1,
     );
     device
-        .assign_ip(&pool, &network)
+        .assign_network_ip(&mut transaction, &network)
         .await
         .expect("Could not assign IP to device");
-    device.save(&pool).await.expect("Could not save device");
+    device
+        .save(&mut transaction)
+        .await
+        .expect("Could not save device");
 
     for app_id in 1..=3 {
         let mut app = OAuth2Client::new(
@@ -346,7 +357,14 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             vec!["openid".into(), "profile".into(), "email".into()],
             format!("app-{}", app_id),
         );
-        app.save(&pool).await.expect("Could not save oauth2client");
+        app.save(&mut transaction)
+            .await
+            .expect("Could not save oauth2client");
     }
+    transaction
+        .commit()
+        .await
+        .expect("Failed to commit transaction");
+
     info!("Dev environment initialized - TestNet, TestDevice, AuthorizedApps added");
 }

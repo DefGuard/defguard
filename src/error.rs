@@ -1,5 +1,7 @@
 use crate::auth::failed_login::FailedLoginError;
+use crate::db::models::device::DeviceError;
 use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
+use rocket::http::Status;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 
@@ -64,5 +66,16 @@ impl From<SqlxError> for OriWebError {
 impl From<ModelError> for OriWebError {
     fn from(error: ModelError) -> Self {
         Self::ModelError(error.to_string())
+    }
+}
+
+impl From<DeviceError> for OriWebError {
+    fn from(error: DeviceError) -> Self {
+        match error {
+            DeviceError::PubkeyConflict(_) => Self::Http(Status::BadRequest),
+            DeviceError::DatabaseError(_) => Self::DbError(format!("{}", error)),
+            DeviceError::ModelError(_) => Self::ModelError(format!("{}", error)),
+            DeviceError::Unexpected(_) => Self::Http(Status::InternalServerError),
+        }
     }
 }
