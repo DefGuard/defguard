@@ -77,7 +77,7 @@ export const DeviceCard = ({ device }: Props) => {
   );
 
   const renderDownloadConfigOptions = useMemo(() => {
-    return device.network_info.map((n) => (
+    return device.networks.map((n) => (
       <EditButtonOption
         key={n.network_id}
         text={LL.userPage.devices.card.edit.downloadConfig({
@@ -86,7 +86,7 @@ export const DeviceCard = ({ device }: Props) => {
         onClick={() => handleDownload(n.network_id, n.network_name)}
       />
     ));
-  }, [LL.userPage.devices.card.edit, device.network_info, handleDownload]);
+  }, [LL.userPage.devices.card.edit, device.networks, handleDownload]);
 
   const cn = useMemo(
     () =>
@@ -107,9 +107,9 @@ export const DeviceCard = ({ device }: Props) => {
   }, [expanded, hovered]);
 
   const latestLocation = useMemo(() => {
-    const sorted = sortByDate(device.network_info, (i) => i.last_connected_at, true);
+    const sorted = sortByDate(device.networks, (i) => i.last_connected_at, true);
     return sorted[0];
-  }, [device.network_info]);
+  }, [device.networks]);
 
   if (!user) return null;
 
@@ -146,7 +146,7 @@ export const DeviceCard = ({ device }: Props) => {
         </div>
       </section>
       <div className="locations">
-        {device.network_info.map((n) => (
+        {device.networks.map((n) => (
           <DeviceLocation key={n.network_id} network_info={n} />
         ))}
       </div>

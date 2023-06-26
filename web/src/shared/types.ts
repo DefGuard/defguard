@@ -78,7 +78,7 @@ export interface Device {
   name: string;
   wireguard_pubkey: string;
   created: string;
-  network_info: DeviceNetworkInfo[];
+  networks: DeviceNetworkInfo[];
 }
 
 export type DeviceNetworkInfo = {
