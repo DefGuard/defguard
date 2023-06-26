@@ -35,7 +35,7 @@ pub struct DeviceNetworkInfo {
 pub struct UserDevice {
     #[serde(flatten)]
     pub device: Device,
-    pub network_info: Vec<UserDeviceNetworkInfo>,
+    pub networks: Vec<UserDeviceNetworkInfo>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -80,7 +80,7 @@ impl UserDevice {
             // FIXME: populate current info based on peer stats
             return Ok(Some(Self {
                 device,
-                network_info: networks_info,
+                networks: networks_info,
             }));
         }
         Ok(None)
