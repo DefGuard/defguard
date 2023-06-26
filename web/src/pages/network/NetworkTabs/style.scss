@@ -1,0 +1,80 @@
+@use '@scssutils' as *;
+
+#network-page {
+  .network-tabs {
+    width: 100%;
+    max-width: 100%;
+    overflow-y: hidden;
+    overflow-x: auto;
+    box-sizing: border-box;
+    padding: 0 12px;
+    height: 43px;
+    display: grid;
+    grid-auto-columns: auto;
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: end;
+    column-gap: 5px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    & > .network-tab {
+      height: 32px;
+      overflow: hidden;
+      width: max-content;
+      box-sizing: border-box;
+      border: 0 solid transparent;
+      border-radius: 10px 10px 0 0;
+      padding: 0 20px;
+      background-color: var(--gray-lighter);
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: center;
+      column-gap: 10px;
+      user-select: none;
+      cursor: pointer;
+
+      @include typography(15px, 22.5px, medium, var(--gray-light), 'Poppins');
+
+      & > * {
+        display: block;
+        color: inherit;
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+        white-space: nowrap;
+      }
+
+      &.active,
+      &.hovered {
+        height: 43px;
+        color: var(--text-main);
+        background-color: var(--white);
+      }
+    }
+
+    & > .network-tab-skeleton {
+      padding: 0;
+      margin: 0;
+      display: block;
+      height: 32px;
+      width: 125px;
+
+      &:nth-of-type(1) {
+        height: 43px;
+      }
+
+      &:last-of-type {
+        width: 200px;
+      }
+
+      & > .react-loading-skeleton {
+        height: 100%;
+        border-radius: 10px 10px 0 0;
+      }
+    }
+  }
+}

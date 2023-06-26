@@ -50,6 +50,7 @@ export interface SelectProps<T> {
   onChange: (res: SelectResult<T>) => void;
   onRemove?: (v: SelectOption<T>, selected: SelectOption<T>[]) => SelectResult<T>;
   onSearch?: (value?: string) => void;
+  onCreate?: () => void;
   valid?: boolean;
   invalid?: boolean;
   errorMessage?: string;
@@ -76,6 +77,7 @@ export const Select = <T,>({
   onChange,
   onSearch,
   onRemove,
+  onCreate,
   options,
   placeholder,
   selected,
@@ -103,6 +105,7 @@ export const Select = <T,>({
   const searchPushRef = useRef<HTMLSpanElement | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchSubject] = useState<Subject<string | undefined>>(new Subject());
+  const extendable = useMemo(() => !isUndefined(onCreate), [onCreate]);
 
   const { x, y, reference, floating, strategy, refs } = useFloating({
     open,
@@ -403,7 +406,7 @@ export const Select = <T,>({
       </motion.div>
       <FloatingPortal>
         <AnimatePresence mode="wait">
-          {open && options && options.length > 0 && (
+          {open && options && (options.length > 0 || extendable) && (
             <motion.div
               initial="hidden"
               animate="show"
@@ -445,6 +448,17 @@ export const Select = <T,>({
                     />
                   );
                 })}
+                {extendable && (
+                  <SelectOption
+                    createOption
+                    onClick={() => {
+                      if (onCreate) {
+                        onCreate();
+                        setOpen(false);
+                      }
+                    }}
+                  />
+                )}
               </div>
             </motion.div>
           )}

@@ -16,6 +16,19 @@
 
       & > .controls {
         margin-top: calc(3.2rem - 2.5rem);
+        & > button {
+          & > .content {
+            & > .icon-container {
+              transform: scale(1.5);
+              svg {
+                g,
+                path {
+                  fill: var(--white);
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -34,13 +47,17 @@
       }
     }
 
+    & > .input-container {
+      margin: 0;
+    }
+
     & > .info {
       display: flex;
       flex-direction: row nowrap;
       align-items: center;
       align-content: center;
       justify-content: center;
-      margin-bottom: 4.6rem;
+      margin: 14px 0;
 
       p {
         text-align: center;
@@ -48,7 +65,7 @@
 
         @include regular-text;
 
-        color: var(--gray-darker);
+        color: var(--gray-dark);
       }
     }
 
@@ -68,6 +85,21 @@
 
     & > .expandable-card {
       margin-bottom: 2.7rem;
+
+      & > .top {
+        & > .expand-button {
+          & > span {
+            @include typography(12px, 1.2, medium, var(--gray-light));
+          }
+        }
+
+        & > .extras {
+          .select {
+            width: 120px;
+            height: 40px;
+          }
+        }
+      }
 
       & > .expanded-content {
         display: flex;

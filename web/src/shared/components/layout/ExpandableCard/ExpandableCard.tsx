@@ -16,6 +16,7 @@ interface Props {
   actions?: ReactNode[];
   onChange?: () => void;
   disableExpand?: boolean;
+  topExtras?: ReactNode;
 }
 
 export const ExpandableCard = ({
@@ -24,6 +25,7 @@ export const ExpandableCard = ({
   actions,
   onChange,
   expanded,
+  topExtras,
   disableExpand = false,
 }: Props) => {
   const cn = useMemo(
@@ -64,6 +66,7 @@ export const ExpandableCard = ({
           {expanded ? <SvgIconUserListExpanded /> : <SvgIconUserListHover />}
           <span>{title}</span>
         </button>
+        {!isUndefined(topExtras) && <div className="extras">{topExtras}</div>}
         {actions && <div className="actions">{actions}</div>}
       </div>
       {children && (controlledOutside ? expanded : localExpanded) ? (

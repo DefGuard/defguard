@@ -8,6 +8,10 @@ module.exports = {
   plugins: [
     // set of built-in plugins enabled by default
     {
+      name: 'removeViewBox',
+      active: false,
+    },
+    {
       name: 'preset-default',
       params: {
         overrides: {

@@ -138,7 +138,7 @@ const en: BaseTranslation = {
             <strong>on your device that you are adding now.</strong>
             <a>Read more in documentation.</a>
           </p>`,
-            qrCardTitle: 'WireGuard Config',
+            qrCardTitle: 'WireGuard Config for location:',
           },
           setup: {
             infoMessage: `
@@ -152,7 +152,7 @@ const en: BaseTranslation = {
               manual: 'Use my own public key',
             },
             form: {
-              submit: 'Generate Config',
+              submit: 'Generate configuration',
               fields: {
                 name: {
                   label: 'Device Name',
@@ -451,13 +451,14 @@ const en: BaseTranslation = {
       },
       card: {
         labels: {
-          location: 'Last location',
-          lastIpAddress: 'Last IP address',
-          date: 'Date added',
+          lastLocation: 'Last connected from',
+          lastConnected: 'Last connected',
+          assignedIp: 'Assigned IP',
+          active: 'active',
         },
         edit: {
           edit: 'Edit device',
-          download: 'Download config',
+          downloadConfig: 'Download config for {name:string}',
           delete: 'Delete device',
         },
       },
@@ -934,10 +935,12 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   networkOverview: {
-    pageTitle: 'Network overview',
+    pageTitle: 'Location overview',
     controls: {
-      editNetwork: 'Edit network settings',
-      configureNetwork: 'Configure network settings',
+      editNetworks: 'Edit Locations settings',
+      selectNetwork: {
+        placeholder: 'Loading locations',
+      },
     },
     filterLabels: {
       grid: 'Grid view',
@@ -967,29 +970,31 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   networkPage: {
-    pageTitle: 'Edit network',
+    pageTitle: 'Edit Location',
   },
   activityOverview: {
     header: 'Activity stream',
     noData: 'Currently there is no activity detected',
   },
   networkConfiguration: {
-    header: 'Network configuration',
-    importHeader: 'Network import',
+    header: 'Location configuration',
+    importHeader: 'Location import',
     form: {
-      messages: {
+      helpers: {
         address:
           'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)',
         gateway: 'Gateway public address, used by VPN users to connect',
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:
           'List of addresses/masks that should be routed through the VPN network.',
-        networkModified: 'Network modified.',
-        networkCreated: 'Network created.',
+      },
+      messages: {
+        networkModified: 'Location modified.',
+        networkCreated: 'Location created',
       },
       fields: {
         name: {
-          label: 'Network name',
+          label: 'Location name',
         },
         address: {
           label: 'Gateway VPN IP address and netmask',
@@ -1009,7 +1014,7 @@ Any other requests you can reach us at: support@defguard.net
       },
       controls: {
         submit: 'Save changes',
-        cancel: 'Back',
+        cancel: 'Back to Overview',
       },
     },
   },
@@ -1154,6 +1159,11 @@ Any other requests you can reach us at: support@defguard.net
         messages: { devicesCreated: 'Devices created' },
         validation: { invalidAddress: 'Invalid address' },
       },
+    },
+  },
+  layout: {
+    select: {
+      addNewOption: 'Add new',
     },
   },
 };

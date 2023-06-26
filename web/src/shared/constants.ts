@@ -3,7 +3,7 @@ export enum ColorsRGB {
   InputSelect = '#77c9ff',
   InputWarning = '#dc8787',
   White = '#ffffff',
-  GrayBorderDark = '#e8e8e8',
+  GrayBorderDark = '#617684',
   GrayBorder = '#e8e8e8',
   BgLight = '#f9f9f9',
   TextMain = '#222222',

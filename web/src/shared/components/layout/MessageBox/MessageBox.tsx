@@ -1,7 +1,7 @@
 import './style.scss';
 
 import classNames from 'classnames';
-import React, { ComponentPropsWithoutRef, useMemo } from 'react';
+import { ComponentPropsWithoutRef, useMemo } from 'react';
 
 import SvgIconDeactivated from '../../svg/IconDeactivated';
 import SvgIconInfo from '../../svg/IconInfo';

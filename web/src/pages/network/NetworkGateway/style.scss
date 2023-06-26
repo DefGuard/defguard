@@ -2,69 +2,64 @@
 
 #network-page {
   .gateway {
-    & > .card {
-      padding: 1.5rem 1.5rem 3rem;
+    & > .message-box-container {
+      min-height: 80px;
+      margin-bottom: 2rem;
+
       @include media-breakpoint-up(lg) {
-        padding: 3rem 4rem 5rem;
+        margin-bottom: 4rem;
+      }
+    }
+
+    & > .expandable-card {
+      & > .expanded-content {
+        overflow: hidden;
+        box-sizing: border-box;
+
+        & > p {
+          width: 100%;
+          max-width: 100%;
+          text-overflow: ellipsis;
+          text-align: left;
+          word-break: break-all;
+          white-space: normal;
+          @include small-text;
+
+          line-height: 22px;
+        }
+      }
+
+      margin-bottom: 3rem;
+    }
+
+    & > .status {
+      width: 100%;
+      display: flex;
+      flex-flow: column-reverse;
+      row-gap: 1.5rem;
+
+      @include media-breakpoint-up(lg) {
+        display: inline-grid;
+        grid-template-columns: 280px 1fr;
+        column-gap: 3rem;
+        grid-template-rows: 50px;
+        align-items: center;
+        justify-content: center;
+        align-content: center;
       }
 
       & > .message-box-container {
-        min-height: 80px;
-        margin-bottom: 2rem;
+        height: 50px;
+        min-height: 50px;
 
-        @include media-breakpoint-up(lg) {
-          margin-bottom: 4rem;
+        & > .message-box {
+          padding: 1rem 2rem;
         }
       }
 
-      & > .expandable-card {
-        & > .expanded-content {
-          overflow: hidden;
-
-          & > p {
-            max-width: 100%;
-            text-overflow: ellipsis;
-            text-align: left;
-            word-break: break-all;
-            white-space: normal;
-            @include small-text;
-
-            line-height: 22px;
-          }
-        }
-
-        margin-bottom: 3rem;
-      }
-
-      & > .status {
+      & > .btn {
+        height: 100%;
         width: 100%;
-        display: flex;
-        flex-flow: column-reverse;
-        row-gap: 1.5rem;
-
-        @include media-breakpoint-up(lg) {
-          display: inline-grid;
-          grid-template-columns: 280px 1fr;
-          column-gap: 3rem;
-          grid-template-rows: 50px;
-          align-items: center;
-          justify-content: center;
-          align-content: center;
-        }
-
-        & > .message-box-container {
-          height: 50px;
-          min-height: 50px;
-
-          & > .message-box {
-            padding: 1rem 2rem;
-          }
-        }
-
-        & > .btn {
-          height: 100%;
-          width: 100%;
-        }
       }
     }
   }

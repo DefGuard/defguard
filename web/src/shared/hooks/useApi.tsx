@@ -90,8 +90,10 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const fetchUsers = () => client.get('/user/').then(unpackRequest);
 
-  const downloadDeviceConfig = async (id: string) =>
-    client.get<string>(`/device/${id}/config`).then((res) => res.data);
+  const downloadDeviceConfig: ApiHook['device']['downloadDeviceConfig'] = async (data) =>
+    client
+      .get<string>(`/network/${data.network_id}/device/${data.device_id}/config`)
+      .then((res) => res.data);
 
   const modifyDevice = async (device: Device) =>
     client.put<Device>(`/device/${device.id}`, device).then((res) => res.data);
@@ -250,10 +252,10 @@ const useApi = (props?: HookProps): ApiHook => {
       })
       .then(unpackRequest);
 
-  const getNetworkToken = (id: string) =>
-    client.get<NetworkToken>(`/network/token/${id}`).then(unpackRequest);
+  const getNetworkToken: ApiHook['network']['getNetworkToken'] = (networkId) =>
+    client.get<NetworkToken>(`/network/token/${networkId}`).then(unpackRequest);
 
-  const getNetworkStats = (data: GetNetworkStatsRequest) =>
+  const getNetworkStats: ApiHook['network']['getNetworkStats'] = (data) =>
     client
       .get<WireguardNetworkStats>(`/network/${data.id}/stats`, {
         params: {

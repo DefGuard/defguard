@@ -216,6 +216,7 @@ pub async fn build_webapp(
             create_network_token,
             user_stats,
             network_stats,
+            download_config,
         ],
     );
 

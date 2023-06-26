@@ -73,13 +73,23 @@ export interface WalletInfo {
 }
 
 export interface Device {
-  id: string;
+  id: number;
+  user_id: number;
   name: string;
-  wireguard_ip: string;
   wireguard_pubkey: string;
-  config: string;
   created: string;
+  network_info: DeviceNetworkInfo[];
 }
+
+export type DeviceNetworkInfo = {
+  device_wireguard_ip: string;
+  is_active: boolean;
+  last_connected_at: string;
+  last_connected_ip: string;
+  network_gateway_ip: string;
+  network_id: number;
+  network_name: string;
+};
 
 export interface AddDeviceRequest {
   username: string;
@@ -282,6 +292,16 @@ export interface AppInfo {
   network_present: boolean;
 }
 
+export type GetDeviceConfigRequest = {
+  device_id: number;
+  network_id: number;
+};
+
+export type AddDeviceResponse = {
+  device: Device;
+  configs: AddDeviceConfig[];
+};
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   oAuth: {
@@ -306,13 +326,13 @@ export interface ApiHook {
     removeFromGroup: (data: UserGroupRequest) => EmptyApiResponse;
   };
   device: {
-    addDevice: (device: AddDeviceRequest) => Promise<string>;
+    addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
     getDevice: (deviceId: string) => Promise<Device>;
     getDevices: () => Promise<Device[]>;
     getUserDevices: (username: string) => Promise<Device[]>;
     editDevice: (device: Device) => Promise<Device>;
     deleteDevice: (device: Device) => EmptyApiResponse;
-    downloadDeviceConfig: (id: string) => Promise<string>;
+    downloadDeviceConfig: (data: GetDeviceConfigRequest) => Promise<string>;
   };
   network: {
     addNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
@@ -322,8 +342,8 @@ export interface ApiHook {
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (network: Network) => EmptyApiResponse;
-    getUsersStats: (data?: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
-    getNetworkToken: (networkId: string) => Promise<NetworkToken>;
+    getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
+    getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
     getNetworkStats: (data?: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewayStatus: () => Promise<ConnectionInfo>;
   };
@@ -495,8 +515,14 @@ interface ModalStepsState {
   nextStep: () => void;
 }
 
+export type AddDeviceConfig = {
+  network_id: number;
+  network_name: string;
+  config: string;
+};
+
 export interface UserDeviceModal extends StandardModalState, ModalStepsState {
-  config?: string;
+  configs?: AddDeviceConfig[];
   deviceName?: string;
   choice?: AddDeviceSetupChoice;
   reserverdNames?: string[];
@@ -683,6 +709,7 @@ export enum OverviewLayoutType {
 }
 
 export interface OverviewStore {
+  networks?: Network[];
   selectedNetworkId: number;
   viewMode: OverviewLayoutType;
   defaultViewMode: OverviewLayoutType;

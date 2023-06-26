@@ -23,6 +23,12 @@
     box-sizing: border-box;
     padding: 0 1.5rem 0 2rem;
 
+    & > .extras {
+      display: flex;
+      flex-flow: row nowrap;
+      margin-left: 20px;
+    }
+
     & > .expand-button {
       display: flex;
       flex-flow: row;

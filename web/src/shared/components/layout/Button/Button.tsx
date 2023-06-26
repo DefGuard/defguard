@@ -135,7 +135,7 @@ const Button = ({
             animate="show"
             exit="exit"
           >
-            {icon}
+            {!isUndefined(icon) && <span className="icon-container">{icon}</span>}
             <motion.span
               variants={textVariants}
               animate={textControls}

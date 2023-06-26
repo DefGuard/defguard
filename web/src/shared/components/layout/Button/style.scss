@@ -25,6 +25,14 @@
     text-align: center;
     user-select: none;
 
+    & > .icon-container {
+      display: flex;
+      height: max-content;
+      width: max-content;
+      align-items: center;
+      justify-content: center;
+    }
+
     span {
       a {
         text-decoration: none;
