@@ -1,4 +1,5 @@
 use super::{error::ModelError, wireguard::WireguardNetwork, DbPool};
+use crate::db::models::wireguard::WIREGUARD_MAX_HANDSHAKE_MINUTES;
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use lazy_static::lazy_static;
@@ -44,7 +45,7 @@ pub struct UserDeviceNetworkInfo {
     pub network_name: String,
     pub network_gateway_ip: String,
     pub device_wireguard_ip: String,
-    pub last_connected_ip: String,
+    pub last_connected_ip: Option<String>,
     pub last_connected_location: Option<String>,
     pub last_connected_at: NaiveDateTime,
     pub is_active: bool,
@@ -53,31 +54,48 @@ pub struct UserDeviceNetworkInfo {
 impl UserDevice {
     pub async fn from_device(pool: &DbPool, device: Device) -> Result<Option<Self>, SqlxError> {
         if let Some(device_id) = device.id {
+            // fetch device config and connection info for all networks
             let result = query!(
                 r#"
-            SELECT n.id, n.name, n.endpoint, wnd.wireguard_ip
-            FROM wireguard_network_device wnd
-            JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
-            WHERE wnd.device_id = $1
-        "#,
-                device_id
+                WITH stats AS (
+                    SELECT DISTINCT ON (network) network, endpoint, latest_handshake
+                    FROM wireguard_peer_stats
+                    ORDER BY network, collected_at DESC
+                )
+                SELECT
+                    n.id as network_id, n.name as network_name, n.endpoint as gateway_endpoint,
+                    wnd.wireguard_ip as device_wireguard_ip, stats.endpoint as device_endpoint,
+                    stats.latest_handshake, ((NOW() - stats.latest_handshake) < $1 * interval '1 minute') as "is_active!"
+                FROM wireguard_network_device wnd
+                JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
+                JOIN stats on n.id = stats.network
+                WHERE wnd.device_id = $2
+                "#,
+                WIREGUARD_MAX_HANDSHAKE_MINUTES as f64,
+                device_id,
             )
             .fetch_all(pool)
             .await?;
+
             let networks_info: Vec<UserDeviceNetworkInfo> = result
                 .into_iter()
-                .map(|r| UserDeviceNetworkInfo {
-                    network_id: r.id,
-                    network_name: r.name,
-                    network_gateway_ip: r.endpoint,
-                    device_wireguard_ip: r.wireguard_ip,
-                    last_connected_ip: "".to_string(),
-                    last_connected_location: None,
-                    last_connected_at: Default::default(),
-                    is_active: false,
+                .map(|r| {
+                    let device_ip = match r.device_endpoint {
+                        Some(endpoint) => endpoint.split(':').next().map(|ip| ip.to_owned()),
+                        None => None,
+                    };
+                    UserDeviceNetworkInfo {
+                        network_id: r.network_id,
+                        network_name: r.network_name,
+                        network_gateway_ip: r.gateway_endpoint,
+                        device_wireguard_ip: r.device_wireguard_ip,
+                        last_connected_ip: device_ip,
+                        last_connected_location: None,
+                        last_connected_at: r.latest_handshake,
+                        is_active: r.is_active,
+                    }
                 })
                 .collect();
-            // FIXME: populate current info based on peer stats
             return Ok(Some(Self {
                 device,
                 networks: networks_info,
