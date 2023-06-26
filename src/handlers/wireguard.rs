@@ -683,16 +683,28 @@ pub async fn user_stats(
     })
 }
 
-#[get("/stats?<from>", format = "json")]
+#[get("/<network_id>/stats?<from>", format = "json")]
 pub async fn network_stats(
     _admin: AdminRole,
     appstate: &State<AppState>,
     from: Option<String>,
+    network_id: i64,
 ) -> ApiResult {
     debug!("Displaying wireguard network stats");
+    let network = match WireguardNetwork::find_by_id(&appstate.pool, network_id).await? {
+        Some(n) => n,
+        None => {
+            return Err(OriWebError::ObjectNotFound(format!(
+                "Requested network ({}) not found",
+                network_id
+            )));
+        }
+    };
     let from = parse_timestamp(from)?.naive_utc();
     let aggregation = get_aggregation(from)?;
-    let stats = WireguardNetwork::network_stats(&appstate.pool, &from, &aggregation).await?;
+    let stats = network
+        .network_stats(&appstate.pool, &from, &aggregation)
+        .await?;
     info!("Displayed wireguard network stats");
 
     Ok(ApiResponse {

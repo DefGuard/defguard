@@ -372,6 +372,7 @@ impl WireguardNetwork {
 
     /// Retrieves total active users/devices since `from` timestamp
     async fn total_activity(
+        &self,
         conn: &DbPool,
         from: &NaiveDateTime,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
@@ -384,9 +385,10 @@ impl WireguardNetwork {
             FROM "user" u
                 JOIN device d ON d.user_id = u.id
                 JOIN wireguard_peer_stats s ON s.device_id = d.id
-                WHERE latest_handshake >= $1
+                WHERE latest_handshake >= $1 AND s.network = $2
             "#,
             from,
+            self.id,
         )
         .fetch_one(conn)
         .await?;
@@ -394,7 +396,10 @@ impl WireguardNetwork {
     }
 
     /// Retrieves currently connected users
-    async fn current_activity(conn: &DbPool) -> Result<WireguardNetworkActivityStats, SqlxError> {
+    async fn current_activity(
+        &self,
+        conn: &DbPool,
+    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
         // Add 2 minutes margin because gateway sends stats in 1 minute period
         let from = Utc::now()
             .naive_utc()
@@ -408,9 +413,10 @@ impl WireguardNetwork {
             FROM "user" u
                 JOIN device d ON d.user_id = u.id
                 JOIN wireguard_peer_stats s ON s.device_id = d.id
-                WHERE latest_handshake >= $1
+                WHERE latest_handshake >= $1 AND s.network = $2
             "#,
             from,
+            self.id
         )
         .fetch_one(conn)
         .await?;
@@ -420,6 +426,7 @@ impl WireguardNetwork {
     /// Retrieves network upload & download time series since `from` timestamp
     /// using `aggregation` (hour/minute) aggregation level
     async fn transfer_series(
+        &self,
         conn: &DbPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
@@ -431,13 +438,14 @@ impl WireguardNetwork {
                 date_trunc($1, collected_at) "collected_at: NaiveDateTime",
                 cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download
             FROM wireguard_peer_stats_view
-            WHERE collected_at >= $2
+            WHERE collected_at >= $2 AND network = $3
             GROUP BY 1
             ORDER BY 1
-            LIMIT $3
+            LIMIT $4
             "#,
             aggregation.fstring(),
             from,
+            self.id,
             PEER_STATS_LIMIT,
         )
         .fetch_all(conn)
@@ -447,13 +455,14 @@ impl WireguardNetwork {
 
     /// Retrieves network stats
     pub async fn network_stats(
+        &self,
         conn: &DbPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<WireguardNetworkStats, SqlxError> {
-        let total_activity = Self::total_activity(conn, from).await?;
-        let current_activity = Self::current_activity(conn).await?;
-        let transfer_series = Self::transfer_series(conn, from, aggregation).await?;
+        let total_activity = self.total_activity(conn, from).await?;
+        let current_activity = self.current_activity(conn).await?;
+        let transfer_series = self.transfer_series(conn, from, aggregation).await?;
         Ok(WireguardNetworkStats {
             current_active_users: current_activity.active_users,
             current_active_devices: current_activity.active_devices,
