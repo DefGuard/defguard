@@ -344,7 +344,6 @@ pub async fn add_user_devices(
                 );
                 wireguard_network_device.insert(&mut transaction).await?;
                 // send device to connected gateways
-                // FIXME: fill in actual network info
                 appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
                     device,
                     network_info: vec![DeviceNetworkInfo {
