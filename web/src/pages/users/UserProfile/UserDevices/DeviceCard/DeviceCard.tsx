@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { TargetAndTransition } from 'framer-motion';
+import { isUndefined, orderBy } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -105,14 +106,31 @@ export const DeviceCard = ({ device }: Props) => {
     return res;
   }, [expanded, hovered]);
 
-  const latestLocation = useMemo(() => {
-    const sorted = sortByDate(
-      device.networks.filter((network) => Boolean(network.last_connected_at)),
-      (i) => i.last_connected_at as string,
-      true
-    );
-    return sorted[0];
+  const sortedLocations = useMemo(() => {
+    let sortByDateAvailable = true;
+    device.networks.forEach((n) => {
+      if (!n.last_connected_at) {
+        sortByDateAvailable = false;
+      }
+    });
+    if (sortByDateAvailable) {
+      const sorted = sortByDate(
+        device.networks.filter((network) => Boolean(network.last_connected_at)),
+        (i) => i.last_connected_at as string,
+        true
+      );
+      return sorted;
+    } else {
+      return orderBy(device.networks, ['network_id'], ['desc']);
+    }
   }, [device.networks]);
+
+  const latestLocation = useMemo(() => {
+    if (sortedLocations.length) {
+      return sortedLocations[0];
+    }
+    return undefined;
+  }, [sortedLocations]);
 
   if (!user) return null;
 
@@ -135,19 +153,20 @@ export const DeviceCard = ({ device }: Props) => {
           <div>
             <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
             <p data-testid="device-last-connected-from">
-              {latestLocation.network_gateway_ip}
+              {latestLocation?.network_gateway_ip}
             </p>
           </div>
           <div>
             <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
             <p>
-              {latestLocation.last_connected_at &&
+              {!isUndefined(latestLocation) &&
+                !isUndefined(latestLocation.last_connected_at) &&
                 formatDate(latestLocation.last_connected_at)}
             </p>
           </div>
           <div>
             <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-            <p>{latestLocation.device_wireguard_ip}</p>
+            <p>{latestLocation?.device_wireguard_ip}</p>
           </div>
         </div>
       </section>
@@ -202,7 +221,7 @@ const DeviceLocation = ({
       <header>
         <IconClip />
         <h3 data-testid="device-location-name">{network_name}</h3>
-        <Badge text={network_gateway_ip} />
+        {!isUndefined(network_gateway_ip) && <Badge text={network_gateway_ip} />}
       </header>
       <div className="section-content">
         <div>

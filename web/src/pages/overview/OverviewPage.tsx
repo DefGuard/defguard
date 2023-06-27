@@ -16,6 +16,7 @@ import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
 import { sortByDate } from '../../shared/utils/sortByDate';
+import { useWizardStore } from '../wizard/hooks/useWizardStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
@@ -31,10 +32,11 @@ export const OverviewPage = () => {
   const setOverViewStore = useOverviewStore((state) => state.setState);
   const statsFilter = useOverviewStore((state) => state.statsFilter);
   const selectedNetworkId = useOverviewStore((state) => state.selectedNetworkId);
+  const resetWizard = useWizardStore((state) => state.resetState);
   const { LL } = useI18nContext();
 
   const {
-    network: { getNetworks, getUsersStats, getNetworkStats, getGatewayStatus },
+    network: { getNetworks, getUsersStats, getNetworkStats },
   } = useApi();
 
   const { isLoading: networksLoading } = useQuery(
@@ -43,6 +45,7 @@ export const OverviewPage = () => {
     {
       onSuccess: (res) => {
         if (!res.length) {
+          resetWizard();
           navigate('/admin/wizard', { replace: true });
         } else {
           setOverViewStore({ networks: res });
@@ -79,14 +82,6 @@ export const OverviewPage = () => {
     }
   );
 
-  const { data: gatewayStatus, isLoading: gatewayStatusLoading } = useQuery(
-    [QueryKeys.FETCH_GATEWAY_STATUS],
-    getGatewayStatus,
-    {
-      enabled: !isUndefined(selectedNetworkId),
-    }
-  );
-
   const getNetworkUsers = useMemo(() => {
     let res: NetworkUserStats[] = [];
     if (!isUndefined(networkUsersStats)) {
@@ -120,16 +115,15 @@ export const OverviewPage = () => {
           <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
         )}
         <div className="bottom-row">
-          {userStatsLoading || gatewayStatusLoading ? (
+          {userStatsLoading ? (
             <div className="stats-loader">
               <LoaderSpinner size={180} />
             </div>
-          ) : gatewayStatus?.connected ? (
+          ) : getNetworkUsers.length > 0 ? (
             <OverviewConnectedUsers stats={getNetworkUsers} />
           ) : (
             <NoData customMessage={LL.networkOverview.stats.gatewayDisconnected()} />
           )}
-          {/* <OverviewActivityStream /> */}
         </div>
       </PageContainer>
     </>

@@ -328,8 +328,6 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const getAppInfo: ApiHook['getAppInfo'] = () => client.get('/info').then(unpackRequest);
 
-  const getGatewayStatus = () => client.get('/connection').then(unpackRequest);
-
   const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
     client.get(`/settings/${id}`).then(unpackRequest);
 
@@ -376,7 +374,6 @@ const useApi = (props?: HookProps): ApiHook => {
       getUsersStats,
       getNetworkToken,
       getNetworkStats,
-      getGatewayStatus,
     },
     auth: {
       login,
