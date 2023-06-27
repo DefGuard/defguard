@@ -329,16 +329,8 @@ pub async fn add_user_devices(
             status: Status::BadRequest,
         });
     }
-    // checkPublic keys
-    for mapped_device in &mapped_devices {
-        if Device::validate_pubkey(&mapped_device.wireguard_pubkey).is_err() {
-            return Ok(ApiResponse {
-                json: json!({}),
-                status: Status::BadRequest,
-            });
-        }
-    }
-    debug!(
+
+    info!(
         "User {} mapping {} devices for network {}",
         user.username, device_count, network_id
     );
@@ -348,7 +340,7 @@ pub async fn add_user_devices(
         let mut device = Device::new(
             mapped_device.wireguard_pubkey.clone(),
             mapped_device.wireguard_pubkey.clone(),
-            network_id,
+            mapped_device.user_id,
         );
         device.save(&mut transaction).await?;
         match device.id {

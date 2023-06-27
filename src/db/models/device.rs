@@ -467,36 +467,6 @@ impl Device {
     }
 }
 
-// impl DeviceInfo {
-//     pub async fn from_device(pool: &DbPool, device: Device) -> Result<Option<Self>, SqlxError> {
-//         if let Some(device_id) = device.id {
-//             let result = query!(
-//                 r#"
-//             SELECT n.id, n.endpoint, n.name, wnd.wireguard_ip
-//             FROM wireguard_network_device wnd
-//             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
-//             WHERE wnd.device_id = $1
-//         "#,
-//                 device_id
-//             )
-//             .fetch_all(pool)
-//             .await?;
-//             let networks_info: Vec<DeviceNetworkInfo> = result
-//                 .iter()
-//                 .map(|r| DeviceNetworkInfo {
-//                     network_id: r.id,
-//                     device_wireguard_ip: r.wireguard_ip.clone(),
-//                 })
-//                 .collect();
-//             return Ok(Some(Self {
-//                 device,
-//                 network_info: networks_info,
-//             }));
-//         }
-//         Ok(None)
-//     }
-// }
-
 #[cfg(test)]
 mod test {
     use super::*;
