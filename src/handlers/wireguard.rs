@@ -491,7 +491,7 @@ pub async fn modify_device(
             });
         }
     }
-    // FIXME: wrap update process in DB transaction
+
     // update device info
     device.update_from(data.into_inner());
     device.save(&appstate.pool).await?;
