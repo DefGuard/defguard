@@ -693,7 +693,7 @@ pub async fn user_stats(
     let stats = network
         .user_stats(&appstate.pool, &from, &aggregation)
         .await?;
-    info!("Displayed wireguard user stats");
+    debug!("Displayed wireguard user stats");
 
     Ok(ApiResponse {
         json: json!(stats),
@@ -723,7 +723,7 @@ pub async fn network_stats(
     let stats = network
         .network_stats(&appstate.pool, &from, &aggregation)
         .await?;
-    info!("Displayed wireguard network stats");
+    debug!("Displayed wireguard network stats");
 
     Ok(ApiResponse {
         json: json!(stats),
