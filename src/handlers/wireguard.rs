@@ -163,11 +163,15 @@ pub async fn modify_network(
     let data = data.into_inner();
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
-    network.change_address(&appstate.pool, data.address).await?;
+
+    let mut transaction = appstate.pool.begin().await?;
+    network
+        .change_address(&mut transaction, data.address)
+        .await?;
     network.endpoint = data.endpoint;
     network.port = data.port;
     network.dns = data.dns;
-    network.save(&appstate.pool).await?;
+    network.save(&mut transaction).await?;
     match &network.id {
         Some(network_id) => {
             appstate
@@ -180,6 +184,7 @@ pub async fn modify_network(
             );
         }
     }
+    transaction.commit().await?;
     info!(
         "User {} updated WireGuard network {}",
         session.user.username, id
@@ -233,7 +238,7 @@ pub async fn list_networks(
             gateways: gateway_state.get_network_gateway_status(network_id),
         })
     }
-    info!("Listed WireGuard networks");
+    debug!("Listed WireGuard networks");
 
     Ok(ApiResponse {
         json: json!(network_info),
@@ -270,7 +275,7 @@ pub async fn network_details(
             status: Status::NotFound,
         },
     };
-    info!("Displayed network details for network {}", network_id);
+    debug!("Displayed network details for network {}", network_id);
 
     Ok(response)
 }
