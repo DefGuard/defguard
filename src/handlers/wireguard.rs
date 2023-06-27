@@ -367,6 +367,7 @@ pub async fn add_user_devices(
         "User {} mapping {} devices for network {}",
         user.username, device_count, network_id
     );
+
     // wrap loop in transaction to abort if a device is invalid
     let mut transaction = appstate.pool.begin().await?;
     for mapped_device in &mapped_devices {
@@ -376,28 +377,12 @@ pub async fn add_user_devices(
             mapped_device.user_id,
         );
         device.save(&mut transaction).await?;
-        match device.id {
-            Some(device_id) => {
-                // FIXME: assign IPs in other networks
-                let wireguard_network_device = WireguardNetworkDevice::new(
-                    network_id,
-                    device_id,
-                    mapped_device.wireguard_ip.clone(),
-                );
-                wireguard_network_device.insert(&mut transaction).await?;
-                // send device to connected gateways
-                appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
-                    device,
-                    network_info: vec![DeviceNetworkInfo {
-                        network_id,
-                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
-                    }],
-                }));
-            }
-            None => {
-                error!("No device id assigned after device save");
-            }
-        }
+        let (network_info, _configs) = device.add_to_networks(&mut transaction).await?;
+        // send device to connected gateways
+        appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+            device,
+            network_info,
+        }));
     }
     transaction.commit().await?;
 
