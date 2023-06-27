@@ -7,17 +7,19 @@ import {
   SelectSizeVariant,
   SelectStyleVariant,
 } from '../../../../../shared/components/layout/Select/Select';
-import { ImportedDevice } from '../../../../../shared/types';
-import { useWizardStore } from '../../../hooks/useWizardStore';
+import { MappedDevice } from '../../../../../shared/types';
+import { DeviceRowData } from '../WizardMapDevices';
 
 type Props = {
-  device: ImportedDevice;
+  device: DeviceRowData;
   options: SelectOption<number>[];
   testId?: string;
+  onChange: (device: MappedDevice) => void;
 };
-export const MapDeviceRow = ({ options, device, testId }: Props) => {
-  const mapDevice = useWizardStore((state) => state.mapDevice);
+
+export const MapDeviceRow = ({ options, device, testId, onChange }: Props) => {
   const [search, setSearch] = useState<string | undefined>();
+
   const getOptions = useMemo(() => {
     if (search && search.length) {
       return options.filter(
@@ -28,15 +30,17 @@ export const MapDeviceRow = ({ options, device, testId }: Props) => {
     }
     return options;
   }, [options, search]);
+
   const getSelected = useMemo(
     () => options.find((u) => u.value === device.user_id),
     [device.user_id, options]
   );
+
   return (
     <RowBox className="device" data-testid={testId}>
-      <span className="name">{device.name}</span>
+      <span className="name">{device.wireguard_pubkey}</span>
       <span className="ip">{device.wireguard_ip}</span>
-      <Select
+      <Select<number>
         searchable
         styleVariant={SelectStyleVariant.LIGHT}
         sizeVariant={SelectSizeVariant.SMALL}
@@ -47,7 +51,11 @@ export const MapDeviceRow = ({ options, device, testId }: Props) => {
         searchDebounce={50}
         onChange={(res) => {
           if (!Array.isArray(res) && res) {
-            mapDevice(device.wireguard_ip, res.value);
+            const result: MappedDevice = {
+              ...device,
+              user_id: res.value,
+            };
+            onChange(result);
           }
         }}
       />

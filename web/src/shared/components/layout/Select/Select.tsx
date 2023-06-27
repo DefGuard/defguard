@@ -23,7 +23,9 @@ import { Tag } from '../Tag/Tag';
 import { SelectArrowIcon } from './SelectArrowIcon';
 import { SelectOption } from './SelectOption';
 
-export interface SelectOption<T> {
+export type SelectValue = string | number;
+
+export interface SelectOption<T extends SelectValue> {
   value: T;
   label: string;
   disabled?: boolean;
@@ -32,7 +34,10 @@ export interface SelectOption<T> {
   meta?: any;
 }
 
-export type SelectResult<T> = SelectOption<T> | SelectOption<T>[] | undefined;
+export type SelectResult<T extends SelectValue> =
+  | SelectOption<T>
+  | SelectOption<T>[]
+  | undefined;
 
 export enum SelectStyleVariant {
   LIGHT = 'light',
@@ -44,7 +49,7 @@ export enum SelectSizeVariant {
   SMALL = 'SMALL',
 }
 
-export interface SelectProps<T> {
+export interface SelectProps<T extends SelectValue> {
   selected?: SelectResult<T>;
   options?: SelectOption<T>[];
   onChange: (res: SelectResult<T>) => void;
@@ -70,10 +75,12 @@ export interface SelectProps<T> {
   'data-testid'?: string;
 }
 
-const defaultOnRemove = <T,>(v: SelectOption<T>, pool: SelectOption<T>[]) =>
-  pool.filter((o) => o.key !== v.key);
+const defaultOnRemove = <T extends SelectValue>(
+  v: SelectOption<T>,
+  pool: SelectOption<T>[]
+) => pool.filter((o) => o.key !== v.key);
 
-export const Select = <T,>({
+export const Select = <T extends SelectValue>({
   onChange,
   onSearch,
   onRemove,

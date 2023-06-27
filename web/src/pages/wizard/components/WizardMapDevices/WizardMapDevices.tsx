@@ -1,7 +1,8 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo } from 'react';
+import { isUndefined } from 'lodash-es';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation } from 'wagmi';
 import { shallow } from 'zustand/shallow';
 
@@ -16,21 +17,23 @@ import {
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { ImportedDevice } from '../../../../shared/types';
+import { ImportedDevice, MappedDevice } from '../../../../shared/types';
 import { useWizardStore } from '../../hooks/useWizardStore';
 import { MapDeviceRow } from './components/MapDeviceRow';
 
 export const WizardMapDevices = () => {
+  const [mappedDevices, setMappedDevices] = useState<DeviceRowData[]>([]);
   const { LL } = useI18nContext();
   const {
-    network: { createUserDevices },
+    network: { mapUserDevices: createUserDevices },
   } = useApi();
   const toaster = useToaster();
   const [submitSubject, nextStepSubject, setWizardState] = useWizardStore(
     (state) => [state.submitSubject, state.nextStepSubject, state.setState],
     shallow
   );
-  const devices = useWizardStore((state) => state.importedNetworkDevices);
+  const importedDevices = useWizardStore((state) => state.importedNetworkDevices);
+  const importedNetwork = useWizardStore((state) => state.importedNetworkConfig);
   const {
     user: { getUsers },
   } = useApi();
@@ -58,7 +61,7 @@ export const WizardMapDevices = () => {
         value: user.id as number,
         label: `${user.first_name} ${user.last_name}`,
         key: user.id as number,
-        meta: user.username,
+        meta: ``,
       })) ?? [],
     [users]
   );
@@ -72,39 +75,72 @@ export const WizardMapDevices = () => {
     []
   );
 
+  const handleDeviceChange = useCallback(
+    (device: MappedDevice) => {
+      const clone = [...mappedDevices];
+      const deviceIndex = clone.findIndex(
+        (d) => d.wireguard_pubkey === device.wireguard_pubkey
+      );
+      if (!isUndefined(deviceIndex)) {
+        clone[deviceIndex] = device;
+        setMappedDevices(clone);
+      }
+    },
+    [mappedDevices]
+  );
+
   const renderRow = useCallback(
-    (device: ImportedDevice, index?: number) => (
+    (device: DeviceRowData, index?: number) => (
       <MapDeviceRow
         options={getUsersOptions}
         device={device}
         testId={`map-device-${index}`}
+        onChange={handleDeviceChange}
       />
     ),
-    [getUsersOptions]
+    [getUsersOptions, handleDeviceChange]
   );
+
+  const handleSubmit = useCallback(() => {
+    if (mappedDevices.length && importedNetwork?.id) {
+      const deviceWithoutUser = mappedDevices?.find((d) => isUndefined(d.user_id));
+      if (deviceWithoutUser) {
+        toaster.error('Please assign all remaining devices.');
+      } else {
+        setWizardState({ loading: true });
+        mutate({
+          devices: mappedDevices as MappedDevice[],
+          networkId: importedNetwork.id,
+        });
+      }
+    }
+  }, [importedNetwork?.id, mappedDevices, mutate, setWizardState, toaster]);
 
   useEffect(() => {
     const sub = submitSubject.subscribe(() => {
-      if (devices) {
-        const deviceWithoutUser = devices?.find((d) => d.user_id === -1);
-        if (deviceWithoutUser) {
-          toaster.error('Please assign all remaining devices.');
-        } else {
-          setWizardState({ loading: true });
-          mutate({ devices });
-        }
-      }
+      handleSubmit();
     });
     return () => sub?.unsubscribe();
-  }, [devices, mutate, setWizardState, submitSubject, toaster]);
+  }, [handleSubmit, submitSubject]);
 
-  if (isLoading || !devices || createLoading) return <LoaderSpinner />;
+  useEffect(() => {
+    if (importedDevices) {
+      const res: DeviceRowData[] = importedDevices.map((d) => ({
+        user_id: undefined,
+        wireguard_ip: d.wireguard_ip,
+        wireguard_pubkey: d.wireguard_pubkey,
+      }));
+      setMappedDevices(res);
+    }
+  }, [importedDevices]);
+
+  if (isLoading || !importedDevices || createLoading) return <LoaderSpinner />;
 
   return (
     <Card id="wizard-map-devices" shaded>
-      <VirtualizedList<ImportedDevice>
+      <VirtualizedList<DeviceRowData>
         customRowRender={renderRow}
-        data={devices}
+        data={mappedDevices}
         rowSize={70}
         headers={getHeaders}
         headerPadding={{
@@ -118,4 +154,8 @@ export const WizardMapDevices = () => {
       />
     </Card>
   );
+};
+
+export type DeviceRowData = ImportedDevice & {
+  user_id?: number;
 };

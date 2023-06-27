@@ -35,9 +35,14 @@ export const ConfigStep = () => {
   const deviceName = useModalStore((state) => state.userDeviceModal.deviceName);
   const nextStep = useModalStore((state) => state.userDeviceModal.nextStep);
   const toaster = useToaster();
-  const [selectedConfig, setSelectedConfig] = useState<
-    SelectOption<AddDeviceConfig> | undefined
+  const [selectedConfigOption, setSelectedConfigOption] = useState<
+    SelectOption<number> | undefined
   >();
+
+  const selectedConfig = useMemo(
+    () => configsData?.find((c) => c.network_id === selectedConfigOption?.value),
+    [selectedConfigOption, configsData]
+  );
 
   const expandableCardActions = useMemo(() => {
     return [
@@ -48,7 +53,7 @@ export const ConfigStep = () => {
         onClick={() => {
           if (selectedConfig) {
             clipboard
-              .write(selectedConfig.value.config)
+              .write(selectedConfig.config)
               .then(() => {
                 toaster.success(
                   LL.modals.addDevice.web.steps.config.messages.copyConfig()
@@ -66,10 +71,8 @@ export const ConfigStep = () => {
         onClick={() => {
           if (selectedConfig) {
             downloadWGConfig(
-              selectedConfig.value.config,
-              `${deviceName
-                ?.toLowerCase()
-                .replace(' ', '')}-${selectedConfig.value.network_name
+              selectedConfig.config,
+              `${deviceName?.toLowerCase().replace(' ', '')}-${selectedConfig.network_name
                 .toLowerCase()
                 .replace(' ', '')}.conf`
             );
@@ -80,7 +83,7 @@ export const ConfigStep = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configsData, deviceName, toaster, locale]);
 
-  const getSelectOptions = useMemo((): SelectOption<AddDeviceConfig>[] => {
+  const getSelectOptions = useMemo((): SelectOption<number>[] => {
     if (configsData) {
       return configsData.map((c) => configToSelectOption(c));
     }
@@ -88,10 +91,10 @@ export const ConfigStep = () => {
   }, [configsData]);
 
   useEffect(() => {
-    if (configsData && configsData.length && isUndefined(selectedConfig)) {
-      setSelectedConfig(configToSelectOption(configsData[0]));
+    if (configsData && configsData.length && isUndefined(selectedConfigOption)) {
+      setSelectedConfigOption(configToSelectOption(configsData[0]));
     }
-  }, [configsData, selectedConfig]);
+  }, [configsData, selectedConfigOption]);
 
   return (
     <>
@@ -115,11 +118,11 @@ export const ConfigStep = () => {
           actions={expandableCardActions}
           topExtras={
             <Select
-              selected={selectedConfig}
+              selected={selectedConfigOption}
               options={getSelectOptions}
               onChange={(o) => {
                 if (!Array.isArray(o)) {
-                  setSelectedConfig(o);
+                  setSelectedConfigOption(o);
                 }
               }}
               multi={false}
@@ -129,7 +132,7 @@ export const ConfigStep = () => {
           }
           expanded
         >
-          {selectedConfig && <QRCode value={selectedConfig.value.config} size={250} />}
+          {selectedConfig && <QRCode value={selectedConfig?.config} size={250} />}
           {isUndefined(selectedConfig) && <LoaderSpinner size={250} />}
         </ExpandableCard>
       )}
@@ -145,10 +148,8 @@ export const ConfigStep = () => {
   );
 };
 
-const configToSelectOption = (
-  configData: AddDeviceConfig
-): SelectOption<AddDeviceConfig> => ({
-  value: configData,
+const configToSelectOption = (configData: AddDeviceConfig): SelectOption<number> => ({
+  value: configData.network_id,
   label: configData.network_name,
   key: configData.network_id,
 });
