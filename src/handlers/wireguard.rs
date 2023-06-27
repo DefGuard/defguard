@@ -105,7 +105,16 @@ pub async fn create_network(
         allowed_ips,
     )
     .map_err(|_| OriWebError::Serialization("Invalid network address".into()))?;
-    network.save(&appstate.pool).await?;
+
+    let mut transaction = appstate.pool.begin().await?;
+    network.save(&mut transaction).await?;
+
+    // generate IP addresses for existing devices
+    let devices = Device::all(&mut transaction).await?;
+    for device in devices {
+        device.assign_network_ip(&mut transaction, &network).await?;
+    }
+
     match &network.id {
         Some(network_id) => {
             appstate
@@ -119,6 +128,9 @@ pub async fn create_network(
             });
         }
     }
+
+    transaction.commit().await?;
+
     info!(
         "User {} created WireGuard network {}",
         session.user.username, network_name
