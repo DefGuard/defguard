@@ -97,6 +97,7 @@
     "@babel/core": "^7.22.5",
     "@hookform/devtools": "^4.3.1",
     "@svgr/cli": "^8.0.1",
+    "@tanstack/react-query-devtools": "^4.29.18",
     "@tauri-apps/cli": "^1.3.1",
     "@types/byte-size": "^8.1.0",
     "@types/file-saver": "^2.0.5",

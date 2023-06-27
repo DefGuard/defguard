@@ -60,19 +60,7 @@ export const NetworkEditForm = () => {
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
 
-  const { mutate } = useMutation([MutationKeys.CHANGE_NETWORK], editNetwork, {
-    onSuccess: async () => {
-      setStoreState({ loading: false });
-      toaster.success(LL.networkConfiguration.form.messages.networkModified());
-      await queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
-      await queryClient.refetchQueries([QueryKeys.FETCH_NETWORKS]);
-    },
-    onError: (err) => {
-      setStoreState({ loading: false });
-      console.error(err);
-      toaster.error(LL.messages.error());
-    },
-  });
+  const { mutateAsync } = useMutation([MutationKeys.CHANGE_NETWORK], editNetwork);
 
   const defaultFormValues = useMemo(() => {
     if (selectedNetworkId && networks) {
@@ -143,10 +131,29 @@ export const NetworkEditForm = () => {
 
   const onValidSubmit: SubmitHandler<FormInputs> = async (values) => {
     setStoreState({ loading: true });
-    mutate({
+    mutateAsync({
       id: selectedNetworkId,
       network: values,
-    });
+    })
+      .then(() => {
+        setStoreState({ loading: false });
+        toaster.success(LL.networkConfiguration.form.messages.networkModified());
+        const keys = [
+          QueryKeys.FETCH_NETWORK,
+          QueryKeys.FETCH_NETWORKS,
+          QueryKeys.FETCH_NETWORK_TOKEN,
+        ];
+        for (const key of keys) {
+          queryClient.refetchQueries({
+            queryKey: [key],
+          });
+        }
+      })
+      .catch((err) => {
+        setStoreState({ loading: false });
+        console.error(err);
+        toaster.error(LL.messages.error());
+      });
   };
 
   // reset form when network is selected

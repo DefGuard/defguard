@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useQuery } from 'wagmi';
+import { useQuery } from '@tanstack/react-query';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { Card } from '../../shared/components/layout/Card/Card';
@@ -20,11 +20,12 @@ export const NetworkPage = () => {
   const { LL } = useI18nContext();
   const setPageStore = useNetworkPageStore((state) => state.setState);
 
-  useQuery([QueryKeys.FETCH_NETWORKS], getNetworks, {
+  useQuery({
+    queryKey: [QueryKeys.FETCH_NETWORKS],
+    queryFn: getNetworks,
     onSuccess: (res) => {
       setPageStore({ networks: res });
     },
-    refetchOnMount: true,
     refetchOnWindowFocus: false,
   });
 
