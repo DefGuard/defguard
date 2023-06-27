@@ -106,7 +106,11 @@ export const DeviceCard = ({ device }: Props) => {
   }, [expanded, hovered]);
 
   const latestLocation = useMemo(() => {
-    const sorted = sortByDate(device.networks, (i) => i.last_connected_at, true);
+    const sorted = sortByDate(
+      device.networks.filter((network) => Boolean(network.last_connected_at)),
+      (i) => i.last_connected_at as string,
+      true
+    );
     return sorted[0];
   }, [device.networks]);
 
@@ -136,7 +140,10 @@ export const DeviceCard = ({ device }: Props) => {
           </div>
           <div>
             <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
-            <p>{formatDate(latestLocation.last_connected_at)}</p>
+            <p>
+              {latestLocation.last_connected_at &&
+                formatDate(latestLocation.last_connected_at)}
+            </p>
           </div>
           <div>
             <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
@@ -179,32 +186,38 @@ type DeviceLocationProps = {
   network_info: DeviceNetworkInfo;
 };
 
-const DeviceLocation = ({ network_info }: DeviceLocationProps) => {
+const DeviceLocation = ({
+  network_info: {
+    network_id,
+    network_name,
+    network_gateway_ip,
+    last_connected_ip,
+    last_connected_at,
+    device_wireguard_ip,
+  },
+}: DeviceLocationProps) => {
   const { LL } = useI18nContext();
   return (
-    <div
-      className="location"
-      data-testid={`device-location-id-${network_info.network_id}`}
-    >
+    <div className="location" data-testid={`device-location-id-${network_id}`}>
       <header>
         <IconClip />
-        <h3 data-testid="device-location-name">{network_info.network_name}</h3>
-        <Badge text={network_info.network_gateway_ip} />
+        <h3 data-testid="device-location-name">{network_name}</h3>
+        <Badge text={network_gateway_ip} />
       </header>
       <div className="section-content">
         <div>
           <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
-          <p data-testid="device-last-connected-from">{network_info.last_connected_ip}</p>
+          <p data-testid="device-last-connected-from">{last_connected_ip}</p>
         </div>
         <div>
           <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
           <p data-testid="device-last-connected-at">
-            {formatDate(network_info.last_connected_at)}
+            {last_connected_at && formatDate(last_connected_at)}
           </p>
         </div>
         <div>
           <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-          <p data-testid="device-assigned-ip">{network_info.device_wireguard_ip}</p>
+          <p data-testid="device-assigned-ip">{device_wireguard_ip}</p>
         </div>
       </div>
     </div>

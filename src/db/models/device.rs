@@ -49,7 +49,7 @@ pub struct UserDeviceNetworkInfo {
     pub device_wireguard_ip: String,
     pub last_connected_ip: Option<String>,
     pub last_connected_location: Option<String>,
-    pub last_connected_at: NaiveDateTime,
+    pub last_connected_at: Option<NaiveDateTime>,
     pub is_active: bool,
 }
 
@@ -67,10 +67,11 @@ impl UserDevice {
                 SELECT
                     n.id as network_id, n.name as network_name, n.endpoint as gateway_endpoint,
                     wnd.wireguard_ip as device_wireguard_ip, stats.endpoint as device_endpoint,
-                    stats.latest_handshake, ((NOW() - stats.latest_handshake) < $1 * interval '1 minute') as "is_active!"
+                    stats.latest_handshake as "latest_handshake?",
+                    COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as "is_active!"
                 FROM wireguard_network_device wnd
                 JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
-                JOIN stats on n.id = stats.network
+                LEFT JOIN stats on n.id = stats.network
                 WHERE wnd.device_id = $2
                 "#,
                 WIREGUARD_MAX_HANDSHAKE_MINUTES as f64,
