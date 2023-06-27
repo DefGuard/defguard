@@ -1,7 +1,8 @@
+use defguard::db::UserDetails;
 use defguard::handlers::WalletChallenge;
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
-    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, UserInfo, Wallet},
+    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, Wallet},
     handlers::AuthResponse,
     handlers::{Auth, AuthCode, AuthTotp},
 };
@@ -318,7 +319,7 @@ async fn test_webauthn() {
     // get security keys
     let response = client.get("/api/v1/me").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
-    let user_info: UserInfo = response.into_json().await.unwrap();
+    let user_info: UserDetails = response.into_json().await.unwrap();
     assert_eq!(user_info.security_keys.len(), 1);
 
     // delete security key
@@ -339,7 +340,7 @@ async fn test_webauthn() {
     // check that recovery codes were cleared since last MFA method was removed
     let record = query!(
         "SELECT recovery_codes FROM \"user\" WHERE id = $1",
-        user_info.id,
+        user_info.user.id,
     )
     .fetch_one(&pool)
     .await
@@ -489,10 +490,10 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     // get user info
     let response = client.get("/api/v1/user/hpotter").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
-    let mut user_info: UserInfo = response.into_json().await.unwrap();
+    let mut user_info: UserDetails = response.into_json().await.unwrap();
 
     // set default MFA method
-    user_info.mfa_method = MFAMethod::Webauthn;
+    user_info.user.mfa_method = MFAMethod::Webauthn;
     let response = client
         .put("/api/v1/user/hpotter")
         .json(&user_info)

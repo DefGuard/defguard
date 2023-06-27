@@ -166,7 +166,7 @@ impl UserInfo {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UserDetails {
     #[serde(flatten)]
-    user: UserInfo,
+    pub user: UserInfo,
     #[serde(default)]
     pub devices: Vec<UserDevice>,
     #[serde(default)]

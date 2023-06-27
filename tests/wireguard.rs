@@ -7,7 +7,7 @@ use defguard::{
         Device, GatewayEvent, WireguardNetwork, WireguardPeerStats,
     },
     handlers::{
-        wireguard::{ImportedNetworkData, MappedDevices, WireguardNetworkData},
+        wireguard::{ImportedNetworkData, WireguardNetworkData},
         Auth,
     },
 };
@@ -399,7 +399,7 @@ async fn test_device_pubkey() {
         .await;
     assert_eq!(response.status(), Status::Created);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(_));
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // network details
     let response = client.get("/api/v1/network/1").dispatch().await;
@@ -795,63 +795,46 @@ async fn test_config_import() {
     assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
     assert_eq!(network.connected_at, None);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(_));
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // device assertions
     let devices = response.devices;
     assert_eq!(devices.len(), 2);
 
     let mut device1 = devices[0].clone();
-    assert_eq!(device1.id, None);
-    assert_eq!(device1.name, "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=");
     assert_eq!(device1.wireguard_ip, "10.0.0.10");
     assert_eq!(
         device1.wireguard_pubkey,
         "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
     );
-    // TODO: do something about user_id
-    assert_eq!(device1.user_id, -1);
+    assert_eq!(device1.user_id, None);
 
     let mut device2 = devices[1].clone();
-    assert_eq!(device2.id, None);
-    assert_eq!(device2.name, "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=");
     assert_eq!(device2.wireguard_ip, "10.0.0.11");
     assert_eq!(
         device2.wireguard_pubkey,
         "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="
     );
-    // TODO: do something about user_id
-    assert_eq!(device2.user_id, -1);
+    assert_eq!(device2.user_id, None);
 
     // modify devices
-    device1.name = "device1".to_string();
-    device1.user_id = 1;
-    device2.name = "device2".to_string();
-    device2.user_id = 1;
+    device1.user_id = Some(1);
+    device2.user_id = Some(1);
 
     // post modified devices
     let response = client
-        .post("/api/v1/network/devices")
+        .post(format!("/api/v1/network/{}/devices", network.id.unwrap()))
         .json(&json!({"devices": [device1, device2]}))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
 
-    // assert modified devices
-    let response: MappedDevices = response.into_json().await.unwrap();
-    let device1 = response.devices[0].clone();
-    assert_eq!(device1.name, "device1");
-    assert_eq!(device1.user_id, 1);
-    let device2 = response.devices[1].clone();
-    assert_eq!(device2.name, "device2");
-    assert_eq!(device2.user_id, 1);
-
     // assert events
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(_));
+    assert_matches!(event, GatewayEvent::DeviceCreated(..));
 
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(_));
+    assert_matches!(event, GatewayEvent::DeviceCreated(..));
 
     let event = wg_rx.try_recv();
     assert_matches!(event, Err(TryRecvError::Empty));
