@@ -133,8 +133,9 @@ export interface ImportNetworkRequest {
   config: string;
 }
 
-export interface CreateUserDevicesRequest {
-  devices: ImportedDevice[];
+export interface MapUserDevicesRequest {
+  networkId: number;
+  devices: MappedDevice[];
 }
 
 export interface NetworkToken {
@@ -288,10 +289,11 @@ export interface ImportNetworkResponse {
 }
 
 export interface ImportedDevice {
-  id?: string;
-  name: string;
   wireguard_ip: string;
   wireguard_pubkey: string;
+}
+
+export interface MappedDevice extends ImportedDevice {
   user_id: number;
 }
 
@@ -345,7 +347,7 @@ export interface ApiHook {
   network: {
     addNetwork: (network: ModifyNetworkRequest['network']) => Promise<Network>;
     importNetwork: (network: ImportNetworkRequest) => Promise<ImportNetworkResponse>;
-    createUserDevices: (devices: CreateUserDevicesRequest) => EmptyApiResponse;
+    mapUserDevices: (devices: MapUserDevicesRequest) => EmptyApiResponse;
     getNetwork: (networkId: number) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;

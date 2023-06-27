@@ -2,13 +2,19 @@ import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { FieldValues, useController, UseControllerProps } from 'react-hook-form';
 
-import { Select, SelectOption, SelectProps } from '../../layout/Select/Select';
+import {
+  Select,
+  SelectOption,
+  SelectProps,
+  SelectValue,
+} from '../../layout/Select/Select';
 
-interface Props<T extends FieldValues, Y> extends Omit<SelectProps<Y>, 'onChange'> {
+interface Props<T extends FieldValues, Y extends SelectValue>
+  extends Omit<SelectProps<Y>, 'onChange'> {
   controller: UseControllerProps<T>;
 }
 
-export const FormSelect = <T extends FieldValues, Y>({
+export const FormSelect = <T extends FieldValues, Y extends SelectValue>({
   controller,
   ...rest
 }: Props<T, Y>) => {
