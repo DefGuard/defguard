@@ -16,6 +16,7 @@ import MessageBox, {
   MessageBoxType,
 } from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
 import { ToggleOption } from '../../../../../../../shared/components/layout/Toggle/Toggle';
+import { IconDownload } from '../../../../../../../shared/components/svg';
 import { useModalStore } from '../../../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
@@ -24,7 +25,6 @@ import { MutationKeys } from '../../../../../../../shared/mutations';
 import { patternValidWireguardKey } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../../shared/utils/generateWGKeys';
-import { IconDownload } from '../../../../../../../shared/components/svg';
 
 export enum AddDeviceSetupChoice {
   AUTO_CONFIG = 1,

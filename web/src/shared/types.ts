@@ -84,8 +84,8 @@ export interface Device {
 export type DeviceNetworkInfo = {
   device_wireguard_ip: string;
   is_active: boolean;
-  last_connected_at: string;
-  last_connected_ip: string;
+  last_connected_at?: string;
+  last_connected_ip?: string;
   network_gateway_ip: string;
   network_id: number;
   network_name: string;

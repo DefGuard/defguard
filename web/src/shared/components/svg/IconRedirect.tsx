@@ -1,5 +1,5 @@
-import * as React from 'react';
 import type { SVGProps } from 'react';
+import * as React from 'react';
 const SvgIconRedirect = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={372} height={369} fill="none" {...props}>
     <g clipPath="url(#icon-redirect_svg__a)">
