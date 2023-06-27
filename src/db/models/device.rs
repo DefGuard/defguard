@@ -299,14 +299,17 @@ impl Device {
         .await
     }
 
-    pub async fn find_by_pubkey(pool: &DbPool, pubkey: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_pubkey<'e, E>(executor: E, pubkey: &str) -> Result<Option<Self>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         query_as!(
             Self,
             "SELECT id \"id?\", name, wireguard_pubkey, user_id, created \
             FROM device WHERE wireguard_pubkey = $1",
             pubkey
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 
@@ -466,36 +469,6 @@ impl Device {
         }
     }
 }
-
-// impl DeviceInfo {
-//     pub async fn from_device(pool: &DbPool, device: Device) -> Result<Option<Self>, SqlxError> {
-//         if let Some(device_id) = device.id {
-//             let result = query!(
-//                 r#"
-//             SELECT n.id, n.endpoint, n.name, wnd.wireguard_ip
-//             FROM wireguard_network_device wnd
-//             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id
-//             WHERE wnd.device_id = $1
-//         "#,
-//                 device_id
-//             )
-//             .fetch_all(pool)
-//             .await?;
-//             let networks_info: Vec<DeviceNetworkInfo> = result
-//                 .iter()
-//                 .map(|r| DeviceNetworkInfo {
-//                     network_id: r.id,
-//                     device_wireguard_ip: r.wireguard_ip.clone(),
-//                 })
-//                 .collect();
-//             return Ok(Some(Self {
-//                 device,
-//                 network_info: networks_info,
-//             }));
-//         }
-//         Ok(None)
-//     }
-// }
 
 #[cfg(test)]
 mod test {

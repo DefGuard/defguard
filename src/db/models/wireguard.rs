@@ -10,7 +10,7 @@ use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
-use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow};
+use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, Transaction};
 use std::fmt::{Display, Formatter};
 use std::{
     collections::HashMap,
@@ -108,9 +108,12 @@ impl WireguardNetwork {
     }
 
     /// Return number of devices that use this network.
-    async fn device_count(&self, pool: &DbPool) -> Result<i64, SqlxError> {
+    async fn device_count(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    ) -> Result<i64, SqlxError> {
         query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
-            .fetch_one(pool)
+            .fetch_one(transaction)
             .await
     }
 
@@ -136,9 +139,13 @@ impl WireguardNetwork {
     /// Try to change network address, changing device addresses if necessary.
     pub async fn change_address(
         &mut self,
-        pool: &DbPool,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
         new_address: IpNetwork,
     ) -> Result<(), ModelError> {
+        info!(
+            "Changing network address for {} from {} to {}",
+            self, self.address, new_address
+        );
         let network_id = match self.id {
             Some(id) => id,
             None => {
@@ -151,7 +158,7 @@ impl WireguardNetwork {
         let new_size = new_address.size();
         if new_size < old_address.size() {
             // include address, network, and broadcast in the calculation
-            let count = self.device_count(pool).await? + 3;
+            let count = self.device_count(transaction).await? + 3;
             match new_size {
                 NetworkSize::V4(size) => {
                     if count as u32 > size {
@@ -168,13 +175,13 @@ impl WireguardNetwork {
 
         // re-address all devices
         if new_address.network() != old_address.network() {
-            let mut devices = Device::all(pool).await?;
+            info!("Re-addressing devices in network {}", self);
+            let mut devices = Device::all(&mut *transaction).await?;
             let net_ip = new_address.ip();
             let net_network = new_address.network();
             let net_broadcast = new_address.broadcast();
             let mut devices_iter = devices.iter_mut();
 
-            let mut transaction = pool.begin().await?;
             for ip in new_address.iter() {
                 if ip == net_ip || ip == net_network || ip == net_broadcast {
                     continue;
@@ -189,12 +196,11 @@ impl WireguardNetwork {
                         };
                         let wireguard_network_device =
                             WireguardNetworkDevice::new(network_id, device_id, ip.to_string());
-                        wireguard_network_device.update(&mut transaction).await?;
+                        wireguard_network_device.update(&mut *transaction).await?;
                     }
                     None => break,
                 }
             }
-            transaction.commit().await?;
         }
 
         self.address = new_address;

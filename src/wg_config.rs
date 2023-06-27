@@ -94,7 +94,18 @@ pub fn parse_wireguard_config(
             .get("AllowedIPs")
             .ok_or_else(|| WireguardConfigParseError::KeyNotFound("AllowedIPs".to_string()))?;
         let ip_network: IpNetwork = ip.parse()?;
-        let ip = ip_network.ip().to_string();
+        let ip = ip_network.ip();
+
+        // check if assigned IP collides with gateway IP
+        let net_ip = network.address.ip();
+        let net_network = network.address.network();
+        let net_broadcast = network.address.broadcast();
+        if ip == net_ip || ip == net_network || ip == net_broadcast {
+            return Err(WireguardConfigParseError::InvalidIp(format!(
+                "Invalid peer IP {}",
+                ip
+            )));
+        }
 
         let pubkey = peer
             .get("PublicKey")
@@ -103,7 +114,7 @@ pub fn parse_wireguard_config(
         devices.push(ImportedDevice {
             user_id: None,
             wireguard_pubkey: pubkey.to_string(),
-            wireguard_ip: ip,
+            wireguard_ip: ip.to_string(),
         });
     }
 

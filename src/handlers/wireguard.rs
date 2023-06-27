@@ -105,7 +105,16 @@ pub async fn create_network(
         allowed_ips,
     )
     .map_err(|_| OriWebError::Serialization("Invalid network address".into()))?;
-    network.save(&appstate.pool).await?;
+
+    let mut transaction = appstate.pool.begin().await?;
+    network.save(&mut transaction).await?;
+
+    // generate IP addresses for existing devices
+    let devices = Device::all(&mut transaction).await?;
+    for device in devices {
+        device.assign_network_ip(&mut transaction, &network).await?;
+    }
+
     match &network.id {
         Some(network_id) => {
             appstate
@@ -119,6 +128,9 @@ pub async fn create_network(
             });
         }
     }
+
+    transaction.commit().await?;
+
     info!(
         "User {} created WireGuard network {}",
         session.user.username, network_name
@@ -151,11 +163,15 @@ pub async fn modify_network(
     let data = data.into_inner();
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
-    network.change_address(&appstate.pool, data.address).await?;
+
+    let mut transaction = appstate.pool.begin().await?;
+    network
+        .change_address(&mut transaction, data.address)
+        .await?;
     network.endpoint = data.endpoint;
     network.port = data.port;
     network.dns = data.dns;
-    network.save(&appstate.pool).await?;
+    network.save(&mut transaction).await?;
     match &network.id {
         Some(network_id) => {
             appstate
@@ -168,6 +184,7 @@ pub async fn modify_network(
             );
         }
     }
+    transaction.commit().await?;
     info!(
         "User {} updated WireGuard network {}",
         session.user.username, id
@@ -221,7 +238,7 @@ pub async fn list_networks(
             gateways: gateway_state.get_network_gateway_status(network_id),
         })
     }
-    info!("Listed WireGuard networks");
+    debug!("Listed WireGuard networks");
 
     Ok(ApiResponse {
         json: json!(network_info),
@@ -258,7 +275,7 @@ pub async fn network_details(
             status: Status::NotFound,
         },
     };
-    info!("Displayed network details for network {}", network_id);
+    debug!("Displayed network details for network {}", network_id);
 
     Ok(response)
 }
@@ -269,24 +286,57 @@ pub async fn import_network(
     appstate: &State<AppState>,
     data: Json<ImportNetworkData>,
 ) -> ApiResult {
+    info!("Importing network from config file");
     let data = data.into_inner();
-    let (mut network, devices) = parse_wireguard_config(&data.config)
+    let (mut network, imported_devices) = parse_wireguard_config(&data.config)
         .map_err(|_| OriWebError::Http(Status::UnprocessableEntity))?;
     network.name = data.name;
     network.endpoint = data.endpoint;
-    network.save(&appstate.pool).await?;
+
+    let mut transaction = appstate.pool.begin().await?;
+    network.save(&mut transaction).await?;
+    info!("New network {} created", network);
     match network.id {
         Some(network_id) => {
             appstate
                 .send_wireguard_event(GatewayEvent::NetworkCreated(network_id, network.clone()));
         }
         None => {
-            error!(
-                "Network {} id not found, gateway event not sent!",
-                network.name
-            );
+            error!("Network {} id not found, gateway event not sent!", network);
         }
     }
+
+    // check if any of the imported devices exist already
+    // if they do assign imported IP and remove from response
+    let network_id = network.id.expect("Network ID is missing");
+    let mut devices = Vec::new();
+    for imported_device in imported_devices {
+        match Device::find_by_pubkey(&mut transaction, &imported_device.wireguard_pubkey).await? {
+            Some(existing_device) => {
+                info!(
+                    "Device with pubkey {} exists already, assigning IP for new network: {}",
+                    existing_device.wireguard_pubkey, imported_device.wireguard_ip
+                );
+                let wireguard_network_device = WireguardNetworkDevice::new(
+                    network_id,
+                    existing_device.id.expect("Device ID is missing"),
+                    imported_device.wireguard_ip,
+                );
+                wireguard_network_device.insert(&mut transaction).await?;
+                // send device to connected gateways
+                appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+                    device: existing_device,
+                    network_info: vec![DeviceNetworkInfo {
+                        network_id,
+                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                    }],
+                }));
+            }
+            None => devices.push(imported_device),
+        }
+    }
+    transaction.commit().await?;
+
     Ok(ApiResponse {
         json: json!(ImportedNetworkData { network, devices }),
         status: Status::Created,
@@ -312,50 +362,27 @@ pub async fn add_user_devices(
             status: Status::BadRequest,
         });
     }
-    // checkPublic keys
-    for mapped_device in &mapped_devices {
-        if Device::validate_pubkey(&mapped_device.wireguard_pubkey).is_err() {
-            return Ok(ApiResponse {
-                json: json!({}),
-                status: Status::BadRequest,
-            });
-        }
-    }
-    debug!(
+
+    info!(
         "User {} mapping {} devices for network {}",
         user.username, device_count, network_id
     );
+
     // wrap loop in transaction to abort if a device is invalid
     let mut transaction = appstate.pool.begin().await?;
     for mapped_device in &mapped_devices {
         let mut device = Device::new(
             mapped_device.wireguard_pubkey.clone(),
             mapped_device.wireguard_pubkey.clone(),
-            network_id,
+            mapped_device.user_id,
         );
         device.save(&mut transaction).await?;
-        match device.id {
-            Some(device_id) => {
-                // FIXME: assign IPs in other networks
-                let wireguard_network_device = WireguardNetworkDevice::new(
-                    network_id,
-                    device_id,
-                    mapped_device.wireguard_ip.clone(),
-                );
-                wireguard_network_device.insert(&mut transaction).await?;
-                // send device to connected gateways
-                appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
-                    device,
-                    network_info: vec![DeviceNetworkInfo {
-                        network_id,
-                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
-                    }],
-                }));
-            }
-            None => {
-                error!("No device id assigned after device save");
-            }
-        }
+        let (network_info, _configs) = device.add_to_networks(&mut transaction).await?;
+        // send device to connected gateways
+        appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+            device,
+            network_info,
+        }));
     }
     transaction.commit().await?;
 
@@ -474,7 +501,7 @@ pub async fn modify_device(
             });
         }
     }
-    // FIXME: wrap update process in DB transaction
+
     // update device info
     device.update_from(data.into_inner());
     device.save(&appstate.pool).await?;
@@ -676,7 +703,7 @@ pub async fn user_stats(
     let stats = network
         .user_stats(&appstate.pool, &from, &aggregation)
         .await?;
-    info!("Displayed wireguard user stats");
+    debug!("Displayed wireguard user stats");
 
     Ok(ApiResponse {
         json: json!(stats),
@@ -706,7 +733,7 @@ pub async fn network_stats(
     let stats = network
         .network_stats(&appstate.pool, &from, &aggregation)
         .await?;
-    info!("Displayed wireguard network stats");
+    debug!("Displayed wireguard network stats");
 
     Ok(ApiResponse {
         json: json!(stats),
