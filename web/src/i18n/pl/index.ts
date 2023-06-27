@@ -451,14 +451,15 @@ const pl: Translation = {
       },
       card: {
         labels: {
-          location: 'Ostatnia lokalizacja',
-          lastIpAddress: 'Ostatni adres IP',
-          date: 'Data dodania',
+          lastLocation: 'Ostatnie połączenie z',
+          active: 'aktywne',
+          assignedIp: 'Przydzielone IP',
+          lastConnected: 'Ostatnio połączone',
         },
         edit: {
           edit: 'Edycja urządzenia',
-          download: 'Pobierz konfigurację',
           delete: 'Usuń urządzenie',
+          downloadConfig: 'Pobierz konfigurację dla {name}',
         },
       },
     },
@@ -591,6 +592,19 @@ const pl: Translation = {
     },
   },
   components: {
+    gatewaysStatus: {
+      label: 'Gateways',
+      states: {
+        error: 'Błąd pobierania statusu',
+        loading: 'Pobieranie informacji',
+        partial: 'Jeden lub więcej odłączonych',
+        connected: 'Połączone',
+        disconnected: 'Brak połączenia',
+      },
+      messages: {
+        error: 'Błąd pobierania statusu połączeń gatway',
+      },
+    },
     noLicenseBox: {
       footer: {
         get: 'Uzyskaj licencję enterprise',
@@ -970,6 +984,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
   },
   networkPage: {
     pageTitle: 'Edycja lokalizacji',
+    addNetwork: '+ Dodaj lokalizacje',
   },
   activityOverview: {
     header: 'Strumien aktywności',

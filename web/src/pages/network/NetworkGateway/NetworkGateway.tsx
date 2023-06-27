@@ -12,6 +12,7 @@ import {
 } from '../../../shared/components/layout/ActionButton/ActionButton';
 import { ExpandableCard } from '../../../shared/components/layout/ExpandableCard/ExpandableCard';
 import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
+import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
@@ -79,6 +80,7 @@ export const NetworkGatewaySetup = () => {
           </ExpandableCard>
         </>
       )}
+      <GatewaysStatus networkId={selectedNetworkId} />
     </section>
   );
 };

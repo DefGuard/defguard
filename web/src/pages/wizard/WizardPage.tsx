@@ -6,6 +6,7 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { WizardMapDevices } from './components/WizardMapDevices/WizardMapDevices';
 import { WizardNav } from './components/WizardNav/WizardNav';
 import { WizardNetworkConfiguration } from './components/WizardNetworkConfiguration/WizardNetworkConfiguration';
@@ -32,6 +33,7 @@ type WizardStep = {
 
 const WizardRender = () => {
   const { LL } = useI18nContext();
+  const networkPresent = useAppStore((state) => state.appInfo?.network_present);
   const [setupType, currentStep] = useWizardStore(
     (state) => [state.setupType, state.currentStep],
     shallow
@@ -39,14 +41,19 @@ const WizardRender = () => {
   const getSteps = useMemo((): WizardStep[] => {
     let res: WizardStep[] = [
       {
-        title: LL.wizard.navigation.titles.welcome(),
-        element: <WizardWelcome key={0} />,
-      },
-      {
         title: LL.wizard.navigation.titles.choseNetworkSetup(),
         element: <WizardType key={1} />,
       },
     ];
+    if (!networkPresent) {
+      res = [
+        {
+          title: LL.wizard.navigation.titles.welcome(),
+          element: <WizardWelcome key={0} />,
+        },
+        ...res,
+      ];
+    }
     switch (setupType) {
       case WizardSetupType.IMPORT:
         res = [
@@ -72,7 +79,7 @@ const WizardRender = () => {
         break;
     }
     return res;
-  }, [LL.wizard.navigation.titles, setupType]);
+  }, [LL.wizard.navigation.titles, networkPresent, setupType]);
 
   return (
     <div id="wizard-content">

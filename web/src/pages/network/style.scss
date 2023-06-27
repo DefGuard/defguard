@@ -18,6 +18,7 @@
       margin-bottom: 5px;
       width: 100%;
       & > h1 {
+        user-select: none;
         display: none;
 
         @include page-header;

@@ -9,7 +9,6 @@ import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin'
 import { isUserAdmin } from '../../shared/helpers/isUserAdmin';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
-import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { UserMFAMethod } from '../../shared/types';
@@ -23,8 +22,6 @@ export const AuthPage = () => {
   const navigate = useNavigate();
 
   const loginSubject = useAuthStore((state) => state.loginSubject);
-
-  const setNavigation = useNavigationStore((state) => state.setState);
 
   const setAuthStore = useAuthStore((state) => state.setState);
 

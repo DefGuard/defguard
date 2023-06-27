@@ -1380,6 +1380,40 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		gatewaysStatus: {
+			/**
+			 * G​a​t​e​w​a​y​s
+			 */
+			label: string
+			states: {
+				/**
+				 * A​l​l​ ​c​o​n​n​e​c​t​e​d
+				 */
+				connected: string
+				/**
+				 * O​n​e​ ​o​r​ ​m​o​r​e​ ​a​r​e​ ​n​o​t​ ​w​o​r​k​i​n​g
+				 */
+				partial: string
+				/**
+				 * D​i​s​c​o​n​n​e​c​t​e​d
+				 */
+				disconnected: string
+				/**
+				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s​ ​f​a​i​l​e​d
+				 */
+				error: string
+				/**
+				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s
+				 */
+				loading: string
+			}
+			messages: {
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​s​ ​s​t​a​t​u​s
+				 */
+				error: string
+			}
+		}
 		noLicenseBox: {
 			footer: {
 				/**
@@ -2241,6 +2275,10 @@ type RootTranslation = {
 		 * E​d​i​t​ ​L​o​c​a​t​i​o​n
 		 */
 		pageTitle: string
+		/**
+		 * +​ ​A​d​d​ ​n​e​w​ ​l​o​c​a​t​i​o​n
+		 */
+		addNetwork: string
 	}
 	activityOverview: {
 		/**
@@ -4022,6 +4060,40 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		gatewaysStatus: {
+			/**
+			 * Gateways
+			 */
+			label: () => LocalizedString
+			states: {
+				/**
+				 * All connected
+				 */
+				connected: () => LocalizedString
+				/**
+				 * One or more are not working
+				 */
+				partial: () => LocalizedString
+				/**
+				 * Disconnected
+				 */
+				disconnected: () => LocalizedString
+				/**
+				 * Retrieving connections failed
+				 */
+				error: () => LocalizedString
+				/**
+				 * Retrieving connections
+				 */
+				loading: () => LocalizedString
+			}
+			messages: {
+				/**
+				 * Failed to get gateways status
+				 */
+				error: () => LocalizedString
+			}
+		}
 		noLicenseBox: {
 			footer: {
 				/**
@@ -4874,6 +4946,10 @@ export type TranslationFunctions = {
 		 * Edit Location
 		 */
 		pageTitle: () => LocalizedString
+		/**
+		 * + Add new location
+		 */
+		addNetwork: () => LocalizedString
 	}
 	activityOverview: {
 		/**

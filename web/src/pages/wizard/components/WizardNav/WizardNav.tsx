@@ -1,6 +1,8 @@
 import './style.scss';
 
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
+import { useQueryClient } from 'wagmi';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -15,8 +17,10 @@ import {
 import { DefguardNoIcon } from '../../../../shared/components/svg';
 import SvgIconArrowGrayLeft from '../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../shared/components/svg/IconArrowGrayRight';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useNavigationStore } from '../../../../shared/hooks/store/useNavigationStore';
 import { useToaster } from '../../../../shared/hooks/useToaster';
+import { QueryKeys } from '../../../../shared/queries';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 interface Props {
@@ -25,8 +29,11 @@ interface Props {
 }
 
 export const WizardNav = ({ title, lastStep }: Props) => {
+  const queryClient = useQueryClient();
   const { LL } = useI18nContext();
   const toaster = useToaster();
+  const navigate = useNavigate();
+  const networkPresent = useAppStore((state) => state.appInfo?.network_present);
   const setNavigationState = useNavigationStore((state) => state.setState);
   const [backDisabled, currentStep, loading] = useWizardStore(
     (state) => [state.disableBack, state.currentStep, state.loading],
@@ -47,16 +54,28 @@ export const WizardNav = ({ title, lastStep }: Props) => {
     const sub = nextSubject.subscribe(() => {
       if (lastStep) {
         toaster.success(LL.wizard.completed());
-        setNavigationState({ enableWizard: false });
         resetState();
+        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
+        navigate('/admin/overview', { replace: true });
       } else {
         next();
       }
     });
     return () => sub?.unsubscribe();
-  }, [LL.wizard, lastStep, next, nextSubject, resetState, setNavigationState, toaster]);
+  }, [
+    LL.wizard,
+    lastStep,
+    navigate,
+    next,
+    nextSubject,
+    queryClient,
+    resetState,
+    setNavigationState,
+    toaster,
+  ]);
 
-  if (currentStep === 0) return null;
+  if (!networkPresent && currentStep === 0) return null;
 
   return (
     <div id="wizard-nav">

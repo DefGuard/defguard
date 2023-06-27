@@ -6,14 +6,18 @@ import { ReactNode, useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { ColorsRGB } from '../../../shared/constants';
+import { useWizardStore } from '../../wizard/hooks/useWizardStore';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
 export const NetworkTabs = () => {
+  const { LL } = useI18nContext();
   const navigate = useNavigate();
   const networks = useNetworkPageStore((state) => state.networks);
   const selectedNetworkId = useNetworkPageStore((state) => state.selectedNetworkId);
   const setPageState = useNetworkPageStore((state) => state.setState);
+  const resetWizardState = useWizardStore((state) => state.resetState);
 
   if (!networks || networks.length === 0) {
     return (
@@ -24,6 +28,11 @@ export const NetworkTabs = () => {
       </div>
     );
   }
+
+  const handleCreateNetwork = () => {
+    resetWizardState();
+    navigate('/admin/wizard', { replace: true });
+  };
 
   return (
     <div className="network-tabs">
@@ -39,12 +48,7 @@ export const NetworkTabs = () => {
           active={n.id === selectedNetworkId}
         />
       ))}
-      <NetworkTab
-        onClick={() => {
-          navigate('/admin/wizard', { replace: true });
-        }}
-        content="+ Add new location"
-      />
+      <NetworkTab onClick={handleCreateNetwork} content={LL.networkPage.addNetwork()} />
     </div>
   );
 };

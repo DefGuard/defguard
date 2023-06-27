@@ -1,7 +1,9 @@
 import './style.scss';
 
+import classNames from 'classnames';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { TargetAndTransition } from 'framer-motion';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -16,16 +18,13 @@ import {
 } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
 import { IconClip, IconCollapse, IconExpand } from '../../../../../shared/components/svg';
-import { displayDate } from '../../../../../shared/helpers/displayDate';
+import { ColorsRGB } from '../../../../../shared/constants';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { downloadWGConfig } from '../../../../../shared/utils/downloadWGConfig';
-import classNames from 'classnames';
-import { TargetAndTransition } from 'framer-motion';
-import { ColorsRGB } from '../../../../../shared/constants';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
 
 dayjs.extend(utc);

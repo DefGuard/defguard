@@ -1,0 +1,50 @@
+@use '@scssutils' as *;
+
+.network-gateways-connection {
+  width: 100%;
+  height: 20px;
+  display: flex;
+  flex-flow: row nowrap;
+  column-gap: 20px;
+  align-items: center;
+  justify-content: flex-start;
+
+  & > label {
+    display: block;
+    font-size: 10px;
+  }
+
+  & > .status-container {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0;
+    cursor: pointer;
+
+    & > .status {
+      height: 100%;
+      display: flex;
+      flex-flow: row nowrap;
+      gap: 5px;
+      align-items: center;
+      justify-content: flex-start;
+
+      & > span {
+        @include typography(10px, 1.2, medium, var(--gray-light), 'Roboto');
+        user-select: none;
+      }
+
+      & > svg {
+        width: 8px;
+        height: 8px;
+      }
+    }
+  }
+
+  &.status-loading {
+    & > .status-container {
+      gap: 10px;
+    }
+  }
+}

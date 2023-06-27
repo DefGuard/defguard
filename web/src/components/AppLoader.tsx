@@ -12,7 +12,6 @@ import LoaderPage from '../pages/loader/LoaderPage';
 import { isUserAdmin } from '../shared/helpers/isUserAdmin';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
-import { useNavigationStore } from '../shared/hooks/store/useNavigationStore';
 import useApi from '../shared/hooks/useApi';
 import { useToaster } from '../shared/hooks/useToaster';
 import { QueryKeys } from '../shared/queries';

@@ -1,0 +1,15 @@
+<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icon-arrow-single">
+<mask id="mask0_2335_6248" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18">
+<g id="clip-path-5">
+<path id="Rectangle 1568" d="M18 0H0V18H18V0Z" fill="white"/>
+</g>
+</mask>
+<g mask="url(#mask0_2335_6248)">
+<g id="icon-arrow-gray-left">
+<path id="Rectangle 2834" d="M11.0747 7.4058L8.76052 9.71997C8.441 10.0395 8.441 10.5575 8.76052 10.877C9.08004 11.1966 9.59808 11.1966 9.9176 10.877L12.2318 8.56288C12.5513 8.24336 12.5513 7.72532 12.2318 7.4058C11.9122 7.08628 11.3942 7.08628 11.0747 7.4058Z" fill="#899CA8"/>
+<path id="Rectangle 2835" d="M9.63712 9.71885L7.32296 7.40468C7.00344 7.08516 6.48539 7.08516 6.16587 7.40468C5.84635 7.7242 5.84635 8.24225 6.16587 8.56177L8.48004 10.8759C8.79956 11.1955 9.31761 11.1955 9.63712 10.8759C9.95664 10.5564 9.95664 10.0384 9.63712 9.71885Z" fill="#899CA8"/>
+</g>
+</g>
+</g>
+</svg>

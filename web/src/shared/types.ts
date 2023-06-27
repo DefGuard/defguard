@@ -97,20 +97,32 @@ export interface AddDeviceRequest {
   wireguard_pubkey: string;
 }
 
+export type GatewayStatus = {
+  connected: boolean;
+  network_id: number;
+  name?: string;
+  ip: string;
+};
+
 export interface Network {
   id: number;
   name: string;
   address: string;
   port: number;
   endpoint: string;
+  connected?: boolean;
   connected_at?: string;
+  gateways?: GatewayStatus[];
   allowed_ips?: string[];
   dns?: string;
 }
 
 export type ModifyNetworkRequest = {
   id: number;
-  network: Omit<Network, 'id' | 'connected_at' | 'allowed_ips'> & {
+  network: Omit<
+    Network,
+    'gateways' | 'connected' | 'id' | 'connected_at' | 'allowed_ips'
+  > & {
     allowed_ips: string;
   };
 };
@@ -335,16 +347,16 @@ export interface ApiHook {
     downloadDeviceConfig: (data: GetDeviceConfigRequest) => Promise<string>;
   };
   network: {
-    addNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
+    addNetwork: (network: ModifyNetworkRequest['network']) => Promise<Network>;
     importNetwork: (network: ImportNetworkRequest) => Promise<ImportNetworkResponse>;
     createUserDevices: (devices: CreateUserDevicesRequest) => EmptyApiResponse;
-    getNetwork: (networkId: string) => Promise<Network>;
+    getNetwork: (networkId: number) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (network: Network) => EmptyApiResponse;
     getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
     getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
-    getNetworkStats: (data?: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
+    getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewayStatus: () => Promise<ConnectionInfo>;
   };
   auth: {

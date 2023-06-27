@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -8,7 +7,6 @@ import { useOverviewStore } from '../../hooks/store/useOverviewStore';
 
 export const OverViewNetworkSelect = () => {
   const { LL } = useI18nContext();
-  const navigate = useNavigate();
   const [selectedNetworkId, networks] = useOverviewStore(
     (state) => [state.selectedNetworkId, state.networks],
     shallow
@@ -44,9 +42,6 @@ export const OverViewNetworkSelect = () => {
       loading={networks?.length === 0 || !selected}
       selected={selected}
       options={options}
-      onCreate={() => {
-        navigate('/admin/wizard', { replace: true });
-      }}
       onChange={(option) => {
         if (!Array.isArray(option) && networks) {
           setOverviewStore({ selectedNetworkId: option?.value });

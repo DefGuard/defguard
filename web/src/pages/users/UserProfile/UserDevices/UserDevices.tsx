@@ -51,7 +51,7 @@ export const UserDevices = () => {
               setUserDeviceModalState({
                 visible: true,
                 currentStep: 0,
-                config: undefined,
+                configs: undefined,
                 deviceName: undefined,
                 reserverdNames: user.devices.map((d) => d.name),
               })

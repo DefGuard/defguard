@@ -31,36 +31,5 @@
 
       margin-bottom: 3rem;
     }
-
-    & > .status {
-      width: 100%;
-      display: flex;
-      flex-flow: column-reverse;
-      row-gap: 1.5rem;
-
-      @include media-breakpoint-up(lg) {
-        display: inline-grid;
-        grid-template-columns: 280px 1fr;
-        column-gap: 3rem;
-        grid-template-rows: 50px;
-        align-items: center;
-        justify-content: center;
-        align-content: center;
-      }
-
-      & > .message-box-container {
-        height: 50px;
-        min-height: 50px;
-
-        & > .message-box {
-          padding: 1rem 2rem;
-        }
-      }
-
-      & > .btn {
-        height: 100%;
-        width: 100%;
-      }
-    }
   }
 }

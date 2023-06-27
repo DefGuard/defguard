@@ -110,7 +110,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const fetchNetworks = async () =>
     client.get<Network[]>(`/network`).then((res) => res.data);
 
-  const fetchNetwork = async (id: string) =>
+  const fetchNetwork = async (id: number) =>
     client.get<Network>(`/network/${id}`).then((res) => res.data);
 
   // For now there is only one network

@@ -592,6 +592,19 @@ const en: BaseTranslation = {
     },
   },
   components: {
+    gatewaysStatus: {
+      label: 'Gateways',
+      states: {
+        connected: 'All connected',
+        partial: 'One or more are not working',
+        disconnected: 'Disconnected',
+        error: 'Retrieving connections failed',
+        loading: 'Retrieving connections',
+      },
+      messages: {
+        error: 'Failed to get gateways status',
+      },
+    },
     noLicenseBox: {
       footer: {
         get: 'Get an enterprise license',
@@ -971,6 +984,7 @@ Any other requests you can reach us at: support@defguard.net
   },
   networkPage: {
     pageTitle: 'Edit Location',
+    addNetwork: '+ Add new location',
   },
   activityOverview: {
     header: 'Activity stream',
