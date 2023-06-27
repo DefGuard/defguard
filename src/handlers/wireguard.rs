@@ -286,24 +286,57 @@ pub async fn import_network(
     appstate: &State<AppState>,
     data: Json<ImportNetworkData>,
 ) -> ApiResult {
+    info!("Importing network from config file");
     let data = data.into_inner();
-    let (mut network, devices) = parse_wireguard_config(&data.config)
+    let (mut network, imported_devices) = parse_wireguard_config(&data.config)
         .map_err(|_| OriWebError::Http(Status::UnprocessableEntity))?;
     network.name = data.name;
     network.endpoint = data.endpoint;
-    network.save(&appstate.pool).await?;
+
+    let mut transaction = appstate.pool.begin().await?;
+    network.save(&mut transaction).await?;
+    info!("New network {} created", network);
     match network.id {
         Some(network_id) => {
             appstate
                 .send_wireguard_event(GatewayEvent::NetworkCreated(network_id, network.clone()));
         }
         None => {
-            error!(
-                "Network {} id not found, gateway event not sent!",
-                network.name
-            );
+            error!("Network {} id not found, gateway event not sent!", network);
         }
     }
+
+    // check if any of the imported devices exist already
+    // if they do assign imported IP and remove from response
+    let network_id = network.id.expect("Network ID is missing");
+    let mut devices = Vec::new();
+    for imported_device in imported_devices {
+        match Device::find_by_pubkey(&mut transaction, &imported_device.wireguard_pubkey).await? {
+            Some(existing_device) => {
+                info!(
+                    "Device with pubkey {} exists already, assigning IP for new network: {}",
+                    existing_device.wireguard_pubkey, imported_device.wireguard_ip
+                );
+                let wireguard_network_device = WireguardNetworkDevice::new(
+                    network_id,
+                    existing_device.id.expect("Device ID is missing"),
+                    imported_device.wireguard_ip,
+                );
+                wireguard_network_device.insert(&mut transaction).await?;
+                // send device to connected gateways
+                appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+                    device: existing_device,
+                    network_info: vec![DeviceNetworkInfo {
+                        network_id,
+                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                    }],
+                }));
+            }
+            None => devices.push(imported_device),
+        }
+    }
+    transaction.commit().await?;
+
     Ok(ApiResponse {
         json: json!(ImportedNetworkData { network, devices }),
         status: Status::Created,
