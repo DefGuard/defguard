@@ -84,11 +84,11 @@ export interface Device {
 export type DeviceNetworkInfo = {
   device_wireguard_ip: string;
   is_active: boolean;
-  last_connected_at?: string;
-  last_connected_ip?: string;
   network_gateway_ip: string;
   network_id: number;
   network_name: string;
+  last_connected_at?: string;
+  last_connected_ip?: string;
 };
 
 export interface AddDeviceRequest {
@@ -277,10 +277,6 @@ export interface VersionResponse {
   version: string;
 }
 
-export interface ConnectionInfo {
-  connected: boolean;
-}
-
 export interface MFAFinishResponse {
   url?: string;
   user?: User;
@@ -357,7 +353,6 @@ export interface ApiHook {
     getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
     getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
-    getGatewayStatus: () => Promise<ConnectionInfo>;
   };
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;

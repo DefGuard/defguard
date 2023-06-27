@@ -53,7 +53,11 @@ export const AddComponentBox = ({
         scale: 0.9,
       }}
       variants={boxVariants}
-      onClick={() => callback()}
+      onClick={() => {
+        if (!disabled) {
+          callback();
+        }
+      }}
       custom={{ disabled }}
     >
       <motion.button

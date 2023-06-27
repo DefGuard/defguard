@@ -1,8 +1,8 @@
 import './style.scss';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useQueryClient } from 'wagmi';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
