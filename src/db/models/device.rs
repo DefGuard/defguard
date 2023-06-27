@@ -494,12 +494,13 @@ mod test {
             let net_ip = network.address.ip();
             let net_network = network.address.network();
             let net_broadcast = network.address.broadcast();
+            let mut transaction = pool.begin().await?;
             for ip in network.address.iter() {
                 if ip == net_ip || ip == net_network || ip == net_broadcast {
                     continue;
                 }
                 // Break loop if IP is unassigned and return device
-                match Self::find_by_ip(pool, &ip.to_string(), network_id).await? {
+                match Self::find_by_ip(&mut transaction, &ip.to_string(), network_id).await? {
                     Some(_) => (),
                     None => {
                         let mut device = Self::new(name.clone(), pubkey, user_id);
@@ -520,6 +521,7 @@ mod test {
                     }
                 }
             }
+            transaction.commit().await?;
             Err(ModelError::CannotCreate)
         }
     }
@@ -538,7 +540,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let (device, wireguard_network_device) = Device::new_with_ip(
+        let (_device, wireguard_network_device) = Device::new_with_ip(
             &pool,
             user.id.unwrap(),
             "dev1".into(),

@@ -613,15 +613,17 @@ mod test {
 
         add_devices(&pool, &network, 3).await;
 
+        let mut transaction = pool.begin().await.unwrap();
         network
-            .change_address(&pool, "10.2.2.2/28".parse().unwrap())
+            .change_address(&mut transaction, "10.2.2.2/28".parse().unwrap())
             .await
             .unwrap();
         let keys = vec!["key0", "key1", "key2"];
         let ips = vec!["10.2.2.1", "10.2.2.3", "10.2.2.4"];
+        transaction.commit().await.unwrap();
 
-        for (index, pubKey) in keys.iter().enumerate() {
-            let device = Device::find_by_pubkey(&pool, pubKey)
+        for (index, pub_key) in keys.iter().enumerate() {
+            let device = Device::find_by_pubkey(&pool, pub_key)
                 .await
                 .unwrap()
                 .unwrap();
@@ -641,12 +643,13 @@ mod test {
 
         add_devices(&pool, &network, 3).await;
 
+        let mut transaction = pool.begin().await.unwrap();
         assert!(network
-            .change_address(&pool, "10.2.2.2/30".parse().unwrap())
+            .change_address(&mut transaction, "10.2.2.2/30".parse().unwrap())
             .await
             .is_err());
         assert!(network
-            .change_address(&pool, "10.2.2.2/29".parse().unwrap())
+            .change_address(&mut transaction, "10.2.2.2/29".parse().unwrap())
             .await
             .is_ok());
     }

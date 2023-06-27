@@ -52,7 +52,7 @@ async fn test_network() {
     let network: WireguardNetwork = response.into_json().await.unwrap();
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(_));
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // modify network
     let network_data = WireguardNetworkData {
@@ -70,7 +70,7 @@ async fn test_network() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkModified(_));
+    assert_matches!(event, GatewayEvent::NetworkModified(..));
 
     // list networks
     let response = client.get("/api/v1/network").dispatch().await;
@@ -96,7 +96,7 @@ async fn test_network() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkDeleted(_));
+    assert_matches!(event, GatewayEvent::NetworkDeleted(..));
 }
 
 #[rocket::async_test]
@@ -117,7 +117,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Created);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(_));
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // network details
     let response = client.get("/api/v1/network/1").dispatch().await;
@@ -136,7 +136,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Created);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(_));
+    assert_matches!(event, GatewayEvent::DeviceCreated(..));
 
     // list devices
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
@@ -175,7 +175,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceModified(_));
+    assert_matches!(event, GatewayEvent::DeviceModified(..));
 
     // device details
     let response = client
@@ -221,7 +221,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkDeleted(_));
+    assert_matches!(event, GatewayEvent::NetworkDeleted(..));
 
     // delete device
     let response = client
@@ -230,7 +230,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceDeleted(_));
+    assert_matches!(event, GatewayEvent::DeviceDeleted(..));
 
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
