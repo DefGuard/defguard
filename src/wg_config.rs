@@ -7,6 +7,7 @@ use x25519_dalek::{PublicKey, StaticSecret};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImportedDevice {
     pub user_id: Option<i64>,
+    pub name: String,
     pub wireguard_pubkey: String,
     pub wireguard_ip: String,
 }
@@ -113,6 +114,7 @@ pub fn parse_wireguard_config(
         Device::validate_pubkey(pubkey).map_err(WireguardConfigParseError::InvalidKey)?;
         devices.push(ImportedDevice {
             user_id: None,
+            name: pubkey.to_string(),
             wireguard_pubkey: pubkey.to_string(),
             wireguard_ip: ip.to_string(),
         });

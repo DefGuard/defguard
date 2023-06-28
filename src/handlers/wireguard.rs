@@ -54,6 +54,7 @@ impl WireguardNetworkData {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MappedDevice {
     pub user_id: i64,
+    pub name: String,
     pub wireguard_pubkey: String,
     pub wireguard_ip: String,
 }
@@ -374,7 +375,7 @@ pub async fn add_user_devices(
         Device::validate_pubkey(&mapped_device.wireguard_pubkey)
             .map_err(OriWebError::PubkeyValidation)?;
         let mut device = Device::new(
-            mapped_device.wireguard_pubkey.clone(),
+            mapped_device.name.clone(),
             mapped_device.wireguard_pubkey.clone(),
             mapped_device.user_id,
         );

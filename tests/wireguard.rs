@@ -1,4 +1,5 @@
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
+use defguard::db::UserDetails;
 use defguard::{
     db::{
         models::wireguard::{
@@ -810,6 +811,7 @@ async fn test_config_import() {
         device1.wireguard_pubkey,
         "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
     );
+    assert_eq!(device1.name, "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=");
     assert_eq!(device1.user_id, None);
 
     let mut device2 = devices[1].clone();
@@ -818,11 +820,14 @@ async fn test_config_import() {
         device2.wireguard_pubkey,
         "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="
     );
+    assert_eq!(device2.name, "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=");
     assert_eq!(device2.user_id, None);
 
     // modify devices
     device1.user_id = Some(1);
+    device1.name = "device_1".into();
     device2.user_id = Some(1);
+    device2.name = "device_2".into();
 
     // post modified devices
     let response = client
@@ -834,13 +839,31 @@ async fn test_config_import() {
 
     // assert events
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(..));
+    match event {
+        GatewayEvent::DeviceCreated(device_info) => {
+            assert_eq!(device_info.device.name, "device_1");
+        }
+        _ => unreachable!("Invalid event type received"),
+    }
 
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(..));
+    match event {
+        GatewayEvent::DeviceCreated(device_info) => {
+            assert_eq!(device_info.device.name, "device_2");
+        }
+        _ => unreachable!("Invalid event type received"),
+    }
 
     let event = wg_rx.try_recv();
     assert_matches!(event, Err(TryRecvError::Empty));
+
+    // assert user devices
+    let response = client.get("/api/v1/user/admin").dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+    let user_info: UserDetails = response.into_json().await.unwrap();
+    assert_eq!(user_info.devices.len(), 2);
+    assert_eq!(user_info.devices[0].device.name, "device_1");
+    assert_eq!(user_info.devices[1].device.name, "device_2");
 }
 
 #[rocket::async_test]
