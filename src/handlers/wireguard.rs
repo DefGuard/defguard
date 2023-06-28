@@ -371,6 +371,8 @@ pub async fn add_user_devices(
     // wrap loop in transaction to abort if a device is invalid
     let mut transaction = appstate.pool.begin().await?;
     for mapped_device in &mapped_devices {
+        Device::validate_pubkey(&mapped_device.wireguard_pubkey)
+            .map_err(OriWebError::PubkeyValidation)?;
         let mut device = Device::new(
             mapped_device.wireguard_pubkey.clone(),
             mapped_device.wireguard_pubkey.clone(),

@@ -166,7 +166,7 @@ impl UserInfo {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UserDetails {
     #[serde(flatten)]
-    user: UserInfo,
+    pub user: UserInfo,
     #[serde(default)]
     pub devices: Vec<UserDevice>,
     #[serde(default)]
@@ -269,7 +269,7 @@ mod test {
         user.add_to_group(&pool, &group1).await.unwrap();
         user.add_to_group(&pool, &group2).await.unwrap();
 
-        let mut user_info = UserInfo::from_user(&pool, user).await.unwrap();
+        let mut user_info = UserInfo::from_user(&pool, &user).await.unwrap();
         assert_eq!(user_info.groups, ["Gryffindor", "Hufflepuff"]);
 
         user_info.groups = vec!["Gryffindor".into(), "Ravenclaw".into()];

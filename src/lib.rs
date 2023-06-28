@@ -197,7 +197,6 @@ pub async fn build_webapp(
             modify_device,
             delete_device,
             list_devices,
-            download_config,
         ],
     );
 

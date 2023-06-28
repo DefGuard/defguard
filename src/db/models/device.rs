@@ -280,11 +280,14 @@ impl Device {
         )
     }
 
-    pub async fn find_by_ip(
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    pub async fn find_by_ip<'e, E>(
+        executor: E,
         ip: &str,
         network_id: i64,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         query_as!(
             Self,
             "SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
@@ -295,7 +298,7 @@ impl Device {
             ip,
             network_id
         )
-        .fetch_optional(transaction)
+        .fetch_optional(executor)
         .await
     }
 
@@ -528,6 +531,7 @@ mod test {
     async fn test_assign_device_ip(pool: DbPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/30").unwrap();
+        network.save(&pool).await.unwrap();
 
         let mut user = User::new(
             "testuser".to_string(),
@@ -538,7 +542,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let (device, wireguard_network_device) = Device::new_with_ip(
+        let (_device, wireguard_network_device) = Device::new_with_ip(
             &pool,
             user.id.unwrap(),
             "dev1".into(),

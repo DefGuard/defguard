@@ -127,7 +127,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.post(`/network/import`, network).then(unpackRequest);
 
   const mapUserDevices: ApiHook['network']['mapUserDevices'] = (data) =>
-    client.post(`/network/${data.networkId}/devices`, data.devices).then(unpackRequest);
+    client.post(`/network/${data.networkId}/devices`, {devices: data.devices}).then(unpackRequest);
 
   const login: ApiHook['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
