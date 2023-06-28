@@ -280,11 +280,14 @@ impl Device {
         )
     }
 
-    pub async fn find_by_ip(
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    pub async fn find_by_ip<'e, E>(
+        executor: E,
         ip: &str,
         network_id: i64,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         query_as!(
             Self,
             "SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
@@ -295,7 +298,7 @@ impl Device {
             ip,
             network_id
         )
-        .fetch_optional(transaction)
+        .fetch_optional(executor)
         .await
     }
 
@@ -494,13 +497,12 @@ mod test {
             let net_ip = network.address.ip();
             let net_network = network.address.network();
             let net_broadcast = network.address.broadcast();
-            let mut transaction = pool.begin().await?;
             for ip in network.address.iter() {
                 if ip == net_ip || ip == net_network || ip == net_broadcast {
                     continue;
                 }
                 // Break loop if IP is unassigned and return device
-                match Self::find_by_ip(&mut transaction, &ip.to_string(), network_id).await? {
+                match Self::find_by_ip(pool, &ip.to_string(), network_id).await? {
                     Some(_) => (),
                     None => {
                         let mut device = Self::new(name.clone(), pubkey, user_id);
@@ -521,7 +523,6 @@ mod test {
                     }
                 }
             }
-            transaction.commit().await?;
             Err(ModelError::CannotCreate)
         }
     }
@@ -530,6 +531,7 @@ mod test {
     async fn test_assign_device_ip(pool: DbPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/30").unwrap();
+        network.save(&pool).await.unwrap();
 
         let mut user = User::new(
             "testuser".to_string(),

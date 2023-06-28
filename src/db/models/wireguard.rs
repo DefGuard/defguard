@@ -610,6 +610,7 @@ mod test {
     async fn test_change_address(pool: DbPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
+        network.save(&pool).await.unwrap();
 
         add_devices(&pool, &network, 3).await;
 
@@ -640,6 +641,7 @@ mod test {
     async fn test_change_address_wont_fit(pool: DbPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
+        network.save(&pool).await.unwrap();
 
         add_devices(&pool, &network, 3).await;
 
