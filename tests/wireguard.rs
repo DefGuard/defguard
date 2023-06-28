@@ -189,7 +189,10 @@ async fn test_device() {
 
     // device config
     let response = client
-        .get(format!("/api/v1/device/{}/config", device.id.unwrap()))
+        .get(format!(
+            "/api/v1/network/1/device/{}/config",
+            device.id.unwrap()
+        ))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
@@ -273,7 +276,7 @@ async fn test_device_permissions() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&device)
         .dispatch()
         .await;
@@ -297,7 +300,7 @@ async fn test_device_permissions() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&device)
         .dispatch()
         .await;
@@ -326,7 +329,7 @@ async fn test_device_permissions() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&device)
         .dispatch()
         .await;
@@ -350,7 +353,7 @@ async fn test_device_permissions() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&device)
         .dispatch()
         .await;
@@ -474,7 +477,7 @@ async fn test_device_pubkey() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&devices)
         .dispatch()
         .await;
@@ -542,7 +545,7 @@ async fn test_stats() {
     let hour_ago = now - Duration::hours(1);
     let response = client
         .get(format!(
-            "/api/v1/network/stats/users?from={}",
+            "/api/v1/network/1/stats/users?from={}",
             hour_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
         .dispatch()
@@ -573,7 +576,7 @@ async fn test_stats() {
     // minute aggregation
     let response = client
         .get(format!(
-            "/api/v1/network/stats/users?from={}",
+            "/api/v1/network/1/stats/users?from={}",
             hour_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
         .dispatch()
@@ -677,7 +680,7 @@ async fn test_stats() {
     let ten_hours_samples = 10 * 60 + 1;
     let response = client
         .get(format!(
-            "/api/v1/network/stats/users?from={}",
+            "/api/v1/network/1/stats/users?from={}",
             ten_hours_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
         .dispatch()
@@ -708,7 +711,7 @@ async fn test_stats() {
     // network stats
     let response = client
         .get(format!(
-            "/api/v1/network/stats?from={}",
+            "/api/v1/network/1/stats?from={}",
             ten_hours_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
         .dispatch()
