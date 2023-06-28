@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Control, useController } from 'react-hook-form';
 
 import { RowBox } from '../../../../../shared/components/layout/RowBox/RowBox';
 import {
@@ -7,18 +8,31 @@ import {
   SelectSizeVariant,
   SelectStyleVariant,
 } from '../../../../../shared/components/layout/Select/Select';
-import { MappedDevice } from '../../../../../shared/types';
-import { DeviceRowData } from '../WizardMapDevices';
+import { WizardMapFormValues } from '../WizardMapDevices';
 
 type Props = {
-  device: DeviceRowData;
   options: SelectOption<number>[];
-  testId?: string;
-  onChange: (device: MappedDevice) => void;
+  control: Control<WizardMapFormValues>;
+  index: number;
 };
 
-export const MapDeviceRow = ({ options, device, testId, onChange }: Props) => {
+export const MapDeviceRow = ({ options, control, index }: Props) => {
   const [search, setSearch] = useState<string | undefined>();
+
+  const nameController = useController({
+    control,
+    name: `devices.${index}.name`,
+  });
+
+  const userController = useController({
+    control,
+    name: `devices.${index}.user_id`,
+  });
+
+  const ipController = useController({
+    control,
+    name: `devices.${index}.wireguard_ip`,
+  });
 
   const getOptions = useMemo(() => {
     if (search && search.length) {
@@ -32,14 +46,20 @@ export const MapDeviceRow = ({ options, device, testId, onChange }: Props) => {
   }, [options, search]);
 
   const getSelected = useMemo(
-    () => options.find((u) => u.value === device.user_id),
-    [device.user_id, options]
+    () => options.find((u) => u.value === userController.field.value),
+    [options, userController.field.value]
   );
 
+  useEffect(() => {
+    console.log(userController.field.value);
+    console.log(nameController.field.value);
+    console.log(ipController.field.value);
+  }, [ipController.field.value, nameController.field.value, userController.field.value]);
+
   return (
-    <RowBox className="device" data-testid={testId}>
-      <span className="name">{device.wireguard_pubkey}</span>
-      <span className="ip">{device.wireguard_ip}</span>
+    <RowBox className="device">
+      <span className="name">{nameController.field.value}</span>
+      <span className="ip">{ipController.field.value}</span>
       <Select<number>
         searchable
         styleVariant={SelectStyleVariant.LIGHT}
@@ -51,11 +71,7 @@ export const MapDeviceRow = ({ options, device, testId, onChange }: Props) => {
         searchDebounce={50}
         onChange={(res) => {
           if (!Array.isArray(res) && res) {
-            const result: MappedDevice = {
-              ...device,
-              user_id: res.value,
-            };
-            onChange(result);
+            userController.field.onChange(res.value);
           }
         }}
       />
