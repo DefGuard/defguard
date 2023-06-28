@@ -585,7 +585,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert_eq!(data.challenge, message);
 
     // Sign message
-    let signature = sign_message(data.challenge, &secp, secret_key);
+    let signature = sign_message(data.challenge, secp, secret_key);
 
     // Check if invalid signature results into 401
     let invalid_request_response = client
@@ -710,7 +710,7 @@ async fn test_re_adding_wallet() {
     let challenge: WalletChallenge = response.into_json().await.unwrap();
     let signature = sign_message(challenge.message, &secp, secret_key);
     let response = client
-        .put(format!("/api/v1/user/hpotter/wallet"))
+        .put("/api/v1/user/hpotter/wallet")
         .json(&json!({
             "address": wallet_address,
             "chain_id": 1,
@@ -772,7 +772,7 @@ async fn test_re_adding_wallet() {
     let challenge: WalletChallenge = response.into_json().await.unwrap();
     let signature = sign_message(challenge.message, &secp, secret_key);
     let response = client
-        .put(format!("/api/v1/user/hpotter/wallet"))
+        .put("/api/v1/user/hpotter/wallet")
         .json(&json!({
             "address": wallet_address,
             "chain_id": 1,
