@@ -317,7 +317,7 @@ async fn test_webauthn() {
     assert_eq!(response.status(), Status::Ok);
 
     // get security keys
-    let response = client.get("/api/v1/me").dispatch().await;
+    let response = client.get("/api/v1/user/hpotter").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     let user_info: UserDetails = response.into_json().await.unwrap();
     assert_eq!(user_info.security_keys.len(), 1);
