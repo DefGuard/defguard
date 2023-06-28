@@ -127,7 +127,23 @@ async fn test_get_user() {
 async fn test_username_available() {
     let client = make_client().await;
 
+    // standard user cannot check username availability
     let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let avail = Username {
+        username: "hpotter".into(),
+    };
+    let response = client
+        .post("/api/v1/user/available")
+        .json(&avail)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
+
+    // log in as admin
+    let auth = Auth::new("admin".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
