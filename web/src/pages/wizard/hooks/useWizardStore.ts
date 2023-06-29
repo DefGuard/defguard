@@ -40,6 +40,7 @@ export const useWizardStore = create<WizardStore>()(
         }
       },
       resetState: () => set(defaultValues),
+      setImportedDevices: (devices) => set({ importedNetworkDevices: devices }),
     }),
     {
       name: 'network-wizard',
@@ -51,6 +52,7 @@ export const useWizardStore = create<WizardStore>()(
           'nextStepSubject',
           'perviousStep',
           'submitSubject',
+          'setImportedDevices',
         ]),
       storage: createJSONStorage(() => localStorage),
     }
@@ -79,6 +81,7 @@ type StoreFields = {
 };
 
 type StoreMethods = {
+  setImportedDevices: (devices: ImportedDevice[]) => void;
   setState: (newState: Partial<WizardStore>) => void;
   resetState: () => void;
   nextStep: () => void;

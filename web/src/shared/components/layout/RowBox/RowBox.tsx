@@ -1,8 +1,8 @@
 import './style.scss';
 
 import classNames from 'classnames';
-import { HTMLMotionProps, motion, Variants } from 'framer-motion';
-import { ReactNode, useMemo } from 'react';
+import { HTMLMotionProps, motion, TargetAndTransition } from 'framer-motion';
+import { ReactNode, useMemo, useState } from 'react';
 
 import { buttonsBoxShadow, ColorsRGB, inactiveBoxShadow } from '../../../constants';
 
@@ -10,9 +10,17 @@ interface Props extends HTMLMotionProps<'div'> {
   children: ReactNode;
   className?: string;
   disabled?: boolean;
+  customAnimate?: TargetAndTransition;
 }
 
-export const RowBox = ({ children, className, disabled = false, ...rest }: Props) => {
+export const RowBox = ({
+  children,
+  className,
+  customAnimate,
+  disabled = false,
+  ...rest
+}: Props) => {
+  const [hovered, setHovered] = useState(false);
   const cn = useMemo(
     () =>
       classNames('row-box', className, {
@@ -20,29 +28,35 @@ export const RowBox = ({ children, className, disabled = false, ...rest }: Props
       }),
     [className, disabled]
   );
+
+  const getAnimate = useMemo((): TargetAndTransition => {
+    let res: TargetAndTransition = {
+      borderColor: ColorsRGB.GrayBorder,
+      boxShadow: inactiveBoxShadow,
+      opacity: 1,
+    };
+    if (disabled) {
+      res.opacity = 0.8;
+    }
+    if (hovered) {
+      res.boxShadow = buttonsBoxShadow;
+    }
+    if (customAnimate) {
+      res = { ...res, ...customAnimate };
+    }
+    return res;
+  }, [disabled, hovered, customAnimate]);
+
   return (
     <motion.div
       className={cn}
-      initial="rowBoxIdle"
-      whileHover="rowBoxActive"
-      variants={defaultVariants}
-      custom={disabled}
+      initial={false}
+      animate={getAnimate}
+      onHoverStart={() => setHovered(true)}
+      onHoverEnd={() => setHovered(false)}
       {...rest}
     >
       {children}
     </motion.div>
   );
-};
-
-const defaultVariants: Variants = {
-  rowBoxIdle: ({ disabled }) => ({
-    borderColor: ColorsRGB.GrayBorder,
-    boxShadow: inactiveBoxShadow,
-    opacity: disabled ? 0.8 : 1,
-  }),
-  rowBoxActive: ({ disabled }) => ({
-    borderColor: ColorsRGB.GrayLighter,
-    boxShadow: disabled ? inactiveBoxShadow : buttonsBoxShadow,
-    opacity: disabled ? 0.8 : 1,
-  }),
 };

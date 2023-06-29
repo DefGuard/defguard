@@ -1140,7 +1140,10 @@ Any other requests you can reach us at: support@defguard.net
       },
     },
     deviceMap: {
-      crateSuccess: 'Devices added',
+      messages: {
+        crateSuccess: 'Devices added',
+        errorsInForm: 'Please correct errors.',
+      },
       list: {
         headers: {
           deviceName: 'Device Name',

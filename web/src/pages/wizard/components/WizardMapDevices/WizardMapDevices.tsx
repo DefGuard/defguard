@@ -3,7 +3,7 @@ import './style.scss';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { useMutation } from 'wagmi';
 import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
@@ -19,29 +19,26 @@ import {
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
+import { ImportedDevice } from '../../../../shared/types';
 import { useWizardStore } from '../../hooks/useWizardStore';
 import { MapDeviceRow } from './components/MapDeviceRow';
 
-type WizardMapFormDevice = {
-  name?: string;
-  user_id?: number;
-  wireguard_ip: string;
-  wireguard_pubkey: string;
-};
-
 export type WizardMapFormValues = {
-  devices: WizardMapFormDevice[];
+  devices: ImportedDevice[];
 };
 
 export const WizardMapDevices = () => {
+  const initialized = useRef(false);
   const submitElementRef = useRef<HTMLInputElement | null>(null);
   const { LL } = useI18nContext();
   const {
     network: { mapUserDevices: createUserDevices },
   } = useApi();
   const toaster = useToaster();
-  const [submitSubject, nextStepSubject, setWizardState] = useWizardStore(
-    (state) => [state.submitSubject, state.nextStepSubject, state.setState],
+  const setWizardState = useWizardStore((state) => state.setState);
+  const setImportedDevices = useWizardStore((state) => state.setImportedDevices);
+  const [submitSubject, nextStepSubject] = useWizardStore(
+    (state) => [state.submitSubject, state.nextStepSubject],
     shallow
   );
   const importedDevices = useWizardStore((state) => state.importedNetworkDevices);
@@ -54,7 +51,7 @@ export const WizardMapDevices = () => {
       devices: yup.array().of(
         yup.object().shape({
           wireguard_ip: yup.string().required(),
-          user_id: yup.number().required(),
+          user_id: yup.number().required().min(1),
           wireguard_pubkey: yup.string().required(),
           name: yup.string().required(),
         })
@@ -70,7 +67,7 @@ export const WizardMapDevices = () => {
   const { isLoading: createLoading } = useMutation(createUserDevices, {
     onSuccess: () => {
       setWizardState({ loading: false });
-      toaster.success(LL.wizard.deviceMap.crateSuccess());
+      toaster.success(LL.wizard.deviceMap.messages.crateSuccess());
       nextStepSubject.next();
     },
     onError: (err) => {
@@ -80,23 +77,8 @@ export const WizardMapDevices = () => {
     },
   });
 
-  const defaultValues = useMemo(() => {
-    if (importedDevices && importedDevices.length) {
-      const devices = importedDevices.map((d) => ({
-        user_id: -1,
-        name: d.wireguard_pubkey,
-        wireguard_pubkey: d.wireguard_pubkey,
-        wireguard_ip: d.wireguard_ip,
-      }));
-      return {
-        devices,
-      };
-    }
-    return undefined;
-  }, [importedDevices]);
-
-  const { handleSubmit, control, reset } = useForm<WizardMapFormValues>({
-    defaultValues,
+  const { handleSubmit, control, reset, getValues } = useForm<WizardMapFormValues>({
+    defaultValues: { devices: importedDevices ?? [] },
     resolver: yupResolver(schema),
     mode: 'onSubmit',
   });
@@ -122,8 +104,8 @@ export const WizardMapDevices = () => {
   );
 
   const renderRow = useCallback(
-    (_: WizardMapFormDevice, index?: number) => (
-      <MapDeviceRow options={getUsersOptions} control={control} index={index as number} />
+    (data: DeviceRowData) => (
+      <MapDeviceRow options={getUsersOptions} control={control} index={data.itemIndex} />
     ),
     [control, getUsersOptions]
   );
@@ -131,6 +113,21 @@ export const WizardMapDevices = () => {
   const handleValidSubmit: SubmitHandler<WizardMapFormValues> = (values) => {
     console.log(values);
   };
+
+  const handleInvalidSubmit: SubmitErrorHandler<WizardMapFormValues> = (errors) => {
+    toaster.error(LL.wizard.deviceMap.messages.errorsInForm());
+    console.log(errors);
+  };
+
+  const devicesList = useMemo((): DeviceRowData[] => {
+    if (importedDevices) {
+      return importedDevices.map((_, index) => ({
+        itemIndex: index,
+      }));
+    }
+
+    return [];
+  }, [importedDevices]);
 
   // allows to submit form from WizardNav
   useEffect(() => {
@@ -142,20 +139,34 @@ export const WizardMapDevices = () => {
     return () => sub?.unsubscribe();
   }, [submitSubject]);
 
+  // init form with values from imported config
   useEffect(() => {
-    if (defaultValues) {
-      reset(defaultValues);
+    if (importedDevices && !initialized.current) {
+      initialized.current = true;
+      reset({ devices: importedDevices });
     }
-  }, [defaultValues, reset]);
+  }, [importedDevices, reset]);
+
+  // save form state so progress won't be lost
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const values = getValues();
+      setImportedDevices(values.devices);
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [getValues, setImportedDevices]);
 
   if (isLoading || !importedDevices || createLoading) return <LoaderSpinner />;
 
   return (
     <Card id="wizard-map-devices" shaded>
-      <form onSubmit={handleSubmit(handleValidSubmit)}>
-        <VirtualizedList
+      <form onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}>
+        <VirtualizedList<DeviceRowData>
           customRowRender={renderRow}
-          data={defaultValues?.devices ?? []}
+          data={devicesList}
           rowSize={70}
           headers={getHeaders}
           headerPadding={{
@@ -171,4 +182,8 @@ export const WizardMapDevices = () => {
       </form>
     </Card>
   );
+};
+
+type DeviceRowData = {
+  itemIndex: number;
 };

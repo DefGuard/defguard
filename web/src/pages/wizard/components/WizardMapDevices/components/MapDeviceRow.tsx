@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { TargetAndTransition } from 'framer-motion';
+import { useMemo, useState } from 'react';
 import { Control, useController } from 'react-hook-form';
 
 import { RowBox } from '../../../../../shared/components/layout/RowBox/RowBox';
@@ -8,6 +9,7 @@ import {
   SelectSizeVariant,
   SelectStyleVariant,
 } from '../../../../../shared/components/layout/Select/Select';
+import { ColorsRGB } from '../../../../../shared/constants';
 import { WizardMapFormValues } from '../WizardMapDevices';
 
 type Props = {
@@ -50,15 +52,23 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
     [options, userController.field.value]
   );
 
-  useEffect(() => {
-    console.log(userController.field.value);
-    console.log(nameController.field.value);
-    console.log(ipController.field.value);
-  }, [ipController.field.value, nameController.field.value, userController.field.value]);
+  const hasErrors = useMemo(() => {
+    return nameController.fieldState.invalid || userController.fieldState.invalid;
+  }, [nameController.fieldState.invalid, userController.fieldState.invalid]);
+
+  const getAnimate = useMemo(() => {
+    const res: TargetAndTransition = {
+      borderColor: ColorsRGB.GrayBorder,
+    };
+    if (hasErrors) {
+      res.borderColor = ColorsRGB.Error;
+    }
+    return res;
+  }, [hasErrors]);
 
   return (
-    <RowBox className="device">
-      <span className="name">{nameController.field.value}</span>
+    <RowBox className="device" customAnimate={getAnimate}>
+      <input className="name" type="text" {...nameController.field} />
       <span className="ip">{ipController.field.value}</span>
       <Select<number>
         searchable

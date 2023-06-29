@@ -78,13 +78,14 @@ const WizardRender = () => {
         ];
         break;
     }
+    console.log(res);
     return res;
   }, [LL.wizard.navigation.titles, networkPresent, setupType]);
 
   return (
     <div id="wizard-content">
       <WizardNav
-        title={getSteps[currentStep].title}
+        title={getSteps[currentStep]?.title}
         lastStep={currentStep === getSteps.length - 1}
       />
       {getSteps[currentStep].element || null}
