@@ -119,8 +119,8 @@ const en: BaseTranslation = {
             messages: {
               copyConfig: 'Config copied to clipboard',
             },
-            inputNameLabel: 'Device Name',
-            warningMessage: `
+            helpers: {
+              warningAutoMode: `
         <p>
           Please be advised that you have to download the configuration now,
           since <strong>we do not</strong> store your private key. After this
@@ -128,23 +128,29 @@ const en: BaseTranslation = {
           full configuration file (with private keys, only blank template).
         </p>
 `,
+              warningManualMode: `
+        <p>
+          Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to repalce it on your own for configuration to work properly.
+        </p>
+`,
+              qrHelper: `
+          <p>
+            You can setup your device faster with wireguard application by scanning this QR code.
+          </p>`,
+            },
             qrInfo:
               'Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.',
+            inputNameLabel: 'Device Name',
+            warningMessage: `
+`,
             qrLabel: 'WireGuard Config File',
-            qrHelper: `
-          <p>
-            This configuration file can be scanned, copied or downloaded, but
-            needs to be used
-            <strong>on your device that you are adding now.</strong>
-            <a>Read more in documentation.</a>
-          </p>`,
             qrCardTitle: 'WireGuard Config for location:',
           },
           setup: {
             infoMessage: `
         <p>
           You need to configure WireguardVPN on your device, please visit&nbsp;
-          <a href="">documentation</a> if you don&apos;t know how to do it.
+          <a href="https://defguard.gitbook.io/defguard/features/wireguard/adding-wireguard-devices">documentation</a> if you don&apos;t know how to do it.
         </p>
 `,
             options: {
@@ -358,6 +364,7 @@ const en: BaseTranslation = {
     },
     messages: {
       editSuccess: 'User updated.',
+      failedToFetchUserData: 'Could not get user information.',
     },
     userDetails: {
       header: 'Profile Details',
@@ -458,8 +465,8 @@ const en: BaseTranslation = {
         },
         edit: {
           edit: 'Edit device',
-          downloadConfig: 'Download config for {name:string}',
           delete: 'Delete device',
+          showConfigurations: 'Show configuration',
         },
       },
     },

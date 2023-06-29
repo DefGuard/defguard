@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { TargetAndTransition } from 'framer-motion';
 import { isUndefined, orderBy } from 'lodash-es';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
@@ -18,15 +18,16 @@ import {
   EditButtonOptionStyleVariant,
 } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
-import { IconClip, IconCollapse, IconExpand } from '../../../../../shared/components/svg';
+import { IconClip } from '../../../../../shared/components/svg';
+import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
+import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
 import { ColorsRGB } from '../../../../../shared/constants';
-import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
-import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
-import { downloadWGConfig } from '../../../../../shared/utils/downloadWGConfig';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
+import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
+import { DeviceModalSetupMode, useDeviceModal } from '../hooks/useDeviceModal';
+import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
 
 dayjs.extend(utc);
 
@@ -44,49 +45,10 @@ export const DeviceCard = ({ device }: Props) => {
   const [hovered, setHovered] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { LL } = useI18nContext();
-  const toaster = useToaster();
   const user = useUserProfileStore((state) => state.user);
-  const setDeleteUserDeviceModal = useModalStore(
-    (state) => state.setDeleteUserDeviceModal
-  );
-  const setModalsState = useModalStore((state) => state.setState);
-  const {
-    device: { downloadDeviceConfig },
-  } = useApi();
-
-  const handleDownload = useCallback(
-    (network_id: number, network_name: string) => {
-      downloadDeviceConfig({
-        device_id: device.id,
-        network_id,
-      })
-        .then((res) => {
-          downloadWGConfig(
-            res,
-            `${device.name.toLowerCase().replace(' ', '')}-${network_name
-              .toLowerCase()
-              .replace(' ', '')}`
-          );
-        })
-        .catch((err) => {
-          toaster.error(LL.messages.clipboardError());
-          console.error(err);
-        });
-    },
-    [LL.messages, device.id, device.name, downloadDeviceConfig, toaster]
-  );
-
-  const renderDownloadConfigOptions = useMemo(() => {
-    return device.networks.map((n) => (
-      <EditButtonOption
-        key={n.network_id}
-        text={LL.userPage.devices.card.edit.downloadConfig({
-          name: n.network_name,
-        })}
-        onClick={() => handleDownload(n.network_id, n.network_name)}
-      />
-    ));
-  }, [LL.userPage.devices.card.edit, device.networks, handleDownload]);
+  const setDeleteDeviceModal = useDeleteDeviceModal((state) => state.setState);
+  const setEditDeviceModal = useEditDeviceModal((state) => state.setState);
+  const openDeviceModal = useDeviceModal((state) => state.open);
 
   const cn = useMemo(
     () =>
@@ -180,16 +142,33 @@ export const DeviceCard = ({ device }: Props) => {
           <EditButtonOption
             text={LL.userPage.devices.card.edit.edit()}
             onClick={() => {
-              setModalsState({
-                editUserDeviceModal: { visible: true, device: device },
+              setEditDeviceModal({
+                visible: true,
+                device: device,
               });
             }}
           />
-          {renderDownloadConfigOptions}
+          <EditButtonOption
+            styleVariant={EditButtonOptionStyleVariant.STANDARD}
+            text={LL.userPage.devices.card.edit.showConfigurations()}
+            onClick={() =>
+              openDeviceModal({
+                visible: true,
+                currentStep: 1,
+                setupMode: DeviceModalSetupMode.MANUAL_CONFIG,
+                device: device,
+              })
+            }
+          />
           <EditButtonOption
             styleVariant={EditButtonOptionStyleVariant.WARNING}
             text={LL.userPage.devices.card.edit.delete()}
-            onClick={() => setDeleteUserDeviceModal({ visible: true, device: device })}
+            onClick={() =>
+              setDeleteDeviceModal({
+                visible: true,
+                device: device,
+              })
+            }
           />
         </EditButton>
         <ExpandButton
@@ -220,8 +199,10 @@ const DeviceLocation = ({
     <div className="location" data-testid={`device-location-id-${network_id}`}>
       <header>
         <IconClip />
-        <h3 data-testid="device-location-name">{network_name}</h3>
-        {!isUndefined(network_gateway_ip) && <Badge text={network_gateway_ip} />}
+        <div className="info-wrapper">
+          <h3 data-testid="device-location-name">{network_name}</h3>
+          {!isUndefined(network_gateway_ip) && <Badge text={network_gateway_ip} />}
+        </div>
       </header>
       <div className="section-content">
         <div>
@@ -251,7 +232,7 @@ type ExpandButtonProps = {
 const ExpandButton = ({ expanded, onClick }: ExpandButtonProps) => {
   return (
     <button className="device-card-expand" onClick={onClick}>
-      {expanded ? <IconExpand /> : <IconCollapse />}
+      {expanded ? <SvgIconCollapse /> : <SvgIconExpand />}
     </button>
   );
 };

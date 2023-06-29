@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 
 import { UseModalStore } from '../../types';
+
 /**
- * Store for modal states.
- * All modals use this store, it controls their visibility and provides extra values.
+ * This approach is depraceted, please use separate stores for each modal to keep things clean
  */
-export const useModalStore = create<UseModalStore>((set, get) => ({
+export const useModalStore = create<UseModalStore>((set) => ({
   openIdClientModal: {
     client: undefined,
     viewMode: false,
@@ -17,10 +17,6 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
     })),
   addDeviceDesktopModal: {
     visible: false,
-  },
-  editUserDeviceModal: {
-    visible: false,
-    device: undefined,
   },
   addWalletModal: {
     visible: false,
@@ -82,37 +78,6 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
   addOpenidClientModal: {
     visible: false,
   },
-  userDeviceModal: {
-    visible: false,
-    currentStep: 0,
-    endStep: 1,
-    configs: undefined,
-    deviceName: undefined,
-    nextStep: () => {
-      const { currentStep, endStep } = get().userDeviceModal;
-      if (currentStep < endStep) {
-        return set((state) => ({
-          userDeviceModal: {
-            ...state.userDeviceModal,
-            currentStep: currentStep + 1,
-          },
-        }));
-      } else {
-        if (currentStep === endStep) {
-          return set((state) => ({
-            userDeviceModal: {
-              ...state.userDeviceModal,
-              visible: false,
-            },
-          }));
-        }
-      }
-    },
-  },
-  deleteUserDeviceModal: {
-    visible: false,
-    device: undefined,
-  },
   manageWebAuthNKeysModal: {
     visible: false,
   },
@@ -126,14 +91,6 @@ export const useModalStore = create<UseModalStore>((set, get) => ({
   setRecoveryCodesModal: (newState) =>
     set((oldState) => ({
       recoveryCodesModal: { ...oldState.recoveryCodesModal, ...newState },
-    })),
-  setDeleteUserDeviceModal: (newState) =>
-    set((oldState) => ({
-      deleteUserDeviceModal: { ...oldState.userDeviceModal, ...newState },
-    })),
-  setUserDeviceModal: (newState) =>
-    set((oldState) => ({
-      userDeviceModal: { ...oldState.userDeviceModal, ...newState },
     })),
   setAddUserModal: (v) =>
     set((state) => ({ addUserModal: { ...state.addUserModal, ...v } })),

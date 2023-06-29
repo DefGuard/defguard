@@ -17,7 +17,6 @@ import MessageBox, {
 } from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
 import { ToggleOption } from '../../../../../../../shared/components/layout/Toggle/Toggle';
 import { IconDownload } from '../../../../../../../shared/components/svg';
-import { useModalStore } from '../../../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
@@ -25,37 +24,39 @@ import { MutationKeys } from '../../../../../../../shared/mutations';
 import { patternValidWireguardKey } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../../shared/utils/generateWGKeys';
-
-export enum AddDeviceSetupChoice {
-  AUTO_CONFIG = 1,
-  MANUAL_CONFIG = 2,
-}
+import { DeviceModalSetupMode, useDeviceModal } from '../../../hooks/useDeviceModal';
 
 interface FormValues {
   name: string;
-  choice: AddDeviceSetupChoice;
+  choice: DeviceModalSetupMode;
   publicKey?: string;
 }
 
 export const SetupStep = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
-  const setModalState = useModalStore((state) => state.setUserDeviceModal);
-  const reservedNames = useModalStore((state) => state.userDeviceModal.reserverdNames);
-  const nextStep = useModalStore((state) => state.userDeviceModal.nextStep);
   const {
     device: { addDevice },
   } = useApi();
+
+  const nextStep = useDeviceModal((state) => state.nextStep);
+
+  const user = useUserProfileStore((state) => state.user);
+
+  const reservedNames = useMemo(
+    () => user?.devices.map((d) => d.name) ?? [],
+    [user?.devices]
+  );
 
   const toggleOptions = useMemo(() => {
     const res: ToggleOption<number>[] = [
       {
         text: LL.modals.addDevice.web.steps.setup.options.auto(),
-        value: AddDeviceSetupChoice.AUTO_CONFIG,
+        value: DeviceModalSetupMode.AUTO_CONFIG,
       },
       {
         text: LL.modals.addDevice.web.steps.setup.options.manual(),
-        value: AddDeviceSetupChoice.MANUAL_CONFIG,
+        value: DeviceModalSetupMode.MANUAL_CONFIG,
       },
     ];
     return res;
@@ -80,7 +81,7 @@ export const SetupStep = () => {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             //@ts-ignore
             is: (choice: number | undefined) =>
-              choice === AddDeviceSetupChoice.MANUAL_CONFIG,
+              choice === DeviceModalSetupMode.MANUAL_CONFIG,
             then: () =>
               yup
                 .string()
@@ -102,7 +103,7 @@ export const SetupStep = () => {
   } = useForm<FormValues>({
     defaultValues: {
       name: '',
-      choice: AddDeviceSetupChoice.AUTO_CONFIG,
+      choice: DeviceModalSetupMode.AUTO_CONFIG,
       publicKey: '',
     },
     resolver: yupResolver(schema),
@@ -126,11 +127,9 @@ export const SetupStep = () => {
     }
   );
 
-  const user = useUserProfileStore((state) => state.user);
-
   const validSubmitHandler: SubmitHandler<FormValues> = async (values) => {
     if (!user) return;
-    if (values.choice === AddDeviceSetupChoice.AUTO_CONFIG) {
+    if (values.choice === DeviceModalSetupMode.AUTO_CONFIG) {
       const keys = generateWGKeys();
       addDeviceMutation({
         name: values.name,
@@ -138,16 +137,15 @@ export const SetupStep = () => {
         username: user.username,
       }).then((response) => {
         const configs = response.configs.map((c) => {
-          c.config.replace('YOUR_PRIVATE_KEY', keys.privateKey);
+          c.config = c.config.replaceAll(/YOUR_PRIVATE_KEY/g, keys.privateKey);
           return c;
         });
         const device = response.device;
-        setModalState({
+        nextStep({
           configs,
           deviceName: device.name,
-          choice: values.choice,
+          setupMode: values.choice,
         });
-        nextStep();
       });
     } else {
       addDeviceMutation({
@@ -157,15 +155,14 @@ export const SetupStep = () => {
       }).then((response) => {
         // This needs to be replaced with valid key so the wireguard mobile app can consume QRCode without errors
         const configs = response.configs.map((c) => {
-          c.config.replace('YOUR_PRIVATE_KEY', values.publicKey as string);
+          c.config = c.config.replace(/YOUR_PRIVATE_KEY/g, values.publicKey as string);
           return c;
         });
-        setModalState({
+        nextStep({
           configs,
           deviceName: values.name,
-          choice: values.choice,
+          setupMode: values.choice,
         });
-        nextStep();
       });
     }
   };
@@ -188,7 +185,7 @@ export const SetupStep = () => {
         <FormInput
           outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
           controller={{ control, name: 'publicKey' }}
-          disabled={choiceValue === AddDeviceSetupChoice.AUTO_CONFIG}
+          disabled={choiceValue === DeviceModalSetupMode.AUTO_CONFIG}
         />
         <div className="controls">
           <Button

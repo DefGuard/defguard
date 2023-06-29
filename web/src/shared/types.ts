@@ -7,7 +7,6 @@ import {
 import { AxiosPromise } from 'axios';
 
 import { Locales } from '../i18n/i18n-types';
-import { AddDeviceSetupChoice } from '../pages/users/UserProfile/UserDevices/modals/AddUserDeviceModal/steps/SetupStep';
 
 export enum UserStatus {
   active = 'Active',
@@ -520,24 +519,11 @@ export interface EditWebhookModal {
   webhook?: Webhook;
 }
 
-interface ModalStepsState {
-  currentStep: number;
-  endStep: number;
-  nextStep: () => void;
-}
-
 export type AddDeviceConfig = {
   network_id: number;
   network_name: string;
   config: string;
 };
-
-export interface UserDeviceModal extends StandardModalState, ModalStepsState {
-  configs?: AddDeviceConfig[];
-  deviceName?: string;
-  choice?: AddDeviceSetupChoice;
-  reserverdNames?: string[];
-}
 
 export interface Provisioner {
   id: string;
@@ -551,20 +537,12 @@ export interface StandardModalState {
   visible: boolean;
 }
 
-export interface DeleteUserDeviceModal extends StandardModalState {
-  device?: Device;
-}
-
 export interface RecoveryCodesModal extends StandardModalState {
   codes?: string[];
 }
 
 export interface ConnectWalletModal extends StandardModalState {
   onConnect?: () => void;
-}
-
-export interface EditUserDeviceModal extends StandardModalState {
-  device?: Device;
 }
 
 export interface WebhookModal extends StandardModalState {
@@ -580,7 +558,6 @@ export interface UseModalStore {
   openIdClientModal: OpenIdClientModal;
   setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
   addDeviceDesktopModal: StandardModalState;
-  editUserDeviceModal: EditUserDeviceModal;
   addWalletModal: StandardModalState;
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
@@ -594,8 +571,6 @@ export interface UseModalStore {
   addOpenidClientModal: StandardModalState;
   deleteOpenidClientModal: DeleteOpenidClientModal;
   enableOpenidClientModal: EnableOpenidClientModal;
-  userDeviceModal: UserDeviceModal;
-  deleteUserDeviceModal: DeleteUserDeviceModal;
   manageWebAuthNKeysModal: StandardModalState;
   addSecurityKeyModal: StandardModalState;
   registerTOTP: StandardModalState;
@@ -604,8 +579,6 @@ export interface UseModalStore {
   setState: (data: Partial<UseModalStore>) => void;
   setWebhookModal: ModalSetter<WebhookModal>;
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
-  setDeleteUserDeviceModal: ModalSetter<DeleteUserDeviceModal>;
-  setUserDeviceModal: ModalSetter<UserDeviceModal>;
   setAddUserModal: ModalSetter<StandardModalState>;
   setKeyDetailModal: ModalSetter<KeyDetailModal>;
   setKeyDeleteModal: ModalSetter<KeyDeleteModal>;

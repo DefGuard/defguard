@@ -1,27 +1,31 @@
 import './style.scss';
 
 import { ReactNode } from 'react';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
-import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
+import { useDeviceModal } from '../../hooks/useDeviceModal';
 import { ConfigStep } from './steps/ConfigStep';
 import { SetupStep } from './steps/SetupStep';
 
 const modalSteps: ReactNode[] = [<SetupStep key={0} />, <ConfigStep key={1} />];
 
 export const UserDeviceModal = () => {
-  const modalState = useModalStore((state) => state.userDeviceModal);
-  const setModalState = useModalStore((state) => state.setUserDeviceModal);
+  const [visible, currentStep] = useDeviceModal(
+    (state) => [state.visible, state.currentStep],
+    shallow
+  );
   const { LL } = useI18nContext();
+  const setDeviceModal = useDeviceModal((state) => state.setState);
   return (
     <ModalWithTitle
       title={LL.modals.addDevice.web.title()}
-      isOpen={modalState.visible}
-      setIsOpen={(visibility) => setModalState({ visible: visibility, currentStep: 0 })}
+      isOpen={visible}
+      setIsOpen={() => setDeviceModal({ visible: false })}
       id="add-user-device-modal"
       steps={modalSteps}
-      currentStep={modalState.currentStep}
+      currentStep={currentStep}
       backdrop
     />
   );

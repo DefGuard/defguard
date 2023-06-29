@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { clone } from 'lodash-es';
+import { clone, isUndefined } from 'lodash-es';
 import { ReactNode, useMemo } from 'react';
 
 import Button, { ButtonSize, ButtonStyleVariant } from '../Button/Button';
@@ -21,6 +21,7 @@ interface Props {
   subTitle?: string | ReactNode;
   cancelText?: string;
   loading?: boolean;
+  onCancel?: () => void;
 }
 
 const baseClass = 'modal middle confirm';
@@ -38,6 +39,7 @@ const ConfirmModal = ({
   submitText,
   onSubmit,
   subTitle,
+  onCancel,
 }: Props) => {
   const getMainClass = useMemo(() => {
     let res = clone(baseClass);
@@ -56,7 +58,13 @@ const ConfirmModal = ({
           size={ButtonSize.BIG}
           className="cancel"
           text={cancelText ?? 'Cancel'}
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            if (!isUndefined(onCancel)) {
+              onCancel();
+            } else {
+              setIsOpen(false);
+            }
+          }}
         />
         <Button
           size={ButtonSize.BIG}

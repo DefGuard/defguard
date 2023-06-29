@@ -2,16 +2,14 @@ import type { SVGProps } from 'react';
 import * as React from 'react';
 const SvgIconCollapse = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={23} height={22} fill="none" {...props}>
-    <path
-      fill="#0C8CE0"
-      d="M4.5 13v4a1 1 0 0 0 1 1h4a1 1 0 1 0 0-2H7.913l1.026-1.026a1 1 0 1 0-1.414-1.414L6.5 14.585V13a1 1 0 1 0-2 0Z"
-    />
-    <path
-      fill="#0C8CE0"
-      fillRule="evenodd"
-      d="M16.5 6h-5.234v5.234H16.5V6Zm-5.234-2a2 2 0 0 0-2 2v5.234a2 2 0 0 0 2 2H16.5a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-5.234Z"
-      clipRule="evenodd"
-    />
+    <g fill="#0C8CE0">
+      <path d="M18.5 9V5a1 1 0 0 0-1-1h-4a1 1 0 1 0 0 2h1.587L14.06 7.026a1 1 0 0 0 1.414 1.414L16.5 7.415V9a1 1 0 1 0 2 0Z" />
+      <path
+        fillRule="evenodd"
+        d="M6.5 16h5.234v-5.234H6.5V16Zm5.234 2a2 2 0 0 0 2-2v-5.234a2 2 0 0 0-2-2H6.5a2 2 0 0 0-2 2V16a2 2 0 0 0 2 2h5.234Z"
+        clipRule="evenodd"
+      />
+    </g>
   </svg>
 );
 export default SvgIconCollapse;

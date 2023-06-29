@@ -247,39 +247,51 @@ type RootTranslation = {
 							 */
 							copyConfig: string
 						}
+						helpers: {
+							/**
+							 * 
+						​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​i​a​l​o​g​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
+						​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+					
+							 */
+							warningAutoMode: string
+							/**
+							 * 
+						​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​a​l​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
+						​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+					
+							 */
+							warningManualMode: string
+							/**
+							 * 
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+							 */
+							qrHelper: string
+						}
+						/**
+						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
+						 */
+						qrInfo: string
 						/**
 						 * D​e​v​i​c​e​ ​N​a​m​e
 						 */
 						inputNameLabel: string
 						/**
 						 * 
-					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​i​a​l​o​g​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
-					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 				
 						 */
 						warningMessage: string
 						/**
-						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
-						 */
-						qrInfo: string
-						/**
 						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
 						 */
 						qrLabel: string
-						/**
-						 * 
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​i​s​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​c​a​n​ ​b​e​ ​s​c​a​n​n​e​d​,​ ​c​o​p​i​e​d​ ​o​r​ ​d​o​w​n​l​o​a​d​e​d​,​ ​b​u​t​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​n​e​e​d​s​ ​t​o​ ​b​e​ ​u​s​e​d​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​s​t​r​o​n​g​>​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​t​h​a​t​ ​y​o​u​ ​a​r​e​ ​a​d​d​i​n​g​ ​n​o​w​.​<​/​s​t​r​o​n​g​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​>​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​<​/​a​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
-						 */
-						qrHelper: string
 						/**
 						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
 						 */
@@ -290,7 +302,7 @@ type RootTranslation = {
 						 * 
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​g​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​f​e​a​t​u​r​e​s​/​w​i​r​e​g​u​a​r​d​/​a​d​d​i​n​g​-​w​i​r​e​g​u​a​r​d​-​d​e​v​i​c​e​s​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 				
 						 */
@@ -751,6 +763,10 @@ type RootTranslation = {
 			 * U​s​e​r​ ​u​p​d​a​t​e​d​.
 			 */
 			editSuccess: string
+			/**
+			 * C​o​u​l​d​ ​n​o​t​ ​g​e​t​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​.
+			 */
+			failedToFetchUserData: string
 		}
 		userDetails: {
 			/**
@@ -990,14 +1006,13 @@ type RootTranslation = {
 					 */
 					edit: string
 					/**
-					 * D​o​w​n​l​o​a​d​ ​c​o​n​f​i​g​ ​f​o​r​ ​{​n​a​m​e​}
-					 * @param {string} name
-					 */
-					downloadConfig: RequiredParams<'name'>
-					/**
 					 * D​e​l​e​t​e​ ​d​e​v​i​c​e
 					 */
 					'delete': string
+					/**
+					 * S​h​o​w​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+					 */
+					showConfigurations: string
 				}
 			}
 		}
@@ -2940,39 +2955,51 @@ export type TranslationFunctions = {
 							 */
 							copyConfig: () => LocalizedString
 						}
+						helpers: {
+							/**
+							 * 
+						        <p>
+						          Please be advised that you have to download the configuration now,
+						          since <strong>we do not</strong> store your private key. After this
+						          dialog is closed, you <strong>will not be able</strong> to get your
+						          full configuration file (with private keys, only blank template).
+						        </p>
+					
+							 */
+							warningAutoMode: () => LocalizedString
+							/**
+							 * 
+						        <p>
+						          Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to repalce it on your own for configuration to work properly.
+						        </p>
+					
+							 */
+							warningManualMode: () => LocalizedString
+							/**
+							 * 
+						          <p>
+						            You can setup your device faster with wireguard application by scanning this QR code.
+						          </p>
+							 */
+							qrHelper: () => LocalizedString
+						}
+						/**
+						 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
+						 */
+						qrInfo: () => LocalizedString
 						/**
 						 * Device Name
 						 */
 						inputNameLabel: () => LocalizedString
 						/**
 						 * 
-					        <p>
-					          Please be advised that you have to download the configuration now,
-					          since <strong>we do not</strong> store your private key. After this
-					          dialog is closed, you <strong>will not be able</strong> to get your
-					          full configuration file (with private keys, only blank template).
-					        </p>
 				
 						 */
 						warningMessage: () => LocalizedString
 						/**
-						 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
-						 */
-						qrInfo: () => LocalizedString
-						/**
 						 * WireGuard Config File
 						 */
 						qrLabel: () => LocalizedString
-						/**
-						 * 
-					          <p>
-					            This configuration file can be scanned, copied or downloaded, but
-					            needs to be used
-					            <strong>on your device that you are adding now.</strong>
-					            <a>Read more in documentation.</a>
-					          </p>
-						 */
-						qrHelper: () => LocalizedString
 						/**
 						 * WireGuard Config for location:
 						 */
@@ -2983,7 +3010,7 @@ export type TranslationFunctions = {
 						 * 
 					        <p>
 					          You need to configure WireguardVPN on your device, please visit&nbsp;
-					          <a href="">documentation</a> if you don&apos;t know how to do it.
+					          <a href="https://defguard.gitbook.io/defguard/features/wireguard/adding-wireguard-devices">documentation</a> if you don&apos;t know how to do it.
 					        </p>
 				
 						 */
@@ -3439,6 +3466,10 @@ export type TranslationFunctions = {
 			 * User updated.
 			 */
 			editSuccess: () => LocalizedString
+			/**
+			 * Could not get user information.
+			 */
+			failedToFetchUserData: () => LocalizedString
 		}
 		userDetails: {
 			/**
@@ -3678,13 +3709,13 @@ export type TranslationFunctions = {
 					 */
 					edit: () => LocalizedString
 					/**
-					 * Download config for {name}
-					 */
-					downloadConfig: (arg: { name: string }) => LocalizedString
-					/**
 					 * Delete device
 					 */
 					'delete': () => LocalizedString
+					/**
+					 * Show configuration
+					 */
+					showConfigurations: () => LocalizedString
 				}
 			}
 		}
