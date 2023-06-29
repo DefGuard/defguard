@@ -795,7 +795,10 @@ async fn test_config_import() {
         1,
     );
     device_1.save(&mut transaction).await.unwrap();
-    device_1.add_to_networks(&mut transaction).await.unwrap();
+    device_1
+        .add_to_all_networks(&mut transaction)
+        .await
+        .unwrap();
 
     let mut device_2 = Device::new(
         "another test device".into(),
@@ -803,7 +806,10 @@ async fn test_config_import() {
         1,
     );
     device_2.save(&mut transaction).await.unwrap();
-    device_2.add_to_networks(&mut transaction).await.unwrap();
+    device_2
+        .add_to_all_networks(&mut transaction)
+        .await
+        .unwrap();
 
     transaction.commit().await.unwrap();
 

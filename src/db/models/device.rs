@@ -182,11 +182,14 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub async fn find(
-        pool: &DbPool,
+    pub async fn find<'e, E>(
+        executor: E,
         device_id: i64,
         network_id: i64,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let res = query_as!(
             Self,
             "SELECT * FROM
@@ -195,7 +198,7 @@ impl WireguardNetworkDevice {
             device_id,
             network_id
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await?;
         Ok(res)
     }
@@ -395,8 +398,8 @@ impl Device {
         .await
     }
 
-    // Add device to all networks
-    pub async fn add_to_networks(
+    // Add device to all existing networks
+    pub async fn add_to_all_networks(
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
     ) -> Result<(Vec<DeviceNetworkInfo>, Vec<DeviceConfig>), DeviceError> {
@@ -417,8 +420,23 @@ impl Device {
 
             let network_id = match network.id {
                 Some(id) => id,
-                None => return Err(DeviceError::Unexpected("Network had no ID".to_string())),
+                None => return Err(DeviceError::Unexpected("Network has no ID".to_string())),
             };
+
+            if WireguardNetworkDevice::find(
+                &mut *transaction,
+                self.id.expect("Device has no ID"),
+                network_id,
+            )
+            .await?
+            .is_some()
+            {
+                debug!(
+                    "Device {} already has an IP within network {}. Skipping...",
+                    self, network
+                );
+                continue;
+            }
 
             let wireguard_network_device = self
                 .assign_network_ip(&mut *transaction, &network, &Vec::new())
