@@ -78,7 +78,6 @@ export const WizardNetworkImport = () => {
       setWizardState({
         importedNetworkDevices: response.devices,
         importedNetworkConfig: response.network,
-        disableBack: true,
         loading: false,
       });
       nextStepSubject.next();

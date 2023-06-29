@@ -28,7 +28,7 @@ pub enum OriWebError {
     DbError(String),
     #[error("Model error: {0}")]
     ModelError(String),
-    #[error("{0}")]
+    #[error("Public key invalid {0}")]
     PubkeyValidation(String),
     #[error("HTTP error: {0}")]
     Http(rocket::http::Status),
