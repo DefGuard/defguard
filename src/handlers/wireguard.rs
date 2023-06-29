@@ -113,7 +113,9 @@ pub async fn create_network(
     // generate IP addresses for existing devices
     let devices = Device::all(&mut transaction).await?;
     for device in devices {
-        device.assign_network_ip(&mut transaction, &network).await?;
+        device
+            .assign_network_ip(&mut transaction, &network, &Vec::new())
+            .await?;
     }
 
     match &network.id {
@@ -311,6 +313,11 @@ pub async fn import_network(
     // if they do assign imported IP and remove from response
     let network_id = network.id.expect("Network ID is missing");
     let mut devices = Vec::new();
+    let mut assigned_device_ids = Vec::new();
+    let reserved_ips: Vec<String> = imported_devices
+        .iter()
+        .map(|dev| dev.wireguard_ip.clone())
+        .collect();
     for imported_device in imported_devices {
         match Device::find_by_pubkey(&mut transaction, &imported_device.wireguard_pubkey).await? {
             Some(existing_device) => {
@@ -324,8 +331,10 @@ pub async fn import_network(
                     imported_device.wireguard_ip,
                 );
                 wireguard_network_device.insert(&mut transaction).await?;
+                // store ID of device with already generated config
+                assigned_device_ids.push(existing_device.id);
                 // send device to connected gateways
-                appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+                appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
                     device: existing_device,
                     network_info: vec![DeviceNetworkInfo {
                         network_id,
@@ -336,6 +345,26 @@ pub async fn import_network(
             None => devices.push(imported_device),
         }
     }
+    // assign IPs for other existing devices
+    info!("Assigning IPs in imported network for remaining existing devices");
+    let existing_devices = Device::all(&mut transaction).await?;
+    for device in existing_devices {
+        // skip if IP was already assigned based on imported config
+        if assigned_device_ids.contains(&device.id) {
+            continue;
+        }
+        let wireguard_network_device = device
+            .assign_network_ip(&mut transaction, &network, &reserved_ips)
+            .await?;
+        appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
+            device,
+            network_info: vec![DeviceNetworkInfo {
+                network_id,
+                device_wireguard_ip: wireguard_network_device.wireguard_ip,
+            }],
+        }));
+    }
+
     transaction.commit().await?;
 
     Ok(ApiResponse {

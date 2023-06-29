@@ -405,8 +405,9 @@ impl Device {
                 None => return Err(DeviceError::Unexpected("Network had no ID".to_string())),
             };
 
-            let wireguard_network_device =
-                self.assign_network_ip(&mut *transaction, &network).await?;
+            let wireguard_network_device = self
+                .assign_network_ip(&mut *transaction, &network, &Vec::new())
+                .await?;
             debug!(
                 "Assigned ip {} for device {:?} in network {}",
                 wireguard_network_device.wireguard_ip, self.id, network_id
@@ -432,6 +433,7 @@ impl Device {
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
         network: &WireguardNetwork,
+        reserved_ips: &[String],
     ) -> Result<WireguardNetworkDevice, ModelError> {
         let network_id = match network.id {
             Some(id) => id,
@@ -446,7 +448,11 @@ impl Device {
             if ip == net_ip || ip == net_network || ip == net_broadcast {
                 continue;
             }
-            // Break loop if IP is unassigned and return device
+            if reserved_ips.contains(&ip.to_string()) {
+                continue;
+            }
+
+            // Break loop if IP is unassigned and return network device
             match Self::find_by_ip(&mut *transaction, &ip.to_string(), network_id).await? {
                 Some(_) => (),
                 None => {

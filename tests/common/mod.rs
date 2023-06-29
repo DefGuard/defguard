@@ -143,6 +143,7 @@ pub async fn make_enterprise_test_client() -> (Client, ClientState) {
     make_license_test_client(LICENSE_ENTERPRISE).await
 }
 
+#[allow(dead_code)]
 pub async fn fetch_user_details(client: &Client, username: &str) -> UserDetails {
     let response = client
         .get(format!("/api/v1/user/{}", username))

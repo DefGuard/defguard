@@ -12,7 +12,6 @@ use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json:
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 mod common;
 use crate::common::{fetch_user_details, make_test_client};
-use defguard::db::UserDetails;
 use tokio_stream::{self as stream, StreamExt};
 
 async fn make_client() -> Client {
@@ -201,7 +200,7 @@ async fn test_crud_user() {
     assert_eq!(user_info.user.first_name, "Albus");
 
     // edit user
-    user_info.phone = Some("5678".into());
+    user_info.user.phone = Some("5678".into());
     let response = client
         .put("/api/v1/user/adumbledore")
         .json(&user_info)
