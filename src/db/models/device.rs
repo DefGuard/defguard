@@ -7,6 +7,7 @@ use lazy_static::lazy_static;
 use model_derive::Model;
 use regex::Regex;
 use sqlx::{query, query_as, Error as SqlxError, FromRow, Transaction};
+use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
@@ -16,6 +17,15 @@ pub struct Device {
     pub wireguard_pubkey: String,
     pub user_id: i64,
     pub created: NaiveDateTime,
+}
+
+impl Display for Device {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self.id {
+            Some(device_id) => write!(f, "[ID {}] {}", device_id, self.name),
+            None => write!(f, "{}", self.name),
+        }
+    }
 }
 
 // helper struct which includes network configurations for a given device
@@ -211,8 +221,8 @@ impl WireguardNetworkDevice {
 
 #[derive(Error, Debug)]
 pub enum DeviceError {
-    #[error("Device pubkey is the same as gateway pubkey for network {0}")]
-    PubkeyConflict(WireguardNetwork),
+    #[error("Device {0} pubkey is the same as gateway pubkey for network {1}")]
+    PubkeyConflict(Device, Box<WireguardNetwork>),
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
     #[error("Model error")]
@@ -390,14 +400,19 @@ impl Device {
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
     ) -> Result<(Vec<DeviceNetworkInfo>, Vec<DeviceConfig>), DeviceError> {
+        info!("Adding device {} to all existing networks", self.name);
         let networks = WireguardNetwork::all(&mut *transaction).await?;
 
         let mut configs = Vec::new();
         let mut network_info = Vec::new();
         for network in networks {
+            debug!(
+                "Assigning IP for device {} (user {}) in network {}",
+                self.name, self.user_id, network
+            );
             // check for pubkey conflicts with networks
             if network.pubkey == self.wireguard_pubkey {
-                return Err(DeviceError::PubkeyConflict(network));
+                return Err(DeviceError::PubkeyConflict(self.clone(), Box::new(network)));
             }
 
             let network_id = match network.id {
@@ -409,8 +424,8 @@ impl Device {
                 .assign_network_ip(&mut *transaction, &network, &Vec::new())
                 .await?;
             debug!(
-                "Assigned ip {} for device {:?} in network {}",
-                wireguard_network_device.wireguard_ip, self.id, network_id
+                "Assigned IP {} for device {} (user {}) in network {}",
+                wireguard_network_device.wireguard_ip, self.name, self.user_id, network
             );
             let device_network_info = DeviceNetworkInfo {
                 network_id,
