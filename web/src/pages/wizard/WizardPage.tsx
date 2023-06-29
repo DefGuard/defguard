@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useEffect, useMemo } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
@@ -29,11 +29,13 @@ export const WizardPage = () => {
 type WizardStep = {
   title: string;
   element: ReactNode;
+  backDisabled?: boolean;
 };
 
 const WizardRender = () => {
   const { LL } = useI18nContext();
   const networkPresent = useAppStore((state) => state.appInfo?.network_present);
+  const setWizardState = useWizardStore((state) => state.setState);
   const [setupType, currentStep] = useWizardStore(
     (state) => [state.setupType, state.currentStep],
     shallow
@@ -41,19 +43,15 @@ const WizardRender = () => {
   const getSteps = useMemo((): WizardStep[] => {
     let res: WizardStep[] = [
       {
+        title: LL.wizard.navigation.titles.welcome(),
+        element: <WizardWelcome key={0} />,
+      },
+      {
         title: LL.wizard.navigation.titles.choseNetworkSetup(),
         element: <WizardType key={1} />,
+        backDisabled: networkPresent,
       },
     ];
-    if (!networkPresent) {
-      res = [
-        {
-          title: LL.wizard.navigation.titles.welcome(),
-          element: <WizardWelcome key={0} />,
-        },
-        ...res,
-      ];
-    }
     switch (setupType) {
       case WizardSetupType.IMPORT:
         res = [
@@ -65,6 +63,7 @@ const WizardRender = () => {
           {
             title: LL.wizard.navigation.titles.mapDevices(),
             element: <WizardMapDevices key={4} />,
+            backDisabled: true,
           },
         ];
         break;
@@ -82,11 +81,19 @@ const WizardRender = () => {
     return res;
   }, [LL.wizard.navigation.titles, networkPresent, setupType]);
 
+  // skip welcome step when at least one network is already present
+  useEffect(() => {
+    if (networkPresent && currentStep === 0) {
+      setWizardState({ currentStep: 1 });
+    }
+  }, [currentStep, networkPresent, setWizardState]);
+
   return (
     <div id="wizard-content">
       <WizardNav
         title={getSteps[currentStep]?.title}
         lastStep={currentStep === getSteps.length - 1}
+        backDisabled={getSteps[currentStep].backDisabled ?? false}
       />
       {getSteps[currentStep].element || null}
     </div>

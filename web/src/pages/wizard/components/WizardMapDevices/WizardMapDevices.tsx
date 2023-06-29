@@ -19,7 +19,7 @@ import {
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { ImportedDevice } from '../../../../shared/types';
+import { ImportedDevice, MappedDevice } from '../../../../shared/types';
 import { useWizardStore } from '../../hooks/useWizardStore';
 import { MapDeviceRow } from './components/MapDeviceRow';
 
@@ -32,7 +32,7 @@ export const WizardMapDevices = () => {
   const submitElementRef = useRef<HTMLInputElement | null>(null);
   const { LL } = useI18nContext();
   const {
-    network: { mapUserDevices: createUserDevices },
+    network: { mapUserDevices },
   } = useApi();
   const toaster = useToaster();
   const setWizardState = useWizardStore((state) => state.setState);
@@ -42,6 +42,7 @@ export const WizardMapDevices = () => {
     shallow
   );
   const importedDevices = useWizardStore((state) => state.importedNetworkDevices);
+  const importedNetwork = useWizardStore((state) => state.importedNetworkConfig);
   const {
     user: { getUsers },
   } = useApi();
@@ -64,7 +65,7 @@ export const WizardMapDevices = () => {
     refetchOnMount: false,
   });
 
-  const { isLoading: createLoading } = useMutation(createUserDevices, {
+  const { isLoading: createLoading, mutate } = useMutation(mapUserDevices, {
     onSuccess: () => {
       setWizardState({ loading: false });
       toaster.success(LL.wizard.deviceMap.messages.crateSuccess());
@@ -111,12 +112,17 @@ export const WizardMapDevices = () => {
   );
 
   const handleValidSubmit: SubmitHandler<WizardMapFormValues> = (values) => {
-    console.log(values);
+    if (importedNetwork) {
+      setWizardState({ loading: true });
+      mutate({
+        devices: values.devices as MappedDevice[],
+        networkId: importedNetwork.id,
+      });
+    }
   };
 
-  const handleInvalidSubmit: SubmitErrorHandler<WizardMapFormValues> = (errors) => {
+  const handleInvalidSubmit: SubmitErrorHandler<WizardMapFormValues> = () => {
     toaster.error(LL.wizard.deviceMap.messages.errorsInForm());
-    console.log(errors);
   };
 
   const devicesList = useMemo((): DeviceRowData[] => {

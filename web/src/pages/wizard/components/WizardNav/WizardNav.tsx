@@ -26,17 +26,18 @@ import { useWizardStore } from '../../hooks/useWizardStore';
 interface Props {
   title: string;
   lastStep: boolean;
+  backDisabled?: boolean;
 }
 
-export const WizardNav = ({ title, lastStep }: Props) => {
+export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const navigate = useNavigate();
   const networkPresent = useAppStore((state) => state.appInfo?.network_present);
   const setNavigationState = useNavigationStore((state) => state.setState);
-  const [backDisabled, currentStep, loading] = useWizardStore(
-    (state) => [state.disableBack, state.currentStep, state.loading],
+  const [currentStep, loading] = useWizardStore(
+    (state) => [state.currentStep, state.loading],
     shallow
   );
   const [back, submitSubject, next, nextSubject, resetState] = useWizardStore(
@@ -92,7 +93,7 @@ export const WizardNav = ({ title, lastStep }: Props) => {
             size={ButtonSize.BIG}
             text="Back"
             icon={<SvgIconArrowGrayLeft />}
-            disabled={backDisabled || loading}
+            disabled={loading || backDisabled}
           />
           <Button
             data-testid="wizard-next"

@@ -11,7 +11,6 @@ export enum WizardSetupType {
 }
 
 const defaultValues: StoreFields = {
-  disableBack: false,
   loading: false,
   currentStep: 0,
   setupType: WizardSetupType.MANUAL,
@@ -35,9 +34,7 @@ export const useWizardStore = create<WizardStore>()(
       setState: (newState) => set((old) => ({ ...old, ...newState })),
       nextStep: () => set({ currentStep: get().currentStep + 1 }),
       perviousStep: () => {
-        if (!get().disableBack) {
-          return set({ currentStep: get().currentStep - 1 });
-        }
+        return set({ currentStep: get().currentStep - 1 });
       },
       resetState: () => set(defaultValues),
       setImportedDevices: (devices) => set({ importedNetworkDevices: devices }),
@@ -62,7 +59,6 @@ export const useWizardStore = create<WizardStore>()(
 export type WizardStore = StoreFields & StoreMethods;
 
 type StoreFields = {
-  disableBack: boolean;
   currentStep: number;
   submitSubject: Subject<void>;
   nextStepSubject: Subject<void>;

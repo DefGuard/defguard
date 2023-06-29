@@ -402,7 +402,7 @@ pub async fn add_user_devices(
     let mut transaction = appstate.pool.begin().await?;
     for mapped_device in &mapped_devices {
         Device::validate_pubkey(&mapped_device.wireguard_pubkey)
-            .map_err(OriWebError::PubkeyValidation)?;
+            .map_err(|err| OriWebError::PubkeyValidation(err.to_string()))?;
         let mut device = Device::new(
             mapped_device.name.clone(),
             mapped_device.wireguard_pubkey.clone(),
