@@ -289,8 +289,10 @@ export interface ImportNetworkResponse {
 }
 
 export interface ImportedDevice {
+  name: string;
   wireguard_ip: string;
   wireguard_pubkey: string;
+  user_id?: number;
 }
 
 export interface MappedDevice extends ImportedDevice {

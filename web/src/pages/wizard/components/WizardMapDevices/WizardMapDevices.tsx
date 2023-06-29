@@ -1,9 +1,11 @@
 import './style.scss';
 
+import { yupResolver } from '@hookform/resolvers/yup';
 import { useQuery } from '@tanstack/react-query';
-import { isUndefined } from 'lodash-es';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { useMutation } from 'wagmi';
+import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -17,35 +19,55 @@ import {
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { ImportedDevice, MappedDevice } from '../../../../shared/types';
+import { ImportedDevice } from '../../../../shared/types';
 import { useWizardStore } from '../../hooks/useWizardStore';
 import { MapDeviceRow } from './components/MapDeviceRow';
 
+export type WizardMapFormValues = {
+  devices: ImportedDevice[];
+};
+
 export const WizardMapDevices = () => {
-  const [mappedDevices, setMappedDevices] = useState<DeviceRowData[]>([]);
+  const initialized = useRef(false);
+  const submitElementRef = useRef<HTMLInputElement | null>(null);
   const { LL } = useI18nContext();
   const {
     network: { mapUserDevices: createUserDevices },
   } = useApi();
   const toaster = useToaster();
-  const [submitSubject, nextStepSubject, setWizardState] = useWizardStore(
-    (state) => [state.submitSubject, state.nextStepSubject, state.setState],
+  const setWizardState = useWizardStore((state) => state.setState);
+  const setImportedDevices = useWizardStore((state) => state.setImportedDevices);
+  const [submitSubject, nextStepSubject] = useWizardStore(
+    (state) => [state.submitSubject, state.nextStepSubject],
     shallow
   );
   const importedDevices = useWizardStore((state) => state.importedNetworkDevices);
-  const importedNetwork = useWizardStore((state) => state.importedNetworkConfig);
   const {
     user: { getUsers },
   } = useApi();
+
+  const schema = useMemo(() => {
+    return yup.object().shape({
+      devices: yup.array().of(
+        yup.object().shape({
+          wireguard_ip: yup.string().required(),
+          user_id: yup.number().required().min(1),
+          wireguard_pubkey: yup.string().required(),
+          name: yup.string().required(),
+        })
+      ),
+    });
+  }, []);
 
   const { isLoading, data: users } = useQuery([QueryKeys.FETCH_USERS], getUsers, {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
-  const { isLoading: createLoading, mutate } = useMutation(createUserDevices, {
+
+  const { isLoading: createLoading } = useMutation(createUserDevices, {
     onSuccess: () => {
       setWizardState({ loading: false });
-      toaster.success(LL.wizard.deviceMap.crateSuccess());
+      toaster.success(LL.wizard.deviceMap.messages.crateSuccess());
       nextStepSubject.next();
     },
     onError: (err) => {
@@ -53,6 +75,12 @@ export const WizardMapDevices = () => {
       toaster.error(LL.messages.error());
       console.error(err);
     },
+  });
+
+  const { handleSubmit, control, reset, getValues } = useForm<WizardMapFormValues>({
+    defaultValues: { devices: importedDevices ?? [] },
+    resolver: yupResolver(schema),
+    mode: 'onSubmit',
   });
 
   const getUsersOptions = useMemo(
@@ -75,87 +103,87 @@ export const WizardMapDevices = () => {
     []
   );
 
-  const handleDeviceChange = useCallback(
-    (device: MappedDevice) => {
-      const clone = [...mappedDevices];
-      const deviceIndex = clone.findIndex(
-        (d) => d.wireguard_pubkey === device.wireguard_pubkey
-      );
-      if (!isUndefined(deviceIndex)) {
-        clone[deviceIndex] = device;
-        setMappedDevices(clone);
-      }
-    },
-    [mappedDevices]
-  );
-
   const renderRow = useCallback(
-    (device: DeviceRowData, index?: number) => (
-      <MapDeviceRow
-        options={getUsersOptions}
-        device={device}
-        testId={`map-device-${index}`}
-        onChange={handleDeviceChange}
-      />
+    (data: DeviceRowData) => (
+      <MapDeviceRow options={getUsersOptions} control={control} index={data.itemIndex} />
     ),
-    [getUsersOptions, handleDeviceChange]
+    [control, getUsersOptions]
   );
 
-  const handleSubmit = useCallback(() => {
-    if (mappedDevices.length && importedNetwork?.id) {
-      const deviceWithoutUser = mappedDevices?.find((d) => isUndefined(d.user_id));
-      if (deviceWithoutUser) {
-        toaster.error('Please assign all remaining devices.');
-      } else {
-        setWizardState({ loading: true });
-        mutate({
-          devices: mappedDevices as MappedDevice[],
-          networkId: importedNetwork.id,
-        });
-      }
-    }
-  }, [importedNetwork?.id, mappedDevices, mutate, setWizardState, toaster]);
+  const handleValidSubmit: SubmitHandler<WizardMapFormValues> = (values) => {
+    console.log(values);
+  };
 
+  const handleInvalidSubmit: SubmitErrorHandler<WizardMapFormValues> = (errors) => {
+    toaster.error(LL.wizard.deviceMap.messages.errorsInForm());
+    console.log(errors);
+  };
+
+  const devicesList = useMemo((): DeviceRowData[] => {
+    if (importedDevices) {
+      return importedDevices.map((_, index) => ({
+        itemIndex: index,
+      }));
+    }
+
+    return [];
+  }, [importedDevices]);
+
+  // allows to submit form from WizardNav
   useEffect(() => {
     const sub = submitSubject.subscribe(() => {
-      handleSubmit();
+      if (submitElementRef.current) {
+        submitElementRef.current.click();
+      }
     });
     return () => sub?.unsubscribe();
-  }, [handleSubmit, submitSubject]);
+  }, [submitSubject]);
 
+  // init form with values from imported config
   useEffect(() => {
-    if (importedDevices) {
-      const res: DeviceRowData[] = importedDevices.map((d) => ({
-        user_id: undefined,
-        wireguard_ip: d.wireguard_ip,
-        wireguard_pubkey: d.wireguard_pubkey,
-      }));
-      setMappedDevices(res);
+    if (importedDevices && !initialized.current) {
+      initialized.current = true;
+      reset({ devices: importedDevices });
     }
-  }, [importedDevices]);
+  }, [importedDevices, reset]);
+
+  // save form state so progress won't be lost
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const values = getValues();
+      setImportedDevices(values.devices);
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [getValues, setImportedDevices]);
 
   if (isLoading || !importedDevices || createLoading) return <LoaderSpinner />;
 
   return (
     <Card id="wizard-map-devices" shaded>
-      <VirtualizedList<DeviceRowData>
-        customRowRender={renderRow}
-        data={mappedDevices}
-        rowSize={70}
-        headers={getHeaders}
-        headerPadding={{
-          left: 20,
-          right: 20,
-        }}
-        padding={{
-          left: 47,
-          right: 47,
-        }}
-      />
+      <form onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}>
+        <VirtualizedList<DeviceRowData>
+          customRowRender={renderRow}
+          data={devicesList}
+          rowSize={70}
+          headers={getHeaders}
+          headerPadding={{
+            left: 20,
+            right: 20,
+          }}
+          padding={{
+            left: 47,
+            right: 47,
+          }}
+        />
+        <input type="submit" className="visually-hidden" ref={submitElementRef} />
+      </form>
     </Card>
   );
 };
 
-export type DeviceRowData = ImportedDevice & {
-  user_id?: number;
+type DeviceRowData = {
+  itemIndex: number;
 };

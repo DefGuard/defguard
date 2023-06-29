@@ -2601,10 +2601,16 @@ type RootTranslation = {
 			}
 		}
 		deviceMap: {
-			/**
-			 * D​e​v​i​c​e​s​ ​a​d​d​e​d
-			 */
-			crateSuccess: string
+			messages: {
+				/**
+				 * D​e​v​i​c​e​s​ ​a​d​d​e​d
+				 */
+				crateSuccess: string
+				/**
+				 * P​l​e​a​s​e​ ​c​o​r​r​e​c​t​ ​e​r​r​o​r​s​.
+				 */
+				errorsInForm: string
+			}
 			list: {
 				headers: {
 					/**
@@ -5272,10 +5278,16 @@ export type TranslationFunctions = {
 			}
 		}
 		deviceMap: {
-			/**
-			 * Devices added
-			 */
-			crateSuccess: () => LocalizedString
+			messages: {
+				/**
+				 * Devices added
+				 */
+				crateSuccess: () => LocalizedString
+				/**
+				 * Please correct errors.
+				 */
+				errorsInForm: () => LocalizedString
+			}
 			list: {
 				headers: {
 					/**

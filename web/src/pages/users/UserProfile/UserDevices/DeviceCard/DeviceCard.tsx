@@ -251,7 +251,7 @@ type ExpandButtonProps = {
 const ExpandButton = ({ expanded, onClick }: ExpandButtonProps) => {
   return (
     <button className="device-card-expand" onClick={onClick}>
-      {!expanded ? <IconExpand /> : <IconCollapse />}
+      {expanded ? <IconExpand /> : <IconCollapse />}
     </button>
   );
 };
