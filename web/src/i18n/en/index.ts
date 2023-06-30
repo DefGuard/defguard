@@ -141,8 +141,6 @@ const en: BaseTranslation = {
             qrInfo:
               'Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.',
             inputNameLabel: 'Device Name',
-            warningMessage: `
-`,
             qrLabel: 'WireGuard Config File',
             qrCardTitle: 'WireGuard Config for location:',
           },
@@ -1149,7 +1147,7 @@ Any other requests you can reach us at: support@defguard.net
     deviceMap: {
       messages: {
         crateSuccess: 'Devices added',
-        errorsInForm: 'Please correct errors.',
+        errorsInForm: 'Please fill marked fields.',
       },
       list: {
         headers: {

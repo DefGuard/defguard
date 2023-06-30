@@ -284,11 +284,6 @@ type RootTranslation = {
 						 */
 						inputNameLabel: string
 						/**
-						 * 
-				
-						 */
-						warningMessage: string
-						/**
 						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
 						 */
 						qrLabel: string
@@ -2622,7 +2617,7 @@ type RootTranslation = {
 				 */
 				crateSuccess: string
 				/**
-				 * P​l​e​a​s​e​ ​c​o​r​r​e​c​t​ ​e​r​r​o​r​s​.
+				 * P​l​e​a​s​e​ ​f​i​l​l​ ​m​a​r​k​e​d​ ​f​i​e​l​d​s​.
 				 */
 				errorsInForm: string
 			}
@@ -2991,11 +2986,6 @@ export type TranslationFunctions = {
 						 * Device Name
 						 */
 						inputNameLabel: () => LocalizedString
-						/**
-						 * 
-				
-						 */
-						warningMessage: () => LocalizedString
 						/**
 						 * WireGuard Config File
 						 */
@@ -5315,7 +5305,7 @@ export type TranslationFunctions = {
 				 */
 				crateSuccess: () => LocalizedString
 				/**
-				 * Please correct errors.
+				 * Please fill marked fields.
 				 */
 				errorsInForm: () => LocalizedString
 			}

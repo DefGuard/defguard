@@ -120,23 +120,28 @@ const pl: Translation = {
             messages: {
               copyConfig: 'Konfiguracja skopiowana do schowka.',
             },
-            inputNameLabel: 'Nazwa urządzenia',
-            warningMessage: `
-        <p>
-          Informujemy, że musisz teraz pobrać konfigurację, ponieważ <strong>nie przechowujemy Twojego klucza prywatnego</strong>.
-  Po zamknięciu tego okna dialogowego <strong>nie będzie można uzyskać pełnego pliku konfiguracyjnego</strong>
-					(z kluczami prywatnymi, tylko z pustym szablonem).
-        </p>
-`,
-            qrInfo: `Użyj dostarczonego pliku konfiguracyjnego poniżej skanując QR Code lub importując go jako plik na 
-						instancję WireGuard w Twoich urządzeniach.`,
-            qrLabel: 'Plik konfiguracyjny Wireguard',
-            qrHelper: `
+            helpers: {
+              qrHelper: `
           <p>
           	Ten plik konfiguracyjny można zeskanować, skopiować lub pobrać,
             <strong>ale musi być użyty na urządzeniu, które teraz dodajesz.</strong>
             <a>Przeczytaj więcej w dokumentacji.</a>
           </p>`,
+              warningAutoMode: `
+          <p>
+           Informujemy, że musisz pobrać <strong>teraz</strong> plik konifguracjny. Ponieważ <strong>nie przechowujemy twojego klucza prywatnego</strong>, nie będzie możliwe ponowne pobranie <strong>klucza prywatnego</strong> dla tego urządzenia co uniemożliwi połączenie się tego użądzenia z VPN.
+          </p>
+`,
+              warningManualMode: `
+          <p>
+          Informujemy, że podany plik konfiguracyjny <strong>nie posiada klucza prywatnego</strong>. Musisz uzupełnić konfigurację o swój <strong>klucz prywatny</strong> aby urządzenie mogło nawiązać połączenie z VPN.
+          </p>
+`,
+            },
+            inputNameLabel: 'Nazwa urządzenia',
+            qrInfo: `Użyj dostarczonego pliku konfiguracyjnego poniżej skanując QR Code lub importując go jako plik na 
+						instancję WireGuard w Twoich urządzeniach.`,
+            qrLabel: 'Plik konfiguracyjny Wireguard',
             qrCardTitle: 'Konfiguracja dla lokalizacji:',
           },
           setup: {
@@ -358,6 +363,7 @@ const pl: Translation = {
     },
     messages: {
       editSuccess: 'Użytkownik zaktualizowany.',
+      failedToFetchUserData: 'Błąd pobierania informacji o użtkowniku.',
     },
     userDetails: {
       header: 'Szczegóły profilu',
@@ -459,7 +465,7 @@ const pl: Translation = {
         edit: {
           edit: 'Edycja urządzenia',
           delete: 'Usuń urządzenie',
-          downloadConfig: 'Pobierz konfigurację dla {name}',
+          showConfigurations: 'Pokaż konfiguracje',
         },
       },
     },
@@ -1142,7 +1148,10 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       sub: 'Zanim zaczniesz, musisz wybrać tryb konfiguracji. Ikony <React> zawierają przydane informacje.',
     },
     deviceMap: {
-      crateSuccess: 'Urządzenia dodane',
+      messages: {
+        crateSuccess: 'Urządzenie dodane',
+        errorsInForm: 'Uzupełnij oznaczone pola',
+      },
       list: {
         headers: {
           deviceName: 'Nazwa',

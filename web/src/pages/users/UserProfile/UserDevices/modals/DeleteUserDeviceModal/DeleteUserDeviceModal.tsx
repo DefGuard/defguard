@@ -20,8 +20,8 @@ export const DeleteUserDeviceModal = () => {
     (state) => [state.device, state.visible],
     shallow
   );
-  const [setModalState, resetModal] = useDeleteDeviceModal(
-    (state) => [state.setState, state.reset],
+  const [setModalState, closeModal] = useDeleteDeviceModal(
+    (state) => [state.setState, state.close],
     shallow
   );
   const {
@@ -36,7 +36,7 @@ export const DeleteUserDeviceModal = () => {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
         toaster.success(LL.modals.deleteDevice.messages.success());
-        resetModal();
+        closeModal();
       },
       onError: (err: AxiosError) => {
         toaster.error(LL.messages.error());

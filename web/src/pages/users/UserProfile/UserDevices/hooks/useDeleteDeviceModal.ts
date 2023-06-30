@@ -10,7 +10,8 @@ const defaultValues: StoreValues = {
 export const useDeleteDeviceModal = create<Store>((set) => ({
   ...defaultValues,
   setState: (values) => set((old) => ({ ...old, ...values })),
-  reset: () => set(defaultValues),
+  open: (values) => set({ ...defaultValues, ...values }),
+  close: () => set({ visible: false }),
 }));
 
 type StoreValues = {
@@ -20,7 +21,8 @@ type StoreValues = {
 
 type StoreMethods = {
   setState: (values: Partial<StoreValues>) => void;
-  reset: () => void;
+  open: (values: Partial<StoreValues>) => void;
+  close: () => void;
 };
 
 type Store = StoreValues & StoreMethods;

@@ -12,9 +12,9 @@ import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComp
 import { DeviceCard } from './DeviceCard/DeviceCard';
 import { useDeviceModal } from './hooks/useDeviceModal';
 import { AddDeviceModalDesktop } from './modals/AddDeviceModalDesktop/AddDeviceModalDesktop';
-import { UserDeviceModal } from './modals/AddUserDeviceModal/AddUserDeviceModal';
 import { DeleteUserDeviceModal } from './modals/DeleteUserDeviceModal/DeleteUserDeviceModal';
 import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDeviceModal';
+import { UserDeviceModal } from './modals/UserDeviceModal/UserDeviceModal';
 
 export const UserDevices = () => {
   const appInfo = useAppStore((state) => state.appInfo);

@@ -32,7 +32,7 @@ const defaultFormValues: Inputs = {
 
 export const EditUserDeviceForm = () => {
   const device = useEditDeviceModal((state) => state.device);
-  const resetModal = useEditDeviceModal((state) => state.reset);
+  const closeModal = useEditDeviceModal((state) => state.close);
   const { LL, locale } = useI18nContext();
 
   const schema = useMemo(() => {
@@ -77,7 +77,7 @@ export const EditUserDeviceForm = () => {
       onSuccess: () => {
         toaster.success(LL.modals.editDevice.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        resetModal();
+        closeModal();
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
@@ -109,7 +109,7 @@ export const EditUserDeviceForm = () => {
           styleVariant={ButtonStyleVariant.STANDARD}
           text={LL.form.cancel()}
           className="cancel"
-          onClick={() => resetModal()}
+          onClick={() => closeModal()}
         />
         <Button
           type="submit"
