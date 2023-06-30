@@ -111,9 +111,12 @@ pub async fn create_network(
     network.save(&mut transaction).await?;
 
     // generate IP addresses for existing devices
+    info!("Assigning IPs for existing devices in network {}", network);
     let devices = Device::all(&mut transaction).await?;
     for device in devices {
-        device.assign_network_ip(&mut transaction, &network).await?;
+        device
+            .assign_network_ip(&mut transaction, &network, &Vec::new())
+            .await?;
     }
 
     match &network.id {
@@ -121,8 +124,8 @@ pub async fn create_network(
             appstate
                 .send_wireguard_event(GatewayEvent::NetworkCreated(*network_id, network.clone()));
         }
-        &None => {
-            error!("Network {} id was not created during network creation, gateway event was not send!", &network.name);
+        None => {
+            error!("Network {} ID was not created during network creation, gateway event was not send!", &network.name);
             return Ok(ApiResponse {
                 json: json!({}),
                 status: Status::InternalServerError,
@@ -281,6 +284,23 @@ pub async fn network_details(
     Ok(response)
 }
 
+#[get("/<network_id>/gateways", format = "json")]
+pub async fn gateway_status(
+    network_id: i64,
+    _admin: AdminRole,
+    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
+) -> ApiResult {
+    debug!("Displaying gateway status for network {}", network_id);
+    let gateway_state = gateway_state
+        .lock()
+        .expect("Failed to acquire gateway state lock");
+
+    Ok(ApiResponse {
+        json: json!(gateway_state.get_network_gateway_status(network_id)),
+        status: Status::Ok,
+    })
+}
+
 #[post("/import", format = "json", data = "<data>")]
 pub async fn import_network(
     _admin: AdminRole,
@@ -311,6 +331,11 @@ pub async fn import_network(
     // if they do assign imported IP and remove from response
     let network_id = network.id.expect("Network ID is missing");
     let mut devices = Vec::new();
+    let mut assigned_device_ids = Vec::new();
+    let reserved_ips: Vec<String> = imported_devices
+        .iter()
+        .map(|dev| dev.wireguard_ip.clone())
+        .collect();
     for imported_device in imported_devices {
         match Device::find_by_pubkey(&mut transaction, &imported_device.wireguard_pubkey).await? {
             Some(existing_device) => {
@@ -324,8 +349,10 @@ pub async fn import_network(
                     imported_device.wireguard_ip,
                 );
                 wireguard_network_device.insert(&mut transaction).await?;
+                // store ID of device with already generated config
+                assigned_device_ids.push(existing_device.id);
                 // send device to connected gateways
-                appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+                appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
                     device: existing_device,
                     network_info: vec![DeviceNetworkInfo {
                         network_id,
@@ -336,6 +363,26 @@ pub async fn import_network(
             None => devices.push(imported_device),
         }
     }
+    // assign IPs for other existing devices
+    info!("Assigning IPs in imported network for remaining existing devices");
+    let existing_devices = Device::all(&mut transaction).await?;
+    for device in existing_devices {
+        // skip if IP was already assigned based on imported config
+        if assigned_device_ids.contains(&device.id) {
+            continue;
+        }
+        let wireguard_network_device = device
+            .assign_network_ip(&mut transaction, &network, &reserved_ips)
+            .await?;
+        appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
+            device,
+            network_info: vec![DeviceNetworkInfo {
+                network_id,
+                device_wireguard_ip: wireguard_network_device.wireguard_ip,
+            }],
+        }));
+    }
+
     transaction.commit().await?;
 
     Ok(ApiResponse {
@@ -372,15 +419,32 @@ pub async fn add_user_devices(
     // wrap loop in transaction to abort if a device is invalid
     let mut transaction = appstate.pool.begin().await?;
     for mapped_device in &mapped_devices {
+        debug!("Mapping device {}", mapped_device.name);
         Device::validate_pubkey(&mapped_device.wireguard_pubkey)
-            .map_err(|err| OriWebError::PubkeyValidation(err.to_string()))?;
+            .map_err(OriWebError::PubkeyValidation)?;
         let mut device = Device::new(
             mapped_device.name.clone(),
             mapped_device.wireguard_pubkey.clone(),
             mapped_device.user_id,
         );
         device.save(&mut transaction).await?;
-        let (network_info, _configs) = device.add_to_networks(&mut transaction).await?;
+        debug!("Saved new device {}", device);
+
+        // assign IP in imported network
+        let wireguard_network_device = WireguardNetworkDevice::new(
+            network_id,
+            device.id.expect("Device ID is missing"),
+            mapped_device.wireguard_ip.clone(),
+        );
+        wireguard_network_device.insert(&mut transaction).await?;
+
+        let (mut network_info, _configs) = device.add_to_all_networks(&mut transaction).await?;
+
+        network_info.push(DeviceNetworkInfo {
+            network_id,
+            device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
+        });
+
         // send device to connected gateways
         appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
             device,
@@ -451,7 +515,7 @@ pub async fn add_device(
         device: Device,
     }
 
-    let (network_info, configs) = device.add_to_networks(&mut transaction).await?;
+    let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
     appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
         device: device.clone(),
@@ -636,7 +700,7 @@ pub async fn download_config(
     }
 }
 
-#[get("/token/<network_id>", format = "json")]
+#[get("/<network_id>/token", format = "json")]
 pub async fn create_network_token(
     _admin: AdminRole,
     appstate: &State<AppState>,

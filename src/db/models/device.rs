@@ -7,6 +7,7 @@ use lazy_static::lazy_static;
 use model_derive::Model;
 use regex::Regex;
 use sqlx::{query, query_as, Error as SqlxError, FromRow, Transaction};
+use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
@@ -16,6 +17,15 @@ pub struct Device {
     pub wireguard_pubkey: String,
     pub user_id: i64,
     pub created: NaiveDateTime,
+}
+
+impl Display for Device {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self.id {
+            Some(device_id) => write!(f, "[ID {}] {}", device_id, self.name),
+            None => write!(f, "{}", self.name),
+        }
+    }
 }
 
 // helper struct which includes network configurations for a given device
@@ -172,11 +182,14 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub async fn find(
-        pool: &DbPool,
+    pub async fn find<'e, E>(
+        executor: E,
         device_id: i64,
         network_id: i64,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let res = query_as!(
             Self,
             "SELECT * FROM
@@ -185,7 +198,7 @@ impl WireguardNetworkDevice {
             device_id,
             network_id
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await?;
         Ok(res)
     }
@@ -211,8 +224,8 @@ impl WireguardNetworkDevice {
 
 #[derive(Error, Debug)]
 pub enum DeviceError {
-    #[error("Device pubkey is the same as gateway pubkey for network {0}")]
-    PubkeyConflict(WireguardNetwork),
+    #[error("Device {0} pubkey is the same as gateway pubkey for network {1}")]
+    PubkeyConflict(Device, Box<WireguardNetwork>),
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
     #[error("Model error")]
@@ -385,31 +398,52 @@ impl Device {
         .await
     }
 
-    // Add device to all networks
-    pub async fn add_to_networks(
+    // Add device to all existing networks
+    pub async fn add_to_all_networks(
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
     ) -> Result<(Vec<DeviceNetworkInfo>, Vec<DeviceConfig>), DeviceError> {
+        info!("Adding device {} to all existing networks", self.name);
         let networks = WireguardNetwork::all(&mut *transaction).await?;
 
         let mut configs = Vec::new();
         let mut network_info = Vec::new();
         for network in networks {
+            debug!(
+                "Assigning IP for device {} (user {}) in network {}",
+                self.name, self.user_id, network
+            );
             // check for pubkey conflicts with networks
             if network.pubkey == self.wireguard_pubkey {
-                return Err(DeviceError::PubkeyConflict(network));
+                return Err(DeviceError::PubkeyConflict(self.clone(), Box::new(network)));
             }
 
             let network_id = match network.id {
                 Some(id) => id,
-                None => return Err(DeviceError::Unexpected("Network had no ID".to_string())),
+                None => return Err(DeviceError::Unexpected("Network has no ID".to_string())),
             };
 
-            let wireguard_network_device =
-                self.assign_network_ip(&mut *transaction, &network).await?;
+            if WireguardNetworkDevice::find(
+                &mut *transaction,
+                self.id.expect("Device has no ID"),
+                network_id,
+            )
+            .await?
+            .is_some()
+            {
+                debug!(
+                    "Device {} already has an IP within network {}. Skipping...",
+                    self, network
+                );
+                continue;
+            }
+
+            let wireguard_network_device = self
+                .assign_network_ip(&mut *transaction, &network, &Vec::new())
+                .await?;
             debug!(
-                "Assigned ip {} for device {:?} in network {}",
-                wireguard_network_device.wireguard_ip, self.id, network_id
+                "Assigned IP {} for device {} (user {}) in network {}",
+                wireguard_network_device.wireguard_ip, self.name, self.user_id, network
             );
             let device_network_info = DeviceNetworkInfo {
                 network_id,
@@ -432,6 +466,7 @@ impl Device {
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
         network: &WireguardNetwork,
+        reserved_ips: &[String],
     ) -> Result<WireguardNetworkDevice, ModelError> {
         let network_id = match network.id {
             Some(id) => id,
@@ -446,7 +481,11 @@ impl Device {
             if ip == net_ip || ip == net_network || ip == net_broadcast {
                 continue;
             }
-            // Break loop if IP is unassigned and return device
+            if reserved_ips.contains(&ip.to_string()) {
+                continue;
+            }
+
+            // Break loop if IP is unassigned and return network device
             match Self::find_by_ip(&mut *transaction, &ip.to_string(), network_id).await? {
                 Some(_) => (),
                 None => {

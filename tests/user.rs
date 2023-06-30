@@ -11,8 +11,7 @@ use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json:
 
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 mod common;
-use crate::common::make_test_client;
-use defguard::db::UserDetails;
+use crate::common::{fetch_user_details, make_test_client};
 use tokio_stream::{self as stream, StreamExt};
 
 async fn make_client() -> Client {
@@ -116,11 +115,9 @@ async fn test_get_user() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    let response = client.get("/api/v1/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let user_info: UserInfo = response.into_json().await.unwrap();
-    assert_eq!(user_info.first_name, "Harry");
-    assert_eq!(user_info.last_name, "Potter");
+    let user_info = fetch_user_details(&client, "hpotter").await;
+    assert_eq!(user_info.user.first_name, "Harry");
+    assert_eq!(user_info.user.last_name, "Potter");
 }
 
 #[rocket::async_test]
@@ -199,13 +196,11 @@ async fn test_crud_user() {
     assert_eq!(response.status(), Status::Created);
 
     // get user
-    let response = client.get("/api/v1/user/adumbledore").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let mut user_info: UserInfo = response.into_json().await.unwrap();
-    assert_eq!(user_info.first_name, "Albus");
+    let mut user_info = fetch_user_details(&client, "adumbledore").await;
+    assert_eq!(user_info.user.first_name, "Albus");
 
     // edit user
-    user_info.phone = Some("5678".into());
+    user_info.user.phone = Some("5678".into());
     let response = client
         .put("/api/v1/user/adumbledore")
         .json(&user_info)
@@ -301,10 +296,9 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
 
     assert_eq!(challenge.message, message);
 
-    let response = client.get("/api/v1/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let user_info: UserDetails = response.into_json().await.unwrap();
+    let user_info = fetch_user_details(&client, "hpotter").await;
     assert!(user_info.wallets.is_empty());
+
     // Sign message
     let typed_data: TypedData = rocket::serde::json::serde_json::from_str(&message).unwrap();
     let hash_msg = typed_data.encode_eip712().unwrap();
@@ -329,9 +323,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert_eq!(response.status(), Status::Ok);
 
     // get user info for wallets
-    let response = client.get("/api/v1/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let user_info: UserDetails = response.into_json().await.unwrap();
+    let user_info = fetch_user_details(&client, "hpotter").await;
     assert_eq!(user_info.wallets.len(), 1);
     let wallet_info = &user_info.wallets[0];
     assert_eq!(wallet_info.address, wallet_address);
@@ -349,9 +341,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
         .await;
     assert_eq!(response.status(), Status::Ok);
 
-    let response = client.get("/api/v1/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let user_info: UserDetails = response.into_json().await.unwrap();
+    let user_info = fetch_user_details(&client, "hpotter").await;
     assert!(user_info.wallets.is_empty());
 }
 

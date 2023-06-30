@@ -72,7 +72,7 @@ impl From<ModelError> for OriWebError {
 impl From<DeviceError> for OriWebError {
     fn from(error: DeviceError) -> Self {
         match error {
-            DeviceError::PubkeyConflict(_) => Self::Http(Status::BadRequest),
+            DeviceError::PubkeyConflict(..) => Self::PubkeyValidation(format!("{}", error)),
             DeviceError::DatabaseError(_) => Self::DbError(format!("{}", error)),
             DeviceError::ModelError(_) => Self::ModelError(format!("{}", error)),
             DeviceError::Unexpected(_) => Self::Http(Status::InternalServerError),

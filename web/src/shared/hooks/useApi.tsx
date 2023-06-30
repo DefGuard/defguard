@@ -255,7 +255,7 @@ const useApi = (props?: HookProps): ApiHook => {
       .then(unpackRequest);
 
   const getNetworkToken: ApiHook['network']['getNetworkToken'] = (networkId) =>
-    client.get<NetworkToken>(`/network/token/${networkId}`).then(unpackRequest);
+    client.get<NetworkToken>(`/network/${networkId}/token`).then(unpackRequest);
 
   const getNetworkStats: ApiHook['network']['getNetworkStats'] = (data) =>
     client
