@@ -112,6 +112,15 @@ pub fn parse_wireguard_config(
             .get("PublicKey")
             .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PublicKey".to_string()))?;
         Device::validate_pubkey(pubkey).map_err(WireguardConfigParseError::InvalidKey)?;
+
+        // check if device pubkey collides with network pubkey
+        if pubkey == network.pubkey {
+            return Err(WireguardConfigParseError::InvalidKey(format!(
+                "Device pubkey is the same as network pubkey {}",
+                pubkey
+            )));
+        }
+
         devices.push(ImportedDevice {
             user_id: None,
             name: pubkey.to_string(),
