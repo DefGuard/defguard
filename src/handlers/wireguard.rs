@@ -111,6 +111,7 @@ pub async fn create_network(
     network.save(&mut transaction).await?;
 
     // generate IP addresses for existing devices
+    info!("Assigning IPs for existing devices in network {}", network);
     let devices = Device::all(&mut transaction).await?;
     for device in devices {
         device
@@ -123,8 +124,8 @@ pub async fn create_network(
             appstate
                 .send_wireguard_event(GatewayEvent::NetworkCreated(*network_id, network.clone()));
         }
-        &None => {
-            error!("Network {} id was not created during network creation, gateway event was not send!", &network.name);
+        None => {
+            error!("Network {} ID was not created during network creation, gateway event was not send!", &network.name);
             return Ok(ApiResponse {
                 json: json!({}),
                 status: Status::InternalServerError,

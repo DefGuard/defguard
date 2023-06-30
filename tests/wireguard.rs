@@ -1,5 +1,5 @@
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
-use defguard::db::models::device::UserDevice;
+use defguard::db::models::device::{UserDevice, WireguardNetworkDevice};
 use defguard::{
     db::{
         models::wireguard::{
@@ -138,6 +138,32 @@ async fn test_device() {
     assert_eq!(response.status(), Status::Created);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceCreated(..));
+
+    // an IP was assigned for new device
+    let network_devices = WireguardNetworkDevice::findy_by_device(&client_state.pool, 1)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        network_devices[0].wireguard_network_id,
+        network_from_details.id
+    );
+
+    // add another network
+    let response = client
+        .post("/api/v1/network")
+        .json(&make_network())
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
+
+    // an IP was assigned for an existing device
+    let network_devices = WireguardNetworkDevice::findy_by_device(&client_state.pool, 1)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(network_devices.len(), 2);
 
     // list devices
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
