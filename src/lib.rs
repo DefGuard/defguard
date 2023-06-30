@@ -18,24 +18,19 @@ use crate::handlers::{
     },
 };
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
-use crate::license::Features;
 use crate::{
-    auth::failed_login::FailedLoginMap, grpc::GatewayMap, handlers::app_info::get_app_info,
+    auth::failed_login::FailedLoginMap,
+    db::models::oauth2client::OAuth2Client,
+    grpc::GatewayMap,
+    grpc::WorkerState,
+    handlers::app_info::get_app_info,
+    handlers::wireguard::{add_user_devices, import_network},
+    license::{Features, License},
 };
-use crate::{
-    db::models::oauth2client::OAuth2Client, grpc::WorkerState,
-    handlers::wireguard::add_user_devices,
-};
-use crate::{handlers::wireguard::import_network, license::License};
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
 #[cfg(feature = "wireguard")]
-use handlers::wireguard::{
-    add_device, create_network, create_network_token, delete_device, delete_network,
-    download_config, get_device, list_devices, list_networks, list_user_devices, modify_device,
-    modify_network, network_details, network_stats, user_stats,
-};
 use handlers::{
     auth::{
         authenticate, logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable,
@@ -52,6 +47,12 @@ use handlers::{
     },
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
+    },
+    wireguard::{
+        add_device, create_network, create_network_token, delete_device, delete_network,
+        download_config, gateway_status, get_device, list_devices, list_networks,
+        list_user_devices, modify_device, modify_network, network_details, network_stats,
+        user_stats,
     },
 };
 use rocket::{
@@ -210,6 +211,7 @@ pub async fn build_webapp(
             modify_network,
             list_networks,
             network_details,
+            gateway_status,
             import_network,
             add_user_devices,
             create_network_token,

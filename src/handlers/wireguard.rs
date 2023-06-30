@@ -284,6 +284,23 @@ pub async fn network_details(
     Ok(response)
 }
 
+#[get("/<network_id>/gateways", format = "json")]
+pub async fn gateway_status(
+    network_id: i64,
+    _admin: AdminRole,
+    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
+) -> ApiResult {
+    debug!("Displaying gateway status for network {}", network_id);
+    let gateway_state = gateway_state
+        .lock()
+        .expect("Failed to acquire gateway state lock");
+
+    Ok(ApiResponse {
+        json: json!(gateway_state.get_network_gateway_status(network_id)),
+        status: Status::Ok,
+    })
+}
+
 #[post("/import", format = "json", data = "<data>")]
 pub async fn import_network(
     _admin: AdminRole,
@@ -683,7 +700,7 @@ pub async fn download_config(
     }
 }
 
-#[get("/token/<network_id>", format = "json")]
+#[get("/<network_id>/token", format = "json")]
 pub async fn create_network_token(
     _admin: AdminRole,
     appstate: &State<AppState>,
