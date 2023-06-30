@@ -241,7 +241,6 @@ async fn test_device() {
         )
     );
 
-    // FIXME: try to delete network, which should fail because there is a device
     let response = client
         .delete(format!(
             "/api/v1/network/{}",
