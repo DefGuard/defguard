@@ -496,7 +496,7 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     user_info.user.mfa_method = MFAMethod::Webauthn;
     let response = client
         .put("/api/v1/user/hpotter")
-        .json(&user_info)
+        .json(&user_info.user)
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);

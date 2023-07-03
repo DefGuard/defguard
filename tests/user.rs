@@ -196,14 +196,14 @@ async fn test_crud_user() {
     assert_eq!(response.status(), Status::Created);
 
     // get user
-    let mut user_info = fetch_user_details(&client, "adumbledore").await;
-    assert_eq!(user_info.user.first_name, "Albus");
+    let mut user_details = fetch_user_details(&client, "adumbledore").await;
+    assert_eq!(user_details.user.first_name, "Albus");
 
     // edit user
-    user_info.user.phone = Some("5678".into());
+    user_details.user.phone = Some("5678".into());
     let response = client
         .put("/api/v1/user/adumbledore")
-        .json(&user_info)
+        .json(&user_details.user)
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
@@ -354,7 +354,7 @@ async fn test_check_username() {
     assert_eq!(response.status(), Status::Ok);
 
     let invalid_usernames = ["ADumbledore", "1user"];
-    let valid_usernames = ["user1", "use2r", "notwrong"];
+    let valid_usernames = ["user1", "use2r3", "notwrong"];
 
     for username in invalid_usernames {
         let new_user = AddUserData {
@@ -363,7 +363,7 @@ async fn test_check_username() {
             first_name: "Albus".into(),
             email: "a.dumbledore@hogwart.edu.uk".into(),
             phone: Some("1234".into()),
-            password: "Alohomora!".into(),
+            password: "Alohomora!12".into(),
         };
         let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
         assert_eq!(response.status(), Status::BadRequest);
@@ -376,7 +376,7 @@ async fn test_check_username() {
             first_name: "Albus".into(),
             email: "a.dumbledore@hogwart.edu.uk".into(),
             phone: Some("1234".into()),
-            password: "Alohomora!".into(),
+            password: "Alohomora!12".into(),
         };
         let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
         assert_eq!(response.status(), Status::Created);
