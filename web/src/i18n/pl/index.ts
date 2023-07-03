@@ -609,6 +609,7 @@ const pl: Translation = {
       },
       messages: {
         error: 'Błąd pobierania statusu połączeń gatway',
+        deleteError: 'Błąd usuwania gateway',
       },
     },
     noLicenseBox: {

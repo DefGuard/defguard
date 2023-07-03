@@ -101,6 +101,7 @@ export type GatewayStatus = {
   network_id: number;
   name?: string;
   ip: string;
+  id: number;
 };
 
 export interface Network {
@@ -313,6 +314,11 @@ export type AddDeviceResponse = {
   configs: AddDeviceConfig[];
 };
 
+export type DeleteGatewayRequest = {
+  networkId: number;
+  gatewayId: number;
+};
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   oAuth: {
@@ -356,6 +362,8 @@ export interface ApiHook {
     getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
     getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
+    getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
+    deleteGateway: (data: DeleteGatewayRequest) => Promise<void>;
   };
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;

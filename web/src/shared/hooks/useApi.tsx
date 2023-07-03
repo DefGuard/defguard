@@ -333,6 +333,12 @@ const useApi = (props?: HookProps): ApiHook => {
   const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
     client.get(`/settings/${id}`).then(unpackRequest);
 
+  const getGatewaysStatus: ApiHook['network']['getGatewaysStatus'] = (networkId) =>
+    client.get(`/network/${networkId}/gateways`).then(unpackRequest);
+
+  const deleteGateway: ApiHook['network']['deleteGateway'] = (data) =>
+    client.delete(`/network/${data.networkId}/gateways/${data.gatewayId}`);
+
   return {
     getAppInfo,
     oAuth: {
@@ -376,6 +382,8 @@ const useApi = (props?: HookProps): ApiHook => {
       getUsersStats,
       getNetworkToken,
       getNetworkStats,
+      getGatewaysStatus,
+      deleteGateway,
     },
     auth: {
       login,

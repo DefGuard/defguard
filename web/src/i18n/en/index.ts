@@ -608,6 +608,7 @@ const en: BaseTranslation = {
       },
       messages: {
         error: 'Failed to get gateways status',
+        deleteError: 'Failed to delete gateway',
       },
     },
     noLicenseBox: {

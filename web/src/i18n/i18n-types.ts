@@ -1422,6 +1422,10 @@ type RootTranslation = {
 				 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​s​ ​s​t​a​t​u​s
 				 */
 				error: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​g​a​t​e​w​a​y
+				 */
+				deleteError: string
 			}
 		}
 		noLicenseBox: {
@@ -4119,6 +4123,10 @@ export type TranslationFunctions = {
 				 * Failed to get gateways status
 				 */
 				error: () => LocalizedString
+				/**
+				 * Failed to delete gateway
+				 */
+				deleteError: () => LocalizedString
 			}
 		}
 		noLicenseBox: {
