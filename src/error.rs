@@ -1,5 +1,6 @@
 use crate::auth::failed_login::FailedLoginError;
 use crate::db::models::device::DeviceError;
+use crate::grpc::GatewayMapError;
 use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
 use rocket::http::Status;
 use sqlx::error::Error as SqlxError;
@@ -76,6 +77,16 @@ impl From<DeviceError> for OriWebError {
             DeviceError::DatabaseError(_) => Self::DbError(format!("{}", error)),
             DeviceError::ModelError(_) => Self::ModelError(format!("{}", error)),
             DeviceError::Unexpected(_) => Self::Http(Status::InternalServerError),
+        }
+    }
+}
+
+impl From<GatewayMapError> for OriWebError {
+    fn from(error: GatewayMapError) -> Self {
+        match error {
+            GatewayMapError::NotFound(_, _) => Self::ObjectNotFound(format!("{}", error)),
+            GatewayMapError::NetworkNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
+            GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
         }
     }
 }

@@ -52,7 +52,7 @@ use handlers::{
         add_device, create_network, create_network_token, delete_device, delete_network,
         download_config, gateway_status, get_device, list_devices, list_networks,
         list_user_devices, modify_device, modify_network, network_details, network_stats,
-        user_stats,
+        remove_gateway, user_stats,
     },
 };
 use rocket::{
@@ -212,6 +212,7 @@ pub async fn build_webapp(
             list_networks,
             network_details,
             gateway_status,
+            remove_gateway,
             import_network,
             add_user_devices,
             create_network_token,
