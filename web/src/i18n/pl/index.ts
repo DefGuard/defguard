@@ -148,7 +148,7 @@ const pl: Translation = {
             infoMessage: `
         <p>
           Musisz skonfigurować WireguardVPN na swoim urządzeniu, odwiedź stronę
-          <a href="{addDevicesDocs}">documentation</a> jeśli nie wiesz jak to zrobić.
+          <a href="{addDevicesDocs}" target="_blank">dokumentacji</a> jeśli nie wiesz jak to zrobić.
         </p>
 `,
             options: {
