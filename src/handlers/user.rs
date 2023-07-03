@@ -94,9 +94,9 @@ pub async fn get_user(
     username: &str,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
-    let user_info = UserDetails::from_user(&appstate.pool, &user).await?;
+    let user_details = UserDetails::from_user(&appstate.pool, &user).await?;
     Ok(ApiResponse {
-        json: json!(user_info),
+        json: json!(user_details),
         status: Status::Ok,
     })
 }
@@ -131,7 +131,7 @@ pub async fn add_user(
         user_data.last_name,
         user_data.first_name,
         user_data.email,
-        Some(user_data.phone),
+        user_data.phone,
     );
     user.save(&appstate.pool).await?;
     if appstate.license.validate(&Features::Ldap) {

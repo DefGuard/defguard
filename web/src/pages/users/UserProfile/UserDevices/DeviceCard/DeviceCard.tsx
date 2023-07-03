@@ -45,7 +45,7 @@ export const DeviceCard = ({ device }: Props) => {
   const [hovered, setHovered] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { LL } = useI18nContext();
-  const user = useUserProfileStore((state) => state.user);
+  const user = useUserProfileStore((state) => state.userProfile);
   const setDeleteDeviceModal = useDeleteDeviceModal((state) => state.setState);
   const setEditDeviceModal = useEditDeviceModal((state) => state.setState);
   const openDeviceModal = useDeviceModal((state) => state.open);

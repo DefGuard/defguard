@@ -76,7 +76,7 @@ export const EditUserDeviceForm = () => {
     {
       onSuccess: () => {
         toaster.success(LL.modals.editDevice.messages.success());
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         closeModal();
       },
       onError: (err) => {

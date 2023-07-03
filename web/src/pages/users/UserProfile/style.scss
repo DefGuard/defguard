@@ -162,8 +162,11 @@
     }
 
     & > .wide-cards,
-    .cards-1,
-    .cards-2 {
+    & > .cards-1,
+    & > .cards-2 {
+      display: flex;
+      flex-flow: column;
+      justify-content: flex-start;
       row-gap: 3rem;
       @include media-breakpoint-up(lg) {
         row-gap: 3.5rem;
@@ -172,14 +175,10 @@
 
     & > .wide-cards {
       grid-area: wide-cards;
-      display: flex;
-      flex-flow: column nowrap;
     }
 
     & > .cards-1 {
       grid-area: cards-1;
-      display: flex;
-      flex-flow: column nowrap;
     }
 
     & > .cards-2 {

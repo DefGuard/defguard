@@ -77,7 +77,6 @@ const WizardRender = () => {
         ];
         break;
     }
-    console.log(res);
     return res;
   }, [LL.wizard.navigation.titles, networkPresent, setupType]);
 

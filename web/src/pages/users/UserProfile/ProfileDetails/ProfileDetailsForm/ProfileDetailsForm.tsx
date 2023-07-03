@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
-import { useLocation, useNavigate } from 'react-router';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -50,14 +49,12 @@ const defaultValues: Inputs = {
 };
 
 export const ProfileDetailsForm = () => {
-  const { LL, locale } = useI18nContext();
-  const user = useUserProfileStore((state) => state.user);
+  const { LL } = useI18nContext();
+  const userProfile = useUserProfileStore((state) => state.userProfile);
   const submitSubject = useUserProfileStore((state) => state.submitSubject);
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const submitButton = useRef<HTMLButtonElement | null>(null);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const location = useLocation();
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const [fetchGroups, setFetchGroups] = useState(false);
   const {
@@ -85,8 +82,13 @@ export const ProfileDetailsForm = () => {
             .min(4, LL.form.error.minimumLength()),
           phone: yup
             .string()
-            .required(LL.form.error.required())
-            .matches(patternValidPhoneNumber, LL.form.error.invalid()),
+            .optional()
+            .test('is-valid', LL.form.error.invalid(), (value) => {
+              if (value && value.length) {
+                return patternValidPhoneNumber.test(value);
+              }
+              return true;
+            }),
           email: yup
             .string()
             .required(LL.form.error.required())
@@ -101,12 +103,11 @@ export const ProfileDetailsForm = () => {
           ),
         })
         .required(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale]
+    [LL.form.error]
   );
 
   const formDefaultValues = useMemo((): Inputs => {
-    const ommited = pick(omitNull(user), Object.keys(defaultValues));
+    const ommited = pick(omitNull(userProfile?.user), Object.keys(defaultValues));
     const res = { ...defaultValues, ...ommited };
     if (ommited.groups) {
       const groupOptions: SelectOption<string>[] = ommited.groups.map((g) => ({
@@ -119,7 +120,7 @@ export const ProfileDetailsForm = () => {
       res.groups = [];
     }
     return res as Inputs;
-  }, [user]);
+  }, [userProfile]);
 
   const { control, handleSubmit, setValue, getValues } = useForm<Inputs>({
     resolver: yupResolver(schema),
@@ -141,16 +142,14 @@ export const ProfileDetailsForm = () => {
     editUser,
     {
       onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USERS]);
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         toaster.success(LL.userPage.messages.editSuccess());
-        setUserProfile({ editMode: false });
-        if (location.pathname.includes('/edit')) {
-          navigate('../');
-        }
+        setUserProfile({ editMode: false, loading: false });
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
+        setUserProfile({ loading: false });
         console.error(err);
       },
     }
@@ -168,15 +167,16 @@ export const ProfileDetailsForm = () => {
   }, [availableGroups, groupsLoading]);
 
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
-    if (user) {
+    if (userProfile && userProfile.user) {
+      setUserProfile({ loading: true });
       const groups = values.groups.map((g) => g.value);
       mutate({
-        username: user.username,
+        username: userProfile.user.username,
         data: {
-          ...user,
+          ...userProfile.user,
           ...values,
           groups: groups,
-          totp_enabled: user.totp_enabled,
+          totp_enabled: userProfile.user.totp_enabled,
         },
       });
     }
@@ -228,6 +228,8 @@ export const ProfileDetailsForm = () => {
             required
           />
         </div>
+      </div>
+      <div className="row">
         <div className="item">
           <FormInput
             outerLabel={LL.userPage.userDetails.fields.lastName.label()}
@@ -245,6 +247,8 @@ export const ProfileDetailsForm = () => {
             disabled={userEditLoading}
           />
         </div>
+      </div>
+      <div className="row">
         <div className="item">
           <FormInput
             outerLabel={LL.userPage.userDetails.fields.email.label()}

@@ -21,29 +21,29 @@ export enum UserMFAMethod {
   WEB3 = 'Web3',
 }
 
-export interface User {
-  id?: number;
+export type User = {
+  id: number;
   username: string;
   last_name: string;
   first_name: string;
-  devices: Device[];
-  wallets: WalletInfo[];
-  security_keys: SecurityKey[];
   mfa_method: UserMFAMethod;
   mfa_enabled: boolean;
   totp_enabled: boolean;
   email?: string;
   phone?: string;
-  lastConnected?: Date;
-  lastLocation?: Location;
-  lastLocations?: Location[];
-  status?: UserStatus;
   pgp_cert_id?: string;
   pgp_key?: string;
   ssh_key?: string;
   groups: string[];
   authorized_apps?: OAuth2AuthorizedApps[];
-}
+};
+
+export type UserProfile = {
+  user: User;
+  devices: Device[];
+  wallets: WalletInfo[];
+  security_keys: SecurityKey[];
+};
 
 export interface OAuth2AuthorizedApps {
   oauth2client_id: string;
@@ -212,7 +212,7 @@ export interface AddUserRequest {
   email: string;
   last_name: string;
   first_name: string;
-  phone: string;
+  phone?: string;
 }
 
 export interface GroupsResponse {
@@ -330,7 +330,7 @@ export interface ApiHook {
   user: {
     getMe: () => Promise<User>;
     addUser: (data: AddUserRequest) => EmptyApiResponse;
-    getUser: (username: string) => Promise<User>;
+    getUser: (username: string) => Promise<UserProfile>;
     getUsers: () => Promise<User[]>;
     editUser: (data: UserEditRequest) => Promise<User>;
     deleteUser: (user: User) => EmptyApiResponse;

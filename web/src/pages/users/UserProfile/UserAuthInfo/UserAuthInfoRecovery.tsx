@@ -6,7 +6,7 @@ export const UserAuthInfoRecovery = () => {
   const { LL } = useI18nContext();
   const isMe = useUserProfileStore((store) => store.isMe);
   const editMode = useUserProfileStore((store) => store.editMode);
-  const user = useUserProfileStore((store) => store.user);
+  const user = useUserProfileStore((store) => store.userProfile?.user);
 
   if (!user) return null;
   return (

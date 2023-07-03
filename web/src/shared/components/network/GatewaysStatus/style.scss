@@ -61,7 +61,7 @@
   border-radius: 10px;
   padding: 18px 10px;
   width: min-content;
-  min-width: 160px;
+  min-width: 120px;
   background-color: var(--white);
 
   & > .gateway-status-row {
@@ -109,6 +109,8 @@
       background-color: transparent;
       border: 0 solid transparent;
       cursor: pointer;
+      width: 22px;
+      height: 22px;
     }
   }
 }

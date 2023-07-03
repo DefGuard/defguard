@@ -34,7 +34,7 @@ export const DeleteUserDeviceModal = () => {
     deleteDevice,
     {
       onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         toaster.success(LL.modals.deleteDevice.messages.success());
         closeModal();
       },

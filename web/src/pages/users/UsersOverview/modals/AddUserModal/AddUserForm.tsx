@@ -40,7 +40,7 @@ interface Inputs {
   email: string;
   last_name: string;
   first_name: string;
-  phone: string;
+  phone?: string;
 }
 
 export const AddUserForm = () => {
@@ -89,8 +89,13 @@ export const AddUserForm = () => {
             .min(4, LL.form.error.minimumLength()),
           phone: yup
             .string()
-            .required(LL.form.error.required())
-            .matches(patternValidPhoneNumber, LL.form.error.invalid()),
+            .optional()
+            .test('is-valid', LL.form.error.invalid(), (value) => {
+              if (value && value.length) {
+                return patternValidPhoneNumber.test(value);
+              }
+              return true;
+            }),
         })
         .required(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,7 +127,7 @@ export const AddUserForm = () => {
   const toaster = useToaster();
   const addUserMutation = useMutation(addUser, {
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_USERS]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
       toaster.success('User added.');
       setModalState({ visible: false });
     },
@@ -229,7 +234,6 @@ export const AddUserForm = () => {
             outerLabel={LL.modals.addUser.form.fields.phone.label()}
             placeholder={LL.modals.addUser.form.fields.phone.placeholder()}
             autoComplete="tel"
-            required
           />
         </div>
       </div>
