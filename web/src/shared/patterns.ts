@@ -12,6 +12,8 @@ export const patternAtLeastOneLowerCaseChar = /(?=.*?[a-z])/g;
 
 export const patternAtLeastOneDigit = /(?=.*?[0-9])/g;
 
+export const patternStartsWithDigit = /^\d/;
+
 export const patternAtLeastOneSpecialChar = /(?=.*?[#?!@$%^&*-])/g;
 
 export const patternValidPhoneNumber =

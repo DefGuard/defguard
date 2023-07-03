@@ -19,6 +19,7 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import {
   patternNoSpecialChars,
+  patternStartsWithDigit,
   patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
@@ -71,7 +72,13 @@ export const ProfileDetailsForm = () => {
             .required(LL.form.error.required())
             .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
             .min(4, LL.form.error.minimumLength())
-            .max(64, LL.form.error.maximumLength()),
+            .max(64, LL.form.error.maximumLength())
+            .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {
+              if (value && value.length) {
+                return !patternStartsWithDigit.test(value);
+              }
+              return false;
+            }),
           first_name: yup
             .string()
             .required(LL.form.error.required())

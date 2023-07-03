@@ -592,6 +592,8 @@ const pl: Translation = {
       validPort: 'Wprowadź prawidłowy port.',
       validCode: 'Kod powinien mieć 6 cyfr.',
       allowedIps: 'Tylko poprawne adresy IP oraz domeny.',
+      startFromNumber: 'Nie może zaczynać się od liczby',
+      repeat: 'Wartości się nie pokrywają',
     },
     floatingErrors: {
       title: 'Popraw następujące błędy:',

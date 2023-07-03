@@ -591,6 +591,8 @@ const en: BaseTranslation = {
       validPort: 'Enter a valid port.',
       validCode: 'Code should have 6 digits.',
       allowedIps: 'Only valid IP or domain is allowed.',
+      startFromNumber: 'Cannot start from number',
+      repeat: `Fields don't match`,
     },
     floatingErrors: {
       title: 'Please correct the following:',

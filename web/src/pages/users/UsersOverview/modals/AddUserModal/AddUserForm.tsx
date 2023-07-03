@@ -29,6 +29,7 @@ import {
   patternAtLeastOneUpperCaseChar,
   patternDigitOrLowercase,
   patternNoSpecialChars,
+  patternStartsWithDigit,
   patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
@@ -44,7 +45,7 @@ interface Inputs {
 }
 
 export const AddUserForm = () => {
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const {
     user: { addUser, usernameAvailable },
   } = useApi();
@@ -63,6 +64,12 @@ export const AddUserForm = () => {
             .matches(patternDigitOrLowercase, LL.form.error.invalid())
             .min(4, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
+            .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {
+              if (value && value.length) {
+                return !patternStartsWithDigit.test(value);
+              }
+              return false;
+            })
             .test('username-available', LL.form.error.usernameTaken(), (value?: string) =>
               value ? !usernamesTaken.getValue().includes(value) : false
             ),
@@ -98,9 +105,9 @@ export const AddUserForm = () => {
             }),
         })
         .required(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale, usernamesTaken]
+    [LL.form.error, usernamesTaken]
   );
+
   const {
     handleSubmit,
     control,

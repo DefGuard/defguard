@@ -31,6 +31,14 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
         )));
     }
 
+    if let Some(first_char) = username.chars().next() {
+        if first_char.is_ascii_digit() {
+            return Err(OriWebError::Serialization(
+                "Username first char cannot be a number".into(),
+            ));
+        }
+    }
+
     if !username
         .chars()
         .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())

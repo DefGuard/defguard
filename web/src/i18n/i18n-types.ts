@@ -1381,6 +1381,14 @@ type RootTranslation = {
 			 * O​n​l​y​ ​v​a​l​i​d​ ​I​P​ ​o​r​ ​d​o​m​a​i​n​ ​i​s​ ​a​l​l​o​w​e​d​.
 			 */
 			allowedIps: string
+			/**
+			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r
+			 */
+			startFromNumber: string
+			/**
+			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h
+			 */
+			repeat: string
 		}
 		floatingErrors: {
 			/**
@@ -4082,6 +4090,14 @@ export type TranslationFunctions = {
 			 * Only valid IP or domain is allowed.
 			 */
 			allowedIps: () => LocalizedString
+			/**
+			 * Cannot start from number
+			 */
+			startFromNumber: () => LocalizedString
+			/**
+			 * Fields don't match
+			 */
+			repeat: () => LocalizedString
 		}
 		floatingErrors: {
 			/**
