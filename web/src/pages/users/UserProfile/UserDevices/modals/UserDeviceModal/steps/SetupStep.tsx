@@ -20,6 +20,7 @@ import { IconDownload } from '../../../../../../../shared/components/svg';
 import { useUserProfileStore } from '../../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
+import { externalLink } from '../../../../../../../shared/links';
 import { MutationKeys } from '../../../../../../../shared/mutations';
 import { patternValidWireguardKey } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
@@ -176,7 +177,11 @@ export const SetupStep = () => {
   return (
     <>
       <MessageBox type={MessageBoxType.INFO}>
-        {parser(LL.modals.addDevice.web.steps.setup.infoMessage())}
+        {parser(
+          LL.modals.addDevice.web.steps.setup.infoMessage({
+            addDevicesDocs: externalLink.gitbook.wireguard.addDevices,
+          })
+        )}
       </MessageBox>
       <form onSubmit={handleSubmit(validSubmitHandler)}>
         <FormInput

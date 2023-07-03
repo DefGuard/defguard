@@ -148,7 +148,7 @@ const pl: Translation = {
             infoMessage: `
         <p>
           Musisz skonfigurować WireguardVPN na swoim urządzeniu, odwiedź stronę
-          <a href="">documentation</a> jeśli nie wiesz jak to zrobić.
+          <a href="{addDevicesDocs}">documentation</a> jeśli nie wiesz jak to zrobić.
         </p>
 `,
             options: {
@@ -632,7 +632,7 @@ const pl: Translation = {
       helper: `<p>
 			Jeśli nie używasz niektórych modułów możesz zmienić ich widoczność
           </p>
-          <a href="defguard.gitbook.io" target="_blank">
+          <a href={documentationLink} target="_blank">
 					Przeczytaj więcej w dokumentacji.
           </a>`,
       fields: {
@@ -660,7 +660,7 @@ const pl: Translation = {
     defaultNetworkSelect: {
       header: 'Domyślny widok sieci',
       helper: `<p>Tutaj możesz zmienić domyślny widok sieci.</p>
-          <a href="defguard.gitbook.io" target="_blank">
+          <a href={documentationLink} target="_blank">
 					Przeczytaj więcej w dokumentacji.
           </a>`,
       filterLabels: {
@@ -709,7 +709,7 @@ const pl: Translation = {
             Tutaj możesz dodać adres url swojego logo i nazwę dla swojej instancji defguard
             będzie ona wyświetlana zamiast defguard.
           </p>
-          <a href="defguard.gitbook.io" target="_blank">
+          <a href="{documentationLink}" target="_blank">
 					Przeczytaj więcej w dokumentacji.
           </a>
 			`,
@@ -1053,9 +1053,9 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       runCommand: `
           <p>
             Defguard wymaga uruchomienia serwera gateway w celu kontrolowania VPN.
-            Szczegóły znajdziesz w <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">dokumentacji</a>.
+            Szczegóły znajdziesz w <a href="{setupGatewayDocs}" target="_blank">dokumentacji</a>.
             Istnieje wiele sposobów na uruchomienie serwera gateway, poniższy przykład używa technologii docker,
-            więcej przykładów znajdziesz w <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">dokumentacji</a>.
+            więcej przykładów znajdziesz w <a href="{setupGatewayDocs}" target="_blank">dokumentacji</a>.
           </p>`,
       createNetwork: `
           <p>
