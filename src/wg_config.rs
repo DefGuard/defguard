@@ -4,6 +4,14 @@ use ipnetwork::{IpNetwork, IpNetworkError};
 use std::array::TryFromSliceError;
 use x25519_dalek::{PublicKey, StaticSecret};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportedDevice {
+    pub user_id: Option<i64>,
+    pub name: String,
+    pub wireguard_pubkey: String,
+    pub wireguard_ip: String,
+}
+
 #[derive(Debug)]
 pub enum WireguardConfigParseError {
     ParseError,
@@ -40,7 +48,7 @@ impl From<DecodeError> for WireguardConfigParseError {
 
 pub fn parse_wireguard_config(
     config: &str,
-) -> Result<(WireguardNetwork, Vec<Device>), WireguardConfigParseError> {
+) -> Result<(WireguardNetwork, Vec<ImportedDevice>), WireguardConfigParseError> {
     let config = ini::Ini::load_from_str(config)?;
     // Parse WireguardNetwork
     let interface_section = config
@@ -87,14 +95,38 @@ pub fn parse_wireguard_config(
             .get("AllowedIPs")
             .ok_or_else(|| WireguardConfigParseError::KeyNotFound("AllowedIPs".to_string()))?;
         let ip_network: IpNetwork = ip.parse()?;
-        let ip = ip_network.ip().to_string();
+        let ip = ip_network.ip();
+
+        // check if assigned IP collides with gateway IP
+        let net_ip = network.address.ip();
+        let net_network = network.address.network();
+        let net_broadcast = network.address.broadcast();
+        if ip == net_ip || ip == net_network || ip == net_broadcast {
+            return Err(WireguardConfigParseError::InvalidIp(format!(
+                "Invalid peer IP {}",
+                ip
+            )));
+        }
 
         let pubkey = peer
             .get("PublicKey")
             .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PublicKey".to_string()))?;
         Device::validate_pubkey(pubkey).map_err(WireguardConfigParseError::InvalidKey)?;
 
-        devices.push(Device::new(pubkey.to_string(), ip, pubkey.to_string(), -1));
+        // check if device pubkey collides with network pubkey
+        if pubkey == network.pubkey {
+            return Err(WireguardConfigParseError::InvalidKey(format!(
+                "Device pubkey is the same as network pubkey {}",
+                pubkey
+            )));
+        }
+
+        devices.push(ImportedDevice {
+            user_id: None,
+            name: pubkey.to_string(),
+            wireguard_pubkey: pubkey.to_string(),
+            wireguard_ip: ip.to_string(),
+        });
     }
 
     Ok((network, devices))
@@ -148,25 +180,17 @@ mod test {
         assert_eq!(devices.len(), 2);
 
         let device1 = &devices[0];
-        assert_eq!(device1.id, None);
-        assert_eq!(device1.name, "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=");
-        assert_eq!(device1.wireguard_ip, "10.0.0.10");
         assert_eq!(
             device1.wireguard_pubkey,
             "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
         );
-        // TODO: do something about user_id
-        assert_eq!(device1.user_id, -1);
+        assert_eq!(device1.wireguard_ip, "10.0.0.10");
 
         let device2 = &devices[1];
-        assert_eq!(device2.id, None);
-        assert_eq!(device2.name, "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=");
-        assert_eq!(device2.wireguard_ip, "10.0.0.11");
         assert_eq!(
             device2.wireguard_pubkey,
             "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="
         );
-        // TODO: do something about user_id
-        assert_eq!(device2.user_id, -1);
+        assert_eq!(device2.wireguard_ip, "10.0.0.11");
     }
 }

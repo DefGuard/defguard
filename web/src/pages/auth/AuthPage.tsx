@@ -9,7 +9,6 @@ import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin'
 import { isUserAdmin } from '../../shared/helpers/isUserAdmin';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
-import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { UserMFAMethod } from '../../shared/types';
@@ -23,10 +22,6 @@ export const AuthPage = () => {
   const navigate = useNavigate();
 
   const loginSubject = useAuthStore((state) => state.loginSubject);
-
-  const setNavigation = useNavigationStore((state) => state.setState);
-
-  const wizardEnabled = useNavigationStore((state) => state.enableWizard);
 
   const setAuthStore = useAuthStore((state) => state.setState);
 
@@ -102,10 +97,8 @@ export const AuthPage = () => {
           const appInfo = await getAppInfo();
           setAppStore({ appInfo });
           if (!appInfo?.network_present) {
-            setNavigation({ enableWizard: true });
             navigateURL = '/admin/wizard';
           } else {
-            setNavigation({ enableWizard: false });
             navigateURL = '/admin/overview';
           }
         }
@@ -116,7 +109,7 @@ export const AuthPage = () => {
     });
     return () => sub?.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loginSubject, openIdParams, wizardEnabled]);
+  }, [loginSubject, openIdParams]);
 
   return (
     <div id="auth-container">

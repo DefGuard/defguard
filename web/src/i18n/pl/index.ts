@@ -120,24 +120,29 @@ const pl: Translation = {
             messages: {
               copyConfig: 'Konfiguracja skopiowana do schowka.',
             },
-            inputNameLabel: 'Nazwa urządzenia',
-            warningMessage: `
-        <p>
-          Informujemy, że musisz teraz pobrać konfigurację, ponieważ <strong>nie przechowujemy Twojego klucza prywatnego</strong>.
-  Po zamknięciu tego okna dialogowego <strong>nie będzie można uzyskać pełnego pliku konfiguracyjnego</strong>
-					(z kluczami prywatnymi, tylko z pustym szablonem).
-        </p>
-`,
-            qrInfo: `Użyj dostarczonego pliku konfiguracyjnego poniżej skanując QR Code lub importując go jako plik na 
-						instancję WireGuard w Twoich urządzeniach.`,
-            qrLabel: 'Plik konfiguracyjny Wireguard',
-            qrHelper: `
+            helpers: {
+              qrHelper: `
           <p>
           	Ten plik konfiguracyjny można zeskanować, skopiować lub pobrać,
             <strong>ale musi być użyty na urządzeniu, które teraz dodajesz.</strong>
             <a>Przeczytaj więcej w dokumentacji.</a>
           </p>`,
-            qrCardTitle: 'Konfiguracja Wireguard',
+              warningAutoMode: `
+          <p>
+           Informujemy, że musisz pobrać <strong>teraz</strong> plik konifguracjny. Ponieważ <strong>nie przechowujemy twojego klucza prywatnego</strong>, nie będzie możliwe ponowne pobranie <strong>klucza prywatnego</strong> dla tego urządzenia co uniemożliwi połączenie się tego użądzenia z VPN.
+          </p>
+`,
+              warningManualMode: `
+          <p>
+          Informujemy, że podany plik konfiguracyjny <strong>nie posiada klucza prywatnego</strong>. Musisz uzupełnić konfigurację o swój <strong>klucz prywatny</strong> aby urządzenie mogło nawiązać połączenie z VPN.
+          </p>
+`,
+            },
+            inputNameLabel: 'Nazwa urządzenia',
+            qrInfo: `Użyj dostarczonego pliku konfiguracyjnego poniżej skanując QR Code lub importując go jako plik na 
+						instancję WireGuard w Twoich urządzeniach.`,
+            qrLabel: 'Plik konfiguracyjny Wireguard',
+            qrCardTitle: 'Konfiguracja dla lokalizacji:',
           },
           setup: {
             infoMessage: `
@@ -358,6 +363,7 @@ const pl: Translation = {
     },
     messages: {
       editSuccess: 'Użytkownik zaktualizowany.',
+      failedToFetchUserData: 'Błąd pobierania informacji o użtkowniku.',
     },
     userDetails: {
       header: 'Szczegóły profilu',
@@ -451,14 +457,15 @@ const pl: Translation = {
       },
       card: {
         labels: {
-          location: 'Ostatnia lokalizacja',
-          lastIpAddress: 'Ostatni adres IP',
-          date: 'Data dodania',
+          lastLocation: 'Ostatnie połączenie z',
+          active: 'aktywne',
+          assignedIp: 'Przydzielone IP',
+          lastConnected: 'Ostatnio połączone',
         },
         edit: {
           edit: 'Edycja urządzenia',
-          download: 'Pobierz konfigurację',
           delete: 'Usuń urządzenie',
+          showConfigurations: 'Pokaż konfiguracje',
         },
       },
     },
@@ -591,6 +598,20 @@ const pl: Translation = {
     },
   },
   components: {
+    gatewaysStatus: {
+      label: 'Gateways',
+      states: {
+        error: 'Błąd pobierania statusu',
+        loading: 'Pobieranie informacji',
+        partial: 'Jeden lub więcej odłączonych',
+        connected: 'Połączone',
+        disconnected: 'Brak połączenia',
+      },
+      messages: {
+        error: 'Błąd pobierania statusu połączeń gatway',
+        deleteError: 'Błąd usuwania gateway',
+      },
+    },
     noLicenseBox: {
       footer: {
         get: 'Uzyskaj licencję enterprise',
@@ -934,10 +955,12 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
     },
   },
   networkOverview: {
-    pageTitle: 'Przegląd sieci',
+    pageTitle: 'Przegląd lokalizacji',
     controls: {
-      editNetwork: 'Edycja ustawień sieci',
-      configureNetwork: 'Konfiguracja ustawień sieci',
+      editNetworks: 'Edycja lokalizacji',
+      selectNetwork: {
+        placeholder: 'Oczekiwanie na lokalizacje',
+      },
     },
     filterLabels: {
       grid: 'Widok siatki',
@@ -967,29 +990,32 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
     },
   },
   networkPage: {
-    pageTitle: 'Edycja sieci',
+    pageTitle: 'Edycja lokalizacji',
+    addNetwork: '+ Dodaj lokalizacje',
   },
   activityOverview: {
     header: 'Strumien aktywności',
     noData: 'Obecnie nie wykryto żadnej aktywności',
   },
   networkConfiguration: {
-    header: 'Konfiguracja sieci',
-    importHeader: 'Import sieci',
+    header: 'Konfiguracja lokalizacji',
+    importHeader: 'Import lokalizacji',
     form: {
-      messages: {
+      helpers: {
         address:
           'Od tego adresu będzie stworzona sieć VPN, np. 10.10.10.1/24 (sieć VPN będzie: 10.10.10.0/24)',
         gateway:
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
         dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs wireguard jest aktywny.',
         allowedIps: 'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
-        networkModified: 'Sieć zmodyfikowana.',
-        networkCreated: 'Sieć utworzona.',
+      },
+      messages: {
+        networkModified: 'Lokalizacja zmodyfikowana',
+        networkCreated: 'Lokalizacja utworzona',
       },
       fields: {
         name: {
-          label: 'Nazwa sieci',
+          label: 'Nazwa lokalizacji',
         },
         address: {
           label: 'Adres i maska sieci VPN',
@@ -1009,7 +1035,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       },
       controls: {
         submit: 'Zapisz zmiany',
-        cancel: 'Cofnij',
+        cancel: 'Wróć',
       },
     },
   },
@@ -1123,7 +1149,10 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       sub: 'Zanim zaczniesz, musisz wybrać tryb konfiguracji. Ikony <React> zawierają przydane informacje.',
     },
     deviceMap: {
-      crateSuccess: 'Urządzenia dodane',
+      messages: {
+        crateSuccess: 'Urządzenie dodane',
+        errorsInForm: 'Uzupełnij oznaczone pola',
+      },
       list: {
         headers: {
           deviceName: 'Nazwa',
@@ -1156,6 +1185,11 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
         messages: { devicesCreated: 'Urządzenia utworzone.' },
         validation: { invalidAddress: 'Nieprawidłowy adres.' },
       },
+    },
+  },
+  layout: {
+    select: {
+      addNewOption: 'Dodaj',
     },
   },
 };

@@ -1,6 +1,5 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
-import { fs } from '@tauri-apps/api';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
@@ -74,16 +73,17 @@ export const AddDeviceDesktopForm = () => {
         username: user.username,
         name: values.name,
         wireguard_pubkey: keys.publicKey,
-      }).then(async (config) => {
-        const configWithSecret = config.replace('YOUR_PRIVATE_KEY', keys.privateKey);
-        const appDir = fs.BaseDirectory.AppData;
-        const dirExists = await fs.exists('wg', { dir: appDir });
-        if (!dirExists) {
-          await fs.createDir('wg', { dir: appDir });
-        }
-        await fs.writeTextFile('wg/device.conf', configWithSecret, {
-          dir: appDir,
-        });
+      }).then(async () => {
+        toaster.error('FIXME');
+        // const configWithSecret = config.replace('YOUR_PRIVATE_KEY', keys.privateKey);
+        // const appDir = fs.BaseDirectory.AppData;
+        // const dirExists = await fs.exists('wg', { dir: appDir });
+        // if (!dirExists) {
+        //   await fs.createDir('wg', { dir: appDir });
+        // }
+        // await fs.writeTextFile('wg/device.conf', configWithSecret, {
+        //   dir: appDir,
+        // });
       });
       setModalsState({ addDeviceDesktopModal: { visible: false } });
     }

@@ -10,7 +10,6 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/components/layout/Button/Button';
-import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
@@ -19,6 +18,7 @@ import {
   patternValidWireguardKey,
 } from '../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../shared/queries';
+import { useEditDeviceModal } from '../../hooks/useEditDeviceModal';
 
 interface Inputs {
   name: string;
@@ -31,8 +31,8 @@ const defaultFormValues: Inputs = {
 };
 
 export const EditUserDeviceForm = () => {
-  const device = useModalStore((state) => state.editUserDeviceModal.device);
-  const setModalsState = useModalStore((state) => state.setState);
+  const device = useEditDeviceModal((state) => state.device);
+  const closeModal = useEditDeviceModal((state) => state.close);
   const { LL, locale } = useI18nContext();
 
   const schema = useMemo(() => {
@@ -77,7 +77,7 @@ export const EditUserDeviceForm = () => {
       onSuccess: () => {
         toaster.success(LL.modals.editDevice.messages.success());
         queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
-        setModalsState({ editUserDeviceModal: { visible: false } });
+        closeModal();
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
@@ -109,11 +109,7 @@ export const EditUserDeviceForm = () => {
           styleVariant={ButtonStyleVariant.STANDARD}
           text={LL.form.cancel()}
           className="cancel"
-          onClick={() =>
-            setModalsState({
-              editUserDeviceModal: { visible: false, device: undefined },
-            })
-          }
+          onClick={() => closeModal()}
         />
         <Button
           type="submit"

@@ -119,8 +119,8 @@ const en: BaseTranslation = {
             messages: {
               copyConfig: 'Config copied to clipboard',
             },
-            inputNameLabel: 'Device Name',
-            warningMessage: `
+            helpers: {
+              warningAutoMode: `
         <p>
           Please be advised that you have to download the configuration now,
           since <strong>we do not</strong> store your private key. After this
@@ -128,23 +128,27 @@ const en: BaseTranslation = {
           full configuration file (with private keys, only blank template).
         </p>
 `,
+              warningManualMode: `
+        <p>
+          Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to repalce it on your own for configuration to work properly.
+        </p>
+`,
+              qrHelper: `
+          <p>
+            You can setup your device faster with wireguard application by scanning this QR code.
+          </p>`,
+            },
             qrInfo:
               'Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.',
+            inputNameLabel: 'Device Name',
             qrLabel: 'WireGuard Config File',
-            qrHelper: `
-          <p>
-            This configuration file can be scanned, copied or downloaded, but
-            needs to be used
-            <strong>on your device that you are adding now.</strong>
-            <a>Read more in documentation.</a>
-          </p>`,
-            qrCardTitle: 'WireGuard Config',
+            qrCardTitle: 'WireGuard Config for location:',
           },
           setup: {
             infoMessage: `
         <p>
           You need to configure WireguardVPN on your device, please visit&nbsp;
-          <a href="">documentation</a> if you don&apos;t know how to do it.
+          <a href="https://defguard.gitbook.io/defguard/features/wireguard/adding-wireguard-devices">documentation</a> if you don&apos;t know how to do it.
         </p>
 `,
             options: {
@@ -152,7 +156,7 @@ const en: BaseTranslation = {
               manual: 'Use my own public key',
             },
             form: {
-              submit: 'Generate Config',
+              submit: 'Generate configuration',
               fields: {
                 name: {
                   label: 'Device Name',
@@ -358,6 +362,7 @@ const en: BaseTranslation = {
     },
     messages: {
       editSuccess: 'User updated.',
+      failedToFetchUserData: 'Could not get user information.',
     },
     userDetails: {
       header: 'Profile Details',
@@ -451,14 +456,15 @@ const en: BaseTranslation = {
       },
       card: {
         labels: {
-          location: 'Last location',
-          lastIpAddress: 'Last IP address',
-          date: 'Date added',
+          lastLocation: 'Last connected from',
+          lastConnected: 'Last connected',
+          assignedIp: 'Assigned IP',
+          active: 'active',
         },
         edit: {
           edit: 'Edit device',
-          download: 'Download config',
           delete: 'Delete device',
+          showConfigurations: 'Show configuration',
         },
       },
     },
@@ -591,6 +597,20 @@ const en: BaseTranslation = {
     },
   },
   components: {
+    gatewaysStatus: {
+      label: 'Gateways',
+      states: {
+        connected: 'All connected',
+        partial: 'One or more are not working',
+        disconnected: 'Disconnected',
+        error: 'Retrieving connections failed',
+        loading: 'Retrieving connections',
+      },
+      messages: {
+        error: 'Failed to get gateways status',
+        deleteError: 'Failed to delete gateway',
+      },
+    },
     noLicenseBox: {
       footer: {
         get: 'Get an enterprise license',
@@ -934,10 +954,12 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   networkOverview: {
-    pageTitle: 'Network overview',
+    pageTitle: 'Location overview',
     controls: {
-      editNetwork: 'Edit network settings',
-      configureNetwork: 'Configure network settings',
+      editNetworks: 'Edit Locations settings',
+      selectNetwork: {
+        placeholder: 'Loading locations',
+      },
     },
     filterLabels: {
       grid: 'Grid view',
@@ -967,29 +989,32 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   networkPage: {
-    pageTitle: 'Edit network',
+    pageTitle: 'Edit Location',
+    addNetwork: '+ Add new location',
   },
   activityOverview: {
     header: 'Activity stream',
     noData: 'Currently there is no activity detected',
   },
   networkConfiguration: {
-    header: 'Network configuration',
-    importHeader: 'Network import',
+    header: 'Location configuration',
+    importHeader: 'Location import',
     form: {
-      messages: {
+      helpers: {
         address:
           'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)',
         gateway: 'Gateway public address, used by VPN users to connect',
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:
           'List of addresses/masks that should be routed through the VPN network.',
-        networkModified: 'Network modified.',
-        networkCreated: 'Network created.',
+      },
+      messages: {
+        networkModified: 'Location modified.',
+        networkCreated: 'Location created',
       },
       fields: {
         name: {
-          label: 'Network name',
+          label: 'Location name',
         },
         address: {
           label: 'Gateway VPN IP address and netmask',
@@ -1009,7 +1034,7 @@ Any other requests you can reach us at: support@defguard.net
       },
       controls: {
         submit: 'Save changes',
-        cancel: 'Back',
+        cancel: 'Back to Overview',
       },
     },
   },
@@ -1121,7 +1146,10 @@ Any other requests you can reach us at: support@defguard.net
       },
     },
     deviceMap: {
-      crateSuccess: 'Devices added',
+      messages: {
+        crateSuccess: 'Devices added',
+        errorsInForm: 'Please fill marked fields.',
+      },
       list: {
         headers: {
           deviceName: 'Device Name',
@@ -1154,6 +1182,11 @@ Any other requests you can reach us at: support@defguard.net
         messages: { devicesCreated: 'Devices created' },
         validation: { invalidAddress: 'Invalid address' },
       },
+    },
+  },
+  layout: {
+    select: {
+      addNewOption: 'Add new',
     },
   },
 };

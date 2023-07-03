@@ -90,8 +90,10 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const fetchUsers = () => client.get('/user/').then(unpackRequest);
 
-  const downloadDeviceConfig = async (id: string) =>
-    client.get<string>(`/device/${id}/config`).then((res) => res.data);
+  const downloadDeviceConfig: ApiHook['device']['downloadDeviceConfig'] = async (data) =>
+    client
+      .get<string>(`/network/${data.network_id}/device/${data.device_id}/config`)
+      .then((res) => res.data);
 
   const modifyDevice = async (device: Device) =>
     client.put<Device>(`/device/${device.id}`, device).then((res) => res.data);
@@ -108,12 +110,12 @@ const useApi = (props?: HookProps): ApiHook => {
   const fetchNetworks = async () =>
     client.get<Network[]>(`/network`).then((res) => res.data);
 
-  const fetchNetwork = async (id: string) =>
+  const fetchNetwork = async (id: number) =>
     client.get<Network>(`/network/${id}`).then((res) => res.data);
 
   // For now there is only one network
-  const modifyNetwork: ApiHook['network']['editNetwork'] = async (network) =>
-    client.put<Network>(`/network/1`, network).then((res) => res.data);
+  const modifyNetwork: ApiHook['network']['editNetwork'] = async (data) =>
+    client.put<Network>(`/network/${data.id}`, data.network).then((res) => res.data);
 
   const deleteNetwork = async (network: Network) =>
     client.delete<EmptyApiResponse>(`/network/${network.id}`);
@@ -124,8 +126,10 @@ const useApi = (props?: HookProps): ApiHook => {
   const importNetwork: ApiHook['network']['importNetwork'] = (network) =>
     client.post(`/network/import`, network).then(unpackRequest);
 
-  const createUserDevices: ApiHook['network']['createUserDevices'] = (devices) =>
-    client.post(`/network/devices`, devices).then(unpackRequest);
+  const mapUserDevices: ApiHook['network']['mapUserDevices'] = (data) =>
+    client
+      .post(`/network/${data.networkId}/devices`, { devices: data.devices })
+      .then(unpackRequest);
 
   const login: ApiHook['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
@@ -241,21 +245,21 @@ const useApi = (props?: HookProps): ApiHook => {
       })
       .then((res) => res.data);
 
-  const getUsersStats = (data?: GetNetworkStatsRequest) =>
+  const getUsersStats = (data: GetNetworkStatsRequest) =>
     client
-      .get<NetworkUserStats[]>('/network/stats/users', {
+      .get<NetworkUserStats[]>(`/network/${data.id}/stats/users`, {
         params: {
           ...data,
         },
       })
       .then(unpackRequest);
 
-  const getNetworkToken = (id: string) =>
-    client.get<NetworkToken>(`/network/token/${id}`).then(unpackRequest);
+  const getNetworkToken: ApiHook['network']['getNetworkToken'] = (networkId) =>
+    client.get<NetworkToken>(`/network/${networkId}/token`).then(unpackRequest);
 
-  const getNetworkStats = (data?: GetNetworkStatsRequest) =>
+  const getNetworkStats: ApiHook['network']['getNetworkStats'] = (data) =>
     client
-      .get<WireguardNetworkStats>('/network/stats', {
+      .get<WireguardNetworkStats>(`/network/${data.id}/stats`, {
         params: {
           ...data,
         },
@@ -326,10 +330,14 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const getAppInfo: ApiHook['getAppInfo'] = () => client.get('/info').then(unpackRequest);
 
-  const getGatewayStatus = () => client.get('/connection').then(unpackRequest);
-
   const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
     client.get(`/settings/${id}`).then(unpackRequest);
+
+  const getGatewaysStatus: ApiHook['network']['getGatewaysStatus'] = (networkId) =>
+    client.get(`/network/${networkId}/gateways`).then(unpackRequest);
+
+  const deleteGateway: ApiHook['network']['deleteGateway'] = (data) =>
+    client.delete(`/network/${data.networkId}/gateways/${data.gatewayId}`);
 
   return {
     getAppInfo,
@@ -366,7 +374,7 @@ const useApi = (props?: HookProps): ApiHook => {
     network: {
       addNetwork,
       importNetwork,
-      createUserDevices,
+      mapUserDevices: mapUserDevices,
       getNetwork: fetchNetwork,
       getNetworks: fetchNetworks,
       editNetwork: modifyNetwork,
@@ -374,7 +382,8 @@ const useApi = (props?: HookProps): ApiHook => {
       getUsersStats,
       getNetworkToken,
       getNetworkStats,
-      getGatewayStatus,
+      getGatewaysStatus,
+      deleteGateway,
     },
     auth: {
       login,

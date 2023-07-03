@@ -3,45 +3,59 @@
 #wizard-map-devices {
   box-sizing: border-box;
   padding-top: 42px;
-  & > .virtualized-list-container {
-    height: 100%;
-    & > .headers {
-      grid-template-columns: repeat(3, 150px);
+  padding-bottom: 20px;
+  & > form {
+    width: 100%;
+    .virtualized-list-container {
       width: 100%;
-      justify-content: space-between;
-      & > .header {
-        justify-content: center;
-        & > span {
-          color: var(--text-main) !important;
+      & > .headers {
+        grid-template-columns: 3fr 1fr 1fr;
+        width: 100%;
+        justify-content: space-between;
+        & > .header {
+          justify-content: center;
+          & > span {
+            color: var(--text-main) !important;
+          }
         }
       }
-    }
-    & > .scroll-container {
-      padding-bottom: 42px;
-      & > .rows-container {
-        & > .virtual-row {
-          & > .device {
-            display: grid;
-            grid-template-columns: repeat(3, 150px);
-            grid-template-rows: 1fr;
-            justify-content: space-between;
-            padding-right: 20px;
+      & > .scroll-container {
+        max-height: 70px * 10;
+        & > .rows-container {
+          & > .virtual-row {
+            & > .device {
+              display: grid;
+              grid-template-columns: 3fr 1fr 1fr;
+              grid-template-rows: 1fr;
+              justify-content: space-between;
+              padding-right: 20px;
+              overflow: hidden;
+              height: 50px;
+              max-height: 50px;
 
-            & > .name {
-              max-width: 100%;
+              & > .name {
+                max-width: 100%;
+                height: inherit;
+                box-sizing: border-box;
+                padding: 0;
+                margin: 0;
+                border: 0 solid transparent;
+                text-align: left;
 
-              @include text-overflow-dots;
-            }
+                @include text-overflow-dots;
+                @include typography(14px, 1.2, regular, var(--text-main), 'Roboto');
+              }
 
-            & > .ip {
-              width: 100%;
-              text-align: center;
+              & > .ip {
+                width: 100%;
+                text-align: center;
 
-              @include text-overflow-dots;
-            }
+                @include text-overflow-dots;
+              }
 
-            & > .select {
-              max-width: 150px;
+              & > .select {
+                width: 100%;
+              }
             }
           }
         }

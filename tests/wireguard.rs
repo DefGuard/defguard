@@ -1,4 +1,5 @@
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
+use defguard::db::models::device::{UserDevice, WireguardNetworkDevice};
 use defguard::{
     db::{
         models::wireguard::{
@@ -7,7 +8,7 @@ use defguard::{
         Device, GatewayEvent, WireguardNetwork, WireguardPeerStats,
     },
     handlers::{
-        wireguard::{ImportedNetworkData, UserDevices, WireguardNetworkData},
+        wireguard::{ImportedNetworkData, WireguardNetworkData},
         Auth,
     },
 };
@@ -19,7 +20,7 @@ use rocket::{
 use tokio::sync::broadcast::error::TryRecvError;
 
 mod common;
-use crate::common::make_test_client;
+use crate::common::{fetch_user_details, make_test_client};
 
 fn make_network() -> Value {
     json!({
@@ -52,7 +53,7 @@ async fn test_network() {
     let network: WireguardNetwork = response.into_json().await.unwrap();
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(_));
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // modify network
     let network_data = WireguardNetworkData {
@@ -70,7 +71,7 @@ async fn test_network() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkModified(_));
+    assert_matches!(event, GatewayEvent::NetworkModified(..));
 
     // list networks
     let response = client.get("/api/v1/network").dispatch().await;
@@ -96,7 +97,7 @@ async fn test_network() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkDeleted(_));
+    assert_matches!(event, GatewayEvent::NetworkDeleted(..));
 }
 
 #[rocket::async_test]
@@ -117,7 +118,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Created);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(_));
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // network details
     let response = client.get("/api/v1/network/1").dispatch().await;
@@ -136,7 +137,33 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Created);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(_));
+    assert_matches!(event, GatewayEvent::DeviceCreated(..));
+
+    // an IP was assigned for new device
+    let network_devices = WireguardNetworkDevice::findy_by_device(&client_state.pool, 1)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        network_devices[0].wireguard_network_id,
+        network_from_details.id
+    );
+
+    // add another network
+    let response = client
+        .post("/api/v1/network")
+        .json(&make_network())
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
+
+    // an IP was assigned for an existing device
+    let network_devices = WireguardNetworkDevice::findy_by_device(&client_state.pool, 1)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(network_devices.len(), 2);
 
     // list devices
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
@@ -175,7 +202,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceModified(_));
+    assert_matches!(event, GatewayEvent::DeviceModified(..));
 
     // device details
     let response = client
@@ -189,7 +216,10 @@ async fn test_device() {
 
     // device config
     let response = client
-        .get(format!("/api/v1/device/{}/config", device.id.unwrap()))
+        .get(format!(
+            "/api/v1/network/1/device/{}/config",
+            device.id.unwrap()
+        ))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
@@ -211,7 +241,6 @@ async fn test_device() {
         )
     );
 
-    // FIXME: try to delete network, which should fail because there is a device
     let response = client
         .delete(format!(
             "/api/v1/network/{}",
@@ -221,7 +250,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkDeleted(_));
+    assert_matches!(event, GatewayEvent::NetworkDeleted(..));
 
     // delete device
     let response = client
@@ -230,7 +259,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceDeleted(_));
+    assert_matches!(event, GatewayEvent::DeviceDeleted(..));
 
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
@@ -273,7 +302,7 @@ async fn test_device_permissions() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&device)
         .dispatch()
         .await;
@@ -297,7 +326,7 @@ async fn test_device_permissions() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&device)
         .dispatch()
         .await;
@@ -326,7 +355,7 @@ async fn test_device_permissions() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&device)
         .dispatch()
         .await;
@@ -350,7 +379,7 @@ async fn test_device_permissions() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&device)
         .dispatch()
         .await;
@@ -399,7 +428,7 @@ async fn test_device_pubkey() {
         .await;
     assert_eq!(response.status(), Status::Created);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(_));
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // network details
     let response = client.get("/api/v1/network/1").dispatch().await;
@@ -474,7 +503,7 @@ async fn test_device_pubkey() {
         "created": "2023-05-05T23:56:04"
     }]});
     let response = client
-        .post("/api/v1/network/devices")
+        .post("/api/v1/network/1/devices")
         .json(&devices)
         .dispatch()
         .await;
@@ -542,7 +571,7 @@ async fn test_stats() {
     let hour_ago = now - Duration::hours(1);
     let response = client
         .get(format!(
-            "/api/v1/network/stats/users?from={}",
+            "/api/v1/network/1/stats/users?from={}",
             hour_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
         .dispatch()
@@ -573,7 +602,7 @@ async fn test_stats() {
     // minute aggregation
     let response = client
         .get(format!(
-            "/api/v1/network/stats/users?from={}",
+            "/api/v1/network/1/stats/users?from={}",
             hour_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
         .dispatch()
@@ -677,7 +706,7 @@ async fn test_stats() {
     let ten_hours_samples = 10 * 60 + 1;
     let response = client
         .get(format!(
-            "/api/v1/network/stats/users?from={}",
+            "/api/v1/network/1/stats/users?from={}",
             ten_hours_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
         .dispatch()
@@ -708,7 +737,7 @@ async fn test_stats() {
     // network stats
     let response = client
         .get(format!(
-            "/api/v1/network/stats?from={}",
+            "/api/v1/network/1/stats?from={}",
             ten_hours_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
         .dispatch()
@@ -761,8 +790,53 @@ async fn test_config_import() {
         PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
+
+        [Peer]
+        PublicKey = l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=
+        AllowedIPs = 10.0.0.12/24
+        PersistentKeepalive = 300
     ";
     let (client, client_state) = make_test_client().await;
+    let pool = client_state.pool;
+
+    // setup initial network
+    let mut initial_network = WireguardNetwork::new(
+        "initial".into(),
+        "10.1.9.0/24".parse().unwrap(),
+        51515,
+        "".to_string(),
+        None,
+        vec![],
+    )
+    .unwrap();
+    initial_network.save(&pool).await.unwrap();
+
+    // add existing devices
+    let mut transaction = pool.begin().await.unwrap();
+
+    let mut device_1 = Device::new(
+        "test device".into(),
+        "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=".into(),
+        1,
+    );
+    device_1.save(&mut transaction).await.unwrap();
+    device_1
+        .add_to_all_networks(&mut transaction)
+        .await
+        .unwrap();
+
+    let mut device_2 = Device::new(
+        "another test device".into(),
+        "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
+        1,
+    );
+    device_2.save(&mut transaction).await.unwrap();
+    device_2
+        .add_to_all_networks(&mut transaction)
+        .await
+        .unwrap();
+
+    transaction.commit().await.unwrap();
 
     let mut wg_rx = client_state.wireguard_rx;
 
@@ -781,7 +855,7 @@ async fn test_config_import() {
 
     // network assertions
     let network = response.network;
-    assert_eq!(network.id, Some(1));
+    assert_eq!(network.id, Some(2));
     assert_eq!(network.name, "network");
     assert_eq!(network.address, "10.0.0.1/24".parse().unwrap());
     assert_eq!(network.port, 55055);
@@ -795,66 +869,104 @@ async fn test_config_import() {
     assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
     assert_eq!(network.connected_at, None);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(_));
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+
+    // existing devices assertion
+    // imported config for an existing device
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceModified(..));
+    let user_device_1 = UserDevice::from_device(&pool, device_1)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(user_device_1.networks.len(), 2);
+    assert_eq!(user_device_1.networks[1].device_wireguard_ip, "10.0.0.12");
+    // generated IP for other existing device
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceModified(..));
+    let user_device_2 = UserDevice::from_device(&pool, device_2)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(user_device_2.networks.len(), 2);
 
     // device assertions
     let devices = response.devices;
     assert_eq!(devices.len(), 2);
 
     let mut device1 = devices[0].clone();
-    assert_eq!(device1.id, None);
-    assert_eq!(device1.name, "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=");
     assert_eq!(device1.wireguard_ip, "10.0.0.10");
     assert_eq!(
         device1.wireguard_pubkey,
         "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
     );
-    // TODO: do something about user_id
-    assert_eq!(device1.user_id, -1);
+    assert_eq!(device1.name, "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=");
+    assert_eq!(device1.user_id, None);
 
     let mut device2 = devices[1].clone();
-    assert_eq!(device2.id, None);
-    assert_eq!(device2.name, "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=");
     assert_eq!(device2.wireguard_ip, "10.0.0.11");
     assert_eq!(
         device2.wireguard_pubkey,
         "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="
     );
-    // TODO: do something about user_id
-    assert_eq!(device2.user_id, -1);
+    assert_eq!(device2.name, "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=");
+    assert_eq!(device2.user_id, None);
 
     // modify devices
-    device1.name = "device1".to_string();
-    device1.user_id = 1;
-    device2.name = "device2".to_string();
-    device2.user_id = 1;
+    device1.user_id = Some(1);
+    device1.name = "device_1".into();
+    device2.user_id = Some(1);
+    device2.name = "device_2".into();
 
     // post modified devices
     let response = client
-        .post("/api/v1/network/devices")
+        .post(format!("/api/v1/network/{}/devices", network.id.unwrap()))
         .json(&json!({"devices": [device1, device2]}))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
 
-    // assert modified devices
-    let response: UserDevices = response.into_json().await.unwrap();
-    let device1 = response.devices[0].clone();
-    assert_eq!(device1.name, "device1");
-    assert_eq!(device1.user_id, 1);
-    let device2 = response.devices[1].clone();
-    assert_eq!(device2.name, "device2");
-    assert_eq!(device2.user_id, 1);
-
     // assert events
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(_));
+    match event {
+        GatewayEvent::DeviceCreated(device_info) => {
+            assert_eq!(device_info.device.name, "device_1");
+        }
+        _ => unreachable!("Invalid event type received"),
+    }
 
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(_));
+    match event {
+        GatewayEvent::DeviceCreated(device_info) => {
+            assert_eq!(device_info.device.name, "device_2");
+        }
+        _ => unreachable!("Invalid event type received"),
+    }
 
     let event = wg_rx.try_recv();
     assert_matches!(event, Err(TryRecvError::Empty));
+
+    // assert user devices
+    let user_info = fetch_user_details(&client, "admin").await;
+    assert_eq!(user_info.devices.len(), 4);
+    assert_eq!(user_info.devices[0].device.name, "test device");
+    assert_eq!(
+        user_info.devices[0].networks[1].device_wireguard_ip,
+        "10.0.0.12"
+    );
+    assert_eq!(user_info.devices[1].device.name, "another test device");
+    assert_eq!(
+        user_info.devices[1].networks[1].device_wireguard_ip,
+        "10.0.0.2"
+    );
+    assert_eq!(user_info.devices[2].device.name, "device_1");
+    assert_eq!(
+        user_info.devices[2].networks[1].device_wireguard_ip,
+        "10.0.0.10"
+    );
+    assert_eq!(user_info.devices[3].device.name, "device_2");
+    assert_eq!(
+        user_info.devices[3].networks[1].device_wireguard_ip,
+        "10.0.0.11"
+    );
 }
 
 #[rocket::async_test]

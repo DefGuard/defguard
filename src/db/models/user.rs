@@ -1,6 +1,7 @@
 use super::{
     device::Device, group::Group, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
+use crate::db::models::device::UserDevice;
 use crate::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{Wallet, WebAuthn},
@@ -25,7 +26,7 @@ use std::time::SystemTime;
 
 const RECOVERY_CODES_COUNT: usize = 8;
 
-#[derive(Deserialize, Serialize, PartialEq, Type, Debug)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
 pub enum MFAMethod {
     None,
@@ -387,16 +388,26 @@ impl User {
         }
     }
 
-    pub async fn devices(&self, pool: &DbPool) -> Result<Vec<Device>, SqlxError> {
+    pub async fn devices(&self, pool: &DbPool) -> Result<Vec<UserDevice>, SqlxError> {
         if let Some(id) = self.id {
-            query_as!(
+            let devices = query_as!(
                 Device,
-                "SELECT device.id \"id?\", name, wireguard_ip, wireguard_pubkey, user_id, created \
-                FROM device WHERE user_id = $1",
+                r#"
+                SELECT device.id "id?", name, wireguard_pubkey, user_id, created
+                FROM device WHERE user_id = $1
+                "#,
                 id
             )
             .fetch_all(pool)
-            .await
+            .await?;
+
+            let mut user_devices = Vec::new();
+            for device in devices {
+                if let Some(user_device) = UserDevice::from_device(pool, device).await? {
+                    user_devices.push(user_device);
+                }
+            }
+            Ok(user_devices)
         } else {
             Ok(Vec::new())
         }

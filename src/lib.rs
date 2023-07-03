@@ -18,24 +18,19 @@ use crate::handlers::{
     },
 };
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
-use crate::license::Features;
 use crate::{
-    auth::failed_login::FailedLoginMap, grpc::GatewayMap, handlers::app_info::get_app_info,
+    auth::failed_login::FailedLoginMap,
+    db::models::oauth2client::OAuth2Client,
+    grpc::GatewayMap,
+    grpc::WorkerState,
+    handlers::app_info::get_app_info,
+    handlers::wireguard::{add_user_devices, import_network},
+    license::{Features, License},
 };
-use crate::{
-    db::models::oauth2client::OAuth2Client, grpc::WorkerState,
-    handlers::wireguard::add_user_devices,
-};
-use crate::{handlers::wireguard::import_network, license::License};
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
 #[cfg(feature = "wireguard")]
-use handlers::wireguard::{
-    add_device, create_network, create_network_token, delete_device, delete_network,
-    download_config, get_device, list_devices, list_networks, list_user_devices, modify_device,
-    modify_network, network_details, network_stats, user_stats,
-};
 use handlers::{
     auth::{
         authenticate, logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable,
@@ -53,7 +48,12 @@ use handlers::{
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
     },
-    wireguard::connection_info,
+    wireguard::{
+        add_device, create_network, create_network_token, delete_device, delete_network,
+        download_config, gateway_status, get_device, list_devices, list_networks,
+        list_user_devices, modify_device, modify_network, network_details, network_stats,
+        user_stats,
+    },
 };
 use rocket::{
     config::{Config, SecretKey},
@@ -198,8 +198,6 @@ pub async fn build_webapp(
             modify_device,
             delete_device,
             list_devices,
-            download_config,
-            connection_info,
         ],
     );
 
@@ -213,11 +211,13 @@ pub async fn build_webapp(
             modify_network,
             list_networks,
             network_details,
+            gateway_status,
             import_network,
             add_user_devices,
             create_network_token,
             user_stats,
             network_stats,
+            download_config,
         ],
     );
 
@@ -318,6 +318,11 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         &config.database_password,
     )
     .await;
+    let mut transaction = pool
+        .begin()
+        .await
+        .expect("Failed to initialize transaction");
+
     let mut network = WireguardNetwork::new(
         "TestNet".to_string(),
         "10.1.1.1/24".parse().unwrap(),
@@ -329,15 +334,24 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     .expect("Could not create network");
     network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
     network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
-    network.save(&pool).await.expect("Could not save network");
+    network
+        .save(&mut transaction)
+        .await
+        .expect("Could not save network");
 
     let mut device = Device::new(
         "TestDevice".to_string(),
-        "10.1.1.10".to_string(),
         "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
         1,
     );
-    device.save(&pool).await.expect("Could not save device");
+    device
+        .assign_network_ip(&mut transaction, &network, &Vec::new())
+        .await
+        .expect("Could not assign IP to device");
+    device
+        .save(&mut transaction)
+        .await
+        .expect("Could not save device");
 
     for app_id in 1..=3 {
         let mut app = OAuth2Client::new(
@@ -345,7 +359,14 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             vec!["openid".into(), "profile".into(), "email".into()],
             format!("app-{}", app_id),
         );
-        app.save(&pool).await.expect("Could not save oauth2client");
+        app.save(&mut transaction)
+            .await
+            .expect("Could not save oauth2client");
     }
+    transaction
+        .commit()
+        .await
+        .expect("Failed to commit transaction");
+
     info!("Dev environment initialized - TestNet, TestDevice, AuthorizedApps added");
 }

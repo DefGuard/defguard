@@ -7,7 +7,6 @@ import {
 import { AxiosPromise } from 'axios';
 
 import { Locales } from '../i18n/i18n-types';
-import { AddDeviceSetupChoice } from '../pages/users/UserProfile/UserDevices/modals/AddUserDeviceModal/steps/SetupStep';
 
 export enum UserStatus {
   active = 'Active',
@@ -73,13 +72,23 @@ export interface WalletInfo {
 }
 
 export interface Device {
-  id: string;
+  id: number;
+  user_id: number;
   name: string;
-  wireguard_ip: string;
   wireguard_pubkey: string;
-  config: string;
   created: string;
+  networks: DeviceNetworkInfo[];
 }
+
+export type DeviceNetworkInfo = {
+  device_wireguard_ip: string;
+  is_active: boolean;
+  network_gateway_ip: string;
+  network_id: number;
+  network_name: string;
+  last_connected_at?: string;
+  last_connected_ip?: string;
+};
 
 export interface AddDeviceRequest {
   username: string;
@@ -87,21 +96,36 @@ export interface AddDeviceRequest {
   wireguard_pubkey: string;
 }
 
+export type GatewayStatus = {
+  connected: boolean;
+  network_id: number;
+  name?: string;
+  ip: string;
+  id: number;
+};
+
 export interface Network {
-  id: string;
+  id: number;
   name: string;
   address: string;
   port: number;
   endpoint: string;
+  connected?: boolean;
   connected_at?: string;
+  gateways?: GatewayStatus[];
   allowed_ips?: string[];
   dns?: string;
 }
 
-export interface ModifyNetworkRequest
-  extends Omit<Network, 'id' | 'connected_at' | 'allowed_ips'> {
-  allowed_ips: string;
-}
+export type ModifyNetworkRequest = {
+  id: number;
+  network: Omit<
+    Network,
+    'gateways' | 'connected' | 'id' | 'connected_at' | 'allowed_ips'
+  > & {
+    allowed_ips: string;
+  };
+};
 
 export interface ImportNetworkRequest {
   name: string;
@@ -109,8 +133,9 @@ export interface ImportNetworkRequest {
   config: string;
 }
 
-export interface CreateUserDevicesRequest {
-  devices: ImportedDevice[];
+export interface MapUserDevicesRequest {
+  networkId: number;
+  devices: MappedDevice[];
 }
 
 export interface NetworkToken {
@@ -207,6 +232,7 @@ export interface ChangeUserPasswordRequest {
 export interface GetNetworkStatsRequest {
   /**UTC date parsed to ISO string. This sets how far back stats will be returned. */
   from?: string;
+  id: Network['id'];
 }
 
 export interface UserEditRequest {
@@ -252,10 +278,6 @@ export interface VersionResponse {
   version: string;
 }
 
-export interface ConnectionInfo {
-  connected: boolean;
-}
-
 export interface MFAFinishResponse {
   url?: string;
   user?: User;
@@ -267,10 +289,13 @@ export interface ImportNetworkResponse {
 }
 
 export interface ImportedDevice {
-  id?: string;
   name: string;
   wireguard_ip: string;
   wireguard_pubkey: string;
+  user_id?: number;
+}
+
+export interface MappedDevice extends ImportedDevice {
   user_id: number;
 }
 
@@ -278,6 +303,21 @@ export interface AppInfo {
   version: string;
   network_present: boolean;
 }
+
+export type GetDeviceConfigRequest = {
+  device_id: number;
+  network_id: number;
+};
+
+export type AddDeviceResponse = {
+  device: Device;
+  configs: AddDeviceConfig[];
+};
+
+export type DeleteGatewayRequest = {
+  networkId: number;
+  gatewayId: number;
+};
 
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
@@ -303,26 +343,27 @@ export interface ApiHook {
     removeFromGroup: (data: UserGroupRequest) => EmptyApiResponse;
   };
   device: {
-    addDevice: (device: AddDeviceRequest) => Promise<string>;
+    addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
     getDevice: (deviceId: string) => Promise<Device>;
     getDevices: () => Promise<Device[]>;
     getUserDevices: (username: string) => Promise<Device[]>;
     editDevice: (device: Device) => Promise<Device>;
     deleteDevice: (device: Device) => EmptyApiResponse;
-    downloadDeviceConfig: (id: string) => Promise<string>;
+    downloadDeviceConfig: (data: GetDeviceConfigRequest) => Promise<string>;
   };
   network: {
-    addNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
+    addNetwork: (network: ModifyNetworkRequest['network']) => Promise<Network>;
     importNetwork: (network: ImportNetworkRequest) => Promise<ImportNetworkResponse>;
-    createUserDevices: (devices: CreateUserDevicesRequest) => EmptyApiResponse;
-    getNetwork: (networkId: string) => Promise<Network>;
+    mapUserDevices: (devices: MapUserDevicesRequest) => EmptyApiResponse;
+    getNetwork: (networkId: number) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (network: Network) => EmptyApiResponse;
-    getUsersStats: (data?: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
-    getNetworkToken: (networkId: string) => Promise<NetworkToken>;
-    getNetworkStats: (data?: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
-    getGatewayStatus: () => Promise<ConnectionInfo>;
+    getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
+    getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
+    getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
+    getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
+    deleteGateway: (data: DeleteGatewayRequest) => Promise<void>;
   };
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;
@@ -395,7 +436,6 @@ export interface NavigationStore {
   user?: User;
   webhook?: Webhook;
   openidclient?: OpenidClient;
-  enableWizard?: boolean;
   setNavigationOpen: (v: boolean) => void;
   setNavigationUser: (user: User) => void;
   setNavigationWebhook: (webhook: Webhook) => void;
@@ -487,18 +527,11 @@ export interface EditWebhookModal {
   webhook?: Webhook;
 }
 
-interface ModalStepsState {
-  currentStep: number;
-  endStep: number;
-  nextStep: () => void;
-}
-
-export interface UserDeviceModal extends StandardModalState, ModalStepsState {
-  config?: string;
-  deviceName?: string;
-  choice?: AddDeviceSetupChoice;
-  reserverdNames?: string[];
-}
+export type AddDeviceConfig = {
+  network_id: number;
+  network_name: string;
+  config: string;
+};
 
 export interface Provisioner {
   id: string;
@@ -512,20 +545,12 @@ export interface StandardModalState {
   visible: boolean;
 }
 
-export interface DeleteUserDeviceModal extends StandardModalState {
-  device?: Device;
-}
-
 export interface RecoveryCodesModal extends StandardModalState {
   codes?: string[];
 }
 
 export interface ConnectWalletModal extends StandardModalState {
   onConnect?: () => void;
-}
-
-export interface EditUserDeviceModal extends StandardModalState {
-  device?: Device;
 }
 
 export interface WebhookModal extends StandardModalState {
@@ -541,7 +566,6 @@ export interface UseModalStore {
   openIdClientModal: OpenIdClientModal;
   setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
   addDeviceDesktopModal: StandardModalState;
-  editUserDeviceModal: EditUserDeviceModal;
   addWalletModal: StandardModalState;
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
@@ -555,8 +579,6 @@ export interface UseModalStore {
   addOpenidClientModal: StandardModalState;
   deleteOpenidClientModal: DeleteOpenidClientModal;
   enableOpenidClientModal: EnableOpenidClientModal;
-  userDeviceModal: UserDeviceModal;
-  deleteUserDeviceModal: DeleteUserDeviceModal;
   manageWebAuthNKeysModal: StandardModalState;
   addSecurityKeyModal: StandardModalState;
   registerTOTP: StandardModalState;
@@ -565,8 +587,6 @@ export interface UseModalStore {
   setState: (data: Partial<UseModalStore>) => void;
   setWebhookModal: ModalSetter<WebhookModal>;
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
-  setDeleteUserDeviceModal: ModalSetter<DeleteUserDeviceModal>;
-  setUserDeviceModal: ModalSetter<UserDeviceModal>;
   setAddUserModal: ModalSetter<StandardModalState>;
   setKeyDetailModal: ModalSetter<KeyDetailModal>;
   setKeyDeleteModal: ModalSetter<KeyDeleteModal>;
@@ -681,6 +701,8 @@ export enum OverviewLayoutType {
 }
 
 export interface OverviewStore {
+  networks?: Network[];
+  selectedNetworkId: number;
   viewMode: OverviewLayoutType;
   defaultViewMode: OverviewLayoutType;
   statsFilter: number;

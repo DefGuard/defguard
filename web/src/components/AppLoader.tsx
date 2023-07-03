@@ -12,7 +12,6 @@ import LoaderPage from '../pages/loader/LoaderPage';
 import { isUserAdmin } from '../shared/helpers/isUserAdmin';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
-import { useNavigationStore } from '../shared/hooks/store/useNavigationStore';
 import useApi from '../shared/hooks/useApi';
 import { useToaster } from '../shared/hooks/useToaster';
 import { QueryKeys } from '../shared/queries';
@@ -32,27 +31,17 @@ export const AppLoader = () => {
     user: { getMe },
     settings: { getSettings },
     license: { getLicense },
-    network: { getNetworks },
   } = useApi();
   const [userLoading, setUserLoading] = useState(true);
   const { setLocale } = useI18nContext();
   const activeLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setAppStore);
-  const setNavigation = useNavigationStore((state) => state.setState);
   const license = useAppStore((state) => state.license);
   const { LL } = useI18nContext();
 
   useQuery([QueryKeys.FETCH_ME], getMe, {
     onSuccess: async (user) => {
       const isAdmin = isUserAdmin(user);
-      if (isAdmin) {
-        const networks = await getNetworks();
-        if (networks.length === 0) {
-          setNavigation({ enableWizard: true });
-        } else {
-          setNavigation({ enableWizard: false });
-        }
-      }
       setAuthState({ isAdmin, user });
       setUserLoading(false);
     },
@@ -75,7 +64,7 @@ export const AppLoader = () => {
       toaster.error(LL.messages.errorVersion());
       console.error(err);
     },
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     retry: false,
     enabled: !isUndefined(currentUser),
   });

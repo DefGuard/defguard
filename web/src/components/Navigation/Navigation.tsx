@@ -50,7 +50,6 @@ export const Navigation = () => {
     (state) => [state.isNavigationOpen, state.setNavigationOpen, state.user],
     shallow
   );
-  const [enableWizard] = useNavigationStore((state) => [state.enableWizard], shallow);
   const {
     auth: { logout },
   } = useApi();
@@ -101,14 +100,7 @@ export const Navigation = () => {
         linkPath: '/admin/overview',
         icon: <SvgIconNavVpn />,
         allowedToView: ['admin'],
-        enabled: settings?.wireguard_enabled && !enableWizard,
-      },
-      {
-        title: LL.navigation.bar.wizard(),
-        linkPath: '/admin/wizard',
-        icon: <SvgIconNavVpn />,
-        allowedToView: ['admin'],
-        enabled: settings?.wireguard_enabled && enableWizard,
+        enabled: settings?.wireguard_enabled,
       },
       {
         title: LL.navigation.bar.users(),

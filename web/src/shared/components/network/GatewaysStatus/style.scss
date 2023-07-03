@@ -1,0 +1,114 @@
+@use '@scssutils' as *;
+
+.network-gateways-connection {
+  width: 100%;
+  height: 20px;
+  display: flex;
+  flex-flow: row nowrap;
+  column-gap: 20px;
+  align-items: center;
+  justify-content: flex-start;
+
+  & > label {
+    display: block;
+    font-size: 10px;
+  }
+
+  & > .status-container {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0;
+    cursor: pointer;
+
+    & > .status {
+      height: 100%;
+      display: flex;
+      flex-flow: row nowrap;
+      gap: 5px;
+      align-items: center;
+      justify-content: flex-start;
+
+      & > span {
+        @include typography(10px, 1.2, medium, var(--gray-light), 'Roboto');
+        user-select: none;
+      }
+
+      & > svg {
+        width: 8px;
+        height: 8px;
+      }
+    }
+  }
+
+  &.status-loading {
+    & > .status-container {
+      gap: 10px;
+    }
+  }
+}
+
+.floating-ui-gateways-status {
+  display: flex;
+  flex-flow: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  row-gap: 20px;
+  z-index: 1;
+  border: 1px solid var(--gray-lighter);
+  border-radius: 10px;
+  padding: 18px 10px;
+  width: min-content;
+  min-width: 160px;
+  background-color: var(--white);
+
+  & > .gateway-status-row {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: 5px;
+    align-items: center;
+    justify-items: center;
+    position: relative;
+
+    & > .icon-container {
+      & > svg {
+        width: 12px;
+        height: 12px;
+      }
+    }
+
+    & > .info-container {
+      @include typography(12px, 1.2, medium, unset);
+
+      .location {
+        color: var(--gray-dark);
+      }
+
+      .ip-address {
+        color: var(--gray-light);
+        @include text-weight(regular);
+      }
+    }
+
+    &.disconnected {
+      & > .info-container {
+        .location,
+        .ip-address {
+          color: var(--error);
+        }
+      }
+    }
+
+    & > .gateway-dismiss {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: center;
+      background-color: transparent;
+      border: 0 solid transparent;
+      cursor: pointer;
+    }
+  }
+}

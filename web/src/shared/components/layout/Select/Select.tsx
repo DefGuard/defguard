@@ -23,7 +23,9 @@ import { Tag } from '../Tag/Tag';
 import { SelectArrowIcon } from './SelectArrowIcon';
 import { SelectOption } from './SelectOption';
 
-export interface SelectOption<T> {
+export type SelectValue = string | number;
+
+export interface SelectOption<T extends SelectValue> {
   value: T;
   label: string;
   disabled?: boolean;
@@ -32,7 +34,10 @@ export interface SelectOption<T> {
   meta?: any;
 }
 
-export type SelectResult<T> = SelectOption<T> | SelectOption<T>[] | undefined;
+export type SelectResult<T extends SelectValue> =
+  | SelectOption<T>
+  | SelectOption<T>[]
+  | undefined;
 
 export enum SelectStyleVariant {
   LIGHT = 'light',
@@ -44,12 +49,13 @@ export enum SelectSizeVariant {
   SMALL = 'SMALL',
 }
 
-export interface SelectProps<T> {
+export interface SelectProps<T extends SelectValue> {
   selected?: SelectResult<T>;
   options?: SelectOption<T>[];
   onChange: (res: SelectResult<T>) => void;
   onRemove?: (v: SelectOption<T>, selected: SelectOption<T>[]) => SelectResult<T>;
   onSearch?: (value?: string) => void;
+  onCreate?: () => void;
   valid?: boolean;
   invalid?: boolean;
   errorMessage?: string;
@@ -69,13 +75,16 @@ export interface SelectProps<T> {
   'data-testid'?: string;
 }
 
-const defaultOnRemove = <T,>(v: SelectOption<T>, pool: SelectOption<T>[]) =>
-  pool.filter((o) => o.key !== v.key);
+const defaultOnRemove = <T extends SelectValue>(
+  v: SelectOption<T>,
+  pool: SelectOption<T>[]
+) => pool.filter((o) => o.key !== v.key);
 
-export const Select = <T,>({
+export const Select = <T extends SelectValue>({
   onChange,
   onSearch,
   onRemove,
+  onCreate,
   options,
   placeholder,
   selected,
@@ -103,6 +112,7 @@ export const Select = <T,>({
   const searchPushRef = useRef<HTMLSpanElement | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchSubject] = useState<Subject<string | undefined>>(new Subject());
+  const extendable = useMemo(() => !isUndefined(onCreate), [onCreate]);
 
   const { x, y, reference, floating, strategy, refs } = useFloating({
     open,
@@ -403,7 +413,7 @@ export const Select = <T,>({
       </motion.div>
       <FloatingPortal>
         <AnimatePresence mode="wait">
-          {open && options && options.length > 0 && (
+          {open && options && (options.length > 0 || extendable) && (
             <motion.div
               initial="hidden"
               animate="show"
@@ -445,6 +455,17 @@ export const Select = <T,>({
                     />
                   );
                 })}
+                {extendable && (
+                  <SelectOption
+                    createOption
+                    onClick={() => {
+                      if (onCreate) {
+                        onCreate();
+                        setOpen(false);
+                      }
+                    }}
+                  />
+                )}
               </div>
             </motion.div>
           )}

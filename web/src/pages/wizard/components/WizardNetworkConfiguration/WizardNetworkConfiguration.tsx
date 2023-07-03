@@ -107,7 +107,7 @@ export const WizardNetworkConfiguration = () => {
     resolver: yupResolver(schema),
   });
 
-  const handleValidSubmit: SubmitHandler<ModifyNetworkRequest> = (values) => {
+  const handleValidSubmit: SubmitHandler<ModifyNetworkRequest['network']> = (values) => {
     if (!isLoading) {
       setWizardState({ loading: true });
       addNetworkMutation(values);
@@ -129,14 +129,14 @@ export const WizardNetworkConfiguration = () => {
           outerLabel={LL.networkConfiguration.form.fields.name.label()}
         />
         <MessageBox>
-          <p>{LL.networkConfiguration.form.messages.address()}</p>
+          <p>{LL.networkConfiguration.form.helpers.address()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'address' }}
           outerLabel={LL.networkConfiguration.form.fields.address.label()}
         />
         <MessageBox>
-          <p>{LL.networkConfiguration.form.messages.gateway()}</p>
+          <p>{LL.networkConfiguration.form.helpers.gateway()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'endpoint' }}
@@ -147,14 +147,14 @@ export const WizardNetworkConfiguration = () => {
           outerLabel={LL.networkConfiguration.form.fields.port.label()}
         />
         <MessageBox>
-          <p>{LL.networkConfiguration.form.messages.allowedIps()}</p>
+          <p>{LL.networkConfiguration.form.helpers.allowedIps()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'allowed_ips' }}
           outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
         />
         <MessageBox>
-          <p>{LL.networkConfiguration.form.messages.dns()}</p>
+          <p>{LL.networkConfiguration.form.helpers.dns()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'dns' }}

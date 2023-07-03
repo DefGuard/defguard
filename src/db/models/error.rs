@@ -2,6 +2,7 @@ use std::{error, fmt};
 
 #[derive(Debug)]
 pub enum ModelError {
+    CannotModify,
     CannotCreate,
     NetworkTooSmall,
     SqlxError(sqlx::Error),
@@ -13,6 +14,7 @@ impl error::Error for ModelError {}
 impl fmt::Display for ModelError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::CannotModify => write!(f, "Cannot modify model"),
             Self::CannotCreate => write!(f, "Cannot create model"),
             Self::NetworkTooSmall => write!(f, "Network address will not fit existing devices"),
             Self::SqlxError(error) => {

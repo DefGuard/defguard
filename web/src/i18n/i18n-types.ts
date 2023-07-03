@@ -247,41 +247,48 @@ type RootTranslation = {
 							 */
 							copyConfig: string
 						}
-						/**
-						 * D​e​v​i​c​e​ ​N​a​m​e
-						 */
-						inputNameLabel: string
-						/**
-						 * 
-					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​i​a​l​o​g​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
-					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-				
-						 */
-						warningMessage: string
+						helpers: {
+							/**
+							 * 
+						​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​i​a​l​o​g​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
+						​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+					
+							 */
+							warningAutoMode: string
+							/**
+							 * 
+						​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​a​l​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
+						​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+					
+							 */
+							warningManualMode: string
+							/**
+							 * 
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
+						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+							 */
+							qrHelper: string
+						}
 						/**
 						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
 						 */
 						qrInfo: string
 						/**
+						 * D​e​v​i​c​e​ ​N​a​m​e
+						 */
+						inputNameLabel: string
+						/**
 						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
 						 */
 						qrLabel: string
 						/**
-						 * 
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​i​s​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​c​a​n​ ​b​e​ ​s​c​a​n​n​e​d​,​ ​c​o​p​i​e​d​ ​o​r​ ​d​o​w​n​l​o​a​d​e​d​,​ ​b​u​t​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​n​e​e​d​s​ ​t​o​ ​b​e​ ​u​s​e​d​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​s​t​r​o​n​g​>​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​t​h​a​t​ ​y​o​u​ ​a​r​e​ ​a​d​d​i​n​g​ ​n​o​w​.​<​/​s​t​r​o​n​g​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​>​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​<​/​a​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
-						 */
-						qrHelper: string
-						/**
-						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g
+						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
 						 */
 						qrCardTitle: string
 					}
@@ -290,7 +297,7 @@ type RootTranslation = {
 						 * 
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​g​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​f​e​a​t​u​r​e​s​/​w​i​r​e​g​u​a​r​d​/​a​d​d​i​n​g​-​w​i​r​e​g​u​a​r​d​-​d​e​v​i​c​e​s​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 				
 						 */
@@ -307,7 +314,7 @@ type RootTranslation = {
 						}
 						form: {
 							/**
-							 * G​e​n​e​r​a​t​e​ ​C​o​n​f​i​g
+							 * G​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 							 */
 							submit: string
 							fields: {
@@ -751,6 +758,10 @@ type RootTranslation = {
 			 * U​s​e​r​ ​u​p​d​a​t​e​d​.
 			 */
 			editSuccess: string
+			/**
+			 * C​o​u​l​d​ ​n​o​t​ ​g​e​t​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​.
+			 */
+			failedToFetchUserData: string
 		}
 		userDetails: {
 			/**
@@ -968,17 +979,21 @@ type RootTranslation = {
 			card: {
 				labels: {
 					/**
-					 * L​a​s​t​ ​l​o​c​a​t​i​o​n
+					 * L​a​s​t​ ​c​o​n​n​e​c​t​e​d​ ​f​r​o​m
 					 */
-					location: string
+					lastLocation: string
 					/**
-					 * L​a​s​t​ ​I​P​ ​a​d​d​r​e​s​s
+					 * L​a​s​t​ ​c​o​n​n​e​c​t​e​d
 					 */
-					lastIpAddress: string
+					lastConnected: string
 					/**
-					 * D​a​t​e​ ​a​d​d​e​d
+					 * A​s​s​i​g​n​e​d​ ​I​P
 					 */
-					date: string
+					assignedIp: string
+					/**
+					 * a​c​t​i​v​e
+					 */
+					active: string
 				}
 				edit: {
 					/**
@@ -986,13 +1001,13 @@ type RootTranslation = {
 					 */
 					edit: string
 					/**
-					 * D​o​w​n​l​o​a​d​ ​c​o​n​f​i​g
-					 */
-					download: string
-					/**
 					 * D​e​l​e​t​e​ ​d​e​v​i​c​e
 					 */
 					'delete': string
+					/**
+					 * S​h​o​w​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+					 */
+					showConfigurations: string
 				}
 			}
 		}
@@ -1375,6 +1390,44 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		gatewaysStatus: {
+			/**
+			 * G​a​t​e​w​a​y​s
+			 */
+			label: string
+			states: {
+				/**
+				 * A​l​l​ ​c​o​n​n​e​c​t​e​d
+				 */
+				connected: string
+				/**
+				 * O​n​e​ ​o​r​ ​m​o​r​e​ ​a​r​e​ ​n​o​t​ ​w​o​r​k​i​n​g
+				 */
+				partial: string
+				/**
+				 * D​i​s​c​o​n​n​e​c​t​e​d
+				 */
+				disconnected: string
+				/**
+				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s​ ​f​a​i​l​e​d
+				 */
+				error: string
+				/**
+				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s
+				 */
+				loading: string
+			}
+			messages: {
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​s​ ​s​t​a​t​u​s
+				 */
+				error: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​g​a​t​e​w​a​y
+				 */
+				deleteError: string
+			}
+		}
 		noLicenseBox: {
 			footer: {
 				/**
@@ -2132,18 +2185,20 @@ type RootTranslation = {
 	}
 	networkOverview: {
 		/**
-		 * N​e​t​w​o​r​k​ ​o​v​e​r​v​i​e​w
+		 * L​o​c​a​t​i​o​n​ ​o​v​e​r​v​i​e​w
 		 */
 		pageTitle: string
 		controls: {
 			/**
-			 * E​d​i​t​ ​n​e​t​w​o​r​k​ ​s​e​t​t​i​n​g​s
+			 * E​d​i​t​ ​L​o​c​a​t​i​o​n​s​ ​s​e​t​t​i​n​g​s
 			 */
-			editNetwork: string
-			/**
-			 * C​o​n​f​i​g​u​r​e​ ​n​e​t​w​o​r​k​ ​s​e​t​t​i​n​g​s
-			 */
-			configureNetwork: string
+			editNetworks: string
+			selectNetwork: {
+				/**
+				 * L​o​a​d​i​n​g​ ​l​o​c​a​t​i​o​n​s
+				 */
+				placeholder: string
+			}
 		}
 		filterLabels: {
 			/**
@@ -2231,9 +2286,13 @@ type RootTranslation = {
 	}
 	networkPage: {
 		/**
-		 * E​d​i​t​ ​n​e​t​w​o​r​k
+		 * E​d​i​t​ ​L​o​c​a​t​i​o​n
 		 */
 		pageTitle: string
+		/**
+		 * +​ ​A​d​d​ ​n​e​w​ ​l​o​c​a​t​i​o​n
+		 */
+		addNetwork: string
 	}
 	activityOverview: {
 		/**
@@ -2247,15 +2306,15 @@ type RootTranslation = {
 	}
 	networkConfiguration: {
 		/**
-		 * N​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+		 * L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		header: string
 		/**
-		 * N​e​t​w​o​r​k​ ​i​m​p​o​r​t
+		 * L​o​c​a​t​i​o​n​ ​i​m​p​o​r​t
 		 */
 		importHeader: string
 		form: {
-			messages: {
+			helpers: {
 				/**
 				 * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)
 				 */
@@ -2272,19 +2331,21 @@ type RootTranslation = {
 				 * L​i​s​t​ ​o​f​ ​a​d​d​r​e​s​s​e​s​/​m​a​s​k​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​r​o​u​t​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​n​e​t​w​o​r​k​.
 				 */
 				allowedIps: string
+			}
+			messages: {
 				/**
-				 * N​e​t​w​o​r​k​ ​m​o​d​i​f​i​e​d​.
+				 * L​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d​.
 				 */
 				networkModified: string
 				/**
-				 * N​e​t​w​o​r​k​ ​c​r​e​a​t​e​d​.
+				 * L​o​c​a​t​i​o​n​ ​c​r​e​a​t​e​d
 				 */
 				networkCreated: string
 			}
 			fields: {
 				name: {
 					/**
-					 * N​e​t​w​o​r​k​ ​n​a​m​e
+					 * L​o​c​a​t​i​o​n​ ​n​a​m​e
 					 */
 					label: string
 				}
@@ -2325,7 +2386,7 @@ type RootTranslation = {
 				 */
 				submit: string
 				/**
-				 * B​a​c​k
+				 * B​a​c​k​ ​t​o​ ​O​v​e​r​v​i​e​w
 				 */
 				cancel: string
 			}
@@ -2554,10 +2615,16 @@ type RootTranslation = {
 			}
 		}
 		deviceMap: {
-			/**
-			 * D​e​v​i​c​e​s​ ​a​d​d​e​d
-			 */
-			crateSuccess: string
+			messages: {
+				/**
+				 * D​e​v​i​c​e​s​ ​a​d​d​e​d
+				 */
+				crateSuccess: string
+				/**
+				 * P​l​e​a​s​e​ ​f​i​l​l​ ​m​a​r​k​e​d​ ​f​i​e​l​d​s​.
+				 */
+				errorsInForm: string
+			}
 			list: {
 				headers: {
 					/**
@@ -2642,6 +2709,14 @@ type RootTranslation = {
 					invalidAddress: string
 				}
 			}
+		}
+	}
+	layout: {
+		select: {
+			/**
+			 * A​d​d​ ​n​e​w
+			 */
+			addNewOption: string
 		}
 	}
 }
@@ -2879,41 +2954,48 @@ export type TranslationFunctions = {
 							 */
 							copyConfig: () => LocalizedString
 						}
-						/**
-						 * Device Name
-						 */
-						inputNameLabel: () => LocalizedString
-						/**
-						 * 
-					        <p>
-					          Please be advised that you have to download the configuration now,
-					          since <strong>we do not</strong> store your private key. After this
-					          dialog is closed, you <strong>will not be able</strong> to get your
-					          full configuration file (with private keys, only blank template).
-					        </p>
-				
-						 */
-						warningMessage: () => LocalizedString
+						helpers: {
+							/**
+							 * 
+						        <p>
+						          Please be advised that you have to download the configuration now,
+						          since <strong>we do not</strong> store your private key. After this
+						          dialog is closed, you <strong>will not be able</strong> to get your
+						          full configuration file (with private keys, only blank template).
+						        </p>
+					
+							 */
+							warningAutoMode: () => LocalizedString
+							/**
+							 * 
+						        <p>
+						          Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to repalce it on your own for configuration to work properly.
+						        </p>
+					
+							 */
+							warningManualMode: () => LocalizedString
+							/**
+							 * 
+						          <p>
+						            You can setup your device faster with wireguard application by scanning this QR code.
+						          </p>
+							 */
+							qrHelper: () => LocalizedString
+						}
 						/**
 						 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
 						 */
 						qrInfo: () => LocalizedString
 						/**
+						 * Device Name
+						 */
+						inputNameLabel: () => LocalizedString
+						/**
 						 * WireGuard Config File
 						 */
 						qrLabel: () => LocalizedString
 						/**
-						 * 
-					          <p>
-					            This configuration file can be scanned, copied or downloaded, but
-					            needs to be used
-					            <strong>on your device that you are adding now.</strong>
-					            <a>Read more in documentation.</a>
-					          </p>
-						 */
-						qrHelper: () => LocalizedString
-						/**
-						 * WireGuard Config
+						 * WireGuard Config for location:
 						 */
 						qrCardTitle: () => LocalizedString
 					}
@@ -2922,7 +3004,7 @@ export type TranslationFunctions = {
 						 * 
 					        <p>
 					          You need to configure WireguardVPN on your device, please visit&nbsp;
-					          <a href="">documentation</a> if you don&apos;t know how to do it.
+					          <a href="https://defguard.gitbook.io/defguard/features/wireguard/adding-wireguard-devices">documentation</a> if you don&apos;t know how to do it.
 					        </p>
 				
 						 */
@@ -2939,7 +3021,7 @@ export type TranslationFunctions = {
 						}
 						form: {
 							/**
-							 * Generate Config
+							 * Generate configuration
 							 */
 							submit: () => LocalizedString
 							fields: {
@@ -3378,6 +3460,10 @@ export type TranslationFunctions = {
 			 * User updated.
 			 */
 			editSuccess: () => LocalizedString
+			/**
+			 * Could not get user information.
+			 */
+			failedToFetchUserData: () => LocalizedString
 		}
 		userDetails: {
 			/**
@@ -3595,17 +3681,21 @@ export type TranslationFunctions = {
 			card: {
 				labels: {
 					/**
-					 * Last location
+					 * Last connected from
 					 */
-					location: () => LocalizedString
+					lastLocation: () => LocalizedString
 					/**
-					 * Last IP address
+					 * Last connected
 					 */
-					lastIpAddress: () => LocalizedString
+					lastConnected: () => LocalizedString
 					/**
-					 * Date added
+					 * Assigned IP
 					 */
-					date: () => LocalizedString
+					assignedIp: () => LocalizedString
+					/**
+					 * active
+					 */
+					active: () => LocalizedString
 				}
 				edit: {
 					/**
@@ -3613,13 +3703,13 @@ export type TranslationFunctions = {
 					 */
 					edit: () => LocalizedString
 					/**
-					 * Download config
-					 */
-					download: () => LocalizedString
-					/**
 					 * Delete device
 					 */
 					'delete': () => LocalizedString
+					/**
+					 * Show configuration
+					 */
+					showConfigurations: () => LocalizedString
 				}
 			}
 		}
@@ -4001,6 +4091,44 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		gatewaysStatus: {
+			/**
+			 * Gateways
+			 */
+			label: () => LocalizedString
+			states: {
+				/**
+				 * All connected
+				 */
+				connected: () => LocalizedString
+				/**
+				 * One or more are not working
+				 */
+				partial: () => LocalizedString
+				/**
+				 * Disconnected
+				 */
+				disconnected: () => LocalizedString
+				/**
+				 * Retrieving connections failed
+				 */
+				error: () => LocalizedString
+				/**
+				 * Retrieving connections
+				 */
+				loading: () => LocalizedString
+			}
+			messages: {
+				/**
+				 * Failed to get gateways status
+				 */
+				error: () => LocalizedString
+				/**
+				 * Failed to delete gateway
+				 */
+				deleteError: () => LocalizedString
+			}
+		}
 		noLicenseBox: {
 			footer: {
 				/**
@@ -4752,18 +4880,20 @@ export type TranslationFunctions = {
 	}
 	networkOverview: {
 		/**
-		 * Network overview
+		 * Location overview
 		 */
 		pageTitle: () => LocalizedString
 		controls: {
 			/**
-			 * Edit network settings
+			 * Edit Locations settings
 			 */
-			editNetwork: () => LocalizedString
-			/**
-			 * Configure network settings
-			 */
-			configureNetwork: () => LocalizedString
+			editNetworks: () => LocalizedString
+			selectNetwork: {
+				/**
+				 * Loading locations
+				 */
+				placeholder: () => LocalizedString
+			}
 		}
 		filterLabels: {
 			/**
@@ -4848,9 +4978,13 @@ export type TranslationFunctions = {
 	}
 	networkPage: {
 		/**
-		 * Edit network
+		 * Edit Location
 		 */
 		pageTitle: () => LocalizedString
+		/**
+		 * + Add new location
+		 */
+		addNetwork: () => LocalizedString
 	}
 	activityOverview: {
 		/**
@@ -4864,15 +4998,15 @@ export type TranslationFunctions = {
 	}
 	networkConfiguration: {
 		/**
-		 * Network configuration
+		 * Location configuration
 		 */
 		header: () => LocalizedString
 		/**
-		 * Network import
+		 * Location import
 		 */
 		importHeader: () => LocalizedString
 		form: {
-			messages: {
+			helpers: {
 				/**
 				 * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)
 				 */
@@ -4889,19 +5023,21 @@ export type TranslationFunctions = {
 				 * List of addresses/masks that should be routed through the VPN network.
 				 */
 				allowedIps: () => LocalizedString
+			}
+			messages: {
 				/**
-				 * Network modified.
+				 * Location modified.
 				 */
 				networkModified: () => LocalizedString
 				/**
-				 * Network created.
+				 * Location created
 				 */
 				networkCreated: () => LocalizedString
 			}
 			fields: {
 				name: {
 					/**
-					 * Network name
+					 * Location name
 					 */
 					label: () => LocalizedString
 				}
@@ -4942,7 +5078,7 @@ export type TranslationFunctions = {
 				 */
 				submit: () => LocalizedString
 				/**
-				 * Back
+				 * Back to Overview
 				 */
 				cancel: () => LocalizedString
 			}
@@ -5171,10 +5307,16 @@ export type TranslationFunctions = {
 			}
 		}
 		deviceMap: {
-			/**
-			 * Devices added
-			 */
-			crateSuccess: () => LocalizedString
+			messages: {
+				/**
+				 * Devices added
+				 */
+				crateSuccess: () => LocalizedString
+				/**
+				 * Please fill marked fields.
+				 */
+				errorsInForm: () => LocalizedString
+			}
 			list: {
 				headers: {
 					/**
@@ -5259,6 +5401,14 @@ export type TranslationFunctions = {
 					invalidAddress: () => LocalizedString
 				}
 			}
+		}
+	}
+	layout: {
+		select: {
+			/**
+			 * Add new
+			 */
+			addNewOption: () => LocalizedString
 		}
 	}
 }

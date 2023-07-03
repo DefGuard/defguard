@@ -1,10 +1,15 @@
 import './style.scss';
 
+import classNames from 'classnames';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import { TargetAndTransition } from 'framer-motion';
+import { isUndefined, orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
-import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
+import Badge from '../../../../../shared/components/layout/Badge/Badge';
 import { Card } from '../../../../../shared/components/layout/Card/Card';
 import { DeviceAvatar } from '../../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
 import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
@@ -13,97 +18,221 @@ import {
   EditButtonOptionStyleVariant,
 } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
-import { deviceBreakpoints } from '../../../../../shared/constants';
-import { displayDate } from '../../../../../shared/helpers/displayDate';
-import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
+import { IconClip } from '../../../../../shared/components/svg';
+import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
+import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
+import { ColorsRGB } from '../../../../../shared/constants';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
-import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { Device } from '../../../../../shared/types';
-import { downloadWGConfig } from '../../../../../shared/utils/downloadWGConfig';
+import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
+import { sortByDate } from '../../../../../shared/utils/sortByDate';
+import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
+import { DeviceModalSetupMode, useDeviceModal } from '../hooks/useDeviceModal';
+import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
+
+dayjs.extend(utc);
+
+const dateFormat = 'DD.MM.YYYY | HH:mm';
+
+const formatDate = (date: string): string => {
+  return dayjs.utc(date).format(dateFormat);
+};
 
 interface Props {
   device: Device;
 }
 
 export const DeviceCard = ({ device }: Props) => {
+  const [hovered, setHovered] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const { LL } = useI18nContext();
-  const toaster = useToaster();
   const user = useUserProfileStore((state) => state.user);
-  const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const [editButtonVisible, setEditButtonVisible] = useState(false);
-  const setDeleteUserDeviceModal = useModalStore(
-    (state) => state.setDeleteUserDeviceModal
+  const setDeleteDeviceModal = useDeleteDeviceModal((state) => state.setState);
+  const setEditDeviceModal = useEditDeviceModal((state) => state.setState);
+  const openDeviceModal = useDeviceModal((state) => state.open);
+
+  const cn = useMemo(
+    () =>
+      classNames('device-card', {
+        expanded,
+      }),
+    [expanded]
   );
-  const setModalsState = useModalStore((state) => state.setState);
-  const {
-    device: { downloadDeviceConfig },
-  } = useApi();
 
-  const handleDownload = () => {
-    downloadDeviceConfig(device.id)
-      .then((res) => {
-        downloadWGConfig(res, device.name);
-      })
-      .catch((err) => {
-        toaster.error(LL.messages.clipboardError());
-        console.error(err);
-      });
-  };
+  const getContainerAnimate = useMemo((): TargetAndTransition => {
+    const res: TargetAndTransition = {
+      borderColor: ColorsRGB.White,
+    };
+    if (expanded || hovered) {
+      res.borderColor = ColorsRGB.GrayBorder;
+    }
+    return res;
+  }, [expanded, hovered]);
 
-  const formattedCreationDate = useMemo(() => displayDate(device.created), [device]);
+  const sortedLocations = useMemo(() => {
+    let sortByDateAvailable = true;
+    device.networks.forEach((n) => {
+      if (!n.last_connected_at) {
+        sortByDateAvailable = false;
+      }
+    });
+    if (sortByDateAvailable) {
+      const sorted = sortByDate(
+        device.networks.filter((network) => Boolean(network.last_connected_at)),
+        (i) => i.last_connected_at as string,
+        true
+      );
+      return sorted;
+    } else {
+      return orderBy(device.networks, ['network_id'], ['desc']);
+    }
+  }, [device.networks]);
+
+  const latestLocation = useMemo(() => {
+    if (sortedLocations.length) {
+      return sortedLocations[0];
+    }
+    return undefined;
+  }, [sortedLocations]);
 
   if (!user) return null;
 
   return (
     <Card
-      className="device-card"
-      onHoverStart={() => {
-        setEditButtonVisible(true);
-      }}
-      onHoverEnd={() => {
-        setEditButtonVisible(false);
-      }}
+      className={cn}
+      initial={false}
+      animate={getContainerAnimate}
+      onMouseOver={() => setHovered(true)}
+      onMouseOut={() => setHovered(false)}
     >
+      <section className="main-info">
+        <header>
+          <AvatarBox>
+            <DeviceAvatar deviceId={Number(device.id)} />
+          </AvatarBox>
+          <h3 data-testid="device-name">{device.name}</h3>
+        </header>
+        <div className="section-content">
+          <div>
+            <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
+            <p data-testid="device-last-connected-from">
+              {latestLocation?.network_gateway_ip}
+            </p>
+          </div>
+          <div>
+            <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
+            <p>
+              {!isUndefined(latestLocation) &&
+                !isUndefined(latestLocation.last_connected_at) &&
+                formatDate(latestLocation.last_connected_at)}
+            </p>
+          </div>
+          <div>
+            <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
+            <p>{latestLocation?.device_wireguard_ip}</p>
+          </div>
+        </div>
+      </section>
+      <div className="locations">
+        {device.networks.map((n) => (
+          <DeviceLocation key={n.network_id} network_info={n} />
+        ))}
+      </div>
+      <div className="card-controls">
+        <EditButton visible={true}>
+          <EditButtonOption
+            text={LL.userPage.devices.card.edit.edit()}
+            onClick={() => {
+              setEditDeviceModal({
+                visible: true,
+                device: device,
+              });
+            }}
+          />
+          <EditButtonOption
+            styleVariant={EditButtonOptionStyleVariant.STANDARD}
+            text={LL.userPage.devices.card.edit.showConfigurations()}
+            onClick={() =>
+              openDeviceModal({
+                visible: true,
+                currentStep: 1,
+                setupMode: DeviceModalSetupMode.MANUAL_CONFIG,
+                device: device,
+              })
+            }
+          />
+          <EditButtonOption
+            styleVariant={EditButtonOptionStyleVariant.WARNING}
+            text={LL.userPage.devices.card.edit.delete()}
+            onClick={() =>
+              setDeleteDeviceModal({
+                visible: true,
+                device: device,
+              })
+            }
+          />
+        </EditButton>
+        <ExpandButton
+          expanded={expanded}
+          onClick={() => setExpanded((state) => !state)}
+        />
+      </div>
+    </Card>
+  );
+};
+
+type DeviceLocationProps = {
+  network_info: DeviceNetworkInfo;
+};
+
+const DeviceLocation = ({
+  network_info: {
+    network_id,
+    network_name,
+    network_gateway_ip,
+    last_connected_ip,
+    last_connected_at,
+    device_wireguard_ip,
+  },
+}: DeviceLocationProps) => {
+  const { LL } = useI18nContext();
+  return (
+    <div className="location" data-testid={`device-location-id-${network_id}`}>
       <header>
-        <AvatarBox>
-          <DeviceAvatar deviceId={Number(device.id)} />
-        </AvatarBox>
-        <h3 data-testid="device-name">{device.name}</h3>
+        <IconClip />
+        <div className="info-wrapper">
+          <h3 data-testid="device-location-name">{network_name}</h3>
+          {!isUndefined(network_gateway_ip) && <Badge text={network_gateway_ip} />}
+        </div>
       </header>
-      <div className="content">
-        <div className="info">
-          <Label>{LL.userPage.devices.card.labels.location()}</Label>
-          <p data-text="device-location">Szczecin</p>
+      <div className="section-content">
+        <div>
+          <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
+          <p data-testid="device-last-connected-from">{last_connected_ip}</p>
         </div>
-        <div className="info">
-          <Label>{LL.userPage.devices.card.labels.lastIpAddress()}</Label>
-          <p>{device.wireguard_ip}</p>
+        <div>
+          <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
+          <p data-testid="device-last-connected-at">
+            {last_connected_at && formatDate(last_connected_at)}
+          </p>
         </div>
-        <div className="info">
-          <Label>{LL.userPage.devices.card.labels.date()}</Label>
-          <p>{formattedCreationDate}</p>
+        <div>
+          <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
+          <p data-testid="device-assigned-ip">{device_wireguard_ip}</p>
         </div>
       </div>
-      <EditButton visible={editButtonVisible || breakpoint !== 'desktop'}>
-        <EditButtonOption
-          text={LL.userPage.devices.card.edit.edit()}
-          onClick={() => {
-            setModalsState({
-              editUserDeviceModal: { visible: true, device: device },
-            });
-          }}
-        />
-        <EditButtonOption
-          text={LL.userPage.devices.card.edit.download()}
-          onClick={() => handleDownload()}
-        />
-        <EditButtonOption
-          styleVariant={EditButtonOptionStyleVariant.WARNING}
-          text={LL.userPage.devices.card.edit.delete()}
-          onClick={() => setDeleteUserDeviceModal({ visible: true, device: device })}
-        />
-      </EditButton>
-    </Card>
+    </div>
+  );
+};
+
+type ExpandButtonProps = {
+  expanded: boolean;
+  onClick: () => void;
+};
+
+const ExpandButton = ({ expanded, onClick }: ExpandButtonProps) => {
+  return (
+    <button className="device-card-expand" onClick={onClick}>
+      {expanded ? <SvgIconCollapse /> : <SvgIconExpand />}
+    </button>
   );
 };

@@ -2,8 +2,9 @@ import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import classNames from 'classnames';
-import { useEffect, useLayoutEffect } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { isUndefined } from 'lodash-es';
+import { useEffect, useMemo } from 'react';
+import { useParams } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
@@ -23,6 +24,7 @@ import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useNavigationStore } from '../../../shared/hooks/store/useNavigationStore';
 import { useUserProfileStore } from '../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import { ProfileDetails } from './ProfileDetails/ProfileDetails';
 import { UserAuthInfo } from './UserAuthInfo/UserAuthInfo';
@@ -31,10 +33,10 @@ import { UserWallets } from './UserWallets/UserWallets';
 import { UserYubiKeys } from './UserYubiKeys/UserYubiKeys';
 
 export const UserProfile = () => {
+  const toaster = useToaster();
   const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const location = useLocation();
-  const { username } = useParams();
+  const { username: paramsUsername } = useParams();
   const currentUser = useAuthStore((state) => state.user);
   const editMode = useUserProfileStore((state) => state.editMode);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
@@ -43,26 +45,29 @@ export const UserProfile = () => {
     user: { getUser },
   } = useApi();
 
-  useQuery(
-    [QueryKeys.FETCH_USER, username],
-    () => getUser(username || (currentUser?.username as string)),
-    {
-      onSuccess: (user) => {
-        setUserProfileState({ user: user });
-        setNavigationUser(user);
-      },
-      refetchOnWindowFocus: false,
-    }
-  );
-
-  useLayoutEffect(() => {
-    if (location.pathname.includes('/edit')) {
-      setUserProfileState({ editMode: true });
+  const username = useMemo(() => {
+    if (paramsUsername) {
+      return paramsUsername;
     } else {
-      setUserProfileState({ editMode: false });
+      if (currentUser?.username) {
+        return currentUser.username;
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    throw Error('No username found.');
+  }, [currentUser?.username, paramsUsername]);
+
+  useQuery([QueryKeys.FETCH_USER, username], () => getUser(username), {
+    onSuccess: (user) => {
+      setUserProfileState({ user: user });
+      setNavigationUser(user);
+    },
+    onError: (err) => {
+      toaster.error(LL.userPage.messages.failedToFetchUserData());
+      console.error(err);
+    },
+    refetchOnWindowFocus: false,
+    enabled: !isUndefined(username),
+  });
 
   useEffect(() => {
     if (currentUser?.username === username || !username) {
@@ -126,8 +131,6 @@ const ViewModeControls = () => {
 const EditModeControls = () => {
   const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const location = useLocation();
-  const navigate = useNavigate();
   const user = useUserProfileStore((state) => state.user);
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const isMe = useUserProfileStore((state) => state.isMe);
@@ -172,11 +175,7 @@ const EditModeControls = () => {
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.STANDARD}
           onClick={() => {
-            if (location.pathname.includes('/edit')) {
-              navigate('../');
-            } else {
-              setUserProfileState({ editMode: false });
-            }
+            setUserProfileState({ editMode: false });
           }}
         />
         <Button

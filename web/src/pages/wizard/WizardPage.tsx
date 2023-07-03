@@ -1,12 +1,12 @@
 import './style.scss';
 
 import { ReactNode, useEffect, useMemo } from 'react';
-import { Navigate, Route, Routes, useNavigate } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
-import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { WizardMapDevices } from './components/WizardMapDevices/WizardMapDevices';
 import { WizardNav } from './components/WizardNav/WizardNav';
 import { WizardNetworkConfiguration } from './components/WizardNetworkConfiguration/WizardNetworkConfiguration';
@@ -16,15 +16,6 @@ import { WizardWelcome } from './components/WizardWelcome/WizardWelcome';
 import { useWizardStore, WizardSetupType } from './hooks/useWizardStore';
 
 export const WizardPage = () => {
-  const navigate = useNavigate();
-  const wizardEnabled = useNavigationStore((state) => state.enableWizard);
-
-  useEffect(() => {
-    if (!wizardEnabled) {
-      navigate('/admin/overview', { replace: true });
-    }
-  }, [navigate, wizardEnabled]);
-
   return (
     <PageContainer id="wizard-page">
       <Routes>
@@ -38,10 +29,13 @@ export const WizardPage = () => {
 type WizardStep = {
   title: string;
   element: ReactNode;
+  backDisabled?: boolean;
 };
 
 const WizardRender = () => {
   const { LL } = useI18nContext();
+  const networkPresent = useAppStore((state) => state.appInfo?.network_present);
+  const setWizardState = useWizardStore((state) => state.setState);
   const [setupType, currentStep] = useWizardStore(
     (state) => [state.setupType, state.currentStep],
     shallow
@@ -55,6 +49,7 @@ const WizardRender = () => {
       {
         title: LL.wizard.navigation.titles.choseNetworkSetup(),
         element: <WizardType key={1} />,
+        backDisabled: networkPresent,
       },
     ];
     switch (setupType) {
@@ -68,6 +63,7 @@ const WizardRender = () => {
           {
             title: LL.wizard.navigation.titles.mapDevices(),
             element: <WizardMapDevices key={4} />,
+            backDisabled: true,
           },
         ];
         break;
@@ -81,14 +77,23 @@ const WizardRender = () => {
         ];
         break;
     }
+    console.log(res);
     return res;
-  }, [LL.wizard.navigation.titles, setupType]);
+  }, [LL.wizard.navigation.titles, networkPresent, setupType]);
+
+  // skip welcome step when at least one network is already present
+  useEffect(() => {
+    if (networkPresent && currentStep === 0) {
+      setWizardState({ currentStep: 1 });
+    }
+  }, [currentStep, networkPresent, setWizardState]);
 
   return (
     <div id="wizard-content">
       <WizardNav
-        title={getSteps[currentStep].title}
+        title={getSteps[currentStep]?.title}
         lastStep={currentStep === getSteps.length - 1}
+        backDisabled={getSteps[currentStep].backDisabled ?? false}
       />
       {getSteps[currentStep].element || null}
     </div>

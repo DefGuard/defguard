@@ -5,12 +5,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router';
 import * as yup from 'yup';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
 import useApi from '../../../shared/hooks/useApi';
@@ -26,7 +25,7 @@ import {
 } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
-type FormInputs = ModifyNetworkRequest;
+type FormInputs = ModifyNetworkRequest['network'];
 
 const defaultValues: FormInputs = {
   address: '',
@@ -46,59 +45,35 @@ const networkToForm = (data?: Network): FormInputs | undefined => {
   return { ...defaultValues, ...omited } as FormInputs;
 };
 
-export const NetworkConfiguration: React.FC = () => {
+export const NetworkEditForm = () => {
   const toaster = useToaster();
   const {
-    network: { addNetwork, editNetwork },
+    network: { editNetwork },
   } = useApi();
   const submitRef = useRef<HTMLButtonElement | null>(null);
-  const network = useNetworkPageStore((state) => state.network);
   const setStoreState = useNetworkPageStore((state) => state.setState);
   const submitSubject = useNetworkPageStore((state) => state.saveSubject);
+  const [selectedNetworkId, networks] = useNetworkPageStore(
+    (state) => [state.selectedNetworkId, state.networks],
+    shallow
+  );
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
 
-  const { mutateAsync: editNetworkMutation, isLoading: editLoading } = useMutation(
-    [MutationKeys.CHANGE_NETWORK],
-    editNetwork,
-    {
-      onSuccess: async (response) => {
-        setStoreState({ network: response });
-        toaster.success(LL.networkConfiguration.form.messages.networkModified());
-        await queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
-      },
-      onError: (err) => {
-        console.error(err);
-        toaster.error(LL.messages.error());
-      },
-    }
-  );
-  const { mutateAsync: addNetworkMutation, isLoading: addLoading } = useMutation(
-    [MutationKeys.ADD_NETWORK],
-    addNetwork,
-    {
-      onSuccess: async (network) => {
-        setStoreState({ network, loading: false });
-        toaster.success(LL.networkConfiguration.form.messages.networkCreated());
-        await queryClient.refetchQueries([QueryKeys.FETCH_NETWORK_TOKEN]);
-      },
-      onError: (err) => {
-        setStoreState({ loading: false });
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
-    }
-  );
+  const { mutateAsync } = useMutation([MutationKeys.CHANGE_NETWORK], editNetwork);
 
   const defaultFormValues = useMemo(() => {
-    if (network) {
-      const res = networkToForm(network);
-      if (res) {
-        return res;
+    if (selectedNetworkId && networks) {
+      const network = networks.find((n) => n.id === selectedNetworkId);
+      if (network) {
+        const res = networkToForm(network);
+        if (res) {
+          return res;
+        }
       }
     }
     return defaultValues;
-  }, [network]);
+  }, [networks, selectedNetworkId]);
 
   const schema = yup
     .object({
@@ -148,26 +123,44 @@ export const NetworkConfiguration: React.FC = () => {
     })
     .required();
 
-  const { control, handleSubmit } = useForm<FormInputs>({
+  const { control, handleSubmit, reset } = useForm<FormInputs>({
     defaultValues: defaultFormValues,
     resolver: yupResolver(schema),
     mode: 'all',
   });
 
-  const navigate = useNavigate();
   const onValidSubmit: SubmitHandler<FormInputs> = async (values) => {
     setStoreState({ loading: true });
-    if (network) {
-      await editNetworkMutation({ ...network, ...values });
-    } else {
-      await addNetworkMutation(values);
-    }
-    navigate('/admin/network');
+    mutateAsync({
+      id: selectedNetworkId,
+      network: values,
+    })
+      .then(() => {
+        setStoreState({ loading: false });
+        toaster.success(LL.networkConfiguration.form.messages.networkModified());
+        const keys = [
+          QueryKeys.FETCH_NETWORK,
+          QueryKeys.FETCH_NETWORKS,
+          QueryKeys.FETCH_NETWORK_TOKEN,
+        ];
+        for (const key of keys) {
+          queryClient.refetchQueries({
+            queryKey: [key],
+          });
+        }
+      })
+      .catch((err) => {
+        setStoreState({ loading: false });
+        console.error(err);
+        toaster.error(LL.messages.error());
+      });
   };
 
+  // reset form when network is selected
   useEffect(() => {
-    setStoreState({ loading: addLoading || editLoading });
-  }, [addLoading, editLoading, setStoreState]);
+    reset(defaultFormValues);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultFormValues, reset]);
 
   useEffect(() => {
     const sub = submitSubject.subscribe(() => submitRef.current?.click());
@@ -183,47 +176,45 @@ export const NetworkConfiguration: React.FC = () => {
           <p>PLACEHOLDER</p>
         </Helper>
       </header>
-      <Card>
-        <form onSubmit={handleSubmit(onValidSubmit)}>
-          <FormInput
-            controller={{ control, name: 'name' }}
-            outerLabel={LL.networkConfiguration.form.fields.name.label()}
-          />
-          <MessageBox>
-            <p>{LL.networkConfiguration.form.messages.address()}</p>
-          </MessageBox>
-          <FormInput
-            controller={{ control, name: 'address' }}
-            outerLabel={LL.networkConfiguration.form.fields.address.label()}
-          />
-          <MessageBox>
-            <p>{LL.networkConfiguration.form.messages.gateway()}</p>
-          </MessageBox>
-          <FormInput
-            controller={{ control, name: 'endpoint' }}
-            outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
-          />
-          <FormInput
-            controller={{ control, name: 'port' }}
-            outerLabel={LL.networkConfiguration.form.fields.port.label()}
-          />
-          <MessageBox>
-            <p>{LL.networkConfiguration.form.messages.allowedIps()}</p>
-          </MessageBox>
-          <FormInput
-            controller={{ control, name: 'allowed_ips' }}
-            outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
-          />
-          <MessageBox>
-            <p>{LL.networkConfiguration.form.messages.dns()}</p>
-          </MessageBox>
-          <FormInput
-            controller={{ control, name: 'dns' }}
-            outerLabel={LL.networkConfiguration.form.fields.dns.label()}
-          />
-          <button type="submit" className="hidden" ref={submitRef}></button>
-        </form>
-      </Card>
+      <form onSubmit={handleSubmit(onValidSubmit)}>
+        <FormInput
+          controller={{ control, name: 'name' }}
+          outerLabel={LL.networkConfiguration.form.fields.name.label()}
+        />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.address()}</p>
+        </MessageBox>
+        <FormInput
+          controller={{ control, name: 'address' }}
+          outerLabel={LL.networkConfiguration.form.fields.address.label()}
+        />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.gateway()}</p>
+        </MessageBox>
+        <FormInput
+          controller={{ control, name: 'endpoint' }}
+          outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
+        />
+        <FormInput
+          controller={{ control, name: 'port' }}
+          outerLabel={LL.networkConfiguration.form.fields.port.label()}
+        />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.allowedIps()}</p>
+        </MessageBox>
+        <FormInput
+          controller={{ control, name: 'allowed_ips' }}
+          outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
+        />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.dns()}</p>
+        </MessageBox>
+        <FormInput
+          controller={{ control, name: 'dns' }}
+          outerLabel={LL.networkConfiguration.form.fields.dns.label()}
+        />
+        <button type="submit" className="hidden" ref={submitRef}></button>
+      </form>
     </section>
   );
 };

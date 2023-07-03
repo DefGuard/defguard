@@ -1,5 +1,7 @@
 use crate::auth::failed_login::FailedLoginError;
+use crate::db::models::device::DeviceError;
 use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
+use rocket::http::Status;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 
@@ -26,7 +28,7 @@ pub enum OriWebError {
     DbError(String),
     #[error("Model error: {0}")]
     ModelError(String),
-    #[error("{0}")]
+    #[error("Public key invalid {0}")]
     PubkeyValidation(String),
     #[error("HTTP error: {0}")]
     Http(rocket::http::Status),
@@ -64,5 +66,16 @@ impl From<SqlxError> for OriWebError {
 impl From<ModelError> for OriWebError {
     fn from(error: ModelError) -> Self {
         Self::ModelError(error.to_string())
+    }
+}
+
+impl From<DeviceError> for OriWebError {
+    fn from(error: DeviceError) -> Self {
+        match error {
+            DeviceError::PubkeyConflict(..) => Self::PubkeyValidation(format!("{}", error)),
+            DeviceError::DatabaseError(_) => Self::DbError(format!("{}", error)),
+            DeviceError::ModelError(_) => Self::ModelError(format!("{}", error)),
+            DeviceError::Unexpected(_) => Self::Http(Status::InternalServerError),
+        }
     }
 }

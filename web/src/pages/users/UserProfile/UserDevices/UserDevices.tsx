@@ -10,10 +10,11 @@ import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { DeviceCard } from './DeviceCard/DeviceCard';
+import { useDeviceModal } from './hooks/useDeviceModal';
 import { AddDeviceModalDesktop } from './modals/AddDeviceModalDesktop/AddDeviceModalDesktop';
-import { UserDeviceModal } from './modals/AddUserDeviceModal/AddUserDeviceModal';
 import { DeleteUserDeviceModal } from './modals/DeleteUserDeviceModal/DeleteUserDeviceModal';
 import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDeviceModal';
+import { UserDeviceModal } from './modals/UserDeviceModal/UserDeviceModal';
 
 export const UserDevices = () => {
   const appInfo = useAppStore((state) => state.appInfo);
@@ -28,7 +29,7 @@ export const UserDevices = () => {
   }, [isDesktopApp]);
   const setModalsState = useModalStore((state) => state.setState);
   const user = useUserProfileStore((state) => state.user);
-  const setUserDeviceModalState = useModalStore((state) => state.setUserDeviceModal);
+  const openDeviceModal = useDeviceModal((state) => state.open);
   return (
     <section id="user-devices">
       <header>
@@ -48,12 +49,8 @@ export const UserDevices = () => {
             text={LL.userPage.devices.addDevice.web()}
             disabled={!appInfo?.network_present}
             callback={() =>
-              setUserDeviceModalState({
+              openDeviceModal({
                 visible: true,
-                currentStep: 0,
-                config: undefined,
-                deviceName: undefined,
-                reserverdNames: user.devices.map((d) => d.name),
               })
             }
           />

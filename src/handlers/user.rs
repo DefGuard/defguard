@@ -5,7 +5,10 @@ use super::{
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserInfo, Wallet, WebAuthn},
+    db::{
+        AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
+        WebAuthn,
+    },
     error::OriWebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     license::Features,
@@ -76,7 +79,7 @@ pub async fn list_users(_admin: AdminRole, appstate: &State<AppState>) -> ApiRes
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
     for user in all_users {
-        users.push(UserInfo::from_user(&appstate.pool, user).await?);
+        users.push(UserInfo::from_user(&appstate.pool, &user).await?);
     }
     Ok(ApiResponse {
         json: json!(users),
@@ -91,7 +94,7 @@ pub async fn get_user(
     username: &str,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
-    let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+    let user_info = UserDetails::from_user(&appstate.pool, &user).await?;
     Ok(ApiResponse {
         json: json!(user_info),
         status: Status::Ok,
@@ -134,7 +137,7 @@ pub async fn add_user(
     if appstate.license.validate(&Features::Ldap) {
         let _result = ldap_add_user(&appstate.config, &user, &user_data.password).await;
     };
-    let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+    let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info));
     info!("User {} added user {}", session.user.username, username);
     Ok(ApiResponse {
@@ -211,7 +214,7 @@ pub async fn modify_user(
     if appstate.license.validate(&Features::Ldap) {
         let _result = ldap_modify_user(&appstate.config, username, &user).await;
     };
-    let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+    let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));
     info!("User {} updated user {}", session.user.username, username);
     Ok(ApiResponse::default())
@@ -498,7 +501,7 @@ pub async fn delete_security_key(
 
 #[get("/me", format = "json")]
 pub async fn me(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
-    let user_info = UserInfo::from_user(&appstate.pool, session.user).await?;
+    let user_info = UserInfo::from_user(&appstate.pool, &session.user).await?;
     Ok(ApiResponse {
         json: json!(user_info),
         status: Status::Ok,

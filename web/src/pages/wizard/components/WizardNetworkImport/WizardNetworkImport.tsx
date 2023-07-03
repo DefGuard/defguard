@@ -78,7 +78,6 @@ export const WizardNetworkImport = () => {
       setWizardState({
         importedNetworkDevices: response.devices,
         importedNetworkConfig: response.network,
-        disableBack: true,
         loading: false,
       });
       nextStepSubject.next();
@@ -145,7 +144,7 @@ export const WizardNetworkImport = () => {
           disabled={!isUndefined(data)}
         />
         <MessageBox>
-          <p>{LL.networkConfiguration.form.messages.gateway()}</p>
+          <p>{LL.networkConfiguration.form.helpers.gateway()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'endpoint' }}

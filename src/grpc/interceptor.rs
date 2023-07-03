@@ -24,8 +24,20 @@ impl Interceptor for JwtInterceptor {
             None => return Err(Status::unauthenticated("Missing authorization header")),
         };
         if let Ok(claims) = Claims::from_jwt(self.claims_type.clone(), token) {
+            let request_metadata = req.metadata_mut();
+
+            if let ClaimsType::Gateway = self.claims_type {
+                request_metadata.insert(
+                    "gateway_network_id",
+                    claims
+                        .client_id
+                        .parse()
+                        .map_err(|_| Status::unknown("Network ID parsing error"))?,
+                );
+            }
+
             // FIXME: can we push whole Claims object into metadata?
-            req.metadata_mut().insert(
+            request_metadata.insert(
                 "username",
                 claims
                     .sub

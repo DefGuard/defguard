@@ -1,57 +1,45 @@
 import './style.scss';
 
-import { useNavigate } from 'react-router';
-import { shallow } from 'zustand/shallow';
+import { useQuery } from '@tanstack/react-query';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import Button, {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../shared/components/layout/Button/Button';
+import { Card } from '../../shared/components/layout/Card/Card';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
-import { IconCheckmarkWhite } from '../../shared/components/svg';
+import useApi from '../../shared/hooks/useApi';
+import { QueryKeys } from '../../shared/queries';
 import { useNetworkPageStore } from './hooks/useNetworkPageStore';
-import { NetworkConfiguration } from './NetworkConfiguration/NetworkConfiguration';
+import { NetworkControls } from './NetworkControls/NetworkControls';
+import { NetworkEditForm } from './NetworkEditForm/NetworkEditForm';
 import { NetworkGatewaySetup } from './NetworkGateway/NetworkGateway';
+import { NetworkTabs } from './NetworkTabs/NetworkTabs';
 
 export const NetworkPage = () => {
-  const navigate = useNavigate();
+  const {
+    network: { getNetworks },
+  } = useApi();
   const { LL } = useI18nContext();
+  const setPageStore = useNetworkPageStore((state) => state.setState);
+
+  useQuery({
+    queryKey: [QueryKeys.FETCH_NETWORKS],
+    queryFn: getNetworks,
+    onSuccess: (res) => {
+      setPageStore({ networks: res });
+    },
+    refetchOnWindowFocus: false,
+  });
 
   return (
     <PageContainer id="network-page">
       <header>
         <h1>{LL.networkPage.pageTitle()}</h1>
-        <div className="controls">
-          <Button
-            text={LL.networkConfiguration.form.controls.cancel()}
-            size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.LINK}
-            onClick={() => navigate('../overview')}
-          />
-          <SaveFormButton />
-        </div>
       </header>
-      <NetworkConfiguration />
-      <NetworkGatewaySetup />
+      <NetworkTabs />
+      <Card className="network-card">
+        <NetworkControls />
+        <NetworkEditForm />
+        <NetworkGatewaySetup />
+      </Card>
     </PageContainer>
-  );
-};
-
-const SaveFormButton = () => {
-  const { LL } = useI18nContext();
-  const [save, loading] = useNetworkPageStore(
-    (state) => [state.saveSubject, state.loading],
-    shallow
-  );
-  return (
-    <Button
-      text={LL.networkConfiguration.form.controls.submit()}
-      size={ButtonSize.SMALL}
-      styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
-      icon={<IconCheckmarkWhite />}
-      loading={loading}
-      onClick={() => save.next()}
-    />
   );
 };

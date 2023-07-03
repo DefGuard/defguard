@@ -2,82 +2,96 @@
 
 #network-page {
   & > .page-content {
-    padding: 3rem 2rem;
+    padding: 30px 40px;
     box-sizing: border-box;
     overflow-y: auto;
-    display: grid;
-    row-gap: 3rem;
-    grid-template-rows: repeat(2, auto);
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      'header'
-      'config'
-      'gateway';
+    overflow-x: hidden;
+    display: block;
 
     @include media-breakpoint-up(lg) {
-      padding: 4rem 6rem;
-      grid-template-rows: 60px auto;
-      grid-template-columns: 1fr 1fr;
-      grid-template-areas:
-        'header header'
-        'config gateway';
-      row-gap: 4rem;
-      column-gap: 4rem;
+      padding: 64px 70px 45px;
     }
 
     & > header {
-      grid-area: header;
-      display: flex;
-      flex-flow: row nowrap;
-      align-items: center;
-      align-content: center;
-      justify-content: flex-start;
-
+      display: block;
+      height: auto;
+      margin-bottom: 5px;
+      width: 100%;
       & > h1 {
+        user-select: none;
         display: none;
 
         @include page-header;
 
         @include media-breakpoint-up(lg) {
           display: block;
-        }
-      }
-
-      & > .controls {
-        display: flex;
-        flex-flow: row nowrap;
-        margin-left: auto;
-        column-gap: 1rem;
-
-        & > .btn {
-          height: 40px;
+          line-height: 62px;
         }
       }
     }
 
-    & > section {
-      & > header {
+    & > .network-card {
+      width: 100%;
+      max-width: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+      display: grid;
+      row-gap: 48px;
+      column-gap: 57px;
+      grid-template-rows: 40px auto;
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        'controls controls'
+        'config gateway';
+
+      & > .network-controls {
+        grid-area: controls;
+      }
+
+      & > .network-config {
+        grid-area: config;
+      }
+
+      & > .gateway {
+        grid-area: gateway;
+      }
+
+      & > * {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      header {
         display: flex;
         flex-flow: row nowrap;
         align-items: center;
-        align-content: center;
         justify-content: flex-start;
-        column-gap: 1.5rem;
-        margin-bottom: 2rem;
-        height: 3rem;
+        column-gap: 7px;
+        user-select: none;
+        margin-bottom: 20px;
 
         h2 {
-          @include card-header;
+          @include typography(20px, 30px, semiBold, var(--text-main), 'Poppins');
         }
       }
-    }
 
-    & > .network-config {
-      grid-area: config;
-    }
+      .message-box-container {
+        &:not(:last-child) {
+          margin-bottom: 20px;
+        }
+      }
 
-    & > .gateway {
-      grid-area: gateway;
+      form {
+        & > * {
+          width: 100%;
+        }
+
+        & > .message-box-container {
+          &:not(:last-child) {
+            margin-bottom: 32px;
+          }
+        }
+      }
     }
   }
 }

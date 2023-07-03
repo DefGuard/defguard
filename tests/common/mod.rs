@@ -1,3 +1,4 @@
+use defguard::db::UserDetails;
 #[cfg(test)]
 use defguard::{
     auth::failed_login::FailedLoginMap,
@@ -6,6 +7,7 @@ use defguard::{
     db::{init_db, AppEvent, DbPool, GatewayEvent, User},
     grpc::{GatewayMap, WorkerState},
 };
+use rocket::http::Status;
 use rocket::local::asynchronous::Client;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
 use std::sync::{Arc, Mutex};
@@ -139,6 +141,16 @@ pub async fn make_license_test_client(license: &str) -> (Client, ClientState) {
 #[allow(dead_code)]
 pub async fn make_enterprise_test_client() -> (Client, ClientState) {
     make_license_test_client(LICENSE_ENTERPRISE).await
+}
+
+#[allow(dead_code)]
+pub async fn fetch_user_details(client: &Client, username: &str) -> UserDetails {
+    let response = client
+        .get(format!("/api/v1/user/{}", username))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    response.into_json().await.unwrap()
 }
 
 #[allow(dead_code)]

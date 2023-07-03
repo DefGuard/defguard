@@ -7,24 +7,21 @@ import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import Button, { ButtonStyleVariant } from '../../shared/components/layout/Button/Button';
 import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
-import { IconEditNetwork } from '../../shared/components/svg';
+import { GatewaysStatus } from '../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import { deviceBreakpoints } from '../../shared/constants';
-import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
 import { sortByDate } from '../../shared/utils/sortByDate';
-import { useNetworkPageStore } from '../network/hooks/useNetworkPageStore';
+import { useWizardStore } from '../wizard/hooks/useWizardStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
+import { OverviewHeader } from './OverviewHeader/OverviewHeader';
 import { OverviewStats } from './OverviewStats/OverviewStats';
-import { OverviewStatsFilterSelect } from './OverviewStatsFilterSelect/OverviewStatsFilterSelect';
-import { OverviewViewSelect } from './OverviewViewSelect/OverviewViewSelect';
 
 const STATUS_REFETCH_TIMEOUT = 15 * 1000;
 
@@ -34,41 +31,55 @@ export const OverviewPage = () => {
   const viewMode = useOverviewStore((state) => state.viewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
   const statsFilter = useOverviewStore((state) => state.statsFilter);
-  const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
+  const selectedNetworkId = useOverviewStore((state) => state.selectedNetworkId);
+  const resetWizard = useWizardStore((state) => state.resetState);
   const { LL } = useI18nContext();
-  const wizardActive = useNavigationStore((state) => state.enableWizard);
 
   const {
-    network: { getNetworks, getUsersStats, getNetworkStats, getGatewayStatus },
+    network: { getNetworks, getUsersStats, getNetworkStats },
   } = useApi();
 
+  const { isLoading: networksLoading } = useQuery(
+    [QueryKeys.FETCH_NETWORKS],
+    getNetworks,
+    {
+      onSuccess: (res) => {
+        if (!res.length) {
+          resetWizard();
+          navigate('/admin/wizard', { replace: true });
+        } else {
+          setOverViewStore({ networks: res });
+        }
+      },
+    }
+  );
+
   const { data: networkStats } = useQuery(
-    [QueryKeys.FETCH_NETWORK_STATS, statsFilter],
-    () => getNetworkStats({ from: getNetworkStatsFilterValue(statsFilter) }),
+    [QueryKeys.FETCH_NETWORK_STATS, statsFilter, selectedNetworkId],
+    () =>
+      getNetworkStats({
+        from: getNetworkStatsFilterValue(statsFilter),
+        id: selectedNetworkId,
+      }),
     {
       refetchOnWindowFocus: false,
       refetchInterval: STATUS_REFETCH_TIMEOUT,
+      enabled: !isUndefined(selectedNetworkId),
     }
   );
 
   const { data: networkUsersStats, isLoading: userStatsLoading } = useQuery(
-    [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter],
-    () => getUsersStats({ from: getNetworkStatsFilterValue(statsFilter) }),
+    [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter, selectedNetworkId],
+    () =>
+      getUsersStats({
+        from: getNetworkStatsFilterValue(statsFilter),
+        id: selectedNetworkId,
+      }),
     {
-      enabled: !isUndefined(statsFilter),
+      enabled: !isUndefined(statsFilter) && !isUndefined(selectedNetworkId),
       refetchOnWindowFocus: false,
       refetchInterval: STATUS_REFETCH_TIMEOUT,
     }
-  );
-
-  const { data: gatewayStatus, isLoading: gatewayStatusLoading } = useQuery(
-    [QueryKeys.FETCH_GATEWAY_STATUS],
-    getGatewayStatus
-  );
-
-  const { data: networks, isLoading: networksLoading } = useQuery(
-    [QueryKeys.FETCH_NETWORKS],
-    getNetworks
   );
 
   const getNetworkUsers = useMemo(() => {
@@ -95,74 +106,24 @@ export const OverviewPage = () => {
     }
   }, [viewMode, breakpoint, setOverViewStore]);
 
-  const handleNetworkAction = () => {
-    if (networks && networks.length) {
-      setNetworkPageStore({ network: networks[0] });
-    }
-    navigate('../network');
-  };
-
-  useEffect(() => {
-    if (wizardActive) {
-      navigate('/admin/wizard', { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <>
       <PageContainer id="network-overview-page">
-        {breakpoint !== 'desktop' && (
-          <div className="mobile-options">
-            <Button
-              styleVariant={ButtonStyleVariant.STANDARD}
-              text={
-                isUndefined(networks) || !networks?.length
-                  ? LL.networkOverview.controls.configureNetwork()
-                  : LL.networkOverview.controls.editNetwork()
-              }
-              icon={<IconEditNetwork />}
-              disabled={networksLoading}
-              onClick={handleNetworkAction}
-            />
-            <OverviewStatsFilterSelect />
-            <OverviewViewSelect />
-          </div>
-        )}
-        {breakpoint === 'desktop' && (
-          <header>
-            <h1>{LL.networkOverview.pageTitle()}</h1>
-            <div className="controls">
-              <OverviewViewSelect />
-              <OverviewStatsFilterSelect />
-              <Button
-                styleVariant={ButtonStyleVariant.STANDARD}
-                text={
-                  isUndefined(networks) || !networks?.length
-                    ? LL.networkOverview.controls.configureNetwork()
-                    : LL.networkOverview.controls.editNetwork()
-                }
-                icon={<IconEditNetwork />}
-                disabled={networksLoading}
-                onClick={handleNetworkAction}
-              />
-            </div>
-          </header>
-        )}
+        <OverviewHeader loading={networksLoading} />
+        <GatewaysStatus networkId={selectedNetworkId} />
         {networkStats && networkUsersStats && (
           <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
         )}
         <div className="bottom-row">
-          {userStatsLoading || gatewayStatusLoading ? (
+          {userStatsLoading ? (
             <div className="stats-loader">
               <LoaderSpinner size={180} />
             </div>
-          ) : gatewayStatus?.connected ? (
+          ) : getNetworkUsers.length > 0 ? (
             <OverviewConnectedUsers stats={getNetworkUsers} />
           ) : (
             <NoData customMessage={LL.networkOverview.stats.gatewayDisconnected()} />
           )}
-          {/* <OverviewActivityStream /> */}
         </div>
       </PageContainer>
     </>

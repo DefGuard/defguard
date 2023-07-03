@@ -1,10 +1,17 @@
-use super::{device::Device, error::ModelError, DbPool, User, UserInfo};
+use super::{
+    device::{Device, WireguardNetworkDevice},
+    error::ModelError,
+    DbPool, User, UserInfo,
+};
+use crate::db::models::device::DeviceInfo;
+use crate::grpc::GatewayState;
 use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
-use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow};
+use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, Transaction};
+use std::fmt::{Display, Formatter};
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -34,11 +41,11 @@ impl DateTimeAggregation {
 
 #[derive(Clone, Debug)]
 pub enum GatewayEvent {
-    NetworkCreated(WireguardNetwork),
-    NetworkModified(WireguardNetwork),
-    NetworkDeleted(String),
-    DeviceCreated(Device),
-    DeviceModified(Device),
+    NetworkCreated(i64, WireguardNetwork),
+    NetworkModified(i64, WireguardNetwork),
+    NetworkDeleted(i64, String),
+    DeviceCreated(DeviceInfo),
+    DeviceModified(DeviceInfo),
     DeviceDeleted(String),
 }
 
@@ -64,6 +71,15 @@ pub struct WireguardNetwork {
 pub struct WireguardKey {
     pub private: String,
     pub public: String,
+}
+
+impl Display for WireguardNetwork {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self.id {
+            Some(network_id) => write!(f, "[ID {}] {}", network_id, self.name),
+            None => write!(f, "{}", self.name),
+        }
+    }
 }
 
 impl WireguardNetwork {
@@ -92,10 +108,12 @@ impl WireguardNetwork {
     }
 
     /// Return number of devices that use this network.
-    async fn device_count(&self, pool: &DbPool) -> Result<i64, SqlxError> {
-        // FIXME: currently there is only one hard-coded network with id = 1.
-        query_scalar!("SELECT count(*) \"count!\" FROM device")
-            .fetch_one(pool)
+    async fn device_count(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    ) -> Result<i64, SqlxError> {
+        query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
+            .fetch_one(transaction)
             .await
     }
 
@@ -121,16 +139,26 @@ impl WireguardNetwork {
     /// Try to change network address, changing device addresses if necessary.
     pub async fn change_address(
         &mut self,
-        pool: &DbPool,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
         new_address: IpNetwork,
     ) -> Result<(), ModelError> {
+        info!(
+            "Changing network address for {} from {} to {}",
+            self, self.address, new_address
+        );
+        let network_id = match self.id {
+            Some(id) => id,
+            None => {
+                return Err(ModelError::CannotModify);
+            }
+        };
         let old_address = self.address;
 
         // check if new network size will fit all existing devices
         let new_size = new_address.size();
         if new_size < old_address.size() {
             // include address, network, and broadcast in the calculation
-            let count = self.device_count(pool).await? + 3;
+            let count = self.device_count(transaction).await? + 3;
             match new_size {
                 NetworkSize::V4(size) => {
                     if count as u32 > size {
@@ -147,27 +175,32 @@ impl WireguardNetwork {
 
         // re-address all devices
         if new_address.network() != old_address.network() {
-            let transaction = pool.begin().await?;
-
-            let mut devices = Device::all(pool).await?;
+            info!("Re-addressing devices in network {}", self);
+            let mut devices = Device::all(&mut *transaction).await?;
             let net_ip = new_address.ip();
             let net_network = new_address.network();
             let net_broadcast = new_address.broadcast();
             let mut devices_iter = devices.iter_mut();
+
             for ip in new_address.iter() {
                 if ip == net_ip || ip == net_network || ip == net_broadcast {
                     continue;
                 }
                 match devices_iter.next() {
                     Some(device) => {
-                        device.wireguard_ip = ip.to_string();
-                        device.save(pool).await?;
+                        let device_id = match device.id {
+                            Some(id) => id,
+                            None => {
+                                return Err(ModelError::CannotModify);
+                            }
+                        };
+                        let wireguard_network_device =
+                            WireguardNetworkDevice::new(network_id, device_id, ip.to_string());
+                        wireguard_network_device.update(&mut *transaction).await?;
                     }
                     None => break,
                 }
             }
-
-            transaction.commit().await?;
         }
 
         self.address = new_address;
@@ -297,6 +330,7 @@ impl WireguardNetwork {
 
     /// Retrieves network stats grouped by currently active users since `from` timestamp
     pub async fn user_stats(
+        &self,
         conn: &DbPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
@@ -314,7 +348,7 @@ impl WireguardNetwork {
                 ORDER BY device_id, latest_handshake DESC
             )
             SELECT
-                d.id "id?", d.name, d.wireguard_ip, d.wireguard_pubkey, d.user_id, d.created
+                d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
             FROM device d
             JOIN s ON d.id = s.device_id
             WHERE s.latest_handshake > $1
@@ -335,7 +369,7 @@ impl WireguardNetwork {
                 .await?
                 .ok_or(SqlxError::RowNotFound)?;
             stats.push(WireguardUserStatsRow {
-                user: UserInfo::from_user(conn, user).await?,
+                user: UserInfo::from_user(conn, &user).await?,
                 devices: u.1.clone(),
             });
         }
@@ -344,6 +378,7 @@ impl WireguardNetwork {
 
     /// Retrieves total active users/devices since `from` timestamp
     async fn total_activity(
+        &self,
         conn: &DbPool,
         from: &NaiveDateTime,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
@@ -356,16 +391,21 @@ impl WireguardNetwork {
             FROM "user" u
                 JOIN device d ON d.user_id = u.id
                 JOIN wireguard_peer_stats s ON s.device_id = d.id
-                WHERE latest_handshake >= $1
+                WHERE latest_handshake >= $1 AND s.network = $2
             "#,
             from,
+            self.id,
         )
         .fetch_one(conn)
         .await?;
         Ok(activity_stats)
     }
-    /// Retrievies currently connected users
-    async fn current_activity(conn: &DbPool) -> Result<WireguardNetworkActivityStats, SqlxError> {
+
+    /// Retrieves currently connected users
+    async fn current_activity(
+        &self,
+        conn: &DbPool,
+    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
         // Add 2 minutes margin because gateway sends stats in 1 minute period
         let from = Utc::now()
             .naive_utc()
@@ -379,9 +419,10 @@ impl WireguardNetwork {
             FROM "user" u
                 JOIN device d ON d.user_id = u.id
                 JOIN wireguard_peer_stats s ON s.device_id = d.id
-                WHERE latest_handshake >= $1
+                WHERE latest_handshake >= $1 AND s.network = $2
             "#,
             from,
+            self.id
         )
         .fetch_one(conn)
         .await?;
@@ -391,6 +432,7 @@ impl WireguardNetwork {
     /// Retrieves network upload & download time series since `from` timestamp
     /// using `aggregation` (hour/minute) aggregation level
     async fn transfer_series(
+        &self,
         conn: &DbPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
@@ -402,13 +444,14 @@ impl WireguardNetwork {
                 date_trunc($1, collected_at) "collected_at: NaiveDateTime",
                 cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download
             FROM wireguard_peer_stats_view
-            WHERE collected_at >= $2
+            WHERE collected_at >= $2 AND network = $3
             GROUP BY 1
             ORDER BY 1
-            LIMIT $3
+            LIMIT $4
             "#,
             aggregation.fstring(),
             from,
+            self.id,
             PEER_STATS_LIMIT,
         )
         .fetch_all(conn)
@@ -418,13 +461,14 @@ impl WireguardNetwork {
 
     /// Retrieves network stats
     pub async fn network_stats(
+        &self,
         conn: &DbPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<WireguardNetworkStats, SqlxError> {
-        let total_activity = Self::total_activity(conn, from).await?;
-        let current_activity = Self::current_activity(conn).await?;
-        let transfer_series = Self::transfer_series(conn, from, aggregation).await?;
+        let total_activity = self.total_activity(conn, from).await?;
+        let current_activity = self.current_activity(conn).await?;
+        let transfer_series = self.transfer_series(conn, from, aggregation).await?;
         Ok(WireguardNetworkStats {
             current_active_users: current_activity.active_users,
             current_active_devices: current_activity.active_devices,
@@ -453,6 +497,14 @@ impl Default for WireguardNetwork {
             connected_at: Option::default(),
         }
     }
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct WireguardNetworkInfo {
+    #[serde(flatten)]
+    pub network: WireguardNetwork,
+    pub connected: bool,
+    pub gateways: Vec<GatewayState>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -527,6 +579,8 @@ pub struct WireguardNetworkStats {
 mod test {
     use chrono::{Duration, SubsecRound};
 
+    use crate::db::models::device::WireguardNetworkDevice;
+
     use super::*;
 
     async fn add_devices(pool: &DbPool, network: &WireguardNetwork, count: usize) {
@@ -540,7 +594,7 @@ mod test {
         );
         user.save(pool).await.unwrap();
         for i in 0..count {
-            let mut device = Device::assign_device_ip(
+            Device::new_with_ip(
                 pool,
                 user.id.unwrap(),
                 format!("dev{i}"),
@@ -549,7 +603,6 @@ mod test {
             )
             .await
             .unwrap();
-            device.save(pool).await.unwrap();
         }
     }
 
@@ -557,46 +610,48 @@ mod test {
     async fn test_change_address(pool: DbPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
+        network.save(&pool).await.unwrap();
 
         add_devices(&pool, &network, 3).await;
 
+        let mut transaction = pool.begin().await.unwrap();
         network
-            .change_address(&pool, "10.2.2.2/28".parse().unwrap())
+            .change_address(&mut transaction, "10.2.2.2/28".parse().unwrap())
             .await
             .unwrap();
+        let keys = vec!["key0", "key1", "key2"];
+        let ips = vec!["10.2.2.1", "10.2.2.3", "10.2.2.4"];
+        transaction.commit().await.unwrap();
 
-        let dev0 = Device::find_by_pubkey(&pool, "key0")
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(dev0.wireguard_ip, "10.2.2.1");
-
-        let dev1 = Device::find_by_pubkey(&pool, "key1")
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(dev1.wireguard_ip, "10.2.2.3");
-
-        let dev2 = Device::find_by_pubkey(&pool, "key2")
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(dev2.wireguard_ip, "10.2.2.4");
+        for (index, pub_key) in keys.iter().enumerate() {
+            let device = Device::find_by_pubkey(&pool, pub_key)
+                .await
+                .unwrap()
+                .unwrap();
+            let wireguard_network_device =
+                WireguardNetworkDevice::find(&pool, device.id.unwrap(), network.id.unwrap())
+                    .await
+                    .unwrap()
+                    .unwrap();
+            assert_eq!(wireguard_network_device.wireguard_ip, ips[index])
+        }
     }
 
     #[sqlx::test]
     async fn test_change_address_wont_fit(pool: DbPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
+        network.save(&pool).await.unwrap();
 
         add_devices(&pool, &network, 3).await;
 
+        let mut transaction = pool.begin().await.unwrap();
         assert!(network
-            .change_address(&pool, "10.2.2.2/30".parse().unwrap())
+            .change_address(&mut transaction, "10.2.2.2/30".parse().unwrap())
             .await
             .is_err());
         assert!(network
-            .change_address(&pool, "10.2.2.2/29".parse().unwrap())
+            .change_address(&mut transaction, "10.2.2.2/29".parse().unwrap())
             .await
             .is_ok());
     }
@@ -612,12 +667,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(
-            String::new(),
-            String::new(),
-            String::new(),
-            user.id.unwrap(),
-        );
+        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
         device.save(&pool).await.unwrap();
 
         // insert stats
@@ -662,12 +712,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(
-            String::new(),
-            String::new(),
-            String::new(),
-            user.id.unwrap(),
-        );
+        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
         device.save(&pool).await.unwrap();
 
         // insert stats

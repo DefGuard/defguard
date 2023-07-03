@@ -2,11 +2,7 @@ import './style.scss';
 
 import { ComponentPropsWithoutRef, useMemo } from 'react';
 
-import SvgIconActivityAdd from '../../svg/IconActivityAdd';
-import SvgIconActivityRemoved from '../../svg/IconActivityRemoved';
-import SvgIconActivityWarning from '../../svg/IconActivityWarning';
-import SvgIconConnected from '../../svg/IconConnected';
-import SvgIconDisconnected from '../../svg/IconDisconnected';
+import { ActivityIcon } from '../ActivityIcon/ActivityIcon';
 
 interface Props extends ComponentPropsWithoutRef<'div'> {
   connectionStatus?: ActivityType;
@@ -30,20 +26,6 @@ export const ActivityStatus = ({
   className,
   ...rest
 }: Props) => {
-  const getConnectionIcon = useMemo(() => {
-    switch (connectionStatus) {
-      case ActivityType.CONNECTED:
-        return <SvgIconConnected />;
-      case ActivityType.ADDED:
-        return <SvgIconActivityAdd />;
-      case ActivityType.ALERT:
-        return <SvgIconActivityWarning />;
-      case ActivityType.DISCONNECTED:
-        return <SvgIconDisconnected />;
-      case ActivityType.REMOVED:
-        return <SvgIconActivityRemoved />;
-    }
-  }, [connectionStatus]);
   const getText = useMemo(() => {
     switch (connectionStatus) {
       case ActivityType.CONNECTED:
@@ -70,7 +52,7 @@ export const ActivityStatus = ({
 
   return (
     <div className={getClassName} {...rest}>
-      {getConnectionIcon}
+      <ActivityIcon status={connectionStatus} />
       <span>{customMessage || getText}</span>
     </div>
   );

@@ -18,7 +18,7 @@ pub mod webhook;
 pub mod wireguard;
 
 use super::{DbPool, Group};
-use device::Device;
+use crate::db::models::device::UserDevice;
 use sqlx::{query_as, Error as SqlxError};
 use user::{MFAMethod, User};
 
@@ -53,6 +53,7 @@ pub struct SecurityKey {
     pub name: String,
 }
 
+// Basic user info used in user list, etc.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UserInfo {
     pub id: Option<i64>,
@@ -67,41 +68,29 @@ pub struct UserInfo {
     pub mfa_enabled: bool,
     pub totp_enabled: bool,
     pub groups: Vec<String>,
-    #[serde(default)]
-    pub devices: Vec<Device>,
-    #[serde(default)]
-    pub wallets: Vec<WalletInfo>,
-    #[serde(default)]
-    pub security_keys: Vec<SecurityKey>,
     pub mfa_method: MFAMethod,
     pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
 }
 
 impl UserInfo {
-    pub async fn from_user(pool: &DbPool, user: User) -> Result<Self, SqlxError> {
+    pub async fn from_user(pool: &DbPool, user: &User) -> Result<Self, SqlxError> {
         let groups = user.member_of(pool).await?;
-        let devices = user.devices(pool).await?;
-        let wallets = user.wallets(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
-        let security_keys = user.security_keys(pool).await?;
 
         Ok(Self {
             id: user.id,
-            username: user.username,
-            last_name: user.last_name,
-            first_name: user.first_name,
-            email: user.email,
-            phone: user.phone,
-            ssh_key: user.ssh_key,
-            pgp_key: user.pgp_key,
-            pgp_cert_id: user.pgp_cert_id,
+            username: user.username.clone(),
+            last_name: user.last_name.clone(),
+            first_name: user.first_name.clone(),
+            email: user.email.clone(),
+            phone: user.phone.clone(),
+            ssh_key: user.ssh_key.clone(),
+            pgp_key: user.pgp_key.clone(),
+            pgp_cert_id: user.pgp_cert_id.clone(),
             mfa_enabled: user.mfa_enabled,
             totp_enabled: user.totp_enabled,
             groups,
-            devices,
-            wallets,
-            security_keys,
-            mfa_method: user.mfa_method,
+            mfa_method: user.mfa_method.clone(),
             authorized_apps,
         })
     }
@@ -170,6 +159,34 @@ impl UserInfo {
         user.email = self.email;
 
         Ok(())
+    }
+}
+
+// Full user info with related objects
+#[derive(Deserialize, Serialize, Debug)]
+pub struct UserDetails {
+    #[serde(flatten)]
+    pub user: UserInfo,
+    #[serde(default)]
+    pub devices: Vec<UserDevice>,
+    #[serde(default)]
+    pub wallets: Vec<WalletInfo>,
+    #[serde(default)]
+    pub security_keys: Vec<SecurityKey>,
+}
+
+impl UserDetails {
+    pub async fn from_user(pool: &DbPool, user: &User) -> Result<Self, SqlxError> {
+        let devices = user.devices(pool).await?;
+        let wallets = user.wallets(pool).await?;
+        let security_keys = user.security_keys(pool).await?;
+
+        Ok(Self {
+            user: UserInfo::from_user(pool, user).await?,
+            devices,
+            wallets,
+            security_keys,
+        })
     }
 }
 
@@ -252,7 +269,7 @@ mod test {
         user.add_to_group(&pool, &group1).await.unwrap();
         user.add_to_group(&pool, &group2).await.unwrap();
 
-        let mut user_info = UserInfo::from_user(&pool, user).await.unwrap();
+        let mut user_info = UserInfo::from_user(&pool, &user).await.unwrap();
         assert_eq!(user_info.groups, ["Gryffindor", "Hufflepuff"]);
 
         user_info.groups = vec!["Gryffindor".into(), "Ravenclaw".into()];
