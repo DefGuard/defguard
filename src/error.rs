@@ -35,6 +35,8 @@ pub enum OriWebError {
     Http(rocket::http::Status),
     #[error(transparent)]
     TooManyLoginAttempts(#[from] FailedLoginError),
+    #[error("Bad request: {0}")]
+    BadRequest(String),
 }
 
 impl From<tonic::Status> for OriWebError {
@@ -87,6 +89,7 @@ impl From<GatewayMapError> for OriWebError {
             GatewayMapError::NotFound(_, _) => Self::ObjectNotFound(format!("{}", error)),
             GatewayMapError::NetworkNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
             GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
+            GatewayMapError::RemoveActive(_) => Self::BadRequest(format!("{}", error)),
         }
     }
 }

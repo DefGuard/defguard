@@ -47,6 +47,8 @@ pub enum GatewayMapError {
     NetworkNotFound(i64),
     #[error("Gateway with UID {0} not found")]
     UidNotFound(Uuid),
+    #[error("Cannot remove. Gateway with UID {0} is still active")]
+    RemoveActive(Uuid),
 }
 
 impl GatewayMap {
@@ -90,7 +92,12 @@ impl GatewayMap {
                         error!("Failed to find gateway with UID {}", uid);
                         return Err(GatewayMapError::UidNotFound(uid));
                     }
-                    Some((address, _state)) => *address,
+                    Some((address, state)) => {
+                        if state.connected {
+                            return Err(GatewayMapError::RemoveActive(uid));
+                        }
+                        *address
+                    }
                 };
                 // remove matching gateway
                 network_gateway_map.remove(&address)

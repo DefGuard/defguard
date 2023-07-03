@@ -82,6 +82,10 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
                 json!({ "msg": "Too many login attempts" }),
                 Status::TooManyRequests,
             ),
+            OriWebError::BadRequest(msg) => {
+                error!("{}", msg);
+                (json!({ "msg": msg }), Status::BadRequest)
+            }
         };
         Response::build_from(json.respond_to(request)?)
             .status(status)
