@@ -50,33 +50,35 @@ impl GatewayMap {
         Self(HashMap::new())
     }
 
-    pub fn connect_gateway(&mut self, network_id: i64, address: SocketAddr) {
+    // add a new gateway to map
+    // this method is meant to be called when a gateway requests a config
+    // as a sort of "registration"
+    pub fn add_gateway(&mut self, network_id: i64, address: SocketAddr, name: Option<String>) {
+        info!(
+            "Adding gateway {} with to gateway map for network {}",
+            address, network_id
+        );
         match self.0.get_mut(&network_id) {
-            Some(network_gateway_map) => match network_gateway_map.get_mut(&address) {
-                Some(state) => {
-                    state.connected = true;
-                }
-                None => {
-                    network_gateway_map.insert(
-                        address,
-                        GatewayState {
-                            connected: true,
-                            network_id,
-                            name: None,
-                            ip: address.ip(),
-                        },
-                    );
-                }
-            },
+            Some(network_gateway_map) => {
+                network_gateway_map.insert(
+                    address,
+                    GatewayState {
+                        connected: false,
+                        network_id,
+                        name,
+                        ip: address.ip(),
+                    },
+                );
+            }
             // no map for a given network exists yet
             None => {
                 let mut network_gateway_map = HashMap::new();
                 network_gateway_map.insert(
                     address,
                     GatewayState {
-                        connected: true,
+                        connected: false,
                         network_id,
-                        name: None,
+                        name,
                         ip: address.ip(),
                     },
                 );
@@ -85,11 +87,46 @@ impl GatewayMap {
         }
     }
 
+    // change gateway status to connected
+    // we assume that the gateway is already present in hashmap
+    pub fn connect_gateway(
+        &mut self,
+        network_id: i64,
+        address: SocketAddr,
+    ) -> Result<(), GatewayMapError> {
+        info!("Connecting gateway {} in network {}", address, network_id);
+        match self.0.get_mut(&network_id) {
+            Some(network_gateway_map) => match network_gateway_map.get_mut(&address) {
+                Some(state) => {
+                    state.connected = true;
+                }
+                None => {
+                    error!(
+                        "Gateway {} not found in gateway map for network {}",
+                        address, network_id
+                    );
+                    return Err(GatewayMapError::NotFound(network_id, address));
+                }
+            },
+            // no map for a given network exists yet
+            None => {
+                error!("Network {} not found in gateway map", network_id);
+                return Err(GatewayMapError::NotFound(network_id, address));
+            }
+        };
+        Ok(())
+    }
+
+    // change gateway status to disconnected
     pub fn disconnect_gateway(
         &mut self,
         network_id: i64,
         address: SocketAddr,
     ) -> Result<(), GatewayMapError> {
+        info!(
+            "Disconnecting gateway {} in network {}",
+            address, network_id
+        );
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(&address) {
                 state.connected = false;

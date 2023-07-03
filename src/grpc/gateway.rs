@@ -440,9 +440,13 @@ impl gateway_service_server::GatewayService for GatewayServer {
         Ok(Response::new(()))
     }
 
-    async fn config(&self, request: Request<()>) -> Result<Response<Configuration>, Status> {
+    async fn config(
+        &self,
+        request: Request<ConfigurationRequest>,
+    ) -> Result<Response<Configuration>, Status> {
         debug!("Sending configuration to gateway client.");
         let network_id = Self::get_network_id(request.metadata())?;
+        let address = request.remote_addr().expect("Unable to get peer address.");
 
         let pool = self.pool.clone();
         let mut network = WireguardNetwork::find_by_id(&pool, network_id)
@@ -460,6 +464,11 @@ impl gateway_service_server::GatewayService for GatewayServer {
             "Sending configuration to gateway client, network {}.",
             network
         );
+
+        {
+            let mut state = self.state.lock().unwrap();
+            state.add_gateway(network_id, address, request.into_inner().name);
+        }
 
         network.connected_at = Some(Utc::now().naive_utc());
         if let Err(err) = network.save(&pool).await {
@@ -502,7 +511,12 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let (tx, rx) = mpsc::channel(4);
         let events_rx = self.wireguard_tx.subscribe();
         let mut state = self.state.lock().unwrap();
-        state.connect_gateway(gateway_network_id, address);
+        state
+            .connect_gateway(gateway_network_id, address)
+            .map_err(|err| {
+                error!("Failed to connect gateway: {}", err);
+                Status::new(tonic::Code::Internal, "Failed to connect gateway ")
+            })?;
 
         let handle = tokio::spawn(async move {
             let mut update_handler = GatewayUpdatesHandler::new(network, address, events_rx, tx);
