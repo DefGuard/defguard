@@ -667,6 +667,10 @@ mod test {
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(pool: DbPool) {
+        let mut network = WireguardNetwork::default();
+        network.try_set_address("10.1.1.1/29").unwrap();
+        network.save(&pool).await.unwrap();
+
         let mut user = User::new(
             "testuser".to_string(),
             "hunter2",
@@ -689,7 +693,7 @@ mod test {
                 id: None,
                 device_id: device.id.unwrap(),
                 collected_at: now - Duration::minutes(i),
-                network: 1,
+                network: network.id.unwrap(),
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
@@ -699,7 +703,8 @@ mod test {
             wps.save(&pool).await.unwrap();
         }
 
-        let connected_at = WireguardNetwork::connected_at(&pool, device.id.unwrap())
+        let connected_at = network
+            .connected_at(&pool, device.id.unwrap())
             .await
             .unwrap()
             .unwrap();
@@ -712,6 +717,10 @@ mod test {
 
     #[sqlx::test]
     async fn test_connected_at_always_connected(pool: DbPool) {
+        let mut network = WireguardNetwork::default();
+        network.try_set_address("10.1.1.1/29").unwrap();
+        network.save(&pool).await.unwrap();
+
         let mut user = User::new(
             "testuser".to_string(),
             "hunter2",
@@ -732,7 +741,7 @@ mod test {
                 id: None,
                 device_id: device.id.unwrap(),
                 collected_at: now - Duration::minutes(i),
-                network: 1,
+                network: network.id.unwrap(),
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
@@ -742,7 +751,8 @@ mod test {
             wps.save(&pool).await.unwrap();
         }
 
-        let connected_at = WireguardNetwork::connected_at(&pool, device.id.unwrap())
+        let connected_at = network
+            .connected_at(&pool, device.id.unwrap())
             .await
             .unwrap()
             .unwrap();
