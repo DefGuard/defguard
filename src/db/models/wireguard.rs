@@ -208,6 +208,7 @@ impl WireguardNetwork {
     }
 
     async fn fetch_latest_stats(
+        &self,
         conn: &DbPool,
         device_id: i64,
     ) -> Result<Option<WireguardPeerStats>, SqlxError> {
@@ -217,11 +218,12 @@ impl WireguardNetwork {
             SELECT id "id?", device_id "device_id!", collected_at "collected_at!", network "network!",
                 endpoint, upload "upload!", download "download!", latest_handshake "latest_handshake!", allowed_ips
             FROM wireguard_peer_stats
-            WHERE device_id = $1
+            WHERE device_id = $1 AND network = $2
             ORDER BY collected_at DESC
             LIMIT 1
             "#,
-            device_id
+            device_id,
+            self.id
         )
         .fetch_optional(conn)
         .await?;
@@ -246,6 +248,7 @@ impl WireguardNetwork {
 
     /// Finds when the device connected based on handshake timestamps
     async fn connected_at(
+        &self,
         conn: &DbPool,
         device_id: i64,
     ) -> Result<Option<NaiveDateTime>, SqlxError> {
@@ -257,11 +260,13 @@ impl WireguardNetwork {
             WHERE device_id = $1
                 AND latest_handshake IS NOT NULL
                 AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL)
+                AND network = $3
             ORDER BY collected_at DESC
             LIMIT 1
             "#,
             device_id,
             WIREGUARD_MAX_HANDSHAKE_MINUTES as f64,
+            self.id
         )
         .fetch_optional(conn)
         .await?;
@@ -270,6 +275,7 @@ impl WireguardNetwork {
 
     /// Retrieves stats for specified devices
     async fn device_stats(
+        &self,
         conn: &DbPool,
         devices: &[Device],
         from: &NaiveDateTime,
@@ -297,6 +303,7 @@ impl WireguardNetwork {
             FROM wireguard_peer_stats_view
             WHERE device_id IN ({})
             AND collected_at >= $2
+            AND network = $3
             GROUP BY 1, 2
             ORDER BY 1, 2
             "#,
@@ -305,18 +312,19 @@ impl WireguardNetwork {
         let stats: Vec<WireguardDeviceTransferRow> = query_as(&query)
             .bind(aggregation.fstring())
             .bind(from)
+            .bind(self.id)
             .fetch_all(conn)
             .await?;
         let mut result = Vec::new();
         for device in devices {
-            let latest_stats = Self::fetch_latest_stats(conn, device.id.unwrap()).await?;
+            let latest_stats = self.fetch_latest_stats(conn, device.id.unwrap()).await?;
             result.push(WireguardDeviceStatsRow {
                 id: device.id.unwrap(),
                 user_id: device.user_id,
                 name: device.name.clone(),
                 wireguard_ip: latest_stats.as_ref().and_then(Self::parse_wireguard_ip),
                 public_ip: latest_stats.as_ref().and_then(Self::parse_public_ip),
-                connected_at: Self::connected_at(conn, device.id.unwrap()).await?,
+                connected_at: self.connected_at(conn, device.id.unwrap()).await?,
                 // Filter stats for this device
                 stats: stats
                     .iter()
@@ -351,14 +359,15 @@ impl WireguardNetwork {
                 d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
             FROM device d
             JOIN s ON d.id = s.device_id
-            WHERE s.latest_handshake > $1
+            WHERE s.latest_handshake > $1 AND s.network = $2
             "#,
             oldest_handshake,
+            self.id,
         )
         .fetch_all(conn)
         .await?;
         // Retrieve data series for all active devices and assign them to users
-        let device_stats = Self::device_stats(conn, &devices, from, aggregation).await?;
+        let device_stats = self.device_stats(conn, &devices, from, aggregation).await?;
         for stats in device_stats {
             user_map.entry(stats.user_id).or_default().push(stats);
         }
