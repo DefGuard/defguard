@@ -1033,6 +1033,10 @@ Any other requests you can reach us at: support@defguard.net
         dns: {
           label: 'DNS',
         },
+        allowedGroups: {
+          label: 'Allowed groups',
+          placeholder: 'All groups',
+        },
       },
       controls: {
         submit: 'Save changes',

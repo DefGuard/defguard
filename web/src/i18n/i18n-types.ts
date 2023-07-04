@@ -2391,6 +2391,16 @@ type RootTranslation = {
 					 */
 					label: string
 				}
+				allowedGroups: {
+					/**
+					 * A​l​l​o​w​e​d​ ​g​r​o​u​p​s
+					 */
+					label: string
+					/**
+					 * A​l​l​ ​g​r​o​u​p​s
+					 */
+					placeholder: string
+				}
 			}
 			controls: {
 				/**
@@ -5091,6 +5101,16 @@ export type TranslationFunctions = {
 					 * DNS
 					 */
 					label: () => LocalizedString
+				}
+				allowedGroups: {
+					/**
+					 * Allowed groups
+					 */
+					label: () => LocalizedString
+					/**
+					 * All groups
+					 */
+					placeholder: () => LocalizedString
 				}
 			}
 			controls: {

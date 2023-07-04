@@ -1034,6 +1034,10 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
         dns: {
           label: 'DNS',
         },
+        allowedGroups: {
+          label: 'Dozwolone grupy',
+          placeholder: 'Wszystkie grupy',
+        },
       },
       controls: {
         submit: 'Zapisz zmiany',

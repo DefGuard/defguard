@@ -114,6 +114,7 @@ export interface Network {
   connected_at?: string;
   gateways?: GatewayStatus[];
   allowed_ips?: string[];
+  allowed_groups?: string[];
   dns?: string;
 }
 
@@ -441,11 +442,6 @@ export interface NavigationStore {
   setNavigationWebhook: (webhook: Webhook) => void;
   setNavigationOpenidClient: (openidclient: OpenidClient) => void;
   setState: (newState: Partial<NavigationStore>) => void;
-}
-
-export interface SelectOption<T> {
-  label: string;
-  value: T;
 }
 
 export type EmptyApiResponse = AxiosPromise<unknown>;

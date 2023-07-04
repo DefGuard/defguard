@@ -1,19 +1,26 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useMutation } from 'wagmi';
 import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../shared/components/Form/FormSelect/FormSelect';
 import { Card } from '../../../../shared/components/layout/Card/Card';
 import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
+import {
+  SelectOption,
+  SelectStyleVariant,
+} from '../../../../shared/components/layout/Select/Select';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
+import { QueryKeys } from '../../../../shared/queries';
 import { ModifyNetworkRequest } from '../../../../shared/types';
+import { titleCase } from '../../../../shared/utils/titleCase';
 import {
   validateIp,
   validateIpList,
@@ -22,10 +29,17 @@ import {
 } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
+type FormInputs = Omit<ModifyNetworkRequest['network'], 'allowed_groups'> & {
+  allowed_groups: SelectOption<string>[];
+};
+
 export const WizardNetworkConfiguration = () => {
+  const [componentMount, setComponentMount] = useState(false);
+  const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
   const submitRef = useRef<HTMLInputElement | null>(null);
   const {
     network: { addNetwork },
+    groups: { getGroups },
   } = useApi();
 
   const [submitSubject, nextSubject, setWizardState] = useWizardStore(
@@ -37,6 +51,7 @@ export const WizardNetworkConfiguration = () => {
 
   const toaster = useToaster();
   const { LL } = useI18nContext();
+
   const { mutate: addNetworkMutation, isLoading } = useMutation(addNetwork, {
     onSuccess: () => {
       setWizardState({ loading: false });
@@ -48,6 +63,28 @@ export const WizardNetworkConfiguration = () => {
       toaster.error(LL.messages.error());
       console.error(err);
     },
+  });
+
+  const { isError: groupsError, isLoading: groupsLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_GROUPS],
+    queryFn: getGroups,
+    onSuccess: (res) => {
+      setGroupOptions(
+        res.groups.map((g) => ({
+          key: g,
+          value: g,
+          label: titleCase(g),
+        }))
+      );
+    },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+    enabled: componentMount,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: 'always',
   });
 
   const schema = useMemo(
@@ -97,20 +134,29 @@ export const WizardNetworkConfiguration = () => {
               }
               return validateIpOrDomainList(val, ',', true);
             }),
+          allowed_groups: yup.array().optional(),
         })
         .required(),
     [LL.form.error]
   );
-  const { handleSubmit, control } = useForm({
+
+  const getDefaultValues = useMemo((): FormInputs => {
+    return { ...wizardNetworkConfiguration, allowed_groups: [] };
+  }, [wizardNetworkConfiguration]);
+
+  const { handleSubmit, control } = useForm<FormInputs>({
     mode: 'all',
-    defaultValues: wizardNetworkConfiguration,
+    defaultValues: getDefaultValues,
     resolver: yupResolver(schema),
   });
 
-  const handleValidSubmit: SubmitHandler<ModifyNetworkRequest['network']> = (values) => {
+  const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
     if (!isLoading) {
       setWizardState({ loading: true });
-      addNetworkMutation(values);
+      addNetworkMutation({
+        ...values,
+        allowed_groups: values.allowed_groups.map((o) => o.value),
+      });
     }
   };
 
@@ -120,6 +166,10 @@ export const WizardNetworkConfiguration = () => {
     });
     return () => sub?.unsubscribe();
   }, [submitSubject]);
+
+  useEffect(() => {
+    setTimeout(() => setComponentMount(true), 100);
+  }, []);
 
   return (
     <Card id="wizard-manual-network-configuration" shaded>
@@ -159,6 +209,17 @@ export const WizardNetworkConfiguration = () => {
         <FormInput
           controller={{ control, name: 'dns' }}
           outerLabel={LL.networkConfiguration.form.fields.dns.label()}
+        />
+        <FormSelect
+          styleVariant={SelectStyleVariant.WHITE}
+          controller={{ control, name: 'allowed_groups' }}
+          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          loading={groupsLoading}
+          disabled={groupsError || (!groupsLoading && groupOptions.length === 0)}
+          options={groupOptions}
+          placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
+          multi
+          searchable
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

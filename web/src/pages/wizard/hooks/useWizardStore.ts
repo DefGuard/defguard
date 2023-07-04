@@ -23,6 +23,7 @@ const defaultValues: StoreFields = {
     name: '',
     port: 50051,
     allowed_ips: '',
+    allowed_groups: [],
     dns: '',
   },
 };
@@ -72,6 +73,7 @@ type StoreFields = {
     port: number;
     endpoint: string;
     allowed_ips: string;
+    allowed_groups: string[];
     dns?: string;
   };
 };

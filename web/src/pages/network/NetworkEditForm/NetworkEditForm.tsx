@@ -1,22 +1,27 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
+import {
+  SelectOption,
+  SelectStyleVariant,
+} from '../../../shared/components/layout/Select/Select';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
-import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { ModifyNetworkRequest, Network } from '../../../shared/types';
+import { titleCase } from '../../../shared/utils/titleCase';
 import {
   validateIp,
   validateIpList,
@@ -25,7 +30,9 @@ import {
 } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
-type FormInputs = ModifyNetworkRequest['network'];
+type FormInputs = Omit<ModifyNetworkRequest['network'], 'allowed_groups'> & {
+  allowed_groups: SelectOption<string>[];
+};
 
 const defaultValues: FormInputs = {
   address: '',
@@ -33,26 +40,49 @@ const defaultValues: FormInputs = {
   name: '',
   port: 50051,
   allowed_ips: '',
+  allowed_groups: [],
   dns: '',
 };
 
+const groupToSelectOption = (group: string): SelectOption<string> => ({
+  value: group,
+  key: group,
+  label: titleCase(group),
+});
+
 const networkToForm = (data?: Network): FormInputs | undefined => {
   if (!data) return undefined;
-  const omited = omitBy(omit(data, ['id', 'connected_at']), isNull);
-  if (Array.isArray(omited.allowed_ips)) {
-    omited.allowed_ips = omited.allowed_ips.join(',');
+  let omited = omitBy<Network>(data, isNull);
+  omited = omit(omited, [
+    'id',
+    'connected_at',
+    'connected',
+    'allowed_ips',
+    'allowed_groups',
+    'gateways',
+  ]);
+  let allowed_ips = '';
+  let allowed_groups: FormInputs['allowed_groups'] = [];
+  if (Array.isArray(data.allowed_ips)) {
+    allowed_ips = data.allowed_ips.join(',');
   }
-  return { ...defaultValues, ...omited } as FormInputs;
+  if (Array.isArray(data.allowed_groups)) {
+    allowed_groups = data.allowed_groups.map((g) => groupToSelectOption(g));
+  }
+  return { ...defaultValues, ...omited, allowed_groups, allowed_ips };
 };
 
 export const NetworkEditForm = () => {
   const toaster = useToaster();
   const {
     network: { editNetwork },
+    groups: { getGroups },
   } = useApi();
   const submitRef = useRef<HTMLButtonElement | null>(null);
   const setStoreState = useNetworkPageStore((state) => state.setState);
   const submitSubject = useNetworkPageStore((state) => state.saveSubject);
+  const [componentMount, setComponentMount] = useState(false);
+  const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
   const [selectedNetworkId, networks] = useNetworkPageStore(
     (state) => [state.selectedNetworkId, state.networks],
     shallow
@@ -60,7 +90,50 @@ export const NetworkEditForm = () => {
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
 
-  const { mutateAsync } = useMutation([MutationKeys.CHANGE_NETWORK], editNetwork);
+  const { mutate } = useMutation({
+    mutationFn: editNetwork,
+    onSuccess: () => {
+      setStoreState({ loading: false });
+      toaster.success(LL.networkConfiguration.form.messages.networkModified());
+      const keys = [
+        QueryKeys.FETCH_NETWORK,
+        QueryKeys.FETCH_NETWORKS,
+        QueryKeys.FETCH_NETWORK_TOKEN,
+      ];
+      for (const key of keys) {
+        queryClient.refetchQueries({
+          queryKey: [key],
+        });
+      }
+    },
+    onError: (err) => {
+      setStoreState({ loading: false });
+      console.error(err);
+      toaster.error(LL.messages.error());
+    },
+  });
+
+  const { isError: groupsError, isLoading: groupsLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_GROUPS],
+    queryFn: getGroups,
+    onSuccess: (res) => {
+      setGroupOptions(
+        res.groups.map((g) => ({
+          key: g,
+          value: g,
+          label: titleCase(g),
+        }))
+      );
+    },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+    enabled: componentMount,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: 'always',
+  });
 
   const defaultFormValues = useMemo(() => {
     if (selectedNetworkId && networks) {
@@ -131,29 +204,13 @@ export const NetworkEditForm = () => {
 
   const onValidSubmit: SubmitHandler<FormInputs> = async (values) => {
     setStoreState({ loading: true });
-    mutateAsync({
+    mutate({
       id: selectedNetworkId,
-      network: values,
-    })
-      .then(() => {
-        setStoreState({ loading: false });
-        toaster.success(LL.networkConfiguration.form.messages.networkModified());
-        const keys = [
-          QueryKeys.FETCH_NETWORK,
-          QueryKeys.FETCH_NETWORKS,
-          QueryKeys.FETCH_NETWORK_TOKEN,
-        ];
-        for (const key of keys) {
-          queryClient.refetchQueries({
-            queryKey: [key],
-          });
-        }
-      })
-      .catch((err) => {
-        setStoreState({ loading: false });
-        console.error(err);
-        toaster.error(LL.messages.error());
-      });
+      network: {
+        ...values,
+        allowed_groups: values.allowed_groups.map((o) => o.value),
+      },
+    });
   };
 
   // reset form when network is selected
@@ -163,6 +220,7 @@ export const NetworkEditForm = () => {
   }, [defaultFormValues, reset]);
 
   useEffect(() => {
+    setTimeout(() => setComponentMount(true), 100);
     const sub = submitSubject.subscribe(() => submitRef.current?.click());
     return () => sub.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,6 +270,17 @@ export const NetworkEditForm = () => {
         <FormInput
           controller={{ control, name: 'dns' }}
           outerLabel={LL.networkConfiguration.form.fields.dns.label()}
+        />
+        <FormSelect
+          styleVariant={SelectStyleVariant.WHITE}
+          controller={{ control, name: 'allowed_groups' }}
+          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          loading={groupsLoading}
+          disabled={groupsError || (!groupsLoading && groupOptions.length === 0)}
+          options={groupOptions}
+          placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
+          multi
+          searchable
         />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>
