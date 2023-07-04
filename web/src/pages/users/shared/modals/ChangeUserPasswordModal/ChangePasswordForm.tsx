@@ -32,7 +32,7 @@ export const ChangePasswordForm = () => {
   const setModalState = useModalStore((state) => state.setChangePasswordModal);
   const modalState = useModalStore((state) => state.changePasswordModal);
   const toaster = useToaster();
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const schema = useMemo(
     () =>
       yup
@@ -51,13 +51,12 @@ export const ChangePasswordForm = () => {
             .required(LL.form.error.required())
             .test(
               'password-match',
-              'Does not match with new password',
+              LL.form.error.repeat(),
               (value, context) => value === context.parent.new_password
             ),
         })
         .required(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale]
+    [LL.form.error]
   );
 
   const {

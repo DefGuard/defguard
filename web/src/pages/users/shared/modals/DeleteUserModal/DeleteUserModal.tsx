@@ -33,8 +33,8 @@ export const DeleteUserModal = () => {
       toaster.success(
         LL.modals.deleteUser.messages.success({ username: variables.username })
       );
-      queryClient.invalidateQueries([QueryKeys.FETCH_USERS]);
-      queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
       setModalState({ visible: false, user: undefined });
       navigate('/admin/users', { replace: true });
     },

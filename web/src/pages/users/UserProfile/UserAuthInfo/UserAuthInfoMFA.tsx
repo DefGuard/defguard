@@ -23,14 +23,14 @@ import { UserMFAMethod } from '../../../../shared/types';
 
 export const UserAuthInfoMFA = () => {
   const { LL, locale } = useI18nContext();
-  const user = useUserProfileStore((store) => store.user);
+  const userProfile = useUserProfileStore((store) => store.userProfile);
   const isMe = useUserProfileStore((store) => store.isMe);
   const editMode = useUserProfileStore((store) => store.editMode);
   const setModalsState = useModalStore((store) => store.setState);
   const queryClient = useQueryClient();
 
   const refreshUserQueries = () => {
-    queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+    queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
   };
 
   const {
@@ -44,13 +44,13 @@ export const UserAuthInfoMFA = () => {
   } = useApi();
 
   const mfaWebAuthNEnabled = useMemo(
-    () => user?.security_keys && user.security_keys.length > 0,
-    [user]
+    () => userProfile?.security_keys && userProfile.security_keys.length > 0,
+    [userProfile]
   );
 
   const mfaWeb3Enabled = useMemo(
-    () => !isUndefined(user?.wallets.find((w) => w.use_for_mfa === true)),
-    [user]
+    () => !isUndefined(userProfile?.wallets.find((w) => w.use_for_mfa === true)),
+    [userProfile]
   );
 
   const toaster = useToaster();
@@ -84,7 +84,7 @@ export const UserAuthInfoMFA = () => {
   const { mutate: editUserMutation } = useMutation([MutationKeys.EDIT_USER], editUser, {
     onSuccess: () => {
       toaster.success(LL.userPage.userAuthInfo.mfa.messages.changeMFAMethod());
-      queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
     },
     onError: () => {
       toaster.error(LL.messages.error());
@@ -92,20 +92,20 @@ export const UserAuthInfoMFA = () => {
   });
 
   const changeDefaultMFAMethod = (mfaMethod: UserMFAMethod) => {
-    if (user) {
-      const userClone = cloneDeep(user);
+    if (userProfile) {
+      const userClone = cloneDeep(userProfile.user);
       userClone.mfa_method = mfaMethod;
       editUserMutation({
-        username: user.username,
+        username: userProfile.user.username,
         data: userClone,
       });
     }
   };
 
   const getTOTPInfoText = useMemo(() => {
-    if (user?.totp_enabled) {
+    if (userProfile?.user.totp_enabled) {
       const res: string[] = [LL.userPage.userAuthInfo.mfa.enabled()];
-      if (user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD) {
+      if (userProfile?.user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD) {
         const defaultStr = `(${LL.userPage.userAuthInfo.mfa.default()})`;
         res.push(defaultStr);
       }
@@ -113,19 +113,19 @@ export const UserAuthInfoMFA = () => {
     }
     return LL.userPage.userAuthInfo.mfa.disabled();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, locale]);
+  }, [userProfile, locale]);
 
   const getWebAuthNInfoText = useMemo(() => {
-    if (user) {
-      if (user.security_keys && user.security_keys.length) {
+    if (userProfile) {
+      if (userProfile.security_keys && userProfile.security_keys.length) {
         const res = [
-          `${user.security_keys.length} ${
-            user.security_keys.length > 1
+          `${userProfile.security_keys.length} ${
+            userProfile.security_keys.length > 1
               ? LL.userPage.userAuthInfo.mfa.securityKey.plural()
               : LL.userPage.userAuthInfo.mfa.securityKey.singular()
           }`,
         ];
-        if (user.mfa_method === UserMFAMethod.WEB_AUTH_N) {
+        if (userProfile.user.mfa_method === UserMFAMethod.WEB_AUTH_N) {
           res.push(`(${LL.userPage.userAuthInfo.mfa.default()})`);
         }
         return res.join(' ');
@@ -133,11 +133,11 @@ export const UserAuthInfoMFA = () => {
     }
     return LL.userPage.userAuthInfo.mfa.disabled();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, locale]);
+  }, [userProfile, locale]);
 
   const getWalletsInfoText = useMemo(() => {
-    if (user) {
-      const userAuthorizedWallets = user.wallets.filter((w) => w.use_for_mfa);
+    if (userProfile) {
+      const userAuthorizedWallets = userProfile.wallets.filter((w) => w.use_for_mfa);
       if (userAuthorizedWallets && userAuthorizedWallets.length) {
         const res = [
           `${userAuthorizedWallets.length} ${
@@ -146,7 +146,7 @@ export const UserAuthInfoMFA = () => {
               : LL.userPage.userAuthInfo.mfa.wallet.singular()
           }`,
         ];
-        if (user.mfa_method === UserMFAMethod.WEB3) {
+        if (userProfile.user.mfa_method === UserMFAMethod.WEB3) {
           res.push(`(${LL.userPage.userAuthInfo.mfa.default()})`);
         }
         return res.join(' ');
@@ -155,13 +155,13 @@ export const UserAuthInfoMFA = () => {
     }
     return '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, locale]);
+  }, [userProfile, locale]);
 
   return (
     <section className="mfa">
       <header>
         {editMode && isMe && (
-          <EditButton className="edit-mfa" visible={user?.mfa_enabled}>
+          <EditButton className="edit-mfa" visible={userProfile?.user.mfa_enabled}>
             <EditButtonOption
               text={LL.userPage.userAuthInfo.mfa.edit.disable()}
               styleVariant={EditButtonOptionStyleVariant.WARNING}
@@ -173,10 +173,10 @@ export const UserAuthInfoMFA = () => {
         <span className="status">
           <ActivityStatus
             connectionStatus={
-              user?.mfa_enabled ? ActivityType.CONNECTED : ActivityType.ALERT
+              userProfile?.user.mfa_enabled ? ActivityType.CONNECTED : ActivityType.ALERT
             }
             customMessage={
-              user?.mfa_enabled
+              userProfile?.user.mfa_enabled
                 ? LL.userPage.userAuthInfo.mfa.enabled()
                 : LL.userPage.userAuthInfo.mfa.disabled()
             }
@@ -190,14 +190,14 @@ export const UserAuthInfoMFA = () => {
             <div className="right">
               <span>{getTOTPInfoText}</span>
               <EditButton data-testid="edit-totp">
-                {user?.totp_enabled && (
+                {userProfile?.user.totp_enabled && (
                   <EditButtonOption
                     onClick={() => disableTOTPMutation()}
                     text={LL.userPage.userAuthInfo.mfa.editMode.disable()}
                     styleVariant={EditButtonOptionStyleVariant.WARNING}
                   />
                 )}
-                {!user?.totp_enabled && (
+                {!userProfile?.user.totp_enabled && (
                   <EditButtonOption
                     data-testid="enable-totp-option"
                     text={LL.userPage.userAuthInfo.mfa.editMode.enable()}
@@ -206,8 +206,8 @@ export const UserAuthInfoMFA = () => {
                 )}
                 <EditButtonOption
                   disabled={
-                    !user?.totp_enabled ||
-                    user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD
+                    !userProfile?.user.totp_enabled ||
+                    userProfile?.user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD
                   }
                   text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
                   onClick={() => changeDefaultMFAMethod(UserMFAMethod.ONE_TIME_PASSWORD)}
@@ -230,7 +230,8 @@ export const UserAuthInfoMFA = () => {
                 />
                 <EditButtonOption
                   disabled={
-                    user?.mfa_method === UserMFAMethod.WEB_AUTH_N || !mfaWebAuthNEnabled
+                    userProfile?.user.mfa_method === UserMFAMethod.WEB_AUTH_N ||
+                    !mfaWebAuthNEnabled
                   }
                   text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
                   onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB_AUTH_N)}
@@ -244,7 +245,9 @@ export const UserAuthInfoMFA = () => {
               <span>{getWalletsInfoText}</span>
               <EditButton>
                 <EditButtonOption
-                  disabled={user?.mfa_method === UserMFAMethod.WEB3 || !mfaWeb3Enabled}
+                  disabled={
+                    userProfile?.user.mfa_method === UserMFAMethod.WEB3 || !mfaWeb3Enabled
+                  }
                   text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
                   onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB3)}
                 />

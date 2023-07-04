@@ -28,18 +28,19 @@ export const UserDevices = () => {
     return false;
   }, [isDesktopApp]);
   const setModalsState = useModalStore((state) => state.setState);
-  const user = useUserProfileStore((state) => state.user);
+  const userProfile = useUserProfileStore((state) => state.userProfile);
   const openDeviceModal = useDeviceModal((state) => state.open);
+
   return (
     <section id="user-devices">
       <header>
         <h2>{LL.userPage.devices.header()}</h2>
       </header>
-      {user && (
+      {userProfile && (
         <>
-          {user.devices && user.devices.length > 0 && (
+          {userProfile.devices && userProfile.devices.length > 0 && (
             <div className="devices">
-              {user.devices.map((device) => (
+              {userProfile.devices.map((device) => (
                 <DeviceCard key={device.id} device={device} />
               ))}
             </div>

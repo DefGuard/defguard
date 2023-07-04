@@ -20,10 +20,11 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     align-content: center;
     text-align: center;
     user-select: none;
+    column-gap: 10px;
 
     & > .icon-container {
       display: flex;
@@ -34,6 +35,8 @@
     }
 
     span {
+      margin: 0;
+      padding: 0;
       a {
         text-decoration: none;
         font-size: 1.2rem;

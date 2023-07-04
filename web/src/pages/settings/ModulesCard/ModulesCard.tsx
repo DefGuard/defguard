@@ -13,6 +13,7 @@ import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
+import { externalLink } from '../../../shared/links';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
@@ -57,7 +58,13 @@ export const ModulesCard = () => {
     <section className="modules">
       <header>
         <h2>{LL.settingsPage.modulesVisibility.header()}</h2>
-        <Helper>{parse(LL.settingsPage.modulesVisibility.helper())}</Helper>
+        <Helper>
+          {parse(
+            LL.settingsPage.modulesVisibility.helper({
+              documentationLink: externalLink.gitbook.base,
+            })
+          )}
+        </Helper>
       </header>
       <Card>
         <CheckBox

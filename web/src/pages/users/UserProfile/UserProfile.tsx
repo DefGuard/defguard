@@ -56,16 +56,16 @@ export const UserProfile = () => {
     throw Error('No username found.');
   }, [currentUser?.username, paramsUsername]);
 
-  useQuery([QueryKeys.FETCH_USER, username], () => getUser(username), {
-    onSuccess: (user) => {
-      setUserProfileState({ user: user });
-      setNavigationUser(user);
+  useQuery([QueryKeys.FETCH_USER_PROFILE, username], () => getUser(username), {
+    onSuccess: (userProfile) => {
+      setUserProfileState({ userProfile: userProfile });
+      setNavigationUser(userProfile.user);
     },
     onError: (err) => {
       toaster.error(LL.userPage.messages.failedToFetchUserData());
       console.error(err);
     },
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     enabled: !isUndefined(username),
   });
 
@@ -95,9 +95,9 @@ export const UserProfile = () => {
         </div>
         <div className="cards-1">
           <UserDevices />
-          <UserWallets />
         </div>
         <div className="cards-2">
+          <UserWallets />
           <UserYubiKeys />
         </div>
       </div>
@@ -131,17 +131,18 @@ const ViewModeControls = () => {
 const EditModeControls = () => {
   const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const user = useUserProfileStore((state) => state.user);
+  const userProfile = useUserProfileStore((state) => state.userProfile);
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const isMe = useUserProfileStore((state) => state.isMe);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
   const setDeleteUserModalState = useModalStore((state) => state.setDeleteUserModal);
+  const loading = useUserProfileStore((state) => state.loading);
 
   const submitSubject = useUserProfileStore((state) => state.submitSubject);
 
   const handleDeleteUser = () => {
-    if (user) {
-      setDeleteUserModalState({ visible: true, user: user });
+    if (userProfile) {
+      setDeleteUserModalState({ visible: true, user: userProfile.user });
     }
   };
 
@@ -184,9 +185,8 @@ const EditModeControls = () => {
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
           icon={<IconCheckmarkWhite />}
-          onClick={async () => {
-            setTimeout(() => submitSubject.next(), 500);
-          }}
+          onClick={() => submitSubject.next()}
+          loading={loading}
         />
       </div>
     </>

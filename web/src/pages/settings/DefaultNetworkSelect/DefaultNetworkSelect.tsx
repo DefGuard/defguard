@@ -12,6 +12,7 @@ import {
   SelectStyleVariant,
 } from '../../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../../shared/constants';
+import { externalLink } from '../../../shared/links';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../../overview/hooks/store/useOverviewStore';
 
@@ -74,7 +75,13 @@ export const DefaultNetworkSelect = () => {
     <section className="network-view">
       <header>
         <h2>{LL.settingsPage.defaultNetworkSelect.header()}</h2>
-        <Helper>{parse(LL.settingsPage.defaultNetworkSelect.helper())}</Helper>
+        <Helper>
+          {parse(
+            LL.settingsPage.defaultNetworkSelect.helper({
+              documentationLink: externalLink.gitbook.base,
+            })
+          )}
+        </Helper>
       </header>
       <Select
         styleVariant={SelectStyleVariant.WHITE}

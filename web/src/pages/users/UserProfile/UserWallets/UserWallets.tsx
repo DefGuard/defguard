@@ -16,23 +16,23 @@ import { WalletCard } from './WalletCard/WalletCard';
 export const UserWallets = () => {
   const { LL } = useI18nContext();
   const { isConnected, address } = useAccount();
-  const user = useUserProfileStore((state) => state.user);
+  const userProfile = useUserProfileStore((state) => state.userProfile);
   const isMe = useUserProfileStore((state) => state.isMe);
   const setModalsState = useModalStore((state) => state.setState);
   const toaster = useToaster();
 
   const sortedWallet = useMemo(() => {
-    if (user && user.wallets) {
-      return alphabetical(user.wallets, (w) => w.name);
+    if (userProfile && userProfile.wallets) {
+      return alphabetical(userProfile.wallets, (w) => w.name);
     }
     return [];
-  }, [user]);
+  }, [userProfile]);
 
   const handleAddWallet = () => {
     if (
       isConnected &&
-      user &&
-      !isUndefined(user.wallets.find((w) => w.address === address))
+      userProfile &&
+      !isUndefined(userProfile.wallets.find((w) => w.address === address))
     ) {
       toaster.warning(
         LL.userPage.wallets.messages.duplicate.primary(),

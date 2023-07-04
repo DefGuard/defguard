@@ -26,7 +26,7 @@ export const AddDeviceDesktopForm = () => {
     device: { addDevice },
   } = useApi();
   const { LL, locale } = useI18nContext();
-  const user = useUserProfileStore((state) => state.user);
+  const user = useUserProfileStore((state) => state.userProfile?.user);
   const toaster = useToaster();
   const setModalsState = useModalStore((state) => state.setState);
   const schema = useMemo(

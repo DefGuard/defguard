@@ -44,7 +44,7 @@ const ViewMode = () => {
     removeUserClient,
     {
       onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         toaster.success(LL.userPage.userDetails.messages.deleteApp());
       },
       onError: () => {
@@ -52,7 +52,7 @@ const ViewMode = () => {
       },
     }
   );
-  const user = useUserProfileStore((store) => store.user);
+  const user = useUserProfileStore((store) => store.userProfile?.user);
 
   const sortedGroups = useMemo(() => {
     if (user?.groups) {
@@ -76,6 +76,8 @@ const ViewMode = () => {
           <Label>{LL.userPage.userDetails.fields.firstName.label()}</Label>
           <p>{user.first_name}</p>
         </div>
+      </div>
+      <div className="row">
         <div className="info">
           <Label>{LL.userPage.userDetails.fields.lastName.label()}</Label>
           <p>{user.last_name}</p>
@@ -86,6 +88,8 @@ const ViewMode = () => {
           <Label>{LL.userPage.userDetails.fields.phone.label()}</Label>
           <p>{user.phone}</p>
         </div>
+      </div>
+      <div className="row">
         <div className="info">
           <Label>{LL.userPage.userDetails.fields.email.label()}</Label>
           <p>{user.email}</p>

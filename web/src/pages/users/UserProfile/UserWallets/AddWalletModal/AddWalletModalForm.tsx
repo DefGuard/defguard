@@ -29,7 +29,7 @@ const defaultValues = {
 };
 
 export const AddWalletModalForm = () => {
-  const user = useUserProfileStore((state) => state.user);
+  const user = useUserProfileStore((state) => state.userProfile?.user);
   const setModalsState = useModalStore((state) => state.setState);
   const {
     user: { walletChallenge, setWallet },
@@ -48,7 +48,7 @@ export const AddWalletModalForm = () => {
     onSuccess: () => {
       setModalsState({ addWalletModal: { visible: false } });
       disconnect();
-      queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
     },
 
     onError: () => {

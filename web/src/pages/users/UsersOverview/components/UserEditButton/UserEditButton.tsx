@@ -8,7 +8,6 @@ import {
 } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
-import { useNavigationStore } from '../../../../../shared/hooks/store/useNavigationStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { User } from '../../../../../shared/types';
 
@@ -23,7 +22,6 @@ export const UserEditButton = ({ user }: Props) => {
   const setDeleteUserModal = useModalStore((state) => state.setDeleteUserModal);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
   const setUserProfile = useUserProfileStore((state) => state.setState);
-  const setNavigationUser = useNavigationStore((state) => state.setNavigationUser);
   const currentUser = useAuthStore((state) => state.user);
   return (
     <EditButton>
@@ -36,9 +34,8 @@ export const UserEditButton = ({ user }: Props) => {
         key="edit-user"
         text={LL.usersOverview.list.editButton.edit()}
         onClick={() => {
-          navigate(`/admin/users/${user.username}/edit`, { replace: true });
-          setUserProfile({ user: user });
-          setNavigationUser(user);
+          setUserProfile({ editMode: true });
+          navigate(`/admin/users/${user.username}`, { replace: true });
         }}
       />
       <EditButtonOption

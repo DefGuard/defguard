@@ -12,11 +12,12 @@ export const patternAtLeastOneLowerCaseChar = /(?=.*?[a-z])/g;
 
 export const patternAtLeastOneDigit = /(?=.*?[0-9])/g;
 
+export const patternStartsWithDigit = /^\d/;
+
 export const patternAtLeastOneSpecialChar = /(?=.*?[#?!@$%^&*-])/g;
 
 export const patternValidPhoneNumber =
-  // eslint-disable-next-line max-len
-  /^\s*(?:\+?(\d{1,3}))?([-. (]*(\d{3})[-. )]*)?((\d{3})[-. ]*(\d{2,4})(?:[-.x ]*(\d+))?)\s*$/g;
+  /^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$/;
 
 export const patternValidWireguardKey =
   /^[A-Za-z0-9+/]{42}[A|E|I|M|Q|U|Y|c|g|k|o|s|w|4|8|0]=$/;

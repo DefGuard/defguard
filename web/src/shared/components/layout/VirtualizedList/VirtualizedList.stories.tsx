@@ -48,19 +48,17 @@ const mockData = (): User[] => {
   const res: User[] = [];
   for (let i = 0; i < 1000; i++) {
     res.push({
+      id: i,
       username: `test${i}`,
       first_name: `Test ${i}`,
       last_name: `Test ${i}`,
       phone: '123456789',
       email: 'test@test.com',
-      devices: [],
       authorized_apps: [],
-      security_keys: [],
       mfa_method: UserMFAMethod.NONE,
       mfa_enabled: false,
       totp_enabled: false,
       groups: [],
-      wallets: [],
     });
   }
   return res;
