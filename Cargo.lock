@@ -1094,6 +1094,7 @@ dependencies = [
  "openidconnect",
  "otpauth",
  "prost",
+ "prost-build",
  "rand",
  "rand_core",
  "regex",

@@ -77,6 +77,7 @@ claims = "0.7"
 
 [build-dependencies]
 tonic-build = "0.9"
+prost-build = "0.11"
 
 [features]
 default = ["openid", "wireguard", "worker"]

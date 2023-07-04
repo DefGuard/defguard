@@ -29,6 +29,7 @@ use rocket::{
 };
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use uuid::Uuid;
 
 #[derive(Deserialize, Serialize)]
 pub struct WireguardNetworkData {
@@ -297,6 +298,29 @@ pub async fn gateway_status(
 
     Ok(ApiResponse {
         json: json!(gateway_state.get_network_gateway_status(network_id)),
+        status: Status::Ok,
+    })
+}
+
+#[delete("/<network_id>/gateways/<gateway_id>")]
+pub async fn remove_gateway(
+    network_id: i64,
+    gateway_id: String,
+    _admin: AdminRole,
+    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
+) -> ApiResult {
+    info!("Removing gateway {} in network {}", gateway_id, network_id);
+    let mut gateway_state = gateway_state
+        .lock()
+        .expect("Failed to acquire gateway state lock");
+
+    gateway_state.remove_gateway(
+        network_id,
+        Uuid::from_str(&gateway_id).map_err(|_| OriWebError::Http(Status::InternalServerError))?,
+    )?;
+
+    Ok(ApiResponse {
+        json: Value::Null,
         status: Status::Ok,
     })
 }

@@ -24,6 +24,7 @@ use serde::Serialize;
 use std::{collections::hash_map::HashMap, time::Instant};
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
+use uuid::Uuid;
 
 mod auth;
 #[cfg(feature = "wireguard")]
@@ -42,6 +43,12 @@ pub struct GatewayMap(HashMap<NetworkId, HashMap<SocketAddr, GatewayState>>);
 pub enum GatewayMapError {
     #[error("Gateway {1} for network {0} not found")]
     NotFound(i64, SocketAddr),
+    #[error("Network {0} not found")]
+    NetworkNotFound(i64),
+    #[error("Gateway with UID {0} not found")]
+    UidNotFound(Uuid),
+    #[error("Cannot remove. Gateway with UID {0} is still active")]
+    RemoveActive(Uuid),
 }
 
 impl GatewayMap {
@@ -50,46 +57,100 @@ impl GatewayMap {
         Self(HashMap::new())
     }
 
-    pub fn connect_gateway(&mut self, network_id: i64, address: SocketAddr) {
+    // add a new gateway to map
+    // this method is meant to be called when a gateway requests a config
+    // as a sort of "registration"
+    pub fn add_gateway(&mut self, network_id: i64, address: SocketAddr, name: Option<String>) {
+        info!(
+            "Adding gateway {} with to gateway map for network {}",
+            address, network_id
+        );
+        match self.0.get_mut(&network_id) {
+            Some(network_gateway_map) => {
+                network_gateway_map.insert(address, GatewayState::new(network_id, address, name));
+            }
+            // no map for a given network exists yet
+            None => {
+                let mut network_gateway_map = HashMap::new();
+                network_gateway_map.insert(address, GatewayState::new(network_id, address, name));
+                self.0.insert(network_id, network_gateway_map);
+            }
+        }
+    }
+
+    // remove gateway from map
+    pub fn remove_gateway(&mut self, network_id: i64, uid: Uuid) -> Result<(), GatewayMapError> {
+        info!("Removing gateway from network {}", network_id);
+        match self.0.get_mut(&network_id) {
+            Some(network_gateway_map) => {
+                // find gateway by uuid
+                let address = match network_gateway_map
+                    .iter()
+                    .find(|(_address, state)| state.uid == uid)
+                {
+                    None => {
+                        error!("Failed to find gateway with UID {}", uid);
+                        return Err(GatewayMapError::UidNotFound(uid));
+                    }
+                    Some((address, state)) => {
+                        if state.connected {
+                            return Err(GatewayMapError::RemoveActive(uid));
+                        }
+                        *address
+                    }
+                };
+                // remove matching gateway
+                network_gateway_map.remove(&address)
+            }
+            // no map for a given network exists yet
+            None => {
+                error!("Network {} not found in gateway map", network_id);
+                return Err(GatewayMapError::NetworkNotFound(network_id));
+            }
+        };
+        Ok(())
+    }
+
+    // change gateway status to connected
+    // we assume that the gateway is already present in hashmap
+    pub fn connect_gateway(
+        &mut self,
+        network_id: i64,
+        address: SocketAddr,
+    ) -> Result<(), GatewayMapError> {
+        info!("Connecting gateway {} in network {}", address, network_id);
         match self.0.get_mut(&network_id) {
             Some(network_gateway_map) => match network_gateway_map.get_mut(&address) {
                 Some(state) => {
                     state.connected = true;
                 }
                 None => {
-                    network_gateway_map.insert(
-                        address,
-                        GatewayState {
-                            connected: true,
-                            network_id,
-                            name: None,
-                            ip: address.ip(),
-                        },
+                    error!(
+                        "Gateway {} not found in gateway map for network {}",
+                        address, network_id
                     );
+                    return Err(GatewayMapError::NotFound(network_id, address));
                 }
             },
             // no map for a given network exists yet
             None => {
-                let mut network_gateway_map = HashMap::new();
-                network_gateway_map.insert(
-                    address,
-                    GatewayState {
-                        connected: true,
-                        network_id,
-                        name: None,
-                        ip: address.ip(),
-                    },
-                );
-                self.0.insert(network_id, network_gateway_map);
+                error!("Network {} not found in gateway map", network_id);
+                return Err(GatewayMapError::NetworkNotFound(network_id));
             }
-        }
+        };
+        Ok(())
     }
 
+    // change gateway status to disconnected
     pub fn disconnect_gateway(
         &mut self,
         network_id: i64,
         address: SocketAddr,
     ) -> Result<(), GatewayMapError> {
+        info!(
+            "Disconnecting gateway {} in network {}",
+            address, network_id
+        );
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(&address) {
                 state.connected = false;
@@ -128,6 +189,7 @@ impl Default for GatewayMap {
 
 #[derive(Serialize, Clone, Debug)]
 pub struct GatewayState {
+    pub uid: Uuid,
     pub connected: bool,
     pub network_id: i64,
     pub name: Option<String>,
@@ -136,11 +198,12 @@ pub struct GatewayState {
 
 impl GatewayState {
     #[must_use]
-    pub fn new(network_id: i64, address: SocketAddr) -> Self {
+    pub fn new(network_id: i64, address: SocketAddr, name: Option<String>) -> Self {
         Self {
-            connected: true,
+            uid: Uuid::new_v4(),
+            connected: false,
             network_id,
-            name: None,
+            name,
             ip: address.ip(),
         }
     }

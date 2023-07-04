@@ -83,7 +83,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
       return GatewayConnectionStatus.ERROR;
     }
     if (data) {
-      const connected = data.map((g) => g.connected) ?? [];
+      const connected = data.filter((g) => g.connected) ?? [];
       if (connected.length === 0) {
         return GatewayConnectionStatus.DISCONNECTED;
       }
@@ -194,7 +194,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
                   onDismiss={() =>
                     deleteGatewayMutation({
                       networkId,
-                      gatewayId: g.id,
+                      gatewayId: g.uid,
                     })
                   }
                 />
