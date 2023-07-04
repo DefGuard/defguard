@@ -415,10 +415,9 @@ impl WireguardNetwork {
         &self,
         conn: &DbPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        // Add 2 minutes margin because gateway sends stats in 1 minute period
         let from = Utc::now()
             .naive_utc()
-            .checked_sub_signed(Duration::minutes(2));
+            .checked_sub_signed(Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES as i64));
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             r#"
