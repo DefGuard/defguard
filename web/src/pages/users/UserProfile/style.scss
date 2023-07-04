@@ -128,16 +128,16 @@
     grid-template-rows: repeat(3, auto);
     grid-template-areas:
       'wide-cards'
-      'cards-1'
-      'cards-2';
+      'cards-2'
+      'cards-1';
 
     @include media-breakpoint-up(xl) {
       gap: 35px;
       grid-template-columns: 1fr 440px;
       grid-template-rows: auto;
       grid-template-areas:
-        'wide-cards cards-1'
-        'wide-cards cards-2';
+        'wide-cards cards-2'
+        'wide-cards cards-1';
     }
 
     @include media-breakpoint-up(xxl) {
@@ -162,8 +162,11 @@
     }
 
     & > .wide-cards,
-    .cards-1,
-    .cards-2 {
+    & > .cards-1,
+    & > .cards-2 {
+      display: flex;
+      flex-flow: column;
+      justify-content: flex-start;
       row-gap: 3rem;
       @include media-breakpoint-up(lg) {
         row-gap: 3.5rem;
@@ -172,14 +175,10 @@
 
     & > .wide-cards {
       grid-area: wide-cards;
-      display: flex;
-      flex-flow: column nowrap;
     }
 
     & > .cards-1 {
       grid-area: cards-1;
-      display: flex;
-      flex-flow: column nowrap;
     }
 
     & > .cards-2 {

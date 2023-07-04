@@ -46,7 +46,7 @@ export const RegisterWebAuthNForm = () => {
     {
       onSuccess: (data) => {
         toaster.success(LL.modals.manageWebAuthNKeys.form.messages.success());
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         reset();
         if (data && data.codes) {
           setModalState({

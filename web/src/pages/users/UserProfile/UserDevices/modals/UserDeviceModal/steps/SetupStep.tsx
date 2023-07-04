@@ -20,6 +20,7 @@ import { IconDownload } from '../../../../../../../shared/components/svg';
 import { useUserProfileStore } from '../../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
+import { externalLink } from '../../../../../../../shared/links';
 import { MutationKeys } from '../../../../../../../shared/mutations';
 import { patternValidWireguardKey } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
@@ -41,11 +42,13 @@ export const SetupStep = () => {
 
   const nextStep = useDeviceModal((state) => state.nextStep);
 
-  const user = useUserProfileStore((state) => state.user);
+  const userProfile = useUserProfileStore((state) => state.userProfile);
+
+  const user = userProfile?.user;
 
   const reservedNames = useMemo(
-    () => user?.devices.map((d) => d.name) ?? [],
-    [user?.devices]
+    () => userProfile?.devices.map((d) => d.name) ?? [],
+    [userProfile?.devices]
   );
 
   const toggleOptions = useMemo(() => {
@@ -117,7 +120,7 @@ export const SetupStep = () => {
     addDevice,
     {
       onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         toaster.success(LL.modals.addDevice.messages.success());
       },
       onError: (err) => {
@@ -174,7 +177,11 @@ export const SetupStep = () => {
   return (
     <>
       <MessageBox type={MessageBoxType.INFO}>
-        {parser(LL.modals.addDevice.web.steps.setup.infoMessage())}
+        {parser(
+          LL.modals.addDevice.web.steps.setup.infoMessage({
+            addDevicesDocs: externalLink.gitbook.wireguard.addDevices,
+          })
+        )}
       </MessageBox>
       <form onSubmit={handleSubmit(validSubmitHandler)}>
         <FormInput

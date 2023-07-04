@@ -15,6 +15,7 @@ import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox'
 import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
+import { externalLink } from '../../../shared/links';
 import { QueryKeys } from '../../../shared/queries';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
@@ -64,7 +65,9 @@ export const NetworkGatewaySetup = () => {
       <MessageBox>
         {parse(
           networkToken
-            ? LL.gatewaySetup.messages.runCommand()
+            ? LL.gatewaySetup.messages.runCommand({
+                setupGatewayDocs: externalLink.gitbook.setup.gateway,
+              })
             : LL.gatewaySetup.messages.createNetwork()
         )}
       </MessageBox>

@@ -60,7 +60,7 @@ export const WizardMapDevices = () => {
     });
   }, []);
 
-  const { isLoading, data: users } = useQuery([QueryKeys.FETCH_USERS], getUsers, {
+  const { isLoading, data: users } = useQuery([QueryKeys.FETCH_USERS_LIST], getUsers, {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });

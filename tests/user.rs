@@ -189,21 +189,21 @@ async fn test_crud_user() {
         last_name: "Dumbledore".into(),
         first_name: "Albus".into(),
         email: "a.dumbledore@hogwart.edu.uk".into(),
-        phone: "1234".into(),
+        phone: Some("1234".into()),
         password: "Password1234543$!".into(),
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
 
     // get user
-    let mut user_info = fetch_user_details(&client, "adumbledore").await;
-    assert_eq!(user_info.user.first_name, "Albus");
+    let mut user_details = fetch_user_details(&client, "adumbledore").await;
+    assert_eq!(user_details.user.first_name, "Albus");
 
     // edit user
-    user_info.user.phone = Some("5678".into());
+    user_details.user.phone = Some("5678".into());
     let response = client
         .put("/api/v1/user/adumbledore")
-        .json(&user_info)
+        .json(&user_details.user)
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
@@ -353,17 +353,34 @@ async fn test_check_username() {
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    // create user
-    let new_user = AddUserData {
-        username: "ADumbledore".into(),
-        last_name: "Dumbledore".into(),
-        first_name: "Albus".into(),
-        email: "a.dumbledore@hogwart.edu.uk".into(),
-        phone: "1234".into(),
-        password: "Alohomora!".into(),
-    };
-    let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
-    assert_eq!(response.status(), Status::BadRequest);
+    let invalid_usernames = ["ADumbledore", "1user"];
+    let valid_usernames = ["user1", "use2r3", "notwrong"];
+
+    for username in invalid_usernames {
+        let new_user = AddUserData {
+            username: username.into(),
+            last_name: "Dumbledore".into(),
+            first_name: "Albus".into(),
+            email: "a.dumbledore@hogwart.edu.uk".into(),
+            phone: Some("1234".into()),
+            password: "Alohomora!12".into(),
+        };
+        let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
+        assert_eq!(response.status(), Status::BadRequest);
+    }
+
+    for username in valid_usernames {
+        let new_user = AddUserData {
+            username: username.into(),
+            last_name: "Dumbledore".into(),
+            first_name: "Albus".into(),
+            email: "a.dumbledore@hogwart.edu.uk".into(),
+            phone: Some("1234".into()),
+            password: "Alohomora!12".into(),
+        };
+        let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
+        assert_eq!(response.status(), Status::Created);
+    }
 }
 
 #[rocket::async_test]
@@ -389,8 +406,8 @@ async fn test_check_password_strength() {
             first_name: "testpassfn".into(),
             last_name: "testpassln".into(),
             email: format!("testpass{}@test.test", index),
-            phone: "123456789".into(),
             password: password.to_owned().into(),
+            phone: None,
         };
         let response = client
             .post("/api/v1/user")
@@ -404,7 +421,7 @@ async fn test_check_password_strength() {
         first_name: "Strong".into(),
         last_name: "Pass".into(),
         email: "strongpass@test.test".into(),
-        phone: "123456789".into(),
+        phone: None,
         password: strong_password.into(),
     };
     let response = client

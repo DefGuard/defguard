@@ -73,10 +73,10 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const getMe = () => client.get<User>(`/me`).then((res) => res.data);
 
-  const getUser: ApiHook['user']['getUser'] = async (username: string) =>
-    client.get<User>(`/user/${username}`).then((res) => res.data);
+  const getUser: ApiHook['user']['getUser'] = async (username) =>
+    client.get(`/user/${username}`).then((res) => res.data);
 
-  const modifyUser = async ({ username, data }: UserEditRequest) =>
+  const editUser = async ({ username, data }: UserEditRequest) =>
     client.put<User>(`/user/${username}`, data).then(unpackRequest);
 
   const deleteUser = async (user: User) =>
@@ -88,7 +88,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const fetchDevice = async (id: string) =>
     client.get<Device>(`/device/${id}`).then((res) => res.data);
 
-  const fetchUsers = () => client.get('/user/').then(unpackRequest);
+  const getUsers = () => client.get('/user/').then(unpackRequest);
 
   const downloadDeviceConfig: ApiHook['device']['downloadDeviceConfig'] = async (data) =>
     client
@@ -350,9 +350,9 @@ const useApi = (props?: HookProps): ApiHook => {
     user: {
       getMe,
       addUser,
-      getUser: getUser,
-      getUsers: fetchUsers,
-      editUser: modifyUser,
+      getUser,
+      getUsers,
+      editUser,
       deleteUser,
       usernameAvailable,
       changePassword,

@@ -9,7 +9,7 @@ import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfi
 
 export const UserAuthInfoPassword = () => {
   const { LL } = useI18nContext();
-  const user = useUserProfileStore((store) => store.user);
+  const user = useUserProfileStore((store) => store.userProfile?.user);
   const editMode = useUserProfileStore((store) => store.editMode);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
 

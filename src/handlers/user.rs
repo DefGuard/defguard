@@ -31,6 +31,14 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
         )));
     }
 
+    if let Some(first_char) = username.chars().next() {
+        if first_char.is_ascii_digit() {
+            return Err(OriWebError::Serialization(
+                "Username first char cannot be a number".into(),
+            ));
+        }
+    }
+
     if !username
         .chars()
         .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
@@ -94,9 +102,9 @@ pub async fn get_user(
     username: &str,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
-    let user_info = UserDetails::from_user(&appstate.pool, &user).await?;
+    let user_details = UserDetails::from_user(&appstate.pool, &user).await?;
     Ok(ApiResponse {
-        json: json!(user_info),
+        json: json!(user_details),
         status: Status::Ok,
     })
 }
@@ -131,7 +139,7 @@ pub async fn add_user(
         user_data.last_name,
         user_data.first_name,
         user_data.email,
-        Some(user_data.phone),
+        user_data.phone,
     );
     user.save(&appstate.pool).await?;
     if appstate.license.validate(&Features::Ldap) {

@@ -149,7 +149,7 @@ pub struct AddUserData {
     pub last_name: String,
     pub first_name: String,
     pub email: String,
-    pub phone: String,
+    pub phone: Option<String>,
     pub password: String,
 }
 

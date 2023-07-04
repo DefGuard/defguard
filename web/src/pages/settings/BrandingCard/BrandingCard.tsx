@@ -21,6 +21,7 @@ import { deviceBreakpoints } from '../../../shared/constants';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
+import { externalLink } from '../../../shared/links';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
@@ -142,7 +143,13 @@ export const BrandingCard = () => {
     <section className="branding">
       <header>
         <h2>{LL.settingsPage.instanceBranding.header()}</h2>
-        <Helper>{parse(LL.settingsPage.instanceBranding.helper())}</Helper>
+        <Helper>
+          {parse(
+            LL.settingsPage.instanceBranding.helper({
+              documentationLink: externalLink.gitbook.base,
+            })
+          )}
+        </Helper>
       </header>
       <Card>
         <header>

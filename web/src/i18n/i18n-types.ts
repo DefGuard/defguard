@@ -297,11 +297,12 @@ type RootTranslation = {
 						 * 
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​g​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​f​e​a​t​u​r​e​s​/​w​i​r​e​g​u​a​r​d​/​a​d​d​i​n​g​-​w​i​r​e​g​u​a​r​d​-​d​e​v​i​c​e​s​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 				
+						 * @param {string} addDevicesDocs
 						 */
-						infoMessage: string
+						infoMessage: RequiredParams<'addDevicesDocs'>
 						options: {
 							/**
 							 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
@@ -1381,6 +1382,14 @@ type RootTranslation = {
 			 * O​n​l​y​ ​v​a​l​i​d​ ​I​P​ ​o​r​ ​d​o​m​a​i​n​ ​i​s​ ​a​l​l​o​w​e​d​.
 			 */
 			allowedIps: string
+			/**
+			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r
+			 */
+			startFromNumber: string
+			/**
+			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h
+			 */
+			repeat: string
 		}
 		floatingErrors: {
 			/**
@@ -1465,11 +1474,12 @@ type RootTranslation = {
 			 * <​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
+			 * @param {string} documentationLink
 			 */
-			helper: string
+			helper: RequiredParams<'documentationLink'>
 			fields: {
 				wireguard_enabled: {
 					/**
@@ -1516,11 +1526,12 @@ type RootTranslation = {
 			header: string
 			/**
 			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​y​o​u​r​ ​d​e​f​a​u​l​t​ ​n​e​t​w​o​r​k​ ​v​i​e​w​.​<​/​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
+			 * @param {string} documentationLink
 			 */
-			helper: string
+			helper: RequiredParams<'documentationLink'>
 			filterLabels: {
 				/**
 				 * G​r​i​d​ ​v​i​e​w
@@ -1619,12 +1630,13 @@ type RootTranslation = {
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​u​r​l​ ​o​f​ ​y​o​u​r​ ​l​o​g​o​ ​a​n​d​ ​n​a​m​e​ ​f​o​r​ ​y​o​u​r​ ​d​e​f​g​u​a​r​d​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​a​n​c​e​ ​i​t​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​i​n​s​t​e​a​d​ ​o​f​ ​d​e​f​g​u​a​r​d​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>​
 		​	​	​
+			 * @param {string} documentationLink
 			 */
-			helper: string
+			helper: RequiredParams<'documentationLink'>
 		}
 		licenseCard: {
 			/**
@@ -2414,12 +2426,13 @@ type RootTranslation = {
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​g​a​t​e​w​a​y​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​g​a​t​e​w​a​y​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+			 * @param {string} setupGatewayDocs
 			 */
-			runCommand: string
+			runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
 			/**
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
@@ -3004,11 +3017,11 @@ export type TranslationFunctions = {
 						 * 
 					        <p>
 					          You need to configure WireguardVPN on your device, please visit&nbsp;
-					          <a href="https://defguard.gitbook.io/defguard/features/wireguard/adding-wireguard-devices">documentation</a> if you don&apos;t know how to do it.
+					          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
 					        </p>
 				
 						 */
-						infoMessage: () => LocalizedString
+						infoMessage: (arg: { addDevicesDocs: string }) => LocalizedString
 						options: {
 							/**
 							 * Generate key pair
@@ -4082,6 +4095,14 @@ export type TranslationFunctions = {
 			 * Only valid IP or domain is allowed.
 			 */
 			allowedIps: () => LocalizedString
+			/**
+			 * Cannot start from number
+			 */
+			startFromNumber: () => LocalizedString
+			/**
+			 * Fields don't match
+			 */
+			repeat: () => LocalizedString
 		}
 		floatingErrors: {
 			/**
@@ -4166,11 +4187,11 @@ export type TranslationFunctions = {
 			 * <p>
 		            If your not using some modules you can disable their visibility.
 		          </p>
-		          <a href="defguard.gitbook.io" target="_blank">
+		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
 		          </a>
 			 */
-			helper: () => LocalizedString
+			helper: (arg: { documentationLink: string }) => LocalizedString
 			fields: {
 				wireguard_enabled: {
 					/**
@@ -4217,11 +4238,11 @@ export type TranslationFunctions = {
 			header: () => LocalizedString
 			/**
 			 * <p>Here you can change your default network view.</p>
-		          <a href="defguard.gitbook.io" target="_blank">
+		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
 		          </a>
 			 */
-			helper: () => LocalizedString
+			helper: (arg: { documentationLink: string }) => LocalizedString
 			filterLabels: {
 				/**
 				 * Grid view
@@ -4320,12 +4341,12 @@ export type TranslationFunctions = {
 		            Here you can add url of your logo and name for your defguard
 		            instance it will be displayed instead of defguard.
 		          </p>
-		          <a href="defguard.gitbook.io" target="_blank">
+		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
 		          </a>
 				
 			 */
-			helper: () => LocalizedString
+			helper: (arg: { documentationLink: string }) => LocalizedString
 		}
 		licenseCard: {
 			/**
@@ -5106,12 +5127,12 @@ export type TranslationFunctions = {
 			 * 
 		          <p>
 		            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
-		            More details can be found in the <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">documentation</a>.
+		            More details can be found in the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
 		            There are several ways to deploy the gateway server,
-		            below is a Docker based example, for other examples please visit <a href="https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway" target="_blank">documentation</a>.
+		            below is a Docker based example, for other examples please visit <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
 		          </p>
 			 */
-			runCommand: () => LocalizedString
+			runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
 			 * 
 		          <p>

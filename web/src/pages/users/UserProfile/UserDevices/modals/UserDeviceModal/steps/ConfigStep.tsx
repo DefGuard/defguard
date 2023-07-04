@@ -171,7 +171,6 @@ export const ConfigStep = () => {
         options={getSelectOptions}
         onChange={(o) => {
           if (!Array.isArray(o)) {
-            console.log(o);
             setSelectedConfigOption(o);
           }
         }}

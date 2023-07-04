@@ -19,7 +19,7 @@ import { WebAuthNKeyRow } from './components/WebAuthNKeyRow';
 
 export const ManageWebAuthNKeysModal = () => {
   const { LL } = useI18nContext();
-  const user = useUserProfileStore((state) => state.user);
+  const userProfile = useUserProfileStore((state) => state.userProfile);
   const modalState = useModalStore((state) => state.manageWebAuthNKeysModal);
   const setModalState = useModalStore((state) => state.setState);
 
@@ -38,7 +38,7 @@ export const ManageWebAuthNKeysModal = () => {
     {
       onSuccess: () => {
         toaster.success(LL.modals.manageWebAuthNKeys.messages.deleted());
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
@@ -60,16 +60,16 @@ export const ManageWebAuthNKeysModal = () => {
       <MessageBox type={MessageBoxType.INFO}>
         {parse(LL.modals.manageWebAuthNKeys.infoMessage())}
       </MessageBox>
-      {user && user.security_keys.length > 0 && (
+      {userProfile && userProfile.security_keys.length > 0 && (
         <div className="current-keys">
-          {user?.security_keys.map((key) => (
+          {userProfile?.security_keys.map((key) => (
             <WebAuthNKeyRow
               key={key.id}
               data={key}
               onDelete={() => {
-                if (user) {
+                if (userProfile) {
                   deleteKeyMutation({
-                    username: user.username,
+                    username: userProfile.user.username,
                     keyId: key.id,
                   });
                 }

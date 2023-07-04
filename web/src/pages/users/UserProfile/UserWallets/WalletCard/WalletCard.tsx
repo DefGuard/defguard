@@ -48,14 +48,14 @@ export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props
     },
   } = useApi();
   const queryClient = useQueryClient();
-  const user = useUserProfileStore((state) => state.user);
+  const user = useUserProfileStore((state) => state.userProfile?.user);
 
   const { mutate: deleteWalletMutation } = useMutation(
     [MutationKeys.DELETE_WALLET],
     deleteWallet,
     {
       onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         toaster.success(LL.userPage.wallets.card.messages.deleteSuccess());
       },
       onError: (err) => {
@@ -70,7 +70,7 @@ export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props
     updateWalletMFA,
     {
       onSuccess: (data, props) => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         if (props.use_for_mfa) {
           toaster.success(LL.userPage.wallets.card.messages.enableMFA());
         } else {

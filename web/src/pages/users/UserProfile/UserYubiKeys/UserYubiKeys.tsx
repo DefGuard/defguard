@@ -17,7 +17,7 @@ import { KeyDetailsModal } from './modals/KeyDetailsModal/KeyDetailsModal';
 export const UserYubiKeys = () => {
   const { LL } = useI18nContext();
   const license = useAppStore((state) => state.license);
-  const user = useUserProfileStore((state) => state.user);
+  const user = useUserProfileStore((state) => state.userProfile?.user);
   const isAdmin = useAuthStore((state) => state.isAdmin);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

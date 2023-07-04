@@ -1,14 +1,7 @@
 import './style.scss';
 
 import classNames from 'classnames';
-import {
-  AnimatePresence,
-  HTMLMotionProps,
-  motion,
-  useAnimation,
-  Variant,
-  Variants,
-} from 'framer-motion';
+import { HTMLMotionProps, motion, useAnimation, Variant, Variants } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -127,40 +120,22 @@ const Button = ({
       }
       custom={getCustom}
     >
-      <AnimatePresence mode="wait" initial={false}>
-        {!loading ? (
-          <motion.div
-            className="content"
-            variants={containersVariant}
-            animate="show"
-            exit="exit"
-          >
-            {!isUndefined(icon) && <span className="icon-container">{icon}</span>}
-            <motion.span
-              variants={textVariants}
-              animate={textControls}
-              custom={{ disabled, styleVariant, size }}
-              style={{
-                marginLeft:
-                  isUndefined(icon) || !text || (text && text.length === 0) ? 0 : 10,
-              }}
-            >
-              {text}
-            </motion.span>
-          </motion.div>
-        ) : null}
-        {loading ? (
-          <motion.div
-            className="loader-container"
-            variants={containersVariant}
-            initial="hidden"
-            animate="show"
-            exit="exit"
-          >
-            <LoaderSpinner size={loaderSize} frontColor={getSpinnerColor} />
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      <motion.div
+        className="content"
+        variants={containersVariant}
+        animate="show"
+        exit="exit"
+      >
+        {!isUndefined(icon) && <span className="icon-container">{icon}</span>}
+        <motion.span
+          variants={textVariants}
+          animate={textControls}
+          custom={{ disabled, styleVariant, size }}
+        >
+          {text}
+        </motion.span>
+        {loading && <LoaderSpinner size={loaderSize} frontColor={getSpinnerColor} />}
+      </motion.div>
     </motion.button>
   );
 };

@@ -147,7 +147,7 @@ const TOTPRegisterForm = () => {
   const { mutate, isLoading } = useMutation([MutationKeys.ENABLE_TOTP_FINISH], enable, {
     onSuccess: (data) => {
       toaster.success(LL.modals.registerTOTP.messages.success());
-      queryClient.invalidateQueries([QueryKeys.FETCH_USER]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
       if (data && data.codes) {
         setModalsState({
           recoveryCodesModal: { visible: true, codes: data.codes },
