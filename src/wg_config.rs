@@ -2,6 +2,8 @@ use crate::db::{Device, WireguardNetwork};
 use base64::{DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
 use std::array::TryFromSliceError;
+use std::net::IpAddr;
+use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,26 +14,22 @@ pub struct ImportedDevice {
     pub wireguard_ip: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum WireguardConfigParseError {
-    ParseError,
+    #[error("Config parsing error")]
+    ParseError(#[from] ini::ParseError),
+    #[error("Config section not found: {0}")]
     SectionNotFound(String),
+    #[error("Config key not found: {0}")]
     KeyNotFound(String),
-    InvalidIp(String),
+    #[error("Invalid IP error")]
+    InvalidIp(#[from] IpNetworkError),
+    #[error("Invalid peer IP: {0}")]
+    InvalidPeerIp(IpAddr),
+    #[error("Invalid key: {0}")]
     InvalidKey(String),
+    #[error("Invalid port: {0}")]
     InvalidPort(String),
-}
-
-impl From<ini::ParseError> for WireguardConfigParseError {
-    fn from(_: ini::ParseError) -> Self {
-        WireguardConfigParseError::ParseError
-    }
-}
-
-impl From<IpNetworkError> for WireguardConfigParseError {
-    fn from(e: IpNetworkError) -> Self {
-        WireguardConfigParseError::InvalidIp(format!("{}", e))
-    }
 }
 
 impl From<TryFromSliceError> for WireguardConfigParseError {
@@ -102,10 +100,7 @@ pub fn parse_wireguard_config(
         let net_network = network.address.network();
         let net_broadcast = network.address.broadcast();
         if ip == net_ip || ip == net_network || ip == net_broadcast {
-            return Err(WireguardConfigParseError::InvalidIp(format!(
-                "Invalid peer IP {}",
-                ip
-            )));
+            return Err(WireguardConfigParseError::InvalidPeerIp(ip));
         }
 
         let pubkey = peer
