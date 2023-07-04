@@ -691,7 +691,6 @@ pub async fn list_user_devices(
     };
     debug!("Listing devices for user: {}", username);
     let devices = Device::all_for_username(&appstate.pool, username).await?;
-    info!("Listed devices for user: {}", username);
 
     Ok(ApiResponse {
         json: json!(devices),
