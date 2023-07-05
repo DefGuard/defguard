@@ -513,6 +513,7 @@ pub struct WireguardNetworkInfo {
     pub network: WireguardNetwork,
     pub connected: bool,
     pub gateways: Vec<GatewayState>,
+    pub allowed_groups: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

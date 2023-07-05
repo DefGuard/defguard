@@ -39,6 +39,7 @@ pub struct WireguardNetworkData {
     pub port: i32,
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
+    pub allowed_groups: Vec<String>,
 }
 
 impl WireguardNetworkData {
@@ -110,6 +111,9 @@ pub async fn create_network(
 
     let mut transaction = appstate.pool.begin().await?;
     network.save(&mut transaction).await?;
+    network
+        .set_allowed_groups(&mut transaction, data.allowed_groups)
+        .await?;
 
     // generate IP addresses for existing devices
     info!("Assigning IPs for existing devices in network {}", network);
@@ -177,6 +181,9 @@ pub async fn modify_network(
     network.port = data.port;
     network.dns = data.dns;
     network.save(&mut transaction).await?;
+    network
+        .set_allowed_groups(&mut transaction, data.allowed_groups)
+        .await?;
     match &network.id {
         Some(network_id) => {
             appstate
@@ -231,17 +238,21 @@ pub async fn list_networks(
     debug!("Listing WireGuard networks");
     let mut network_info = Vec::new();
     let networks = WireguardNetwork::all(&appstate.pool).await?;
-    // get gateway status for networks
-    let gateway_state = gateway_state
-        .lock()
-        .expect("Failed to acquire gateway state lock");
+
     for network in networks {
         let network_id = network.id.expect("Network does not have an ID");
-        network_info.push(WireguardNetworkInfo {
-            network,
-            connected: gateway_state.connected(network_id),
-            gateways: gateway_state.get_network_gateway_status(network_id),
-        })
+        let allowed_groups = network.get_allowed_groups(&appstate.pool).await?;
+        {
+            let gateway_state = gateway_state
+                .lock()
+                .expect("Failed to acquire gateway state lock");
+            network_info.push(WireguardNetworkInfo {
+                network,
+                connected: gateway_state.connected(network_id),
+                gateways: gateway_state.get_network_gateway_status(network_id),
+                allowed_groups,
+            })
+        }
     }
     debug!("Listed WireGuard networks");
 
@@ -262,6 +273,7 @@ pub async fn network_details(
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id).await?;
     let response = match network {
         Some(network) => {
+            let allowed_groups = network.get_allowed_groups(&appstate.pool).await?;
             let gateway_state = gateway_state
                 .lock()
                 .expect("Failed to acquire gateway state lock");
@@ -269,6 +281,7 @@ pub async fn network_details(
                 network,
                 connected: gateway_state.connected(network_id),
                 gateways: gateway_state.get_network_gateway_status(network_id),
+                allowed_groups,
             };
             ApiResponse {
                 json: json!(network_info),
