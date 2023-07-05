@@ -118,11 +118,30 @@ impl WireguardNetwork {
 
     pub async fn remove_from_groups(
         &self,
-        _transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
         groups: Vec<String>,
     ) -> Result<(), ModelError> {
         info!("Removing allowed groups {:?} for network {}", groups, self);
-        unimplemented!()
+        let result = query!(
+            r#"
+            DELETE FROM wireguard_network_allowed_group
+            WHERE network_id = $1 AND group_id IN (
+                SELECT id
+                FROM "group"
+                WHERE name IN (SELECT * FROM UNNEST($2::text[]))
+            )
+            "#,
+            self.id,
+            &groups
+        )
+        .execute(transaction)
+        .await?;
+        info!(
+            "Removed {} allowed groups for network {}",
+            result.rows_affected(),
+            self
+        );
+        Ok(())
     }
 
     /// Remove all allowed groups for a given network
