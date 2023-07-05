@@ -538,7 +538,6 @@ const pl: Translation = {
   },
   navigation: {
     bar: {
-      wizard: 'Konfiguracja VPN',
       overview: 'Przegląd sieci',
       users: 'Użytkownicy',
       provisioners: 'Yubikey Provisioners',
@@ -551,13 +550,13 @@ const pl: Translation = {
     mobileTitles: {
       wizard: 'Konfiguracja VPN',
       users: 'Użytkownicy',
-      settings: 'Defguard ustaawienia globalne',
+      settings: 'Defguard ustawienia globalne',
       user: 'Profil użytkownika',
       provisioners: 'Yubikey Provisioners',
       webhooks: 'Webhooki',
       openId: 'Aplikacje OpenID',
-      overview: 'Przegląd sieci',
-      networkSettings: 'Ustawienia sieci',
+      overview: 'Przegląd lokalizacji',
+      networkSettings: 'Edycja lokalizacji',
     },
     copyright: 'Copyright \u00A9 2023',
     version: 'Wersja aplikacji: {version}',
@@ -994,6 +993,11 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
   networkPage: {
     pageTitle: 'Edycja lokalizacji',
     addNetwork: '+ Dodaj lokalizacje',
+    controls: {
+      networkSelect: {
+        label: 'Wybór lokalizacji',
+      },
+    },
   },
   activityOverview: {
     header: 'Strumien aktywności',
@@ -1147,8 +1151,9 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       },
     },
     welcome: {
-      header: 'Witaj w asystencie konfiguracji sieci!',
+      header: 'Witaj w asystencie konfiguracji lokalizacji!',
       sub: 'Zanim zaczniesz, musisz wybrać tryb konfiguracji. Ikony <React> zawierają przydane informacje.',
+      button: 'Zacznij konfigurację',
     },
     deviceMap: {
       messages: {
@@ -1191,7 +1196,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
   },
   layout: {
     select: {
-      addNewOption: 'Dodaj',
+      addNewOptionDefault: 'Dodaj +',
     },
   },
 };

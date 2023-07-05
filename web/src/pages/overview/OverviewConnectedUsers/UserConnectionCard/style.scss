@@ -1,92 +1,128 @@
-@use '../../../../shared/scss/base/variables/' as v;
-@use '../../../../shared/scss/helpers/mixins/' as mix;
-@use '../../../../shared/scss/helpers/bootstrap' as bs;
+@use '@scssutils' as *;
 
 .connected-user-card {
-  background-color: v.$white;
+  background-color: var(--white);
   border-radius: 15px;
-  padding: 2rem;
-  display: flex;
-  max-width: 370px;
-  flex-direction: column;
-  align-items: flex-start;
-  align-content: flex-start;
-  justify-content: flex-start;
-  row-gap: 2rem;
   position: relative;
-  border: 1px solid v.$white;
+  border: 1px solid var(--white);
   box-sizing: border-box;
+  width: 370px;
+  overflow: hidden;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: min-content 0fr;
+  height: min-content;
 
-  //@include bs.media-breakpoint-down(xl) {
-  //margin: auto;
-  //}
-  & > .expand-button {
+  &.expanded {
+    grid-template-rows: min-content min-content;
+    border-color: var(--gray-border);
+  }
+
+  & > .card-expand {
+    width: 40px;
+    height: 40px;
+    border: 0 solid transparent;
+    background-color: transparent;
     position: absolute;
-    right: 1rem;
-    top: 1rem;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    align-content: center;
-    justify-content: center;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+  }
 
-    &:hover {
-      svg {
-        path,
-        rect,
-        g {
-          fill: v.$primary;
-        }
+  & > .devices {
+    grid-row: 2;
+    grid-column: 1 / 2;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+
+    & > .device {
+      display: grid;
+      grid-template-rows: 40px 50px;
+      grid-template-columns: 1fr;
+      width: 100%;
+      row-gap: 20px;
+      box-sizing: border-box;
+      padding: 20px;
+      overflow: hidden;
+      border-top: 1px solid var(--gray-border);
+
+      & > .upper {
+        grid-row: 1;
+        grid-column: 1 / 2;
+        display: grid;
+        grid-template-columns: 22px 40px 1fr;
+        grid-template-rows: 1fr;
+        align-items: center;
+        justify-content: start;
+        column-gap: 10px;
+        width: 100%;
+        height: 100%;
+      }
+
+      & > .lower {
+        grid-row: 2;
+        grid-column: 1 / 2;
+        display: grid;
+        grid-template-rows: 1fr;
+        grid-template-columns: 1fr 3fr;
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        overflow: hidden;
       }
     }
   }
-}
 
-.connected-user-card,
-.user-connection-card-popper-container {
-  & > * {
+  & > .user-info {
+    grid-row: 1;
+    grid-column: 1 / 2;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 40px 50px;
+    row-gap: 20px;
+    overflow: hidden;
     width: 100%;
-  }
+    box-sizing: border-box;
+    padding: 20px;
+    & > .upper {
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      grid-template-rows: 1fr;
+      column-gap: 10px;
+      box-sizing: border-box;
+      padding-right: 25px;
 
-  .upper,
-  .lower {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    align-content: center;
-    justify-content: flex-start;
-  }
-
-  .upper {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    align-content: center;
-    justify-content: flex-start;
-
-    & > .name-box {
-      margin-left: 1rem;
-    }
-  }
-
-  .lower {
-    width: 100%;
-    column-gap: 4rem;
-    @include bs.media-breakpoint-down(xl) {
-      column-gap: 3rem;
-    }
-
-    span {
-      &.label {
-        @include mix.typography(12px, 14px, medium, v.$gray-light);
+      & > .user-initials-box {
+        grid-row: 1;
+        grid-column: 1 / 2;
       }
+
+      & > .name-box {
+        grid-row: 1;
+        grid-column: 2 / 3;
+      }
+    }
+
+    & > .lower {
+      width: 100%;
+
+      display: grid;
+      grid-template-rows: 1fr;
+      grid-template-columns: 2fr 3fr 120px;
+      column-gap: 10px;
+      align-items: center;
+      justify-items: start;
+      justify-content: space-evenly;
     }
   }
 
   .lower-box {
-    row-gap: 0.6rem;
+    row-gap: 5px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -102,15 +138,12 @@
     }
   }
 
-  .active-devices,
-  .active-connections {
-    & > .content-wrapper {
-      column-gap: 0.8rem;
-    }
-  }
-
   .active-devices {
     .content-wrapper {
+      display: grid;
+      grid-template-columns: 30px 30px 30px;
+      grid-template-rows: 30px;
+      column-gap: 5px;
       .avatar-box {
         width: 30px;
         height: 30px;
@@ -121,7 +154,7 @@
         justify-content: center;
         border-radius: 10px;
         box-sizing: border-box;
-        background-color: v.$bg-light;
+        background-color: var(--bg-light);
       }
 
       .count-box {
@@ -134,202 +167,103 @@
         justify-content: center;
         border-radius: 10px;
         box-sizing: border-box;
-        background-color: v.$bg-light;
+        background-color: var(--bg-light);
 
         & > span {
-          @include mix.typography(12px, 14px, medium, v.$gray-light);
+          @include typography(12px, 14px, medium, var(--gray-light));
         }
       }
     }
   }
 
   .name-box {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    align-content: flex-start;
-    justify-content: flex-start;
-    row-gap: 0.3rem;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 1fr 15px;
+    grid-template-columns: 1fr;
+    row-gap: 8px;
+    overflow: hidden;
 
     & > .name {
-      @include mix.typography(15px, 21px, medium, $font-family: 'Poppins');
+      grid-row: 1;
+      grid-column: 1 / 2;
+      @include typography(15px, 21px, medium, $font-family: 'Poppins');
+      @include text-overflow-dots;
+      user-select: none;
     }
 
     & > .lower {
+      grid-row: 2;
+      grid-column: 1 / 2;
       display: flex;
-      flex-direction: row;
+      flex-flow: row nowrap;
+      overflow: hidden;
       align-items: center;
       align-content: center;
       justify-content: flex-start;
-      column-gap: 0.4rem;
+      column-gap: 5px;
     }
   }
 
   .connection-time {
-    max-width: 61px;
-    row-gap: 1.4rem;
+    display: grid;
+    grid-template-rows: auto 30px;
+    grid-template-columns: auto;
 
-    & > .content-wrapper {
-      column-gap: 0.6rem;
-
+    & > .time {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: 5px;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
       & > span {
-        @include mix.typography(15px, 18px, medium);
+        @include typography(15px, 18px, medium);
+        @include text-overflow-dots;
 
         text-align: left;
-        overflow: hidden;
-        white-space: nowrap;
       }
     }
   }
 
   .network-usage {
-    @include mix.typography(12px, 14px, medium);
-
-    height: 30px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    align-content: flex-end;
-    justify-content: flex-end;
-    flex-grow: 1;
-    flex-shrink: 1;
+    @include typography(12px, 14px, medium);
   }
 
   .network-usage-summary {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    align-content: flex-end;
-    justify-content: flex-end;
-    flex-grow: 1;
-    flex-shrink: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 15px 30px;
+    row-gap: 5px;
+    width: 100%;
+    height: 100%;
 
-    .network-usage-stats {
-      gap: 50px;
+    & > .network-usage-stats {
+      grid-row: 1;
+      grid-column: 1 / 2;
       display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: space-between;
 
       .speed-value {
         font-size: 12px;
+        line-height: 1.2;
       }
     }
-  }
-}
 
-.user-connection-card-popper-container {
-  // filter: drop-shadow(5px 10px 30px rgba(0, 0, 5, 0.1));
-  z-index: 2;
-  border: 1px solid v.$gray-border-dark;
-  padding: 0;
-  background-color: v.$white;
-  border-radius: 15px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  align-content: flex-start;
-  justify-content: flex-start;
-  width: 370px;
-  @include bs.media-breakpoint-down(xl) {
-    width: inherit;
-  }
-  @include bs.media-breakpoint-up(xl) {
-    @include mix.elevate;
-  }
-
-  & > .user-info-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    align-content: flex-start;
-    justify-content: flex-start;
-    row-gap: 2rem;
-    box-sizing: border-box;
-    padding: 2rem;
-  }
-
-  & > .collapse-button {
-    position: absolute;
-    width: 30px;
-    height: 30px;
-    right: -3px;
-    top: -3px;
-    background-color: v.$gray-light;
-    border-radius: 10px;
-    z-index: 3;
-
-    svg {
-      path,
-      rect,
-      g {
-        fill: v.$white;
-      }
+    & > .chart {
+      grid-row: 2;
+      grid-column: 1 / 2;
     }
   }
 
-  & > .devices {
-    border-bottom-left-radius: 15px;
-    border-bottom-right-radius: 15px;
-
-    & > .divider {
-      background-color: v.$gray-border;
-      height: 1px;
-    }
-
-    & > .expanded-device-card {
-      background-color: v.$white;
-      box-sizing: border-box;
-      padding: 2rem 2.9rem;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      align-content: flex-start;
-      justify-content: flex-start;
-      row-gap: 1.5rem;
-      border-top: 1px solid v.$gray-border;
-      border-bottom: 1px solid transparent;
-
-      .network-usage-stats {
-        gap: 120px;
-
-        //@include bs.media-breakpoint-down(xl) {
-        //gap: 70px;
-        //}
-      }
-
-      .active-connections {
-        margin-left: 4rem;
-      }
-
-      &:first-of-type {
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-      }
-
-      &:last-of-type {
-        border-bottom-left-radius: 15px;
-        border-bottom-right-radius: 15px;
-      }
-    }
-  }
-
-  &.placement-top {
-    flex-flow: wrap-reverse;
-
-    & > .devices {
-      & > .expanded-device-card {
-        border-top: 1px solid transparent;
-        border-bottom: 1px solid v.$gray-border;
-
-        &:first-of-type {
-          border-top-left-radius: 15px;
-          border-top-right-radius: 15px;
-        }
-
-        &:last-of-type {
-          border-bottom-left-radius: 0;
-          border-bottom-right-radius: 0;
-        }
-      }
+  span {
+    &.label {
+      user-select: none;
+      @include typography(12px, 14px, medium, var(--gray-light));
     }
   }
 }

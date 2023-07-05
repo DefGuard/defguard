@@ -29,6 +29,7 @@ export const WizardPage = () => {
 type WizardStep = {
   title: string;
   element: ReactNode;
+  className: string;
   backDisabled?: boolean;
 };
 
@@ -45,11 +46,13 @@ const WizardRender = () => {
       {
         title: LL.wizard.navigation.titles.welcome(),
         element: <WizardWelcome key={0} />,
+        className: 'welcome',
       },
       {
         title: LL.wizard.navigation.titles.choseNetworkSetup(),
         element: <WizardType key={1} />,
         backDisabled: networkPresent,
+        className: 'setup-selection',
       },
     ];
     switch (setupType) {
@@ -59,10 +62,12 @@ const WizardRender = () => {
           {
             title: LL.wizard.navigation.titles.importConfig(),
             element: <WizardNetworkImport key={2} />,
+            className: 'import-config',
           },
           {
             title: LL.wizard.navigation.titles.mapDevices(),
             element: <WizardMapDevices key={4} />,
+            className: 'map-devices',
             backDisabled: true,
           },
         ];
@@ -73,6 +78,7 @@ const WizardRender = () => {
           {
             title: LL.wizard.navigation.titles.manualConfig(),
             element: <WizardNetworkConfiguration key={3} />,
+            className: 'network-config',
           },
         ];
         break;
@@ -88,7 +94,7 @@ const WizardRender = () => {
   }, [currentStep, networkPresent, setWizardState]);
 
   return (
-    <div id="wizard-content">
+    <div id="wizard-content" className={getSteps[currentStep]?.className}>
       <WizardNav
         title={getSteps[currentStep]?.title}
         lastStep={currentStep === getSteps.length - 1}

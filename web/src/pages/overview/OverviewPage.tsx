@@ -110,7 +110,7 @@ export const OverviewPage = () => {
     <>
       <PageContainer id="network-overview-page">
         <OverviewHeader loading={networksLoading} />
-        <GatewaysStatus networkId={selectedNetworkId} />
+        {breakpoint === 'desktop' && <GatewaysStatus networkId={selectedNetworkId} />}
         {networkStats && networkUsersStats && (
           <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
         )}

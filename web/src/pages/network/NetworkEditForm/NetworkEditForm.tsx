@@ -10,7 +10,6 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -172,9 +171,6 @@ export const NetworkEditForm = () => {
     <section className="network-config">
       <header>
         <h2>{LL.networkConfiguration.header()}</h2>
-        <Helper>
-          <p>PLACEHOLDER</p>
-        </Helper>
       </header>
       <form onSubmit={handleSubmit(onValidSubmit)}>
         <FormInput

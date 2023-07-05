@@ -2,12 +2,42 @@
 
 #network-page {
   .network-controls {
-    column-gap: 20px;
-    display: flex;
-    flex-flow: row nowrap;
-    height: 100%;
     width: 100%;
-    align-items: center;
-    justify-content: flex-end;
+    @include media-breakpoint-down(lg) {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto 40px;
+      grid-template-areas:
+        'select select'
+        'cancel submit';
+      column-gap: 20px;
+      row-gap: 15px;
+    }
+
+    .network-select {
+      grid-area: select;
+      width: 100%;
+      & > label {
+        line-height: 15px;
+        margin-bottom: 15px;
+      }
+      .select {
+        height: 40px;
+      }
+    }
+    .cancel {
+      grid-area: cancel;
+    }
+    .submit {
+      grid-area: submit;
+    }
+
+    @include media-breakpoint-up(lg) {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 20px;
+    }
   }
 }
