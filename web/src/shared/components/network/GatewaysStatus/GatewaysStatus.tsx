@@ -194,7 +194,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
                   onDismiss={() =>
                     deleteGatewayMutation({
                       networkId,
-                      gatewayId: g.id,
+                      gatewayId: g.uid,
                     })
                   }
                 />

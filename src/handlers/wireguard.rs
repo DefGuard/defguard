@@ -29,6 +29,7 @@ use rocket::{
 };
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use uuid::Uuid;
 
 #[derive(Deserialize, Serialize)]
 pub struct WireguardNetworkData {
@@ -301,6 +302,29 @@ pub async fn gateway_status(
     })
 }
 
+#[delete("/<network_id>/gateways/<gateway_id>")]
+pub async fn remove_gateway(
+    network_id: i64,
+    gateway_id: String,
+    _admin: AdminRole,
+    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
+) -> ApiResult {
+    info!("Removing gateway {} in network {}", gateway_id, network_id);
+    let mut gateway_state = gateway_state
+        .lock()
+        .expect("Failed to acquire gateway state lock");
+
+    gateway_state.remove_gateway(
+        network_id,
+        Uuid::from_str(&gateway_id).map_err(|_| OriWebError::Http(Status::InternalServerError))?,
+    )?;
+
+    Ok(ApiResponse {
+        json: Value::Null,
+        status: Status::Ok,
+    })
+}
+
 #[post("/import", format = "json", data = "<data>")]
 pub async fn import_network(
     _admin: AdminRole,
@@ -309,8 +333,11 @@ pub async fn import_network(
 ) -> ApiResult {
     info!("Importing network from config file");
     let data = data.into_inner();
-    let (mut network, imported_devices) = parse_wireguard_config(&data.config)
-        .map_err(|_| OriWebError::Http(Status::UnprocessableEntity))?;
+    let (mut network, imported_devices) =
+        parse_wireguard_config(&data.config).map_err(|error| {
+            error!("{}", error);
+            OriWebError::Http(Status::UnprocessableEntity)
+        })?;
     network.name = data.name;
     network.endpoint = data.endpoint;
 
@@ -664,7 +691,6 @@ pub async fn list_user_devices(
     };
     debug!("Listing devices for user: {}", username);
     let devices = Device::all_for_username(&appstate.pool, username).await?;
-    info!("Listed devices for user: {}", username);
 
     Ok(ApiResponse {
         json: json!(devices),

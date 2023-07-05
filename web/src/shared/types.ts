@@ -101,7 +101,7 @@ export type GatewayStatus = {
   network_id: number;
   name?: string;
   ip: string;
-  id: number;
+  uid: string;
 };
 
 export interface Network {
@@ -317,7 +317,7 @@ export type AddDeviceResponse = {
 
 export type DeleteGatewayRequest = {
   networkId: number;
-  gatewayId: number;
+  gatewayId: string;
 };
 
 export interface ApiHook {
