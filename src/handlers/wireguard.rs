@@ -333,8 +333,11 @@ pub async fn import_network(
 ) -> ApiResult {
     info!("Importing network from config file");
     let data = data.into_inner();
-    let (mut network, imported_devices) = parse_wireguard_config(&data.config)
-        .map_err(|_| OriWebError::Http(Status::UnprocessableEntity))?;
+    let (mut network, imported_devices) =
+        parse_wireguard_config(&data.config).map_err(|error| {
+            error!("{}", error);
+            OriWebError::Http(Status::UnprocessableEntity)
+        })?;
     network.name = data.name;
     network.endpoint = data.endpoint;
 
@@ -688,7 +691,6 @@ pub async fn list_user_devices(
     };
     debug!("Listing devices for user: {}", username);
     let devices = Device::all_for_username(&appstate.pool, username).await?;
-    info!("Listed devices for user: {}", username);
 
     Ok(ApiResponse {
         json: json!(devices),
