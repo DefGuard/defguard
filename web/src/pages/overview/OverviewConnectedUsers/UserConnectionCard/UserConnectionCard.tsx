@@ -1,11 +1,12 @@
 import './style.scss';
 
+import classNames from 'classnames';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { motion } from 'framer-motion';
 import { floor } from 'lodash-es';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { usePopper } from 'react-popper';
+import { useMemo, useState } from 'react';
+import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import Badge, {
@@ -15,7 +16,6 @@ import {
   DeviceAvatar,
   DeviceAvatarVariants,
 } from '../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
-import IconButton from '../../../../shared/components/layout/IconButton/IconButton';
 import {
   NetworkDirection,
   NetworkSpeed,
@@ -23,15 +23,16 @@ import {
 import UserInitials, {
   UserInitialsType,
 } from '../../../../shared/components/layout/UserInitials/UserInitials';
-import SvgIconCancel from '../../../../shared/components/svg/IconCancel';
+import SvgIconClip from '../../../../shared/components/svg/IconClip';
+import SvgIconCollapse from '../../../../shared/components/svg/IconCollapse';
 import SvgIconConnected from '../../../../shared/components/svg/IconConnected';
-import SvgIconOpenModal from '../../../../shared/components/svg/IconOpenModal';
-import SvgIconUserListElement from '../../../../shared/components/svg/IconUserListElement';
+import SvgIconExpand from '../../../../shared/components/svg/IconExpand';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { summarizeDeviceStats, summarizeUsersNetworkStats } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
+
 dayjs.extend(utc);
 interface Props {
   data: NetworkUserStats;
@@ -40,116 +41,28 @@ interface Props {
 
 export const UserConnectionCard = ({ data, dataMax }: Props) => {
   const [expanded, setExpanded] = useState(false);
-  const [containerHovered, setContainerHovered] = useState(false);
-  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
-  const pageElement = document.getElementById('network-overview-page');
-  const [referenceElement, setReferenceElement] = useState<HTMLDivElement | null>(null);
-  const {
-    styles: popperStyles,
-    attributes: popperAttributes,
-    state,
-  } = usePopper(referenceElement, popperElement, {
-    placement: 'bottom',
-    modifiers: [
-      {
-        name: 'offset',
-        enabled: true,
-        options: {
-          offset: [0, -150],
-        },
-      },
-    ],
-  });
-  const getClassName = useMemo(() => {
-    const res = ['connected-user-card'];
-    if (expanded) {
-      res.push('expanded');
-    }
-    return res.join(' ');
-  }, [expanded]);
 
-  const getPopperClassName = useMemo(() => {
-    const res = ['user-connection-card-popper-container'];
-    if (expanded) {
-      res.push('expanded');
-    }
-    if (state?.placement) {
-      res.push(`placement-${state?.placement}`);
-    }
-    return res.join(' ');
-  }, [expanded, state?.placement]);
-
-  const checkClickOutside = useCallback(
-    (event: MouseEvent) => {
-      const popperRect = popperElement?.getBoundingClientRect();
-      if (popperRect) {
-        const start_x = popperRect?.x;
-        const end_x = start_x + popperRect?.width;
-        const start_y = popperRect?.y;
-        const end_y = start_y + popperRect.height;
-        const { clientX, clientY } = event;
-        if (
-          clientX < start_x ||
-          clientX > end_x ||
-          clientY < start_y ||
-          clientY > end_y
-        ) {
-          setExpanded(false);
-        }
-      }
-    },
-    [popperElement]
+  const cn = useMemo(
+    () =>
+      classNames('connected-user-card', {
+        expanded,
+      }),
+    [expanded]
   );
 
-  useEffect(() => {
-    if (expanded) {
-      const element = document.body;
-      element?.addEventListener('click', checkClickOutside);
-      return () => {
-        element?.removeEventListener('click', checkClickOutside);
-      };
-    }
-  }, [checkClickOutside, expanded, state?.placement]);
-
   return (
-    <>
-      <motion.div
-        className={getClassName}
-        onHoverStart={() => setContainerHovered(true)}
-        onHoverEnd={() => setContainerHovered(false)}
-        ref={setReferenceElement}
-      >
-        {!expanded && <MainCardContent data={data} dataMax={dataMax} />}
-        {containerHovered && !expanded && (
-          <IconButton className="expand-button blank" onClick={() => setExpanded(true)}>
-            <SvgIconOpenModal />
-          </IconButton>
-        )}
-      </motion.div>
-      {expanded && pageElement && (
-        <div
-          className={getPopperClassName}
-          ref={setPopperElement}
-          {...popperAttributes.popper}
-          style={{ ...popperStyles.popper }}
-        >
-          <div className="user-info-wrapper">
-            <MainCardContent data={data} dataMax={dataMax} />
-          </div>
-          <IconButton
-            className="collapse-button blank"
-            onClick={() => setExpanded(false)}
-          >
-            <SvgIconCancel />
-          </IconButton>
-          <div className="devices">
-            {data.devices.map((device) => (
-              <ExpandedDeviceCard key={device.id} data={device} dataMax={dataMax} />
-            ))}
-          </div>
-        </div>
-      )}
-    </>
+    <motion.div className={cn}>
+      <MainCardContent data={data} dataMax={dataMax} />
+      <div className="devices">
+        {data?.devices &&
+          data.devices.length > 0 &&
+          expanded &&
+          data.devices.map((device) => (
+            <ExpandedDeviceCard key={device.id} data={device} dataMax={dataMax} />
+          ))}
+      </div>
+      <ExpandButton expanded={expanded} onClick={() => setExpanded((state) => !state)} />
+    </motion.div>
   );
 };
 
@@ -177,7 +90,7 @@ const MainCardContent = ({ data, dataMax }: MainCardContentProps) => {
   );
 
   return (
-    <>
+    <div className="user-info">
       <div className="upper">
         <UserInitials
           first_name={data.user?.first_name}
@@ -206,10 +119,21 @@ const MainCardContent = ({ data, dataMax }: MainCardContentProps) => {
               data-testid="upload"
             />
           </div>
-          <NetworkUsageChart data={getSummarizedStats} dataMax={dataMax} />
+          <div className="chart">
+            <AutoSizer>
+              {({ height, width }) => (
+                <NetworkUsageChart
+                  height={height}
+                  width={width}
+                  data={getSummarizedStats}
+                  dataMax={dataMax}
+                />
+              )}
+            </AutoSizer>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
@@ -253,24 +177,9 @@ const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
   return (
     <div className="connection-time lower-box">
       <span className="label">{LL.connectedUsersOverview.userList.connected()}</span>
-      <div className="content-wrapper">
+      <div className="time">
         <SvgIconConnected />
         <span data-testid="connection-time-value">{getConnectionTime}</span>
-      </div>
-    </div>
-  );
-};
-
-// TODO: Reimplement when mesh network will be ready
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const ActiveConnections = () => {
-  return (
-    <div className="active-connections lower-box">
-      <span className="label">Connections:</span>
-      <div className="content-wrapper">
-        <UserInitials type={UserInitialsType.SMALL} first_name="Z" last_name="K" />
-        <UserInitials type={UserInitialsType.SMALL} first_name="A" last_name="P" />
-        <UserInitials type={UserInitialsType.SMALL} first_name="R" last_name="O" />
       </div>
     </div>
   );
@@ -283,14 +192,19 @@ interface ActiveDevicesProps {
 const ActiveDevices = ({ data }: ActiveDevicesProps) => {
   const { LL } = useI18nContext();
   const activeDeviceCount = data.length;
+
   const showCount = useMemo(() => activeDeviceCount > 3, [activeDeviceCount]);
-  const getCount = useMemo(() => 2 - activeDeviceCount, [activeDeviceCount]);
+
+  const getCount = useMemo(() => activeDeviceCount - 2, [activeDeviceCount]);
+
+  // trim data so only max 3 boxes are visible
   const getSliceEnd = useMemo(() => {
     if (activeDeviceCount > 3) {
       return 2;
     }
     return activeDeviceCount;
   }, [activeDeviceCount]);
+
   return (
     <div className="active-devices lower-box">
       <span className="label">{LL.connectedUsersOverview.userList.device()}</span>
@@ -312,6 +226,7 @@ const ActiveDevices = ({ data }: ActiveDevicesProps) => {
     </div>
   );
 };
+
 interface DeviceAvatarBoxProps {
   id: number;
 }
@@ -340,36 +255,58 @@ const ExpandedDeviceCard = ({ data, dataMax }: ExpandedDeviceCardProps) => {
   }, 0);
 
   return (
-    <>
-      <div className="expanded-device-card">
-        <div className="upper">
-          <SvgIconUserListElement />
-          <DeviceAvatarBox id={data.id} />
-          <NameBox
-            name={titleCase(data.name)}
-            publicIp={data.public_ip}
-            wireguardIp={data.wireguard_ip}
-          />
-        </div>
-        <div className="lower">
-          <ConnectionTime connectedAt={data.connected_at} />
-          <div className="network-usage-summary">
-            <div className="network-usage-stats">
-              <NetworkSpeed
-                speedValue={downloadSummary}
-                direction={NetworkDirection.DOWNLOAD}
-                data-testid="download"
-              />
-              <NetworkSpeed
-                speedValue={uploadSummary}
-                direction={NetworkDirection.UPLOAD}
-                data-testid="upload"
-              />
-            </div>
-            <NetworkUsageChart data={data.stats} width={180} dataMax={dataMax} />
+    <div className="device">
+      <div className="upper">
+        <SvgIconClip />
+        <DeviceAvatarBox id={data.id} />
+        <NameBox
+          name={titleCase(data.name)}
+          publicIp={data.public_ip}
+          wireguardIp={data.wireguard_ip}
+        />
+      </div>
+      <div className="lower">
+        <ConnectionTime connectedAt={data.connected_at} />
+        <div className="network-usage-summary">
+          <div className="network-usage-stats">
+            <NetworkSpeed
+              speedValue={downloadSummary}
+              direction={NetworkDirection.DOWNLOAD}
+              data-testid="download"
+            />
+            <NetworkSpeed
+              speedValue={uploadSummary}
+              direction={NetworkDirection.UPLOAD}
+              data-testid="upload"
+            />
+          </div>
+          <div className="chart">
+            <AutoSizer>
+              {({ height, width }) => (
+                <NetworkUsageChart
+                  data={data.stats}
+                  width={width}
+                  dataMax={dataMax}
+                  height={height}
+                />
+              )}
+            </AutoSizer>
           </div>
         </div>
       </div>
-    </>
+    </div>
+  );
+};
+
+type ExpandButtonProps = {
+  expanded: boolean;
+  onClick: () => void;
+};
+
+const ExpandButton = ({ expanded, onClick }: ExpandButtonProps) => {
+  return (
+    <button className="card-expand" onClick={onClick}>
+      {expanded ? <SvgIconCollapse /> : <SvgIconExpand />}
+    </button>
   );
 };

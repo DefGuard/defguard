@@ -1,10 +1,11 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
 import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
@@ -19,6 +20,7 @@ import MessageBox from '../../../../shared/components/layout/MessageBox/MessageB
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
+import { QueryKeys } from '../../../../shared/queries';
 import { ImportNetworkRequest } from '../../../../shared/types';
 import { validateIpOrDomain } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
@@ -34,16 +36,22 @@ const defaultValues: FormInputs = {
 };
 export const WizardNetworkImport = () => {
   const submitRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const { LL } = useI18nContext();
+  const navigate = useNavigate();
   const {
     network: { importNetwork },
   } = useApi();
   const toaster = useToaster();
-  const [setWizardState, nextStepSubject, submitSubject] = useWizardStore(
-    (state) => [state.setState, state.nextStepSubject, state.submitSubject],
+  const [setWizardState, nextStepSubject, submitSubject, resetWizard] = useWizardStore(
+    (state) => [
+      state.setState,
+      state.nextStepSubject,
+      state.submitSubject,
+      state.resetState,
+    ],
     shallow
   );
-
-  const { LL } = useI18nContext();
 
   const schema = useMemo(
     () =>
@@ -75,12 +83,21 @@ export const WizardNetworkImport = () => {
   } = useMutation([MutationKeys.IMPORT_NETWORK], importNetwork, {
     onSuccess: async (response) => {
       toaster.success(LL.networkConfiguration.form.messages.networkCreated());
-      setWizardState({
-        importedNetworkDevices: response.devices,
-        importedNetworkConfig: response.network,
-        loading: false,
-      });
-      nextStepSubject.next();
+      // complete wizard if there is no devices to map
+      if (response.devices.length === 0) {
+        toaster.success(LL.wizard.completed());
+        resetWizard();
+        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
+        navigate('/admin/overview', { replace: true });
+      } else {
+        setWizardState({
+          importedNetworkDevices: response.devices,
+          importedNetworkConfig: response.network,
+          loading: false,
+        });
+        nextStepSubject.next();
+      }
     },
     onError: (err) => {
       setWizardState({ loading: false });

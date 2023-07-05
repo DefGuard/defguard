@@ -6,7 +6,15 @@
   align-items: center;
   justify-content: flex-start;
   box-sizing: border-box;
-  padding: 50px 88px;
+
+  @include media-breakpoint-down(lg) {
+    background-color: var(--white);
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
 
   & > header {
     @include typography(20px, 30px, semiBold, var(--text-main), 'Poppins');
@@ -30,8 +38,11 @@
 
   & > .btn {
     width: 100%;
+    max-width: 400px;
   }
+
   @include media-breakpoint-up(lg) {
+    padding: 50px 88px;
     width: 520px !important;
     margin-top: 180px;
     height: 380px;

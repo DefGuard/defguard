@@ -40,7 +40,7 @@ export interface NavigationItem {
 }
 
 export const Navigation = () => {
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const [currentUser, resetAuthStore] = useAuthStore(
     (state) => [state.user, state.resetState],
     shallow
@@ -89,9 +89,11 @@ export const Navigation = () => {
     if (pathname.includes('/admin/network')) {
       return LL.navigation.mobileTitles.networkSettings();
     }
+    if (pathname.includes('/admin/wizard')) {
+      return LL.navigation.mobileTitles.wizard();
+    }
     return '';
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, locale]);
+  }, [LL.navigation.mobileTitles, pathname]);
 
   const navItems: NavigationItem[] = useMemo(() => {
     let base: NavigationItem[] = [
@@ -157,8 +159,14 @@ export const Navigation = () => {
     base = base.filter((item) => item.enabled);
 
     return base;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, settings, locale]);
+  }, [
+    LL.navigation.bar,
+    currentUser,
+    settings?.openid_enabled,
+    settings?.webhooks_enabled,
+    settings?.wireguard_enabled,
+    settings?.worker_enabled,
+  ]);
 
   return (
     <>

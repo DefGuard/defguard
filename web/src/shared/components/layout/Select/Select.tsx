@@ -14,8 +14,14 @@ import { isUndefined } from 'lodash-es';
 import { last } from 'radash';
 import { Key, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { debounceTime, filter, Subject } from 'rxjs';
+import { useBreakpoint } from 'use-breakpoint';
 
-import { buttonsBoxShadow, ColorsRGB, inactiveBoxShadow } from '../../../constants';
+import {
+  buttonsBoxShadow,
+  ColorsRGB,
+  deviceBreakpoints,
+  inactiveBoxShadow,
+} from '../../../constants';
 import { detectClickInside } from '../../../utils/detectClickOutside';
 import { standardVariants } from '../../../variants';
 import LoaderSpinner from '../LoaderSpinner/LoaderSpinner';
@@ -72,6 +78,7 @@ export interface SelectProps<T extends SelectValue> {
   disableOpen?: boolean;
   styleVariant?: SelectStyleVariant;
   sizeVariant?: SelectSizeVariant;
+  addOptionLabel?: string;
   'data-testid'?: string;
 }
 
@@ -91,6 +98,7 @@ export const Select = <T extends SelectValue>({
   outerLabel,
   invalid,
   errorMessage,
+  addOptionLabel,
   multi = false,
   searchable = false,
   loading = false,
@@ -113,6 +121,7 @@ export const Select = <T extends SelectValue>({
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchSubject] = useState<Subject<string | undefined>>(new Subject());
   const extendable = useMemo(() => !isUndefined(onCreate), [onCreate]);
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
   const { x, y, reference, floating, strategy, refs } = useFloating({
     open,
@@ -431,6 +440,18 @@ export const Select = <T extends SelectValue>({
               className="select-floating-ui"
             >
               <div className="options-container">
+                {extendable && breakpoint !== 'desktop' && (
+                  <SelectOption
+                    label={addOptionLabel}
+                    createOption
+                    onClick={() => {
+                      if (onCreate) {
+                        onCreate();
+                        setOpen(false);
+                      }
+                    }}
+                  />
+                )}
                 {options?.map((option) => {
                   const activeOption = () => {
                     if (Array.isArray(selected)) {
@@ -455,8 +476,9 @@ export const Select = <T extends SelectValue>({
                     />
                   );
                 })}
-                {extendable && (
+                {extendable && breakpoint === 'desktop' && (
                   <SelectOption
+                    label={addOptionLabel}
                     createOption
                     onClick={() => {
                       if (onCreate) {

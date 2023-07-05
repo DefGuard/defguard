@@ -14,7 +14,7 @@ export const WizardWelcome = () => {
   const nextStep = useWizardStore((state) => state.nextStep);
   const { LL } = useI18nContext();
   return (
-    <Card id="wizard-welcome" shaded>
+    <Card id="wizard-welcome" shaded hideMobile>
       <header>
         <p>{LL.wizard.welcome.header()}</p>
       </header>
@@ -28,7 +28,7 @@ export const WizardWelcome = () => {
         onClick={() => nextStep()}
         size={ButtonSize.BIG}
         styleVariant={ButtonStyleVariant.PRIMARY}
-        text="Setup my network"
+        text={LL.wizard.welcome.button()}
         data-testid="setup-network"
       />
     </Card>

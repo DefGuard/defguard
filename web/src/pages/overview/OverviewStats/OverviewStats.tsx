@@ -65,7 +65,9 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
           </div>
           <div className="info">
             <span className="info-title">
-              {LL.networkOverview.stats.activeUsersFilter({ hour: filterValue })}
+              {LL.networkOverview.stats.activeUsersFilter({
+                hour: filterValue,
+              })}
             </span>
             <div className="content">
               <Icon24HConnections />
@@ -74,7 +76,9 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
           </div>
           <div className="info">
             <span className="info-title">
-              {LL.networkOverview.stats.activeDevicesFilter({ hour: filterValue })}
+              {LL.networkOverview.stats.activeDevicesFilter({
+                hour: filterValue,
+              })}
             </span>
             <div className="content">
               <Icon24HConnections />

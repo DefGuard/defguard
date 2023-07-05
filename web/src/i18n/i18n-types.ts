@@ -1190,10 +1190,6 @@ type RootTranslation = {
 	navigation: {
 		bar: {
 			/**
-			 * V​P​N​ ​W​i​z​a​r​d
-			 */
-			wizard: string
-			/**
 			 * V​P​N​ ​O​v​e​r​v​i​e​w
 			 */
 			overview: string
@@ -1228,7 +1224,7 @@ type RootTranslation = {
 		}
 		mobileTitles: {
 			/**
-			 * V​P​N​ ​W​i​z​a​r​d
+			 * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
 			 */
 			wizard: string
 			/**
@@ -1256,11 +1252,11 @@ type RootTranslation = {
 			 */
 			openId: string
 			/**
-			 * N​e​t​w​o​r​k​ ​O​v​e​r​v​i​e​w
+			 * L​o​c​a​t​i​o​n​ ​O​v​e​r​v​i​e​w
 			 */
 			overview: string
 			/**
-			 * N​e​t​w​o​r​k​ ​S​e​t​t​i​n​g​s
+			 * E​d​i​t​ ​L​o​c​a​t​i​o​n
 			 */
 			networkSettings: string
 		}
@@ -1521,11 +1517,11 @@ type RootTranslation = {
 		}
 		defaultNetworkSelect: {
 			/**
-			 * D​e​f​a​u​l​t​ ​n​e​t​w​o​r​k​ ​v​i​e​w
+			 * D​e​f​a​u​l​t​ ​l​o​c​a​t​i​o​n​ ​v​i​e​w
 			 */
 			header: string
 			/**
-			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​y​o​u​r​ ​d​e​f​a​u​l​t​ ​n​e​t​w​o​r​k​ ​v​i​e​w​.​<​/​p​>​
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​y​o​u​r​ ​d​e​f​a​u​l​t​ ​l​o​c​a​t​i​o​n​ ​v​i​e​w​.​<​/​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
@@ -2305,6 +2301,14 @@ type RootTranslation = {
 		 * +​ ​A​d​d​ ​n​e​w​ ​l​o​c​a​t​i​o​n
 		 */
 		addNetwork: string
+		controls: {
+			networkSelect: {
+				/**
+				 * L​o​c​a​t​i​o​n​ ​c​h​o​i​c​e
+				 */
+				label: string
+			}
+		}
 	}
 	activityOverview: {
 		/**
@@ -2570,45 +2574,49 @@ type RootTranslation = {
 	}
 	wizard: {
 		/**
-		 * N​e​t​w​o​r​k​ ​s​e​t​u​p​ ​c​o​m​p​l​e​t​e​d
+		 * L​o​c​a​t​i​o​n​ ​s​e​t​u​p​ ​c​o​m​p​l​e​t​e​d
 		 */
 		completed: string
 		configuration: {
 			/**
-			 * N​e​t​w​o​r​k​ ​c​r​e​a​t​e​d
+			 * L​o​c​a​t​i​o​n​ ​c​r​e​a​t​e​d
 			 */
 			successMessage: string
 		}
 		welcome: {
 			/**
-			 * W​e​l​c​o​m​e​ ​t​o​ ​d​e​f​g​u​a​r​d​!
+			 * W​e​l​c​o​m​e​ ​t​o​ ​l​o​c​a​t​i​o​n​ ​w​i​z​a​r​d​!
 			 */
 			header: string
 			/**
-			 * B​e​f​o​r​e​ ​y​o​u​ ​s​t​a​r​t​,​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​n​e​t​w​o​r​k​ ​e​n​v​i​r​o​n​m​e​n​t​ ​f​i​r​s​t​.​ ​W​h​e​n​ ​i​n​ ​d​o​u​b​t​ ​h​o​v​e​r​ ​o​n​ ​<​R​e​a​c​t​>​ ​i​c​o​n​.
+			 * B​e​f​o​r​e​ ​y​o​u​ ​s​t​a​r​t​ ​u​s​i​n​g​ ​V​P​N​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​f​i​r​s​t​ ​l​o​c​a​t​i​o​n​.​ ​W​h​e​n​ ​i​n​ ​d​o​u​b​t​ ​c​l​i​c​k​ ​o​n​ ​<​R​e​a​c​t​>​ ​i​c​o​n​.
 			 */
 			sub: string
+			/**
+			 * S​e​t​u​p​ ​l​o​c​a​t​i​o​n
+			 */
+			button: string
 		}
 		navigation: {
 			/**
-			 * N​e​t​w​o​r​k​ ​s​e​t​u​p
+			 * L​o​c​a​t​i​o​n​ ​s​e​t​u​p
 			 */
 			top: string
 			titles: {
 				/**
-				 * N​e​t​w​o​r​k​ ​s​e​t​u​p
+				 * L​o​c​a​t​i​o​n​ ​s​e​t​u​p
 				 */
 				welcome: string
 				/**
-				 * C​h​o​s​e​ ​n​e​t​w​o​r​k​ ​s​e​t​u​p
+				 * C​h​o​s​e​ ​L​o​c​a​t​i​o​n​ ​s​e​t​u​p
 				 */
 				choseNetworkSetup: string
 				/**
-				 * I​m​p​o​r​t​ ​e​x​i​s​t​i​n​g​ ​n​e​t​w​o​r​k
+				 * I​m​p​o​r​t​ ​e​x​i​s​t​i​n​g​ ​l​o​c​a​t​i​o​n
 				 */
 				importConfig: string
 				/**
-				 * C​o​n​f​i​g​u​r​e​ ​n​e​t​w​o​r​k
+				 * C​o​n​f​i​g​u​r​e​ ​l​o​c​a​t​i​o​n
 				 */
 				manualConfig: string
 				/**
@@ -2662,7 +2670,7 @@ type RootTranslation = {
 				 */
 				title: string
 				/**
-				 * M​a​n​u​a​l​ ​n​e​t​w​o​r​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 * M​a​n​u​a​l​ ​l​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				description: string
 			}
@@ -2677,7 +2685,7 @@ type RootTranslation = {
 				description: string
 			}
 			/**
-			 * C​r​e​a​t​e​ ​W​i​r​e​G​u​a​r​d​ ​n​e​t​w​o​r​k
+			 * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
 			 */
 			createNetwork: string
 		}
@@ -2727,9 +2735,9 @@ type RootTranslation = {
 	layout: {
 		select: {
 			/**
-			 * A​d​d​ ​n​e​w
+			 * A​d​d​ ​n​e​w​ ​+
 			 */
-			addNewOption: string
+			addNewOptionDefault: string
 		}
 	}
 }
@@ -3904,10 +3912,6 @@ export type TranslationFunctions = {
 	navigation: {
 		bar: {
 			/**
-			 * VPN Wizard
-			 */
-			wizard: () => LocalizedString
-			/**
 			 * VPN Overview
 			 */
 			overview: () => LocalizedString
@@ -3942,7 +3946,7 @@ export type TranslationFunctions = {
 		}
 		mobileTitles: {
 			/**
-			 * VPN Wizard
+			 * Create location
 			 */
 			wizard: () => LocalizedString
 			/**
@@ -3970,11 +3974,11 @@ export type TranslationFunctions = {
 			 */
 			openId: () => LocalizedString
 			/**
-			 * Network Overview
+			 * Location Overview
 			 */
 			overview: () => LocalizedString
 			/**
-			 * Network Settings
+			 * Edit Location
 			 */
 			networkSettings: () => LocalizedString
 		}
@@ -4233,11 +4237,11 @@ export type TranslationFunctions = {
 		}
 		defaultNetworkSelect: {
 			/**
-			 * Default network view
+			 * Default location view
 			 */
 			header: () => LocalizedString
 			/**
-			 * <p>Here you can change your default network view.</p>
+			 * <p>Here you can change your default location view.</p>
 		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
 		          </a>
@@ -5006,6 +5010,14 @@ export type TranslationFunctions = {
 		 * + Add new location
 		 */
 		addNetwork: () => LocalizedString
+		controls: {
+			networkSelect: {
+				/**
+				 * Location choice
+				 */
+				label: () => LocalizedString
+			}
+		}
 	}
 	activityOverview: {
 		/**
@@ -5270,45 +5282,49 @@ export type TranslationFunctions = {
 	}
 	wizard: {
 		/**
-		 * Network setup completed
+		 * Location setup completed
 		 */
 		completed: () => LocalizedString
 		configuration: {
 			/**
-			 * Network created
+			 * Location created
 			 */
 			successMessage: () => LocalizedString
 		}
 		welcome: {
 			/**
-			 * Welcome to defguard!
+			 * Welcome to location wizard!
 			 */
 			header: () => LocalizedString
 			/**
-			 * Before you start, you need to setup your network environment first. When in doubt hover on <React> icon.
+			 * Before you start using VPN you need to setup your first location. When in doubt click on <React> icon.
 			 */
 			sub: () => LocalizedString
+			/**
+			 * Setup location
+			 */
+			button: () => LocalizedString
 		}
 		navigation: {
 			/**
-			 * Network setup
+			 * Location setup
 			 */
 			top: () => LocalizedString
 			titles: {
 				/**
-				 * Network setup
+				 * Location setup
 				 */
 				welcome: () => LocalizedString
 				/**
-				 * Chose network setup
+				 * Chose Location setup
 				 */
 				choseNetworkSetup: () => LocalizedString
 				/**
-				 * Import existing network
+				 * Import existing location
 				 */
 				importConfig: () => LocalizedString
 				/**
-				 * Configure network
+				 * Configure location
 				 */
 				manualConfig: () => LocalizedString
 				/**
@@ -5362,7 +5378,7 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				/**
-				 * Manual network configuration
+				 * Manual location configuration
 				 */
 				description: () => LocalizedString
 			}
@@ -5377,7 +5393,7 @@ export type TranslationFunctions = {
 				description: () => LocalizedString
 			}
 			/**
-			 * Create WireGuard network
+			 * Create location
 			 */
 			createNetwork: () => LocalizedString
 		}
@@ -5427,9 +5443,9 @@ export type TranslationFunctions = {
 	layout: {
 		select: {
 			/**
-			 * Add new
+			 * Add new +
 			 */
-			addNewOption: () => LocalizedString
+			addNewOptionDefault: () => LocalizedString
 		}
 	}
 }

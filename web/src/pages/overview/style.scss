@@ -3,10 +3,12 @@
 #network-overview-page {
   .page-content {
     box-sizing: border-box;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 0;
+    scrollbar-gutter: stable;
+    overflow-x: hidden;
+    overflow-y: auto;
 
     @include media-breakpoint-down(xl) {
       padding-top: 2rem;
@@ -23,8 +25,20 @@
       margin-bottom: 3rem;
       align-items: flex-end;
 
-      & > .btn {
-        width: 200px;
+      & > .top-row {
+        width: 100%;
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        justify-content: flex-start;
+
+        & > .btn {
+          .content {
+            span {
+              white-space: nowrap;
+            }
+          }
+        }
       }
 
       & > .select {
@@ -132,7 +146,6 @@
         grid-template-columns: 1fr;
         column-gap: 4rem;
         max-width: 100%;
-        overflow: hidden;
         padding-right: 6rem;
       }
 

@@ -2,29 +2,32 @@
 
 #network-page {
   & > .page-content {
-    padding: 30px 40px;
     box-sizing: border-box;
     overflow-y: auto;
     overflow-x: hidden;
     display: block;
+    padding: 0;
+    background-color: var(--white);
 
     @include media-breakpoint-up(lg) {
+      background-color: var(--bg-light);
       padding: 64px 70px 45px;
     }
 
     & > header {
-      display: block;
+      display: none;
       height: auto;
       margin-bottom: 5px;
       width: 100%;
       & > h1 {
         user-select: none;
-        display: none;
 
         @include page-header;
+      }
 
-        @include media-breakpoint-up(lg) {
-          display: block;
+      @include media-breakpoint-up(lg) {
+        display: block;
+        & > h1 {
           line-height: 62px;
         }
       }
@@ -33,16 +36,39 @@
     & > .network-card {
       width: 100%;
       max-width: 100%;
-      padding: 20px;
+      padding: 30px 20px 20px;
       box-sizing: border-box;
       display: grid;
-      row-gap: 48px;
-      column-gap: 57px;
-      grid-template-rows: 40px auto;
-      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(3, auto);
+      grid-template-columns: 1fr;
+      row-gap: 15px;
       grid-template-areas:
-        'controls controls'
-        'config gateway';
+        'controls'
+        'config'
+        'gateway';
+
+      @include media-breakpoint-up(lg) {
+        padding: 20px;
+        row-gap: 30px;
+        column-gap: 30px;
+        grid-template-rows: 40px repeat(2, auto);
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          'controls'
+          'config'
+          'gateway';
+      }
+
+      @include media-breakpoint-up(xl) {
+        padding: 20px;
+        row-gap: 48px;
+        column-gap: 57px;
+        grid-template-rows: 40px auto;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          'controls controls'
+          'config gateway';
+      }
 
       & > .network-controls {
         grid-area: controls;

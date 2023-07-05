@@ -8,6 +8,7 @@ import { useI18nContext } from '../../../i18n/i18n-react';
 import Button, {
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
+import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import IconEditNetwork from '../../../shared/components/svg/IconEditNetwork';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { useNetworkPageStore } from '../../network/hooks/useNetworkPageStore';
@@ -58,7 +59,10 @@ export const OverviewHeader = ({ loading = false }: Props) => {
     <>
       {breakpoint !== 'desktop' && (
         <div className="mobile-options">
-          {renderEditNetworks()}
+          <div className="top-row">
+            <GatewaysStatus networkId={selectedNetworkId} />
+            {renderEditNetworks()}
+          </div>
           <OverViewNetworkSelect />
           <OverviewStatsFilterSelect />
           <OverviewViewSelect />

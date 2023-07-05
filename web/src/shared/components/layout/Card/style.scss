@@ -7,4 +7,11 @@
   &.shaded {
     box-shadow: var(--card-shadow);
   }
+
+  &.hide-appearance {
+    box-shadow: none;
+    border-radius: 0;
+    border: 0 solid transparent;
+    background-color: inherit;
+  }
 }

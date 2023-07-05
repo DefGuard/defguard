@@ -42,6 +42,7 @@ export { default as IconArrowGrayRight } from './IconArrowGrayRight';
 export { default as IconArrowGraySmall } from './IconArrowGraySmall';
 export { default as IconArrowGrayUp1 } from './IconArrowGrayUp1';
 export { default as IconArrowGrayUp } from './IconArrowGrayUp';
+export { default as IconArrowSingle2 } from './IconArrowSingle2';
 export { default as IconArrowSingle } from './IconArrowSingle';
 export { default as IconArrowWhiteLeft } from './IconArrowWhiteLeft';
 export { default as IconAsterix } from './IconAsterix';
