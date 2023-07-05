@@ -77,6 +77,7 @@ pub struct ImportNetworkData {
     pub name: String,
     pub endpoint: String,
     pub config: String,
+    pub allowed_groups: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -356,6 +357,10 @@ pub async fn import_network(
 
     let mut transaction = appstate.pool.begin().await?;
     network.save(&mut transaction).await?;
+    network
+        .set_allowed_groups(&mut transaction, data.allowed_groups)
+        .await?;
+
     info!("New network {} created", network);
     match network.id {
         Some(network_id) => {

@@ -30,8 +30,9 @@ import { titleCase } from '../../../../shared/utils/titleCase';
 import { validateIpOrDomain } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
-interface FormInputs extends ImportNetworkRequest {
+interface FormInputs extends Omit<ImportNetworkRequest, 'allowed_groups'> {
   fileName: string;
+  allowed_groups: SelectOption<string>[];
 }
 const defaultValues: FormInputs = {
   name: '',
@@ -105,7 +106,10 @@ export const WizardNetworkImport = () => {
     (data) => {
       if (!isLoading) {
         setWizardState({ loading: true });
-        importNetworkMutation(data);
+        importNetworkMutation({
+          ...data,
+          allowed_groups: data.allowed_groups.map((o) => o.value),
+        });
       }
     },
     [importNetworkMutation, isLoading, setWizardState]
