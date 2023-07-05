@@ -132,6 +132,7 @@ export interface ImportNetworkRequest {
   name: string;
   endpoint: string;
   config: string;
+  allowed_groups: string[];
 }
 
 export interface MapUserDevicesRequest {

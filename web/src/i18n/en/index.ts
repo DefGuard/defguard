@@ -1009,6 +1009,8 @@ Any other requests you can reach us at: support@defguard.net
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:
           'List of addresses/masks that should be routed through the VPN network.',
+        allowedGroups:
+          'By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.',
       },
       messages: {
         networkModified: 'Location modified.',

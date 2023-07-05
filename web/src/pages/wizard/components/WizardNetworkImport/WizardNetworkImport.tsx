@@ -1,27 +1,31 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation } from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../shared/components/Form/FormSelect/FormSelect';
 import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/Button';
 import { Card } from '../../../../shared/components/layout/Card/Card';
 import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
+import {SelectOption, SelectStyleVariant} from '../../../../shared/components/layout/Select/Select';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { ImportNetworkRequest } from '../../../../shared/types';
 import { validateIpOrDomain } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
+import {QueryKeys} from "../../../../shared/queries";
+import {titleCase} from "../../../../shared/utils/titleCase";
 
 interface FormInputs extends ImportNetworkRequest {
   fileName: string;
@@ -31,17 +35,20 @@ const defaultValues: FormInputs = {
   endpoint: '',
   fileName: '',
   config: '',
+  allowed_groups: [],
 };
 export const WizardNetworkImport = () => {
   const submitRef = useRef<HTMLInputElement>(null);
   const {
     network: { importNetwork },
+    groups: { getGroups },
   } = useApi();
   const toaster = useToaster();
   const [setWizardState, nextStepSubject, submitSubject] = useWizardStore(
     (state) => [state.setState, state.nextStepSubject, state.submitSubject],
     shallow
   );
+  const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
 
   const { LL } = useI18nContext();
 
@@ -135,6 +142,24 @@ export const WizardNetworkImport = () => {
     return () => sub?.unsubscribe();
   }, [submitSubject]);
 
+  const { isLoading: groupsLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_GROUPS],
+    queryFn: getGroups,
+    onSuccess: (res) => {
+      setGroupOptions(
+        res.groups.map((g) => ({
+          key: g,
+          value: g,
+          label: titleCase(g),
+        }))
+      );
+    },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
+
   return (
     <Card id="wizard-network-import" shaded>
       <form onSubmit={handleSubmit(onValidSubmit)}>
@@ -150,6 +175,20 @@ export const WizardNetworkImport = () => {
           controller={{ control, name: 'endpoint' }}
           outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
           disabled={!isUndefined(data)}
+        />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
+        </MessageBox>
+        <FormSelect
+          styleVariant={SelectStyleVariant.WHITE}
+          controller={{ control, name: 'allowed_groups' }}
+          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          loading={groupsLoading}
+          disabled={!isUndefined(data)}
+          options={groupOptions}
+          placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
+          multi
+          searchable
         />
         <FormInput
           controller={{ control, name: 'fileName' }}

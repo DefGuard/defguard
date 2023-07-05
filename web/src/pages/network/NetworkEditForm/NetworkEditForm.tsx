@@ -271,6 +271,9 @@ export const NetworkEditForm = () => {
           controller={{ control, name: 'dns' }}
           outerLabel={LL.networkConfiguration.form.fields.dns.label()}
         />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
+        </MessageBox>
         <FormSelect
           styleVariant={SelectStyleVariant.WHITE}
           controller={{ control, name: 'allowed_groups' }}
