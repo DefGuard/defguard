@@ -1,9 +1,9 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
@@ -17,15 +17,18 @@ import Button, {
 } from '../../../../shared/components/layout/Button/Button';
 import { Card } from '../../../../shared/components/layout/Card/Card';
 import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
-import {SelectOption, SelectStyleVariant} from '../../../../shared/components/layout/Select/Select';
+import {
+  SelectOption,
+  SelectStyleVariant,
+} from '../../../../shared/components/layout/Select/Select';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
+import { QueryKeys } from '../../../../shared/queries';
 import { ImportNetworkRequest } from '../../../../shared/types';
+import { titleCase } from '../../../../shared/utils/titleCase';
 import { validateIpOrDomain } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
-import {QueryKeys} from "../../../../shared/queries";
-import {titleCase} from "../../../../shared/utils/titleCase";
 
 interface FormInputs extends ImportNetworkRequest {
   fileName: string;
