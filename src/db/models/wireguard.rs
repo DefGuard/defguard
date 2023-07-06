@@ -3,7 +3,7 @@ use super::{
     error::ModelError,
     DbPool, User, UserInfo,
 };
-use crate::db::models::device::DeviceInfo;
+use crate::db::models::device::{DeviceInfo, DeviceNetworkInfo};
 use crate::grpc::GatewayState;
 use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
@@ -19,6 +19,7 @@ use std::{
 };
 use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
+use crate::wg_config::ImportedDevice;
 
 pub static WIREGUARD_MAX_HANDSHAKE_MINUTES: u32 = 5;
 pub static PEER_STATS_LIMIT: i64 = 6 * 60;
@@ -46,7 +47,7 @@ pub enum GatewayEvent {
     NetworkDeleted(i64, String),
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
-    DeviceDeleted(String),
+    DeviceDeleted(DeviceInfo),
 }
 
 /// Stores configuration required to setup a wireguard network
@@ -301,7 +302,7 @@ impl WireguardNetwork {
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
         admin_group_name: &String,
-    ) -> Result<(), WireguardNetworkError> {
+    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!(
             "Synchronizing IPs in network {} for all allowed devices ",
             self
@@ -327,6 +328,7 @@ impl WireguardNetwork {
 
         // loop through assigned IPs; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
         // initial list should now contain only devices to be added
+        let mut events = Vec::new();
         for device_network_config in assigned_ips {
             match allowed_devices.remove(&device_network_config.device_id) {
                 // device is allowed and an IP was already assigned
@@ -336,6 +338,13 @@ impl WireguardNetwork {
                         device
                             .assign_network_ip(&mut *transaction, self, &[] as &[IpAddr])
                             .await?;
+                        events.push(GatewayEvent::DeviceModified(DeviceInfo {
+                            device,
+                            network_info: vec![DeviceNetworkInfo {
+                                network_id,
+                                device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
+                            }],
+                        }));
                     }
                 }
                 // device is no longer allowed
@@ -345,17 +354,78 @@ impl WireguardNetwork {
                         device_network_config.device_id, self
                     );
                     device_network_config.delete(&mut *transaction).await?;
+                    events.push(GatewayEvent::DeviceModified(DeviceInfo {
+            device,
+            network_info: vec![DeviceNetworkInfo {
+                network_id,
+                device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
+            }],
+        }));
                 }
             }
         }
 
         // add configs for new allowed devices
-        for device in allowed_devices.values() {
+        for device in allowed_devices.into_values() {
             device
                 .assign_network_ip(&mut *transaction, self, &[] as &[IpAddr])
                 .await?;
+            events.push(GatewayEvent::DeviceCreated(DeviceInfo {
+            device,
+            network_info: vec![DeviceNetworkInfo {
+                network_id,
+                device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
+            }],
+        }));
         }
 
+        Ok(events)
+    }
+
+    /// Check if devices found in an imported config file exist already,
+    /// if they do assign a specified IP.
+    /// Return a list of imported devices which need to be manually mapped to a user.
+    pub async fn handle_imported_devices(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        imported_devices: Vec<ImportedDevice>,
+        admin_group_name: &String,
+    ) -> Result<(), WireguardNetworkError>{
+        let network_id = network.id.expect("Network ID is missing");
+    let allowed_devices = self.get_allowed_devices(&mut *transaction, admin_group_name).await?;
+    let mut devices = Vec::new();
+    let mut assigned_device_ids = Vec::new();
+    let reserved_ips: Vec<IpAddr> = imported_devices
+        .iter()
+        .map(|dev| dev.wireguard_ip)
+        .collect();
+    for imported_device in imported_devices {
+        match Device::find_by_pubkey(&mut *transaction, &imported_device.wireguard_pubkey).await? {
+            Some(existing_device) => {
+                info!(
+                    "Device with pubkey {} exists already, assigning IP for new network: {}",
+                    existing_device.wireguard_pubkey, imported_device.wireguard_ip
+                );
+                let wireguard_network_device = WireguardNetworkDevice::new(
+                    network_id,
+                    existing_device.id.expect("Device ID is missing"),
+                    imported_device.wireguard_ip,
+                );
+                wireguard_network_device.insert(&mut *transaction).await?;
+                // store ID of device with already generated config
+                assigned_device_ids.push(existing_device.id);
+                // send device to connected gateways
+                appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
+                    device: existing_device,
+                    network_info: vec![DeviceNetworkInfo {
+                        network_id,
+                        device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
+                    }],
+                }));
+            }
+            None => devices.push(imported_device),
+        }
+    }
         Ok(())
     }
 
