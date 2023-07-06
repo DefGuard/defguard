@@ -30,6 +30,7 @@ export const routes = {
     wizard: '/admin/wizard',
     users: '/admin/users',
     openid: '/admin/openid',
+    overview: '/admin/overview',
   },
   authorize: '/api/v1/oauth/authorize',
 };

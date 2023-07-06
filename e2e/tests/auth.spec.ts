@@ -32,13 +32,11 @@ test('Login with admin user TOTP', async ({ page, context }) => {
   await waitForBase(page);
   const testUser = await createUser(context, 'testtotp1', ['Admin']);
   await loginBasic(page, testUser);
-  await waitForRoute(page, routes.me);
   const secret = await enableTOTP(page);
   await acceptRecovery(page);
   await loginTOTP(page, testUser, secret);
-  await waitForRoute(page, routes.me);
-  await page.waitForURL('**' + routes.me);
-  expect(page.url()).toBe(routes.base + routes.me);
+  await page.waitForLoadState('networkidle');
+  await waitForRoute(page, routes.admin.wizard);
 });
 
 test('Login with user TOTP', async ({ page, context }) => {

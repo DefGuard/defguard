@@ -1,7 +1,7 @@
 import { Page } from '@playwright/test';
 
 import { testsConfig } from '../../config';
-import { ApiUser, User } from '../../types';
+import { ApiUser, ApiUserProfile, User } from '../../types';
 
 export const apiGetUsers = async (page: Page): Promise<ApiUser[]> => {
   const url = testsConfig.CORE_BASE_URL + '/user';
@@ -11,6 +11,19 @@ export const apiGetUsers = async (page: Page): Promise<ApiUser[]> => {
     }).then((res) => res.json());
   }, url);
   return users;
+};
+
+export const apiGetUserProfile = async (
+  page: Page,
+  username: string
+): Promise<ApiUserProfile> => {
+  const url = testsConfig.CORE_BASE_URL + '/user/' + username;
+  const userProfile = await page.evaluate(async (url) => {
+    return await fetch(url, {
+      method: 'GET',
+    }).then((res) => res.json());
+  }, url);
+  return userProfile;
 };
 
 export const apiGetMe = async (page: Page): Promise<ApiUser> => {

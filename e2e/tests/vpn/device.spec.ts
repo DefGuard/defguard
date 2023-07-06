@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { routes } from '../../config';
 import { NetworkForm } from '../../types';
-import { apiGetMe } from '../../utils/api/users';
+import { apiGetUserProfile } from '../../utils/api/users';
 import { createUser } from '../../utils/controllers/createUser';
 import { loginBasic } from '../../utils/controllers/login';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
@@ -45,10 +45,10 @@ test.describe('Add user device', () => {
     await page.locator('form .controls button[type="submit"]').click();
     const response = await responsePromise;
     expect(response.status()).toBe(201);
-    const testUserData = await apiGetMe(page);
-    expect(testUserData.devices.length).toBe(1);
-    const createdDevice = testUserData.devices[0];
-    expect(createdDevice.wireguard_ip).toBe('10.10.10.2');
+    const testUserProfile = await apiGetUserProfile(page, testUser.username);
+    expect(testUserProfile.devices.length).toBe(1);
+    const createdDevice = testUserProfile.devices[0];
+    expect(createdDevice.networks[0].device_wireguard_ip).toBe('10.10.10.2');
   });
 
   test('Add test user device with manual', async ({ page, context }) => {
@@ -64,9 +64,9 @@ test.describe('Add user device', () => {
     await page.locator('form .controls button[type="submit"]').click();
     const response = await responsePromise;
     expect(response.status()).toBe(201);
-    const testUserData = await apiGetMe(page);
-    expect(testUserData.devices.length).toBe(1);
-    const createdDevice = testUserData.devices[0];
-    expect(createdDevice.wireguard_ip).toBe('10.10.10.2');
+    const testUserProfile = await apiGetUserProfile(page, testUser.username);
+    expect(testUserProfile.devices.length).toBe(1);
+    const createdDevice = testUserProfile.devices[0];
+    expect(createdDevice.networks[0].device_wireguard_ip).toBe('10.10.10.2');
   });
 });
