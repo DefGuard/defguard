@@ -77,7 +77,7 @@ impl UserDevice {
                 )
                 SELECT
                     n.id as network_id, n.name as network_name, n.endpoint as gateway_endpoint,
-                    wnd.wireguard_ip as device_wireguard_ip, stats.endpoint as device_endpoint,
+                    wnd.wireguard_ip as "device_wireguard_ip: IpAddr", stats.endpoint as device_endpoint,
                     stats.latest_handshake as "latest_handshake?",
                     COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as "is_active!"
                 FROM wireguard_network_device wnd
