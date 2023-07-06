@@ -173,15 +173,16 @@ pub async fn modify_network(
     network.name = data.name;
 
     let mut transaction = appstate.pool.begin().await?;
-    network
-        .change_address(&mut transaction, data.address)
-        .await?;
     network.endpoint = data.endpoint;
     network.port = data.port;
     network.dns = data.dns;
+    network.address = data.address;
     network.save(&mut transaction).await?;
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
+        .await?;
+    network
+        .sync_allowed_devices(&mut transaction, &appstate.config.admin_groupname)
         .await?;
     match &network.id {
         Some(network_id) => {

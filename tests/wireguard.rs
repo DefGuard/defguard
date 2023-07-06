@@ -147,7 +147,7 @@ async fn test_device() {
         .unwrap();
     assert_eq!(
         network_devices[0].wireguard_network_id,
-        network_from_details.id
+        network_from_details.id.unwrap()
     );
 
     // add another network

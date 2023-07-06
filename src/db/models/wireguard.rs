@@ -294,6 +294,71 @@ impl WireguardNetwork {
         Ok(())
     }
 
+    /// Refresh network IPs for all relevant devices
+    /// If the list of allowed devices has changed add/remove devices accordingly
+    /// If the network address has changed readdress existing devices
+    pub async fn sync_allowed_devices(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        admin_group_name: &String,
+    ) -> Result<(), WireguardNetworkError> {
+        info!(
+            "Synchronizing IPs in network {} for all allowed devices ",
+            self
+        );
+        // list all allowed devices
+        let allowed_devices = self
+            .get_allowed_devices(&mut *transaction, admin_group_name)
+            .await?;
+        // convert to a map for easier processing
+        let mut allowed_devices: HashMap<i64, Device> = allowed_devices
+            .into_iter()
+            .filter_map(|dev| dev.id.map(|id| (id, dev)))
+            .collect();
+
+        // check if all devices can fit within network
+        // include address, network, and broadcast in the calculation
+        let count = allowed_devices.len() + 3;
+        self.validate_network_size(count)?;
+
+        // list all assigned IPs
+        let assigned_ips =
+            WireguardNetworkDevice::all_for_network(&mut *transaction, self.get_id()?).await?;
+
+        // loop through assigned IPs; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
+        // initial list should now contain only devices to be added
+        for device_network_config in assigned_ips {
+            match allowed_devices.remove(&device_network_config.device_id) {
+                // device is allowed and an IP was already assigned
+                Some(device) => {
+                    // network address changed and IP needs to be updated
+                    if !self.address.contains(device_network_config.wireguard_ip) {
+                        device
+                            .assign_network_ip(&mut *transaction, self, &[] as &[IpAddr])
+                            .await?;
+                    }
+                }
+                // device is no longer allowed
+                None => {
+                    debug!(
+                        "Device {} no longer allowed, removing network config for {}",
+                        device_network_config.device_id, self
+                    );
+                    device_network_config.delete(&mut *transaction).await?;
+                }
+            }
+        }
+
+        // add configs for new allowed devices
+        for device in allowed_devices.values() {
+            device
+                .assign_network_ip(&mut *transaction, self, &[] as &[IpAddr])
+                .await?;
+        }
+
+        Ok(())
+    }
+
     async fn fetch_latest_stats(
         &self,
         conn: &DbPool,

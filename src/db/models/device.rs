@@ -154,7 +154,9 @@ impl WireguardNetworkDevice {
         query!(
             "INSERT INTO wireguard_network_device
                 (device_id, wireguard_network_id, wireguard_ip)
-                VALUES ($1, $2, $3)",
+                VALUES ($1, $2, $3)
+                ON CONFLICT ON CONSTRAINT device_network
+                DO UPDATE SET wireguard_ip = $3",
             self.device_id,
             self.wireguard_network_id,
             IpNetwork::from(self.wireguard_ip.clone()),
@@ -177,6 +179,23 @@ impl WireguardNetworkDevice {
             self.device_id,
             self.wireguard_network_id,
             IpNetwork::from(self.wireguard_ip.clone())
+        )
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn delete<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
+        query!(
+            r#"
+        DELETE FROM wireguard_network_device
+        WHERE device_id = $1 AND wireguard_network_id = $2
+        "#,
+            self.device_id,
+            self.wireguard_network_id,
         )
         .execute(executor)
         .await?;
