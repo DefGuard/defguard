@@ -1,5 +1,6 @@
 use crate::auth::failed_login::FailedLoginError;
 use crate::db::models::device::DeviceError;
+use crate::db::models::wireguard::WireguardNetworkError;
 use crate::grpc::GatewayMapError;
 use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
 use rocket::http::Status;
@@ -90,6 +91,17 @@ impl From<GatewayMapError> for OriWebError {
             GatewayMapError::NetworkNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
             GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
             GatewayMapError::RemoveActive(_) => Self::BadRequest(format!("{}", error)),
+        }
+    }
+}
+
+impl From<WireguardNetworkError> for OriWebError {
+    fn from(error: WireguardNetworkError) -> Self {
+        match error {
+            WireguardNetworkError::NetworkTooSmall => Self::BadRequest(format!("{}", error)),
+            WireguardNetworkError::IpNetworkError(_) => Self::BadRequest(format!("{}", error)),
+            WireguardNetworkError::DbError(_) => Self::Http(Status::InternalServerError),
+            WireguardNetworkError::ModelError(_) => Self::Http(Status::InternalServerError),
         }
     }
 }

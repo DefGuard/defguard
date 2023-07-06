@@ -1,4 +1,4 @@
-use crate::db::{Device, WireguardNetwork};
+use crate::db::{models::wireguard::WireguardNetworkError, Device, WireguardNetwork};
 use base64::{DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
 use std::array::TryFromSliceError;
@@ -30,6 +30,8 @@ pub enum WireguardConfigParseError {
     InvalidKey(String),
     #[error("Invalid port: {0}")]
     InvalidPort(String),
+    #[error("Wireguard network error")]
+    NetworkError(#[from] WireguardNetworkError),
 }
 
 impl From<TryFromSliceError> for WireguardConfigParseError {

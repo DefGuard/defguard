@@ -11,13 +11,13 @@ use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
 use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, Transaction};
-use std::fmt::{Display, Formatter};
 use std::{
     collections::HashMap,
-    fmt::Debug,
+    fmt::{Debug, Display, Formatter},
     net::{IpAddr, Ipv4Addr},
     str::FromStr,
 };
+use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 pub static WIREGUARD_MAX_HANDSHAKE_MINUTES: u32 = 5;
@@ -82,6 +82,18 @@ impl Display for WireguardNetwork {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum WireguardNetworkError {
+    #[error("Network address space cannot fit all devices")]
+    NetworkTooSmall,
+    #[error(transparent)]
+    IpNetworkError(#[from] IpNetworkError),
+    #[error("Database error")]
+    DbError(#[from] sqlx::Error),
+    #[error("Model error")]
+    ModelError(#[from] ModelError),
+}
+
 impl WireguardNetwork {
     pub fn new(
         name: String,
@@ -90,7 +102,7 @@ impl WireguardNetwork {
         endpoint: String,
         dns: Option<String>,
         allowed_ips: Vec<IpNetwork>,
-    ) -> Result<Self, IpNetworkError> {
+    ) -> Result<Self, WireguardNetworkError> {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
         Ok(Self {
@@ -107,14 +119,20 @@ impl WireguardNetwork {
         })
     }
 
+    pub fn get_id(&self) -> Result<i64, WireguardNetworkError> {
+        let id = self.id.ok_or(ModelError::IdNotSet)?;
+        Ok(id)
+    }
+
     /// Return number of devices that use this network.
     async fn device_count(
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
-    ) -> Result<i64, SqlxError> {
-        query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
+    ) -> Result<i64, WireguardNetworkError> {
+        let count = query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
             .fetch_one(transaction)
-            .await
+            .await?;
+        Ok(count)
     }
 
     /// Utility method to create wireguard keypair
@@ -141,17 +159,12 @@ impl WireguardNetwork {
         &mut self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
         new_address: IpNetwork,
-    ) -> Result<(), ModelError> {
+    ) -> Result<(), WireguardNetworkError> {
         info!(
             "Changing network address for {} from {} to {}",
             self, self.address, new_address
         );
-        let network_id = match self.id {
-            Some(id) => id,
-            None => {
-                return Err(ModelError::CannotModify);
-            }
-        };
+        let network_id = self.get_id()?;
         let old_address = self.address;
 
         // check if new network size will fit all existing devices
@@ -162,12 +175,12 @@ impl WireguardNetwork {
             match new_size {
                 NetworkSize::V4(size) => {
                     if count as u32 > size {
-                        return Err(ModelError::NetworkTooSmall);
+                        return Err(WireguardNetworkError::NetworkTooSmall);
                     }
                 }
                 NetworkSize::V6(size) => {
                     if count as u128 > size {
-                        return Err(ModelError::NetworkTooSmall);
+                        return Err(WireguardNetworkError::NetworkTooSmall);
                     }
                 }
             }
@@ -191,7 +204,7 @@ impl WireguardNetwork {
                         let device_id = match device.id {
                             Some(id) => id,
                             None => {
-                                return Err(ModelError::CannotModify);
+                                return Err(WireguardNetworkError::from(ModelError::CannotModify));
                             }
                         };
                         let wireguard_network_device =
