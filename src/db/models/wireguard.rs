@@ -208,7 +208,7 @@ impl WireguardNetwork {
                             }
                         };
                         let wireguard_network_device =
-                            WireguardNetworkDevice::new(network_id, device_id, ip.to_string());
+                            WireguardNetworkDevice::new(network_id, device_id, ip);
                         wireguard_network_device.update(&mut *transaction).await?;
                     }
                     None => break,
@@ -683,14 +683,14 @@ mod test {
     #[sqlx::test]
     async fn test_change_address(pool: DbPool) {
         let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
+        network.try_set_address("10.1.1.1/24").unwrap();
         network.save(&pool).await.unwrap();
 
         add_devices(&pool, &network, 3).await;
 
         let mut transaction = pool.begin().await.unwrap();
         network
-            .change_address(&mut transaction, "10.2.2.2/28".parse().unwrap())
+            .change_address(&mut transaction, "10.2.2.2/24".parse().unwrap())
             .await
             .unwrap();
         let keys = vec!["key0", "key1", "key2"];
@@ -702,12 +702,17 @@ mod test {
                 .await
                 .unwrap()
                 .unwrap();
+            println!("Device: {:?}", device);
+            println!("Network: {:?}", network);
             let wireguard_network_device =
                 WireguardNetworkDevice::find(&pool, device.id.unwrap(), network.id.unwrap())
                     .await
                     .unwrap()
                     .unwrap();
-            assert_eq!(wireguard_network_device.wireguard_ip, ips[index])
+            assert_eq!(
+                wireguard_network_device.wireguard_ip.to_string(),
+                ips[index]
+            )
         }
     }
 

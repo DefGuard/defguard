@@ -11,7 +11,7 @@ pub struct ImportedDevice {
     pub user_id: Option<i64>,
     pub name: String,
     pub wireguard_pubkey: String,
-    pub wireguard_ip: String,
+    pub wireguard_ip: IpAddr,
 }
 
 #[derive(Debug, Error)]
@@ -122,7 +122,7 @@ pub fn parse_wireguard_config(
             user_id: None,
             name: pubkey.to_string(),
             wireguard_pubkey: pubkey.to_string(),
-            wireguard_ip: ip.to_string(),
+            wireguard_ip: ip,
         });
     }
 
@@ -181,13 +181,13 @@ mod test {
             device1.wireguard_pubkey,
             "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
         );
-        assert_eq!(device1.wireguard_ip, "10.0.0.10");
+        assert_eq!(device1.wireguard_ip.to_string(), "10.0.0.10");
 
         let device2 = &devices[1];
         assert_eq!(
             device2.wireguard_pubkey,
             "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="
         );
-        assert_eq!(device2.wireguard_ip, "10.0.0.11");
+        assert_eq!(device2.wireguard_ip.to_string(), "10.0.0.11");
     }
 }

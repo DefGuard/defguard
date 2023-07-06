@@ -63,6 +63,7 @@ async fn test_network() {
         port: 55555,
         allowed_ips: Some("10.1.1.0/24".into()),
         dns: None,
+        allowed_groups: vec![],
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id.unwrap()))
@@ -893,7 +894,7 @@ async fn test_config_import() {
     assert_eq!(devices.len(), 2);
 
     let mut device1 = devices[0].clone();
-    assert_eq!(device1.wireguard_ip, "10.0.0.10");
+    assert_eq!(device1.wireguard_ip.to_string(), "10.0.0.10");
     assert_eq!(
         device1.wireguard_pubkey,
         "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
@@ -902,7 +903,7 @@ async fn test_config_import() {
     assert_eq!(device1.user_id, None);
 
     let mut device2 = devices[1].clone();
-    assert_eq!(device2.wireguard_ip, "10.0.0.11");
+    assert_eq!(device2.wireguard_ip.to_string(), "10.0.0.11");
     assert_eq!(
         device2.wireguard_pubkey,
         "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="

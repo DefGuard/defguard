@@ -38,7 +38,7 @@ impl WireguardNetwork {
         let result = query_as!(
             Peer,
             r#"
-            SELECT d.wireguard_pubkey as pubkey, array[wnd.wireguard_ip] as "allowed_ips!" FROM wireguard_network_device wnd
+            SELECT d.wireguard_pubkey as pubkey, array[wnd.wireguard_ip] as "allowed_ips!: Vec<String>" FROM wireguard_network_device wnd
             JOIN device d
             ON wnd.device_id = d.id
             WHERE wireguard_network_id = $1

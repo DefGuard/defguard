@@ -27,6 +27,7 @@ use rocket::{
     },
     State,
 };
+use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
@@ -58,7 +59,7 @@ pub struct MappedDevice {
     pub user_id: i64,
     pub name: String,
     pub wireguard_pubkey: String,
-    pub wireguard_ip: String,
+    pub wireguard_ip: IpAddr,
 }
 
 // Used in process of importing network from wireguard config
@@ -374,9 +375,9 @@ pub async fn import_network(
     let network_id = network.id.expect("Network ID is missing");
     let mut devices = Vec::new();
     let mut assigned_device_ids = Vec::new();
-    let reserved_ips: Vec<String> = imported_devices
+    let reserved_ips: Vec<IpAddr> = imported_devices
         .iter()
-        .map(|dev| dev.wireguard_ip.clone())
+        .map(|dev| dev.wireguard_ip)
         .collect();
     for imported_device in imported_devices {
         match Device::find_by_pubkey(&mut transaction, &imported_device.wireguard_pubkey).await? {
@@ -398,7 +399,7 @@ pub async fn import_network(
                     device: existing_device,
                     network_info: vec![DeviceNetworkInfo {
                         network_id,
-                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                        device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
                     }],
                 }));
             }
@@ -420,7 +421,7 @@ pub async fn import_network(
             device,
             network_info: vec![DeviceNetworkInfo {
                 network_id,
-                device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
             }],
         }));
     }
@@ -478,7 +479,7 @@ pub async fn add_user_devices(
         let wireguard_network_device = WireguardNetworkDevice::new(
             network_id,
             device.id.expect("Device ID is missing"),
-            mapped_device.wireguard_ip.clone(),
+            mapped_device.wireguard_ip,
         );
         wireguard_network_device.insert(&mut transaction).await?;
 
@@ -486,7 +487,7 @@ pub async fn add_user_devices(
 
         network_info.push(DeviceNetworkInfo {
             network_id,
-            device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
+            device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
         });
 
         // send device to connected gateways
@@ -627,7 +628,7 @@ pub async fn modify_device(
                 if let Some(wireguard_network_device) = wireguard_network_device {
                     let device_network_info = DeviceNetworkInfo {
                         network_id,
-                        device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
+                        device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
                     };
                     network_info.push(device_network_info)
                 }
