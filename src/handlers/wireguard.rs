@@ -117,13 +117,10 @@ pub async fn create_network(
         .await?;
 
     // generate IP addresses for existing devices
+    network
+        .add_all_devices(&mut transaction, &appstate.config.admin_groupname)
+        .await?;
     info!("Assigning IPs for existing devices in network {}", network);
-    let devices = Device::all(&mut transaction).await?;
-    for device in devices {
-        device
-            .assign_network_ip(&mut transaction, &network, &Vec::new())
-            .await?;
-    }
 
     match &network.id {
         Some(network_id) => {
@@ -449,10 +446,12 @@ pub async fn add_user_devices(
     let mapped_devices = request_data.devices.clone();
     let user = session.user;
     let device_count = mapped_devices.len();
+
+    // finish early if no devices were provided in request
     if mapped_devices.is_empty() {
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: Status::NoContent,
         });
     }
 

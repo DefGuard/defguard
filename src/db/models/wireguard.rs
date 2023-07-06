@@ -207,6 +207,58 @@ impl WireguardNetwork {
         Ok(())
     }
 
+    /// Get a list of all devices belonging to users in allowed groups.
+    /// Admin users should always be allowed to access a network.
+    async fn get_allowed_devices(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        admin_group_name: &String,
+    ) -> Result<Vec<Device>, ModelError> {
+        debug!("Fetching all allowed devices for network {}", self);
+        let mut allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
+        // make sure that admin group is included
+        if !allowed_groups.contains(admin_group_name) {
+            allowed_groups.push(admin_group_name.to_string())
+        };
+        let devices = query_as!(
+            Device,
+            r#"
+            SELECT DISTINCT ON (d.id) d.id as "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
+            FROM device d
+            JOIN "user" u ON d.user_id = u.id
+            JOIN group_user gu ON u.id = gu.user_id
+            JOIN "group" g ON gu.group_id = g.id
+            WHERE g."name" IN (SELECT * FROM UNNEST($1::text[]))
+            "#,
+            &allowed_groups
+        )
+        .fetch_all(&mut *transaction)
+        .await?;
+        Ok(devices)
+    }
+
+    /// Generate network IPs for all existing devices
+    /// If `allowed_groups` is set, devices should be filtered accordingly
+    pub async fn add_all_devices(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        admin_group_name: &String,
+    ) -> Result<(), ModelError> {
+        info!(
+            "Assigning IPs in network {} for all existing devices ",
+            self
+        );
+        let devices = self
+            .get_allowed_devices(&mut *transaction, admin_group_name)
+            .await?;
+        for device in devices {
+            device
+                .assign_network_ip(&mut *transaction, self, &Vec::new())
+                .await?;
+        }
+        Ok(())
+    }
+
     async fn fetch_latest_stats(
         &self,
         conn: &DbPool,
