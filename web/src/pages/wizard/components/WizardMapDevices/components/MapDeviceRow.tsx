@@ -71,6 +71,7 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
       <input className="name" type="text" {...nameController.field} />
       <span className="ip">{ipController.field.value}</span>
       <Select<number>
+        data-testid={`user-select-${index}`}
         searchable
         styleVariant={SelectStyleVariant.LIGHT}
         sizeVariant={SelectSizeVariant.SMALL}

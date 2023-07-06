@@ -1,5 +1,6 @@
 import { Page } from 'playwright';
 
+import { routes } from '../../config';
 import { getPageClipboard } from '../getPageClipboard';
 
 export const acceptRecovery = async (page: Page): Promise<string[]> => {
@@ -9,5 +10,6 @@ export const acceptRecovery = async (page: Page): Promise<string[]> => {
   const codes = (await getPageClipboard(page)).split('\n');
   await page.getByTestId('accept-recovery').click();
   await modalElement.waitFor({ state: 'hidden' });
+  await page.waitForURL(routes.base + routes.auth.login);
   return codes;
 };
