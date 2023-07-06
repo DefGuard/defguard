@@ -30,6 +30,7 @@ fn make_network() -> Value {
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "allowed_groups": [],
     })
 }
 
@@ -848,7 +849,7 @@ async fn test_config_import() {
     // import network
     let response = client
         .post("/api/v1/network/import")
-        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": []}))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
