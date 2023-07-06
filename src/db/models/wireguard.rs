@@ -135,6 +135,28 @@ impl WireguardNetwork {
         Ok(count)
     }
 
+    pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
+        debug!(
+            "Checking if {} devices can fit in network {}",
+            device_count, self
+        );
+        let network_size = self.address.size();
+        // include address, network, and broadcast in the calculation
+        match network_size {
+            NetworkSize::V4(size) => {
+                if device_count as u32 > size {
+                    return Err(WireguardNetworkError::NetworkTooSmall);
+                }
+            }
+            NetworkSize::V6(size) => {
+                if device_count as u128 > size {
+                    return Err(WireguardNetworkError::NetworkTooSmall);
+                }
+            }
+        };
+        Ok(())
+    }
+
     /// Utility method to create wireguard keypair
     #[must_use]
     pub fn genkey() -> WireguardKey {
