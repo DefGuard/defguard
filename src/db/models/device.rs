@@ -121,9 +121,9 @@ impl UserDevice {
 
 #[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
 pub struct WireguardNetworkDevice {
-    pub wireguard_network_id: Option<i64>,
+    pub wireguard_network_id: i64,
     pub wireguard_ip: IpAddr,
-    pub device_id: Option<i64>,
+    pub device_id: i64,
 }
 
 #[derive(Deserialize, Debug)]
@@ -141,9 +141,9 @@ pub struct ModifyDevice {
 impl WireguardNetworkDevice {
     pub fn new(network_id: i64, device_id: i64, wireguard_ip: IpAddr) -> Self {
         Self {
-            wireguard_network_id: Some(network_id),
+            wireguard_network_id: network_id,
             wireguard_ip,
-            device_id: Some(device_id),
+            device_id,
         }
     }
 
@@ -264,6 +264,11 @@ impl Device {
             user_id,
             created: Utc::now().naive_utc(),
         }
+    }
+
+    pub fn get_id(&self) -> Result<i64, ModelError> {
+        let id = self.id.ok_or(ModelError::IdNotSet)?;
+        Ok(id)
     }
 
     pub fn update_from(&mut self, other: ModifyDevice) {
