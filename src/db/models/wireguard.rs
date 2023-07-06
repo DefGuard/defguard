@@ -239,7 +239,7 @@ impl WireguardNetwork {
 
     /// Generate network IPs for all existing devices
     /// If `allowed_groups` is set, devices should be filtered accordingly
-    pub async fn add_all_devices(
+    pub async fn add_all_allowed_devices(
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
         admin_group_name: &String,

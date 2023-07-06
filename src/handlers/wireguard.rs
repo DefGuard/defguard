@@ -118,7 +118,7 @@ pub async fn create_network(
 
     // generate IP addresses for existing devices
     network
-        .add_all_devices(&mut transaction, &appstate.config.admin_groupname)
+        .add_all_allowed_devices(&mut transaction, &appstate.config.admin_groupname)
         .await?;
     info!("Assigning IPs for existing devices in network {}", network);
 
