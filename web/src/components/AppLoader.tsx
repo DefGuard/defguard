@@ -8,7 +8,7 @@ import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../i18n/i18n-react';
 import { baseLocale, detectLocale, locales } from '../i18n/i18n-util';
 import { loadLocaleAsync } from '../i18n/i18n-util.async';
-import LoaderPage from '../pages/loader/LoaderPage';
+import { LoaderPage } from '../pages/loader/LoaderPage';
 import { isUserAdmin } from '../shared/helpers/isUserAdmin';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';

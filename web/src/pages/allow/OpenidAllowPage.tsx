@@ -16,7 +16,7 @@ import SvgIconDelete from '../../shared/components/svg/IconDelete';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
-import LoaderPage from '../loader/LoaderPage';
+import { LoaderPage } from '../loader/LoaderPage';
 
 export const OpenidAllowPage = () => {
   const navigate = useNavigate();

@@ -15,7 +15,7 @@ import { useToaster } from '../../../hooks/useToaster';
 import { QueryKeys } from '../../../queries';
 import { GatewayStatus } from '../../../types';
 import { Label } from '../../layout/Label/Label';
-import LoaderSpinner from '../../layout/LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../../layout/LoaderSpinner/LoaderSpinner';
 import { IconInfoError } from '../../svg';
 import SvgIconArrowSingle from '../../svg/IconArrowSingle';
 import SvgIconInfoSuccess from '../../svg/IconInfoSuccess';

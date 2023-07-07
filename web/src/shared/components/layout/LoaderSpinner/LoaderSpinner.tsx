@@ -1,62 +1,58 @@
 import './style.scss';
 
-import { HTMLMotionProps, motion, useAnimation, Variants } from 'framer-motion';
-import { useEffect } from 'react';
+import { motion } from 'framer-motion';
 
 import { ColorsRGB } from '../../../constants';
 
-interface Props extends HTMLMotionProps<'span'> {
+type Props = {
   size?: number;
-  backColor?: ColorsRGB;
-  frontColor?: ColorsRGB;
-}
+  color?: ColorsRGB;
+};
 
-/**
- * Creates infinitely spinning circle.
- */
-const LoaderSpinner = ({
-  size = 20,
-  backColor = ColorsRGB.Transparent,
-  frontColor = ColorsRGB.Primary,
-  ...rest
-}: Props) => {
-  const controls = useAnimation();
-
-  useEffect(() => {
-    controls.start('spin');
-  }, [controls]);
-
+export const LoaderSpinner = ({ size = 20, color = ColorsRGB.Primary }: Props) => {
   return (
-    <motion.span
+    <motion.div
       className="loader-spinner"
-      initial="initial"
-      variants={variants}
-      animate={controls}
       style={{
-        height: size,
         width: size,
-        borderTop: `3px solid ${frontColor}`,
-        borderRight: `3px solid ${backColor}`,
+        height: size,
       }}
-      {...rest}
-    ></motion.span>
+    >
+      <motion.svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 108 108"
+        width={size}
+        height={size}
+        animate={{
+          rotate: 360,
+        }}
+        transition={{
+          repeat: Infinity,
+          repeatDelay: 0,
+          type: 'tween',
+          ease: 'linear',
+          duration: 1,
+        }}
+      >
+        <motion.path
+          d="M54,6 A48,48 0 0 1 54,102 A48,48 0 0 1 54,6 Z"
+          fill="none"
+          stroke={color}
+          strokeWidth="5"
+          strokeDasharray="300"
+          strokeDashoffset="100"
+          animate={{
+            strokeDashoffset: [100, 0, 100],
+          }}
+          transition={{
+            repeat: Infinity,
+            repeatDelay: 1,
+            type: 'tween',
+            ease: 'linear',
+            duration: 1,
+          }}
+        />
+      </motion.svg>
+    </motion.div>
   );
 };
-
-const variants: Variants = {
-  initial: {
-    rotate: 0,
-  },
-  spin: {
-    rotate: 360,
-    transition: {
-      repeat: Infinity,
-      type: 'tween',
-      repeatDelay: 0,
-      ease: 'linear',
-      duration: 1,
-    },
-  },
-};
-
-export default LoaderSpinner;
