@@ -6,7 +6,7 @@ import { isUndefined } from 'lodash-es';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { buttonsBoxShadow, ColorsRGB, inactiveBoxShadow } from '../../../constants';
-import LoaderSpinner from '../LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../LoaderSpinner/LoaderSpinner';
 
 interface Props extends HTMLMotionProps<'button'> {
   loading?: boolean;
@@ -134,7 +134,7 @@ const Button = ({
         >
           {text}
         </motion.span>
-        {loading && <LoaderSpinner size={loaderSize} frontColor={getSpinnerColor} />}
+        {loading && <LoaderSpinner size={loaderSize} color={getSpinnerColor} />}
       </motion.div>
     </motion.button>
   );

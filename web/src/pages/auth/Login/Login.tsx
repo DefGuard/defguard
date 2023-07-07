@@ -106,7 +106,8 @@ export const Login = () => {
         />
         <Button
           type="submit"
-          loading={loginMutation.isLoading}
+          // loading={loginMutation.isLoading}
+          loading={true}
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.form.login()}

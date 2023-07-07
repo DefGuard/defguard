@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import LoaderSpinner from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { GatewaysStatus } from '../../shared/components/network/GatewaysStatus/GatewaysStatus';

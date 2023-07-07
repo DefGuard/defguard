@@ -10,7 +10,7 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Card } from '../../../../shared/components/layout/Card/Card';
-import LoaderSpinner from '../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import { SelectOption } from '../../../../shared/components/layout/Select/Select';
 import {
   ListHeader,

@@ -17,7 +17,7 @@ import Button, {
 } from '../../../../../../../shared/components/layout/Button/Button';
 import { ExpandableCard } from '../../../../../../../shared/components/layout/ExpandableCard/ExpandableCard';
 import { Input } from '../../../../../../../shared/components/layout/Input/Input';
-import LoaderSpinner from '../../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../../../shared/components/layout/MessageBox/MessageBox';

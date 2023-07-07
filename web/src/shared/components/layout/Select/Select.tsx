@@ -24,7 +24,7 @@ import {
 } from '../../../constants';
 import { detectClickInside } from '../../../utils/detectClickOutside';
 import { standardVariants } from '../../../variants';
-import LoaderSpinner from '../LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../LoaderSpinner/LoaderSpinner';
 import { Tag } from '../Tag/Tag';
 import { SelectArrowIcon } from './SelectArrowIcon';
 import { SelectOption } from './SelectOption';
