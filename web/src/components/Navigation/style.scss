@@ -17,6 +17,7 @@
   border-bottom: 1px solid v.$gray-border;
   box-sizing: border-box;
   z-index: 2;
+  user-select: none;
 
   .page-title {
     @include mix.poppins;
@@ -55,6 +56,7 @@
   transition-property: width;
   background-color: v.$white;
   overflow-x: hidden;
+  user-select: none;
 
   span {
     font-family: Poppins !important;

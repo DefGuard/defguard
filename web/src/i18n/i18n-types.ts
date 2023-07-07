@@ -2740,6 +2740,16 @@ type RootTranslation = {
 			addNewOptionDefault: string
 		}
 	}
+	redirectPage: {
+		/**
+		 * Y​o​u​ ​h​a​v​e​ ​b​e​e​n​ ​l​o​g​g​e​d​ ​i​n
+		 */
+		title: string
+		/**
+		 * Y​o​u​ ​w​i​l​l​ ​b​e​ ​r​e​d​i​r​e​c​t​e​d​ ​i​n​ ​a​ ​m​o​m​e​n​t​.​.​.
+		 */
+		subtitle: string
+	}
 }
 
 export type TranslationFunctions = {
@@ -5447,6 +5457,16 @@ export type TranslationFunctions = {
 			 */
 			addNewOptionDefault: () => LocalizedString
 		}
+	}
+	redirectPage: {
+		/**
+		 * You have been logged in
+		 */
+		title: () => LocalizedString
+		/**
+		 * You will be redirected in a moment...
+		 */
+		subtitle: () => LocalizedString
 	}
 }
 

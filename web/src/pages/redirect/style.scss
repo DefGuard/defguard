@@ -1,0 +1,42 @@
+@use '@scssutils' as *;
+
+#redirect-page {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0 20px;
+  user-select: none;
+
+  & > .card {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    padding: 30px 20px;
+    width: 100%;
+
+    @include media-breakpoint-up(md) {
+      padding: 50px 0;
+      width: 450px;
+    }
+
+    h2 {
+      @include typography(20px, 30px, semiBold, var(--text-main), 'Poppins');
+      margin-bottom: 20px;
+      width: 100%;
+      text-align: center;
+    }
+
+    p {
+      @include typography(12px, 1.2, regular, var(--gray-light), 'Roboto');
+      margin-bottom: 30px;
+      width: 100%;
+      text-align: center;
+    }
+  }
+}

@@ -59,6 +59,7 @@ export { default as IconConnected } from './IconConnected';
 export { default as IconCopy } from './IconCopy';
 export { default as IconDeactivated } from './IconDeactivated';
 export { default as IconDelete } from './IconDelete';
+export { default as IconDfgOpenidRedirect } from './IconDfgOpenidRedirect';
 export { default as IconDisconnected } from './IconDisconnected';
 export { default as IconDownload } from './IconDownload';
 export { default as IconEditAltHover } from './IconEditAltHover';
