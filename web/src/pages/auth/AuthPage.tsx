@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
 
@@ -12,6 +12,7 @@ import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { UserMFAMethod } from '../../shared/types';
+import { RedirectPage } from '../redirect/RedirectPage';
 import { Login } from './Login/Login';
 import { MFARoute } from './MFARoute/MFARoute';
 import { useMFAStore } from './shared/hooks/useMFAStore';
@@ -20,6 +21,7 @@ export const AuthPage = () => {
   const { getAppInfo } = useApi();
   const { LL } = useI18nContext();
   const navigate = useNavigate();
+  const [showRedirect, setShowRedirect] = useState(false);
 
   const loginSubject = useAuthStore((state) => state.loginSubject);
 
@@ -61,6 +63,7 @@ export const AuthPage = () => {
 
       // application already had consent from user
       if (url && url.length && user) {
+        setShowRedirect(true);
         resetMFAStore();
         window.location.replace(url);
         return;
@@ -110,6 +113,8 @@ export const AuthPage = () => {
     return () => sub?.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loginSubject, openIdParams]);
+
+  if (showRedirect) return <RedirectPage />;
 
   return (
     <div id="auth-container">

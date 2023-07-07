@@ -1199,6 +1199,10 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       addNewOptionDefault: 'Dodaj +',
     },
   },
+  redirectPage: {
+    title: 'Zostałeś zalogowany',
+    subtitle: 'Wkrótce zostaniesz przekierowany...',
+  },
 };
 
 export default pl;

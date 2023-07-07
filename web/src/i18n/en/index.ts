@@ -1196,6 +1196,10 @@ Any other requests you can reach us at: support@defguard.net
       addNewOptionDefault: 'Add new +',
     },
   },
+  redirectPage: {
+    title: 'You have been logged in',
+    subtitle: 'You will be redirected in a moment...',
+  },
 };
 
 export default en;
