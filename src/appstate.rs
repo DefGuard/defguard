@@ -78,6 +78,13 @@ impl AppState {
         }
     }
 
+    /// Sends multiple events to be handled by gateway GRPC server
+    pub fn send_multiple_wireguard_events(&self, events: Vec<GatewayEvent>) {
+        for event in events {
+            self.send_wireguard_event(event)
+        }
+    }
+
     /// Create application state
     pub async fn new(
         config: DefGuardConfig,

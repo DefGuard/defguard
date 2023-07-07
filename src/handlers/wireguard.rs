@@ -172,7 +172,9 @@ pub async fn modify_network(
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
+    // initialize DB transaction
     let mut transaction = appstate.pool.begin().await?;
+
     network.endpoint = data.endpoint;
     network.port = data.port;
     network.dns = data.dns;
@@ -182,8 +184,9 @@ pub async fn modify_network(
         .set_allowed_groups(&mut transaction, data.allowed_groups)
         .await?;
     let events = network
-        .sync_allowed_devices(&mut transaction, &appstate.config.admin_groupname)
+        .sync_allowed_devices(&mut transaction, &appstate.config.admin_groupname, None)
         .await?;
+
     match &network.id {
         Some(network_id) => {
             appstate
@@ -197,8 +200,11 @@ pub async fn modify_network(
         }
     }
     // send gateway events for changed devices
-    let _ = events.into_iter().map(|event| appstate.send_wireguard_event(event)).collect();
+    appstate.send_multiple_wireguard_events(events);
+
+    // commit DB transaction
     transaction.commit().await?;
+
     info!(
         "User {} updated WireGuard network {}",
         session.user.username, id
@@ -373,27 +379,29 @@ pub async fn import_network(
         }
     }
 
-    network.handle_imported_devices(&mut transaction, imported_devices).await?;
+    let reserved_ips: Vec<IpAddr> = imported_devices
+        .iter()
+        .map(|dev| dev.wireguard_ip)
+        .collect();
+    let (devices, gateway_events) = network
+        .handle_imported_devices(
+            &mut transaction,
+            imported_devices,
+            &appstate.config.admin_groupname,
+        )
+        .await?;
+    appstate.send_multiple_wireguard_events(gateway_events);
 
     // assign IPs for other existing devices
     info!("Assigning IPs in imported network for remaining existing devices");
-    let existing_devices = Device::all(&mut transaction).await?;
-    for device in existing_devices {
-        // skip if IP was already assigned based on imported config
-        if assigned_device_ids.contains(&device.id) {
-            continue;
-        }
-        let wireguard_network_device = device
-            .assign_network_ip(&mut transaction, &network, &reserved_ips)
-            .await?;
-        appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
-            device,
-            network_info: vec![DeviceNetworkInfo {
-                network_id,
-                device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
-            }],
-        }));
-    }
+    let gateway_events = network
+        .sync_allowed_devices(
+            &mut transaction,
+            &appstate.config.admin_groupname,
+            Some(&reserved_ips),
+        )
+        .await?;
+    appstate.send_multiple_wireguard_events(gateway_events);
 
     transaction.commit().await?;
 
@@ -456,7 +464,7 @@ pub async fn add_user_devices(
 
         network_info.push(DeviceNetworkInfo {
             network_id,
-            device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
+            device_wireguard_ip: wireguard_network_device.wireguard_ip,
         });
 
         // send device to connected gateways
@@ -597,7 +605,7 @@ pub async fn modify_device(
                 if let Some(wireguard_network_device) = wireguard_network_device {
                     let device_network_info = DeviceNetworkInfo {
                         network_id,
-                        device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
+                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
                     };
                     network_info.push(device_network_info)
                 }
@@ -644,9 +652,10 @@ pub async fn delete_device(
         session.user.username, device_id
     );
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
-    let device_pubkey = device.wireguard_pubkey.clone();
+    appstate.send_wireguard_event(GatewayEvent::DeviceDeleted(
+        DeviceInfo::from_device(&appstate.pool, device.clone()).await?,
+    ));
     device.delete(&appstate.pool).await?;
-    appstate.send_wireguard_event(GatewayEvent::DeviceDeleted(device_pubkey));
     info!(
         "User {} deleted device {}",
         session.user.username, device_id

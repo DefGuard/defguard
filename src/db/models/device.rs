@@ -40,7 +40,33 @@ pub struct DeviceInfo {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DeviceNetworkInfo {
     pub network_id: i64,
-    pub device_wireguard_ip: String,
+    pub device_wireguard_ip: IpAddr,
+}
+
+impl DeviceInfo {
+    pub async fn from_device<'e, E>(executor: E, device: Device) -> Result<Self, ModelError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
+        debug!("Generating device info for {}", device);
+        let device_id = device.get_id()?;
+        let network_info = query_as!(
+            DeviceNetworkInfo,
+            r#"
+            SELECT wireguard_network_id as network_id, wireguard_ip as "device_wireguard_ip: IpAddr"
+            FROM wireguard_network_device
+            WHERE device_id = $1
+        "#,
+            device_id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(Self {
+            device,
+            network_info,
+        })
+    }
 }
 
 // helper struct which includes full device info
@@ -483,7 +509,7 @@ impl Device {
             }
 
             let wireguard_network_device = self
-                .assign_network_ip(&mut *transaction, &network, &Vec::new())
+                .assign_network_ip(&mut *transaction, &network, None)
                 .await?;
             debug!(
                 "Assigned IP {} for device {} (user {}) in network {}",
@@ -491,7 +517,7 @@ impl Device {
             );
             let device_network_info = DeviceNetworkInfo {
                 network_id,
-                device_wireguard_ip: wireguard_network_device.wireguard_ip.to_string(),
+                device_wireguard_ip: wireguard_network_device.wireguard_ip,
             };
             network_info.push(device_network_info);
 
@@ -510,7 +536,7 @@ impl Device {
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
         network: &WireguardNetwork,
-        reserved_ips: &[IpAddr],
+        reserved_ips: Option<&Vec<IpAddr>>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
         let network_id = match network.id {
             Some(id) => id,
@@ -525,8 +551,10 @@ impl Device {
             if ip == net_ip || ip == net_network || ip == net_broadcast {
                 continue;
             }
-            if reserved_ips.contains(&ip) {
-                continue;
+            if let Some(reserved_ips) = reserved_ips {
+                if reserved_ips.contains(&ip) {
+                    continue;
+                }
             }
 
             // Break loop if IP is unassigned and return network device

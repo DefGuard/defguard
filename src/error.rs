@@ -46,8 +46,8 @@ impl From<tonic::Status> for OriWebError {
     }
 }
 
-impl From<rocket::http::Status> for OriWebError {
-    fn from(status: rocket::http::Status) -> Self {
+impl From<Status> for OriWebError {
+    fn from(status: Status) -> Self {
         Self::Http(status)
     }
 }
@@ -87,9 +87,9 @@ impl From<DeviceError> for OriWebError {
 impl From<GatewayMapError> for OriWebError {
     fn from(error: GatewayMapError) -> Self {
         match error {
-            GatewayMapError::NotFound(_, _) => Self::ObjectNotFound(format!("{}", error)),
-            GatewayMapError::NetworkNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
-            GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
+            GatewayMapError::NotFound(_, _)
+            | GatewayMapError::NetworkNotFound(_)
+            | GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
             GatewayMapError::RemoveActive(_) => Self::BadRequest(format!("{}", error)),
         }
     }
@@ -98,10 +98,12 @@ impl From<GatewayMapError> for OriWebError {
 impl From<WireguardNetworkError> for OriWebError {
     fn from(error: WireguardNetworkError) -> Self {
         match error {
-            WireguardNetworkError::NetworkTooSmall => Self::BadRequest(format!("{}", error)),
-            WireguardNetworkError::IpNetworkError(_) => Self::BadRequest(format!("{}", error)),
-            WireguardNetworkError::DbError(_) => Self::Http(Status::InternalServerError),
-            WireguardNetworkError::ModelError(_) => Self::Http(Status::InternalServerError),
+            WireguardNetworkError::NetworkTooSmall | WireguardNetworkError::IpNetworkError(_) => {
+                Self::BadRequest(format!("{}", error))
+            }
+            WireguardNetworkError::DbError(_)
+            | WireguardNetworkError::ModelError(_)
+            | WireguardNetworkError::Unexpected(_) => Self::Http(Status::InternalServerError),
         }
     }
 }
