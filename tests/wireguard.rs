@@ -883,7 +883,7 @@ async fn test_config_import() {
     assert_eq!(user_device_1.networks.len(), 2);
     assert_eq!(user_device_1.networks[1].device_wireguard_ip, "10.0.0.12");
     // generated IP for other existing device
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceModified(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceCreated(..));
     let user_device_2 = UserDevice::from_device(&pool, device_2)
         .await
         .unwrap()
