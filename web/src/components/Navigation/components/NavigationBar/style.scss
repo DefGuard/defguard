@@ -7,11 +7,18 @@
   width: 88px;
   position: fixed;
   inset: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   max-height: 100%;
   background-color: var(--white);
   box-sizing: border-box;
   border-right: 1px solid var(--gray-border);
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 
   .logo-container {
     user-select: none;
@@ -36,11 +43,13 @@
     align-items: center;
     justify-content: flex-start;
     box-sizing: border-box;
-    padding-top: 144px;
     width: 100%;
-    max-width: 100%;
     overflow: hidden;
     border-bottom: 1px solid var(--gray-border);
+
+    @media (min-height: 780px) {
+      padding-top: 144px;
+    }
 
     & > .bottom,
     & > .middle {

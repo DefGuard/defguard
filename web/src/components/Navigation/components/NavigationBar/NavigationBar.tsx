@@ -35,7 +35,12 @@ export const NavigationBar = ({ navItems, onLogout, isOpen }: Props) => {
         {isOpen && <img src={settings?.nav_logo_url} />}
         {!isOpen && <SvgDefguadNavLogoCollapsed />}
       </div>
-      <div className="links">
+      <div
+        className="links"
+        style={{
+          minHeight: (navItems.middle.length + navItems.bottom.length + 1) * 58,
+        }}
+      >
         <div className="middle">
           {navItems.middle.map((item) => (
             <NavigationLink key={item.linkPath} item={item} />
