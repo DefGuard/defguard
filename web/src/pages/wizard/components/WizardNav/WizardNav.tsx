@@ -18,7 +18,6 @@ import { DefguardNoIcon } from '../../../../shared/components/svg';
 import SvgIconArrowGrayLeft from '../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../shared/components/svg/IconArrowGrayRight';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
-import { useNavigationStore } from '../../../../shared/hooks/store/useNavigationStore';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
 import { useWizardStore } from '../../hooks/useWizardStore';
@@ -35,7 +34,6 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
   const toaster = useToaster();
   const navigate = useNavigate();
   const networkPresent = useAppStore((state) => state.appInfo?.network_present);
-  const setNavigationState = useNavigationStore((state) => state.setState);
   const [currentStep, loading] = useWizardStore(
     (state) => [state.currentStep, state.loading],
     shallow
@@ -72,7 +70,6 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
     nextSubject,
     queryClient,
     resetState,
-    setNavigationState,
     toaster,
   ]);
 

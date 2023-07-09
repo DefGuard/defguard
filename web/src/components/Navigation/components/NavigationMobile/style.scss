@@ -1,0 +1,41 @@
+@use '@scssutils' as *;
+
+.nav-mobile {
+  height: 57px;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 20px 0 20px;
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  justify-items: center;
+  background-color: var(--white);
+  column-gap: 10px;
+
+  .page-title {
+    width: 100%;
+    max-width: 100%;
+    text-align: center;
+    user-select: none;
+
+    @include text-overflow-dots;
+    @include typography(20px, 1.2, semiBold, var(--text-main), 'Poppins');
+  }
+
+  .hamburger {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    border: 0 solid transparent;
+    cursor: pointer;
+  }
+}

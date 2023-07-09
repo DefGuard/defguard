@@ -1,0 +1,111 @@
+@use '@scssutils' as *;
+.nav-bar {
+  display: grid;
+  grid-template-rows: 108px 1fr 70px;
+  grid-template-columns: 1fr;
+  height: 100%;
+  width: 88px;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  max-height: 100%;
+  background-color: var(--white);
+  box-sizing: border-box;
+  border-right: 1px solid var(--gray-border);
+
+  .logo-container {
+    user-select: none;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-flow: row nowrap;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--gray-border);
+  }
+
+  &.open {
+    width: 230px;
+  }
+
+  .links {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    padding-top: 144px;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    border-bottom: 1px solid var(--gray-border);
+
+    & > .bottom,
+    & > .middle {
+      display: flex;
+      flex-flow: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      width: 100%;
+      height: auto;
+      flex-grow: 0;
+    }
+
+    & > .bottom {
+      margin-top: auto;
+    }
+
+    a,
+    .log-out {
+      user-select: none;
+      position: relative;
+      display: grid;
+      grid-template-rows: 1fr;
+      grid-template-columns: 24px 1fr;
+      align-items: center;
+      justify-items: start;
+      height: 58px;
+      padding: 0 14px 0 32px;
+      width: 100%;
+      column-gap: 18px;
+      box-sizing: border-box;
+      max-width: 100%;
+      overflow: hidden;
+      background-color: transparent;
+      border: 0px solid transparent;
+      text-decoration: none;
+      @include typography(15px, 1.2, medium, var(--gray-light), 'Poppins');
+      cursor: pointer;
+
+      & > span {
+        color: inherit;
+        overflow: hidden;
+        max-width: 100%;
+      }
+
+      &:hover,
+      &.active {
+        color: var(--text-main);
+        & > svg {
+          g,
+          path {
+            fill: var(--primary);
+          }
+        }
+      }
+      & > .active-line {
+        content: ' ';
+        display: block;
+        height: 100%;
+        width: 2px;
+        background-color: var(--primary);
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+    }
+  }
+}

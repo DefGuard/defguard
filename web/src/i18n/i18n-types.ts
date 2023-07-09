@@ -1198,7 +1198,7 @@ type RootTranslation = {
 			 */
 			users: string
 			/**
-			 * Y​u​b​i​k​e​y
+			 * Y​u​b​i​K​e​y​s
 			 */
 			provisioners: string
 			/**
@@ -1261,14 +1261,21 @@ type RootTranslation = {
 			networkSettings: string
 		}
 		/**
-		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3
+		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3​ 
 		 */
 		copyright: string
-		/**
-		 * A​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​:​ ​{​v​e​r​s​i​o​n​}
-		 * @param {string} version
-		 */
-		version: RequiredParams<'version'>
+		version: {
+			/**
+			 * A​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​:​ ​{​v​e​r​s​i​o​n​}
+			 * @param {string} version
+			 */
+			open: RequiredParams<'version'>
+			/**
+			 * v​ ​{​v​e​r​s​i​o​n​}
+			 * @param {string} version
+			 */
+			closed: RequiredParams<'version'>
+		}
 	}
 	form: {
 		/**
@@ -3930,7 +3937,7 @@ export type TranslationFunctions = {
 			 */
 			users: () => LocalizedString
 			/**
-			 * Yubikey
+			 * YubiKeys
 			 */
 			provisioners: () => LocalizedString
 			/**
@@ -3993,13 +4000,19 @@ export type TranslationFunctions = {
 			networkSettings: () => LocalizedString
 		}
 		/**
-		 * Copyright © 2023
+		 * Copyright © 2023 
 		 */
 		copyright: () => LocalizedString
-		/**
-		 * Application version: {version}
-		 */
-		version: (arg: { version: string }) => LocalizedString
+		version: {
+			/**
+			 * Application version: {version}
+			 */
+			open: (arg: { version: string }) => LocalizedString
+			/**
+			 * v {version}
+			 */
+			closed: (arg: { version: string }) => LocalizedString
+		}
 	}
 	form: {
 		/**

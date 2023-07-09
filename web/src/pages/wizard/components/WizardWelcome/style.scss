@@ -6,6 +6,7 @@
   align-items: center;
   justify-content: flex-start;
   box-sizing: border-box;
+  user-select: none;
 
   @include media-breakpoint-down(lg) {
     background-color: var(--white);
