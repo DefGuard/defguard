@@ -1,21 +1,13 @@
 import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import React, { useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useLocation } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { Divider } from '../../shared/components/layout/Divider/Divider';
-import IconButton from '../../shared/components/layout/IconButton/IconButton';
-import SvgDefguadNavLogo from '../../shared/components/svg/DefguadNavLogo';
-import SvgDefguadNavLogoCollapsed from '../../shared/components/svg/DefguadNavLogoCollapsed';
-import SvgIconArrowDoubleGrayLeft from '../../shared/components/svg/IconArrowDoubleGrayLeft';
-import SvgIconEdit from '../../shared/components/svg/IconEditAlt';
-import SvgIconHamburgerMenu from '../../shared/components/svg/IconHamburgerMenu';
-import SvgIconNavLogout from '../../shared/components/svg/IconNavLogout';
+import SvgIconEditAlt from '../../shared/components/svg/IconEditAlt';
 import SvgIconNavOpenId from '../../shared/components/svg/IconNavOpenid';
 import SvgIconNavProfile from '../../shared/components/svg/IconNavProfile';
 import SvgIconNavProvisioners from '../../shared/components/svg/IconNavProvisioners';
@@ -25,78 +17,55 @@ import SvgIconNavWebhooks from '../../shared/components/svg/IconNavWebhooks';
 import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
-import { useNavigationStore } from '../../shared/hooks/store/useNavigationStore';
 import useApi from '../../shared/hooks/useApi';
-import { ApplicationVersion } from './ApplicationVersion/ApplicationVersion';
-import { MobileNavModal } from './MobileNavModal/MobileNavModal';
-import { NavigationLink } from './NavigationLink';
-
-export interface NavigationItem {
-  title: string;
-  linkPath: string;
-  icon?: React.ReactNode;
-  allowedToView?: string[];
-  enabled: boolean | undefined;
-}
+import { User } from '../../shared/types';
+import { NavigationDesktop } from './components/NavigationDesktop/NavigationDesktop';
+import { NavigationMobile } from './components/NavigationMobile/NavigationMobile';
+import { navigationExcludedRoutes } from './config';
+import { useNavigationStore } from './hooks/useNavigationStore';
+import { NavigationItem, NavigationItems } from './types';
 
 export const Navigation = () => {
+  const { pathname } = useLocation();
   const { LL } = useI18nContext();
   const [currentUser, resetAuthStore] = useAuthStore(
     (state) => [state.user, state.resetState],
     shallow
   );
-  const [isMobileNavOpen, setMobileNavOpen] = useState(false);
-  const [isNavigationOpen, setNavigationOpen] = useNavigationStore(
-    (state) => [state.isNavigationOpen, state.setNavigationOpen, state.user],
-    shallow
-  );
+  const setStore = useNavigationStore((state) => state.setState);
+
   const {
     auth: { logout },
   } = useApi();
-  const logOutMutation = useMutation(logout, {
+
+  const { mutate: logOutMutation } = useMutation(logout, {
     onSuccess: () => {
       resetAuthStore();
+      setStore({ isOpen: false });
     },
   });
 
   const settings = useAppStore((state) => state.settings);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
-  const { pathname } = useLocation();
+  const navItems = useMemo((): NavigationItems => {
+    if (!currentUser) {
+      return {
+        middle: [],
+        bottom: [],
+      };
+    }
 
-  const getPageTitle = useMemo(() => {
-    if (pathname === '/admin/settings') {
-      return LL.navigation.mobileTitles.settings();
-    }
-    if (pathname === '/admin/users' || pathname === '/admin/users/') {
-      return LL.navigation.mobileTitles.users();
-    }
-    if (pathname.includes('/admin/users/') || pathname.includes('/me')) {
-      return LL.navigation.mobileTitles.user();
-    }
-    if (pathname.includes('/admin/provisioners')) {
-      return LL.navigation.mobileTitles.provisioners();
-    }
-    if (pathname.includes('/admin/webhooks')) {
-      return LL.navigation.mobileTitles.webhooks();
-    }
-    if (pathname.includes('/admin/openid')) {
-      return LL.navigation.mobileTitles.openId();
-    }
-    if (pathname.includes('/admin/overview')) {
-      return LL.navigation.mobileTitles.overview();
-    }
-    if (pathname.includes('/admin/network')) {
-      return LL.navigation.mobileTitles.networkSettings();
-    }
-    if (pathname.includes('/admin/wizard')) {
-      return LL.navigation.mobileTitles.wizard();
-    }
-    return '';
-  }, [LL.navigation.mobileTitles, pathname]);
-
-  const navItems: NavigationItem[] = useMemo(() => {
-    let base: NavigationItem[] = [
+    let bottom: NavigationItem[] = [
+      {
+        title: LL.navigation.bar.settings(),
+        linkPath: '/admin/settings',
+        icon: <SvgIconEditAlt />,
+        allowedToView: ['admin'],
+        enabled: true,
+      },
+    ];
+    let middle: NavigationItem[] = [
       {
         title: LL.navigation.bar.overview(),
         linkPath: '/admin/overview',
@@ -140,7 +109,48 @@ export const Navigation = () => {
         enabled: true,
       },
     ];
-    base = base.filter((item) => {
+    middle = filterNavItems(middle, currentUser);
+    bottom = filterNavItems(bottom, currentUser);
+    return {
+      middle,
+      bottom,
+    };
+  }, [
+    LL.navigation.bar,
+    currentUser,
+    settings?.openid_enabled,
+    settings?.webhooks_enabled,
+    settings?.wireguard_enabled,
+    settings?.worker_enabled,
+  ]);
+
+  const renderNav = useMemo(() => {
+    for (const path of navigationExcludedRoutes) {
+      if (pathname.includes(path)) {
+        return false;
+      }
+    }
+    return true;
+  }, [pathname]);
+
+  if (!renderNav) return null;
+
+  return (
+    <>
+      {breakpoint === 'desktop' && (
+        <NavigationDesktop navItems={navItems} onLogout={() => logOutMutation()} />
+      )}
+      {breakpoint !== 'desktop' && (
+        <NavigationMobile navItems={navItems} onLogout={() => logOutMutation()} />
+      )}
+    </>
+  );
+};
+
+const filterNavItems = (items: NavigationItem[], currentUser: User): NavigationItem[] =>
+  items
+    .filter((item) => item.enabled)
+    .filter((item) => {
       if (item.allowedToView && item.allowedToView.length) {
         if (currentUser) {
           for (const group of currentUser.groups) {
@@ -156,85 +166,3 @@ export const Navigation = () => {
         return true;
       }
     });
-    base = base.filter((item) => item.enabled);
-
-    return base;
-  }, [
-    LL.navigation.bar,
-    currentUser,
-    settings?.openid_enabled,
-    settings?.webhooks_enabled,
-    settings?.wireguard_enabled,
-    settings?.worker_enabled,
-  ]);
-
-  return (
-    <>
-      {breakpoint !== 'desktop' ? (
-        <nav className="nav-mobile">
-          <SvgDefguadNavLogoCollapsed />
-          <p className="page-title">{getPageTitle}</p>
-          <IconButton className="hamburger-button" onClick={() => setMobileNavOpen(true)}>
-            <SvgIconHamburgerMenu />
-          </IconButton>
-        </nav>
-      ) : null}
-      {breakpoint === 'desktop' ? (
-        <>
-          <button
-            onClick={() => setNavigationOpen(!isNavigationOpen)}
-            className={'nav-control-button' + (isNavigationOpen ? '' : ' collapsed')}
-          >
-            <SvgIconArrowDoubleGrayLeft />
-          </button>
-          <motion.nav
-            className={'nav-container ' + (isNavigationOpen ? 'visible' : '')}
-            layout
-          >
-            <section className="logo-container">
-              {settings ? <img src={settings?.nav_logo_url} alt="logo" /> : null}
-              <SvgDefguadNavLogo
-                style={{ display: settings?.nav_logo_url ? 'none' : 'block' }}
-              />
-              <SvgDefguadNavLogoCollapsed />
-            </section>
-            <span className="divider"></span>
-            <section className="links">
-              {navItems.map((item) => (
-                <NavigationLink key={item.linkPath} item={item} />
-              ))}
-            </section>
-            <section className="links">
-              <NavigationLink
-                key={'/admin/settings'}
-                item={{
-                  title: LL.navigation.bar.settings(),
-                  linkPath: '/admin/settings',
-                  icon: <SvgIconEdit />,
-                  allowedToView: ['admin'],
-                  enabled: true,
-                }}
-              />
-              <button
-                data-testid="logout"
-                className="log-out"
-                onClick={() => logOutMutation.mutate()}
-              >
-                <SvgIconNavLogout />
-                <span>{LL.navigation.bar.logOut()}</span>
-              </button>
-              {isNavigationOpen ? <Divider key="app-version-divider" /> : null}
-              {isNavigationOpen ? <ApplicationVersion /> : null}
-            </section>
-          </motion.nav>
-        </>
-      ) : null}
-      <MobileNavModal
-        isOpen={isMobileNavOpen}
-        setIsOpen={setMobileNavOpen}
-        links={navItems}
-        onLogOut={() => logOutMutation.mutate()}
-      />
-    </>
-  );
-};

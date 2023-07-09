@@ -539,7 +539,7 @@ const en: BaseTranslation = {
     bar: {
       overview: 'VPN Overview',
       users: 'Users',
-      provisioners: 'Yubikey',
+      provisioners: 'YubiKeys',
       webhooks: 'Webhooks',
       openId: 'OpenID Apps',
       myProfile: 'My Profile',
@@ -557,8 +557,11 @@ const en: BaseTranslation = {
       overview: 'Location Overview',
       networkSettings: 'Edit Location',
     },
-    copyright: 'Copyright \u00A9 2023',
-    version: 'Application version: {version: string}',
+    copyright: 'Copyright \u00A9 2023 ',
+    version: {
+      open: 'Application version: {version: string}',
+      closed: 'v {version: string}',
+    },
   },
   form: {
     download: 'Download',

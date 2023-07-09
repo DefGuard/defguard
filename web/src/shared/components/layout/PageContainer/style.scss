@@ -1,4 +1,4 @@
-@use '@scss/helpers' as *;
+@use '@scssutils' as *;
 
 .page-container {
   @include media-breakpoint-down(lg) {
@@ -25,27 +25,21 @@
   }
 
   @include media-breakpoint-up(lg) {
-    transition-duration: var(--nav-collapse-duration);
-    transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
-    transition-property: transform, margin-left, margin-right;
     margin-left: 0;
     width: 100%;
     height: inherit;
     max-height: inherit;
 
     & > .page-content {
-      transition-duration: var(--nav-collapse-duration);
-      transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
-      transition-property: transform, margin-left, margin-right, width;
-      width: calc(100% - 104px);
-      margin-left: 104px;
+      width: calc(100% - 87px);
+      margin-left: 87px;
       height: inherit;
       max-height: inherit;
       position: relative;
 
       &.nav-open {
-        margin-left: 234px;
-        width: calc(100% - 234px);
+        margin-left: 230px;
+        width: calc(100% - 230px);
       }
     }
   }

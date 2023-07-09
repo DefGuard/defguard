@@ -20,6 +20,7 @@ import { PageContainer } from '../../shared/components/layout/PageContainer/Page
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
+import { Navigation } from '../Navigation/Navigation';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
@@ -140,6 +141,7 @@ const App = () => {
               }
             />
           </Routes>
+          <Navigation />
         </Router>
       </div>
       <ToastManager />

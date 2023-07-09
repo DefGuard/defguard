@@ -559,7 +559,10 @@ const pl: Translation = {
       networkSettings: 'Edycja lokalizacji',
     },
     copyright: 'Copyright \u00A9 2023',
-    version: 'Wersja aplikacji: {version}',
+    version: {
+      open: 'Wersja aplikacji: {version}',
+      closed: 'v {version}',
+    },
   },
   form: {
     download: 'Pobierz',

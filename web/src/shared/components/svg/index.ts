@@ -35,6 +35,7 @@ export { default as IconActivityAdd } from './IconActivityAdd';
 export { default as IconActivityRemoved } from './IconActivityRemoved';
 export { default as IconActivityWarning } from './IconActivityWarning';
 export { default as IconArrowDoubleGrayLeft } from './IconArrowDoubleGrayLeft';
+export { default as IconArrowDouble } from './IconArrowDouble';
 export { default as IconArrowGrayDown1 } from './IconArrowGrayDown1';
 export { default as IconArrowGrayDown } from './IconArrowGrayDown';
 export { default as IconArrowGrayLeft } from './IconArrowGrayLeft';
