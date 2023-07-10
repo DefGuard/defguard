@@ -374,14 +374,17 @@ impl User {
         .await
     }
 
-    pub async fn member_of(&self, pool: &DbPool) -> Result<Vec<String>, SqlxError> {
+    pub async fn member_of<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         if let Some(id) = self.id {
             query_scalar!(
                 "SELECT \"group\".name FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
                 WHERE group_user.user_id = $1",
                 id
             )
-            .fetch_all(pool)
+            .fetch_all(executor)
             .await
         } else {
             Ok(Vec::new())

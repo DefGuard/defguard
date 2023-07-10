@@ -139,7 +139,7 @@ const pl: Translation = {
 `,
             },
             inputNameLabel: 'Nazwa urządzenia',
-            qrInfo: `Użyj dostarczonego pliku konfiguracyjnego poniżej skanując QR Code lub importując go jako plik na 
+            qrInfo: `Użyj dostarczonego pliku konfiguracyjnego poniżej skanując QR Code lub importując go jako plik na
 						instancję WireGuard w Twoich urządzeniach.`,
             qrLabel: 'Plik konfiguracyjny Wireguard',
             qrCardTitle: 'Konfiguracja dla lokalizacji:',
@@ -251,7 +251,7 @@ const pl: Translation = {
     provisionKeys: {
       title: 'Provisionowanie YubiKeya:',
       infoBox: `Wybrany provisioner musi mieć podłączony <b>pusty</b> YubiKey.
-                Aby zresetować YubiKey uruchom 
+                Aby zresetować YubiKey uruchom
                 <b>gpg --card-edit</b> przed generowaniem kluczy.`,
       selectionLabel:
         'Wybierz jeden z następujących provisionerów, aby wygenrować klucze na YubiKey:',
@@ -753,11 +753,11 @@ const pl: Translation = {
     supportCard: {
       title: 'Wsparcie',
       body: `
-Przed zgłoszeniem problemów na Github należy zapoznać z dokumentacją dostępną na [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/) 
+Przed zgłoszeniem problemów na Github należy zapoznać z dokumentacją dostępną na [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
 
 Aby zgłosić:
 * Problem - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
-* Prośbę o nową funkcjonalność - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=) 
+* Prośbę o nową funkcjonalność - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
 
 W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
 `,
@@ -1017,6 +1017,8 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
         dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs wireguard jest aktywny.',
         allowedIps: 'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
+        allowedGroups:
+          'Domyślnie wszyscy użytkownicy będą mogli połączyć się z tą lokalizacją. Jeżeli chcesz ogranicznyć dostęp do tej lokalizacji do wybranej grupy użytkowników, wybierz ją poniżej.',
       },
       messages: {
         networkModified: 'Lokalizacja zmodyfikowana',
@@ -1040,6 +1042,10 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
         },
         dns: {
           label: 'DNS',
+        },
+        allowedGroups: {
+          label: 'Dozwolone grupy',
+          placeholder: 'Wszystkie grupy',
         },
       },
       controls: {

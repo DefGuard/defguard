@@ -2354,6 +2354,10 @@ type RootTranslation = {
 				 * L​i​s​t​ ​o​f​ ​a​d​d​r​e​s​s​e​s​/​m​a​s​k​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​r​o​u​t​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​n​e​t​w​o​r​k​.
 				 */
 				allowedIps: string
+				/**
+				 * B​y​ ​d​e​f​a​u​l​t​,​ ​a​l​l​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​a​l​l​o​w​e​d​ ​t​o​ ​c​o​n​n​e​c​t​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​.​ ​I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​r​e​s​t​r​i​c​t​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​ ​t​o​ ​a​ ​s​p​e​c​i​f​i​c​ ​g​r​o​u​p​,​ ​p​l​e​a​s​e​ ​s​e​l​e​c​t​ ​i​t​ ​b​e​l​o​w​.
+				 */
+				allowedGroups: string
 			}
 			messages: {
 				/**
@@ -2401,6 +2405,16 @@ type RootTranslation = {
 					 * D​N​S
 					 */
 					label: string
+				}
+				allowedGroups: {
+					/**
+					 * A​l​l​o​w​e​d​ ​g​r​o​u​p​s
+					 */
+					label: string
+					/**
+					 * A​l​l​ ​g​r​o​u​p​s
+					 */
+					placeholder: string
 				}
 			}
 			controls: {
@@ -5079,6 +5093,10 @@ export type TranslationFunctions = {
 				 * List of addresses/masks that should be routed through the VPN network.
 				 */
 				allowedIps: () => LocalizedString
+				/**
+				 * By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.
+				 */
+				allowedGroups: () => LocalizedString
 			}
 			messages: {
 				/**
@@ -5126,6 +5144,16 @@ export type TranslationFunctions = {
 					 * DNS
 					 */
 					label: () => LocalizedString
+				}
+				allowedGroups: {
+					/**
+					 * Allowed groups
+					 */
+					label: () => LocalizedString
+					/**
+					 * All groups
+					 */
+					placeholder: () => LocalizedString
 				}
 			}
 			controls: {

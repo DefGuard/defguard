@@ -1,5 +1,6 @@
 use crate::auth::failed_login::FailedLoginError;
 use crate::db::models::device::DeviceError;
+use crate::db::models::wireguard::WireguardNetworkError;
 use crate::grpc::GatewayMapError;
 use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
 use rocket::http::Status;
@@ -45,8 +46,8 @@ impl From<tonic::Status> for OriWebError {
     }
 }
 
-impl From<rocket::http::Status> for OriWebError {
-    fn from(status: rocket::http::Status) -> Self {
+impl From<Status> for OriWebError {
+    fn from(status: Status) -> Self {
         Self::Http(status)
     }
 }
@@ -86,10 +87,27 @@ impl From<DeviceError> for OriWebError {
 impl From<GatewayMapError> for OriWebError {
     fn from(error: GatewayMapError) -> Self {
         match error {
-            GatewayMapError::NotFound(_, _) => Self::ObjectNotFound(format!("{}", error)),
-            GatewayMapError::NetworkNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
-            GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
+            GatewayMapError::NotFound(_, _)
+            | GatewayMapError::NetworkNotFound(_)
+            | GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
             GatewayMapError::RemoveActive(_) => Self::BadRequest(format!("{}", error)),
+        }
+    }
+}
+
+impl From<WireguardNetworkError> for OriWebError {
+    fn from(error: WireguardNetworkError) -> Self {
+        match error {
+            WireguardNetworkError::NetworkTooSmall
+            | WireguardNetworkError::IpNetworkError(_)
+            | WireguardNetworkError::InvalidDevicePubkey(_) => {
+                Self::BadRequest(format!("{}", error))
+            }
+            WireguardNetworkError::DbError(_)
+            | WireguardNetworkError::ModelError(_)
+            | WireguardNetworkError::Unexpected(_)
+            | WireguardNetworkError::DeviceError(_)
+            | WireguardNetworkError::DeviceNotAllowed(_) => Self::Http(Status::InternalServerError),
         }
     }
 }

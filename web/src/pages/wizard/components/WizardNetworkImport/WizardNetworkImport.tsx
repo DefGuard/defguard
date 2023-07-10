@@ -1,9 +1,9 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import * as yup from 'yup';
@@ -11,6 +11,7 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../shared/components/Form/FormSelect/FormSelect';
 import { Button } from '../../../../shared/components/layout/Button/Button';
 import {
   ButtonSize,
@@ -18,22 +19,29 @@ import {
 } from '../../../../shared/components/layout/Button/types';
 import { Card } from '../../../../shared/components/layout/Card/Card';
 import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
+import {
+  SelectOption,
+  SelectStyleVariant,
+} from '../../../../shared/components/layout/Select/Select';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
 import { ImportNetworkRequest } from '../../../../shared/types';
+import { titleCase } from '../../../../shared/utils/titleCase';
 import { validateIpOrDomain } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
-interface FormInputs extends ImportNetworkRequest {
+interface FormInputs extends Omit<ImportNetworkRequest, 'allowed_groups'> {
   fileName: string;
+  allowed_groups: SelectOption<string>[];
 }
 const defaultValues: FormInputs = {
   name: '',
   endpoint: '',
   fileName: '',
   config: '',
+  allowed_groups: [],
 };
 export const WizardNetworkImport = () => {
   const submitRef = useRef<HTMLInputElement>(null);
@@ -42,6 +50,7 @@ export const WizardNetworkImport = () => {
   const navigate = useNavigate();
   const {
     network: { importNetwork },
+    groups: { getGroups },
   } = useApi();
   const toaster = useToaster();
   const [setWizardState, nextStepSubject, submitSubject, resetWizard] = useWizardStore(
@@ -53,6 +62,7 @@ export const WizardNetworkImport = () => {
     ],
     shallow
   );
+  const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
 
   const schema = useMemo(
     () =>
@@ -113,7 +123,10 @@ export const WizardNetworkImport = () => {
     (data) => {
       if (!isLoading) {
         setWizardState({ loading: true });
-        importNetworkMutation(data);
+        importNetworkMutation({
+          ...data,
+          allowed_groups: data.allowed_groups.map((o) => o.value),
+        });
       }
     },
     [importNetworkMutation, isLoading, setWizardState]
@@ -153,6 +166,24 @@ export const WizardNetworkImport = () => {
     return () => sub?.unsubscribe();
   }, [submitSubject]);
 
+  const { isLoading: groupsLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_GROUPS],
+    queryFn: getGroups,
+    onSuccess: (res) => {
+      setGroupOptions(
+        res.groups.map((g) => ({
+          key: g,
+          value: g,
+          label: titleCase(g),
+        }))
+      );
+    },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
+
   return (
     <Card id="wizard-network-import" shaded>
       <form onSubmit={handleSubmit(onValidSubmit)}>
@@ -168,6 +199,20 @@ export const WizardNetworkImport = () => {
           controller={{ control, name: 'endpoint' }}
           outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
           disabled={!isUndefined(data)}
+        />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
+        </MessageBox>
+        <FormSelect
+          styleVariant={SelectStyleVariant.WHITE}
+          controller={{ control, name: 'allowed_groups' }}
+          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          loading={groupsLoading}
+          disabled={!isUndefined(data)}
+          options={groupOptions}
+          placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
+          multi
+          searchable
         />
         <FormInput
           controller={{ control, name: 'fileName' }}

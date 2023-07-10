@@ -30,6 +30,7 @@ fn make_network() -> Value {
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "allowed_groups": [],
     })
 }
 
@@ -63,6 +64,7 @@ async fn test_network() {
         port: 55555,
         allowed_ips: Some("10.1.1.0/24".into()),
         dns: None,
+        allowed_groups: vec![],
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id.unwrap()))
@@ -140,13 +142,13 @@ async fn test_device() {
     assert_matches!(event, GatewayEvent::DeviceCreated(..));
 
     // an IP was assigned for new device
-    let network_devices = WireguardNetworkDevice::findy_by_device(&client_state.pool, 1)
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 1)
         .await
         .unwrap()
         .unwrap();
     assert_eq!(
         network_devices[0].wireguard_network_id,
-        network_from_details.id
+        network_from_details.id.unwrap()
     );
 
     // add another network
@@ -159,7 +161,7 @@ async fn test_device() {
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
 
     // an IP was assigned for an existing device
-    let network_devices = WireguardNetworkDevice::findy_by_device(&client_state.pool, 1)
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 1)
         .await
         .unwrap()
         .unwrap();
@@ -821,7 +823,7 @@ async fn test_config_import() {
     );
     device_1.save(&mut transaction).await.unwrap();
     device_1
-        .add_to_all_networks(&mut transaction)
+        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
         .await
         .unwrap();
 
@@ -832,7 +834,7 @@ async fn test_config_import() {
     );
     device_2.save(&mut transaction).await.unwrap();
     device_2
-        .add_to_all_networks(&mut transaction)
+        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
         .await
         .unwrap();
 
@@ -847,7 +849,7 @@ async fn test_config_import() {
     // import network
     let response = client
         .post("/api/v1/network/import")
-        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": []}))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Created);
@@ -881,7 +883,7 @@ async fn test_config_import() {
     assert_eq!(user_device_1.networks.len(), 2);
     assert_eq!(user_device_1.networks[1].device_wireguard_ip, "10.0.0.12");
     // generated IP for other existing device
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceModified(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceCreated(..));
     let user_device_2 = UserDevice::from_device(&pool, device_2)
         .await
         .unwrap()
@@ -893,7 +895,7 @@ async fn test_config_import() {
     assert_eq!(devices.len(), 2);
 
     let mut device1 = devices[0].clone();
-    assert_eq!(device1.wireguard_ip, "10.0.0.10");
+    assert_eq!(device1.wireguard_ip.to_string(), "10.0.0.10");
     assert_eq!(
         device1.wireguard_pubkey,
         "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
@@ -902,7 +904,7 @@ async fn test_config_import() {
     assert_eq!(device1.user_id, None);
 
     let mut device2 = devices[1].clone();
-    assert_eq!(device2.wireguard_ip, "10.0.0.11");
+    assert_eq!(device2.wireguard_ip.to_string(), "10.0.0.11");
     assert_eq!(
         device2.wireguard_pubkey,
         "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="

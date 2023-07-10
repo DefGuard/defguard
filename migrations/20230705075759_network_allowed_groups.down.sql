@@ -1,0 +1,1 @@
+DROP TABLE wireguard_network_allowed_group;

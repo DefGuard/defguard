@@ -38,7 +38,7 @@ impl WireguardNetwork {
         let result = query_as!(
             Peer,
             r#"
-            SELECT d.wireguard_pubkey as pubkey, array[wnd.wireguard_ip] as "allowed_ips!" FROM wireguard_network_device wnd
+            SELECT d.wireguard_pubkey as pubkey, array[wnd.wireguard_ip] as "allowed_ips!: Vec<String>" FROM wireguard_network_device wnd
             JOIN device d
             ON wnd.device_id = d.id
             WHERE wireguard_network_id = $1
@@ -187,7 +187,7 @@ impl GatewayUpdatesHandler {
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
-                                    allowed_ips: vec![network_info.device_wireguard_ip.clone()],
+                                    allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
                                 },
                                 0,
                             )
@@ -207,7 +207,7 @@ impl GatewayUpdatesHandler {
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
-                                    allowed_ips: vec![network_info.device_wireguard_ip.clone()],
+                                    allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
                                 },
                                 1,
                             )
@@ -216,8 +216,16 @@ impl GatewayUpdatesHandler {
                         None => Ok(()),
                     }
                 }
-                GatewayEvent::DeviceDeleted(device_pub_key) => {
-                    self.send_peer_delete(&device_pub_key).await
+                GatewayEvent::DeviceDeleted(device) => {
+                    // check if a peer has to be updated in the current network
+                    match device
+                        .network_info
+                        .iter()
+                        .find(|info| Some(info.network_id) == self.network.id)
+                    {
+                        Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey).await,
+                        None => Ok(()),
+                    }
                 }
             };
             if result.is_err() {

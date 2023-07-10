@@ -346,7 +346,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         1,
     );
     device
-        .assign_network_ip(&mut transaction, &network, &Vec::new())
+        .assign_network_ip(&mut transaction, &network, None)
         .await
         .expect("Could not assign IP to device");
     device

@@ -111,7 +111,7 @@
 
       & > .search-frame > .select-search::placeholder,
       & > .placeholder {
-        @include typography(15px, 18px, medium, var(--text-main));
+        @include typography(15px, 18px, regular, var(--text-main));
       }
     }
 

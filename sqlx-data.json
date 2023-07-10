@@ -554,6 +554,38 @@
     },
     "query": "SELECT id \"id?\", user_id, name, passkey FROM webauthn WHERE user_id = $1"
   },
+  "18e96b44b04c6ed00424ac497889e5952c877f1d14216f5b083fd7fa7c927bb7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "device_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "wireguard_network_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "wireguard_ip: IpAddr",
+          "ordinal": 2,
+          "type_info": "Inet"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM\n            wireguard_network_device\n            WHERE wireguard_network_id = $1"
+  },
   "1996dee9b5e3b8f8a1f63f99e83230927c09d30ceabd07dc193502ce780a3aed": {
     "describe": {
       "columns": [],
@@ -862,38 +894,6 @@
       }
     },
     "query": "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE oauth2authorizedapp_id = $1"
-  },
-  "30b56753b839207eae5dab9cba0c061203728b6e272b270ac1111048c80363d3": {
-    "describe": {
-      "columns": [
-        {
-          "name": "device_id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "wireguard_network_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "wireguard_ip",
-          "ordinal": 2,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        true,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT *\n            FROM wireguard_network_device WHERE device_id = $1"
   },
   "31b3fcaa8109121f985a2c740475f1d77fe8dcbcab76e64164be140ad361ab14": {
     "describe": {
@@ -1390,68 +1390,11 @@
         "Left": [
           "Int8",
           "Int8",
-          "Text"
+          "Inet"
         ]
       }
     },
     "query": "\n        UPDATE wireguard_network_device\n        SET wireguard_ip = $3\n        WHERE device_id = $1 AND wireguard_network_id = $2\n        "
-  },
-  "4b17182c8e0271894d0e91598672d9f3fd43328d37adcc82168e26c12c5f8c05": {
-    "describe": {
-      "columns": [
-        {
-          "name": "network_id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "network_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "gateway_endpoint",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "device_wireguard_ip",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "device_endpoint",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "latest_handshake?",
-          "ordinal": 5,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "is_active!",
-          "ordinal": 6,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Float8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n                WITH stats AS (\n                    SELECT DISTINCT ON (network) network, endpoint, latest_handshake\n                    FROM wireguard_peer_stats\n                    ORDER BY network, collected_at DESC\n                )\n                SELECT\n                    n.id as network_id, n.name as network_name, n.endpoint as gateway_endpoint,\n                    wnd.wireguard_ip as device_wireguard_ip, stats.endpoint as device_endpoint,\n                    stats.latest_handshake as \"latest_handshake?\",\n                    COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as \"is_active!\"\n                FROM wireguard_network_device wnd\n                JOIN wireguard_network n ON n.id = wnd.wireguard_network_id\n                LEFT JOIN stats on n.id = stats.network\n                WHERE wnd.device_id = $2\n                "
   },
   "4e1d29f6440594e4303d9ff7da541b4bca33b44e931126ba8c6b31304a9206b3": {
     "describe": {
@@ -1472,6 +1415,19 @@
       }
     },
     "query": "UPDATE \"wireguard_peer_stats\" SET \"device_id\" = $2, \"collected_at\" = $3, \"network\" = $4, \"endpoint\" = $5, \"upload\" = $6, \"download\" = $7, \"latest_handshake\" = $8, \"allowed_ips\" = $9 WHERE id = $1"
+  },
+  "4f318cd5100bf4d155a555b927cc7421cb5324f70e427bd7e6f7312be4a20946": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n            DELETE FROM wireguard_network_allowed_group\n            WHERE network_id = $1 AND group_id IN (\n                SELECT id\n                FROM \"group\"\n                WHERE name IN (SELECT * FROM UNNEST($2::text[]))\n            )\n            "
   },
   "501e4426106d4972d7bd6d769bb6dd239be2168c4afdfc618de4c7facaad67a3": {
     "describe": {
@@ -1792,6 +1748,39 @@
       }
     },
     "query": "SELECT id \"id?\", \"device_id\", \"collected_at\", \"network\", \"endpoint\", \"upload\", \"download\", \"latest_handshake\", \"allowed_ips\" FROM \"wireguard_peer_stats\""
+  },
+  "66d2e2f3156ce802a0018bea5aa0718b2ce599d44de6382e854174053a639f5a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "device_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "wireguard_network_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "wireguard_ip: IpAddr",
+          "ordinal": 2,
+          "type_info": "Inet"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM\n            wireguard_network_device\n            WHERE device_id = $1 AND wireguard_network_id = $2"
   },
   "6baad9180990dceb250efa8de80ee675dbcff58ce1e134b6fe1d8d8958bc3dea": {
     "describe": {
@@ -2297,6 +2286,50 @@
     },
     "query": "UPDATE \"group\" SET \"name\" = $2 WHERE id = $1"
   },
+  "872e70c5006c45dc3502642444a4d00e5f8a5c23062392e1a60613936acfa07b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM wireguard_network_allowed_group WHERE network_id=$1"
+  },
+  "8880011a898ca2b97b0cfdbf027509d4855f46e4871caaa1fc95f2f612efcc4b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "device_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "wireguard_network_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "wireguard_ip: IpAddr",
+          "ordinal": 2,
+          "type_info": "Inet"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\"\n            FROM wireguard_network_device WHERE device_id = $1"
+  },
   "893d23db987b1d1c3a0a14759327b2945cc8409866177bafbe167279c59a1f22": {
     "describe": {
       "columns": [
@@ -2541,6 +2574,19 @@
       }
     },
     "query": "\n            SELECT\n                latest_handshake \"latest_handshake: NaiveDateTime\"\n            FROM wireguard_peer_stats_view\n            WHERE device_id = $1\n                AND latest_handshake IS NOT NULL\n                AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL)\n                AND network = $3\n            ORDER BY collected_at DESC\n            LIMIT 1\n            "
+  },
+  "9838df2efdce6632793cb64bf4a118ceb4a68dad324366ed65813b05cc5ba63c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO wireguard_network_allowed_group (network_id, group_id)\n            SELECT $1, g.id\n            FROM \"group\" g\n            WHERE g.name = $2\n            "
   },
   "984544838a95d7e90fdd8f2d8108558118167abd49d43e0fb7372df65b427115": {
     "describe": {
@@ -2903,51 +2949,6 @@
     },
     "query": "UPDATE oauth2token SET access_token = $2, refresh_token = $3, expires_in = $4 WHERE access_token = $1"
   },
-  "a38cb92e295e5cd6ee0237f95d6a838be2aff89d769f8c67c0fe3a9b53022697": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "wireguard_pubkey",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "created",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created FROM device d\n            JOIN wireguard_network_device wnd\n            ON d.id = wnd.device_id\n            WHERE wnd.wireguard_ip = $1 AND wnd.wireguard_network_id = $2"
-  },
   "a8f720a41ab4509570490d444180ae58f20596491a3ac2be3ab00a8a19c78c58": {
     "describe": {
       "columns": [],
@@ -2965,6 +2966,19 @@
       }
     },
     "query": "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, web3_challenge) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+  },
+  "aa8bbafc145ad47aaac28e9863c19b1db6a855e917cdaf619a9461ad89b96917": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n        DELETE FROM wireguard_network_device\n        WHERE device_id = $1 AND wireguard_network_id = $2\n        "
   },
   "aab1efd3aaf0ce869f2723f5fbc5d2620807ca2d7a3ea09de8b530f92ab6889f": {
     "describe": {
@@ -3022,6 +3036,26 @@
       }
     },
     "query": "INSERT INTO \"webhook\" (\"url\", \"description\", \"token\", \"enabled\", \"on_user_created\", \"on_user_deleted\", \"on_user_modified\", \"on_hwkey_provision\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
+  },
+  "ad0934b3563f5ab5ca351d0db6a2677301edffa66042632d02c9b77dd11a1e83": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT name\n            FROM wireguard_network_allowed_group wag\n            JOIN \"group\" g ON wag.group_id = g.id\n            WHERE wag.network_id = $1\n            "
   },
   "b21335d4485d9b5a5b27dc54673a8595cb92a695c80838ad5a39230843af9b42": {
     "describe": {
@@ -3328,6 +3362,63 @@
     },
     "query": "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, web3_challenge FROM session WHERE id = $1"
   },
+  "c0e30b2a0b711ea77d88a6dc9c92d0faa187d2bb59bedd0c66d1eae866922901": {
+    "describe": {
+      "columns": [
+        {
+          "name": "network_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "network_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "gateway_endpoint",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "device_wireguard_ip: IpAddr",
+          "ordinal": 3,
+          "type_info": "Inet"
+        },
+        {
+          "name": "device_endpoint",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "latest_handshake?",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "is_active!",
+          "ordinal": 6,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Float8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n                WITH stats AS (\n                    SELECT DISTINCT ON (network) network, endpoint, latest_handshake\n                    FROM wireguard_peer_stats\n                    WHERE device_id = $2\n                    ORDER BY network, collected_at DESC\n                )\n                SELECT\n                    n.id as network_id, n.name as network_name, n.endpoint as gateway_endpoint,\n                    wnd.wireguard_ip as \"device_wireguard_ip: IpAddr\", stats.endpoint as device_endpoint,\n                    stats.latest_handshake as \"latest_handshake?\",\n                    COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as \"is_active!\"\n                FROM wireguard_network_device wnd\n                JOIN wireguard_network n ON n.id = wnd.wireguard_network_id\n                LEFT JOIN stats on n.id = stats.network\n                WHERE wnd.device_id = $2\n                "
+  },
   "c851b4b167e29f757fbae6b1bc731aa733776496d05658cd8f1164554bd7539c": {
     "describe": {
       "columns": [
@@ -3570,38 +3661,75 @@
     },
     "query": "SELECT id \"id?\", \"client_id\", \"client_secret\", \"redirect_uri\" \"redirect_uri: _\", \"scope\" \"scope: _\", \"name\", \"enabled\" FROM \"oauth2client\""
   },
-  "d4a4aa177810022c3b60c3d6c6cf83319aa258800d8d93c8804eaf2d0eb5d405": {
+  "d3b425017872becff45f39513c9e09b3d3ba8fc86e97c7f1ff21597a884af06d": {
     "describe": {
       "columns": [
         {
-          "name": "device_id",
+          "name": "network_id",
           "ordinal": 0,
           "type_info": "Int8"
         },
         {
-          "name": "wireguard_network_id",
+          "name": "device_wireguard_ip: IpAddr",
           "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "wireguard_ip",
-          "ordinal": 2,
-          "type_info": "Text"
+          "type_info": "Inet"
         }
       ],
       "nullable": [
-        true,
-        true,
+        false,
         false
       ],
       "parameters": {
         "Left": [
-          "Int8",
           "Int8"
         ]
       }
     },
-    "query": "SELECT * FROM\n            wireguard_network_device\n            WHERE device_id = $1 AND wireguard_network_id = $2"
+    "query": "\n            SELECT wireguard_network_id as network_id, wireguard_ip as \"device_wireguard_ip: IpAddr\"\n            FROM wireguard_network_device\n            WHERE device_id = $1\n        "
+  },
+  "d95a7b2663ca0fc8094733b278c8b8a9afea074f64701ecae58473920e26c6e2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "wireguard_pubkey",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n            SELECT DISTINCT ON (d.id) d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created\n            FROM device d\n            JOIN \"user\" u ON d.user_id = u.id\n            JOIN group_user gu ON u.id = gu.user_id\n            JOIN \"group\" g ON gu.group_id = g.id\n            WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[]))\n            "
   },
   "d98e365929bb0fbf3915b517db93168f76f9a0c4832cd2efd13d74268cc435b8": {
     "describe": {
@@ -3885,7 +4013,7 @@
         {
           "name": "wireguard_ip",
           "ordinal": 0,
-          "type_info": "Text"
+          "type_info": "Inet"
         }
       ],
       "nullable": [
@@ -3899,6 +4027,32 @@
       }
     },
     "query": "\n                SELECT wireguard_ip\n                FROM wireguard_network_device\n                WHERE device_id = $1 AND wireguard_network_id = $2\n            "
+  },
+  "e95b401e571bc46a3ee04a653afa7b85d4045531734aa6fbcfce4460f5d68381": {
+    "describe": {
+      "columns": [
+        {
+          "name": "pubkey",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "allowed_ips!: Vec<String>",
+          "ordinal": 1,
+          "type_info": "InetArray"
+        }
+      ],
+      "nullable": [
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT d.wireguard_pubkey as pubkey, array[wnd.wireguard_ip] as \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd\n            JOIN device d\n            ON wnd.device_id = d.id\n            WHERE wireguard_network_id = $1\n        "
   },
   "e99464b4da5a21bcffda16866783d11c819eb078e392f1492467ae420800242d": {
     "describe": {
@@ -3919,20 +4073,6 @@
       }
     },
     "query": "INSERT INTO \"group\" (\"name\") VALUES ($1) RETURNING id"
-  },
-  "ea89a1f46d3e94d611021a9eaccd2252a6bb7788ac44f2adb758c73f4476433d": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO wireguard_network_device\n                (device_id, wireguard_network_id, wireguard_ip)\n                VALUES ($1, $2, $3)"
   },
   "eb00cea26638259fe12354abc085bbf893f10e62afb409fb0f198d33aadf1497": {
     "describe": {
@@ -4068,6 +4208,20 @@
     },
     "query": "\n            WITH s AS (\n                SELECT DISTINCT ON (device_id) *\n                FROM wireguard_peer_stats\n                ORDER BY device_id, latest_handshake DESC\n            )\n            SELECT\n                d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created\n            FROM device d\n            JOIN s ON d.id = s.device_id\n            WHERE s.latest_handshake > $1 AND s.network = $2\n            "
   },
+  "ee6ed3df25517a6fedf6981166e58601de53af70dd28f69b84caca6e36cb8956": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Inet"
+        ]
+      }
+    },
+    "query": "INSERT INTO wireguard_network_device\n                (device_id, wireguard_network_id, wireguard_ip)\n                VALUES ($1, $2, $3)\n                ON CONFLICT ON CONSTRAINT device_network\n                DO UPDATE SET wireguard_ip = $3"
+  },
   "eee2734f98b411d6fc75bf92027d84b8ca5e41de023a473681c076d6cc072ab2": {
     "describe": {
       "columns": [],
@@ -4159,32 +4313,6 @@
     },
     "query": "INSERT INTO oauth2token (oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in) VALUES ($1, $2, $3, $4, $5, $6)"
   },
-  "f83b80fda6b7c7dd6c3493bbb80d8f6f5a8d5e86c5762b021196f32f4da9020c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "pubkey",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "allowed_ips!",
-          "ordinal": 1,
-          "type_info": "TextArray"
-        }
-      ],
-      "nullable": [
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n            SELECT d.wireguard_pubkey as pubkey, array[wnd.wireguard_ip] as \"allowed_ips!\" FROM wireguard_network_device wnd\n            JOIN device d\n            ON wnd.device_id = d.id\n            WHERE wireguard_network_id = $1\n        "
-  },
   "fc3e288a55cef64d17ef2a373aa7fb46dd2548610a09ada4bf2daa8b98249901": {
     "describe": {
       "columns": [],
@@ -4196,6 +4324,51 @@
       }
     },
     "query": "DELETE FROM webauthn WHERE user_id = $1"
+  },
+  "fd92ab2977c9c170e2254f13bd99fcb569ef4b44029783648b0613ca8db2a393": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "wireguard_pubkey",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Inet",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created\n            FROM device d\n            JOIN wireguard_network_device wnd\n            ON d.id = wnd.device_id\n            WHERE wnd.wireguard_ip = $1 AND wnd.wireguard_network_id = $2"
   },
   "fdbd4d1e1b8634719de4ea543e51943e5d1d1c1ec63c62e22356d57ffa20ed02": {
     "describe": {

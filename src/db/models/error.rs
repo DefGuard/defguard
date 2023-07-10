@@ -1,40 +1,15 @@
-use std::{error, fmt};
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ModelError {
+    #[error("Cannot modify model")]
     CannotModify,
+    #[error("Cannot create model")]
     CannotCreate,
-    NetworkTooSmall,
-    SqlxError(sqlx::Error),
-    IpNetworkError(ipnetwork::IpNetworkError),
-}
-
-impl error::Error for ModelError {}
-
-impl fmt::Display for ModelError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::CannotModify => write!(f, "Cannot modify model"),
-            Self::CannotCreate => write!(f, "Cannot create model"),
-            Self::NetworkTooSmall => write!(f, "Network address will not fit existing devices"),
-            Self::SqlxError(error) => {
-                write!(f, "SqlxError {error}")
-            }
-            Self::IpNetworkError(error) => {
-                write!(f, "IpNetError {error}")
-            }
-        }
-    }
-}
-
-impl From<sqlx::Error> for ModelError {
-    fn from(err: sqlx::Error) -> ModelError {
-        ModelError::SqlxError(err)
-    }
-}
-
-impl From<ipnetwork::IpNetworkError> for ModelError {
-    fn from(err: ipnetwork::IpNetworkError) -> ModelError {
-        ModelError::IpNetworkError(err)
-    }
+    #[error("Database error")]
+    DbError(#[from] sqlx::Error),
+    #[error("ID field not set")]
+    IdNotSet,
+    #[error("Object not found")]
+    NotFound,
 }
