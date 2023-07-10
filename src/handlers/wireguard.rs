@@ -433,57 +433,40 @@ pub async fn add_user_devices(
         });
     }
 
-    info!(
-        "User {} mapping {} devices for network {}",
-        user.username, device_count, network_id
-    );
+    match WireguardNetwork::find_by_id(&appstate.pool, network_id).await? {
+        Some(network) => {
+            info!(
+                "User {} mapping {} devices for network {}",
+                user.username, device_count, network_id
+            );
 
-    // wrap loop in transaction to abort if a device is invalid
-    let mut transaction = appstate.pool.begin().await?;
-    for mapped_device in &mapped_devices {
-        debug!("Mapping device {}", mapped_device.name);
-        Device::validate_pubkey(&mapped_device.wireguard_pubkey)
-            .map_err(OriWebError::PubkeyValidation)?;
-        let mut device = Device::new(
-            mapped_device.name.clone(),
-            mapped_device.wireguard_pubkey.clone(),
-            mapped_device.user_id,
-        );
-        device.save(&mut transaction).await?;
-        debug!("Saved new device {}", device);
+            // wrap loop in transaction to abort if a device is invalid
+            let mut transaction = appstate.pool.begin().await?;
+            let events = network
+                .handle_mapped_devices(
+                    &mut transaction,
+                    mapped_devices,
+                    &appstate.config.admin_groupname,
+                )
+                .await?;
+            appstate.send_multiple_wireguard_events(events);
+            transaction.commit().await?;
 
-        // assign IP in imported network
-        let wireguard_network_device = WireguardNetworkDevice::new(
-            network_id,
-            device.id.expect("Device ID is missing"),
-            mapped_device.wireguard_ip,
-        );
-        wireguard_network_device.insert(&mut transaction).await?;
+            info!(
+                "User {} mapped {} devices for {} network",
+                user.username, device_count, network_id
+            );
 
-        let (mut network_info, _configs) = device.add_to_all_networks(&mut transaction).await?;
-
-        network_info.push(DeviceNetworkInfo {
-            network_id,
-            device_wireguard_ip: wireguard_network_device.wireguard_ip,
-        });
-
-        // send device to connected gateways
-        appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
-            device,
-            network_info,
-        }));
+            Ok(ApiResponse {
+                json: json!({}),
+                status: Status::Created,
+            })
+        }
+        None => Err(OriWebError::ObjectNotFound(format!(
+            "Network {} not found",
+            network_id
+        ))),
     }
-    transaction.commit().await?;
-
-    info!(
-        "User {} mapped {} devices for {} network",
-        user.username, device_count, network_id
-    );
-
-    Ok(ApiResponse {
-        json: json!({}),
-        status: Status::Created,
-    })
 }
 
 #[derive(Serialize)]
@@ -537,7 +520,9 @@ pub async fn add_device(
         device: Device,
     }
 
-    let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
+    let (network_info, configs) = device
+        .add_to_all_networks(&mut transaction, &appstate.config.admin_groupname)
+        .await?;
 
     appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
         device: device.clone(),

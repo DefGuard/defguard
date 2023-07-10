@@ -10,4 +10,6 @@ pub enum ModelError {
     DbError(#[from] sqlx::Error),
     #[error("ID field not set")]
     IdNotSet,
+    #[error("Object not found")]
+    NotFound,
 }

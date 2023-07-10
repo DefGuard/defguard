@@ -98,12 +98,16 @@ impl From<GatewayMapError> for OriWebError {
 impl From<WireguardNetworkError> for OriWebError {
     fn from(error: WireguardNetworkError) -> Self {
         match error {
-            WireguardNetworkError::NetworkTooSmall | WireguardNetworkError::IpNetworkError(_) => {
+            WireguardNetworkError::NetworkTooSmall
+            | WireguardNetworkError::IpNetworkError(_)
+            | WireguardNetworkError::InvalidDevicePubkey(_) => {
                 Self::BadRequest(format!("{}", error))
             }
             WireguardNetworkError::DbError(_)
             | WireguardNetworkError::ModelError(_)
-            | WireguardNetworkError::Unexpected(_) => Self::Http(Status::InternalServerError),
+            | WireguardNetworkError::Unexpected(_)
+            | WireguardNetworkError::DeviceError(_)
+            | WireguardNetworkError::DeviceNotAllowed(_) => Self::Http(Status::InternalServerError),
         }
     }
 }

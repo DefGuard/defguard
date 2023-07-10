@@ -11,7 +11,7 @@ use std::fmt::{Display, Formatter};
 use std::net::IpAddr;
 use thiserror::Error;
 
-#[derive(Clone, Deserialize, Model, Serialize, Debug)]
+#[derive(Clone, Deserialize, Model, Serialize, Debug, PartialEq)]
 pub struct Device {
     pub id: Option<i64>,
     pub name: String,
@@ -472,6 +472,7 @@ impl Device {
     pub async fn add_to_all_networks(
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
+        admin_group_name: &String,
     ) -> Result<(Vec<DeviceNetworkInfo>, Vec<DeviceConfig>), DeviceError> {
         info!("Adding device {} to all existing networks", self.name);
         let networks = WireguardNetwork::all(&mut *transaction).await?;
@@ -508,25 +509,27 @@ impl Device {
                 continue;
             }
 
-            let wireguard_network_device = self
-                .assign_network_ip(&mut *transaction, &network, None)
-                .await?;
-            debug!(
-                "Assigned IP {} for device {} (user {}) in network {}",
-                wireguard_network_device.wireguard_ip, self.name, self.user_id, network
-            );
-            let device_network_info = DeviceNetworkInfo {
-                network_id,
-                device_wireguard_ip: wireguard_network_device.wireguard_ip,
-            };
-            network_info.push(device_network_info);
+            if let Ok(wireguard_network_device) = network
+                .add_device_to_network(&mut *transaction, self, admin_group_name, None)
+                .await
+            {
+                debug!(
+                    "Assigned IP {} for device {} (user {}) in network {}",
+                    wireguard_network_device.wireguard_ip, self.name, self.user_id, network
+                );
+                let device_network_info = DeviceNetworkInfo {
+                    network_id,
+                    device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                };
+                network_info.push(device_network_info);
 
-            let config = self.create_config(&network, &wireguard_network_device);
-            configs.push(DeviceConfig {
-                network_id,
-                network_name: network.name,
-                config,
-            });
+                let config = self.create_config(&network, &wireguard_network_device);
+                configs.push(DeviceConfig {
+                    network_id,
+                    network_name: network.name,
+                    config,
+                });
+            }
         }
         Ok((network_info, configs))
     }
