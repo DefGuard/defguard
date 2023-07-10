@@ -38,7 +38,7 @@ impl WireguardNetwork {
         let result = query_as!(
             Peer,
             r#"
-            SELECT d.wireguard_pubkey as pubkey, array[wnd.wireguard_ip] as "allowed_ips!: Vec<String>" FROM wireguard_network_device wnd
+            SELECT d.wireguard_pubkey as pubkey, array[host(wnd.wireguard_ip)] as "allowed_ips!: Vec<String>" FROM wireguard_network_device wnd
             JOIN device d
             ON wnd.device_id = d.id
             WHERE wireguard_network_id = $1
@@ -483,8 +483,11 @@ impl gateway_service_server::GatewayService for GatewayServer {
             error!("Failed to update network {} status: {}", network_id, err);
         }
 
-        let peers = network.get_peers(&pool).await.map_err(|_| {
-            error!("Failed to fetch peers for network {}", network_id);
+        let peers = network.get_peers(&pool).await.map_err(|error| {
+            error!(
+                "Failed to fetch peers for network {}: {}",
+                network_id, error
+            );
             Status::new(
                 tonic::Code::Internal,
                 format!("Failed to retrieve peers for network: {}", network_id),
