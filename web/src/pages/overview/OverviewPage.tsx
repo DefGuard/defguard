@@ -6,7 +6,6 @@ import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
-import { useI18nContext } from '../../i18n/i18n-react';
 import { LoaderSpinner } from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/components/layout/NoData/NoData';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
@@ -33,7 +32,6 @@ export const OverviewPage = () => {
   const statsFilter = useOverviewStore((state) => state.statsFilter);
   const selectedNetworkId = useOverviewStore((state) => state.selectedNetworkId);
   const resetWizard = useWizardStore((state) => state.resetState);
-  const { LL } = useI18nContext();
 
   const {
     network: { getNetworks, getUsersStats, getNetworkStats },
@@ -122,7 +120,7 @@ export const OverviewPage = () => {
           ) : getNetworkUsers.length > 0 ? (
             <OverviewConnectedUsers stats={getNetworkUsers} />
           ) : (
-            <NoData customMessage={LL.networkOverview.stats.gatewayDisconnected()} />
+            <NoData />
           )}
         </div>
       </PageContainer>

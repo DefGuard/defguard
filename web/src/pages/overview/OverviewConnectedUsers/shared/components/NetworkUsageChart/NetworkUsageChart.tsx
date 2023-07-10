@@ -13,6 +13,7 @@ interface NetworkUsageProps {
   hideX?: boolean;
   barSize?: number;
   dataMax?: string | number;
+  heightX?: number;
 }
 
 export const NetworkUsageChart = ({
@@ -22,13 +23,14 @@ export const NetworkUsageChart = ({
   hideX = true,
   barSize = 2,
   dataMax = 'dataMax + 1',
+  heightX = 20,
 }: NetworkUsageProps) => {
   const getFormattedData = useMemo(() => parseStatsForCharts(data), [data]);
 
   return (
     <div className="network-usage">
       <BarChart
-        height={height + 35}
+        height={height}
         width={width}
         data={getFormattedData}
         margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
@@ -39,8 +41,8 @@ export const NetworkUsageChart = ({
           dataKey="collected_at"
           scale="time"
           type="number"
-          height={height}
-          width={80}
+          height={heightX}
+          width={width}
           padding={{ left: 15, right: 15 }}
           axisLine={{ stroke: ColorsRGB.GrayBorder }}
           tickLine={{ stroke: ColorsRGB.GrayBorder }}

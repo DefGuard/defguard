@@ -138,21 +138,22 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
               </div>
             </div>
           </header>
-          <AutoSizer>
-            {({ width, height }) => (
-              <>
-                {networkStats.transfer_series && (
-                  <NetworkUsageChart
-                    data={networkStats.transfer_series}
-                    hideX={false}
-                    height={height}
-                    width={width}
-                    barSize={2}
-                  />
-                )}
-              </>
-            )}
-          </AutoSizer>
+          <div className="chart">
+            <AutoSizer>
+              {({ width, height }) => (
+                <>
+                  {networkStats.transfer_series && (
+                    <NetworkUsageChart
+                      data={networkStats.transfer_series}
+                      hideX={false}
+                      height={height}
+                      width={width}
+                    />
+                  )}
+                </>
+              )}
+            </AutoSizer>
+          </div>
         </div>
       </div>
     );
