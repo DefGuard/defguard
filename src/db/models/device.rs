@@ -99,6 +99,7 @@ impl UserDevice {
                 WITH stats AS (
                     SELECT DISTINCT ON (network) network, endpoint, latest_handshake
                     FROM wireguard_peer_stats
+                    WHERE device_id = $2
                     ORDER BY network, collected_at DESC
                 )
                 SELECT

@@ -1170,63 +1170,6 @@
     },
     "query": "SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1"
   },
-  "39fd53c5d8352841ec950b618e5feaea62d8d8feab0dee9abad245283ed775fc": {
-    "describe": {
-      "columns": [
-        {
-          "name": "network_id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "network_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "gateway_endpoint",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "device_wireguard_ip: IpAddr",
-          "ordinal": 3,
-          "type_info": "Inet"
-        },
-        {
-          "name": "device_endpoint",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "latest_handshake?",
-          "ordinal": 5,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "is_active!",
-          "ordinal": 6,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Float8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n                WITH stats AS (\n                    SELECT DISTINCT ON (network) network, endpoint, latest_handshake\n                    FROM wireguard_peer_stats\n                    ORDER BY network, collected_at DESC\n                )\n                SELECT\n                    n.id as network_id, n.name as network_name, n.endpoint as gateway_endpoint,\n                    wnd.wireguard_ip as \"device_wireguard_ip: IpAddr\", stats.endpoint as device_endpoint,\n                    stats.latest_handshake as \"latest_handshake?\",\n                    COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as \"is_active!\"\n                FROM wireguard_network_device wnd\n                JOIN wireguard_network n ON n.id = wnd.wireguard_network_id\n                LEFT JOIN stats on n.id = stats.network\n                WHERE wnd.device_id = $2\n                "
-  },
   "3a0fc5bc3005b4b6b5d6ccf2cf71b7915cda2c440eb8f3194480bbaf2969228e": {
     "describe": {
       "columns": [
@@ -3418,6 +3361,63 @@
       }
     },
     "query": "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, web3_challenge FROM session WHERE id = $1"
+  },
+  "c0e30b2a0b711ea77d88a6dc9c92d0faa187d2bb59bedd0c66d1eae866922901": {
+    "describe": {
+      "columns": [
+        {
+          "name": "network_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "network_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "gateway_endpoint",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "device_wireguard_ip: IpAddr",
+          "ordinal": 3,
+          "type_info": "Inet"
+        },
+        {
+          "name": "device_endpoint",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "latest_handshake?",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "is_active!",
+          "ordinal": 6,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Float8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n                WITH stats AS (\n                    SELECT DISTINCT ON (network) network, endpoint, latest_handshake\n                    FROM wireguard_peer_stats\n                    WHERE device_id = $2\n                    ORDER BY network, collected_at DESC\n                )\n                SELECT\n                    n.id as network_id, n.name as network_name, n.endpoint as gateway_endpoint,\n                    wnd.wireguard_ip as \"device_wireguard_ip: IpAddr\", stats.endpoint as device_endpoint,\n                    stats.latest_handshake as \"latest_handshake?\",\n                    COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as \"is_active!\"\n                FROM wireguard_network_device wnd\n                JOIN wireguard_network n ON n.id = wnd.wireguard_network_id\n                LEFT JOIN stats on n.id = stats.network\n                WHERE wnd.device_id = $2\n                "
   },
   "c851b4b167e29f757fbae6b1bc731aa733776496d05658cd8f1164554bd7539c": {
     "describe": {
