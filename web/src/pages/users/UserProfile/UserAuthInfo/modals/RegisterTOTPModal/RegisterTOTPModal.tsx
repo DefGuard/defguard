@@ -17,7 +17,7 @@ import Button, {
   ButtonStyleVariant,
 } from '../../../../../../shared/components/layout/Button/Button';
 import { DelayRender } from '../../../../../../shared/components/layout/DelayRender/DelayRender';
-import LoaderSpinner from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../../shared/components/layout/MessageBox/MessageBox';

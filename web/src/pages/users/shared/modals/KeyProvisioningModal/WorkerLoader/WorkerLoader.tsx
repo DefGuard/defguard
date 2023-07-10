@@ -8,7 +8,7 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/components/layout/Button/Button';
-import LoaderSpinner from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../../shared/components/layout/MessageBox/MessageBox';

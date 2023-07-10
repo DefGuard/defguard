@@ -117,7 +117,7 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
     &.grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, 370px);
-      grid-auto-rows: 150px;
+      grid-template-rows: min-content;
       width: 100%;
       gap: 1.5rem;
       overflow: auto;
@@ -125,6 +125,7 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
       position: relative;
       padding-top: 1rem;
       padding-bottom: 4rem;
+
       @include bs.media-breakpoint-down(md) {
         justify-content: center;
       }

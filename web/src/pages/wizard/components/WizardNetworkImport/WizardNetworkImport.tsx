@@ -1,10 +1,11 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
 import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
@@ -43,18 +44,24 @@ const defaultValues: FormInputs = {
 };
 export const WizardNetworkImport = () => {
   const submitRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const { LL } = useI18nContext();
+  const navigate = useNavigate();
   const {
     network: { importNetwork },
     groups: { getGroups },
   } = useApi();
   const toaster = useToaster();
-  const [setWizardState, nextStepSubject, submitSubject] = useWizardStore(
-    (state) => [state.setState, state.nextStepSubject, state.submitSubject],
+  const [setWizardState, nextStepSubject, submitSubject, resetWizard] = useWizardStore(
+    (state) => [
+      state.setState,
+      state.nextStepSubject,
+      state.submitSubject,
+      state.resetState,
+    ],
     shallow
   );
   const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
-
-  const { LL } = useI18nContext();
 
   const schema = useMemo(
     () =>
@@ -86,12 +93,21 @@ export const WizardNetworkImport = () => {
   } = useMutation([MutationKeys.IMPORT_NETWORK], importNetwork, {
     onSuccess: async (response) => {
       toaster.success(LL.networkConfiguration.form.messages.networkCreated());
-      setWizardState({
-        importedNetworkDevices: response.devices,
-        importedNetworkConfig: response.network,
-        loading: false,
-      });
-      nextStepSubject.next();
+      // complete wizard if there is no devices to map
+      if (response.devices.length === 0) {
+        toaster.success(LL.wizard.completed());
+        resetWizard();
+        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
+        queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
+        navigate('/admin/overview', { replace: true });
+      } else {
+        setWizardState({
+          importedNetworkDevices: response.devices,
+          importedNetworkConfig: response.network,
+          loading: false,
+        });
+        nextStepSubject.next();
+      }
     },
     onError: (err) => {
       setWizardState({ loading: false });

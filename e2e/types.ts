@@ -1,8 +1,20 @@
+export type DeviceNetworkInfo = {
+  device_wireguard_ip: string;
+  is_active: boolean;
+  network_gateway_ip: string;
+  network_id: number;
+  network_name: string;
+  last_connected_at?: string;
+  last_connected_ip?: string;
+};
+
 export type ApiDevice = {
-  id?: string;
+  id: number;
+  user_id: number;
   name: string;
-  wireguard_ip: string;
-  wireguard_pubKey: string;
+  wireguard_pubkey: string;
+  created: string;
+  networks: DeviceNetworkInfo[];
 };
 
 export type ApiUser = {
@@ -11,6 +23,10 @@ export type ApiUser = {
   last_name: string;
   email: string;
   phone: string;
+};
+
+export type ApiUserProfile = {
+  user: ApiUser;
   devices: ApiDevice[];
 };
 

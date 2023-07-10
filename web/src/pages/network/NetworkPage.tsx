@@ -1,10 +1,12 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { Card } from '../../shared/components/layout/Card/Card';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
+import { deviceBreakpoints } from '../../shared/constants';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { useNetworkPageStore } from './hooks/useNetworkPageStore';
@@ -19,6 +21,7 @@ export const NetworkPage = () => {
   } = useApi();
   const { LL } = useI18nContext();
   const setPageStore = useNetworkPageStore((state) => state.setState);
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
   useQuery({
     queryKey: [QueryKeys.FETCH_NETWORKS],
@@ -34,8 +37,8 @@ export const NetworkPage = () => {
       <header>
         <h1>{LL.networkPage.pageTitle()}</h1>
       </header>
-      <NetworkTabs />
-      <Card className="network-card">
+      {breakpoint === 'desktop' && <NetworkTabs />}
+      <Card className="network-card" hideMobile>
         <NetworkControls />
         <NetworkEditForm />
         <NetworkGatewaySetup />

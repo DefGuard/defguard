@@ -21,7 +21,6 @@ import { IconCheckmarkWhite, IconEdit } from '../../../shared/components/svg';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
-import { useNavigationStore } from '../../../shared/hooks/store/useNavigationStore';
 import { useUserProfileStore } from '../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -40,7 +39,6 @@ export const UserProfile = () => {
   const currentUser = useAuthStore((state) => state.user);
   const editMode = useUserProfileStore((state) => state.editMode);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
-  const setNavigationUser = useNavigationStore((state) => state.setNavigationUser);
   const {
     user: { getUser },
   } = useApi();
@@ -59,7 +57,6 @@ export const UserProfile = () => {
   useQuery([QueryKeys.FETCH_USER_PROFILE, username], () => getUser(username), {
     onSuccess: (userProfile) => {
       setUserProfileState({ userProfile: userProfile });
-      setNavigationUser(userProfile.user);
     },
     onError: (err) => {
       toaster.error(LL.userPage.messages.failedToFetchUserData());

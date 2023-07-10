@@ -1,4 +1,5 @@
 import './App.scss';
+import '../../shared/scss/fonts.scss';
 import 'react-loading-skeleton/dist/skeleton.css';
 
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
@@ -19,6 +20,7 @@ import { PageContainer } from '../../shared/components/layout/PageContainer/Page
 import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
 import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
+import { Navigation } from '../Navigation/Navigation';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
@@ -139,6 +141,7 @@ const App = () => {
               }
             />
           </Routes>
+          <Navigation />
         </Router>
       </div>
       <ToastManager />

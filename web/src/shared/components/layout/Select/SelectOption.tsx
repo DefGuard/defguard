@@ -1,8 +1,7 @@
 import classNames from 'classnames';
 import { HTMLMotionProps, motion } from 'framer-motion';
-import { ReactNode, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
-import { useI18nContext } from '../../../../i18n/i18n-react';
 import { ColorsRGB } from '../../../constants';
 
 export interface SelectOptionProps extends HTMLMotionProps<'button'> {
@@ -19,7 +18,6 @@ export const SelectOption = ({
   createOption,
   ...rest
 }: SelectOptionProps) => {
-  const { LL } = useI18nContext();
   const [hovered, setHovered] = useState(false);
   const cn = useMemo(
     () =>
@@ -50,10 +48,6 @@ export const SelectOption = ({
     return res;
   }, [createOption, hovered, selected]);
 
-  const getContent = useMemo((): ReactNode => {
-    return <span>{createOption ? `${LL.layout.select.addNewOption()} +` : label}</span>;
-  }, [createOption, LL.layout.select, label]);
-
   return (
     <motion.button
       {...rest}
@@ -64,7 +58,7 @@ export const SelectOption = ({
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
     >
-      {getContent}
+      <span>{label}</span>
     </motion.button>
   );
 };

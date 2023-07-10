@@ -537,10 +537,9 @@ const en: BaseTranslation = {
   },
   navigation: {
     bar: {
-      wizard: 'VPN Wizard',
       overview: 'VPN Overview',
       users: 'Users',
-      provisioners: 'Yubikey',
+      provisioners: 'YubiKeys',
       webhooks: 'Webhooks',
       openId: 'OpenID Apps',
       myProfile: 'My Profile',
@@ -548,18 +547,21 @@ const en: BaseTranslation = {
       logOut: 'Log out',
     },
     mobileTitles: {
-      wizard: 'VPN Wizard',
+      wizard: 'Create location',
       users: 'Users',
       settings: 'Defguard Global Settings',
       user: 'User Profile',
       provisioners: 'Yubikey',
       webhooks: 'Webhooks',
       openId: 'OpenId Apps',
-      overview: 'Network Overview',
-      networkSettings: 'Network Settings',
+      overview: 'Location Overview',
+      networkSettings: 'Edit Location',
     },
-    copyright: 'Copyright \u00A9 2023',
-    version: 'Application version: {version: string}',
+    copyright: 'Copyright \u00A9 2023 ',
+    version: {
+      open: 'Application version: {version: string}',
+      closed: 'v {version: string}',
+    },
   },
   form: {
     download: 'Download',
@@ -657,8 +659,8 @@ const en: BaseTranslation = {
     },
 
     defaultNetworkSelect: {
-      header: 'Default network view',
-      helper: `<p>Here you can change your default network view.</p>
+      header: 'Default location view',
+      helper: `<p>Here you can change your default location view.</p>
           <a href="{documentationLink:string}" target="_blank">
             Read more in documentation.
           </a>`,
@@ -993,6 +995,11 @@ Any other requests you can reach us at: support@defguard.net
   networkPage: {
     pageTitle: 'Edit Location',
     addNetwork: '+ Add new location',
+    controls: {
+      networkSelect: {
+        label: 'Location choice',
+      },
+    },
   },
   activityOverview: {
     header: 'Activity stream',
@@ -1131,21 +1138,22 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   wizard: {
-    completed: 'Network setup completed',
+    completed: 'Location setup completed',
     configuration: {
-      successMessage: 'Network created',
+      successMessage: 'Location created',
     },
     welcome: {
-      header: 'Welcome to defguard!',
-      sub: 'Before you start, you need to setup your network environment first. When in doubt hover on <React> icon.',
+      header: 'Welcome to location wizard!',
+      sub: 'Before you start using VPN you need to setup your first location. When in doubt click on <React> icon.',
+      button: 'Setup location',
     },
     navigation: {
-      top: 'Network setup',
+      top: 'Location setup',
       titles: {
-        welcome: 'Network setup',
-        choseNetworkSetup: 'Chose network setup',
-        importConfig: 'Import existing network',
-        manualConfig: 'Configure network',
+        welcome: 'Location setup',
+        choseNetworkSetup: 'Chose Location setup',
+        importConfig: 'Import existing location',
+        manualConfig: 'Configure location',
         mapDevices: 'Map imported devices',
       },
       buttons: {
@@ -1169,13 +1177,13 @@ Any other requests you can reach us at: support@defguard.net
     wizardType: {
       manual: {
         title: 'Manual Configuration',
-        description: 'Manual network configuration',
+        description: 'Manual location configuration',
       },
       import: {
         title: 'Import From File',
         description: 'Import from WireGuard config file',
       },
-      createNetwork: 'Create WireGuard network',
+      createNetwork: 'Create location',
     },
     common: {
       select: 'Select',
@@ -1194,8 +1202,12 @@ Any other requests you can reach us at: support@defguard.net
   },
   layout: {
     select: {
-      addNewOption: 'Add new',
+      addNewOptionDefault: 'Add new +',
     },
+  },
+  redirectPage: {
+    title: 'You have been logged in',
+    subtitle: 'You will be redirected in a moment...',
   },
 };
 

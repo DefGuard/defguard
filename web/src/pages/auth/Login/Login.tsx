@@ -43,6 +43,7 @@ export const Login = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [locale]
   );
+
   const {
     auth: { login },
   } = useApi();
@@ -106,7 +107,6 @@ export const Login = () => {
         <Button
           type="submit"
           loading={loginMutation.isLoading}
-          disabled={loginMutation.isLoading}
           size={ButtonSize.BIG}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.form.login()}

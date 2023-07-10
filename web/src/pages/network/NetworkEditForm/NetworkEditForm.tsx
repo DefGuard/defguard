@@ -230,9 +230,6 @@ export const NetworkEditForm = () => {
     <section className="network-config">
       <header>
         <h2>{LL.networkConfiguration.header()}</h2>
-        <Helper>
-          <p>PLACEHOLDER</p>
-        </Helper>
       </header>
       <form onSubmit={handleSubmit(onValidSubmit)}>
         <FormInput

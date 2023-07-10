@@ -12,8 +12,16 @@
   #wizard-content {
     position: relative;
     box-sizing: border-box;
-    padding: 30px 20px 90px 20px;
+    min-height: 100%;
+    height: auto;
+
+    &:not(.welcome) {
+      margin: 20px 20px 91px 20px;
+    }
+
     @include media-breakpoint-up(lg) {
+      min-height: min-content;
+      height: unset;
       padding: 54px 20px;
       display: grid;
       grid-template-columns: repeat(12, 1fr);

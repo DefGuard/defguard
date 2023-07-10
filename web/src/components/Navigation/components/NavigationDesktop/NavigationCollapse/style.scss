@@ -1,0 +1,31 @@
+@use '@scssutils' as *;
+
+.navigation-collapse {
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid var(--gray-border);
+  border-radius: 10px;
+  display: flex;
+  flex-flow: row nowrap;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: fixed;
+  top: 40px;
+  left: 73px;
+  background-color: var(--white);
+  z-index: 3;
+  padding: 0;
+  margin: 0;
+
+  &.open {
+    left: 215px;
+  }
+
+  &:hover {
+    border-color: var(--primary);
+    background-color: var(--primary);
+  }
+}

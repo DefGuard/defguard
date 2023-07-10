@@ -4,12 +4,17 @@ import path from 'path';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
 import { NetworkForm } from '../../types';
-import { apiCreateUsersBulk, apiGetUsers } from '../../utils/api/users';
+import {
+  apiCreateUsersBulk,
+  apiGetUserProfile,
+  apiGetUsers,
+} from '../../utils/api/users';
 import { loginBasic } from '../../utils/controllers/login';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForPromise } from '../../utils/waitForPromise';
+import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Setup VPN (wizard) ', () => {
   test.afterEach(() => {
@@ -19,7 +24,7 @@ test.describe('Setup VPN (wizard) ', () => {
   test('Wizard Import', async ({ page }) => {
     await waitForBase(page);
     // create users to map devices to;
-    const users = lodash.range(20).map((id) => ({
+    const users = lodash.range(50).map((id) => ({
       ...testUserTemplate,
       firstName: `test${id}`,
       username: `test${id}`,
@@ -45,27 +50,29 @@ test.describe('Setup VPN (wizard) ', () => {
     expect(response.status()).toBe(201);
     const isNavDisabled = await navBack.isDisabled();
     expect(isNavDisabled).toBe(true);
-    let index = 0;
+    let rowIndex = 0;
     for (const user of users) {
-      const select = page.getByTestId(`map-device-${index}`).locator('.select');
-      const floating = page.locator('.select-floating-ui');
-      await select.click();
+      const selectElement = page.getByTestId(`user-select-${rowIndex}`);
+      const selectFloatingExpand = page.locator('.select-floating-ui');
+      await selectElement.click();
       await waitForPromise(200);
-      await floating.waitFor({ state: 'visible' });
+      await selectFloatingExpand.waitFor({ state: 'visible' });
       await page
         .locator('.select-floating-ui button > span')
         .locator(`text='${user.firstName + ' ' + user.lastName}'`)
         .click();
-      await floating.waitFor({ state: 'hidden' });
-      index++;
+      await selectFloatingExpand.waitFor({ state: 'hidden' });
+      rowIndex++;
     }
-    const responseMapConfigPromise = page.waitForResponse('**/network/devices');
+    const responseMapConfigPromise = page.waitForResponse('**/devices');
     await navNext.click();
     const responseMapConfig = await responseMapConfigPromise;
     expect(responseMapConfig.status()).toBe(201);
+    await waitForRoute(page, routes.admin.overview);
     const apiUsers = await apiGetUsers(page);
     for (const user of apiUsers.filter((u) => u.username !== 'admin')) {
-      expect(user.devices.length).toBe(1);
+      const userProfile = await apiGetUserProfile(page, user.username);
+      expect(userProfile.devices.length).toBe(1);
     }
   });
 

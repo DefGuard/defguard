@@ -10,7 +10,7 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconButton from '../../../../../shared/components/layout/IconButton/IconButton';
-import LoaderSpinner from '../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../shared/components/layout/MessageBox/MessageBox';

@@ -11,7 +11,7 @@ import Button, {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/Button';
-import LoaderSpinner from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
+import { LoaderSpinner } from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import { Search } from '../../../shared/components/layout/Search/Search';
 import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
 import SvgIconUserAddNew from '../../../shared/components/svg/IconUserAddNew';
