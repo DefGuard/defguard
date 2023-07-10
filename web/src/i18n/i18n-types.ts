@@ -65,13 +65,13 @@ type RootTranslation = {
 				duplicateKeyError: string
 			}
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​e​c​u​r​i​t​y​ ​k​e​y​s​ ​c​a​n​ ​b​e​ ​u​s​e​d​ ​a​s​ ​y​o​u​r​ ​s​e​c​o​n​d​ ​f​a​c​t​o​r​ ​o​f​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​e​a​d​ ​o​f​ ​a​ ​v​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​.​ ​L​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​c​o​n​f​i​g​u​r​i​n​g​ ​a​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​e​c​u​r​i​t​y​ ​k​e​y​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+	
 			 */
 			infoMessage: string
 			form: {
@@ -113,13 +113,13 @@ type RootTranslation = {
 				copied: string
 			}
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​r​e​a​t​ ​y​o​u​r​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​w​i​t​h​ ​t​h​e​ ​s​a​m​e​ ​l​e​v​e​l​ ​o​f​ ​a​t​t​e​n​t​i​o​n​ ​a​s​ ​y​o​u​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​w​o​u​l​d​ ​y​o​u​r​ ​p​a​s​s​w​o​r​d​!​ ​W​e​ ​r​e​c​o​m​m​e​n​d​ ​s​a​v​i​n​g​ ​t​h​e​m​ ​w​i​t​h​ ​a​ ​p​a​s​s​w​o​r​d​ ​m​a​n​a​g​e​r​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​u​c​h​ ​a​s​ ​L​a​s​t​p​a​s​s​,​ ​b​i​t​w​a​r​d​e​n​ ​o​r​ ​K​e​e​p​e​r​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+	
 			 */
 			infoMessage: string
 		}
@@ -129,12 +129,12 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​,​ ​s​c​a​n​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​,​ ​t​h​e​n​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​i​n​ ​t​h​e​ ​f​i​e​l​d​ ​b​e​l​o​w​:​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+	
 			 */
 			infoMessage: string
 			messages: {
@@ -249,26 +249,26 @@ type RootTranslation = {
 						}
 						helpers: {
 							/**
-							 *
+							 * 
 						​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
 						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
 						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​i​a​l​o​g​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
 						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
 						​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+					
 							 */
 							warningAutoMode: string
 							/**
-							 *
+							 * 
 						​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​a​l​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
 						​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+					
 							 */
 							warningManualMode: string
 							/**
-							 *
+							 * 
 						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
 						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
@@ -294,12 +294,12 @@ type RootTranslation = {
 					}
 					setup: {
 						/**
-						 *
+						 * 
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​g​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+				
 						 * @param {string} addDevicesDocs
 						 */
 						infoMessage: RequiredParams<'addDevicesDocs'>
@@ -1261,7 +1261,7 @@ type RootTranslation = {
 			networkSettings: string
 		}
 		/**
-		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3​
+		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3​ 
 		 */
 		copyright: string
 		version: {
@@ -1628,7 +1628,7 @@ type RootTranslation = {
 				}
 			}
 			/**
-			 *
+			 * 
 		​	​	​	​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​u​r​l​ ​o​f​ ​y​o​u​r​ ​l​o​g​o​ ​a​n​d​ ​n​a​m​e​ ​f​o​r​ ​y​o​u​r​ ​d​e​f​g​u​a​r​d​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​a​n​c​e​ ​i​t​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​i​n​s​t​e​a​d​ ​o​f​ ​d​e​f​g​u​a​r​d​.​
@@ -1662,14 +1662,14 @@ type RootTranslation = {
 			}
 			body: {
 				/**
-				 *
+				 * 
 			​	​	​	​	​<​p​>​ ​T​h​a​n​k​ ​y​o​u​ ​f​o​r​ ​p​u​r​c​h​a​s​i​n​g​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​!​<​/​p​>​
 			​	​	​	​	​<​b​r​ ​/​>​
 			​	​	​	​	​<​p​>​T​h​i​s​ ​i​n​c​l​u​d​e​s​ ​f​o​l​l​o​w​i​n​g​ ​m​o​d​u​l​e​s​:​<​/​p​>
 				 */
 				enterprise: string
 				/**
-				 *
+				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​o​u​r​ ​c​o​m​m​u​n​i​t​y​ ​l​i​c​e​n​s​e​.​ ​I​f​ ​y​o​u​ ​w​i​s​h​ ​t​o​ ​g​e​t​ ​E​n​t​e​r​p​r​i​s​e​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​f​u​l​l​ ​f​e​a​t​u​r​e​s​ ​s​e​t​ ​a​n​d​ ​s​u​p​p​o​r​t​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​
@@ -1685,7 +1685,7 @@ type RootTranslation = {
 				 */
 				agreement: string
 				/**
-				 *
+				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​Y​u​b​i​B​r​i​d​g​e​<​/​l​i​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​O​p​e​n​I​D​<​/​l​i​>​
@@ -1714,7 +1714,7 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
-			 *
+			 * 
 		​B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​]​(​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​)​
 		​
 		​T​o​ ​s​u​b​m​i​t​:​
@@ -1722,7 +1722,7 @@ type RootTranslation = {
 		​*​ ​F​e​a​t​u​r​e​ ​r​e​q​u​e​s​t​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​f​e​a​t​u​r​e​&​t​e​m​p​l​a​t​e​=​f​e​a​t​u​r​e​_​r​e​q​u​e​s​t​.​m​d​&​t​i​t​l​e​=​)​
 		​
 		​A​n​y​ ​o​t​h​e​r​ ​r​e​q​u​e​s​t​s​ ​y​o​u​ ​c​a​n​ ​r​e​a​c​h​ ​u​s​ ​a​t​:​ ​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​
-
+	
 			 */
 			body: string
 		}
@@ -2448,7 +2448,7 @@ type RootTranslation = {
 		}
 		messages: {
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
@@ -2459,7 +2459,7 @@ type RootTranslation = {
 			 */
 			runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
@@ -2825,13 +2825,13 @@ export type TranslationFunctions = {
 				duplicateKeyError: () => LocalizedString
 			}
 			/**
-			 *
+			 * 
 		        <p>
 		          Security keys can be used as your second factor of authentication
 		          instead of a verification code. Learn more about configuring a
 		          security key.
 		        </p>
-
+	
 			 */
 			infoMessage: () => LocalizedString
 			form: {
@@ -2873,13 +2873,13 @@ export type TranslationFunctions = {
 				copied: () => LocalizedString
 			}
 			/**
-			 *
+			 * 
 		        <p>
 		          Treat your recovery codes with the same level of attention as you
 		          would your password! We recommend saving them with a password manager
 		          such as Lastpass, bitwarden or Keeper.
 		        </p>
-
+	
 			 */
 			infoMessage: () => LocalizedString
 		}
@@ -2889,12 +2889,12 @@ export type TranslationFunctions = {
 			 */
 			title: () => LocalizedString
 			/**
-			 *
+			 * 
 		        <p>
 		          To setup your MFA, scan this QR code with your authenticator app, then
 		          enter the code in the field below:
 		        </p>
-
+	
 			 */
 			infoMessage: () => LocalizedString
 			messages: {
@@ -3008,26 +3008,26 @@ export type TranslationFunctions = {
 						}
 						helpers: {
 							/**
-							 *
+							 * 
 						        <p>
 						          Please be advised that you have to download the configuration now,
 						          since <strong>we do not</strong> store your private key. After this
 						          dialog is closed, you <strong>will not be able</strong> to get your
 						          full configuration file (with private keys, only blank template).
 						        </p>
-
+					
 							 */
 							warningAutoMode: () => LocalizedString
 							/**
-							 *
+							 * 
 						        <p>
 						          Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to repalce it on your own for configuration to work properly.
 						        </p>
-
+					
 							 */
 							warningManualMode: () => LocalizedString
 							/**
-							 *
+							 * 
 						          <p>
 						            You can setup your device faster with wireguard application by scanning this QR code.
 						          </p>
@@ -3053,12 +3053,12 @@ export type TranslationFunctions = {
 					}
 					setup: {
 						/**
-						 *
+						 * 
 					        <p>
 					          You need to configure WireguardVPN on your device, please visit&nbsp;
 					          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
 					        </p>
-
+				
 						 */
 						infoMessage: (arg: { addDevicesDocs: string }) => LocalizedString
 						options: {
@@ -4014,7 +4014,7 @@ export type TranslationFunctions = {
 			networkSettings: () => LocalizedString
 		}
 		/**
-		 * Copyright © 2023
+		 * Copyright © 2023 
 		 */
 		copyright: () => LocalizedString
 		version: {
@@ -4377,7 +4377,7 @@ export type TranslationFunctions = {
 				}
 			}
 			/**
-			 *
+			 * 
 					      <p>
 		            Here you can add url of your logo and name for your defguard
 		            instance it will be displayed instead of defguard.
@@ -4385,7 +4385,7 @@ export type TranslationFunctions = {
 		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
 		          </a>
-
+				
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
 		}
@@ -4410,14 +4410,14 @@ export type TranslationFunctions = {
 			}
 			body: {
 				/**
-				 *
+				 * 
 							<p> Thank you for purchasing enterprise license!</p>
 							<br />
 							<p>This includes following modules:</p>
 				 */
 				enterprise: () => LocalizedString
 				/**
-				 *
+				 * 
 			              <p>
 			                You have our community license. If you wish to get Enterprise
 			                license for full features set and support, please visit
@@ -4425,7 +4425,7 @@ export type TranslationFunctions = {
 			              </p>
 			              <br />
 			              <p>Enterprise license includes:</p>
-
+						
 				 */
 				community: () => LocalizedString
 				/**
@@ -4433,7 +4433,7 @@ export type TranslationFunctions = {
 				 */
 				agreement: () => LocalizedString
 				/**
-				 *
+				 * 
 			          <ul>
 			            <li>YubiBridge</li>
 			            <li>OpenID</li>
@@ -4460,15 +4460,15 @@ export type TranslationFunctions = {
 			 */
 			title: () => LocalizedString
 			/**
-			 *
+			 * 
 		Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
-
+	
 		To submit:
 		* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
 		* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
-
+	
 		Any other requests you can reach us at: support@defguard.net
-
+	
 			 */
 			body: () => LocalizedString
 		}
@@ -5187,7 +5187,7 @@ export type TranslationFunctions = {
 		}
 		messages: {
 			/**
-			 *
+			 * 
 		          <p>
 		            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
 		            More details can be found in the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
@@ -5197,7 +5197,7 @@ export type TranslationFunctions = {
 			 */
 			runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
-			 *
+			 * 
 		          <p>
 		            Please create the network before running the gateway process.
 		          </p>
