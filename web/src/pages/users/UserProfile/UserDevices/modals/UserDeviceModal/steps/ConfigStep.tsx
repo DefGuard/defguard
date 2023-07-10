@@ -11,10 +11,11 @@ import {
   ActionButton,
   ActionButtonVariant,
 } from '../../../../../../../shared/components/layout/ActionButton/ActionButton';
-import Button, {
+import { Button } from '../../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../../shared/components/layout/Button/types';
 import { ExpandableCard } from '../../../../../../../shared/components/layout/ExpandableCard/ExpandableCard';
 import { Input } from '../../../../../../../shared/components/layout/Input/Input';
 import { LoaderSpinner } from '../../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
@@ -229,7 +230,7 @@ export const ConfigStep = () => {
       <div className="controls">
         <Button
           text={LL.form.close()}
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           onClick={() => nextStep()}
         />

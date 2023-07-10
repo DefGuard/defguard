@@ -11,10 +11,11 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
-import Button, {
+import { Button } from '../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/Button';
+} from '../../../../shared/components/layout/Button/types';
 import { Card } from '../../../../shared/components/layout/Card/Card';
 import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
 import useApi from '../../../../shared/hooks/useApi';

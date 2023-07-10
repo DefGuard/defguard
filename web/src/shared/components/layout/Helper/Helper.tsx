@@ -15,7 +15,8 @@ import { useBreakpoint } from 'use-breakpoint';
 
 import { deviceBreakpoints } from '../../../constants';
 import { IconInfo } from '../../svg';
-import Button, { ButtonSize, ButtonStyleVariant } from '../Button/Button';
+import { Button } from '../Button/Button';
+import { ButtonSize, ButtonStyleVariant } from '../Button/types';
 import Modal from '../Modal/Modal';
 
 interface PlacementMap {
@@ -77,7 +78,7 @@ export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
       >
         {children}
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           text="Close"
           onClick={() => setModalOpen(false)}

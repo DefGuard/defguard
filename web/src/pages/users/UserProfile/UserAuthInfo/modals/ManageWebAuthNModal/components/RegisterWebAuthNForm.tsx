@@ -10,10 +10,11 @@ import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../../shared/components/Form/FormInput/FormInput';
-import Button, {
+import { Button } from '../../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../../shared/components/layout/Button/types';
 import { useModalStore } from '../../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
@@ -105,7 +106,7 @@ export const RegisterWebAuthNForm = () => {
       />
       <div className="controls">
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           className="cancel"
           type="button"
@@ -114,7 +115,7 @@ export const RegisterWebAuthNForm = () => {
         />
         <Button
           type="submit"
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           loading={registerKeyFinishLoading || waitingForSecurityKey}
           text={LL.modals.manageWebAuthNKeys.form.controls.submit()}

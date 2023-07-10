@@ -6,10 +6,11 @@ import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../shared/components/layout/Button/types';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { Provisioner } from '../../../../../../shared/types';
@@ -95,7 +96,7 @@ export const WorkerSelectionForm = ({ setIsOpen, afterSubmit, workers }: Props) 
       <div className="controls">
         <Button
           styleVariant={ButtonStyleVariant.STANDARD}
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           text={LL.form.cancel()}
           className="close"
           onClick={() => {
@@ -104,7 +105,7 @@ export const WorkerSelectionForm = ({ setIsOpen, afterSubmit, workers }: Props) 
           }}
         />
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           disabled={!isValid}
           text={LL.modals.provisionKeys.controls.submit()}

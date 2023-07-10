@@ -8,10 +8,11 @@ import * as yup from 'yup';
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../../shared/components/Form/FormInput/FormInput';
 import { FormToggle } from '../../../../../../../shared/components/Form/FormToggle/FormToggle';
-import Button, {
+import { Button } from '../../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../../shared/components/layout/Button/types';
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
@@ -199,7 +200,7 @@ export const SetupStep = () => {
             type="submit"
             text={LL.modals.addDevice.web.steps.setup.form.submit()}
             styleVariant={ButtonStyleVariant.PRIMARY}
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             disabled={!isValid}
             loading={addDeviceLoading}
             icon={<IconDownload />}

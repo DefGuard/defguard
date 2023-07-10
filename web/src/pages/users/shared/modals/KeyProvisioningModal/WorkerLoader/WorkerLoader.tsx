@@ -4,10 +4,11 @@ import { saveAs } from 'file-saver';
 import { AnimatePresence, motion } from 'framer-motion';
 import React from 'react';
 
-import Button, {
+import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../shared/components/layout/Button/types';
 import { LoaderSpinner } from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
   MessageBoxType,
@@ -93,14 +94,14 @@ const WorkerLoader: React.FC<Props> = ({ setIsOpen, succeeded, keyData, errorDat
           ) : null}
           <div className="controls">
             <Button
-              size={ButtonSize.BIG}
+              size={ButtonSize.LARGE}
               styleVariant={ButtonStyleVariant.STANDARD}
               text="Close"
               className="cancel"
               onClick={() => setIsOpen(false)}
             />
             <Button
-              size={ButtonSize.BIG}
+              size={ButtonSize.LARGE}
               styleVariant={ButtonStyleVariant.PRIMARY}
               text="Download all keys"
               onClick={handleDownloadAll}
@@ -126,7 +127,7 @@ const WorkerLoader: React.FC<Props> = ({ setIsOpen, succeeded, keyData, errorDat
           </MessageBox>
           <div className="controls">
             <Button
-              size={ButtonSize.BIG}
+              size={ButtonSize.LARGE}
               styleVariant={ButtonStyleVariant.STANDARD}
               text="Close"
               className="cancel"

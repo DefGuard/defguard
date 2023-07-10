@@ -6,10 +6,11 @@ import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
-import Button, {
+import { Button } from '../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../shared/components/layout/Button/Button';
+} from '../../../../../shared/components/layout/Button/types';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -123,7 +124,7 @@ export const ChangePasswordForm = () => {
 
       <section className="controls">
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           text={LL.form.cancel()}
           className="cancel"
           onClick={() => setModalState({ user: undefined, visible: false })}
@@ -131,7 +132,7 @@ export const ChangePasswordForm = () => {
           type="button"
         />
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           type="submit"
           disabled={!isValid}

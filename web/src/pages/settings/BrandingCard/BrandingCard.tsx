@@ -10,10 +10,11 @@ import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import Button, {
+import { Button } from '../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/Button';
+} from '../../../shared/components/layout/Button/types';
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import { IconCheckmarkWhite } from '../../../shared/components/svg';
@@ -177,7 +178,7 @@ export const BrandingCard = () => {
               }
               icon={<IconCheckmarkWhite />}
               size={ButtonSize.SMALL}
-              styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
+              styleVariant={ButtonStyleVariant.SAVE}
               loading={isLoading}
               type="submit"
             />

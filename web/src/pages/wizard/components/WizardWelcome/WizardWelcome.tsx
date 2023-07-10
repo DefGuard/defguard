@@ -2,10 +2,11 @@ import './style.scss';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { RenderTranslation } from '../../../../shared/components/i18n/RenderTranslation/RenderTranslation';
-import Button, {
+import { Button } from '../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/Button';
+} from '../../../../shared/components/layout/Button/types';
 import { Card } from '../../../../shared/components/layout/Card/Card';
 import { IconInfo } from '../../../../shared/components/svg';
 import { useWizardStore } from '../../hooks/useWizardStore';
@@ -26,7 +27,7 @@ export const WizardWelcome = () => {
       </p>
       <Button
         onClick={() => nextStep()}
-        size={ButtonSize.BIG}
+        size={ButtonSize.LARGE}
         styleVariant={ButtonStyleVariant.PRIMARY}
         text={LL.wizard.welcome.button()}
         data-testid="setup-network"

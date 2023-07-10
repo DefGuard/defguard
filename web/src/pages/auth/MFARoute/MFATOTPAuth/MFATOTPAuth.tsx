@@ -8,10 +8,11 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
-import Button, {
+import { Button } from '../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/Button';
+} from '../../../../shared/components/layout/Button/types';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
@@ -87,7 +88,7 @@ export const MFATOTPAuth = () => {
         />
         <Button
           text={LL.loginPage.mfa.totp.form.controls.submit()}
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           loading={isLoading}
           type="submit"
@@ -98,7 +99,7 @@ export const MFATOTPAuth = () => {
         {webauthnAvailable && (
           <Button
             text={LL.loginPage.mfa.controls.useWebauthn()}
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.LINK}
             onClick={() => navigate('../webauthn')}
           />
@@ -106,14 +107,14 @@ export const MFATOTPAuth = () => {
         {web3Available && (
           <Button
             text={LL.loginPage.mfa.controls.useWallet()}
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.LINK}
             onClick={() => navigate('../web3')}
           />
         )}
         <Button
           text={LL.loginPage.mfa.controls.useRecoveryCode()}
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.LINK}
           onClick={() => navigate('../recovery')}
         />

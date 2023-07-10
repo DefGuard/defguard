@@ -6,10 +6,11 @@ import { saveAs } from 'file-saver';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../shared/components/layout/Button/types';
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../../shared/components/layout/MessageBox/MessageBox';
@@ -72,7 +73,7 @@ const ModalContent = () => {
       </div>
       <div className="actions">
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           icon={<IconDownload />}
           text={LL.form.download()}
@@ -87,7 +88,7 @@ const ModalContent = () => {
         />
         <Button
           data-testid="copy-recovery"
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           icon={<IconCopy />}
           text={LL.form.copy()}
@@ -111,8 +112,8 @@ const ModalContent = () => {
           data-testid="accept-recovery"
           text={LL.modals.recoveryCodes.submit()}
           onClick={() => mutate()}
-          styleVariant={ButtonStyleVariant.WARNING}
-          size={ButtonSize.BIG}
+          styleVariant={ButtonStyleVariant.CONFIRM}
+          size={ButtonSize.LARGE}
           loading={isLoading}
         />
       </div>

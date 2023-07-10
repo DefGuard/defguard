@@ -6,10 +6,11 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/Button';
+} from '../../../shared/components/layout/Button/types';
 import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
 import { IconCheckmarkWhite } from '../../../shared/components/svg';
 import { deviceBreakpoints } from '../../../shared/constants';
@@ -78,7 +79,7 @@ export const NetworkControls = () => {
         className="submit"
         text={LL.networkConfiguration.form.controls.submit()}
         size={ButtonSize.SMALL}
-        styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
+        styleVariant={ButtonStyleVariant.SAVE}
         icon={<IconCheckmarkWhite />}
         loading={loading}
         onClick={() => save.next()}
