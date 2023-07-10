@@ -11,7 +11,6 @@ import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
-import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
 import {
   SelectOption,
