@@ -1,0 +1,7 @@
+export enum GatewayConnectionStatus {
+  CONNECTED = 'CONNECTED',
+  PARTIAL = 'PARTIAL',
+  DISCONNECTED = 'DISCONNECTED',
+  ERROR = 'ERROR',
+  LOADING = 'LOADING',
+}

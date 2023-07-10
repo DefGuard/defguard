@@ -84,10 +84,12 @@
 
       .location {
         color: var(--gray-dark);
+        white-space: nowrap;
       }
 
       .ip-address {
         color: var(--gray-light);
+        white-space: nowrap;
         @include text-weight(regular);
       }
     }

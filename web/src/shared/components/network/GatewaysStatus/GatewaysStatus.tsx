@@ -21,6 +21,7 @@ import SvgIconArrowSingle from '../../svg/IconArrowSingle';
 import SvgIconInfoSuccess from '../../svg/IconInfoSuccess';
 import SvgIconX from '../../svg/IconX';
 import { GatewayStatusIcon } from './GatewayStatusIcon';
+import { GatewayConnectionStatus } from './types';
 
 type Props = {
   networkId: number;
@@ -243,11 +244,3 @@ const GatewayStatusRow = ({ status, onDismiss }: GatewayStatusRowProps) => {
     </div>
   );
 };
-
-export enum GatewayConnectionStatus {
-  CONNECTED = 'CONNECTED',
-  PARTIAL = 'PARTIAL',
-  DISCONNECTED = 'DISCONNECTED',
-  ERROR = 'ERROR',
-  LOADING = 'LOADING',
-}

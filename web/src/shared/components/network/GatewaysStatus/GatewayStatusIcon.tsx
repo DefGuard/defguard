@@ -2,7 +2,7 @@ import { motion, TargetAndTransition } from 'framer-motion';
 import { useMemo } from 'react';
 
 import { ColorsRGB } from '../../../constants';
-import { GatewayConnectionStatus } from './GatewaysStatus';
+import { GatewayConnectionStatus } from './types';
 
 type Props = {
   status: GatewayConnectionStatus;

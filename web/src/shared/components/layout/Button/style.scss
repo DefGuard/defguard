@@ -125,7 +125,7 @@
     }
   }
 
-  .variant-save {
+  &.variant-save {
     background-color: var(--success);
     color: var(--white);
     &.hovered {

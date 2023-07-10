@@ -63,6 +63,15 @@ export const Button = ({
       gridTemplateColumns: textColumn,
     };
     const columnSize = size === ButtonSize.LARGE ? `36px` : `18px`;
+    if (!text) {
+      if (icon && (rightIcon || loading)) {
+        res.gridTemplateColumns = `${columnSize} ${columnSize}`;
+        return res;
+      } else {
+        res.gridTemplateColumns = columnSize;
+        return res;
+      }
+    }
     if (text && !icon && !rightIcon && !loading) {
       res.gridTemplateColumns = textColumn;
       return res;
