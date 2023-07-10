@@ -5,10 +5,11 @@ import { useEffect, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/Button';
+} from '../../../shared/components/layout/Button/types';
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import { IconCheckmarkWhite } from '../../../shared/components/svg';
@@ -65,7 +66,7 @@ export const Web3Settings = () => {
               }
               icon={<IconCheckmarkWhite />}
               size={ButtonSize.SMALL}
-              styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
+              styleVariant={ButtonStyleVariant.SAVE}
               loading={isLoading}
               disabled={signMessage.length < 4}
               onClick={() => {

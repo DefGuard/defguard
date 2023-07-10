@@ -3,7 +3,8 @@ import './style.scss';
 import { clone, isUndefined } from 'lodash-es';
 import { ReactNode, useMemo } from 'react';
 
-import Button, { ButtonSize, ButtonStyleVariant } from '../Button/Button';
+import { Button } from '../Button/Button';
+import { ButtonSize, ButtonStyleVariant } from '../Button/types';
 import Modal from '../Modal/Modal';
 
 export enum ConfirmModalType {
@@ -55,7 +56,7 @@ const ConfirmModal = ({
       <p className="subtitle">{subTitle}</p>
       <section className="controls">
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           className="cancel"
           text={cancelText ?? 'Cancel'}
           onClick={() => {
@@ -67,11 +68,11 @@ const ConfirmModal = ({
           }}
         />
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={
             type === ConfirmModalType.WARNING
-              ? ButtonStyleVariant.CONFIRM_WARNING
-              : ButtonStyleVariant.WARNING
+              ? ButtonStyleVariant.DELETE
+              : ButtonStyleVariant.CONFIRM
           }
           disabled={loading}
           loading={loading}

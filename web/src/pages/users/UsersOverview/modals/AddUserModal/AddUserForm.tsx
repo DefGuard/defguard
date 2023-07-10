@@ -15,10 +15,11 @@ import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
-import Button, {
+import { Button } from '../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../shared/components/layout/Button/Button';
+} from '../../../../../shared/components/layout/Button/types';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -246,7 +247,7 @@ export const AddUserForm = () => {
       </div>
       <div className="controls">
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           text={LL.form.cancel()}
           className="cancel"
           onClick={() => setModalState({ visible: false })}
@@ -256,7 +257,7 @@ export const AddUserForm = () => {
         <Button
           className="big primary"
           type="submit"
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.modals.addUser.form.submit()}
           disabled={!isValid}

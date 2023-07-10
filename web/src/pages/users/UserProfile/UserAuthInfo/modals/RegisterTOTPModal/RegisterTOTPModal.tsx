@@ -12,10 +12,11 @@ import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
-import Button, {
+import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../shared/components/layout/Button/types';
 import { DelayRender } from '../../../../../../shared/components/layout/DelayRender/DelayRender';
 import { LoaderSpinner } from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import MessageBox, {
@@ -106,7 +107,7 @@ const TOTPRegisterQRCode = () => {
         <Button
           data-testid="copy-totp"
           icon={<IconCopy />}
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           text={LL.modals.registerTOTP.copyPath()}
           onClick={handleCopy}
           loading={isUndefined(qrData)}
@@ -185,7 +186,7 @@ const TOTPRegisterForm = () => {
       <div className="controls">
         <Button
           styleVariant={ButtonStyleVariant.STANDARD}
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           text={LL.form.cancel()}
           className="cancel"
           onClick={() => setModalsState({ registerTOTP: { visible: false } })}
@@ -193,7 +194,7 @@ const TOTPRegisterForm = () => {
         <Button
           styleVariant={ButtonStyleVariant.PRIMARY}
           loading={isLoading}
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           type="submit"
           text={LL.modals.registerTOTP.form.controls.submit()}
         />

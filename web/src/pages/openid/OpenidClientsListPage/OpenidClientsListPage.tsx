@@ -7,10 +7,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/Button';
+} from '../../../shared/components/layout/Button/types';
 import ConfirmModal, {
   ConfirmModalType,
 } from '../../../shared/components/layout/ConfirmModal/ConfirmModal';
@@ -337,7 +338,11 @@ export const OpenidClientsListPage = () => {
             right: 15,
           }}
           onDefaultRowClick={(client) =>
-            setOpenIdClientModalState({ visible: true, client, viewMode: true })
+            setOpenIdClientModalState({
+              visible: true,
+              client,
+              viewMode: true,
+            })
           }
         />
       )}

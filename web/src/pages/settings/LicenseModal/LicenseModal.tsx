@@ -6,9 +6,8 @@ import ReactMarkdown from 'react-markdown';
 import { shallow } from 'zustand/shallow';
 
 import licenseAgreement from '../../../shared/assets/LICENSE.md?raw';
-import Button, {
-  ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/Button';
+import { Button } from '../../../shared/components/layout/Button/Button';
+import { ButtonStyleVariant } from '../../../shared/components/layout/Button/types';
 import Modal from '../../../shared/components/layout/Modal/Modal';
 import { IconCancel, IconCopy, IconDownload } from '../../../shared/components/svg';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';

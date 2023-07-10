@@ -3,10 +3,11 @@ import './style.scss';
 import { ReactNode } from 'react';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../shared/components/layout/Button/types';
 import { Card } from '../../../../../../shared/components/layout/Card/Card';
 import { IconCheckmarkWhite } from '../../../../../../shared/components/svg';
 
@@ -35,13 +36,11 @@ export const WizardTypeOptionCard = ({
       <p>{subtitle}</p>
       {icon}
       <Button
-        styleVariant={
-          selected ? ButtonStyleVariant.CONFIRM_SUCCESS : ButtonStyleVariant.PRIMARY
-        }
+        styleVariant={selected ? ButtonStyleVariant.SAVE : ButtonStyleVariant.PRIMARY}
         icon={selected ? <IconCheckmarkWhite /> : undefined}
         text={!selected ? LL.wizard.common.select() : undefined}
         onClick={onClick}
-        size={ButtonSize.BIG}
+        size={ButtonSize.LARGE}
         data-testid={testId}
       />
     </Card>

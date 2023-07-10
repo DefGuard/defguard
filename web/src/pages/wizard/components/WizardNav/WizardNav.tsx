@@ -6,10 +6,11 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/Button';
+} from '../../../../shared/components/layout/Button/types';
 import {
   Divider,
   DividerDirection,
@@ -87,7 +88,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
           <Button
             data-testid="wizard-back"
             onClick={() => back()}
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             text="Back"
             icon={<SvgIconArrowGrayLeft />}
             disabled={loading || backDisabled}
@@ -95,7 +96,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
           <Button
             data-testid="wizard-next"
             text={lastStep ? 'Finish' : 'Next'}
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={!lastStep ? <SvgIconArrowGrayRight /> : null}
             loading={loading}

@@ -5,10 +5,11 @@ import { useAccount, useSignTypedData } from 'wagmi';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/Button';
+} from '../../../../shared/components/layout/Button/types';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
@@ -98,7 +99,7 @@ export const MFAWeb3 = () => {
       <Button
         text={LL.loginPage.mfa.wallet.controls.submit()}
         styleVariant={ButtonStyleVariant.PRIMARY}
-        size={ButtonSize.BIG}
+        size={ButtonSize.LARGE}
         loading={finishLoading || startLoading || isConnecting || isSigning}
         onClick={() => {
           if (!isConnected) {
@@ -115,20 +116,20 @@ export const MFAWeb3 = () => {
         {totpAvailable && (
           <Button
             text={LL.loginPage.mfa.controls.useAuthenticator()}
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             onClick={() => navigate('../totp')}
           />
         )}
         {webauthnAvailable && (
           <Button
             text={LL.loginPage.mfa.controls.useWebauthn()}
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             onClick={() => navigate('../webauthn')}
           />
         )}
         <Button
           text={LL.loginPage.mfa.controls.useRecoveryCode()}
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.LINK}
           onClick={() => navigate('../recovery')}
         />

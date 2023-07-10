@@ -7,10 +7,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/Button';
+} from '../../../shared/components/layout/Button/types';
 import { LoaderSpinner } from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import { Search } from '../../../shared/components/layout/Search/Search';
 import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';

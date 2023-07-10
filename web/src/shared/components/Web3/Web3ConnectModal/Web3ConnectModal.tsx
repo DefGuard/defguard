@@ -5,7 +5,8 @@ import { useConnect } from 'wagmi';
 
 import { useModalStore } from '../../../hooks/store/useModalStore';
 import { useToaster } from '../../../hooks/useToaster';
-import Button, { ButtonSize } from '../../layout/Button/Button';
+import { Button } from '../../layout/Button/Button';
+import { ButtonSize } from '../../layout/Button/types';
 import { ModalWithTitle } from '../../layout/ModalWithTitle/ModalWithTitle';
 import { RowBox } from '../../layout/RowBox/RowBox';
 import { MetamaskIcon, WalletconnectIcon } from '../../svg';
@@ -39,7 +40,7 @@ export const Web3ConnectModal = () => {
         <Button
           text="cancel"
           className="cancel"
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           onClick={() => setModalsState({ connectWalletModal: { visible: false } })}
         />
       </div>
