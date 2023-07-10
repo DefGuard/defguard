@@ -139,13 +139,13 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
             </div>
           </header>
           <AutoSizer>
-            {({ width }) => (
+            {({ width, height }) => (
               <>
                 {networkStats.transfer_series && (
                   <NetworkUsageChart
                     data={networkStats.transfer_series}
                     hideX={false}
-                    height={35}
+                    height={height}
                     width={width}
                     barSize={2}
                   />

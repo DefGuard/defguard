@@ -28,7 +28,7 @@ export const NetworkUsageChart = ({
   return (
     <div className="network-usage">
       <BarChart
-        height={height}
+        height={height + 35}
         width={width}
         data={getFormattedData}
         margin={{ bottom: 0, left: 0, right: 0, top: 0 }}

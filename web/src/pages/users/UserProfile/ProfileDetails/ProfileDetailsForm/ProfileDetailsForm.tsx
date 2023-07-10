@@ -103,9 +103,9 @@ export const ProfileDetailsForm = () => {
           groups: yup.array(),
           authorized_apps: yup.array().of(
             yup.object().shape({
-              oauth2client_id: yup.string().required(),
+              oauth2client_id: yup.number().required(),
               oauth2client_name: yup.string().required(),
-              user_id: yup.string().required(),
+              user_id: yup.number().required(),
             })
           ),
         })
