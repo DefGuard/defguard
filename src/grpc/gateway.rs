@@ -483,8 +483,11 @@ impl gateway_service_server::GatewayService for GatewayServer {
             error!("Failed to update network {} status: {}", network_id, err);
         }
 
-        let peers = network.get_peers(&pool).await.map_err(|_| {
-            error!("Failed to fetch peers for network {}", network_id);
+        let peers = network.get_peers(&pool).await.map_err(|error| {
+            error!(
+                "Failed to fetch peers for network {}: {}",
+                network_id, error
+            );
             Status::new(
                 tonic::Code::Internal,
                 format!("Failed to retrieve peers for network: {}", network_id),
