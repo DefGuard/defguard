@@ -1253,6 +1253,32 @@
     },
     "query": "DELETE FROM \"webhook\" WHERE id = $1"
   },
+  "3e1a196f68f9320c463bb5cff65707394fe4153f001c4e6a372fad4905c2a193": {
+    "describe": {
+      "columns": [
+        {
+          "name": "pubkey",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "allowed_ips!: Vec<String>",
+          "ordinal": 1,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT d.wireguard_pubkey as pubkey, array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd\n            JOIN device d\n            ON wnd.device_id = d.id\n            WHERE wireguard_network_id = $1\n        "
+  },
   "3fe95f7f36317af0d3b95e0b460536fd8e597e01cdc54936d3270b0a5937d708": {
     "describe": {
       "columns": [
@@ -4027,32 +4053,6 @@
       }
     },
     "query": "\n                SELECT wireguard_ip\n                FROM wireguard_network_device\n                WHERE device_id = $1 AND wireguard_network_id = $2\n            "
-  },
-  "e95b401e571bc46a3ee04a653afa7b85d4045531734aa6fbcfce4460f5d68381": {
-    "describe": {
-      "columns": [
-        {
-          "name": "pubkey",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "allowed_ips!: Vec<String>",
-          "ordinal": 1,
-          "type_info": "InetArray"
-        }
-      ],
-      "nullable": [
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n            SELECT d.wireguard_pubkey as pubkey, array[wnd.wireguard_ip] as \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd\n            JOIN device d\n            ON wnd.device_id = d.id\n            WHERE wireguard_network_id = $1\n        "
   },
   "e99464b4da5a21bcffda16866783d11c819eb078e392f1492467ae420800242d": {
     "describe": {
