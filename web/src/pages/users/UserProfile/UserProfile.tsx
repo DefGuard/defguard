@@ -8,10 +8,11 @@ import { useParams } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/Button';
+} from '../../../shared/components/layout/Button/types';
 import { EditButton } from '../../../shared/components/layout/EditButton/EditButton';
 import {
   EditButtonOption,
@@ -150,7 +151,7 @@ const EditModeControls = () => {
           <Button
             text={LL.userPage.controls.deleteAccount()}
             size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.WARNING}
+            styleVariant={ButtonStyleVariant.CONFIRM}
             onClick={handleDeleteUser}
           />
         </div>
@@ -180,7 +181,7 @@ const EditModeControls = () => {
           data-testid="user-edit-save"
           text={LL.form.saveChanges()}
           size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.CONFIRM_SUCCESS}
+          styleVariant={ButtonStyleVariant.SAVE}
           icon={<IconCheckmarkWhite />}
           onClick={() => submitSubject.next()}
           loading={loading}

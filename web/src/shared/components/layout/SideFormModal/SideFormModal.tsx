@@ -5,7 +5,8 @@ import { useBreakpoint } from 'use-breakpoint';
 
 import { deviceBreakpoints } from '../../../constants';
 import { IconHamburgerClose } from '../../svg';
-import Button, { ButtonSize, ButtonStyleVariant } from '../Button/Button';
+import { Button } from '../Button/Button';
+import { ButtonSize, ButtonStyleVariant } from '../Button/types';
 import IconButton from '../IconButton/IconButton';
 import Modal, { ModalProps } from '../Modal/Modal';
 
@@ -50,7 +51,7 @@ export const SideFormModal = ({
       {children}
       {breakpoint === 'desktop' && (
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           className="close"
           onClick={() => setIsOpen(false)}

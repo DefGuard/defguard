@@ -6,10 +6,11 @@ import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
-import Button, {
+import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../shared/components/layout/Button/types';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../shared/hooks/useApi';
@@ -102,7 +103,7 @@ export const AddDeviceDesktopForm = () => {
         />
         <Button
           type="submit"
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.modals.addDevice.desktop.form.submit()}
           disabled={!isValid}

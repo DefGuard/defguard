@@ -6,10 +6,11 @@ import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
-import Button, {
+import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../shared/components/layout/Button/types';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
@@ -105,7 +106,7 @@ export const EditUserDeviceForm = () => {
       <div className="controls">
         <Button
           type="button"
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           text={LL.form.cancel()}
           className="cancel"
@@ -113,7 +114,7 @@ export const EditUserDeviceForm = () => {
         />
         <Button
           type="submit"
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.modals.editDevice.form.controls.submit()}
           loading={editDeviceLoading}

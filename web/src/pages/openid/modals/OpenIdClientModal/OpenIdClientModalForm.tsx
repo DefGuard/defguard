@@ -14,10 +14,11 @@ import {
   ActionButton,
   ActionButtonVariant,
 } from '../../../../shared/components/layout/ActionButton/ActionButton';
-import Button, {
+import { Button } from '../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/Button';
+} from '../../../../shared/components/layout/Button/types';
 import { ExpandableCard } from '../../../../shared/components/layout/ExpandableCard/ExpandableCard';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
@@ -188,7 +189,7 @@ export const OpenIdClientModalForm = () => {
         {!modalState.viewMode && (
           <Button
             styleVariant={ButtonStyleVariant.PRIMARY}
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             text={LL.openidOverview.modals.openidClientModal.form.controls.addUrl()}
             onClick={() => append({ url: '' })}
           />
@@ -332,7 +333,7 @@ export const OpenIdClientModalForm = () => {
         <Button
           text={modalState.viewMode ? LL.form.close() : LL.form.cancel()}
           styleVariant={ButtonStyleVariant.STANDARD}
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           onClick={() =>
             setModalState({
               visible: false,
@@ -343,7 +344,7 @@ export const OpenIdClientModalForm = () => {
         />
         {!modalState.viewMode && (
           <Button
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.PRIMARY}
             text={LL.form.submit()}
             type="submit"

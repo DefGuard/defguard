@@ -6,10 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../shared/components/layout/Button/Button';
+} from '../../shared/components/layout/Button/types';
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
@@ -21,6 +22,8 @@ import { LoaderPage } from '../loader/LoaderPage';
 export const OpenidAllowPage = () => {
   const navigate = useNavigate();
 
+  const [allowLoading, setAllowLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [params] = useSearchParams();
   const [scope, setScope] = useState<string | null>('');
   const [responseType, setResponseType] = useState<string | null>('');
@@ -119,21 +122,29 @@ export const OpenidAllowPage = () => {
         <div className="controls">
           <Button
             data-testid="openid-allow"
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconCheckmarkWhite />}
             text={LL.openidAllow.controls.accept()}
             disabled={!paramsValid}
-            onClick={() => handleSubmit(true)}
+            loading={allowLoading}
+            onClick={() => {
+              setAllowLoading(true);
+              handleSubmit(true);
+            }}
           />
           <Button
             data-testid="openid-cancel"
-            size={ButtonSize.BIG}
+            size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.STANDARD}
             icon={<SvgIconDelete />}
             text={LL.openidAllow.controls.cancel()}
             disabled={!paramsValid}
-            onClick={() => handleSubmit(false)}
+            loading={cancelLoading}
+            onClick={() => {
+              setCancelLoading(true);
+              handleSubmit(false);
+            }}
           />
         </div>
       </div>

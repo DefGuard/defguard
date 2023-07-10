@@ -1,9 +1,8 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
-import Button, {
-  ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/Button';
+import { Button } from '../../../../../../../shared/components/layout/Button/Button';
+import { ButtonStyleVariant } from '../../../../../../../shared/components/layout/Button/types';
 import { RowBox } from '../../../../../../../shared/components/layout/RowBox/RowBox';
 import SvgIconKey from '../../../../../../../shared/components/svg/IconKey';
 import { ColorsRGB } from '../../../../../../../shared/constants';

@@ -1,99 +1,55 @@
 import './style.scss';
 
 import classNames from 'classnames';
-import { HTMLMotionProps, motion, useAnimation, Variant, Variants } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { ButtonHTMLAttributes, useMemo, useState } from 'react';
 
-import { buttonsBoxShadow, ColorsRGB, inactiveBoxShadow } from '../../../constants';
+import { ColorsRGB } from '../../../constants';
 import { LoaderSpinner } from '../LoaderSpinner/LoaderSpinner';
+import { ButtonSize, ButtonStyleVariant } from './types';
 
-interface Props extends HTMLMotionProps<'button'> {
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   size?: ButtonSize;
   styleVariant?: ButtonStyleVariant;
   text?: string;
   icon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
-export enum ButtonSize {
-  BIG = 'big',
-  SMALL = 'small',
-}
-
-export enum ButtonStyleVariant {
-  PRIMARY = 'primary',
-  WARNING = 'warning',
-  LINK = 'link',
-  CONFIRM_SUCCESS = 'confirm success',
-  CONFIRM_WARNING = 'confirm warning',
-  ICON = 'icon',
-  STANDARD = '',
-}
-
-/**
- * Displays styled button animated by framer-motion
- */
-const Button = ({
+export const Button = ({
   loading = false,
   size = ButtonSize.SMALL,
   styleVariant = ButtonStyleVariant.STANDARD,
   text,
   icon,
+  rightIcon,
   className,
   disabled = false,
   type = 'button',
+  onClick,
   ...props
 }: Props) => {
   const [hovered, setHovered] = useState(false);
-  const loaderSize = useMemo(() => (size === ButtonSize.BIG ? 18 : 16), [size]);
-  const buttonControls = useAnimation();
-  const textControls = useAnimation();
-
   const isDisabled = useMemo(() => disabled || loading, [disabled, loading]);
 
   const getClassName = useMemo(
     () =>
       classNames('btn', className, size.valueOf(), styleVariant.valueOf(), {
-        'with-icon':
-          !isUndefined(icon) &&
-          styleVariant !== ButtonStyleVariant.ICON &&
-          text !== undefined &&
-          text.length > 0,
-        'with-icon-no-text':
-          !isUndefined(icon) &&
-          styleVariant !== ButtonStyleVariant.ICON &&
-          (text === undefined || text.length === 0),
+        icon: !isUndefined(icon),
+        loading: loading,
+        hovered: hovered && !loading && !disabled,
+        disabled,
       }),
-    [className, size, styleVariant, icon, text]
+    [className, size, styleVariant, icon, loading, hovered, disabled]
   );
-
-  const getCustom: ButtonCustom = useMemo(
-    () => ({ disabled: isDisabled, size, styleVariant }),
-    [isDisabled, size, styleVariant]
-  );
-
-  useEffect(() => {
-    if (isDisabled) {
-      buttonControls.start('idle');
-      textControls.start('idle');
-    } else {
-      if (hovered) {
-        buttonControls.start('hover');
-        textControls.start('hover');
-      } else {
-        buttonControls.start('idle');
-        textControls.start('idle');
-      }
-    }
-  }, [buttonControls, isDisabled, getCustom, hovered, textControls]);
 
   const getSpinnerColor = useMemo(() => {
     if (
       [
         ButtonStyleVariant.PRIMARY,
-        ButtonStyleVariant.CONFIRM_SUCCESS,
-        ButtonStyleVariant.CONFIRM_WARNING,
+        ButtonStyleVariant.SAVE,
+        ButtonStyleVariant.DELETE,
       ].includes(styleVariant)
     ) {
       return ColorsRGB.White;
@@ -101,418 +57,60 @@ const Button = ({
     return ColorsRGB.Primary;
   }, [styleVariant]);
 
+  const getButtonStyle = useMemo((): Props['style'] => {
+    const textColumn = 'min-content';
+    const res: Props['style'] = {
+      gridTemplateColumns: textColumn,
+    };
+    const columnSize = size === ButtonSize.LARGE ? `36px` : `18px`;
+    if (text && !icon && !rightIcon && !loading) {
+      res.gridTemplateColumns = textColumn;
+      return res;
+    }
+    if (text && icon && !loading && !rightIcon) {
+      res.gridTemplateColumns = `${columnSize} ${textColumn}`;
+      return res;
+    }
+    if (text && (loading || rightIcon) && !icon) {
+      res.gridTemplateColumns = `${textColumn} ${columnSize}`;
+      return res;
+    }
+    if (icon && text && (loading || rightIcon)) {
+      res.gridTemplateColumns = `${columnSize} ${textColumn} ${columnSize}`;
+      return res;
+    }
+    return res;
+  }, [icon, loading, rightIcon, size, text]);
+
   return (
-    <motion.button
-      {...props}
+    <button
+      style={getButtonStyle}
       type={type}
       className={getClassName}
       disabled={isDisabled}
-      variants={buttonVariants}
-      animate={buttonControls}
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
-      whileTap={
-        !isDisabled
-          ? {
-              scale: 0.9,
-            }
-          : undefined
-      }
-      custom={getCustom}
+      onClick={(e) => {
+        if (!disabled && !loading && (onClick || type != 'button')) {
+          if (onClick) {
+            onClick(e);
+          }
+        } else {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      {...props}
     >
-      <motion.div
-        className="content"
-        variants={containersVariant}
-        animate="show"
-        exit="exit"
-      >
-        {!isUndefined(icon) && <span className="icon-container">{icon}</span>}
-        <motion.span
-          variants={textVariants}
-          animate={textControls}
-          custom={{ disabled, styleVariant, size }}
-        >
-          {text}
-        </motion.span>
-        {loading && <LoaderSpinner size={loaderSize} color={getSpinnerColor} />}
-      </motion.div>
-    </motion.button>
+      {icon}
+      {text && text.length > 0 && <span className="text">{text}</span>}
+      {rightIcon && !loading && <>{rightIcon}</>}
+      {loading && (
+        <LoaderSpinner
+          color={getSpinnerColor}
+          size={size === ButtonSize.LARGE ? 26 : 12}
+        />
+      )}
+    </button>
   );
-};
-
-export default Button;
-
-interface ButtonCustom {
-  size: ButtonSize;
-  styleVariant: ButtonStyleVariant;
-  disabled: boolean;
-}
-
-const buttonVariants: Variants = {
-  idle: ({ disabled, size, styleVariant }: ButtonCustom) => {
-    let res: Variant = { boxShadow: inactiveBoxShadow, opacity: 1 };
-    switch (size) {
-      case ButtonSize.SMALL:
-        switch (styleVariant) {
-          case ButtonStyleVariant.ICON:
-            res = {
-              borderColor: ColorsRGB.Transparent,
-              backgroundColor: ColorsRGB.Transparent,
-            };
-            break;
-          case ButtonStyleVariant.STANDARD:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.GrayBorder,
-              backgroundColor: ColorsRGB.BgLight,
-            };
-            break;
-          case ButtonStyleVariant.PRIMARY:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.Primary,
-              backgroundColor: ColorsRGB.Primary,
-            };
-            break;
-          case ButtonStyleVariant.WARNING:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.GrayBorder,
-              backgroundColor: ColorsRGB.BgLight,
-            };
-            break;
-          case ButtonStyleVariant.CONFIRM_SUCCESS:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.Success,
-              backgroundColor: ColorsRGB.Success,
-            };
-            break;
-          case ButtonStyleVariant.CONFIRM_WARNING:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.Error,
-              backgroundColor: ColorsRGB.Error,
-            };
-            break;
-          default:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.GrayBorder,
-              backgroundColor: ColorsRGB.BgLight,
-            };
-            break;
-        }
-        break;
-      case ButtonSize.BIG:
-        switch (styleVariant) {
-          case ButtonStyleVariant.ICON:
-            res = {
-              borderColor: ColorsRGB.Transparent,
-              backgroundColor: ColorsRGB.Transparent,
-            };
-            break;
-          case ButtonStyleVariant.STANDARD:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.GrayBorder,
-              backgroundColor: ColorsRGB.BgLight,
-            };
-            break;
-          case ButtonStyleVariant.PRIMARY:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.Primary,
-              backgroundColor: ColorsRGB.Primary,
-            };
-            break;
-          case ButtonStyleVariant.WARNING:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.GrayBorder,
-              backgroundColor: ColorsRGB.BgLight,
-            };
-            break;
-          case ButtonStyleVariant.CONFIRM_WARNING:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.Error,
-              backgroundColor: ColorsRGB.Error,
-            };
-            break;
-          case ButtonStyleVariant.CONFIRM_SUCCESS:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.Success,
-              backgroundColor: ColorsRGB.Success,
-            };
-            break;
-          default:
-            res = {
-              ...res,
-              borderColor: ColorsRGB.GrayBorder,
-              backgroundColor: ColorsRGB.BgLight,
-            };
-            break;
-        }
-    }
-    if (disabled) {
-      res = { ...res, opacity: 0.5 };
-    }
-    return res;
-  },
-  hover: ({ disabled, size, styleVariant }: ButtonCustom) => {
-    let res: Variant = { boxShadow: buttonsBoxShadow, opacity: 1 };
-    if (!disabled) {
-      switch (size) {
-        case ButtonSize.SMALL:
-          switch (styleVariant) {
-            case ButtonStyleVariant.ICON:
-              res = {
-                boxShadow: inactiveBoxShadow,
-                opacity: 1,
-                borderColor: ColorsRGB.Transparent,
-                backgroundColor: ColorsRGB.Transparent,
-              };
-              break;
-            case ButtonStyleVariant.STANDARD:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.GrayLighter,
-                backgroundColor: ColorsRGB.BgLight,
-              };
-              break;
-            case ButtonStyleVariant.PRIMARY:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.PrimaryDark,
-                backgroundColor: ColorsRGB.PrimaryDark,
-                boxShadow: '0px 6px 10px rgba(12, 140, 224, 0.4)',
-              };
-              break;
-            case ButtonStyleVariant.WARNING:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.GrayLighter,
-                backgroundColor: ColorsRGB.BgLight,
-              };
-              break;
-            case ButtonStyleVariant.CONFIRM_SUCCESS:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.SuccessDark,
-                backgroundColor: ColorsRGB.SuccessDark,
-                boxShadow: '0px 6px 20px rgba(20, 188, 110, 0.4)',
-              };
-              break;
-            case ButtonStyleVariant.CONFIRM_WARNING:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.ErrorDark,
-                backgroundColor: ColorsRGB.ErrorDark,
-                boxShadow: '0px 6px 10px rgba(203, 63, 63, 0.4)',
-              };
-              break;
-            default:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.GrayLighter,
-                backgroundColor: ColorsRGB.BgLight,
-              };
-              break;
-          }
-          break;
-        case ButtonSize.BIG:
-          switch (styleVariant) {
-            case ButtonStyleVariant.ICON:
-              res = {
-                boxShadow: inactiveBoxShadow,
-                opacity: 1,
-                borderColor: ColorsRGB.Transparent,
-                backgroundColor: ColorsRGB.Transparent,
-              };
-              break;
-            case ButtonStyleVariant.STANDARD:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.GrayLighter,
-                backgroundColor: ColorsRGB.BgLight,
-              };
-              break;
-            case ButtonStyleVariant.PRIMARY:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.PrimaryDark,
-                backgroundColor: ColorsRGB.PrimaryDark,
-                boxShadow: '0px 6px 10px rgba(12, 140, 224, 0.4)',
-              };
-              break;
-            case ButtonStyleVariant.WARNING:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.GrayBorder,
-                backgroundColor: ColorsRGB.BgLight,
-              };
-              break;
-            case ButtonStyleVariant.CONFIRM_WARNING:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.ErrorDark,
-                backgroundColor: ColorsRGB.ErrorDark,
-                boxShadow: '0px 6px 10px rgba(203, 63, 63, 0.4)',
-              };
-              break;
-            case ButtonStyleVariant.CONFIRM_SUCCESS:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.SuccessDark,
-                backgroundColor: ColorsRGB.SuccessDark,
-                boxShadow: '0px 6px 20px 	rgba(20, 188, 110, 0.4)',
-              };
-              break;
-            default:
-              res = {
-                ...res,
-                borderColor: ColorsRGB.GrayLighter,
-                backgroundColor: ColorsRGB.BgLight,
-              };
-              break;
-          }
-        default:
-          break;
-      }
-    } else {
-      res = { ...res, opacity: 0.5, boxShadow: inactiveBoxShadow };
-    }
-    return res;
-  },
-};
-
-const containersVariant: Variants = {
-  hidden: {
-    opacity: 0,
-    x: 10,
-  },
-  show: {
-    opacity: 1,
-    x: 0,
-  },
-  hover: {
-    opacity: 1,
-    x: 0,
-  },
-  exit: {
-    opacity: 0,
-    x: -10,
-  },
-};
-
-const textVariants: Variants = {
-  idle: ({ size, styleVariant }: ButtonCustom) => {
-    let res: Variant = {};
-    switch (size) {
-      case ButtonSize.SMALL:
-        switch (styleVariant) {
-          case ButtonStyleVariant.STANDARD:
-            res = { ...res, color: ColorsRGB.GrayDark };
-            break;
-          case ButtonStyleVariant.PRIMARY:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.WARNING:
-            res = { ...res, color: ColorsRGB.Error };
-            break;
-          case ButtonStyleVariant.CONFIRM_SUCCESS:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.CONFIRM_WARNING:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          default:
-            res = { ...res, color: ColorsRGB.GrayDark };
-            break;
-        }
-        break;
-      case ButtonSize.BIG:
-        switch (styleVariant) {
-          case ButtonStyleVariant.STANDARD:
-            res = { ...res, color: ColorsRGB.GrayDark };
-            break;
-          case ButtonStyleVariant.PRIMARY:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.WARNING:
-            res = { ...res, color: ColorsRGB.Error };
-            break;
-          case ButtonStyleVariant.CONFIRM_WARNING:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.CONFIRM_SUCCESS:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.LINK:
-            res = { ...res, color: ColorsRGB.Primary };
-            break;
-          default:
-            res = { ...res, color: ColorsRGB.GrayDark };
-            break;
-        }
-        break;
-      default:
-        break;
-    }
-    return res;
-  },
-  hover: ({ size, styleVariant }: ButtonCustom) => {
-    let res: Variant = {};
-    switch (size) {
-      case ButtonSize.SMALL:
-        switch (styleVariant) {
-          case ButtonStyleVariant.STANDARD:
-            res = { ...res, color: ColorsRGB.Primary };
-            break;
-          case ButtonStyleVariant.PRIMARY:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.WARNING:
-            res = { ...res, color: ColorsRGB.Error };
-            break;
-          case ButtonStyleVariant.CONFIRM_SUCCESS:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.CONFIRM_WARNING:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          default:
-            res = { ...res, color: ColorsRGB.GrayDark };
-            break;
-        }
-        break;
-      case ButtonSize.BIG:
-        switch (styleVariant) {
-          case ButtonStyleVariant.STANDARD:
-            res = { ...res, color: ColorsRGB.Primary };
-            break;
-          case ButtonStyleVariant.PRIMARY:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.WARNING:
-            res = { ...res, color: ColorsRGB.Error };
-            break;
-          case ButtonStyleVariant.CONFIRM_WARNING:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.CONFIRM_SUCCESS:
-            res = { ...res, color: ColorsRGB.White };
-            break;
-          case ButtonStyleVariant.LINK:
-            res = { ...res, color: ColorsRGB.Primary };
-            break;
-          default:
-            res = { ...res, color: ColorsRGB.GrayDark };
-            break;
-        }
-    }
-    return res;
-  },
 };

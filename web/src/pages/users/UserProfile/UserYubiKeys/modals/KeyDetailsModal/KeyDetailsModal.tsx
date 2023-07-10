@@ -5,10 +5,11 @@ import { motion } from 'framer-motion';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import Button, {
+import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/Button';
+} from '../../../../../../shared/components/layout/Button/types';
 import Modal from '../../../../../../shared/components/layout/Modal/Modal';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import KeyBox from '../../../../shared/components/KeyBox/KeyBox';
@@ -66,14 +67,14 @@ export const KeyDetailsModal = () => {
       ) : null}
       <div className="controls">
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           className="cancel"
           text={LL.form.cancel()}
           onClick={() => setIsOpen(false)}
         />
         <Button
-          size={ButtonSize.BIG}
+          size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           className="big primary"
           onClick={() => handleDownloadAll()}
