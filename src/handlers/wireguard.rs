@@ -249,7 +249,7 @@ pub async fn list_networks(
 
     for network in networks {
         let network_id = network.id.expect("Network does not have an ID");
-        let allowed_groups = network.get_allowed_groups(&appstate.pool).await?;
+        let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
         {
             let gateway_state = gateway_state
                 .lock()
@@ -281,7 +281,7 @@ pub async fn network_details(
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id).await?;
     let response = match network {
         Some(network) => {
-            let allowed_groups = network.get_allowed_groups(&appstate.pool).await?;
+            let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
             let gateway_state = gateway_state
                 .lock()
                 .expect("Failed to acquire gateway state lock");

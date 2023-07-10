@@ -2,6 +2,7 @@ use crate::db::models::error::ModelError;
 use crate::db::WireguardNetwork;
 use crate::DbPool;
 use model_derive::Model;
+use rocket::form::validate::Contains;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, Transaction};
 
 #[derive(Model)]
@@ -45,8 +46,8 @@ impl Group {
 }
 
 impl WireguardNetwork {
-    /// Fetch a list of all allowed groups for a given network
-    pub async fn get_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
+    /// Fetch a list of all allowed groups for a given network from DB
+    pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
@@ -65,6 +66,38 @@ impl WireguardNetwork {
         Ok(groups)
     }
 
+    /// Return a list of allowed groups for a given network.
+    /// Admin group should always be included.
+    /// If no `allowed_groups` are specified for a network then all groups are allowed.
+    /// This helper method is meant for use in all business logic gating
+    /// access to networks based on allowed groups.
+    pub async fn get_allowed_groups(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        admin_group_name: &String,
+    ) -> Result<Vec<String>, ModelError> {
+        debug!("Returning a list of allowed groups for network {}", self);
+        // get allowed groups from DB
+        let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
+
+        // if no allowed groups are set then all group are allowed
+        if groups.is_empty() {
+            let groups = Group::all(&mut *transaction)
+                .await?
+                .into_iter()
+                .map(|group| group.name)
+                .collect();
+            return Ok(groups);
+        }
+
+        // make sure admin group is included
+        if !groups.contains(admin_group_name) {
+            groups.push(admin_group_name.clone());
+        }
+
+        Ok(groups)
+    }
+
     /// Set allowed groups, removing or adding groups as necessary.
     pub async fn set_allowed_groups(
         &self,
@@ -77,7 +110,7 @@ impl WireguardNetwork {
         }
 
         // get list of current allowed groups
-        let mut current_groups = self.get_allowed_groups(&mut *transaction).await?;
+        let mut current_groups = self.fetch_allowed_groups(&mut *transaction).await?;
 
         // add to group if not already a member
         for group in &allowed_groups {

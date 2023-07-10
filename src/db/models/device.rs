@@ -11,7 +11,7 @@ use std::fmt::{Display, Formatter};
 use std::net::IpAddr;
 use thiserror::Error;
 
-#[derive(Clone, Deserialize, Model, Serialize, Debug, PartialEq)]
+#[derive(Clone, Deserialize, Model, Serialize, Debug)]
 pub struct Device {
     pub id: Option<i64>,
     pub name: String,
@@ -249,7 +249,7 @@ impl WireguardNetworkDevice {
         Ok(res)
     }
 
-    pub async fn findy_by_device(
+    pub async fn find_by_device(
         pool: &DbPool,
         device_id: i64,
     ) -> Result<Option<Vec<Self>>, SqlxError> {
@@ -616,7 +616,7 @@ mod test {
                     continue;
                 }
                 // Break loop if IP is unassigned and return device
-                match Self::find_by_ip(pool, ip.clone(), network_id).await? {
+                match Self::find_by_ip(pool, ip, network_id).await? {
                     Some(_) => (),
                     None => {
                         let mut device = Self::new(name.clone(), pubkey, user_id);

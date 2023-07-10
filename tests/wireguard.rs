@@ -142,7 +142,7 @@ async fn test_device() {
     assert_matches!(event, GatewayEvent::DeviceCreated(..));
 
     // an IP was assigned for new device
-    let network_devices = WireguardNetworkDevice::findy_by_device(&client_state.pool, 1)
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 1)
         .await
         .unwrap()
         .unwrap();
@@ -161,7 +161,7 @@ async fn test_device() {
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
 
     // an IP was assigned for an existing device
-    let network_devices = WireguardNetworkDevice::findy_by_device(&client_state.pool, 1)
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 1)
         .await
         .unwrap()
         .unwrap();
@@ -823,7 +823,7 @@ async fn test_config_import() {
     );
     device_1.save(&mut transaction).await.unwrap();
     device_1
-        .add_to_all_networks(&mut transaction)
+        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
         .await
         .unwrap();
 
@@ -834,7 +834,7 @@ async fn test_config_import() {
     );
     device_2.save(&mut transaction).await.unwrap();
     device_2
-        .add_to_all_networks(&mut transaction)
+        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
         .await
         .unwrap();
 

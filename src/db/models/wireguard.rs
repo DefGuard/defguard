@@ -260,11 +260,10 @@ impl WireguardNetwork {
         admin_group_name: &String,
     ) -> Result<Vec<Device>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
-        let mut allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
-        // make sure that admin group is included
-        if !allowed_groups.contains(admin_group_name) {
-            allowed_groups.push(admin_group_name.to_string())
-        };
+        let allowed_groups = self
+            .get_allowed_groups(&mut *transaction, admin_group_name)
+            .await?;
+
         let devices = query_as!(
             Device,
             r#"
@@ -316,13 +315,15 @@ impl WireguardNetwork {
         let allowed_devices = self
             .get_allowed_devices(&mut *transaction, admin_group_name)
             .await?;
-        if allowed_devices.contains(device) {
+        let allowed_device_ids: Vec<i64> =
+            allowed_devices.iter().filter_map(|dev| dev.id).collect();
+        if allowed_device_ids.contains(&device.get_id()?) {
             let wireguard_network_device = device
                 .assign_network_ip(&mut *transaction, self, reserved_ips)
                 .await?;
             Ok(wireguard_network_device)
         } else {
-            error!("Device {} no allowed in network {}", device, self);
+            error!("Device {} not allowed in network {}", device, self);
             Err(WireguardNetworkError::DeviceNotAllowed(format!(
                 "{}",
                 device
@@ -511,7 +512,9 @@ impl WireguardNetwork {
         info!("Mapping user devices for network {}", self);
         let network_id = self.get_id()?;
         // get allowed groups for network
-        let allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
+        let allowed_groups = self
+            .get_allowed_groups(&mut *transaction, admin_group_name)
+            .await?;
 
         let mut events = Vec::new();
         // use a helper hashmap to avoid repeated queries
@@ -550,6 +553,7 @@ impl WireguardNetwork {
             let mut network_info = Vec::new();
             // check if user belongs to an allowed group
             if allowed_groups.iter().any(|group| groups.contains(group)) {
+                println!("DUPA!");
                 // assign specified IP in imported network
                 let wireguard_network_device = WireguardNetworkDevice::new(
                     network_id,
