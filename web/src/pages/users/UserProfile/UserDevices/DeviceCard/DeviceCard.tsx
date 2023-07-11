@@ -115,7 +115,7 @@ export const DeviceCard = ({ device }: Props) => {
           <div>
             <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
             <p data-testid="device-last-connected-from">
-              {latestLocation?.network_gateway_ip}
+              {latestLocation?.last_connected_ip}
             </p>
           </div>
           <div>
