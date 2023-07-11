@@ -33,10 +33,9 @@ dayjs.extend(utc);
 
 interface Props {
   data: NetworkUserStats;
-  dataMax: number | undefined;
 }
 
-export const UserConnectionListItem = ({ data, dataMax }: Props) => {
+export const UserConnectionListItem = ({ data }: Props) => {
   const [expanded, setExpanded] = useState(false);
 
   const getClassName = useMemo(() => {
@@ -50,21 +49,18 @@ export const UserConnectionListItem = ({ data, dataMax }: Props) => {
   return (
     <div className={getClassName}>
       <ExpandButton expanded={expanded} onExpand={() => setExpanded((state) => !state)} />
-      <UserRow data={data} dataMax={dataMax} />
+      <UserRow data={data} />
       {expanded &&
-        data.devices.map((device) => (
-          <DeviceRow data={device} key={device.id} dataMax={dataMax} />
-        ))}
+        data.devices.map((device) => <DeviceRow data={device} key={device.id} />)}
     </div>
   );
 };
 
 interface UserRowProps {
   data: NetworkUserStats;
-  dataMax: number | undefined;
 }
 
-const UserRow = ({ data, dataMax }: UserRowProps) => {
+const UserRow = ({ data }: UserRowProps) => {
   const getOldestDevice = useMemo(() => {
     const rankMap = data.devices.sort((a, b) => {
       const aDate = dayjs.utc(a.connected_at);
@@ -126,7 +122,6 @@ const UserRow = ({ data, dataMax }: UserRowProps) => {
           width={150}
           height={20}
           barSize={2}
-          dataMax={dataMax}
         />
       </div>
     </div>
@@ -135,10 +130,9 @@ const UserRow = ({ data, dataMax }: UserRowProps) => {
 
 interface DeviceRowProps {
   data: NetworkDeviceStats;
-  dataMax: number | undefined;
 }
 
-const DeviceRow = ({ data, dataMax }: DeviceRowProps) => {
+const DeviceRow = ({ data }: DeviceRowProps) => {
   const downloadSummary = data.stats.reduce((sum, e) => {
     return sum + e.download;
   }, 0);
@@ -180,13 +174,7 @@ const DeviceRow = ({ data, dataMax }: DeviceRowProps) => {
             />
           </span>
         </div>
-        <NetworkUsageChart
-          data={data.stats}
-          width={150}
-          height={20}
-          barSize={2}
-          dataMax={dataMax}
-        />
+        <NetworkUsageChart data={data.stats} width={150} height={20} barSize={2} />
       </div>
     </div>
   );

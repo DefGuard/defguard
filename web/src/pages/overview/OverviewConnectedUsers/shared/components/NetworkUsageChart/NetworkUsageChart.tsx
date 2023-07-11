@@ -12,7 +12,6 @@ interface NetworkUsageProps {
   height?: number;
   hideX?: boolean;
   barSize?: number;
-  dataMax?: string | number;
   heightX?: number;
 }
 
@@ -22,7 +21,6 @@ export const NetworkUsageChart = ({
   width = 105,
   hideX = true,
   barSize = 2,
-  dataMax = 'dataMax + 1',
   heightX = 20,
 }: NetworkUsageProps) => {
   const getFormattedData = useMemo(() => parseStatsForCharts(data), [data]);
@@ -43,16 +41,20 @@ export const NetworkUsageChart = ({
           type="number"
           height={heightX}
           width={width}
-          padding={{ left: 15, right: 15 }}
           axisLine={{ stroke: ColorsRGB.GrayBorder }}
           tickLine={{ stroke: ColorsRGB.GrayBorder }}
           hide={hideX}
+          padding={{ left: 0, right: 0 }}
           tick={{ fontSize: 10, color: ColorsRGB.GrayLight }}
           tickFormatter={formatXTick}
-          domain={['dataMin', 'dataMax + 1']}
+          domain={['dataMin', 'dataMax']}
           interval={'preserveStartEnd'}
         />
-        <YAxis hide={true} padding={{ bottom: 2 }} domain={['dataMin', dataMax]} />
+        <YAxis
+          hide={true}
+          domain={['dataMin', 'dataMax']}
+          padding={{ top: 0, bottom: 0 }}
+        />
         <Bar dataKey="download" fill={ColorsRGB.Primary} />
         <Bar dataKey="upload" fill={ColorsRGB.Error} />
       </BarChart>
