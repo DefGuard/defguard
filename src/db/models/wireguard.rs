@@ -260,11 +260,12 @@ impl WireguardNetwork {
         admin_group_name: &String,
     ) -> Result<Vec<Device>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
-        let allowed_groups = self
+        let devices = match self
             .get_allowed_groups(&mut *transaction, admin_group_name)
-            .await?;
-
-        let devices = query_as!(
+            .await? {
+            // devices need to be filtered by allowed group
+            Some(allowed_groups) => {
+                query_as!(
             Device,
             r#"
             SELECT DISTINCT ON (d.id) d.id as "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
@@ -277,7 +278,14 @@ impl WireguardNetwork {
             &allowed_groups
         )
         .fetch_all(&mut *transaction)
-        .await?;
+        .await?
+            },
+            // all devices are allowed
+            None => {
+                Device::all(&mut *transaction).await?
+            }
+        };
+
         Ok(devices)
     }
 
@@ -551,20 +559,35 @@ impl WireguardNetwork {
             };
 
             let mut network_info = Vec::new();
-            // check if user belongs to an allowed group
-            if allowed_groups.iter().any(|group| groups.contains(group)) {
-                println!("DUPA!");
-                // assign specified IP in imported network
-                let wireguard_network_device = WireguardNetworkDevice::new(
-                    network_id,
-                    device.id.expect("Device ID is missing"),
-                    mapped_device.wireguard_ip,
-                );
-                wireguard_network_device.insert(&mut *transaction).await?;
-                network_info.push(DeviceNetworkInfo {
-                    network_id,
-                    device_wireguard_ip: wireguard_network_device.wireguard_ip,
-                });
+            match &allowed_groups {
+                None => {
+                    let wireguard_network_device = WireguardNetworkDevice::new(
+                        network_id,
+                        device.id.expect("Device ID is missing"),
+                        mapped_device.wireguard_ip,
+                    );
+                    wireguard_network_device.insert(&mut *transaction).await?;
+                    network_info.push(DeviceNetworkInfo {
+                        network_id,
+                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                    });
+                }
+                Some(allowed) => {
+                    // check if user belongs to an allowed group
+                    if allowed.iter().any(|group| groups.contains(group)) {
+                        // assign specified IP in imported network
+                        let wireguard_network_device = WireguardNetworkDevice::new(
+                            network_id,
+                            device.id.expect("Device ID is missing"),
+                            mapped_device.wireguard_ip,
+                        );
+                        wireguard_network_device.insert(&mut *transaction).await?;
+                        network_info.push(DeviceNetworkInfo {
+                            network_id,
+                            device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                        });
+                    }
+                }
             }
 
             // assign IPs in other networks
@@ -1013,8 +1036,6 @@ mod test {
                 .await
                 .unwrap()
                 .unwrap();
-            println!("Device: {:?}", device);
-            println!("Network: {:?}", network);
             let wireguard_network_device =
                 WireguardNetworkDevice::find(&pool, device.id.unwrap(), network.id.unwrap())
                     .await
