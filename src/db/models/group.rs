@@ -68,26 +68,22 @@ impl WireguardNetwork {
 
     /// Return a list of allowed groups for a given network.
     /// Admin group should always be included.
-    /// If no `allowed_groups` are specified for a network then all groups are allowed.
+    /// If no `allowed_groups` are specified for a network then all devices are allowed.
+    /// In this case `None` is returned to signify that there's no filtering.
     /// This helper method is meant for use in all business logic gating
     /// access to networks based on allowed groups.
     pub async fn get_allowed_groups(
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
         admin_group_name: &String,
-    ) -> Result<Vec<String>, ModelError> {
+    ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {}", self);
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
 
         // if no allowed groups are set then all group are allowed
         if groups.is_empty() {
-            let groups = Group::all(&mut *transaction)
-                .await?
-                .into_iter()
-                .map(|group| group.name)
-                .collect();
-            return Ok(groups);
+            return Ok(None);
         }
 
         // make sure admin group is included
@@ -95,7 +91,7 @@ impl WireguardNetwork {
             groups.push(admin_group_name.clone());
         }
 
-        Ok(groups)
+        Ok(Some(groups))
     }
 
     /// Set allowed groups, removing or adding groups as necessary.
