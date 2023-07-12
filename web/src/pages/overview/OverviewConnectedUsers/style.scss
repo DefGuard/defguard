@@ -116,8 +116,6 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
 
     &.grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, 370px);
-      grid-template-rows: min-content;
       width: 100%;
       gap: 1.5rem;
       overflow: auto;
@@ -125,22 +123,18 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
       position: relative;
       padding-top: 1rem;
       padding-bottom: 4rem;
+      height: auto;
+      grid-template-rows: min-content;
+      grid-template-columns: 1fr;
 
       @include bs.media-breakpoint-down(md) {
         justify-content: center;
       }
-      @include bs.media-breakpoint-down(xl) {
-        padding-top: 1rem;
-        padding-bottom: 1.5rem;
-        margin-right: 1.4rem;
-        width: calc(100% - 1.6rem);
-        overflow: auto;
-        max-height: 100vh;
-        grid-template-columns: 1fr;
-      }
+
       @include bs.media-breakpoint-up(xl) {
         padding-top: 1rem;
         padding-bottom: 4rem;
+        grid-template-columns: repeat(auto-fit, 370px);
       }
     }
   }

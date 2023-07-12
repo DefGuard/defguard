@@ -1,5 +1,6 @@
 import './style.scss';
 
+import classNames from 'classnames';
 import { HTMLMotionProps, motion, Variants } from 'framer-motion';
 import React, { useMemo } from 'react';
 
@@ -18,33 +19,22 @@ interface Props {
   styleVariant?: BadgeStyleVariant;
 }
 
-/**
- * Styled badge element.
- *
- * Displays content inside span.
- * @param text String to display as a badge.
- */
 const Badge: React.FC<Props & HTMLMotionProps<'span'>> = ({
   text,
   styleVariant = BadgeStyleVariant.STANDARD,
   className,
   ...rest
 }) => {
-  const getClassName = useMemo(() => {
-    let res: string | string[] = ['badge'];
-    res.push(styleVariant.valueOf());
-    res = res.join(' ');
-    if (className && className.length) {
-      return `${res} ${className}`;
-    }
-    return res;
-  }, [styleVariant, className]);
+  const cn = useMemo(
+    () => classNames('badge', className, styleVariant.valueOf()),
+    [className, styleVariant]
+  );
 
   const currentVariant = useMemo(() => styleVariant, [styleVariant]);
 
   return (
     <motion.span
-      className={getClassName}
+      className={cn}
       {...rest}
       variants={badgeVariants}
       animate={currentVariant}

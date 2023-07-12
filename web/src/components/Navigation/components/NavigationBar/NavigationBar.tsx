@@ -56,7 +56,7 @@ export const NavigationBar = ({ navItems, onLogout, isOpen }: Props) => {
           </button>
         </div>
       </div>
-      <ApplicationVersion />
+      <ApplicationVersion isOpen={isOpen} />
     </nav>
   );
 };

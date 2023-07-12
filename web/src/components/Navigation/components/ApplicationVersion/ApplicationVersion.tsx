@@ -2,12 +2,14 @@ import './style.scss';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
-import { useNavigationStore } from '../../hooks/useNavigationStore';
 
-export const ApplicationVersion = () => {
+type Props = {
+  isOpen: boolean;
+};
+
+export const ApplicationVersion = ({ isOpen }: Props) => {
   const version = useAppStore((store) => store.appInfo?.version);
   const { LL } = useI18nContext();
-  const isOpen = useNavigationStore((state) => state.isOpen);
 
   return (
     <div className="app-version">

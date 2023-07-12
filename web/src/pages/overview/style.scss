@@ -28,16 +28,21 @@
       & > .top-row {
         width: 100%;
         display: flex;
-        flex-flow: row nowrap;
+        flex-flow: row wrap-reverse;
         align-items: center;
         justify-content: flex-start;
+        row-gap: 10px;
 
         & > .btn {
+          margin-left: auto;
           .content {
             span {
               white-space: nowrap;
             }
           }
+        }
+        & > .network-gateways-connection {
+          width: auto;
         }
       }
 
@@ -50,9 +55,11 @@
       box-sizing: border-box;
       padding: 0 15px;
       margin-bottom: 20px;
+      width: auto;
 
       @include media-breakpoint-up(lg) {
         padding: 0 20px;
+        width: 100%;
       }
 
       @include media-breakpoint-up(xxl) {

@@ -18,6 +18,7 @@ export const useOverviewStore = create<
       setState: (newValues) => set((state) => ({ ...state, ...newValues })),
     }),
     {
+      version: 0.2,
       name: 'overview-store',
       storage: createJSONStorage(() => sessionStorage),
       partialize: (store) => omit(store, ['setState', 'networks']),
