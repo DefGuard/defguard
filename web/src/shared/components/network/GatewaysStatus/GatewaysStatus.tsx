@@ -190,7 +190,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
             >
               {data?.map((g) => (
                 <GatewayStatusRow
-                  key={g.ip}
+                  key={g.hostname}
                   status={g}
                   onDismiss={() =>
                     deleteGatewayMutation({
@@ -227,7 +227,7 @@ const GatewayStatusRow = ({ status, onDismiss }: GatewayStatusRowProps) => {
       </div>
       <div className="info-container">
         <p className="location">{status.name}</p>
-        <p className="ip-address">{status.ip}</p>
+        <p className="hostname">{status.hostname}</p>
       </div>
       {!status.connected && (
         <button
