@@ -20,6 +20,7 @@ use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 use crate::auth::failed_login::FailedLoginMap;
 use crate::db::AppEvent;
+use chrono::{NaiveDateTime, Utc};
 use serde::Serialize;
 use std::{collections::hash_map::HashMap, time::Instant};
 use thiserror::Error;
@@ -130,6 +131,7 @@ impl GatewayMap {
             Some(network_gateway_map) => match network_gateway_map.get_mut(hostname) {
                 Some(state) => {
                     state.connected = true;
+                    state.connected_at = Some(Utc::now().naive_utc());
                 }
                 None => {
                     error!(
@@ -161,6 +163,7 @@ impl GatewayMap {
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
+                state.disconnected_at = Some(Utc::now().naive_utc());
                 return Ok(());
             };
         };
@@ -201,6 +204,8 @@ pub struct GatewayState {
     pub network_id: i64,
     pub name: Option<String>,
     pub hostname: String,
+    pub connected_at: Option<NaiveDateTime>,
+    pub disconnected_at: Option<NaiveDateTime>,
 }
 
 impl GatewayState {
@@ -212,6 +217,8 @@ impl GatewayState {
             network_id,
             name,
             hostname,
+            connected_at: None,
+            disconnected_at: None,
         }
     }
 }
