@@ -4,7 +4,6 @@ import { useMemo } from 'react';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { NetworkUserStats, OverviewLayoutType } from '../../../shared/types';
-import { getMaxDeviceStats } from '../helpers/stats';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { UserConnectionCard } from './UserConnectionCard/UserConnectionCard';
 import { UserConnectionListItem } from './UserConnectionListItem/UserConnectionListItem';
@@ -27,7 +26,6 @@ export const OverviewConnectedUsers = ({ stats }: Props) => {
     }
     return rest.join(' ');
   }, [viewMode]);
-  const dataMax = stats ? getMaxDeviceStats(stats) : undefined;
   const { LL } = useI18nContext();
 
   const renderedStats = useMemo(() => {
@@ -37,16 +35,12 @@ export const OverviewConnectedUsers = ({ stats }: Props) => {
 
     if (viewMode === OverviewLayoutType.GRID) {
       return stats.map((userStats) => (
-        <UserConnectionCard
-          key={userStats.user.username}
-          data={userStats}
-          dataMax={dataMax}
-        />
+        <UserConnectionCard key={userStats.user.username} data={userStats} />
       ));
     }
 
-    return <RenderUserList data={stats} dataMax={dataMax} />;
-  }, [stats, viewMode, dataMax]);
+    return <RenderUserList data={stats} />;
+  }, [stats, viewMode]);
 
   return (
     <div className="overview-connected-users">
@@ -63,10 +57,9 @@ export const OverviewConnectedUsers = ({ stats }: Props) => {
 
 interface RenderUserListProps {
   data: NetworkUserStats[];
-  dataMax: number | undefined;
 }
 
-const RenderUserList = ({ data, dataMax }: RenderUserListProps) => {
+const RenderUserList = ({ data }: RenderUserListProps) => {
   const { LL } = useI18nContext();
   return (
     <>
@@ -92,11 +85,7 @@ const RenderUserList = ({ data, dataMax }: RenderUserListProps) => {
       </div>
       <div className="users-list">
         {data.map((userStats) => (
-          <UserConnectionListItem
-            key={userStats.user.username}
-            data={userStats}
-            dataMax={dataMax}
-          />
+          <UserConnectionListItem key={userStats.user.username} data={userStats} />
         ))}
       </div>
     </>

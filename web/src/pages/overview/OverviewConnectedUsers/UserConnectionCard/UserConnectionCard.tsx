@@ -34,12 +34,12 @@ import { summarizeDeviceStats, summarizeUsersNetworkStats } from '../../helpers/
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
 
 dayjs.extend(utc);
+
 interface Props {
   data: NetworkUserStats;
-  dataMax: number | undefined;
 }
 
-export const UserConnectionCard = ({ data, dataMax }: Props) => {
+export const UserConnectionCard = ({ data }: Props) => {
   const [expanded, setExpanded] = useState(false);
 
   const cn = useMemo(
@@ -52,13 +52,13 @@ export const UserConnectionCard = ({ data, dataMax }: Props) => {
 
   return (
     <motion.div className={cn}>
-      <MainCardContent data={data} dataMax={dataMax} />
+      <MainCardContent data={data} />
       <div className="devices">
         {data?.devices &&
           data.devices.length > 0 &&
           expanded &&
           data.devices.map((device) => (
-            <ExpandedDeviceCard key={device.id} data={device} dataMax={dataMax} />
+            <ExpandedDeviceCard key={device.id} data={device} />
           ))}
       </div>
       <ExpandButton expanded={expanded} onClick={() => setExpanded((state) => !state)} />
@@ -68,10 +68,9 @@ export const UserConnectionCard = ({ data, dataMax }: Props) => {
 
 interface MainCardContentProps {
   data: NetworkUserStats;
-  dataMax: number | undefined;
 }
 
-const MainCardContent = ({ data, dataMax }: MainCardContentProps) => {
+const MainCardContent = ({ data }: MainCardContentProps) => {
   const getOldestDevice = useMemo(() => {
     const rankMap = data.devices.sort((a, b) => {
       const aDate = dayjs.utc(a.connected_at);
@@ -126,7 +125,6 @@ const MainCardContent = ({ data, dataMax }: MainCardContentProps) => {
                   height={height}
                   width={width}
                   data={getSummarizedStats}
-                  dataMax={dataMax}
                 />
               )}
             </AutoSizer>
@@ -241,10 +239,9 @@ const DeviceAvatarBox = ({ id }: DeviceAvatarBoxProps) => {
 
 interface ExpandedDeviceCardProps {
   data: NetworkDeviceStats;
-  dataMax: number | undefined;
 }
 
-const ExpandedDeviceCard = ({ data, dataMax }: ExpandedDeviceCardProps) => {
+const ExpandedDeviceCard = ({ data }: ExpandedDeviceCardProps) => {
   const getSummarizedStats = useMemo(() => summarizeDeviceStats([data]), [data]);
   const downloadSummary = getSummarizedStats.reduce((sum, e) => {
     return sum + e.download;
@@ -283,12 +280,7 @@ const ExpandedDeviceCard = ({ data, dataMax }: ExpandedDeviceCardProps) => {
           <div className="chart">
             <AutoSizer>
               {({ height, width }) => (
-                <NetworkUsageChart
-                  data={data.stats}
-                  width={width}
-                  dataMax={dataMax}
-                  height={height}
-                />
+                <NetworkUsageChart data={data.stats} width={width} height={height} />
               )}
             </AutoSizer>
           </div>
