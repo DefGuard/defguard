@@ -100,7 +100,7 @@ export type GatewayStatus = {
   connected: boolean;
   network_id: number;
   name?: string;
-  ip: string;
+  hostname: string;
   uid: string;
 };
 

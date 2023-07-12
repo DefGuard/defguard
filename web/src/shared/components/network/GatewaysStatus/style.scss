@@ -87,7 +87,7 @@
         white-space: nowrap;
       }
 
-      .ip-address {
+      .hostname {
         color: var(--gray-light);
         white-space: nowrap;
         @include text-weight(regular);
@@ -97,7 +97,7 @@
     &.disconnected {
       & > .info-container {
         .location,
-        .ip-address {
+        .hostname {
           color: var(--error);
         }
       }
