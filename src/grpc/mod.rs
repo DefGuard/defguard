@@ -28,7 +28,7 @@ use uuid::Uuid;
 
 mod auth;
 #[cfg(feature = "wireguard")]
-mod gateway;
+pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 #[cfg(feature = "worker")]

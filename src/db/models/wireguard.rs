@@ -4,7 +4,7 @@ use super::{
     DbPool, User, UserInfo,
 };
 use crate::db::models::device::{DeviceError, DeviceInfo, DeviceNetworkInfo};
-use crate::grpc::GatewayState;
+use crate::grpc::{gateway::Peer, GatewayState};
 use crate::handlers::wireguard::MappedDevice;
 use crate::wg_config::ImportedDevice;
 use base64::Engine;
@@ -44,7 +44,7 @@ impl DateTimeAggregation {
 #[derive(Clone, Debug)]
 pub enum GatewayEvent {
     NetworkCreated(i64, WireguardNetwork),
-    NetworkModified(i64, WireguardNetwork),
+    NetworkModified(i64, WireguardNetwork, Vec<Peer>),
     NetworkDeleted(i64, String),
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),

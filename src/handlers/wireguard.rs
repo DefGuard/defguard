@@ -189,8 +189,12 @@ pub async fn modify_network(
 
     match &network.id {
         Some(network_id) => {
-            appstate
-                .send_wireguard_event(GatewayEvent::NetworkModified(*network_id, network.clone()));
+            let peers = network.get_peers(&mut transaction).await?;
+            appstate.send_wireguard_event(GatewayEvent::NetworkModified(
+                *network_id,
+                network.clone(),
+                peers,
+            ));
         }
         &None => {
             error!(

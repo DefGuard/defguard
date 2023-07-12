@@ -32,7 +32,10 @@ pub struct GatewayServer {
 
 impl WireguardNetwork {
     /// Get a list of all peers
-    pub async fn get_peers(&self, pool: &DbPool) -> Result<Vec<Peer>, SqlxError> {
+    pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         debug!("Fetching all peers for network {}", self.id.unwrap());
         let result = query_as!(
             Peer,
@@ -44,7 +47,7 @@ impl WireguardNetwork {
         "#,
             self.id
         )
-        .fetch_all(pool)
+        .fetch_all(executor)
         .await?;
 
         Ok(result)
@@ -175,14 +178,14 @@ impl GatewayUpdatesHandler {
             let result = match update {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if Some(network_id) == self.network.id {
-                        self.send_network_update(&network, 0).await
+                        self.send_network_update(&network, Vec::new(), 0).await
                     } else {
                         Ok(())
                     }
                 }
-                GatewayEvent::NetworkModified(network_id, network) => {
+                GatewayEvent::NetworkModified(network_id, network, peers) => {
                     if Some(network_id) == self.network.id {
-                        self.send_network_update(&network, 1).await
+                        self.send_network_update(&network, peers, 1).await
                     } else {
                         Ok(())
                     }
@@ -260,6 +263,7 @@ impl GatewayUpdatesHandler {
     async fn send_network_update(
         &self,
         network: &WireguardNetwork,
+        peers: Vec<Peer>,
         update_type: i32,
     ) -> Result<(), Status> {
         debug!("Sending network update for network {}", network);
@@ -272,7 +276,7 @@ impl GatewayUpdatesHandler {
                     prvkey: network.prvkey.clone(),
                     address: network.address.to_string(),
                     port: network.port as u32,
-                    peers: Vec::new(),
+                    peers,
                 })),
             }))
             .await
