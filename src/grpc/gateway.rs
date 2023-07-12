@@ -8,7 +8,6 @@ use crate::{
 use chrono::{NaiveDateTime, Utc};
 use sqlx::{query_as, Error as SqlxError};
 use std::{
-    net::SocketAddr,
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
@@ -88,6 +87,25 @@ impl GatewayServer {
         }
         None
     }
+
+    // extract gateway hostname from request headers
+    fn get_gateway_hostname(metadata: &MetadataMap) -> Result<String, Status> {
+        match metadata.get("hostname") {
+            Some(ascii_value) => {
+                let hostname = ascii_value.to_str().map_err(|_| {
+                    Status::new(
+                        Code::Internal,
+                        "Failed to parse gateway hostname from request metadata",
+                    )
+                })?;
+                Ok(hostname.into())
+            }
+            None => Err(Status::new(
+                Code::Internal,
+                "Gateway hostname not found in request metadata",
+            )),
+        }
+    }
 }
 
 fn gen_config(network: &WireguardNetwork, peers: Vec<Peer>) -> Configuration {
@@ -124,7 +142,7 @@ impl WireguardPeerStats {
 /// Helper struct for handling gateway events
 struct GatewayUpdatesHandler {
     network: WireguardNetwork,
-    gateway_address: SocketAddr,
+    gateway_hostname: String,
     events_rx: BroadcastReceiver<GatewayEvent>,
     tx: mpsc::Sender<Result<Update, Status>>,
 }
@@ -132,13 +150,13 @@ struct GatewayUpdatesHandler {
 impl GatewayUpdatesHandler {
     pub fn new(
         network: WireguardNetwork,
-        gateway_address: SocketAddr,
+        gateway_hostname: String,
         events_rx: BroadcastReceiver<GatewayEvent>,
         tx: mpsc::Sender<Result<Update, Status>>,
     ) -> Self {
         Self {
             network,
-            gateway_address,
+            gateway_hostname,
             events_rx,
             tx,
         }
@@ -151,7 +169,7 @@ impl GatewayUpdatesHandler {
     pub async fn run(&mut self) {
         info!(
             "Starting update stream to gateway: {}, network {}",
-            self.gateway_address, self.network
+            self.gateway_hostname, self.network
         );
         while let Ok(update) = self.events_rx.recv().await {
             let result = match update {
@@ -231,7 +249,7 @@ impl GatewayUpdatesHandler {
             if result.is_err() {
                 error!(
                     "Closing update steam to gateway: {}, network {}",
-                    self.gateway_address, self.network
+                    self.gateway_hostname, self.network
                 );
                 break;
             }
@@ -349,7 +367,7 @@ pub struct GatewayUpdatesStream {
     task_handle: JoinHandle<()>,
     rx: Receiver<Result<Update, Status>>,
     network_id: i64,
-    gateway_addr: SocketAddr,
+    gateway_hostname: String,
     gateway_state: Arc<Mutex<GatewayMap>>,
 }
 
@@ -359,14 +377,14 @@ impl GatewayUpdatesStream {
         task_handle: JoinHandle<()>,
         rx: Receiver<Result<Update, Status>>,
         network_id: i64,
-        gateway_addr: SocketAddr,
+        gateway_hostname: String,
         gateway_state: Arc<Mutex<GatewayMap>>,
     ) -> Self {
         Self {
             task_handle,
             rx,
             network_id,
-            gateway_addr,
+            gateway_hostname,
             gateway_state,
         }
     }
@@ -389,7 +407,7 @@ impl Drop for GatewayUpdatesStream {
         self.gateway_state
             .lock()
             .unwrap()
-            .disconnect_gateway(self.network_id, self.gateway_addr)
+            .disconnect_gateway(self.network_id, self.gateway_hostname.clone())
             .expect("Unable to disconnect gateway.");
     }
 }
@@ -454,7 +472,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
     ) -> Result<Response<Configuration>, Status> {
         debug!("Sending configuration to gateway client.");
         let network_id = Self::get_network_id(request.metadata())?;
-        let address = request.remote_addr().expect("Unable to get peer address.");
+        let hostname = Self::get_gateway_hostname(request.metadata())?;
 
         let pool = self.pool.clone();
         let mut network = WireguardNetwork::find_by_id(&pool, network_id)
@@ -475,7 +493,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         {
             let mut state = self.state.lock().unwrap();
-            state.add_gateway(network_id, address, request.into_inner().name);
+            state.add_gateway(network_id, hostname, request.into_inner().name);
         }
 
         network.connected_at = Some(Utc::now().naive_utc());
@@ -499,7 +517,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
         let gateway_network_id = Self::get_network_id(request.metadata())?;
-        let address = request.remote_addr().expect("Unable to get peer address.");
+        let hostname = Self::get_gateway_hostname(request.metadata())?;
 
         let network = match WireguardNetwork::find_by_id(&self.pool, gateway_network_id)
             .await
@@ -516,21 +534,24 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         info!(
             "New client connected to updates stream: {}, network {}",
-            address, network
+            hostname, network
         );
 
         let (tx, rx) = mpsc::channel(4);
         let events_rx = self.wireguard_tx.subscribe();
         let mut state = self.state.lock().unwrap();
         state
-            .connect_gateway(gateway_network_id, address)
+            .connect_gateway(gateway_network_id, &hostname)
             .map_err(|err| {
                 error!("Failed to connect gateway: {}", err);
                 Status::new(tonic::Code::Internal, "Failed to connect gateway ")
             })?;
 
+        // clone here before moving into a closure
+        let gateway_hostname = hostname.clone();
         let handle = tokio::spawn(async move {
-            let mut update_handler = GatewayUpdatesHandler::new(network, address, events_rx, tx);
+            let mut update_handler =
+                GatewayUpdatesHandler::new(network, gateway_hostname, events_rx, tx);
             update_handler.run().await
         });
 
@@ -538,7 +559,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             handle,
             rx,
             gateway_network_id,
-            address,
+            hostname,
             Arc::clone(&self.state),
         )))
     }
