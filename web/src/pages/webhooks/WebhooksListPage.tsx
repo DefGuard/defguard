@@ -103,7 +103,10 @@ export const WebhooksListPage = () => {
       },
     });
 
-  const { data: webhooks, isLoading } = useQuery([QueryKeys.FETCH_WEBHOOKS], getWebhooks);
+  const { data: webhooks, isLoading } = useQuery({
+    queryFn: getWebhooks,
+    queryKey: [QueryKeys.FETCH_WEBHOOKS],
+  });
 
   const getHeaders = useMemo(() => {
     const res: ListHeader[] = [
