@@ -6,7 +6,7 @@
   position: relative;
   border: 1px solid var(--white);
   box-sizing: border-box;
-  width: 370px;
+  width: 100%;
   overflow: hidden;
   position: relative;
   display: grid;
@@ -71,6 +71,7 @@
         height: 100%;
         max-height: 100%;
         overflow: hidden;
+        column-gap: 10px;
       }
     }
   }
@@ -80,12 +81,17 @@
     grid-column: 1 / 2;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 40px 50px;
+    grid-template-rows: 40px 100px;
     row-gap: 20px;
     overflow: hidden;
     width: 100%;
     box-sizing: border-box;
     padding: 20px;
+
+    @media (min-width: 400px) {
+      grid-template-rows: 40px 50px;
+    }
+
     & > .upper {
       width: 100%;
       max-width: 100%;
@@ -112,12 +118,36 @@
       width: 100%;
 
       display: grid;
-      grid-template-rows: 1fr;
-      grid-template-columns: 2fr 3fr 120px;
+      grid-template-rows: 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
+      row-gap: 10px;
+      grid-template-areas:
+        'time devices'
+        'usage usage';
       column-gap: 10px;
       align-items: center;
       justify-items: start;
       justify-content: space-evenly;
+
+      @media (min-width: 400px) {
+        grid-template-rows: 1fr;
+        grid-template-columns: 100px 100px 1fr;
+        grid-template-areas: 'time devices usage';
+        row-gap: 0;
+        column-gap: 10px;
+      }
+
+      .connection-time {
+        grid-area: time;
+      }
+
+      .active-devices {
+        grid-area: devices;
+      }
+
+      .network-usage-summary {
+        grid-area: usage;
+      }
     }
   }
 

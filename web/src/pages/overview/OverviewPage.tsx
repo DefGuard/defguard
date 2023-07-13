@@ -27,11 +27,11 @@ const STATUS_REFETCH_TIMEOUT = 15 * 1000;
 export const OverviewPage = () => {
   const navigate = useNavigate();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const viewMode = useOverviewStore((state) => state.viewMode);
   const setOverViewStore = useOverviewStore((state) => state.setState);
   const statsFilter = useOverviewStore((state) => state.statsFilter);
   const selectedNetworkId = useOverviewStore((state) => state.selectedNetworkId);
   const resetWizard = useWizardStore((state) => state.resetState);
+  const viewMode = useOverviewStore((state) => state.viewMode);
 
   const {
     network: { getNetworks, getUsersStats, getNetworkStats },
@@ -95,14 +95,12 @@ export const OverviewPage = () => {
     return res;
   }, [networkUsersStats]);
 
+  // FIXME: lockdown viewMode on grid for now
   useEffect(() => {
-    if (breakpoint === 'mobile' && viewMode === OverviewLayoutType.LIST) {
+    if (viewMode !== OverviewLayoutType.GRID) {
       setOverViewStore({ viewMode: OverviewLayoutType.GRID });
     }
-    if (breakpoint === 'tablet' && viewMode === OverviewLayoutType.GRID) {
-      setOverViewStore({ viewMode: OverviewLayoutType.LIST });
-    }
-  }, [viewMode, breakpoint, setOverViewStore]);
+  }, [setOverViewStore, viewMode]);
 
   return (
     <>

@@ -13,7 +13,6 @@ import { deviceBreakpoints } from '../../../shared/constants';
 import { useNetworkPageStore } from '../../network/hooks/useNetworkPageStore';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { OverviewStatsFilterSelect } from '../OverviewStatsFilterSelect/OverviewStatsFilterSelect';
-import { OverviewViewSelect } from '../OverviewViewSelect/OverviewViewSelect';
 import { OverViewNetworkSelect } from './OverviewNetworkSelect/OverviewNetworkSelect';
 
 type Props = {
@@ -64,7 +63,6 @@ export const OverviewHeader = ({ loading = false }: Props) => {
           </div>
           <OverViewNetworkSelect />
           <OverviewStatsFilterSelect />
-          <OverviewViewSelect />
         </div>
       )}
       {breakpoint === 'desktop' && (
@@ -72,7 +70,6 @@ export const OverviewHeader = ({ loading = false }: Props) => {
           <h1>{LL.networkOverview.pageTitle()}</h1>
           <div className="controls">
             <OverViewNetworkSelect />
-            <OverviewViewSelect />
             <OverviewStatsFilterSelect />
             {renderEditNetworks()}
           </div>

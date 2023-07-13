@@ -1,12 +1,12 @@
 @use '@scssutils' as *;
 
 .nav-mobile {
-  height: 57px;
+  height: 60px;
   position: fixed;
   inset: 0;
   width: 100%;
   box-sizing: border-box;
-  padding: 13px 20px 0 20px;
+  padding: 0 20px;
   display: grid;
   grid-template-rows: 1fr;
   grid-template-columns: 40px 1fr 40px;
