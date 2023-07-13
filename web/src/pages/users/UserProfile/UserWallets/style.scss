@@ -9,6 +9,16 @@
     }
   }
 
+  & > .skeletons {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    row-gap: 20px;
+    .react-loading-skeleton {
+      height: 70px;
+    }
+  }
+
   & > .wallets {
     display: flex;
     flex-flow: column nowrap;

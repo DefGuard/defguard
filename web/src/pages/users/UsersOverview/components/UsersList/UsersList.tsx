@@ -14,6 +14,7 @@ import {
 } from '../../../../../shared/components/layout/VirtualizedList/VirtualizedList';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
+import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { User } from '../../../../../shared/types';
 import { UserEditButton } from '../UserEditButton/UserEditButton';
 
@@ -26,16 +27,18 @@ export const UsersList = ({ users }: Props) => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.user);
+  const resetUserProfile = useUserProfileStore((state) => state.reset);
 
   const navigateToUser = useCallback(
     (user: User) => {
+      resetUserProfile();
       if (user.username === currentUser?.username) {
         navigate('/me', { replace: true });
       } else {
         navigate(`${user.username}`);
       }
     },
-    [currentUser?.username, navigate]
+    [currentUser?.username, navigate, resetUserProfile]
   );
 
   const listHeaders = useMemo((): ListHeader[] => {

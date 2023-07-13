@@ -3,6 +3,7 @@ import './style.scss';
 import { fs } from '@tauri-apps/api';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
+import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
@@ -36,6 +37,13 @@ export const UserDevices = () => {
       <header>
         <h2>{LL.userPage.devices.header()}</h2>
       </header>
+      {!userProfile && (
+        <div className="skeletons">
+          <Skeleton />
+          <Skeleton />
+          <Skeleton />
+        </div>
+      )}
       {userProfile && (
         <>
           {userProfile.devices && userProfile.devices.length > 0 && (
@@ -45,17 +53,19 @@ export const UserDevices = () => {
               ))}
             </div>
           )}
-          <AddComponentBox
-            data-testid="add-device"
-            text={LL.userPage.devices.addDevice.web()}
-            disabled={!appInfo?.network_present}
-            callback={() =>
-              openDeviceModal({
-                visible: true,
-              })
-            }
-          />
-          {isDesktopApp && !isDeviceConfigPresent && (
+          {userProfile && !isDesktopApp && (
+            <AddComponentBox
+              data-testid="add-device"
+              text={LL.userPage.devices.addDevice.web()}
+              disabled={!appInfo?.network_present}
+              callback={() =>
+                openDeviceModal({
+                  visible: true,
+                })
+              }
+            />
+          )}
+          {userProfile && isDesktopApp && !isDeviceConfigPresent && (
             <AddComponentBox
               disabled={!appInfo?.network_present}
               text={LL.userPage.devices.addDevice.desktop()}

@@ -5,6 +5,16 @@
   width: 100%;
   min-width: 100%;
 
+  & > .skeletons {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    row-gap: 20px;
+    .react-loading-skeleton {
+      height: 70px;
+    }
+  }
+
   & > header {
     margin-bottom: 2rem;
 

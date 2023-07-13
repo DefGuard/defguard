@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { isUndefined } from 'lodash-es';
+import { isUndefined, orderBy } from 'lodash-es';
 import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
@@ -47,6 +47,14 @@ export const OverviewPage = () => {
           navigate('/admin/wizard', { replace: true });
         } else {
           setOverViewStore({ networks: res });
+          const ids = res.map((n) => n.id);
+          if (
+            isUndefined(selectedNetworkId) ||
+            (!isUndefined(selectedNetworkId) && !ids.includes(selectedNetworkId))
+          ) {
+            const oldestNetwork = orderBy(res, ['id'], ['asc'])[0];
+            setOverViewStore({ selectedNetworkId: oldestNetwork.id });
+          }
         }
       },
     }
@@ -57,7 +65,7 @@ export const OverviewPage = () => {
     () =>
       getNetworkStats({
         from: getNetworkStatsFilterValue(statsFilter),
-        id: selectedNetworkId,
+        id: selectedNetworkId as number,
       }),
     {
       refetchOnWindowFocus: false,
@@ -71,7 +79,7 @@ export const OverviewPage = () => {
     () =>
       getUsersStats({
         from: getNetworkStatsFilterValue(statsFilter),
-        id: selectedNetworkId,
+        id: selectedNetworkId as number,
       }),
     {
       enabled: !isUndefined(statsFilter) && !isUndefined(selectedNetworkId),
@@ -103,25 +111,25 @@ export const OverviewPage = () => {
   }, [setOverViewStore, viewMode]);
 
   return (
-    <>
-      <PageContainer id="network-overview-page">
-        <OverviewHeader loading={networksLoading} />
-        {breakpoint === 'desktop' && <GatewaysStatus networkId={selectedNetworkId} />}
-        {networkStats && networkUsersStats && (
-          <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
+    <PageContainer id="network-overview-page">
+      <OverviewHeader loading={networksLoading} />
+      {breakpoint === 'desktop' && !isUndefined(selectedNetworkId) && (
+        <GatewaysStatus networkId={selectedNetworkId} />
+      )}
+      {networkStats && networkUsersStats && (
+        <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
+      )}
+      <div className="bottom-row">
+        {userStatsLoading ? (
+          <div className="stats-loader">
+            <LoaderSpinner size={180} />
+          </div>
+        ) : getNetworkUsers.length > 0 ? (
+          <OverviewConnectedUsers stats={getNetworkUsers} />
+        ) : (
+          <NoData />
         )}
-        <div className="bottom-row">
-          {userStatsLoading ? (
-            <div className="stats-loader">
-              <LoaderSpinner size={180} />
-            </div>
-          ) : getNetworkUsers.length > 0 ? (
-            <OverviewConnectedUsers stats={getNetworkUsers} />
-          ) : (
-            <NoData />
-          )}
-        </div>
-      </PageContainer>
-    </>
+      </div>
+    </PageContainer>
   );
 };

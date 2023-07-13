@@ -3,6 +3,7 @@ import './style.scss';
 import { isUndefined } from 'lodash-es';
 import { alphabetical } from 'radash';
 import { useMemo } from 'react';
+import Skeleton from 'react-loading-skeleton';
 import { useAccount } from 'wagmi';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -48,7 +49,14 @@ export const UserWallets = () => {
       <header>
         <h2>{LL.userPage.wallets.header()}</h2>
       </header>
-      {sortedWallet && sortedWallet.length > 0 && (
+      {!userProfile && (
+        <div className="skeletons">
+          <Skeleton />
+          <Skeleton />
+          <Skeleton />
+        </div>
+      )}
+      {userProfile && sortedWallet && sortedWallet.length > 0 && (
         <div className="wallets">
           {sortedWallet.map((wallet) => (
             <WalletCard
@@ -60,18 +68,23 @@ export const UserWallets = () => {
           ))}
         </div>
       )}
-      <AddComponentBox
-        callback={() => {
-          if (!isConnected) {
-            setModalsState({
-              connectWalletModal: { visible: true, onConnect: handleAddWallet },
-            });
-          } else {
-            handleAddWallet();
-          }
-        }}
-        text={LL.userPage.wallets.addWallet()}
-      />
+      {userProfile && (
+        <AddComponentBox
+          callback={() => {
+            if (!isConnected) {
+              setModalsState({
+                connectWalletModal: {
+                  visible: true,
+                  onConnect: handleAddWallet,
+                },
+              });
+            } else {
+              handleAddWallet();
+            }
+          }}
+          text={LL.userPage.wallets.addWallet()}
+        />
+      )}
       <AddWalletModal />
     </section>
   );

@@ -698,11 +698,11 @@ export enum OverviewLayoutType {
 }
 
 export interface OverviewStore {
-  networks?: Network[];
-  selectedNetworkId: number;
   viewMode: OverviewLayoutType;
   defaultViewMode: OverviewLayoutType;
   statsFilter: number;
+  networks?: Network[];
+  selectedNetworkId?: number;
   setState: (override: Partial<OverviewStore>) => void;
 }
 

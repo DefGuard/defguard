@@ -1,3 +1,4 @@
+import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
@@ -39,7 +40,7 @@ export const OverViewNetworkSelect = () => {
   return (
     <Select
       placeholder={LL.networkOverview.controls.selectNetwork.placeholder()}
-      loading={networks?.length === 0 || !selected}
+      loading={isUndefined(networks) || networks.length === 0}
       selected={selected}
       options={options}
       onChange={(option) => {

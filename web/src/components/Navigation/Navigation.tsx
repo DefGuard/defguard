@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useLocation } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
@@ -17,7 +17,9 @@ import SvgIconNavWebhooks from '../../shared/components/svg/IconNavWebhooks';
 import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
+import { useUserProfileStore } from '../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../shared/hooks/useApi';
+import { QueryKeys } from '../../shared/queries';
 import { User } from '../../shared/types';
 import { NavigationDesktop } from './components/NavigationDesktop/NavigationDesktop';
 import { NavigationMobile } from './components/NavigationMobile/NavigationMobile';
@@ -33,6 +35,9 @@ export const Navigation = () => {
     shallow
   );
   const setStore = useNavigationStore((state) => state.setState);
+  const networksPresent = useAppStore((state) => state.appInfo?.network_present);
+  const resetUserProfile = useUserProfileStore((state) => state.reset);
+  const queryClient = useQueryClient();
 
   const {
     auth: { logout },
@@ -56,6 +61,8 @@ export const Navigation = () => {
       };
     }
 
+    const overviewLink = networksPresent ? '/admin/overview' : '/admin/wizard';
+
     let bottom: NavigationItem[] = [
       {
         title: LL.navigation.bar.settings(),
@@ -68,7 +75,7 @@ export const Navigation = () => {
     let middle: NavigationItem[] = [
       {
         title: LL.navigation.bar.overview(),
-        linkPath: '/admin/overview',
+        linkPath: overviewLink,
         icon: <SvgIconNavVpn />,
         allowedToView: ['admin'],
         enabled: settings?.wireguard_enabled,
@@ -107,6 +114,11 @@ export const Navigation = () => {
         icon: <SvgIconNavProfile />,
         allowedToView: [],
         enabled: true,
+        onClick: () => {
+          resetUserProfile();
+          queryClient.invalidateQueries([QueryKeys.FETCH_ME]);
+          queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
+        },
       },
     ];
     middle = filterNavItems(middle, currentUser);
@@ -118,6 +130,9 @@ export const Navigation = () => {
   }, [
     LL.navigation.bar,
     currentUser,
+    networksPresent,
+    queryClient,
+    resetUserProfile,
     settings?.openid_enabled,
     settings?.webhooks_enabled,
     settings?.wireguard_enabled,
