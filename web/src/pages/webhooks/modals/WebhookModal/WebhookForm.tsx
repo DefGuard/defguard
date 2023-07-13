@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -25,6 +25,7 @@ import {
   patternAtLeastOneUpperCaseChar,
   patternValidUrl,
 } from '../../../../shared/patterns';
+import { QueryKeys } from '../../../../shared/queries';
 import { Webhook } from '../../../../shared/types';
 
 type FormInputs = Omit<Webhook, 'id' | 'enabled'>;
@@ -74,6 +75,8 @@ export const WebhookForm = () => {
     }
     return defaultValues;
   }, [modalState.webhook]);
+
+  const queryClient = useQueryClient();
 
   const formSchema = useMemo(
     () =>
@@ -134,10 +137,12 @@ export const WebhookForm = () => {
     addWebhook,
     {
       onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
         toaster.success(LL.modals.webhookModal.form.messages.successAdd());
         setModalState({ visible: false, webhook: undefined });
       },
       onError: (err) => {
+        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
         toaster.error(LL.messages.error());
         setModalState({ visible: false, webhook: undefined });
         console.error(err);
@@ -149,10 +154,12 @@ export const WebhookForm = () => {
     editWebhook,
     {
       onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
         toaster.success(LL.modals.webhookModal.form.messages.successModify());
         setModalState({ visible: false, webhook: undefined });
       },
       onError: (err) => {
+        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
         toaster.error(LL.messages.error());
         setModalState({ visible: false, webhook: undefined });
         console.error(err);

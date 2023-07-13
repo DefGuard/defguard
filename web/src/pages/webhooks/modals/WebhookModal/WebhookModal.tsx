@@ -11,13 +11,16 @@ import { WebhookForm } from './WebhookForm';
 export const WebhookModal = () => {
   const { LL } = useI18nContext();
   const modalState = useModalStore((state) => state.webhookModal);
+
   const getTitle = useMemo(() => {
     if (!isUndefined(modalState.webhook)) {
       return LL.modals.webhookModal.title.editWebhook();
     }
     return LL.modals.webhookModal.title.addWebhook();
   }, [modalState.webhook, LL.modals.webhookModal.title]);
+
   const setModalState = useModalStore((state) => state.setWebhookModal);
+
   return (
     <ModalWithTitle
       title={getTitle}
