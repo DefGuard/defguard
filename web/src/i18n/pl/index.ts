@@ -1013,6 +1013,12 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
     noData: 'Obecnie nie wykryto żadnej aktywności',
   },
   networkConfiguration: {
+    messages: {
+      delete: {
+        error: 'Błąd podczas próby usunięcia lokalizacji',
+        success: 'Lokalizacja usunięta',
+      },
+    },
     header: 'Konfiguracja lokalizacji',
     importHeader: 'Import lokalizacji',
     form: {

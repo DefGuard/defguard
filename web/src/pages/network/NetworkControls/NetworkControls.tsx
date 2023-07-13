@@ -64,10 +64,11 @@ export const NetworkControls = () => {
   const { isLoading, mutate: deleteNetworkMutate } = useMutation({
     mutationFn: deleteNetwork,
     onSuccess: () => {
+      toaster.success(LL.networkConfiguration.messages.delete.success());
       navigate('/admin/overview', { replace: true });
     },
     onError: (err) => {
-      toaster.error('Failed to remove location');
+      toaster.error(LL.networkConfiguration.messages.delete.error());
       console.error(err);
     },
   });

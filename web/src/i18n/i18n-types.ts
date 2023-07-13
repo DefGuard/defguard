@@ -2347,6 +2347,18 @@ type RootTranslation = {
 		noData: string
 	}
 	networkConfiguration: {
+		messages: {
+			'delete': {
+				/**
+				 * N​e​t​w​o​r​k​ ​d​e​l​t​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​n​e​t​w​o​r​k
+				 */
+				error: string
+			}
+		}
 		/**
 		 * L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
@@ -5108,6 +5120,18 @@ export type TranslationFunctions = {
 		noData: () => LocalizedString
 	}
 	networkConfiguration: {
+		messages: {
+			'delete': {
+				/**
+				 * Network delted
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to delete network
+				 */
+				error: () => LocalizedString
+			}
+		}
 		/**
 		 * Location configuration
 		 */

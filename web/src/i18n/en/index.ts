@@ -1012,6 +1012,12 @@ Any other requests you can reach us at: support@defguard.net
     noData: 'Currently there is no activity detected',
   },
   networkConfiguration: {
+    messages: {
+      delete: {
+        success: 'Network delted',
+        error: 'Failed to delete network',
+      },
+    },
     header: 'Location configuration',
     importHeader: 'Location import',
     form: {
