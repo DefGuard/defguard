@@ -35,7 +35,10 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 * **Checked by professional security researchers** (see [comprehensive security report](https://defguard.net/images/decap/isec-defguard.pdf))
 * End2End tests
 
-![](https://github.com/DefGuard/docs/blob/docs/screencasts/defguard.gif?raw=true)
+<p align="center">
+    ![](https://github.com/DefGuard/docs/blob/docs/screencasts/defguard.gif?raw=true)
+ </p>
+
 Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
 
 # Documentation
