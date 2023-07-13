@@ -15,6 +15,7 @@ const defaultValues: StoreValues = {
 export const useUserProfileStore = create<Store>((set) => ({
   ...defaultValues,
   setState: (newState) => set((oldState) => ({ ...oldState, ...newState })),
+  reset: () => set(defaultValues),
 }));
 
 type Store = StoreValues & StoreMethods;
@@ -29,4 +30,5 @@ type StoreValues = {
 
 type StoreMethods = {
   setState: (state: Partial<StoreValues>) => void;
+  reset: () => void;
 };

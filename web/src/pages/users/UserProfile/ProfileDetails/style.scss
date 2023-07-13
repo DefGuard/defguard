@@ -1,6 +1,11 @@
 @use '../../../../shared/scss/helpers' as *;
 
 #profile-details {
+  //skeleton
+  .react-loading-skeleton {
+    height: 550px;
+  }
+
   & > .card {
     padding: 2rem 1.5rem 3rem;
 

@@ -1,6 +1,16 @@
 @use '../../../../shared/scss/helpers' as *;
 
 #user-yubikeys {
+  & > .skeletons {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    row-gap: 20px;
+    .react-loading-skeleton {
+      height: 70px;
+    }
+  }
+
   & > header {
     position: relative;
     display: flex;

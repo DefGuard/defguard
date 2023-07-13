@@ -58,7 +58,7 @@ export const OverviewHeader = ({ loading = false }: Props) => {
       {breakpoint !== 'desktop' && (
         <div className="mobile-options">
           <div className="top-row">
-            <GatewaysStatus networkId={selectedNetworkId} />
+            {selectedNetworkId && <GatewaysStatus networkId={selectedNetworkId} />}
             {renderEditNetworks()}
           </div>
           <OverViewNetworkSelect />

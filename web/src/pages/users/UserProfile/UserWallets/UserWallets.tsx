@@ -12,6 +12,7 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { AddWalletModal } from './AddWalletModal/AddWalletModal';
 import { WalletCard } from './WalletCard/WalletCard';
+import Skeleton from 'react-loading-skeleton';
 
 export const UserWallets = () => {
   const { LL } = useI18nContext();
@@ -48,7 +49,14 @@ export const UserWallets = () => {
       <header>
         <h2>{LL.userPage.wallets.header()}</h2>
       </header>
-      {sortedWallet && sortedWallet.length > 0 && (
+      {!userProfile && (
+        <div className="skeletons">
+          <Skeleton />
+          <Skeleton />
+          <Skeleton />
+        </div>
+      )}
+      {userProfile && sortedWallet && sortedWallet.length > 0 && (
         <div className="wallets">
           {sortedWallet.map((wallet) => (
             <WalletCard
@@ -60,18 +68,23 @@ export const UserWallets = () => {
           ))}
         </div>
       )}
-      <AddComponentBox
-        callback={() => {
-          if (!isConnected) {
-            setModalsState({
-              connectWalletModal: { visible: true, onConnect: handleAddWallet },
-            });
-          } else {
-            handleAddWallet();
-          }
-        }}
-        text={LL.userPage.wallets.addWallet()}
-      />
+      {userProfile && (
+        <AddComponentBox
+          callback={() => {
+            if (!isConnected) {
+              setModalsState({
+                connectWalletModal: {
+                  visible: true,
+                  onConnect: handleAddWallet,
+                },
+              });
+            } else {
+              handleAddWallet();
+            }
+          }}
+          text={LL.userPage.wallets.addWallet()}
+        />
+      )}
       <AddWalletModal />
     </section>
   );

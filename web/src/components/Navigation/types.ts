@@ -4,6 +4,7 @@ export interface NavigationItem {
   icon?: React.ReactNode;
   allowedToView?: string[];
   enabled: boolean | undefined;
+  onClick?: () => void;
 }
 
 export type NavigationTitleMapItem = {

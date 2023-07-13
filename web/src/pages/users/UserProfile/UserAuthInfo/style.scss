@@ -1,6 +1,11 @@
 @use '../../../../shared/scss/helpers' as *;
 
 #user-auth-info {
+
+  .react-loading-skeleton {
+    height: 180px;
+  }
+
   & > h2 {
     @include card-header;
   }

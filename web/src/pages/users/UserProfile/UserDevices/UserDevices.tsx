@@ -15,6 +15,7 @@ import { AddDeviceModalDesktop } from './modals/AddDeviceModalDesktop/AddDeviceM
 import { DeleteUserDeviceModal } from './modals/DeleteUserDeviceModal/DeleteUserDeviceModal';
 import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDeviceModal';
 import { UserDeviceModal } from './modals/UserDeviceModal/UserDeviceModal';
+import Skeleton from 'react-loading-skeleton';
 
 export const UserDevices = () => {
   const appInfo = useAppStore((state) => state.appInfo);
@@ -36,6 +37,13 @@ export const UserDevices = () => {
       <header>
         <h2>{LL.userPage.devices.header()}</h2>
       </header>
+      {!userProfile && (
+        <div className="skeletons">
+          <Skeleton />
+          <Skeleton />
+          <Skeleton />
+        </div>
+      )}
       {userProfile && (
         <>
           {userProfile.devices && userProfile.devices.length > 0 && (
@@ -45,17 +53,19 @@ export const UserDevices = () => {
               ))}
             </div>
           )}
-          <AddComponentBox
-            data-testid="add-device"
-            text={LL.userPage.devices.addDevice.web()}
-            disabled={!appInfo?.network_present}
-            callback={() =>
-              openDeviceModal({
-                visible: true,
-              })
-            }
-          />
-          {isDesktopApp && !isDeviceConfigPresent && (
+          {userProfile && !isDesktopApp && (
+            <AddComponentBox
+              data-testid="add-device"
+              text={LL.userPage.devices.addDevice.web()}
+              disabled={!appInfo?.network_present}
+              callback={() =>
+                openDeviceModal({
+                  visible: true,
+                })
+              }
+            />
+          )}
+          {userProfile && isDesktopApp && !isDeviceConfigPresent && (
             <AddComponentBox
               disabled={!appInfo?.network_present}
               text={LL.userPage.devices.addDevice.desktop()}

@@ -12,10 +12,17 @@ export const NavigationLink = ({ item, callback }: NavigationLinkProps) => {
   const match = useMatch(item.linkPath);
   return (
     <Link
-      to={item.linkPath}
-      onClick={() => callback}
-      className={match ? 'active' : undefined}
       replace
+      to={item.linkPath}
+      className={match ? 'active' : undefined}
+      onClick={() => {
+        if (callback) {
+          callback();
+        }
+        if (item.onClick) {
+          item.onClick();
+        }
+      }}
     >
       {item.icon}
       <span>{item.title}</span>

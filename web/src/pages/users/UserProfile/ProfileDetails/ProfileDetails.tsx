@@ -3,6 +3,8 @@ import './style.scss';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { useMemo } from 'react';
+import Skeleton from 'react-loading-skeleton';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Card } from '../../../../shared/components/layout/Card/Card';
@@ -19,15 +21,21 @@ import { ProfileDetailsForm } from './ProfileDetailsForm/ProfileDetailsForm';
 
 export const ProfileDetails = () => {
   const { LL } = useI18nContext();
-  const editMode = useUserProfileStore((state) => state.editMode);
+  const [editMode, userProfile] = useUserProfileStore(
+    (state) => [state.editMode, state.userProfile],
+    shallow
+  );
   return (
     <section id="profile-details">
       <header>
         <h2>{LL.userPage.userDetails.header()}</h2>
       </header>
-      <Card className={classNames({ edit: editMode })}>
-        {editMode ? <ProfileDetailsForm /> : <ViewMode />}
-      </Card>
+      {userProfile && (
+        <Card className={classNames({ edit: editMode })}>
+          {editMode ? <ProfileDetailsForm /> : <ViewMode />}
+        </Card>
+      )}
+      {!userProfile && <Skeleton className="profile-details" />}
     </section>
   );
 };
