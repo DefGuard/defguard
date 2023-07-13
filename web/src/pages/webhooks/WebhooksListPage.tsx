@@ -106,9 +106,6 @@ export const WebhooksListPage = () => {
   const { data: webhooks, isLoading } = useQuery({
     queryFn: getWebhooks,
     queryKey: [QueryKeys.FETCH_WEBHOOKS],
-    onSuccess: (res) => {
-      console.log(res);
-    },
   });
 
   const getHeaders = useMemo(() => {
