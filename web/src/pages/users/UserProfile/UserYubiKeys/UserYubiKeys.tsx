@@ -1,5 +1,7 @@
 import './style.scss';
 
+import Skeleton from 'react-loading-skeleton';
+
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
@@ -7,7 +9,6 @@ import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfi
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import KeyBox from '../../shared/components/KeyBox/KeyBox';
 import { KeyDetailsModal } from './modals/KeyDetailsModal/KeyDetailsModal';
-import Skeleton from 'react-loading-skeleton';
 
 export const UserYubiKeys = () => {
   const { LL } = useI18nContext();

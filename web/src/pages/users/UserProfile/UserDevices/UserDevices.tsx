@@ -3,6 +3,7 @@ import './style.scss';
 import { fs } from '@tauri-apps/api';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
+import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
@@ -15,7 +16,6 @@ import { AddDeviceModalDesktop } from './modals/AddDeviceModalDesktop/AddDeviceM
 import { DeleteUserDeviceModal } from './modals/DeleteUserDeviceModal/DeleteUserDeviceModal';
 import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDeviceModal';
 import { UserDeviceModal } from './modals/UserDeviceModal/UserDeviceModal';
-import Skeleton from 'react-loading-skeleton';
 
 export const UserDevices = () => {
   const appInfo = useAppStore((state) => state.appInfo);
