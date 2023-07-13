@@ -9,6 +9,7 @@ Building a secure organization has always been difficult and costly. Defguard pr
 **Why?**
 
 The story and motivation behind defguard [can be found here: https://teonite.com/blog/defguard/](https://teonite.com/blog/defguard/)
+Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
 
 **Features:**
 
