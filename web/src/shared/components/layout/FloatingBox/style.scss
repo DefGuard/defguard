@@ -1,7 +1,7 @@
 @use '../../../scss/helpers' as *;
 
 .floating-box {
-  z-index: 3;
+  z-index: 5;
   border: 1px solid var(--gray-lighter);
   background-color: var(--white);
   color: var(--text-main);
