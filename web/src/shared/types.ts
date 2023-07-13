@@ -360,7 +360,7 @@ export interface ApiHook {
     getNetwork: (networkId: number) => Promise<Network>;
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
-    deleteNetwork: (network: Network) => EmptyApiResponse;
+    deleteNetwork: (networkId: number) => EmptyApiResponse;
     getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
     getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;

@@ -18,6 +18,7 @@
   box-shadow: var(--inactive-box-shadow);
   border-radius: 10px;
   justify-content: center;
+  user-select: none;
 
   .text {
     max-width: 100%;

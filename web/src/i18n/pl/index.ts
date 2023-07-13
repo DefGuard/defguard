@@ -10,6 +10,12 @@ const pl: Translation = {
     clipboardError: 'Schowek nie jest dostępny.',
   },
   modals: {
+    deleteNetwork: {
+      cancel: 'Wróć',
+      submit: 'Usuń lokalizację',
+      subTitle: 'Lokalizacja zostanie usunięta.',
+      title: 'Usuń lokalizację {name}',
+    },
     changeWebhook: {
       messages: {
         success: 'Webhook zmieniony.',
@@ -1051,6 +1057,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       controls: {
         submit: 'Zapisz zmiany',
         cancel: 'Wróć',
+        delete: 'Usuń lokalizację',
       },
     },
   },

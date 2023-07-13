@@ -13,6 +13,7 @@ use crate::{
     license::Features,
 };
 use rocket::serde::json::serde_json;
+use rocket::time::Duration;
 use rocket::{
     http::{Cookie, CookieJar, SameSite, Status},
     serde::json::{serde_json::json, Json},
@@ -92,6 +93,7 @@ pub async fn authenticate(
         .http_only(true)
         .secure(true)
         .same_site(SameSite::Lax)
+        .max_age(Duration::days(7))
         .finish();
     cookies.add(auth_cookie);
 
