@@ -650,17 +650,11 @@ const pl: Translation = {
         webhooks_enabled: {
           label: 'Webhooks',
         },
-        web3_enabled: {
-          label: 'Web3',
-        },
         worker_enabled: {
           label: 'YubiBridge',
         },
         openid_enabled: {
           label: 'OpenID connect',
-        },
-        oauth_enabled: {
-          label: 'OAuth2',
         },
       },
     },

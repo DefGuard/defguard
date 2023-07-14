@@ -25,9 +25,7 @@ async fn test_settings() {
         settings,
         Settings {
             id: None,
-            web3_enabled: true,
             openid_enabled: true,
-            oauth_enabled: true,
             ldap_enabled: true,
             wireguard_enabled: true,
             webhooks_enabled: true,

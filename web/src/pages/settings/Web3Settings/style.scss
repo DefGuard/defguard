@@ -2,9 +2,6 @@
 
 #settings-page {
   .web3-settings {
-    @include media-breakpoint-up(lg) {
-      margin-bottom: 5rem;
-    }
 
     & > .card {
       box-sizing: border-box;

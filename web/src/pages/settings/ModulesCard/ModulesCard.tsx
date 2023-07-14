@@ -3,10 +3,8 @@ import './styles.scss';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { cloneDeep } from 'lodash-es';
-import { ReactNode } from 'react';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import Badge from '../../../shared/components/layout/Badge/Badge';
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { CheckBox } from '../../../shared/components/layout/Checkbox/CheckBox';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
@@ -68,10 +66,22 @@ export const ModulesCard = () => {
       </header>
       <Card>
         <CheckBox
+          disabled={isLoading}
+          label={LL.settingsPage.modulesVisibility.fields.openid_enabled.label()}
+          value={settings.openid_enabled}
+          onChange={() => handleChange('openid_enabled')}
+        />
+        <CheckBox
           label={LL.settingsPage.modulesVisibility.fields.wireguard_enabled.label()}
           value={settings.wireguard_enabled}
           disabled={isLoading}
           onChange={() => handleChange('wireguard_enabled')}
+        />
+        <CheckBox
+          label={LL.settingsPage.modulesVisibility.fields.worker_enabled.label()}
+          value={settings.worker_enabled}
+          disabled={isLoading}
+          onChange={() => handleChange('worker_enabled')}
         />
         <CheckBox
           label={LL.settingsPage.modulesVisibility.fields.webhooks_enabled.label()}
@@ -79,56 +89,7 @@ export const ModulesCard = () => {
           disabled={isLoading}
           onChange={() => handleChange('webhooks_enabled')}
         />
-        <CheckBox
-          label={LL.settingsPage.modulesVisibility.fields.web3_enabled.label()}
-          value={settings.web3_enabled}
-          disabled={isLoading}
-          onChange={() => handleChange('web3_enabled')}
-        />
-        <CheckBox
-          label={
-            <EnterPriceLabel>
-              {LL.settingsPage.modulesVisibility.fields.worker_enabled.label()}
-            </EnterPriceLabel>
-          }
-          value={settings.worker_enabled}
-          disabled={isLoading}
-          onChange={() => handleChange('worker_enabled')}
-        />
-        <CheckBox
-          disabled={isLoading}
-          label={
-            <EnterPriceLabel>
-              {LL.settingsPage.modulesVisibility.fields.openid_enabled.label()}
-            </EnterPriceLabel>
-          }
-          value={settings.openid_enabled}
-          onChange={() => handleChange('openid_enabled')}
-        />
-        <CheckBox
-          label={
-            <EnterPriceLabel>
-              {LL.settingsPage.modulesVisibility.fields.oauth_enabled.label()}
-            </EnterPriceLabel>
-          }
-          value={settings.oauth_enabled}
-          disabled={isLoading}
-          onChange={() => handleChange('oauth_enabled')}
-        />
       </Card>
     </section>
-  );
-};
-
-interface EnterpriceLabelProps {
-  children?: ReactNode;
-}
-
-const EnterPriceLabel = ({ children }: EnterpriceLabelProps) => {
-  return (
-    <>
-      <p>{children}</p>
-      <Badge text="Enterprice" />
-    </>
   );
 };

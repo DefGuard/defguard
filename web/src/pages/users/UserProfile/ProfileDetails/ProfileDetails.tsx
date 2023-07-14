@@ -11,6 +11,7 @@ import { Card } from '../../../../shared/components/layout/Card/Card';
 import { Label } from '../../../../shared/components/layout/Label/Label';
 import NoData from '../../../../shared/components/layout/NoData/NoData';
 import { Tag } from '../../../../shared/components/layout/Tag/Tag';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
@@ -39,7 +40,9 @@ export const ProfileDetails = () => {
     </section>
   );
 };
+
 const ViewMode = () => {
+  const appSettings = useAppStore((state) => state.settings);
   const { LL } = useI18nContext();
   const {
     openid: { removeUserClient },
@@ -114,29 +117,31 @@ const ViewMode = () => {
           )}
         </div>
       </div>
-      <div className="row tags">
-        <Label>{LL.userPage.userDetails.fields.apps.label()}</Label>
-        <div className="tags" data-testid="authorized-apps">
-          {user?.authorized_apps?.map((app) => (
-            <Tag
-              disposable={true}
-              text={app.oauth2client_name}
-              key={app.oauth2client_id}
-              onDispose={() =>
-                deleteTokenMutation({
-                  username: user.username,
-                  client_id: app.oauth2client_id,
-                })
-              }
-            />
-          ))}
-          {!(
-            user.authorized_apps &&
-            user?.authorized_apps.length &&
-            user?.authorized_apps?.length > 0
-          ) && <NoData customMessage={LL.userPage.userDetails.fields.apps.noData()} />}
+      {appSettings?.openid_enabled && (
+        <div className="row tags">
+          <Label>{LL.userPage.userDetails.fields.apps.label()}</Label>
+          <div className="tags" data-testid="authorized-apps">
+            {user?.authorized_apps?.map((app) => (
+              <Tag
+                disposable={true}
+                text={app.oauth2client_name}
+                key={app.oauth2client_id}
+                onDispose={() =>
+                  deleteTokenMutation({
+                    username: user.username,
+                    client_id: app.oauth2client_id,
+                  })
+                }
+              />
+            ))}
+            {!(
+              user.authorized_apps &&
+              user?.authorized_apps.length &&
+              user?.authorized_apps?.length > 0
+            ) && <NoData customMessage={LL.userPage.userDetails.fields.apps.noData()} />}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 };

@@ -1,1 +1,6 @@
-export const navigationExcludedRoutes: string[] = ['/auth', '/authorize', '/redirect'];
+export const navigationExcludedRoutes: string[] = [
+  '/auth',
+  '/authorize',
+  '/redirect',
+  '/consent',
+];

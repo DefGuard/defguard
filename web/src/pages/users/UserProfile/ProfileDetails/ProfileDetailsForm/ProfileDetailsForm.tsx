@@ -12,6 +12,7 @@ import {
   SelectOption,
   SelectStyleVariant,
 } from '../../../../../shared/components/layout/Select/Select';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -51,6 +52,7 @@ const defaultValues: Inputs = {
 
 export const ProfileDetailsForm = () => {
   const { LL } = useI18nContext();
+  const appSettings = useAppStore((state) => state.settings);
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const submitSubject = useUserProfileStore((state) => state.submitSubject);
   const setUserProfile = useUserProfileStore((state) => state.setState);
@@ -280,15 +282,20 @@ export const ProfileDetailsForm = () => {
           />
         </div>
       </div>
-      <div className="row tags">
-        <Controller
-          control={control}
-          name="authorized_apps"
-          render={({ field }) => (
-            <ProfileDetailsFormAppsField value={field.value} onChange={field.onChange} />
-          )}
-        />
-      </div>
+      {appSettings?.openid_enabled && (
+        <div className="row tags">
+          <Controller
+            control={control}
+            name="authorized_apps"
+            render={({ field }) => (
+              <ProfileDetailsFormAppsField
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+        </div>
+      )}
       <button type="submit" className="hidden" ref={submitButton} />
     </form>
   );
