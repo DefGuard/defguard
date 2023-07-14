@@ -613,9 +613,7 @@ export interface UseOpenIDStore {
 export interface Settings {
   id: string;
   challenge_template: string;
-  web3_enabled: boolean;
   openid_enabled: boolean;
-  oauth_enabled: boolean;
   ldap_enabled: boolean;
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;

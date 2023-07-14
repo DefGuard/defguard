@@ -649,17 +649,11 @@ const en: BaseTranslation = {
         webhooks_enabled: {
           label: 'Webhooks',
         },
-        web3_enabled: {
-          label: 'Web3',
-        },
         worker_enabled: {
-          label: 'YubiBridge',
+          label: 'Yubikey provisioning',
         },
         openid_enabled: {
-          label: 'OpenID connect',
-        },
-        oauth_enabled: {
-          label: 'OAuth2',
+          label: 'OpenID Connect',
         },
       },
     },

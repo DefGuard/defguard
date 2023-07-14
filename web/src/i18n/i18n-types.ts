@@ -1515,27 +1515,15 @@ type RootTranslation = {
 					 */
 					label: string
 				}
-				web3_enabled: {
-					/**
-					 * W​e​b​3
-					 */
-					label: string
-				}
 				worker_enabled: {
 					/**
-					 * Y​u​b​i​B​r​i​d​g​e
+					 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g
 					 */
 					label: string
 				}
 				openid_enabled: {
 					/**
-					 * O​p​e​n​I​D​ ​c​o​n​n​e​c​t
-					 */
-					label: string
-				}
-				oauth_enabled: {
-					/**
-					 * O​A​u​t​h​2
+					 * O​p​e​n​I​D​ ​C​o​n​n​e​c​t
 					 */
 					label: string
 				}
@@ -4299,27 +4287,15 @@ export type TranslationFunctions = {
 					 */
 					label: () => LocalizedString
 				}
-				web3_enabled: {
-					/**
-					 * Web3
-					 */
-					label: () => LocalizedString
-				}
 				worker_enabled: {
 					/**
-					 * YubiBridge
+					 * Yubikey provisioning
 					 */
 					label: () => LocalizedString
 				}
 				openid_enabled: {
 					/**
-					 * OpenID connect
-					 */
-					label: () => LocalizedString
-				}
-				oauth_enabled: {
-					/**
-					 * OAuth2
+					 * OpenID Connect
 					 */
 					label: () => LocalizedString
 				}
