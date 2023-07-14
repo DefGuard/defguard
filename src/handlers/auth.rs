@@ -89,11 +89,16 @@ pub async fn authenticate(
     let session = Session::new(user.id.unwrap(), SessionState::PasswordVerified);
     session.save(&appstate.pool).await?;
 
+    let max_age = match &appstate.config.session_lifetime {
+        Some(seconds) => Duration::seconds(*seconds),
+        None => Duration::days(7),
+    };
+
     let auth_cookie = Cookie::build("defguard_session", session.id)
         .http_only(true)
         .secure(true)
         .same_site(SameSite::Lax)
-        .max_age(Duration::days(7))
+        .max_age(max_age)
         .finish();
     cookies.add(auth_cookie);
 
