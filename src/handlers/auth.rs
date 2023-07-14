@@ -89,7 +89,7 @@ pub async fn authenticate(
     let session = Session::new(user.id.unwrap(), SessionState::PasswordVerified);
     session.save(&appstate.pool).await?;
 
-    let max_age = match &appstate.config.session_lifetime {
+    let max_age = match &appstate.config.session_auth_lifetime {
         Some(seconds) => Duration::seconds(*seconds),
         None => Duration::days(7),
     };
