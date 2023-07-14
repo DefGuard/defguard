@@ -117,8 +117,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const modifyNetwork: ApiHook['network']['editNetwork'] = async (data) =>
     client.put<Network>(`/network/${data.id}`, data.network).then((res) => res.data);
 
-  const deleteNetwork = async (network: Network) =>
-    client.delete<EmptyApiResponse>(`/network/${network.id}`);
+  const deleteNetwork: ApiHook['network']['deleteNetwork'] = async (id) =>
+    client.delete<EmptyApiResponse>(`/network/${id}`);
 
   const addNetwork: ApiHook['network']['addNetwork'] = (network) =>
     client.post(`/network/`, network).then(unpackRequest);

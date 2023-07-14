@@ -10,6 +10,12 @@ const en: BaseTranslation = {
     clipboardError: 'Clipboard is not accessible.',
   },
   modals: {
+    deleteNetwork: {
+      title: 'Delete {name:string} location',
+      subTitle: 'This action will permanently delete this location.',
+      submit: 'Delete location',
+      cancel: 'Cancel',
+    },
     changeWebhook: {
       messages: {
         success: 'Webhook changed.',
@@ -1006,6 +1012,12 @@ Any other requests you can reach us at: support@defguard.net
     noData: 'Currently there is no activity detected',
   },
   networkConfiguration: {
+    messages: {
+      delete: {
+        success: 'Network delted',
+        error: 'Failed to delete network',
+      },
+    },
     header: 'Location configuration',
     importHeader: 'Location import',
     form: {
@@ -1050,6 +1062,7 @@ Any other requests you can reach us at: support@defguard.net
       controls: {
         submit: 'Save changes',
         cancel: 'Back to Overview',
+        delete: 'Remove location',
       },
     },
   },

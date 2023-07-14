@@ -41,6 +41,25 @@ type RootTranslation = {
 		clipboardError: string
 	}
 	modals: {
+		deleteNetwork: {
+			/**
+			 * D​e​l​e​t​e​ ​{​n​a​m​e​}​ ​l​o​c​a​t​i​o​n
+			 * @param {string} name
+			 */
+			title: RequiredParams<'name'>
+			/**
+			 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​.
+			 */
+			subTitle: string
+			/**
+			 * D​e​l​e​t​e​ ​l​o​c​a​t​i​o​n
+			 */
+			submit: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+		}
 		changeWebhook: {
 			messages: {
 				/**
@@ -2328,6 +2347,18 @@ type RootTranslation = {
 		noData: string
 	}
 	networkConfiguration: {
+		messages: {
+			'delete': {
+				/**
+				 * N​e​t​w​o​r​k​ ​d​e​l​t​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​n​e​t​w​o​r​k
+				 */
+				error: string
+			}
+		}
 		/**
 		 * L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
@@ -2426,6 +2457,10 @@ type RootTranslation = {
 				 * B​a​c​k​ ​t​o​ ​O​v​e​r​v​i​e​w
 				 */
 				cancel: string
+				/**
+				 * R​e​m​o​v​e​ ​l​o​c​a​t​i​o​n
+				 */
+				'delete': string
 			}
 		}
 	}
@@ -2801,6 +2836,24 @@ export type TranslationFunctions = {
 		clipboardError: () => LocalizedString
 	}
 	modals: {
+		deleteNetwork: {
+			/**
+			 * Delete {name} location
+			 */
+			title: (arg: { name: string }) => LocalizedString
+			/**
+			 * This action will permanently delete this location.
+			 */
+			subTitle: () => LocalizedString
+			/**
+			 * Delete location
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+		}
 		changeWebhook: {
 			messages: {
 				/**
@@ -5067,6 +5120,18 @@ export type TranslationFunctions = {
 		noData: () => LocalizedString
 	}
 	networkConfiguration: {
+		messages: {
+			'delete': {
+				/**
+				 * Network delted
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to delete network
+				 */
+				error: () => LocalizedString
+			}
+		}
 		/**
 		 * Location configuration
 		 */
@@ -5165,6 +5230,10 @@ export type TranslationFunctions = {
 				 * Back to Overview
 				 */
 				cancel: () => LocalizedString
+				/**
+				 * Remove location
+				 */
+				'delete': () => LocalizedString
 			}
 		}
 	}
