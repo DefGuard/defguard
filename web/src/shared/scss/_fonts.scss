@@ -1,0 +1,100 @@
+// Poppins
+
+@font-face {
+  font-family: 'Poppins';
+  font-weight: 600;
+  font-display: block;
+  src: url('/src/shared/fonts/Poppins/Poppins-SemiBold.woff2') format('woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-weight: 500;
+  font-display: block;
+  src: url('/src/shared/fonts/Poppins/Poppins-Medium.woff2') format('woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-weight: 400;
+  font-display: block;
+  src: url('/src/shared/fonts/Poppins/Poppins-Regular.woff2') format('woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-weight: 300;
+  font-display: block;
+  src: url('/src/shared/fonts/Poppins/Poppins-Light.woff2') format('woff2');
+  font-style: normal;
+}
+
+// Roboto
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 500;
+  font-display: block;
+  src: url('/src/shared/fonts/Roboto/Roboto-Medium.woff2') format('woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 400;
+  font-display: block;
+  src: url('/src/shared/fonts/Roboto/Roboto-Regular.woff2') format('woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 700;
+  font-display: block;
+  src: url('/src/shared/fonts/Roboto/Roboto-Bold.woff2') format('woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 700;
+  font-display: block;
+  src: url('/src/shared/fonts/Roboto/Roboto-Bolditalic.woff2') format('woff2');
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 500;
+  font-display: block;
+  src: url('/src/shared/fonts/Roboto/Roboto-Mediumitalic.woff2') format('woff2');
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 400;
+  font-display: block;
+  src: url('/src/shared/fonts/Roboto/Roboto-Italic.woff2') format('woff2');
+  font-style: italic;
+}
+
+// Source code pro
+
+@font-face {
+  font-family: 'Source Code Pro';
+  font-weight: 400;
+  font-display: block;
+  src: url('/src/shared/fonts/SourceCodePro/SourceCodePro-Regular.woff2') format('woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Source Code Pro';
+  font-weight: 400;
+  font-display: block;
+  src: url('/src/shared/fonts/SourceCodePro/SourceCodePro-Italic.woff2') format('woff2');
+  font-style: italic;
+}
