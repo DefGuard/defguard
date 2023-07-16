@@ -41,6 +41,48 @@ type RootTranslation = {
 		clipboardError: string
 	}
 	modals: {
+		changePasswordSelf: {
+			/**
+			 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
+			 */
+			title: string
+			messages: {
+				/**
+				 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​c​h​a​n​g​e​d​ ​p​a​s​s​w​o​r​d
+				 */
+				error: string
+			}
+			form: {
+				labels: {
+					/**
+					 * N​e​w​ ​p​a​s​s​w​o​r​d
+					 */
+					newPassword: string
+					/**
+					 * C​u​r​r​e​n​t​ ​p​a​s​s​w​o​r​d
+					 */
+					oldPassword: string
+					/**
+					 * C​o​n​f​i​r​m​ ​n​e​w​ ​p​a​s​s​w​o​r​d
+					 */
+					repeat: string
+				}
+			}
+			controls: {
+				/**
+				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
+				 */
+				submit: string
+				/**
+				 * C​a​n​c​e​l
+				 */
+				cancel: string
+			}
+		}
 		deleteNetwork: {
 			/**
 			 * D​e​l​e​t​e​ ​{​n​a​m​e​}​ ​l​o​c​a​t​i​o​n
@@ -2824,6 +2866,48 @@ export type TranslationFunctions = {
 		clipboardError: () => LocalizedString
 	}
 	modals: {
+		changePasswordSelf: {
+			/**
+			 * Change password
+			 */
+			title: () => LocalizedString
+			messages: {
+				/**
+				 * Password changed
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to changed password
+				 */
+				error: () => LocalizedString
+			}
+			form: {
+				labels: {
+					/**
+					 * New password
+					 */
+					newPassword: () => LocalizedString
+					/**
+					 * Current password
+					 */
+					oldPassword: () => LocalizedString
+					/**
+					 * Confirm new password
+					 */
+					repeat: () => LocalizedString
+				}
+			}
+			controls: {
+				/**
+				 * Change password
+				 */
+				submit: () => LocalizedString
+				/**
+				 * Cancel
+				 */
+				cancel: () => LocalizedString
+			}
+		}
 		deleteNetwork: {
 			/**
 			 * Delete {name} location

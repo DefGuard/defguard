@@ -10,6 +10,7 @@ use crate::{
         WebAuthn,
     },
     error::OriWebError,
+    handlers::PasswordChangeSelf,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     license::Features,
 };
@@ -263,17 +264,64 @@ pub async fn delete_user(
     }
 }
 
+#[put("/change_password", format = "json", data = "<data>")]
+pub async fn change_self_password(
+    session: SessionInfo,
+    appstate: &State<AppState>,
+    data: Json<PasswordChangeSelf>,
+) -> ApiResult {
+    let mut user = session.user;
+    if user.verify_password(&data.old_password).is_err() {
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
+    }
+
+    if check_password_strength(&data.new_password).is_err() {
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
+    }
+
+    user.set_password(&data.new_password);
+    user.save(&appstate.pool).await?;
+
+    if appstate.license.validate(&Features::Ldap) {
+        let _result =
+            ldap_change_password(&appstate.config, &user.username, &data.new_password).await;
+    }
+
+    info!("User {} changed password.", &user.username);
+
+    Ok(ApiResponse {
+        json: json!({}),
+        status: Status::Ok,
+    })
+}
+
 #[put("/user/<username>/password", format = "json", data = "<data>")]
 pub async fn change_password(
     session: SessionInfo,
     appstate: &State<AppState>,
     username: &str,
     data: Json<PasswordChange>,
+    _admin: AdminRole,
 ) -> ApiResult {
     debug!(
-        "User {} changing password for user {}",
+        "Admin {} changing password for user {}",
         session.user.username, username
     );
+
+    if session.user.username == username {
+        debug!("Cannot change own password with this endpoint.");
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: Status::BadRequest,
+        });
+    }
+
     if let Err(err) = check_password_strength(&data.new_password) {
         debug!("Pasword not strong enough: {}", err);
         return Ok(ApiResponse {
@@ -288,17 +336,31 @@ pub async fn change_password(
             status: Status::BadRequest,
         });
     }
-    let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
-    user.set_password(&data.new_password);
-    user.save(&appstate.pool).await?;
-    if appstate.license.validate(&Features::Ldap) {
-        let _result = ldap_change_password(&appstate.config, username, &data.new_password).await;
+
+    let user = User::find_by_username(&appstate.pool, username).await?;
+
+    match user {
+        Some(mut user) => {
+            user.set_password(&data.new_password);
+            user.save(&appstate.pool).await?;
+            if appstate.license.validate(&Features::Ldap) {
+                let _result =
+                    ldap_change_password(&appstate.config, username, &data.new_password).await;
+            }
+            info!(
+                "Admin {} changed password for user {}",
+                session.user.username, username
+            );
+            Ok(ApiResponse::default())
+        }
+        None => {
+            debug!("User not found");
+            Ok(ApiResponse {
+                json: json!({}),
+                status: Status::NotFound,
+            })
+        }
     }
-    info!(
-        "User {} changed password for user {}",
-        session.user.username, username
-    );
-    Ok(ApiResponse::default())
 }
 
 #[get("/user/<username>/challenge?<address>&<name>&<chain_id>")]

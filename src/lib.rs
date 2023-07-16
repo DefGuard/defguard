@@ -3,6 +3,7 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
+use crate::handlers::user::change_self_password;
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
@@ -173,7 +174,8 @@ pub async fn build_webapp(
                 web3auth_end,
                 delete_authorized_app,
                 recovery_code,
-                get_app_info
+                get_app_info,
+                change_self_password
             ],
         )
         .mount(
