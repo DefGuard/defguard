@@ -37,7 +37,7 @@ export const ChangeSelfPasswordForm = () => {
     () =>
       yup
         .object({
-          old_password: yup.string().required(),
+          old_password: yup.string().required(LL.form.error.required()),
           new_password: yup
             .string()
             .min(8, LL.form.error.minimumLength())

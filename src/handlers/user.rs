@@ -264,7 +264,7 @@ pub async fn delete_user(
     }
 }
 
-#[put("/change_password", format = "json", data = "<data>")]
+#[put("/user/change_password", format = "json", data = "<data>")]
 pub async fn change_self_password(
     session: SessionInfo,
     appstate: &State<AppState>,

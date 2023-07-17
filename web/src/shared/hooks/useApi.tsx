@@ -340,7 +340,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.delete(`/network/${data.networkId}/gateways/${data.gatewayId}`);
 
   const changePasswordSelf: ApiHook['changePasswordSelf'] = (data) =>
-    client.put('/change_password', data).then(unpackRequest);
+    client.put('/user/change_password', data).then(unpackRequest);
 
   return {
     getAppInfo,

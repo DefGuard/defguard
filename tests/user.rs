@@ -80,21 +80,21 @@ async fn test_change_self_password() {
     };
 
     let response = client
-        .put("/api/v1/change_password")
+        .put("/api/v1/user/change_password")
         .json(&bad_old_request)
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::BadRequest);
 
     let response = client
-        .put("/api/v1/change_password")
+        .put("/api/v1/user/change_password")
         .json(&bad_new_request)
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::BadRequest);
 
     let response = client
-        .put("/api/v1/change_password")
+        .put("/api/v1/user/change_password")
         .json(&change_password)
         .dispatch()
         .await;
