@@ -170,14 +170,161 @@ async fn test_modify_network() {
     assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
 
     // add an allowed group
-    todo!();
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": ["allowed group"],
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    match wg_rx.try_recv().unwrap() {
+        GatewayEvent::DeviceDeleted(device_info) => {
+            assert_eq!(device_info.device.id.unwrap(), devices[2].id.unwrap());
+            assert_eq!(device_info.network_info.len(), 1);
+            assert_eq!(device_info.network_info[0].network_id, 1);
+            assert_eq!(
+                device_info.network_info[0].device_wireguard_ip.to_string(),
+                peers[2].allowed_ips[0]
+            );
+        }
+        _ => panic!(),
+    };
+    match wg_rx.try_recv().unwrap() {
+        GatewayEvent::DeviceDeleted(device_info) => {
+            assert_eq!(device_info.device.id.unwrap(), devices[3].id.unwrap());
+            assert_eq!(device_info.network_info.len(), 1);
+            assert_eq!(device_info.network_info[0].network_id, 1);
+            assert_eq!(
+                device_info.network_info[0].device_wireguard_ip.to_string(),
+                peers[3].allowed_ips[0]
+            );
+        }
+        _ => panic!(),
+    };
+    let new_peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(new_peers.len(), 2);
+    assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
 
     // add another allowed group
-    todo!();
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": ["allowed group", "not allowed group"],
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    match wg_rx.try_recv().unwrap() {
+        GatewayEvent::DeviceCreated(device_info) => {
+            assert_eq!(device_info.device.id.unwrap(), devices[2].id.unwrap());
+            assert_eq!(device_info.network_info.len(), 1);
+            assert_eq!(device_info.network_info[0].network_id, 1);
+            assert_eq!(
+                device_info.network_info[0].device_wireguard_ip.to_string(),
+                peers[2].allowed_ips[0]
+            );
+        }
+        _ => panic!(),
+    };
+    let new_peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(new_peers.len(), 3);
+    assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
+    assert_eq!(new_peers[2].pubkey, devices[2].wireguard_pubkey);
 
     // remove allowed group
-    todo!();
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": ["not allowed group"],
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    match wg_rx.try_recv().unwrap() {
+        GatewayEvent::DeviceDeleted(device_info) => {
+            assert_eq!(device_info.device.id.unwrap(), devices[1].id.unwrap());
+            assert_eq!(device_info.network_info.len(), 1);
+            assert_eq!(device_info.network_info[0].network_id, 1);
+            assert_eq!(
+                device_info.network_info[0].device_wireguard_ip.to_string(),
+                peers[1].allowed_ips[0]
+            );
+        }
+        _ => panic!(),
+    };
+    let new_peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(new_peers.len(), 2);
+    assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(new_peers[1].pubkey, devices[2].wireguard_pubkey);
 
     // remove all allowed groups
-    todo!();
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": [],
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Ok);
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    match wg_rx.try_recv().unwrap() {
+        GatewayEvent::DeviceCreated(device_info) => {
+            assert_eq!(device_info.device.id.unwrap(), devices[1].id.unwrap());
+            assert_eq!(device_info.network_info.len(), 1);
+            assert_eq!(device_info.network_info[0].network_id, 1);
+            assert_eq!(
+                device_info.network_info[0].device_wireguard_ip.to_string(),
+                peers[1].allowed_ips[0]
+            );
+        }
+        _ => panic!(),
+    };
+    match wg_rx.try_recv().unwrap() {
+        GatewayEvent::DeviceCreated(device_info) => {
+            assert_eq!(device_info.device.id.unwrap(), devices[3].id.unwrap());
+            assert_eq!(device_info.network_info.len(), 1);
+            assert_eq!(device_info.network_info[0].network_id, 1);
+            assert_eq!(
+                device_info.network_info[0].device_wireguard_ip.to_string(),
+                peers[3].allowed_ips[0]
+            );
+        }
+        _ => panic!(),
+    };
+    let new_peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(new_peers.len(), 4);
+    assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
+    assert_eq!(new_peers[2].pubkey, devices[2].wireguard_pubkey);
+    assert_eq!(new_peers[3].pubkey, devices[3].wireguard_pubkey);
 }
