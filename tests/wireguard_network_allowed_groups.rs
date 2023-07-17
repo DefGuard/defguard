@@ -129,3 +129,55 @@ async fn test_create_new_network() {
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
 }
+
+#[rocket::async_test]
+async fn test_modify_network() {
+    let (client, client_state) = make_test_client().await;
+    let (_users, devices) = setup_test_users(&client_state.pool).await;
+
+    let mut wg_rx = client_state.wireguard_rx;
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // create network without allowed groups
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": [],
+        }))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let network: WireguardNetwork = response.into_json().await.unwrap();
+    assert_eq!(network.name, "network");
+    let event = wg_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+
+    // network configuration was created for all devices
+    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(peers.len(), 4);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+    assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
+    assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
+
+    // add an allowed group
+    todo!();
+
+    // add another allowed group
+    todo!();
+
+    // remove allowed group
+    todo!();
+
+    // remove all allowed groups
+    todo!();
+}
