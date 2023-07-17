@@ -3,7 +3,7 @@ use defguard::{
         models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
         UserInfo,
     },
-    handlers::{AddUserData, Auth, PasswordChange, Username, WalletChallenge, PasswordChangeSelf},
+    handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username, WalletChallenge},
     hex::to_lower_hex,
 };
 use ethers::core::types::transaction::eip712::{Eip712, TypedData};
@@ -76,16 +76,28 @@ async fn test_change_self_password() {
 
     let change_password = PasswordChangeSelf {
         old_password: "pass123".into(),
-        new_password: new_password.into()
+        new_password: new_password.into(),
     };
 
-    let response = client.put("/api/v1/change_password").json(&bad_old_request).dispatch().await;
+    let response = client
+        .put("/api/v1/change_password")
+        .json(&bad_old_request)
+        .dispatch()
+        .await;
     assert_eq!(response.status(), Status::BadRequest);
 
-    let response = client.put("/api/v1/change_password").json(&bad_new_request).dispatch().await;
+    let response = client
+        .put("/api/v1/change_password")
+        .json(&bad_new_request)
+        .dispatch()
+        .await;
     assert_eq!(response.status(), Status::BadRequest);
 
-    let response = client.put("/api/v1/change_password").json(&change_password).dispatch().await;
+    let response = client
+        .put("/api/v1/change_password")
+        .json(&change_password)
+        .dispatch()
+        .await;
     assert_eq!(response.status(), Status::Ok);
 
     // old pass login
@@ -96,7 +108,6 @@ async fn test_change_self_password() {
 
     let response = client.post("/api/v1/auth").json(&new_auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
-
 }
 
 #[rocket::async_test]
