@@ -115,7 +115,7 @@
 
             span {
               display: block;
-              @include typography(12px, 18px, semiBold, var(--white), Poppins);
+              @include typography-legacy(12px, 18px, semiBold, var(--white), Poppins);
             }
           }
         }

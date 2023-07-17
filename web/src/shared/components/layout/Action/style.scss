@@ -3,7 +3,7 @@
 
 span {
   &.action {
-    @include mix.typography(12px, 14px, medium, v.$gray-light);
+    @include mix.typography-legacy(12px, 14px, medium, v.$gray-light);
 
     cursor: pointer;
     text-decoration: none;

@@ -29,7 +29,8 @@
   justify-content: center;
 }
 
-@mixin typography(
+// depracated use typography instead
+@mixin typography-legacy(
   $font-size: 12px,
   $line-height: 14px,
   $text-weight-key: medium,
@@ -65,37 +66,37 @@
 }
 
 @mixin page-header() {
-  @include typography(41px, 57px, semiBold, var(--text-main), 'Poppins');
+  @include typography-legacy(41px, 57px, semiBold, var(--text-main), 'Poppins');
 }
 
 @mixin card-header() {
-  @include typography(20px, 28px, semiBold, var(--text-main), 'Poppins');
+  @include typography-legacy(20px, 28px, semiBold, var(--text-main), 'Poppins');
 }
 
 @mixin small-header() {
-  @include typography(15px, 23px, medium, var(--text-main), 'Poppins');
+  @include typography-legacy(15px, 23px, medium, var(--text-main), 'Poppins');
 }
 
 @mixin modal-header() {
-  @include typography(20px, 30px, semiBold, var(--text-main), 'Poppins');
+  @include typography-legacy(20px, 30px, semiBold, var(--text-main), 'Poppins');
 }
 
 @mixin regular-text($color: text-main) {
-  @include typography(15px, 18px, regular, var(--#{$color}), 'Roboto');
+  @include typography-legacy(15px, 18px, regular, var(--#{$color}), 'Roboto');
 }
 
 @mixin list-text() {
-  @include typography(15px, 18px, medium, var(--text-main), 'Roboto');
+  @include typography-legacy(15px, 18px, medium, var(--text-main), 'Roboto');
 }
 
 @mixin small-text($color: text-main) {
-  @include typography(12px, 18px, medium);
+  @include typography-legacy(12px, 18px, medium);
 
   color: var(--#{$color});
 }
 
 @mixin label-text() {
-  @include typography(12px, 14px, medium);
+  @include typography-legacy(12px, 14px, medium);
 
   color: var(--gray-light);
 }
@@ -104,7 +105,7 @@
   display: block;
   margin-bottom: 0.8rem;
 
-  @include typography(12px, 14px, medium, var(--gray-light), 'Roboto');
+  @include typography-legacy(12px, 14px, medium, var(--gray-light), 'Roboto');
   @include media-breakpoint-up(md) {
     margin-bottom: 1.2rem;
   }

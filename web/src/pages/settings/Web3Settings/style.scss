@@ -37,7 +37,7 @@
         border-radius: 10px;
         border: 1px solid var(--gray-lighter);
 
-        @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
+        @include typography-legacy(15px, 23px, regular, var(--text-main), 'Poppins');
       }
     }
   }

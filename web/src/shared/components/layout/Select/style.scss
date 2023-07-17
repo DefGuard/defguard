@@ -44,11 +44,11 @@
       overflow: hidden;
       max-width: 100%;
       @include text-overflow-dots;
-      @include typography(12px, 14px, medium, var(--text-main));
+      @include typography-legacy(12px, 14px, medium, var(--text-main));
       user-select: none;
 
       & > span {
-        @include typography(12px, 14px, medium, var(--text-main));
+        @include typography-legacy(12px, 14px, medium, var(--text-main));
         user-select: none;
       }
     }
@@ -58,7 +58,7 @@
       grid-column: 1;
       width: 100%;
 
-      @include typography(12px, 14px, medium, var(--text-main));
+      @include typography-legacy(12px, 14px, medium, var(--text-main));
     }
 
     & > .content-frame {
@@ -87,7 +87,7 @@
           height: 30px;
           min-width: 2px;
 
-          @include typography(15px, 18px, regular, var(--text-main));
+          @include typography-legacy(15px, 18px, regular, var(--text-main));
         }
 
         & > .select-search {
@@ -105,13 +105,13 @@
           background-color: var(--transparent);
           max-width: 100%;
 
-          @include typography(15px, 18px, regular, var(--text-main));
+          @include typography-legacy(15px, 18px, regular, var(--text-main));
         }
       }
 
       & > .search-frame > .select-search::placeholder,
       & > .placeholder {
-        @include typography(15px, 18px, regular, var(--text-main));
+        @include typography-legacy(15px, 18px, regular, var(--text-main));
       }
     }
 
@@ -199,7 +199,7 @@
       color: var(--gray-dark);
 
       & > span {
-        @include typography(12px, 14px, medium, inherit);
+        @include typography-legacy(12px, 14px, medium, inherit);
       }
 
       &.hovered {

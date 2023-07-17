@@ -12,11 +12,11 @@
   height: 60px;
 
   & > p {
-    @include typography(10px, 13px, regular, var(--gray-light));
+    @include typography-legacy(10px, 13px, regular, var(--gray-light));
 
     & > span,
     & > a {
-      @include typography(10px, 13px, regular, var(--gray-light));
+      @include typography-legacy(10px, 13px, regular, var(--gray-light));
 
       display: inline-block;
     }

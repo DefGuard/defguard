@@ -45,7 +45,7 @@
             }
 
             & > h3 {
-              @include mix.typography(21px, 30px, semiBold, $font-family: 'Poppins');
+              @include mix.typography-legacy(21px, 30px, semiBold, $font-family: 'Poppins');
             }
 
             & > button {
@@ -77,7 +77,7 @@
             }
 
             & > label {
-              @include mix.typography(15px, 21px, medium);
+              @include mix.typography-legacy(15px, 21px, medium);
               @include mix.poppins;
 
               text-align: left;

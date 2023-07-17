@@ -3,7 +3,7 @@
 
 .badge {
   @include mix.text-weight(medium);
-  @include mix.typography(10px, 13px, medium, v.$gray-light, 'Roboto');
+  @include mix.typography-legacy(10px, 13px, medium, v.$gray-light, 'Roboto');
 
   border-radius: 4px;
   min-height: 1.5rem;

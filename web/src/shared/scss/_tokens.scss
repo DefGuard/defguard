@@ -1,0 +1,112 @@
+
+//                                 ▒ ▒▓▓▓▒                                             
+//                                ▓██▓ ▒██████▓▒▒                                      
+//                               ██████▓ ▓██████████▓▓▒                                
+//                              █████████▒ ▓█████████████▒                             
+//                            ▒████████████▒ ▓█████████████▓                           
+//                           ▒███████████████▒ ▓██████████████▒                        
+//                          ▓██████████████████▒ ▓██████████████▓                      
+//                         ▓█████████████████████▒ ▓██████████████▓▒                   
+//                        █████████████████████████▒ ████████████████▒                 
+//                       ████████████████████████████▒▒████████████████▓               
+//                     ▒██████████████████████████████▓ ▒█████████████▓▒               
+//                    ▒█████████████████████████████████████████████▓                  
+//                     ▒██████████████████████████████████████████▒                    
+//                       ▓██████████████████████████████████████▒                      
+//                        ▒██████████████████████████████████▓                         
+//                          ▓██████████████████████████████▓                           
+//                           ▒███████████████████████████▒                             
+//                             ▓██████████████████████▓▒                               
+//                              ▒███████████████████▓                                  
+//                                ▓██████████████▓▒                                    
+//                                 ▒███████▓▓▒                                         
+//                                   ▓▒▒                                               
+//                                                                                     
+//                                                                                     
+//                                                                                     
+//  ▓▓▓                                                ░▓▓▓▓░  ▓▓▓▓▓                   
+//  ███░                                                ▒██▒   █████                   
+//  █████   ░████████░     ▒████████░   ▓████▓██████░  ▒████░ ████████   ░████████▓    
+//  ████▓ ░████████████  ▒████████████  ▓████████████  ▒████░ ████████  ██████▓█████   
+//  ███░  █████░░░▓████░░█████   ░█████ ▓████░  █████░ ▒████░  █████   █████▓░░░████▓  
+//  ███░  █████████████▓▒████▓    █████░▓████   ▓████░ ▒████░  █████   █████████████▓  
+//  ███▓  ▓████▓░ ░▒▒░  ░█████░  ▓█████ ▓████   ▓████░ ▒████░  █████░  ▓████▓░ ░▒▒░    
+//  █████▓ ▓██████████▓  ░████████████  ▓████   ▓████░ ▒████░  ▓██████  ▓███████████   
+//  ▒████▓   ▓██████▓░     ░▓██████▓░   ░████   ▓████░ ▒████░   ░█████    ▓▓█████▓░    
+// This file was generated with figma-to-scss script
+// https://github.com/teonite/figma-to-scss
+
+
+@use './primitives' as *;
+
+html[data-theme="light"] {
+--surface-info-modal: #{$greyscale-10};
+--surface-icon-secondary: #{$greyscale-0};
+--surface-default-modal: #{$greyscale-0};
+--border-separator: #{$greyscale-40};
+--surface-nav-bg: #{$greyscale-0};
+--surface-frame-bg: #{$greyscale-10};
+--text-button-secondary: #{$greyscale-0};
+--text-body-secondary: #{$greyscale-60};
+--text-button-primary: #{$greyscale-70};
+--surface-positive-primary: #{$brand-default-positive};
+--text-body-primary: #{$greyscale-90};
+--surface-icon-primary: #{$greyscale-50};
+--text-alert: #{$brand-default-error};
+--surface-teonite-logo: #{$greyscale-100};
+--surface-dfg-logo-flat: #{$greyscale-0};
+--surface-positive-secondary: #{$brand-hover-positive-secondary};
+--text-button-tertiary: #{$brand-default-main};
+--surface-tag-modal: #{$greyscale-20};
+--surface-alert-primary: #{$brand-default-error};
+--text-important: #{$brand-default-warning};
+--surface-button: #{$greyscale-10};
+--border-alert: #{$brand-default-error-x};
+--surface-modal-accent: #{$greyscale-30};
+--surface-alert-accent: #{$brand-light-error-tertiary};
+--border-primary: #{$greyscale-20};
+--surface-positive-accent: #{$brand-light-positive-tertiary};
+--surface-alert-secondary: #{$brand-hover-error-secondary};
+--surface-important-accent: #{$brand-light-warning-tertiary};
+--surface-main-secondary: #{$brand-hover-main-secondary};
+--text-positive: #{$brand-default-positive};
+--surface-important: #{$brand-default-warning};
+--text-body-tertiary: #{$greyscale-50};
+--surface-main-primary: #{$brand-default-main};
+}
+
+html[data-theme="dark"] {
+--surface-info-modal: #{$greyscale-70};
+--surface-icon-secondary: #{$greyscale-0};
+--surface-default-modal: #{$greyscale-80};
+--border-separator: #{$greyscale-40};
+--surface-nav-bg: #{$greyscale-90};
+--surface-frame-bg: #{$greyscale-90};
+--text-button-secondary: #{$greyscale-0};
+--text-body-secondary: #{$greyscale-40};
+--text-button-primary: #{$greyscale-0};
+--surface-positive-primary: #{$brand-default-positive};
+--text-body-primary: #{$greyscale-0};
+--surface-icon-primary: #{$greyscale-0};
+--text-alert: #{$brand-default-error};
+--surface-teonite-logo: #{$greyscale-0};
+--surface-dfg-logo-flat: #{$greyscale-0};
+--surface-positive-secondary: #{$brand-hover-positive-secondary};
+--text-button-tertiary: #{$brand-default-main};
+--surface-tag-modal: #{$greyscale-90};
+--surface-alert-primary: #{$brand-default-error};
+--text-important: #{$brand-default-warning};
+--surface-button: #{$greyscale-80};
+--border-alert: #{$brand-default-error-x};
+--surface-modal-accent: #{$greyscale-30};
+--surface-alert-accent: #{$greyscale-90};
+--border-primary: #{$greyscale-70};
+--surface-positive-accent: #{$greyscale-90};
+--surface-alert-secondary: #{$brand-hover-error-secondary};
+--surface-important-accent: #{$greyscale-90};
+--surface-main-secondary: #{$brand-hover-main-secondary};
+--text-positive: #{$brand-default-positive};
+--surface-important: #{$brand-default-warning};
+--text-body-tertiary: #{$greyscale-50};
+--surface-main-primary: #{$brand-default-main};
+}

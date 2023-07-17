@@ -48,7 +48,7 @@
     ul,
     li,
     a {
-      @include typography(15px, 23px, regular, var(--text-main));
+      @include typography-legacy(15px, 23px, regular, var(--text-main));
       @include poppins;
 
       text-align: center;
@@ -79,7 +79,7 @@
     text-align: center;
 
     p {
-      @include typography(12px, 20px, regular, var(--gray-dark));
+      @include typography-legacy(12px, 20px, regular, var(--gray-dark));
     }
   }
 }

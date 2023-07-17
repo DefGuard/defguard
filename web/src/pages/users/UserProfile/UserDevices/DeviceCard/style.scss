@@ -92,7 +92,7 @@
       }
 
       p {
-        @include typography(15px, 18px, medium);
+        @include typography-legacy(15px, 18px, medium);
       }
     }
 

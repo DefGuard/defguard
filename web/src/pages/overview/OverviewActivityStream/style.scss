@@ -74,12 +74,12 @@
 
               & > .time {
                 margin-left: auto;
-                @include mix.typography(12px, 14px, medium, v.$gray-light);
+                @include mix.typography-legacy(12px, 14px, medium, v.$gray-light);
               }
             }
 
             & > .message {
-              @include mix.typography(12px, 14px, medium);
+              @include mix.typography-legacy(12px, 14px, medium);
 
               box-sizing: border-box;
               padding-left: 2.4rem;

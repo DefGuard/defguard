@@ -9,10 +9,10 @@
   justify-content: flex-start;
 
   & > .speed-value {
-    @include mix.typography(15px, 18px, medium);
+    @include mix.typography-legacy(15px, 18px, medium);
 
     & > .measurement {
-      @include mix.typography(15px, 18px, medium);
+      @include mix.typography-legacy(15px, 18px, medium);
 
       vertical-align: super;
       margin-left: 0.3rem;

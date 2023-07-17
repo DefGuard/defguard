@@ -65,7 +65,7 @@
       width: 100%;
       max-width: 100%;
       text-align: left;
-      @include typography(15px, 1.2, semiBold, unset, 'Poppins');
+      @include typography-legacy(15px, 1.2, semiBold, unset, 'Poppins');
       @include text-overflow-dots;
 
       color: inherit;

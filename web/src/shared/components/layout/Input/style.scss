@@ -62,7 +62,7 @@
     box-sizing: border-box;
     border: 1px solid transparent;
     border-radius: 1rem;
-    @include typography(15px, 18px, regular);
+    @include typography-legacy(15px, 18px, regular);
 
     &::placeholder {
       opacity: 0;

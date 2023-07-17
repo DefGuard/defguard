@@ -14,7 +14,7 @@
     padding: 3rem 1.5rem;
 
     > h1 {
-      @include typography(28px, 39px, semiBold, var(--text-main), 'Poppins');
+      @include typography-legacy(28px, 39px, semiBold, var(--text-main), 'Poppins');
 
       margin-bottom: 1.5rem;
 
@@ -56,7 +56,7 @@
       margin-top: 2.4rem;
 
       & > span {
-        @include typography(12px, 14px, regular, var(--gray-light));
+        @include typography-legacy(12px, 14px, regular, var(--gray-light));
 
         display: block;
         width: 100%;

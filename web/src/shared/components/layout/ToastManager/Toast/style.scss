@@ -27,14 +27,14 @@
       text-align: left;
       user-select: none;
 
-      @include typography(12px, 18px, var(--text-main));
+      @include typography-legacy(12px, 18px, var(--text-main));
 
       & > span {
         display: block;
         text-align: left;
         user-select: none;
 
-        @include typography(12px, 18px, var(--gray-dark));
+        @include typography-legacy(12px, 18px, var(--gray-dark));
       }
     }
   }
