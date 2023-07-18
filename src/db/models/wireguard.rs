@@ -599,10 +599,12 @@ impl WireguardNetwork {
             network_info.append(&mut all_network_info);
 
             // send device to connected gateways
-            events.push(GatewayEvent::DeviceCreated(DeviceInfo {
-                device,
-                network_info,
-            }));
+            if !network_info.is_empty() {
+                events.push(GatewayEvent::DeviceCreated(DeviceInfo {
+                    device,
+                    network_info,
+                }));
+            }
         }
         Ok(events)
     }

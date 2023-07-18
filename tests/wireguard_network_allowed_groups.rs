@@ -315,6 +315,8 @@ async fn test_modify_network() {
     assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
     assert_eq!(new_peers[2].pubkey, devices[2].wireguard_pubkey);
     assert_eq!(new_peers[3].pubkey, devices[3].wireguard_pubkey);
+
+    assert_err!(wg_rx.try_recv());
 }
 
 /// Test that devices that already exist are handled correctly during config import
@@ -398,4 +400,109 @@ async fn test_import_network_existing_devices() {
         device_info.network_info[0].device_wireguard_ip.to_string(),
         peers[0].allowed_ips[0]
     );
+
+    assert_err!(wg_rx.try_recv());
+}
+
+#[rocket::async_test]
+async fn test_import_mapping_devices() {
+    let (client, client_state) = make_test_client().await;
+    let (users, devices) = setup_test_users(&client_state.pool).await;
+
+    let mut wg_rx = client_state.wireguard_rx;
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    let wg_config = "
+[Interface]
+PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+Address = 10.0.0.1/24
+ListenPort = 55055
+DNS = 10.0.0.2
+
+[Peer]
+PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
+AllowedIPs = 10.0.0.10/24
+PersistentKeepalive = 300
+
+[Peer]
+PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
+AllowedIPs = 10.0.0.11/24
+PersistentKeepalive = 300
+
+[Peer]
+PublicKey = l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=
+AllowedIPs = 10.0.0.12/24
+PersistentKeepalive = 300
+
+# device name
+[Peer]
+PublicKey = 8SHdUZJYfm8uKzKZXT0S8QJQGDPq+6asPUDl0ZtX8Zg=
+AllowedIPs = 10.0.0.13/24
+PersistentKeepalive = 300
+    ";
+
+    // import network
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let response: ImportedNetworkData = response.into_json().await.unwrap();
+    let network = response.network;
+    let mut mapped_devices = response.devices;
+    assert_eq!(mapped_devices.len(), 4);
+    for _ in 0..3 {
+        wg_rx.try_recv().unwrap();
+    }
+
+    // assign devices to users
+    mapped_devices[0].user_id = users[0].id;
+    mapped_devices[1].user_id = users[1].id;
+    mapped_devices[2].user_id = users[2].id;
+    mapped_devices[3].user_id = users[3].id;
+
+    let response = client
+        .post(format!("/api/v1/network/{}/devices", network.id.unwrap()))
+        .json(&json!({"devices": mapped_devices.clone()}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+
+    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(peers.len(), 4);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+    assert_eq!(peers[2].pubkey, mapped_devices[0].wireguard_pubkey);
+    assert_eq!(peers[3].pubkey, mapped_devices[1].wireguard_pubkey);
+
+    // assert events
+    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(
+        device_info.device.wireguard_pubkey,
+        mapped_devices[0].wireguard_pubkey
+    );
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip,
+        mapped_devices[0].wireguard_ip
+    );
+
+    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(
+        device_info.device.wireguard_pubkey,
+        mapped_devices[1].wireguard_pubkey
+    );
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip,
+        mapped_devices[1].wireguard_ip
+    );
+
+    assert_err!(wg_rx.try_recv());
 }

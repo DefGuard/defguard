@@ -1297,32 +1297,6 @@
     },
     "query": "DELETE FROM \"webhook\" WHERE id = $1"
   },
-  "3e1a196f68f9320c463bb5cff65707394fe4153f001c4e6a372fad4905c2a193": {
-    "describe": {
-      "columns": [
-        {
-          "name": "pubkey",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "allowed_ips!: Vec<String>",
-          "ordinal": 1,
-          "type_info": "TextArray"
-        }
-      ],
-      "nullable": [
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n            SELECT d.wireguard_pubkey as pubkey, array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd\n            JOIN device d\n            ON wnd.device_id = d.id\n            WHERE wireguard_network_id = $1\n        "
-  },
   "3fe95f7f36317af0d3b95e0b460536fd8e597e01cdc54936d3270b0a5937d708": {
     "describe": {
       "columns": [
@@ -3623,6 +3597,32 @@
       }
     },
     "query": "SELECT id \"id?\", \"client_id\", \"client_secret\", \"redirect_uri\" \"redirect_uri: _\", \"scope\" \"scope: _\", \"name\", \"enabled\" FROM \"oauth2client\""
+  },
+  "cdda0d8e9b34aef0728fc390bf77a3211b708f23ecdb3df5cada3d628280a025": {
+    "describe": {
+      "columns": [
+        {
+          "name": "pubkey",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "allowed_ips!: Vec<String>",
+          "ordinal": 1,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT d.wireguard_pubkey as pubkey, array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd\n            JOIN device d\n            ON wnd.device_id = d.id\n            WHERE wireguard_network_id = $1\n            ORDER BY d.id ASC\n        "
   },
   "d16f8decc83fb72f67f244c82a9f8924675c73c50c42b9aa0d16e6141e5dd508": {
     "describe": {
