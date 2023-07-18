@@ -17,8 +17,8 @@ export const useNavigationStore = create<Store>()(
       version: 1.5,
       name: 'navigation-store',
       partialize: (state) => pick(state, ['isOpen']),
-    }
-  )
+    },
+  ),
 );
 
 type Store = StoreValues & StoreMethods;

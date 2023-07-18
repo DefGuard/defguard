@@ -27,7 +27,7 @@ const Badge: React.FC<Props & HTMLMotionProps<'span'>> = ({
 }) => {
   const cn = useMemo(
     () => classNames('badge', className, styleVariant.valueOf()),
-    [className, styleVariant]
+    [className, styleVariant],
   );
 
   const currentVariant = useMemo(() => styleVariant, [styleVariant]);

@@ -16,6 +16,6 @@ export const ToastManager = () => {
         <Toast key={toast.id} data={toast} />
       ))}
     </>,
-    element
+    element,
   );
 };

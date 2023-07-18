@@ -32,7 +32,7 @@ export const CheckBox = ({
         'label-right': labelPosition === 'right',
         disabled: disabled,
       }),
-    [checked, disabled, labelPosition]
+    [checked, disabled, labelPosition],
   );
 
   return (

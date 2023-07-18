@@ -53,11 +53,11 @@ export const ChangePasswordForm = () => {
             .test(
               'password-match',
               LL.form.error.repeat(),
-              (value, context) => value === context.parent.new_password
+              (value, context) => value === context.parent.new_password,
             ),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
 
   const {

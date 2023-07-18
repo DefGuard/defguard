@@ -38,7 +38,7 @@ export const VirtualizedList = <T extends object>({
       classNames('virtualized-list-container', className, {
         'with-headers': !isUndefined(headers),
       }),
-    [className, headers]
+    [className, headers],
   );
 
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -69,7 +69,7 @@ export const VirtualizedList = <T extends object>({
   const renderRow = (
     value: T,
     onDefaultRowClick?: (context: T) => void,
-    index?: number
+    index?: number,
   ) => {
     if (breakpoint !== 'desktop' && mobile?.enabled && mobile.renderer) {
       return mobile.renderer(value, index);
@@ -239,7 +239,7 @@ const ListHeader = ({
         clickable,
         sortable,
       }),
-    [active, clickable, sortable]
+    [active, clickable, sortable],
   );
 
   // needs to update position of an element when navigation is expanding

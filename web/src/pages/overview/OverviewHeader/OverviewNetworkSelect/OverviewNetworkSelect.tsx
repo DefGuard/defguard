@@ -10,7 +10,7 @@ export const OverViewNetworkSelect = () => {
   const { LL } = useI18nContext();
   const [selectedNetworkId, networks] = useOverviewStore(
     (state) => [state.selectedNetworkId, state.networks],
-    shallow
+    shallow,
   );
   const setOverviewStore = useOverviewStore((state) => state.setState);
 

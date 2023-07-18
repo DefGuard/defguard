@@ -123,7 +123,7 @@ export const WebhookForm = () => {
           }),
         })
         .required(),
-    [LL.form.error, LL.modals.webhookModal.form.error]
+    [LL.form.error, LL.modals.webhookModal.form.error],
   );
 
   const { control, handleSubmit } = useForm<FormInputs>({
@@ -147,7 +147,7 @@ export const WebhookForm = () => {
         setModalState({ visible: false, webhook: undefined });
         console.error(err);
       },
-    }
+    },
   );
   const { mutate: editWebhookMutation, isLoading: editMutationIsLoading } = useMutation(
     [MutationKeys.EDIT_WEBHOOK],
@@ -164,7 +164,7 @@ export const WebhookForm = () => {
         setModalState({ visible: false, webhook: undefined });
         console.error(err);
       },
-    }
+    },
   );
 
   const onValidSubmit: SubmitHandler<FormInputs> = (values) => {

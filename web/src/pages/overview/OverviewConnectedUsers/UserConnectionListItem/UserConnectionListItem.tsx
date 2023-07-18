@@ -72,7 +72,7 @@ const UserRow = ({ data }: UserRowProps) => {
 
   const getSummarizedDevicesStat = useMemo(
     () => summarizeDeviceStats(data.devices),
-    [data.devices]
+    [data.devices],
   );
   const downloadSummary = getSummarizedDevicesStat.reduce((sum, e) => {
     return sum + e.download;

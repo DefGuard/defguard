@@ -75,7 +75,7 @@ export const OpenidClientsListPage = () => {
         value: FilterOption.DISABLED,
       },
     ],
-    [LL]
+    [LL],
   );
 
   const [selectedFilter, setSelectedFilter] = useState(selectOptions[0]);
@@ -94,7 +94,7 @@ export const OpenidClientsListPage = () => {
         setDeleteClientModalOpen(false);
         console.error(err);
       },
-    }
+    },
   );
 
   const { mutate: editClientStatusMutation } = useMutation(
@@ -116,7 +116,7 @@ export const OpenidClientsListPage = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const hasAccess = useMemo(() => {
@@ -126,7 +126,7 @@ export const OpenidClientsListPage = () => {
   const { data: clients, isLoading } = useQuery(
     [QueryKeys.FETCH_CLIENTS],
     getOpenidClients,
-    { enabled: hasAccess, refetchOnWindowFocus: false, refetchInterval: 15000 }
+    { enabled: hasAccess, refetchOnWindowFocus: false, refetchInterval: 15000 },
   );
 
   const filteredClients = useMemo(() => {

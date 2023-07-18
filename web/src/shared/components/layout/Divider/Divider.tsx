@@ -18,7 +18,7 @@ export const Divider = ({
 }: Props) => {
   const cn = useMemo(
     () => classNames('divider', className, direction?.valueOf()),
-    [className, direction]
+    [className, direction],
   );
 
   return <motion.div {...rest} className={cn} />;

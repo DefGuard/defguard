@@ -49,7 +49,7 @@ export const SetupStep = () => {
 
   const reservedNames = useMemo(
     () => userProfile?.devices.map((d) => d.name) ?? [],
-    [userProfile?.devices]
+    [userProfile?.devices],
   );
 
   const toggleOptions = useMemo(() => {
@@ -79,7 +79,7 @@ export const SetupStep = () => {
             .test(
               'is-duplicated',
               LL.modals.addDevice.web.steps.setup.form.errors.name.duplicatedName(),
-              (value) => !reservedNames?.includes(value)
+              (value) => !reservedNames?.includes(value),
             ),
           publicKey: yup.string().when('choice', {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -97,7 +97,7 @@ export const SetupStep = () => {
           }),
         })
         .required(),
-    [LL.form.error, LL.modals.addDevice.web.steps.setup.form.errors.name, reservedNames]
+    [LL.form.error, LL.modals.addDevice.web.steps.setup.form.errors.name, reservedNames],
   );
 
   const {
@@ -128,7 +128,7 @@ export const SetupStep = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const validSubmitHandler: SubmitHandler<FormValues> = async (values) => {
@@ -181,7 +181,7 @@ export const SetupStep = () => {
         {parser(
           LL.modals.addDevice.web.steps.setup.infoMessage({
             addDevicesDocs: externalLink.gitbook.wireguard.addDevices,
-          })
+          }),
         )}
       </MessageBox>
       <form onSubmit={handleSubmit(validSubmitHandler)}>

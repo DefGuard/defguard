@@ -4,7 +4,7 @@ import { themeDark, ThemeKey, themeLight } from './types';
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<ThemeKey>(
-    document.documentElement.dataset.theme as ThemeKey
+    document.documentElement.dataset.theme as ThemeKey,
   );
 
   const changeTheme = useCallback((newTheme: string) => {

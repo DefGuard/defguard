@@ -28,13 +28,13 @@ export const ProvisioningStationSetup = () => {
     {
       refetchOnWindowFocus: false,
       refetchOnMount: true,
-    }
+    },
   );
 
   const command = useMemo(
     () =>
       `docker run ghcr.io/defguard/yubi-bridge:current --worker-token ${data?.token} --id <WORKER_NAME> --grpc <DEFGUARD_GRPC_URL>`,
-    [data?.token]
+    [data?.token],
   );
 
   const getActions = useMemo(
@@ -55,7 +55,7 @@ export const ProvisioningStationSetup = () => {
         }}
       />,
     ],
-    [LL.messages, LL.provisionersOverview.messages, command, toaster]
+    [LL.messages, LL.provisionersOverview.messages, command, toaster],
   );
 
   return (

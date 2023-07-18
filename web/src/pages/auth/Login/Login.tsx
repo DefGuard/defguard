@@ -42,7 +42,7 @@ export const Login = () => {
         })
         .required(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale]
+    [locale],
   );
 
   const {
@@ -70,7 +70,7 @@ export const Login = () => {
           {
             message: 'username or password is incorrect',
           },
-          { shouldFocus: true }
+          { shouldFocus: true },
         );
       } else {
         console.error(error);

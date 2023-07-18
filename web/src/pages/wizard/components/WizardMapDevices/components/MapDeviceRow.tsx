@@ -41,7 +41,7 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
       return options.filter(
         (o) =>
           o.label.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
-          (o.meta as string).includes(search.toLowerCase())
+          (o.meta as string).includes(search.toLowerCase()),
       );
     }
     return options;
@@ -49,7 +49,7 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
 
   const getSelected = useMemo(
     () => options.find((u) => u.value === userController.field.value),
-    [options, userController.field.value]
+    [options, userController.field.value],
   );
 
   const hasErrors = useMemo(() => {

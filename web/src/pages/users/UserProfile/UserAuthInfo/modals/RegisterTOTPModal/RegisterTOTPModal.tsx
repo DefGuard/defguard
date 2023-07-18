@@ -81,7 +81,7 @@ const TOTPRegisterQRCode = () => {
 
   const qrData = useMemo(
     () => (data ? `otpauth://totp/Defguard?secret=${data.secret}` : undefined),
-    [data]
+    [data],
   );
 
   const handleCopy = () => {

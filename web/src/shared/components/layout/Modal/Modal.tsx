@@ -75,7 +75,7 @@ export const Modal = ({
    * ClickOutside does not work with react Portals or just in this case, resulting in onClickOutside running when clicked anywhere on the page.
    */
   const checkEventOutside = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
   ): boolean => {
     const domRect = contentRef.current?.getBoundingClientRect();
     if (domRect) {
@@ -99,7 +99,7 @@ export const Modal = ({
 
   const stepsEnabled = useMemo(
     () => !isUndefined(steps) && !isUndefined(currentStep),
-    [currentStep, steps]
+    [currentStep, steps],
   );
 
   const [step, setStep] = useState(currentStep);
@@ -184,6 +184,6 @@ export const Modal = ({
         </motion.div>
       )}
     </AnimatePresence>,
-    portalTarget
+    portalTarget,
   );
 };

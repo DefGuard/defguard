@@ -44,7 +44,7 @@ export const EditButton = ({
       classNames('edit-button', className, {
         visible: visible,
       }),
-    [className, visible]
+    [className, visible],
   );
   const { x, y, reference, floating, strategy, placement, middlewareData } = useFloating({
     placement: 'left',

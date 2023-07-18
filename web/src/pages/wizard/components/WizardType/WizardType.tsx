@@ -15,7 +15,7 @@ export const WizardType = () => {
   const setupType = useWizardStore((state) => state.setupType);
   const [setWizardState, nextStepSubject] = useWizardStore(
     (state) => [state.setState, state.nextStepSubject],
-    shallow
+    shallow,
   );
   const submitSubject = useWizardStore((state) => state.submitSubject);
 

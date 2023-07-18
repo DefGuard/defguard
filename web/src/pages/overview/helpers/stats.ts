@@ -21,7 +21,7 @@ interface UserNetworkSummary {
 }
 
 export const summarizeUsersNetworkStats = (
-  data: NetworkUserStats[]
+  data: NetworkUserStats[],
 ): UserNetworkSummary => {
   const merge: MergeStruct = {};
   data.forEach((user) => {
@@ -60,12 +60,12 @@ export const summarizeUsersNetworkStats = (
 export const getMaxDeviceStats = (data: NetworkUserStats[]): number => {
   const download: number[] = [];
   data.forEach((obj) =>
-    obj.devices.forEach((obj) => obj.stats.forEach((obj) => download.push(obj.download)))
+    obj.devices.forEach((obj) => obj.stats.forEach((obj) => download.push(obj.download))),
   );
 
   const upload: number[] = [];
   data.forEach((obj) =>
-    obj.devices.forEach((obj) => obj.stats.forEach((obj) => upload.push(obj.upload)))
+    obj.devices.forEach((obj) => obj.stats.forEach((obj) => upload.push(obj.upload))),
   );
   const maxDownload = Math.max.apply(null, download);
   const maxUpload = Math.max.apply(null, upload);

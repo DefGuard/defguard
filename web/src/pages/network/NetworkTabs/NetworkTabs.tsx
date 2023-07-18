@@ -118,7 +118,7 @@ const NetworkTab = ({ onClick, content, active = false }: NetworkTabProps) => {
   const [hovered, setHovered] = useState(false);
   const cn = useMemo(
     () => classNames('network-tab', { active, hovered }),
-    [active, hovered]
+    [active, hovered],
   );
 
   const renderContent = useMemo(() => {

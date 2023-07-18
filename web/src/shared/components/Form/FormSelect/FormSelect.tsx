@@ -36,7 +36,7 @@ export const FormSelect = <T extends FieldValues, Y extends SelectValue>({
 
   const isValid = useMemo(
     () => !isInvalid && (isTouched || isDirty || isSubmitted),
-    [isDirty, isInvalid, isSubmitted, isTouched]
+    [isDirty, isInvalid, isSubmitted, isTouched],
   );
 
   return (

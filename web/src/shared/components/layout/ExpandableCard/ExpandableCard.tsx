@@ -33,7 +33,7 @@ export const ExpandableCard = ({
       classNames('expandable-card', {
         expanded,
       }),
-    [expanded]
+    [expanded],
   );
 
   const controlledOutside = useMemo(() => !isUndefined(expanded), [expanded]);

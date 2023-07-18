@@ -60,7 +60,7 @@ export const WizardNetworkImport = () => {
       state.submitSubject,
       state.resetState,
     ],
-    shallow
+    shallow,
   );
   const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
 
@@ -77,7 +77,7 @@ export const WizardNetworkImport = () => {
           config: yup.string().required(),
         })
         .required(),
-    [LL]
+    [LL],
   );
 
   const { control, handleSubmit, setValue, setError, resetField } = useForm<FormInputs>({
@@ -129,7 +129,7 @@ export const WizardNetworkImport = () => {
         });
       }
     },
-    [importNetworkMutation, isLoading, setWizardState]
+    [importNetworkMutation, isLoading, setWizardState],
   );
 
   const handleConfigUpload = () => {
@@ -175,7 +175,7 @@ export const WizardNetworkImport = () => {
           key: g,
           value: g,
           label: titleCase(g),
-        }))
+        })),
       );
     },
     onError: (err) => {

@@ -18,11 +18,11 @@ export const DeleteUserDeviceModal = () => {
   const toaster = useToaster();
   const [device, visible] = useDeleteDeviceModal(
     (state) => [state.device, state.visible],
-    shallow
+    shallow,
   );
   const [setModalState, closeModal] = useDeleteDeviceModal(
     (state) => [state.setState, state.close],
-    shallow
+    shallow,
   );
   const {
     device: { deleteDevice },
@@ -42,7 +42,7 @@ export const DeleteUserDeviceModal = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   return (

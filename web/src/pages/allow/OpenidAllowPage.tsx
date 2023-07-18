@@ -62,7 +62,7 @@ export const OpenidAllowPage = () => {
         inputRef.current.click();
       }
     },
-    [params]
+    [params],
   );
 
   useEffect(() => {

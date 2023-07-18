@@ -29,14 +29,14 @@ export const AuthPage = () => {
 
   const [openIdParams, user] = useAuthStore(
     (state) => [state.openIdParams, state.user],
-    shallow
+    shallow,
   );
 
   const mfaMethod = useMFAStore((state) => state.mfa_method);
 
   const [setMFAStore, resetMFAStore] = useMFAStore(
     (state) => [state.setState, state.resetState],
-    shallow
+    shallow,
   );
 
   const settings = useAppStore((state) => state.settings);

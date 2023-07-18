@@ -75,7 +75,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       floatingErrors,
       ...props
     },
-    forwardedRef
+    forwardedRef,
   ) => {
     const innerInputRef = useRef<HTMLInputElement | null>(null);
     const [focused, setFocused] = useState(false);
@@ -115,7 +115,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         classNames('input-outer-label', {
           disabled,
         }),
-      [disabled]
+      [disabled],
     );
 
     const getContainerVariant = useMemo(() => {
@@ -130,12 +130,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
     const getPlaceholderCustom: PlaceholderCustom = useMemo(
       () => ({ focused, innerLabel, disabled }),
-      [disabled, focused, innerLabel]
+      [disabled, focused, innerLabel],
     );
 
     const getContainerCustom: ContainerCustom = useMemo(
       () => ({ invalid: Boolean(invalid), disabled, hovered }),
-      [invalid, disabled, hovered]
+      [invalid, disabled, hovered],
     );
 
     const getInputIcon: ReactNode = useMemo(() => {
@@ -324,7 +324,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         </FloatingPortal>
       </>
     );
-  }
+  },
 );
 
 const containerVariants: Variants = {

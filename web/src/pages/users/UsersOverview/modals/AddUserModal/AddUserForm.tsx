@@ -63,8 +63,11 @@ export const AddUserForm = () => {
               }
               return false;
             })
-            .test('username-available', LL.form.error.usernameTaken(), (value?: string) =>
-              value ? !reservedUserNames.current.includes(value) : false
+            .test(
+              'username-available',
+              LL.form.error.usernameTaken(),
+              (value?: string) =>
+                value ? !reservedUserNames.current.includes(value) : false,
             ),
           password: yup
             .string()
@@ -98,7 +101,7 @@ export const AddUserForm = () => {
             }),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
 
   const {

@@ -22,7 +22,7 @@ export const Card = ({ children, className, shaded, hideMobile, ...rest }: Props
         shaded,
         'hide-appearance': breakpoint !== 'desktop' && hideMobile,
       }),
-    [breakpoint, className, hideMobile, shaded]
+    [breakpoint, className, hideMobile, shaded],
   );
 
   return (

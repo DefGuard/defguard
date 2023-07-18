@@ -15,7 +15,7 @@ export const UserAuthInfoPassword = () => {
   const { LL } = useI18nContext();
   const [user, isMe] = useUserProfileStore(
     (store) => [store.userProfile?.user, store.isMe],
-    shallow
+    shallow,
   );
   const editMode = useUserProfileStore((store) => store.editMode);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);

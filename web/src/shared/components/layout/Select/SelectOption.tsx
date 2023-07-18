@@ -26,7 +26,7 @@ export const SelectOption = ({
         selected,
         'create-option': createOption,
       }),
-    [className, hovered, selected, createOption]
+    [className, hovered, selected, createOption],
   );
 
   const getAnimate = useMemo(() => {

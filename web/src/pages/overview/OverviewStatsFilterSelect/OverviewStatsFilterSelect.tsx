@@ -13,7 +13,7 @@ export const OverviewStatsFilterSelect = () => {
 
   const getCurrentValue = useMemo(
     () => selectOptions.find((o) => o.value === filterValue),
-    [filterValue]
+    [filterValue],
   );
 
   return (

@@ -24,8 +24,8 @@ export const useAuthStore = create<AuthStore>()(
       name: 'auth-store',
       partialize: (store) => pick(store, ['user', 'isAdmin', 'authLocation']),
       storage: createJSONStorage(() => sessionStorage),
-    }
-  )
+    },
+  ),
 );
 export interface AuthStore {
   loginSubject: Subject<LoginSubjectData>;

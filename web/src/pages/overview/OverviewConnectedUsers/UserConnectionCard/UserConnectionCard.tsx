@@ -47,7 +47,7 @@ export const UserConnectionCard = ({ data }: Props) => {
       classNames('connected-user-card', {
         expanded,
       }),
-    [expanded]
+    [expanded],
   );
 
   return (
@@ -81,11 +81,11 @@ const MainCardContent = ({ data }: MainCardContentProps) => {
   }, [data]);
   const getSummarizedStats = useMemo(
     () => summarizeDeviceStats(data.devices),
-    [data.devices]
+    [data.devices],
   );
   const getUserSummarizedStats = useMemo(
     () => summarizeUsersNetworkStats([data]),
-    [data]
+    [data],
   );
 
   return (

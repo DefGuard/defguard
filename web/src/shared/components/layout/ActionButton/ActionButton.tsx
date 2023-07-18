@@ -49,7 +49,7 @@ export const ActionButton = ({
       classNames('action-button', className, {
         disabled,
       }),
-    [className, disabled]
+    [className, disabled],
   );
 
   const [hovered, setHovered] = useState(false);

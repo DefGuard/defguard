@@ -39,7 +39,7 @@ const WizardRender = () => {
   const setWizardState = useWizardStore((state) => state.setState);
   const [setupType, currentStep] = useWizardStore(
     (state) => [state.setupType, state.currentStep],
-    shallow
+    shallow,
   );
   const getSteps = useMemo((): WizardStep[] => {
     let res: WizardStep[] = [

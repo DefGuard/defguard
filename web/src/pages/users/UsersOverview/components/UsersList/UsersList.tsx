@@ -38,7 +38,7 @@ export const UsersList = ({ users }: Props) => {
         navigate(`${user.username}`);
       }
     },
-    [currentUser?.username, navigate, resetUserProfile]
+    [currentUser?.username, navigate, resetUserProfile],
   );
 
   const listHeaders = useMemo((): ListHeader[] => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 // Mirror of colors.scss
 export enum ColorsRGB {
   InputSelect = '#77c9ff',

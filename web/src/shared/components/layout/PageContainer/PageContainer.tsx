@@ -11,12 +11,12 @@ export const PageContainer = forwardRef<HTMLDivElement, ComponentPropsWithoutRef
     const cn = useMemo(() => classNames('page-container', className), [className]);
     const contentCn = useMemo(
       () => classNames('page-content', { 'nav-open': isNavOpen }),
-      [isNavOpen]
+      [isNavOpen],
     );
     return (
       <div {...rest} className={cn} ref={ref}>
         <div className={contentCn}>{children}</div>
       </div>
     );
-  }
+  },
 );

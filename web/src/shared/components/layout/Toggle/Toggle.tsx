@@ -46,7 +46,7 @@ export const Toggle = <T,>({
         .map((optionItem, index) => {
           if (
             !isUndefined(
-              selected.find((selectedItem) => checkEqual(selectedItem, optionItem.value))
+              selected.find((selectedItem) => checkEqual(selectedItem, optionItem.value)),
             )
           ) {
             return index;
@@ -64,7 +64,7 @@ export const Toggle = <T,>({
       classNames('toggle', {
         disabled,
       }),
-    [disabled]
+    [disabled],
   );
   return (
     <motion.div className={cn}>
@@ -93,7 +93,7 @@ const ToggleOption = <T,>({
         active,
         disabled,
       }),
-    [active, disabled]
+    [active, disabled],
   );
 
   const getAnimate = useMemo((): TargetAndTransition => {

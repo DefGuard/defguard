@@ -36,11 +36,11 @@ export const NetworkControls = () => {
   const { LL } = useI18nContext();
   const [save, setNetworkState] = useNetworkPageStore(
     (state) => [state.saveSubject, state.setState],
-    shallow
+    shallow,
   );
   const [loading, selectedNetworkId] = useNetworkPageStore(
     (state) => [state.loading, state.selectedNetworkId],
-    shallow
+    shallow,
   );
   const networks = useNetworkPageStore((state) => state.networks);
 
@@ -51,12 +51,12 @@ export const NetworkControls = () => {
         label: n.name,
         key: n.id,
       })),
-    [networks]
+    [networks],
   );
 
   const selectedOption = useMemo(
     () => getOptions.find((o) => o.value === selectedNetworkId),
-    [getOptions, selectedNetworkId]
+    [getOptions, selectedNetworkId],
   );
 
   const selectedNetwork = networks.find((n) => n.id === selectedNetworkId);

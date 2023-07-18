@@ -7,7 +7,7 @@ import { Web3ConnectModal } from './Web3ConnectModal/Web3ConnectModal';
 
 const { chains, provider, webSocketProvider } = configureChains(
   [mainnet],
-  [publicProvider()]
+  [publicProvider()],
 );
 
 const wagmiClient = createClient({

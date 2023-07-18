@@ -84,7 +84,7 @@ export interface SelectProps<T extends SelectValue> {
 
 const defaultOnRemove = <T extends SelectValue>(
   v: SelectOption<T>,
-  pool: SelectOption<T>[]
+  pool: SelectOption<T>[],
 ) => pool.filter((o) => o.key !== v.key);
 
 export const Select = <T extends SelectValue>({
@@ -173,7 +173,7 @@ export const Select = <T extends SelectValue>({
         multi: multi,
         'in-form': inForm,
       },
-      `size-${sizeVariant.valueOf().toLocaleLowerCase()}`
+      `size-${sizeVariant.valueOf().toLocaleLowerCase()}`,
     );
   }, [disabled, inForm, loading, multi, open, selected, sizeVariant]);
 
@@ -269,8 +269,8 @@ export const Select = <T extends SelectValue>({
         debounceTime(searchDebounce),
         filter(
           (searchValue) =>
-            !isUndefined(searchValue) && searchValue.length >= searchMinLength
-        )
+            !isUndefined(searchValue) && searchValue.length >= searchMinLength,
+        ),
       )
       .subscribe((searchValue) => {
         if (onSearch) {

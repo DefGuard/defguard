@@ -37,5 +37,5 @@ export const EditButtonIcon = forwardRef(
         </g>
       </motion.svg>
     );
-  }
+  },
 );

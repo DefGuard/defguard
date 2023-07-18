@@ -108,11 +108,11 @@ export const ProfileDetailsForm = () => {
               oauth2client_id: yup.number().required(),
               oauth2client_name: yup.string().required(),
               user_id: yup.number().required(),
-            })
+            }),
           ),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
 
   const formDefaultValues = useMemo((): Inputs => {
@@ -143,7 +143,7 @@ export const ProfileDetailsForm = () => {
     {
       refetchOnWindowFocus: false,
       enabled: fetchGroups,
-    }
+    },
   );
   const toaster = useToaster();
   const { mutate, isLoading: userEditLoading } = useMutation(
@@ -161,7 +161,7 @@ export const ProfileDetailsForm = () => {
         setUserProfile({ loading: false });
         console.error(err);
       },
-    }
+    },
   );
 
   const groupsOptions = useMemo(() => {

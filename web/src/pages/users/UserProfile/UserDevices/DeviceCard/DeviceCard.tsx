@@ -55,7 +55,7 @@ export const DeviceCard = ({ device }: Props) => {
       classNames('device-card', {
         expanded,
       }),
-    [expanded]
+    [expanded],
   );
 
   const getContainerAnimate = useMemo((): TargetAndTransition => {
@@ -79,7 +79,7 @@ export const DeviceCard = ({ device }: Props) => {
       const sorted = sortByDate(
         device.networks.filter((network) => Boolean(network.last_connected_at)),
         (i) => i.last_connected_at as string,
-        true
+        true,
       );
       return sorted;
     } else {

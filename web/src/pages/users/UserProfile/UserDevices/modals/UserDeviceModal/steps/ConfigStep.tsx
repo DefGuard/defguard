@@ -45,7 +45,7 @@ export const ConfigStep = () => {
   const [selectedConfig, setSelectedConfig] = useState<string | undefined>();
   const [configsData, deviceName, setupMode, device] = useDeviceModal(
     (state) => [state.configs, state.deviceName, state.setupMode, state.device],
-    shallow
+    shallow,
   );
   const nextStep = useDeviceModal((state) => state.nextStep);
   const { LL, locale } = useI18nContext();
@@ -74,34 +74,34 @@ export const ConfigStep = () => {
       enabled: !!queryParams && standAloneMode,
       onSuccess: (res) => {
         setSelectedConfig(
-          res.replace('YOUR_PRIVATE_KEY', device?.wireguard_pubkey ?? '')
+          res.replace('YOUR_PRIVATE_KEY', device?.wireguard_pubkey ?? ''),
         );
       },
-    }
+    },
   );
 
   const handleConfigDownload = useCallback(() => {
     if (selectedConfigOption?.value && !loadingConfig && selectedConfig) {
       if (standAloneMode && device) {
         const data = device.networks.find(
-          (n) => n.network_id === selectedConfigOption.value
+          (n) => n.network_id === selectedConfigOption.value,
         );
         downloadWGConfig(
           selectedConfig,
           `${deviceName?.toLowerCase().replace(' ', '')}-${data?.network_name
             .toLowerCase()
-            .replace(' ', '')}.conf`
+            .replace(' ', '')}.conf`,
         );
       } else {
         if (configsData) {
           const data = configsData.find(
-            (d) => d.network_id === selectedConfigOption?.value
+            (d) => d.network_id === selectedConfigOption?.value,
           );
           downloadWGConfig(
             selectedConfig,
             `${deviceName?.toLowerCase().replace(' ', '')}-${data?.network_name
               .toLowerCase()
-              .replace(' ', '')}.conf`
+              .replace(' ', '')}.conf`,
           );
         }
       }
@@ -128,7 +128,7 @@ export const ConfigStep = () => {
               .write(selectedConfig)
               .then(() => {
                 toaster.success(
-                  LL.modals.addDevice.web.steps.config.messages.copyConfig()
+                  LL.modals.addDevice.web.steps.config.messages.copyConfig(),
                 );
               })
               .catch(() => {

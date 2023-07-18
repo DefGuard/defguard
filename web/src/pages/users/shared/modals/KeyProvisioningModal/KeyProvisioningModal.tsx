@@ -30,7 +30,7 @@ export const KeyProvisioningModal = () => {
   const { LL } = useI18nContext();
   const [{ visible: isOpen, user: selectedUser }, setModalState] = useModalStore(
     (state) => [state.provisionKeyModal, state.setProvisionKeyModal],
-    shallow
+    shallow,
   );
   const setIsOpen = (v: boolean) => {
     setModalState({ visible: v });

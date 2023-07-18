@@ -53,8 +53,8 @@ export const useWizardStore = create<WizardStore>()(
           'setImportedDevices',
         ]),
       storage: createJSONStorage(() => localStorage),
-    }
-  )
+    },
+  ),
 );
 
 export type WizardStore = StoreFields & StoreMethods;

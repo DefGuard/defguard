@@ -39,7 +39,7 @@ const BreadCrumbs: React.FC = () => {
       }
     });
     const res: BreadCrumb[] = part.filter(
-      (val) => typeof val !== 'undefined'
+      (val) => typeof val !== 'undefined',
     ) as BreadCrumb[];
     setBreadCrumbs([
       {

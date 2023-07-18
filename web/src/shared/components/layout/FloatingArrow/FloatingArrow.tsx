@@ -67,5 +67,5 @@ export const FloatingArrow = forwardRef<HTMLDivElement, Props>(
         }}
       ></div>
     );
-  }
+  },
 );

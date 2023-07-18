@@ -41,7 +41,7 @@ export const ModulesCard = () => {
     key: keyof Omit<
       Settings,
       'id' | 'challenge_template' | 'main_logo_url' | 'instance_name' | 'nav_logo_url'
-    >
+    >,
   ) => {
     if (settings && !isLoading) {
       const cloned = cloneDeep(settings) as Settings;
@@ -60,7 +60,7 @@ export const ModulesCard = () => {
           {parse(
             LL.settingsPage.modulesVisibility.helper({
               documentationLink: externalLink.gitbook.base,
-            })
+            }),
           )}
         </Helper>
       </header>

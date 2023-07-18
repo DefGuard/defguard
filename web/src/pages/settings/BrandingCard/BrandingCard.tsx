@@ -72,7 +72,7 @@ export const BrandingCard = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const formSchema = useMemo(
@@ -89,7 +89,7 @@ export const BrandingCard = () => {
             .required(LL.form.error.required()),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
   const { control, handleSubmit, reset } = useForm<Settings>({
     defaultValues: useMemo(() => {
@@ -148,7 +148,7 @@ export const BrandingCard = () => {
           {parse(
             LL.settingsPage.instanceBranding.helper({
               documentationLink: externalLink.gitbook.base,
-            })
+            }),
           )}
         </Helper>
       </header>

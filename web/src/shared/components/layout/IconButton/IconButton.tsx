@@ -19,7 +19,7 @@ const IconButton = React.forwardRef<HTMLButtonElement, HTMLMotionProps<'button'>
         {children}
       </motion.button>
     );
-  }
+  },
 );
 
 export default IconButton;

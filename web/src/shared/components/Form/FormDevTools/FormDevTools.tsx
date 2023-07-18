@@ -16,6 +16,6 @@ export const DevTools: React.FC<Props> = ({ control }) => {
     <div className="dev-tools">
       <DevTool control={control} />
     </div>,
-    element
+    element,
   );
 };

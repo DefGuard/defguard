@@ -15,7 +15,7 @@ interface Props extends HTMLMotionProps<'div'> {
 export const Tag = ({ onDispose, disposable, text, className, ...rest }: Props) => {
   const cn = useMemo(
     () => classNames('tag', { disposable: disposable }, className),
-    [disposable, className]
+    [disposable, className],
   );
   const [hoverDismiss, setHoverDismiss] = useState(false);
   return (

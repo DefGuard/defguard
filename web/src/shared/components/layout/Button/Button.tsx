@@ -41,7 +41,7 @@ export const Button = ({
         hovered: hovered && !loading && !disabled,
         disabled,
       }),
-    [className, size, styleVariant, icon, loading, hovered, disabled]
+    [className, size, styleVariant, icon, loading, hovered, disabled],
   );
 
   const getSpinnerColor = useMemo(() => {

@@ -11,7 +11,7 @@ import { AddUserForm } from './AddUserForm';
 const AddUserModal: React.FC = () => {
   const [{ visible: isOpen }, setModalState] = useModalStore(
     (state) => [state.addUserModal, state.setAddUserModal],
-    shallow
+    shallow,
   );
 
   const setIsOpen = (v: boolean) => setModalState({ visible: v });

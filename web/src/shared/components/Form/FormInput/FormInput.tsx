@@ -34,7 +34,7 @@ export const FormInput = <T extends FieldValues>({
 
   const isValid = useMemo(
     () => !isInvalid && (isTouched || isDirty || isSubmitted),
-    [isDirty, isInvalid, isSubmitted, isTouched]
+    [isDirty, isInvalid, isSubmitted, isTouched],
   );
 
   const floatingErrorsData = useMemo((): InputFloatingErrors | undefined => {

@@ -24,7 +24,7 @@ export const AppLoader = () => {
   const toaster = useToaster();
   const [currentUser, resetAuthState, setAuthState] = useAuthStore(
     (state) => [state.user, state.resetState, state.setState],
-    shallow
+    shallow,
   );
   const appSettings = useAppStore((state) => state.settings);
   const {
@@ -81,7 +81,7 @@ export const AppLoader = () => {
         console.clear();
       },
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
   const { isLoading: licenseLoading } = useQuery([QueryKeys.FETCH_LICENSE], getLicense, {

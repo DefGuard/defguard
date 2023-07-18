@@ -42,7 +42,7 @@ export const AddDeviceDesktopForm = () => {
         })
         .required(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale]
+    [locale],
   );
 
   const { mutateAsync, isLoading } = useMutation([MutationKeys.ADD_DEVICE], addDevice, {

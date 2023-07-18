@@ -26,7 +26,7 @@ export const RowBox = ({
       classNames('row-box', className, {
         disabled: disabled,
       }),
-    [className, disabled]
+    [className, disabled],
   );
 
   const getAnimate = useMemo((): TargetAndTransition => {

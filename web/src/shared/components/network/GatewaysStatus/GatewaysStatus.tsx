@@ -60,7 +60,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
         toaster.error(LL.components.gatewaysStatus.messages.error());
       },
       enabled: !isUndefined(networkId),
-    }
+    },
   );
 
   const { mutate: deleteGatewayMutation } = useMutation({
@@ -141,9 +141,9 @@ export const GatewaysStatus = ({ networkId }: Props) => {
     () =>
       classNames(
         'network-gateways-connection',
-        `status-${getStatus.valueOf().toLowerCase()}`
+        `status-${getStatus.valueOf().toLowerCase()}`,
       ),
-    [getStatus]
+    [getStatus],
   );
 
   return (
