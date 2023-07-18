@@ -10,7 +10,7 @@ Building a secure organization has always been difficult and costly. Defguard pr
 
 The story and motivation behind defguard [can be found here: https://teonite.com/blog/defguard/](https://teonite.com/blog/defguard/)
 
-**Features:**
+**Implemented & production tested features:**
 
 * OpenID Connect provider (with OpenLDAP synchronization)
 * [Wireguard:tm:](https://www.wireguard.com/) VPN management with:
@@ -38,6 +38,10 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 ![](https://github.com/DefGuard/docs/blob/docs/screencasts/defguard.gif?raw=true)
 
 Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
+
+# Roadmap
+
+[A detailed product roadmap can be found here](https://defguard.gitbook.io/defguard/features/roadmap).
 
 # Documentation
 

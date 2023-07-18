@@ -158,6 +158,12 @@ pub struct AddUserData {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct PasswordChangeSelf {
+    pub old_password: String,
+    pub new_password: String,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct PasswordChange {
     pub new_password: String,
 }

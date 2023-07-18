@@ -1,16 +1,7 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosResponse } from 'axios';
-import { useEffect, useMemo, useState } from 'react';
-import { SubmitHandler, useController, useForm } from 'react-hook-form';
-import { BehaviorSubject, Subject } from 'rxjs';
-import {
-  debounceTime,
-  distinctUntilChanged,
-  filter,
-  map,
-  switchMap,
-} from 'rxjs/operators';
+import { useMemo, useRef, useState } from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -50,10 +41,11 @@ export const AddUserForm = () => {
   const {
     user: { addUser, usernameAvailable },
   } = useApi();
-  const [usernameSubject] = useState<Subject<string>>(new Subject());
-  const [usernamesTaken] = useState<BehaviorSubject<string[]>>(
-    new BehaviorSubject<string[]>([])
-  );
+
+  const reservedUserNames = useRef<string[]>([]);
+
+  const [checkingUsername, setCheckingUsername] = useState(false);
+
   const formSchema = useMemo(
     () =>
       yup
@@ -72,7 +64,7 @@ export const AddUserForm = () => {
               return false;
             })
             .test('username-available', LL.form.error.usernameTaken(), (value?: string) =>
-              value ? !usernamesTaken.getValue().includes(value) : false
+              value ? !reservedUserNames.current.includes(value) : false
             ),
           password: yup
             .string()
@@ -106,14 +98,14 @@ export const AddUserForm = () => {
             }),
         })
         .required(),
-    [LL.form.error, usernamesTaken]
+    [LL.form.error]
   );
 
   const {
     handleSubmit,
     control,
-    setError,
     formState: { isValid },
+    trigger,
   } = useForm<Inputs>({
     resolver: yupResolver(formSchema),
     mode: 'all',
@@ -127,12 +119,13 @@ export const AddUserForm = () => {
       username: '',
     },
   });
-  const {
-    field: { value: usernameValue },
-  } = useController({ control, name: 'username' });
+
   const queryClient = useQueryClient();
+
   const setModalState = useModalStore((state) => state.setAddUserModal);
+
   const toaster = useToaster();
+
   const addUserMutation = useMutation(addUser, {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
@@ -146,51 +139,22 @@ export const AddUserForm = () => {
     },
   });
 
-  const onSubmit: SubmitHandler<Inputs> = (data) => addUserMutation.mutate(data);
-
-  useEffect(() => {
-    if (usernameSubject) {
-      usernameSubject.next(usernameValue);
+  const onSubmit: SubmitHandler<Inputs> = async (data) => {
+    if (reservedUserNames.current.includes(data.username)) {
+      trigger('username', { shouldFocus: true });
+    } else {
+      usernameAvailable(data.username)
+        .then(() => {
+          setCheckingUsername(false);
+          addUserMutation.mutate(data);
+        })
+        .catch(() => {
+          setCheckingUsername(false);
+          reservedUserNames.current = [...reservedUserNames.current, data.username];
+          trigger('username', { shouldFocus: true });
+        });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usernameSubject, usernameValue]);
-
-  useEffect(() => {
-    const subscription = usernameSubject
-      .pipe(
-        map((s) => s.trim()),
-        debounceTime(500),
-        distinctUntilChanged(),
-        filter((s) => s.length >= 4),
-        filter((s) => !usernamesTaken.getValue().includes(s)),
-        switchMap((username) =>
-          usernameAvailable(username)
-            .then((res: AxiosResponse) => {
-              if (res.status === 400) {
-                usernamesTaken.next([...usernamesTaken.getValue(), username]);
-                return false;
-              }
-              return true;
-            })
-            .catch(() => {
-              usernamesTaken.next([...usernamesTaken.getValue(), username]);
-              return false;
-            })
-        )
-      )
-      .subscribe((available: boolean) => {
-        if (!available) {
-          setError(
-            'username',
-            { message: LL.form.error.usernameTaken() },
-            { shouldFocus: true }
-          );
-        }
-      });
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [LL.form.error, setError, usernameAvailable, usernameSubject, usernamesTaken]);
+  };
 
   return (
     <form data-testid="add-user-form" onSubmit={handleSubmit(onSubmit)}>
@@ -253,6 +217,7 @@ export const AddUserForm = () => {
           onClick={() => setModalState({ visible: false })}
           tabIndex={4}
           type="button"
+          disabled={addUserMutation.isLoading || checkingUsername}
         />
         <Button
           className="big primary"
@@ -261,7 +226,7 @@ export const AddUserForm = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.modals.addUser.form.submit()}
           disabled={!isValid}
-          loading={addUserMutation.isLoading}
+          loading={addUserMutation.isLoading || checkingUsername}
         />
       </div>
     </form>

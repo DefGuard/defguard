@@ -10,6 +10,24 @@ const en: BaseTranslation = {
     clipboardError: 'Clipboard is not accessible.',
   },
   modals: {
+    changePasswordSelf: {
+      title: 'Change password',
+      messages: {
+        success: 'Password changed',
+        error: 'Failed to changed password',
+      },
+      form: {
+        labels: {
+          newPassword: 'New password',
+          oldPassword: 'Current password',
+          repeat: 'Confirm new password',
+        },
+      },
+      controls: {
+        submit: 'Change password',
+        cancel: 'Cancel',
+      },
+    },
     deleteNetwork: {
       title: 'Delete {name:string} location',
       subTitle: 'This action will permanently delete this location.',

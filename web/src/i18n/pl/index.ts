@@ -10,6 +10,24 @@ const pl: Translation = {
     clipboardError: 'Schowek nie jest dostępny.',
   },
   modals: {
+    changePasswordSelf: {
+      title: 'Zmień hasło',
+      messages: {
+        success: 'Hasło zmienione',
+        error: 'Błąd zmiany hasła',
+      },
+      form: {
+        labels: {
+          repeat: 'Powtórz hasło',
+          newPassword: 'Nowe hasło',
+          oldPassword: 'Obecne hasło',
+        },
+      },
+      controls: {
+        cancel: 'Wróć',
+        submit: 'Zmień hasło',
+      },
+    },
     deleteNetwork: {
       cancel: 'Wróć',
       submit: 'Usuń lokalizację',
