@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": [
-      "DOM",
-      "DOM.Iterable",
-      "ESNext"
-    ],
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
@@ -17,27 +13,16 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": [
-      "vite/client",
-    ],
+    "types": ["vite/client"],
     "rootDir": "src",
     "module": "ESNext"
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build"
-  ],
+  "include": ["src/**/*", ".ladle"],
+  "exclude": ["node_modules", "dist", "build"],
   "watchOptions": {
     "watchFile": "useFsEvents",
     "watchDirectory": "useFsEvents",
-    "excludeDirectories": [
-      "**/node_modules",
-      "**/dist"
-    ],
+    "excludeDirectories": ["**/node_modules", "**/dist"],
     "synchronousWatchDirectory": true,
     "fallbackPolling": "dynamicPriority"
   },

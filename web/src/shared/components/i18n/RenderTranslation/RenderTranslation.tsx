@@ -1,28 +1,23 @@
-import { Fragment, ReactNode, useMemo } from 'react';
+import { ReactNode } from 'react';
+import { LocalizedString } from 'typesafe-i18n';
 
 type Props = {
-  translation: string;
-  components: ReactNode[];
+  translation: LocalizedString;
+  component: ReactNode;
 };
-/**
- * Renders string and replace every instance of `<React>` with given component in order.
- */
-export const RenderTranslation = ({ translation, components }: Props) => {
-  const segments = useMemo(() => {
-    const res = translation.split('<React>');
-    if (res.length === 1) {
-      throw Error('Translation is missing "<React>" keyword.');
-    }
-    return res;
-  }, [translation]);
+
+export const RenderTranslation = ({ translation, component }: Props) => {
+  if (!translation.includes('<React>')) {
+    throw Error('Given translation does not contain component keyword');
+  }
+
+  const [prefix, postfix] = translation.split('<React>') as LocalizedString[];
+
   return (
     <>
-      {segments.map((val, index) => (
-        <Fragment key={index}>
-          {val}
-          {components[index] ?? null}
-        </Fragment>
-      ))}
+      {prefix}
+      {component}
+      {postfix}
     </>
   );
 };

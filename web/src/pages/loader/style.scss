@@ -1,6 +1,3 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/bootstrap' as bs;
-
 .loader-page {
   width: 100%;
   height: 100%;
@@ -9,7 +6,7 @@
   align-content: center;
   align-items: center;
   justify-content: center;
-  background-color: v.$primary;
+  background-color: var(--surface-primary);
   position: absolute;
   inset: 0;
   z-index: 10000000000000;
@@ -18,5 +15,11 @@
   .logo-container {
     display: flex;
     background-color: transparent;
+  }
+
+  .loader-spinner {
+    path {
+      stroke: var(--text-button-secondary);
+    }
   }
 }

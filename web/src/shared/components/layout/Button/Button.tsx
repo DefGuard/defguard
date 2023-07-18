@@ -4,7 +4,6 @@ import classNames from 'classnames';
 import { isUndefined } from 'lodash-es';
 import React, { ButtonHTMLAttributes, useMemo, useState } from 'react';
 
-import { ColorsRGB } from '../../../constants';
 import { LoaderSpinner } from '../LoaderSpinner/LoaderSpinner';
 import { ButtonSize, ButtonStyleVariant } from './types';
 
@@ -43,19 +42,6 @@ export const Button = ({
       }),
     [className, size, styleVariant, icon, loading, hovered, disabled],
   );
-
-  const getSpinnerColor = useMemo(() => {
-    if (
-      [
-        ButtonStyleVariant.PRIMARY,
-        ButtonStyleVariant.SAVE,
-        ButtonStyleVariant.DELETE,
-      ].includes(styleVariant)
-    ) {
-      return ColorsRGB.White;
-    }
-    return ColorsRGB.Primary;
-  }, [styleVariant]);
 
   const getButtonStyle = useMemo((): Props['style'] => {
     const textColumn = 'min-content';
@@ -114,12 +100,7 @@ export const Button = ({
       {icon}
       {text && text.length > 0 && <span className="text">{text}</span>}
       {rightIcon && !loading && <>{rightIcon}</>}
-      {loading && (
-        <LoaderSpinner
-          color={getSpinnerColor}
-          size={size === ButtonSize.LARGE ? 26 : 12}
-        />
-      )}
+      {loading && <LoaderSpinner size={size === ButtonSize.LARGE ? 26 : 12} />}
     </button>
   );
 };

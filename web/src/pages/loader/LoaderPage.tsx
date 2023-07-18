@@ -2,7 +2,6 @@ import './style.scss';
 
 import { LoaderSpinner } from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
-import { ColorsRGB } from '../../shared/constants';
 
 export const LoaderPage = () => {
   return (
@@ -10,7 +9,7 @@ export const LoaderPage = () => {
       <div className="logo-container">
         <SvgDefguardLogoLogin />
       </div>
-      <LoaderSpinner color={ColorsRGB.White} size={70} />
+      <LoaderSpinner size={70} />
     </div>
   );
 };

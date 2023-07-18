@@ -2,14 +2,11 @@ import './style.scss';
 
 import { motion } from 'framer-motion';
 
-import { ColorsRGB } from '../../../constants';
-
 type Props = {
   size?: number;
-  color?: ColorsRGB;
 };
 
-export const LoaderSpinner = ({ size = 20, color = ColorsRGB.Primary }: Props) => {
+export const LoaderSpinner = ({ size = 20 }: Props) => {
   return (
     <motion.div
       className="loader-spinner"
@@ -37,7 +34,6 @@ export const LoaderSpinner = ({ size = 20, color = ColorsRGB.Primary }: Props) =
         <motion.path
           d="M54,6 A48,48 0 0 1 54,102 A48,48 0 0 1 54,6 Z"
           fill="none"
-          stroke={color}
           strokeWidth="5"
           strokeDasharray="300"
           strokeDashoffset="100"

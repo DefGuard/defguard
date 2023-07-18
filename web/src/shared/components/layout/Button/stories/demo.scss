@@ -1,0 +1,18 @@
+.demo-buttons {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-items: center;
+  row-gap: 10px;
+
+  margin: 20px 0;
+
+  .btn {
+    &.large {
+      min-width: 220px;
+    }
+    &.small {
+      min-width: 120px;
+    }
+  }
+}

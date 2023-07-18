@@ -1,225 +1,222 @@
-
-//                                 ▒ ▒▓▓▓▒                                             
-//                                ▓██▓ ▒██████▓▒▒                                      
-//                               ██████▓ ▓██████████▓▓▒                                
-//                              █████████▒ ▓█████████████▒                             
-//                            ▒████████████▒ ▓█████████████▓                           
-//                           ▒███████████████▒ ▓██████████████▒                        
-//                          ▓██████████████████▒ ▓██████████████▓                      
-//                         ▓█████████████████████▒ ▓██████████████▓▒                   
-//                        █████████████████████████▒ ████████████████▒                 
-//                       ████████████████████████████▒▒████████████████▓               
-//                     ▒██████████████████████████████▓ ▒█████████████▓▒               
-//                    ▒█████████████████████████████████████████████▓                  
-//                     ▒██████████████████████████████████████████▒                    
-//                       ▓██████████████████████████████████████▒                      
-//                        ▒██████████████████████████████████▓                         
-//                          ▓██████████████████████████████▓                           
-//                           ▒███████████████████████████▒                             
-//                             ▓██████████████████████▓▒                               
-//                              ▒███████████████████▓                                  
-//                                ▓██████████████▓▒                                    
-//                                 ▒███████▓▓▒                                         
-//                                   ▓▒▒                                               
-//                                                                                     
-//                                                                                     
-//                                                                                     
-//  ▓▓▓                                                ░▓▓▓▓░  ▓▓▓▓▓                   
-//  ███░                                                ▒██▒   █████                   
-//  █████   ░████████░     ▒████████░   ▓████▓██████░  ▒████░ ████████   ░████████▓    
-//  ████▓ ░████████████  ▒████████████  ▓████████████  ▒████░ ████████  ██████▓█████   
-//  ███░  █████░░░▓████░░█████   ░█████ ▓████░  █████░ ▒████░  █████   █████▓░░░████▓  
-//  ███░  █████████████▓▒████▓    █████░▓████   ▓████░ ▒████░  █████   █████████████▓  
-//  ███▓  ▓████▓░ ░▒▒░  ░█████░  ▓█████ ▓████   ▓████░ ▒████░  █████░  ▓████▓░ ░▒▒░    
-//  █████▓ ▓██████████▓  ░████████████  ▓████   ▓████░ ▒████░  ▓██████  ▓███████████   
-//  ▒████▓   ▓██████▓░     ░▓██████▓░   ░████   ▓████░ ▒████░   ░█████    ▓▓█████▓░    
+//                                 ▒ ▒▓▓▓▒
+//                                ▓██▓ ▒██████▓▒▒
+//                               ██████▓ ▓██████████▓▓▒
+//                              █████████▒ ▓█████████████▒
+//                            ▒████████████▒ ▓█████████████▓
+//                           ▒███████████████▒ ▓██████████████▒
+//                          ▓██████████████████▒ ▓██████████████▓
+//                         ▓█████████████████████▒ ▓██████████████▓▒
+//                        █████████████████████████▒ ████████████████▒
+//                       ████████████████████████████▒▒████████████████▓
+//                     ▒██████████████████████████████▓ ▒█████████████▓▒
+//                    ▒█████████████████████████████████████████████▓
+//                     ▒██████████████████████████████████████████▒
+//                       ▓██████████████████████████████████████▒
+//                        ▒██████████████████████████████████▓
+//                          ▓██████████████████████████████▓
+//                           ▒███████████████████████████▒
+//                             ▓██████████████████████▓▒
+//                              ▒███████████████████▓
+//                                ▓██████████████▓▒
+//                                 ▒███████▓▓▒
+//                                   ▓▒▒
+//
+//
+//
+//  ▓▓▓                                                ░▓▓▓▓░  ▓▓▓▓▓
+//  ███░                                                ▒██▒   █████
+//  █████   ░████████░     ▒████████░   ▓████▓██████░  ▒████░ ████████   ░████████▓
+//  ████▓ ░████████████  ▒████████████  ▓████████████  ▒████░ ████████  ██████▓█████
+//  ███░  █████░░░▓████░░█████   ░█████ ▓████░  █████░ ▒████░  █████   █████▓░░░████▓
+//  ███░  █████████████▓▒████▓    █████░▓████   ▓████░ ▒████░  █████   █████████████▓
+//  ███▓  ▓████▓░ ░▒▒░  ░█████░  ▓█████ ▓████   ▓████░ ▒████░  █████░  ▓████▓░ ░▒▒░
+//  █████▓ ▓██████████▓  ░████████████  ▓████   ▓████░ ▒████░  ▓██████  ▓███████████
+//  ▒████▓   ▓██████▓░     ░▓██████▓░   ░████   ▓████░ ▒████░   ░█████    ▓▓█████▓░
 // This file was generated with figma-to-scss script
 // https://github.com/teonite/figma-to-scss
 
 @mixin typography($value) {
+  @if $value == link {
+    font-family: 'Poppins';
+    font-size: 15px;
+    line-height: 30px;
+    text-decoration: underline;
+    font-weight: 400;
+  }
 
-@if $value == link {
-font-family: 'Poppins';
-font-size: 15px;
-line-height: 30px;
-text-decoration: underline;
-text-weight: 400;
-}
+  @if $value == welcome-h2 {
+    font-family: 'Roboto';
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 400;
+  }
 
-@if $value == welcome-h2 {
-font-family: 'Roboto';
-font-size: 15px;
-line-height: 1.2;
-text-weight: 400;
-}
+  @if $value == modal-title {
+    font-family: 'Poppins';
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == modal-title {
-font-family: 'Poppins';
-font-size: 15px;
-line-height: 1.2;
-text-weight: 500;
-}
+  @if $value == app-copyright {
+    font-family: 'Poppins';
+    font-size: 10px;
+    line-height: 1.2;
+    font-weight: 300;
+  }
 
-@if $value == app-copyright {
-font-family: 'Poppins';
-font-size: 10px;
-line-height: 1.2;
-text-weight: 300;
-}
+  @if $value == app-title {
+    font-family: 'Poppins';
+    font-size: 41px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
 
-@if $value == app-title {
-font-family: 'Poppins';
-font-size: 41px;
-line-height: 1.2;
-text-weight: 600;
-}
+  @if $value == app-button-l {
+    font-family: 'Poppins';
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
 
-@if $value == app-button-l {
-font-family: 'Poppins';
-font-size: 15px;
-line-height: 1.2;
-text-weight: 600;
-}
+  @if $value == app-button-s {
+    font-family: 'Roboto';
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == app-button-s {
-font-family: 'Roboto';
-font-size: 12px;
-line-height: 1.2;
-text-weight: 500;
-}
+  @if $value == app-button-xl {
+    font-family: 'Roboto';
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == app-button-xl {
-font-family: 'Roboto';
-font-size: 15px;
-line-height: 1.2;
-text-weight: 500;
-}
+  @if $value == app-avatar-l {
+    font-family: 'Poppins';
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
 
-@if $value == app-avatar-l {
-font-family: 'Poppins';
-font-size: 15px;
-line-height: 1.2;
-text-weight: 600;
-}
+  @if $value == app-avatar-s {
+    font-family: 'Poppins';
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
 
-@if $value == app-avatar-s {
-font-family: 'Poppins';
-font-size: 12px;
-line-height: 1.2;
-text-weight: 600;
-}
+  @if $value == app-modal-1 {
+    font-family: 'Roboto';
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == app-modal-1 {
-font-family: 'Roboto';
-font-size: 12px;
-line-height: 1.2;
-text-weight: 500;
-}
+  @if $value == app-modal-2 {
+    font-family: 'Roboto';
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 400;
+  }
 
-@if $value == app-modal-2 {
-font-family: 'Roboto';
-font-size: 12px;
-line-height: 1.2;
-text-weight: 400;
-}
+  @if $value == app-modal-3 {
+    font-family: 'Roboto';
+    font-size: 10px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == app-modal-3 {
-font-family: 'Roboto';
-font-size: 10px;
-line-height: 1.2;
-text-weight: 500;
-}
+  @if $value == app-side-bar {
+    font-family: 'Poppins';
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == app-side-bar {
-font-family: 'Poppins';
-font-size: 15px;
-line-height: 1.2;
-text-weight: 500;
-}
+  @if $value == app-input {
+    font-family: 'Roboto';
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 400;
+  }
 
-@if $value == app-input {
-font-family: 'Roboto';
-font-size: 15px;
-line-height: 1.2;
-text-weight: 400;
-}
+  @if $value == app-wizard-1 {
+    font-family: 'Roboto';
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == app-wizard-1 {
-font-family: 'Roboto';
-font-size: 12px;
-line-height: 1.2;
-text-weight: 500;
-}
+  @if $value == app-number {
+    font-family: 'Poppins';
+    font-size: 12px;
+    line-height: 30px;
+    font-weight: 600;
+  }
 
-@if $value == app-number {
-font-family: 'Poppins';
-font-size: 12px;
-line-height: 30px;
-text-weight: 600;
-}
+  @if $value == app-body-1 {
+    font-family: 'Poppins';
+    font-size: 20px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
 
-@if $value == app-body-1 {
-font-family: 'Poppins';
-font-size: 20px;
-line-height: 1.2;
-text-weight: 600;
-}
+  @if $value == app-welcome-1 {
+    font-family: 'Poppins';
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
 
-@if $value == app-welcome-1 {
-font-family: 'Poppins';
-font-size: 28px;
-line-height: 1.2;
-text-weight: 600;
-}
+  @if $value == app-welcome-2 {
+    font-family: 'Roboto';
+    font-size: 20px;
+    line-height: 1.2;
+    font-weight: 400;
+  }
 
-@if $value == app-welcome-2 {
-font-family: 'Roboto';
-font-size: 20px;
-line-height: 1.2;
-text-weight: 400;
-}
+  @if $value == app-body-2 {
+    font-family: 'Poppins';
+    font-size: 15px;
+    line-height: 23px;
+    font-weight: 400;
+  }
 
-@if $value == app-body-2 {
-font-family: 'Poppins';
-font-size: 15px;
-line-height: 23px;
-text-weight: 400;
-}
+  @if $value == app-code {
+    font-family: 'Source Code Pro';
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 400;
+  }
 
-@if $value == app-code {
-font-family: 'Source Code Pro';
-font-size: 12px;
-line-height: 1.2;
-text-weight: 400;
-}
+  @if $value == app-config {
+    font-family: 'Roboto';
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == app-config {
-font-family: 'Roboto';
-font-size: 15px;
-line-height: 1.2;
-text-weight: 500;
-}
+  @if $value == app-superscript {
+    font-family: 'Poppins';
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == app-superscript {
-font-family: 'Poppins';
-font-size: 12px;
-line-height: 1.2;
-text-weight: 500;
-}
+  @if $value == app-strap {
+    font-family: 'Roboto';
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
 
-@if $value == app-strap {
-font-family: 'Roboto';
-font-size: 15px;
-line-height: 1.2;
-text-weight: 500;
-}
-
-@if $value == app-underline {
-font-family: 'Roboto';
-font-size: 12px;
-line-height: 1.2;
-text-decoration: underline;
-text-weight: 500;
-}
-
+  @if $value == app-underline {
+    font-family: 'Roboto';
+    font-size: 12px;
+    line-height: 1.2;
+    text-decoration: underline;
+    font-weight: 500;
+  }
 }

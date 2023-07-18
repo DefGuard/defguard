@@ -135,9 +135,21 @@
             column-gap: 1.15rem;
 
             & > .info-value {
-              @include typography-legacy(41px, 41px, semiBold, var(--text-main), 'Poppins');
+              @include typography-legacy(
+                41px,
+                41px,
+                semiBold,
+                var(--text-main),
+                'Poppins'
+              );
               @include media-breakpoint-up(md) {
-                @include typography-legacy(41px, 57px, semiBold, var(--text-main), 'Poppins');
+                @include typography-legacy(
+                  41px,
+                  57px,
+                  semiBold,
+                  var(--text-main),
+                  'Poppins'
+                );
               }
             }
           }
@@ -157,7 +169,13 @@
                   align-content: center;
                   justify-content: flex-start;
                   column-gap: 0.4rem;
-                  @include typography-legacy(12px, 17px, medium, var(--text-main), 'Poppins');
+                  @include typography-legacy(
+                    12px,
+                    17px,
+                    medium,
+                    var(--text-main),
+                    'Poppins'
+                  );
                 }
               }
             }
@@ -223,7 +241,13 @@
                   display: none;
                 }
               }
-              @include typography-legacy(12px, 17px, medium, var(--gray-light), 'Poppins');
+              @include typography-legacy(
+                12px,
+                17px,
+                medium,
+                var(--gray-light),
+                'Poppins'
+              );
             }
 
             & > .network-speed {

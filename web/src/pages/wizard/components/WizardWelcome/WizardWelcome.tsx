@@ -22,7 +22,7 @@ export const WizardWelcome = () => {
       <p>
         <RenderTranslation
           translation={LL.wizard.welcome.sub()}
-          components={[<IconInfo key={0} />]}
+          component={<IconInfo key={0} />}
         />
       </p>
       <Button

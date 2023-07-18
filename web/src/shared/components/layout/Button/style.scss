@@ -8,7 +8,7 @@
   align-content: center;
   overflow: hidden;
   border: 0 solid transparent;
-  background-color: var(--white);
+  background-color: var(--surface-button);
   cursor: pointer;
   transition-duration: 250ms;
   transition-property: background-color, border, opacity, box-shadow;
@@ -28,6 +28,7 @@
     transition-duration: 250ms;
     transition-property: color;
     transition-timing-function: ease-out;
+    color: inherit;
   }
 
   &.icon,
@@ -47,7 +48,7 @@
     padding: 0 20px;
 
     .text {
-      @include typography-legacy(15px, 1.2, semiBold, inherit, 'Poppins');
+      @include typography(app-button-l);
     }
   }
 
@@ -58,8 +59,9 @@
     grid-template-columns: auto;
     column-gap: 13px;
     grid-template-rows: 18px;
+
     .text {
-      @include typography-legacy(12px, 1.2, medium, inherit, 'Roboto');
+      @include typography(app-button-s);
     }
   }
 
@@ -74,63 +76,104 @@
   }
 
   &.variant-primary {
-    background-color: var(--primary);
-    color: var(--white);
+    background-color: var(--surface-main-primary);
+    color: var(--text-button-secondary);
     &.hovered {
-      background-color: var(--primary-dark);
-      box-shadow: var(--button-shadow-blue);
+      background-color: var(--surface-main-secondary);
+      box-shadow: var(--drop-shadow-blue);
+    }
+
+    .loader-spinner {
+      path {
+        stroke: var(--text-button-secondary);
+      }
     }
   }
 
   &.variant-link {
-    background-color: var(--white);
-    border: 1px solid var(--gray-border);
-    color: var(--text-main);
+    background-color: var(--surface-default-modal);
+    border: 1px solid var(--border-primary);
+    color: var(--text-button-primary);
 
     &.hovered {
-      color: var(--primary);
-      box-shadow: var(--button-shadow-gray);
+      color: var(--text-button-tertiary);
+      border-color: var(--border-secondary);
+      box-shadow: var(--button-shadow-light);
+    }
+
+    .loader-spinner {
+      path {
+        stroke: var(--text-button-primary);
+      }
     }
   }
 
   &.variant-standard {
-    background-color: var(--white);
-    border: 1px solid var(--gray-border);
-    color: var(--text-main);
+    background-color: var(--surface-default-modal);
+    border: 1px solid var(--border-primary);
+    color: var(--text-button-primary);
+
     &.hovered {
-      box-shadow: var(--button-shadow-gray);
+      box-shadow: var(--button-shadow-light);
+      border-color: var(--border-secondary);
+    }
+    .loader-spinner {
+      path {
+        stroke: var(--text-button-primary);
+      }
     }
   }
 
   &.variant-confirm {
-    background-color: var(--white);
-    border: 1px solid var(--gray-border);
-    color: var(--error);
+    background-color: var(--surface-default-modal);
+    border: 1px solid var(--border-primary);
+    color: var(--text-alert);
+
     &.hovered {
-      box-shadow: var(--button-shadow-gray);
+      box-shadow: var(--button-shadow-light);
+      border-color: var(--border-secondary);
+    }
+
+    .loader-spinner {
+      path {
+        stroke: var(--text-alert);
+      }
     }
   }
 
   &.variant-delete {
-    background-color: var(--error);
-    color: var(--white);
+    background-color: var(--surface-alert-primary);
+    color: var(--text-button-secondary);
     &.hovered {
-      background-color: var(--error-dark);
-      box-shadow: var(--button-shadow-gray);
+      background-color: var(--surface-alert-secondary);
+      box-shadow: var(--button-shadow-red);
     }
 
     &.small {
       &.hovered {
-        box-shadow: var(--button-shadow-blue);
+        box-shadow: var(--button-shadow-red);
+      }
+    }
+
+    .loader-spinner {
+      path {
+        stroke: var(--text-button-secondary);
       }
     }
   }
 
   &.variant-save {
-    background-color: var(--success);
-    color: var(--white);
+    background-color: var(--surface-positive-primary);
+    color: var(--text-button-secondary);
     &.hovered {
+      background-color: var(--surface-positive-secondary);
       box-shadow: var(--button-shadow-green);
+    }
+
+    .loader-spinner {
+      path {
+        stroke: var(--text-button-secondary);
+      }
     }
   }
 
@@ -142,7 +185,6 @@
     cursor: not-allowed;
   }
 
-  &:disabled,
   &.disabled {
     opacity: 0.7;
   }
