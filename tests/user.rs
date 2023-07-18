@@ -3,7 +3,7 @@ use defguard::{
         models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
         UserInfo,
     },
-    handlers::{AddUserData, Auth, PasswordChange, Username, WalletChallenge},
+    handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username, WalletChallenge},
     hex::to_lower_hex,
 };
 use ethers::core::types::transaction::eip712::{Eip712, TypedData};
@@ -52,32 +52,109 @@ async fn test_me() {
 }
 
 #[rocket::async_test]
-async fn test_change_password() {
+async fn test_change_self_password() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
+
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
 
-    let new_password = "newPassword43$!";
+    let bad_old = "notCurrentPassword123!$";
 
-    let password = PasswordChange {
+    let new_password = "strongPassword123$!1";
+
+    let bad_old_request = PasswordChangeSelf {
+        old_password: bad_old.into(),
         new_password: new_password.into(),
     };
+
+    let bad_new_request = PasswordChangeSelf {
+        old_password: "pass123".into(),
+        new_password: "badnew".into(),
+    };
+
+    let change_password = PasswordChangeSelf {
+        old_password: "pass123".into(),
+        new_password: new_password.into(),
+    };
+
     let response = client
-        .put("/api/v1/user/hpotter/password")
-        .json(&password)
+        .put("/api/v1/user/change_password")
+        .json(&bad_old_request)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
+
+    let response = client
+        .put("/api/v1/user/change_password")
+        .json(&bad_new_request)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
+
+    let response = client
+        .put("/api/v1/user/change_password")
+        .json(&change_password)
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    // old pass login
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Unauthorized);
 
-    let auth = Auth::new("hpotter".into(), new_password.into());
+    let new_auth = Auth::new("hpotter".into(), new_password.into());
+
+    let response = client.post("/api/v1/auth").json(&new_auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+}
+
+#[rocket::async_test]
+async fn test_change_password() {
+    let client = make_client().await;
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+
+    assert_eq!(response.status(), Status::Ok);
+
+    let new_password = "newPassword43$!";
+
+    let change_others_password = PasswordChange {
+        new_password: new_password.into(),
+    };
+
+    let response = client
+        .put("/api/v1/user/admin/password")
+        .json(&change_others_password)
+        .dispatch()
+        .await;
+
+    // can't change own password with this endpoint
+    assert_eq!(response.status(), Status::BadRequest);
+
+    // can change others password
+
+    let response = client
+        .put("/api/v1/user/hpotter/password")
+        .json(&change_others_password)
+        .dispatch()
+        .await;
+
+    assert_eq!(response.status(), Status::Ok);
+
+    let auth = Auth::new("hpotter".into(), new_password.to_string());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
+
+    // route is only for admins
+    let response = client
+        .put("/api/v1/user/admin/password")
+        .json(&change_others_password)
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Forbidden);
 }
 
 #[rocket::async_test]

@@ -321,8 +321,14 @@ export type DeleteGatewayRequest = {
   gatewayId: string;
 };
 
+export type ChangePasswordSelfRequest = {
+  old_password: string;
+  new_password: string;
+};
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
+  changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
