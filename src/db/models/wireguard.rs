@@ -274,6 +274,7 @@ impl WireguardNetwork {
             JOIN group_user gu ON u.id = gu.user_id
             JOIN "group" g ON gu.group_id = g.id
             WHERE g."name" IN (SELECT * FROM UNNEST($1::text[]))
+            ORDER BY d.id ASC
             "#,
             &allowed_groups
         )

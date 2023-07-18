@@ -246,6 +246,50 @@
     },
     "query": "SELECT recovery_codes FROM \"user\" WHERE id = $1"
   },
+  "0b53e81d6f1ce3c3a68c871e7a4b9e41db58b112d12281516e10421d46fbbd94": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "wireguard_pubkey",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n            SELECT DISTINCT ON (d.id) d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created\n            FROM device d\n            JOIN \"user\" u ON d.user_id = u.id\n            JOIN group_user gu ON u.id = gu.user_id\n            JOIN \"group\" g ON gu.group_id = g.id\n            WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[]))\n            ORDER BY d.id ASC\n            "
+  },
   "0b64dc92dc09d7fc080c6d2f2d016db4c11f9a99442428a9e473c75c7633927b": {
     "describe": {
       "columns": [],
@@ -3679,50 +3723,6 @@
       }
     },
     "query": "\n            SELECT wireguard_network_id as network_id, wireguard_ip as \"device_wireguard_ip: IpAddr\"\n            FROM wireguard_network_device\n            WHERE device_id = $1\n        "
-  },
-  "d95a7b2663ca0fc8094733b278c8b8a9afea074f64701ecae58473920e26c6e2": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "wireguard_pubkey",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "created",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "TextArray"
-        ]
-      }
-    },
-    "query": "\n            SELECT DISTINCT ON (d.id) d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created\n            FROM device d\n            JOIN \"user\" u ON d.user_id = u.id\n            JOIN group_user gu ON u.id = gu.user_id\n            JOIN \"group\" g ON gu.group_id = g.id\n            WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[]))\n            "
   },
   "d98e365929bb0fbf3915b517db93168f76f9a0c4832cd2efd13d74268cc435b8": {
     "describe": {
