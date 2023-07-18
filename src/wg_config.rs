@@ -16,7 +16,7 @@ pub struct ImportedDevice {
 
 #[derive(Debug, Error)]
 pub enum WireguardConfigParseError {
-    #[error("Config parsing error")]
+    #[error(transparent)]
     ParseError(#[from] ini::ParseError),
     #[error("Config section not found: {0}")]
     SectionNotFound(String),
