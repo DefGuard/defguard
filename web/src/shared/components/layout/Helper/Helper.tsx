@@ -17,7 +17,7 @@ import { deviceBreakpoints } from '../../../constants';
 import { IconInfo } from '../../svg';
 import { Button } from '../Button/Button';
 import { ButtonSize, ButtonStyleVariant } from '../Button/types';
-import Modal from '../Modal/Modal';
+import { Modal } from '../Modal/Modal';
 
 interface PlacementMap {
   [key: string]: string;

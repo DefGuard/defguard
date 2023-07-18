@@ -4,7 +4,8 @@ import classNames from 'classnames';
 import { useMemo } from 'react';
 
 import { IconHamburgerClose } from '../../svg';
-import Modal, { ModalProps } from '../Modal/Modal';
+import { Modal } from '../Modal/Modal';
+import { ModalProps } from '../Modal/types';
 
 export interface ModalWithTitleProps extends ModalProps {
   title: string;
@@ -15,6 +16,7 @@ export const ModalWithTitle = ({
   title,
   className,
   isOpen,
+  onClose,
   setIsOpen,
   disableClose = false,
   ...rest
@@ -22,9 +24,10 @@ export const ModalWithTitle = ({
   const cn = useMemo(() => classNames('titled', className), [className]);
   return (
     <Modal
+      onClose={onClose}
+      setIsOpen={setIsOpen}
       className={cn}
       isOpen={isOpen}
-      setIsOpen={setIsOpen}
       disableClose={disableClose}
       {...rest}
     >
@@ -34,7 +37,8 @@ export const ModalWithTitle = ({
           <button
             className="close"
             onClick={() => {
-              setIsOpen(false);
+              onClose && onClose();
+              setIsOpen && setIsOpen(false);
             }}
           >
             <IconHamburgerClose />

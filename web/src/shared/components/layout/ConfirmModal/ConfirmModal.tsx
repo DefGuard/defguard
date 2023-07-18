@@ -5,7 +5,7 @@ import { ReactNode, useMemo } from 'react';
 
 import { Button } from '../Button/Button';
 import { ButtonSize, ButtonStyleVariant } from '../Button/types';
-import Modal from '../Modal/Modal';
+import { Modal } from '../Modal/Modal';
 
 export enum ConfirmModalType {
   NORMAL = 'NORMAL',

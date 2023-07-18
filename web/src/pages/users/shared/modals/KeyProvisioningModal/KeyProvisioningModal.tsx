@@ -14,7 +14,7 @@ import { LoaderSpinner } from '../../../../../shared/components/layout/LoaderSpi
 import MessageBox, {
   MessageBoxType,
 } from '../../../../../shared/components/layout/MessageBox/MessageBox';
-import Modal from '../../../../../shared/components/layout/Modal/Modal';
+import { Modal } from '../../../../../shared/components/layout/Modal/Modal';
 import { IconHamburgerClose } from '../../../../../shared/components/svg';
 import SvgIconCancel from '../../../../../shared/components/svg/IconCancel';
 import { deviceBreakpoints } from '../../../../../shared/constants';

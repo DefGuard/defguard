@@ -3,22 +3,11 @@ import './style.scss';
 import classNames from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
-import React, { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { BehaviorSubject } from 'rxjs';
 
-export interface ModalProps {
-  backdrop?: boolean;
-  isOpen: boolean;
-  setIsOpen: (v: boolean) => void;
-  className?: string;
-  children?: ReactNode;
-  onClose?: () => void;
-  id?: string;
-  disableClose?: boolean;
-  currentStep?: number;
-  steps?: ReactNode[];
-}
+import { ModalProps } from './types';
 
 type MouseObserverState = {
   press?: React.MouseEvent<HTMLDivElement, MouseEvent>;
@@ -27,21 +16,23 @@ type MouseObserverState = {
 
 /**
  * Modal component, renders it's `children` above all normal page content.
- * This should be used to build other generic modal components with proper styling like {@link ModalWithTitle}.
+ * This should be used to build generic modal components with proper styling like {@link ModalWithTitle}.
  */
-const Modal = ({
+export const Modal = ({
   children,
-  backdrop,
   setIsOpen,
   className,
   isOpen,
   onClose,
   id,
-  disableClose = false,
   currentStep,
   steps,
+  afterClose,
+  backdrop = true,
+  disableClose = false,
 }: ModalProps) => {
-  const element = document.getElementById('modals-root');
+  const openRef = useRef(isOpen);
+  const portalTarget = document.getElementById('modals-root');
 
   const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -54,8 +45,8 @@ const Modal = ({
           const checkPress = checkEventOutside(press);
           const checkRelease = checkEventOutside(release);
           if (checkPress && checkRelease && !disableClose) {
-            setIsOpen(false);
-            onClose && onClose();
+            onClose?.();
+            setIsOpen?.(false);
           }
         }
       });
@@ -71,6 +62,10 @@ const Modal = ({
       mouseObserver.next({});
     }
   }, [isOpen, mouseObserver]);
+
+  useEffect(() => {
+    openRef.current = isOpen;
+  }, [isOpen]);
 
   /**
    * WORKAROUND
@@ -109,6 +104,12 @@ const Modal = ({
 
   const [step, setStep] = useState(currentStep);
 
+  const handleAnimationEnd = useCallback(() => {
+    if (!openRef.current) {
+      afterClose?.();
+    }
+  }, [afterClose]);
+
   // This will be used for determining animation direction of modal-content
   useEffect(() => {
     if (steps && !isUndefined(currentStep) && currentStep <= steps?.length) {
@@ -117,15 +118,15 @@ const Modal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
-  if (!element || !children) return null;
+  if (!portalTarget || !children) return null;
+
   return ReactDOM.createPortal(
-    <AnimatePresence>
-      {isOpen ? (
+    <AnimatePresence mode="wait">
+      {isOpen && (
         <motion.div className="modal-root">
           <motion.div
             className="modal-wrap"
             role="dialog"
-            tabIndex={-1}
             onMouseUp={(event) => {
               if (event) {
                 const { press } = mouseObserver.getValue();
@@ -156,6 +157,7 @@ const Modal = ({
                   opacity: 0,
                 }}
                 key={stepsEnabled ? `step-${step}` : 'content'}
+                onAnimationComplete={handleAnimationEnd}
               >
                 {children}
                 {stepsEnabled && steps && !isUndefined(step) ? (
@@ -164,7 +166,7 @@ const Modal = ({
               </motion.div>
             </motion.div>
           </motion.div>
-          {backdrop ? (
+          {backdrop && (
             <motion.div
               className="backdrop"
               initial={{
@@ -178,12 +180,10 @@ const Modal = ({
                 opacity: 0,
               }}
             ></motion.div>
-          ) : null}
+          )}
         </motion.div>
-      ) : null}
+      )}
     </AnimatePresence>,
-    element
+    portalTarget
   );
 };
-
-export default Modal;

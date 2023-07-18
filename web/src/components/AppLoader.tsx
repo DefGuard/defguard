@@ -15,6 +15,7 @@ import { useAuthStore } from '../shared/hooks/store/useAuthStore';
 import useApi from '../shared/hooks/useApi';
 import { useToaster } from '../shared/hooks/useToaster';
 import { QueryKeys } from '../shared/queries';
+import { initTheme } from './ThemeLoader';
 
 /**
  * Fetches data needed by app before it's rendered.
@@ -121,6 +122,11 @@ export const AppLoader = () => {
       }
     }
   }, [appSettings]);
+
+  // set theme value
+  useEffect(() => {
+    initTheme();
+  }, []);
 
   if (
     userLoading ||

@@ -10,7 +10,7 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/components/layout/Button/types';
-import Modal from '../../../../../../shared/components/layout/Modal/Modal';
+import { Modal } from '../../../../../../shared/components/layout/Modal/Modal';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import KeyBox from '../../../../shared/components/KeyBox/KeyBox';
 
