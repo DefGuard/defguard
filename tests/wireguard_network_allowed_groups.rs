@@ -1,5 +1,6 @@
 use claims::assert_err;
 use defguard::db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork};
+use defguard::handlers::wireguard::ImportedNetworkData;
 use defguard::handlers::Auth;
 use matches::assert_matches;
 use rocket::http::Status;
@@ -314,4 +315,87 @@ async fn test_modify_network() {
     assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
     assert_eq!(new_peers[2].pubkey, devices[2].wireguard_pubkey);
     assert_eq!(new_peers[3].pubkey, devices[3].wireguard_pubkey);
+}
+
+/// Test that devices that already exist are handled correctly during config import
+#[rocket::async_test]
+async fn test_import_network_existing_devices() {
+    let (client, client_state) = make_test_client().await;
+    let (_users, devices) = setup_test_users(&client_state.pool).await;
+
+    let mut wg_rx = client_state.wireguard_rx;
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    assert_eq!(response.status(), Status::Ok);
+
+    // config file includes some existing devices
+    let wg_config = format!(
+        "
+        [Interface]
+        PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+        Address = 10.0.0.1/24
+        ListenPort = 55055
+        DNS = 10.0.0.2
+
+        [Peer]
+        PublicKey = {}
+        AllowedIPs = 10.0.0.10/24
+        PersistentKeepalive = 300
+
+        [Peer]
+        PublicKey = {}
+        AllowedIPs = 10.0.0.11/24
+        PersistentKeepalive = 300
+
+        [Peer]
+        PublicKey = l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=
+        AllowedIPs = 10.0.0.12/24
+        PersistentKeepalive = 300
+    ",
+        devices[1].wireguard_pubkey, devices[2].wireguard_pubkey
+    );
+
+    // import network
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let response: ImportedNetworkData = response.into_json().await.unwrap();
+    assert_eq!(response.devices.len(), 1);
+    assert_eq!(
+        response.devices[0].wireguard_pubkey,
+        "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4="
+    );
+    assert_eq!(response.devices[0].wireguard_ip.to_string(), "10.0.0.12");
+    let network = response.network;
+
+    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(peers.len(), 2);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+
+    let event = wg_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+
+    // network config was only created for one of the existing devices and the admin device
+    let GatewayEvent::DeviceModified(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(device_info.device.id.unwrap(), devices[1].id.unwrap());
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip.to_string(),
+        peers[1].allowed_ips[0]
+    );
+
+    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(device_info.device.id.unwrap(), devices[0].id.unwrap());
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip.to_string(),
+        peers[0].allowed_ips[0]
+    );
 }
