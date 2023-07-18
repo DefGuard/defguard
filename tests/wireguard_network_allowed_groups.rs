@@ -1,3 +1,4 @@
+use claims::assert_err;
 use defguard::db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork};
 use defguard::handlers::Auth;
 use matches::assert_matches;
@@ -122,6 +123,7 @@ async fn test_create_new_network() {
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_err!(wg_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
     let peers = network.get_peers(&client_state.pool).await.unwrap();
@@ -185,30 +187,24 @@ async fn test_modify_network() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
-    match wg_rx.try_recv().unwrap() {
-        GatewayEvent::DeviceDeleted(device_info) => {
-            assert_eq!(device_info.device.id.unwrap(), devices[2].id.unwrap());
-            assert_eq!(device_info.network_info.len(), 1);
-            assert_eq!(device_info.network_info[0].network_id, 1);
-            assert_eq!(
-                device_info.network_info[0].device_wireguard_ip.to_string(),
-                peers[2].allowed_ips[0]
-            );
-        }
-        _ => panic!(),
-    };
-    match wg_rx.try_recv().unwrap() {
-        GatewayEvent::DeviceDeleted(device_info) => {
-            assert_eq!(device_info.device.id.unwrap(), devices[3].id.unwrap());
-            assert_eq!(device_info.network_info.len(), 1);
-            assert_eq!(device_info.network_info[0].network_id, 1);
-            assert_eq!(
-                device_info.network_info[0].device_wireguard_ip.to_string(),
-                peers[3].allowed_ips[0]
-            );
-        }
-        _ => panic!(),
-    };
+    let GatewayEvent::DeviceDeleted(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(device_info.device.id.unwrap(), devices[2].id.unwrap());
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip.to_string(),
+        peers[2].allowed_ips[0]
+    );
+
+    let GatewayEvent::DeviceDeleted(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(device_info.device.id.unwrap(), devices[3].id.unwrap());
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip.to_string(),
+        peers[3].allowed_ips[0]
+    );
+
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(new_peers.len(), 2);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
@@ -230,18 +226,16 @@ async fn test_modify_network() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
-    match wg_rx.try_recv().unwrap() {
-        GatewayEvent::DeviceCreated(device_info) => {
-            assert_eq!(device_info.device.id.unwrap(), devices[2].id.unwrap());
-            assert_eq!(device_info.network_info.len(), 1);
-            assert_eq!(device_info.network_info[0].network_id, 1);
-            assert_eq!(
-                device_info.network_info[0].device_wireguard_ip.to_string(),
-                peers[2].allowed_ips[0]
-            );
-        }
-        _ => panic!(),
-    };
+
+    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(device_info.device.id.unwrap(), devices[2].id.unwrap());
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip.to_string(),
+        peers[2].allowed_ips[0]
+    );
+
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(new_peers.len(), 3);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
@@ -264,18 +258,16 @@ async fn test_modify_network() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
-    match wg_rx.try_recv().unwrap() {
-        GatewayEvent::DeviceDeleted(device_info) => {
-            assert_eq!(device_info.device.id.unwrap(), devices[1].id.unwrap());
-            assert_eq!(device_info.network_info.len(), 1);
-            assert_eq!(device_info.network_info[0].network_id, 1);
-            assert_eq!(
-                device_info.network_info[0].device_wireguard_ip.to_string(),
-                peers[1].allowed_ips[0]
-            );
-        }
-        _ => panic!(),
-    };
+
+    let GatewayEvent::DeviceDeleted(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(device_info.device.id.unwrap(), devices[1].id.unwrap());
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip.to_string(),
+        peers[1].allowed_ips[0]
+    );
+
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(new_peers.len(), 2);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
@@ -297,30 +289,25 @@ async fn test_modify_network() {
         .await;
     assert_eq!(response.status(), Status::Ok);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
-    match wg_rx.try_recv().unwrap() {
-        GatewayEvent::DeviceCreated(device_info) => {
-            assert_eq!(device_info.device.id.unwrap(), devices[1].id.unwrap());
-            assert_eq!(device_info.network_info.len(), 1);
-            assert_eq!(device_info.network_info[0].network_id, 1);
-            assert_eq!(
-                device_info.network_info[0].device_wireguard_ip.to_string(),
-                peers[1].allowed_ips[0]
-            );
-        }
-        _ => panic!(),
-    };
-    match wg_rx.try_recv().unwrap() {
-        GatewayEvent::DeviceCreated(device_info) => {
-            assert_eq!(device_info.device.id.unwrap(), devices[3].id.unwrap());
-            assert_eq!(device_info.network_info.len(), 1);
-            assert_eq!(device_info.network_info[0].network_id, 1);
-            assert_eq!(
-                device_info.network_info[0].device_wireguard_ip.to_string(),
-                peers[3].allowed_ips[0]
-            );
-        }
-        _ => panic!(),
-    };
+
+    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(device_info.device.id.unwrap(), devices[1].id.unwrap());
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip.to_string(),
+        peers[1].allowed_ips[0]
+    );
+
+    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    assert_eq!(device_info.device.id.unwrap(), devices[3].id.unwrap());
+    assert_eq!(device_info.network_info.len(), 1);
+    assert_eq!(device_info.network_info[0].network_id, 1);
+    assert_eq!(
+        device_info.network_info[0].device_wireguard_ip.to_string(),
+        peers[3].allowed_ips[0]
+    );
+
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(new_peers.len(), 4);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
