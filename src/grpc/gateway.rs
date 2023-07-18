@@ -44,6 +44,7 @@ impl WireguardNetwork {
             JOIN device d
             ON wnd.device_id = d.id
             WHERE wireguard_network_id = $1
+            ORDER BY d.id ASC
         "#,
             self.id
         )

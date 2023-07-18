@@ -274,6 +274,7 @@ impl WireguardNetwork {
             JOIN group_user gu ON u.id = gu.user_id
             JOIN "group" g ON gu.group_id = g.id
             WHERE g."name" IN (SELECT * FROM UNNEST($1::text[]))
+            ORDER BY d.id ASC
             "#,
             &allowed_groups
         )
@@ -598,10 +599,12 @@ impl WireguardNetwork {
             network_info.append(&mut all_network_info);
 
             // send device to connected gateways
-            events.push(GatewayEvent::DeviceCreated(DeviceInfo {
-                device,
-                network_info,
-            }));
+            if !network_info.is_empty() {
+                events.push(GatewayEvent::DeviceCreated(DeviceInfo {
+                    device,
+                    network_info,
+                }));
+            }
         }
         Ok(events)
     }
