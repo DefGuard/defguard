@@ -72,7 +72,7 @@ export interface SelectProps<T extends SelectValue> {
   multi?: boolean;
   loading?: boolean;
   disabled?: boolean;
-  outerLabel?: string;
+  label?: string;
   disableOuterLabelColon?: boolean;
   inForm?: boolean;
   disableOpen?: boolean;
@@ -95,7 +95,7 @@ export const Select = <T extends SelectValue>({
   options,
   placeholder,
   selected,
-  outerLabel,
+  label,
   invalid,
   errorMessage,
   addOptionLabel,
@@ -303,9 +303,9 @@ export const Select = <T extends SelectValue>({
 
   return (
     <>
-      {outerLabel && outerLabel.length > 0 && (
+      {label && label.length > 0 && (
         <label className="select-outer-label" htmlFor={selectId}>
-          {outerLabel}
+          {label}
           {!disableOuterLabelColon && ':'}
         </label>
       )}

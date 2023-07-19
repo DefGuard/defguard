@@ -208,7 +208,7 @@ export const ConfigStep = () => {
     <>
       <MessageBox type={MessageBoxType.WARNING}>{getWarningMessageConent}</MessageBox>
       <Input
-        outerLabel={LL.modals.addDevice.web.steps.config.inputNameLabel()}
+        label={LL.modals.addDevice.web.steps.config.inputNameLabel()}
         value={deviceName || device?.name || ''}
         onChange={() => {
           return;

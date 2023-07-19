@@ -179,7 +179,7 @@ const TOTPRegisterForm = () => {
     <form data-testid="register-totp-form" onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
         controller={{ control, name: 'code' }}
-        outerLabel={LL.modals.registerTOTP.form.fields.code.label()}
+        label={LL.modals.registerTOTP.form.fields.code.label()}
         autoComplete="one-time-code"
         required
       />

@@ -1,150 +1,111 @@
 @use '../../../scss/helpers' as *;
 
-.input-container {
+.input {
   position: relative;
-  display: inline-flex;
-  width: inherit;
-  min-height: 50px;
-  height: auto;
-  margin-bottom: 2.5rem;
-  border-radius: 1rem;
-  opacity: 1;
-
-  &.disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-
-  & > .icon-container {
-    position: absolute;
-    right: 1.6rem;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    flex-flow: row nowrap;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    z-index: 3;
-  }
 
   & > .error-message {
-    user-select: none;
     position: absolute;
-    font-size: 1.2rem;
-    line-height: 1.4rem;
-    font-family: Roboto;
-    @include text-weight(medium);
+    bottom: -20px;
+    @include typography(app-wizard-1);
+    @include text-overflow-dots;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
 
-    color: var(--error);
+    color: var(--text-alert);
   }
 
-  .placeholder-label {
-    display: block;
-    position: absolute;
-    font-family: Roboto;
-    user-select: none;
-    z-index: 1;
-  }
+  & > .input-label {
+    @include typography(app-wizard-1);
 
-  & > input {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    background-color: transparent;
+    color: var(--text-body-tertiary);
+    padding: 0;
     margin: 0;
-    display: flex;
-    flex: 1 0 auto;
-    padding: 0 4rem 0 2rem;
-    z-index: 2;
-    box-sizing: border-box;
-    border: 1px solid transparent;
-    border-radius: 1rem;
-    @include typography-legacy(15px, 18px, regular);
-
-    &::placeholder {
-      opacity: 0;
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-    }
+    margin-bottom: 10px;
   }
 
-  & > svg {
-    position: absolute;
-    right: 1.6rem;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    pointer-events: none;
-  }
-
-  .dispose {
-    display: flex;
-    flex-direction: row;
+  & > .input-container {
+    background-color: var(--surface-frame-bg);
+    position: relative;
+    display: inline-flex;
+    width: inherit;
+    border-radius: 10px;
+    height: 50px;
+    opacity: 1;
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr 22px;
+    grid-template-areas: 'input icon';
     align-items: center;
     align-content: center;
     justify-content: center;
-    top: 0;
-    right: 0;
-    height: auto;
-    position: absolute;
-    cursor: pointer;
-    padding: 1rem;
-    border: 0 solid transparent;
-    border-radius: 0;
-    z-index: 1000;
-    opacity: 1;
+    column-gap: 10px;
+    box-sizing: border-box;
+    padding: 0 20px;
+    border: 1px solid var(--border-primary);
+    margin: 0;
+    margin-bottom: 20px;
 
-    & > div {
+    transition-timing-function: ease-in-out;
+    transition-duration: 250ms;
+    transition-property: border-color, background-color;
+
+    &.invalid {
+      border-color: var(--border-alert);
+    }
+
+    &.disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    &.disposable {
+      & > .icon-container {
+        cursor: pointer;
+      }
+    }
+
+    & > .icon-container {
+      grid-area: icon;
       display: flex;
-      flex-direction: row;
+      flex-flow: row;
       align-items: center;
-      align-content: center;
       justify-content: center;
-      height: 30px;
-      width: 30px;
-      background-color: var(--bg-light);
-      border-radius: 1rem;
+      overflow: hidden;
+      height: 22px;
+      width: 22px;
+    }
+
+    & > input {
+      height: 22px;
       border: 0 solid transparent;
+      background-color: transparent;
+      margin: 0;
+      padding: 0;
+      @include typography(app-input);
 
-      & > svg {
-        opacity: 1;
+      grid-area: input;
+      color: var(--text-body-primary);
 
-        path,
-        rect {
-          fill: var(--gray-dark);
-          opacity: 1;
-        }
+      &:disabled {
+        cursor: not-allowed;
+      }
+
+      &:placeholder {
+        color: var(--text-body-tertiary);
       }
     }
   }
 }
 
-label {
-  &.input-outer-label {
-    @include outer-label;
-
-    user-select: none;
-    opacity: 1;
-
-    &.disabled {
-      opacity: 0.5;
-    }
-  }
-}
-
 .floating-input-errors {
-  & > p {
+  & > .title {
     white-space: nowrap;
-
-    @include text-overflow-dots;
-    @include label-text;
-    color: var(--text-main);
     margin-bottom: 20px;
+    color: var(--text-body-primary);
+
+    @include typography(app-modal-1);
+    @include text-overflow-dots;
   }
 
   & > .errors {
@@ -153,21 +114,22 @@ label {
     row-gap: 10px;
 
     & > .error {
-      @include label-text;
-      @include text-weight(medium);
-      color: var(--text-main);
       display: flex;
       flex-flow: row nowrap;
       overflow: hidden;
       column-gap: 5px;
       align-items: center;
+      justify-content: flex-start;
 
       svg {
         transform: scale(66.67%);
       }
 
       & > p {
-        white-space: normal;
+        white-space: nowrap;
+        color: var(--text-body-primary);
+
+        @include typography(app-modal-2);
       }
     }
   }

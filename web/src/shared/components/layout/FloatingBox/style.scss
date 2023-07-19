@@ -2,11 +2,9 @@
 
 .floating-box {
   z-index: 5;
-  border: 1px solid var(--gray-lighter);
-  background-color: var(--white);
-  color: var(--text-main);
   border-radius: 10px;
-  filter: drop-shadow(var(--floating-shadow));
   box-sizing: border-box;
   padding: 20px;
+  background-color: var(--surface-default-modal);
+  border: 1px solid var(--border-primary);
 }

@@ -2,7 +2,8 @@ import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { FieldValues, useController, UseControllerProps } from 'react-hook-form';
 
-import { Input, InputFloatingErrors, InputProps } from '../../layout/Input/Input';
+import { Input } from '../../layout/Input/Input';
+import { InputFloatingErrors, InputProps } from '../../layout/Input/types';
 
 interface Props<T extends FieldValues> extends Omit<InputProps, 'floatingErrors'> {
   controller: UseControllerProps<T>;
@@ -32,13 +33,8 @@ export const FormInput = <T extends FieldValues>({
     return false;
   }, [error, isDirty, isSubmitted, isTouched]);
 
-  const isValid = useMemo(
-    () => !isInvalid && (isTouched || isDirty || isSubmitted),
-    [isDirty, isInvalid, isSubmitted, isTouched],
-  );
-
   const floatingErrorsData = useMemo((): InputFloatingErrors | undefined => {
-    if (floatingErrors && floatingErrors.title && error && error.types && !isValid) {
+    if (floatingErrors && floatingErrors.title && error && error.types && isInvalid) {
       let errors: string[] = [];
       for (const val of Object.values(error.types)) {
         if (typeof val === 'string') {
@@ -57,7 +53,7 @@ export const FormInput = <T extends FieldValues>({
       };
     }
     return undefined;
-  }, [error, floatingErrors, isValid]);
+  }, [error, floatingErrors, isInvalid]);
 
   return (
     <Input
@@ -65,7 +61,6 @@ export const FormInput = <T extends FieldValues>({
       {...rest}
       {...field}
       invalid={isInvalid}
-      valid={isValid}
       errorMessage={error?.message}
       floatingErrors={floatingErrorsData}
     />

@@ -82,7 +82,7 @@ export const NetworkControls = () => {
               selected={selectedOption}
               options={getOptions}
               addOptionLabel={LL.networkPage.addNetwork()}
-              outerLabel={LL.networkPage.controls.networkSelect.label()}
+              label={LL.networkPage.controls.networkSelect.label()}
               onChange={(res) => {
                 if (!Array.isArray(res) && res) {
                   setNetworkState({ selectedNetworkId: res.value });

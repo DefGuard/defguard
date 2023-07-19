@@ -109,7 +109,7 @@ export const ChangePasswordForm = () => {
   return (
     <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
-        outerLabel={LL.modals.changeUserPassword.form.fields.newPassword.label()}
+        label={LL.modals.changeUserPassword.form.fields.newPassword.label()}
         controller={{ control, name: 'new_password' }}
         floatingErrors={{
           title: LL.form.floatingErrors.title(),
@@ -117,7 +117,7 @@ export const ChangePasswordForm = () => {
         type="password"
       />
       <FormInput
-        outerLabel={LL.modals.changeUserPassword.form.fields.confirmPassword.label()}
+        label={LL.modals.changeUserPassword.form.fields.confirmPassword.label()}
         controller={{ control, name: 'repeat' }}
         type="password"
       />

@@ -186,7 +186,7 @@ export const BrandingCard = () => {
         </header>
         <form id="branding-form" onSubmit={handleSubmit(onSubmit)}>
           <FormInput
-            outerLabel={LL.settingsPage.instanceBranding.form.fields.instanceName.label()}
+            label={LL.settingsPage.instanceBranding.form.fields.instanceName.label()}
             controller={{ control, name: 'instance_name' }}
             placeholder={LL.settingsPage.instanceBranding.form.fields.instanceName.placeholder()}
             required
@@ -195,7 +195,7 @@ export const BrandingCard = () => {
             {parse(LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.helper())}
           </Helper>
           <FormInput
-            outerLabel={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.label()}
+            label={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.label()}
             controller={{ control, name: 'main_logo_url' }}
             placeholder={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.placeholder()}
             required
@@ -206,7 +206,7 @@ export const BrandingCard = () => {
             </p>
           </Helper>
           <FormInput
-            outerLabel={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.label()}
+            label={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.label()}
             controller={{ control, name: 'nav_logo_url' }}
             placeholder={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.placeholder()}
             required

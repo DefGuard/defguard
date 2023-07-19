@@ -10,18 +10,18 @@
 
   &.left {
     border-width: 7px 0 7px 8px;
-    border-color: transparent transparent transparent var(--gray-lighter);
+    border-color: transparent transparent transparent var(--border-primary);
   }
   &.right {
     border-width: 7px 8px 7px 0;
-    border-color: transparent var(--gray-lighter) transparent transparent;
+    border-color: transparent var(--border-primary) transparent transparent;
   }
   &.bottom {
     border-width: 8px 7px 0 7px;
-    border-color: var(--gray-lighter) transparent transparent transparent;
+    border-color: var(--border-primary) transparent transparent transparent;
   }
   &.top {
     border-width: 0 7px 8px 7px;
-    border-color: transparent transparent var(--gray-lighter) transparent;
+    border-color: transparent transparent var(--border-primary) transparent;
   }
 }

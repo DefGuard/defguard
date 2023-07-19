@@ -96,11 +96,11 @@ export const EditUserDeviceForm = () => {
   return (
     <form onSubmit={handleSubmit(onSubmitSuccess)}>
       <FormInput
-        outerLabel={LL.modals.editDevice.form.fields.name.label()}
+        label={LL.modals.editDevice.form.fields.name.label()}
         controller={{ control, name: 'name' }}
       />
       <FormInput
-        outerLabel={LL.modals.editDevice.form.fields.publicKey.label()}
+        label={LL.modals.editDevice.form.fields.publicKey.label()}
         controller={{ control, name: 'wireguard_pubkey' }}
       />
       <div className="controls">

@@ -180,20 +180,20 @@ export const WebhookForm = () => {
   return (
     <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
-        outerLabel={LL.modals.webhookModal.form.fields.url.label()}
+        label={LL.modals.webhookModal.form.fields.url.label()}
         controller={{ control, name: 'url' }}
         placeholder={LL.modals.webhookModal.form.fields.url.placeholder()}
         required
       />
       <FormInput
-        outerLabel={LL.modals.webhookModal.form.fields.description.label()}
+        label={LL.modals.webhookModal.form.fields.description.label()}
         controller={{ control, name: 'description' }}
         placeholder={LL.modals.webhookModal.form.fields.description.placeholder()}
         required
         type="text"
       />
       <FormInput
-        outerLabel={LL.modals.webhookModal.form.fields.token.label()}
+        label={LL.modals.webhookModal.form.fields.token.label()}
         controller={{ control, name: 'token' }}
         placeholder={LL.modals.webhookModal.form.fields.token.placeholder()}
         required

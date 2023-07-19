@@ -221,7 +221,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.username.label()}
+            label={LL.userPage.userDetails.fields.username.label()}
             controller={{ control, name: 'username' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -231,7 +231,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.firstName.label()}
+            label={LL.userPage.userDetails.fields.firstName.label()}
             controller={{ control, name: 'first_name' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -241,7 +241,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.lastName.label()}
+            label={LL.userPage.userDetails.fields.lastName.label()}
             controller={{ control, name: 'last_name' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -251,7 +251,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.phone.label()}
+            label={LL.userPage.userDetails.fields.phone.label()}
             controller={{ control, name: 'phone' }}
             disabled={userEditLoading}
           />
@@ -260,7 +260,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.email.label()}
+            label={LL.userPage.userDetails.fields.email.label()}
             controller={{ control, name: 'email' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -274,7 +274,7 @@ export const ProfileDetailsForm = () => {
             styleVariant={SelectStyleVariant.WHITE}
             options={groupsOptions}
             controller={{ control, name: 'groups' }}
-            outerLabel={LL.userPage.userDetails.fields.groups.label()}
+            label={LL.userPage.userDetails.fields.groups.label()}
             loading={groupsLoading || userEditLoading}
             searchable={true}
             multi={true}

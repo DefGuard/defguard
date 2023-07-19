@@ -166,7 +166,7 @@ export const OpenIdClientModalForm = () => {
     <form onSubmit={handleSubmit(onValidSubmit)} data-testid="openid-client-form">
       <FormInput
         controller={{ control, name: 'name' }}
-        outerLabel={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
+        label={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
         placeholder={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
         disabled={modalState.viewMode}
         required
@@ -177,7 +177,7 @@ export const OpenIdClientModalForm = () => {
             key={field.id}
             controller={{ control, name: `redirect_uri.${index}.url` }}
             placeholder={LL.openidOverview.modals.openidClientModal.form.fields.redirectUri.placeholder()}
-            outerLabel={LL.openidOverview.modals.openidClientModal.form.fields.redirectUri.label(
+            label={LL.openidOverview.modals.openidClientModal.form.fields.redirectUri.label(
               { count: index + 1 },
             )}
             disposable

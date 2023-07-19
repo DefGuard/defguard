@@ -186,12 +186,12 @@ export const SetupStep = () => {
       </MessageBox>
       <form onSubmit={handleSubmit(validSubmitHandler)}>
         <FormInput
-          outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.name.label()}
+          label={LL.modals.addDevice.web.steps.setup.form.fields.name.label()}
           controller={{ control, name: 'name' }}
         />
         <FormToggle options={toggleOptions} controller={{ control, name: 'choice' }} />
         <FormInput
-          outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
+          label={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
           controller={{ control, name: 'publicKey' }}
           disabled={choiceValue === DeviceModalSetupMode.AUTO_CONFIG}
         />

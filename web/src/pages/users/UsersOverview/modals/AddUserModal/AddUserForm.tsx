@@ -166,12 +166,12 @@ export const AddUserForm = () => {
           <FormInput
             placeholder={LL.modals.addUser.form.fields.username.placeholder()}
             controller={{ control, name: 'username' }}
-            outerLabel={LL.modals.addUser.form.fields.username.label()}
+            label={LL.modals.addUser.form.fields.username.label()}
             autoComplete="username"
             required
           />
           <FormInput
-            outerLabel={LL.modals.addUser.form.fields.password.label()}
+            label={LL.modals.addUser.form.fields.password.label()}
             placeholder={LL.modals.addUser.form.fields.password.placeholder()}
             controller={{ control, name: 'password' }}
             floatingErrors={{
@@ -182,7 +182,7 @@ export const AddUserForm = () => {
             required
           />
           <FormInput
-            outerLabel={LL.modals.addUser.form.fields.email.label()}
+            label={LL.modals.addUser.form.fields.email.label()}
             placeholder={LL.modals.addUser.form.fields.email.placeholder()}
             controller={{ control, name: 'email' }}
             autoComplete="email"
@@ -191,14 +191,14 @@ export const AddUserForm = () => {
         </div>
         <div className="item">
           <FormInput
-            outerLabel={LL.modals.addUser.form.fields.firstName.label()}
+            label={LL.modals.addUser.form.fields.firstName.label()}
             controller={{ control, name: 'first_name' }}
             placeholder={LL.modals.addUser.form.fields.firstName.placeholder()}
             autoComplete="given-name"
             required
           />
           <FormInput
-            outerLabel={LL.modals.addUser.form.fields.lastName.label()}
+            label={LL.modals.addUser.form.fields.lastName.label()}
             controller={{ control, name: 'last_name' }}
             placeholder={LL.modals.addUser.form.fields.lastName.placeholder()}
             autoComplete="family-name"
@@ -206,7 +206,7 @@ export const AddUserForm = () => {
           />
           <FormInput
             controller={{ control, name: 'phone' }}
-            outerLabel={LL.modals.addUser.form.fields.phone.label()}
+            label={LL.modals.addUser.form.fields.phone.label()}
             placeholder={LL.modals.addUser.form.fields.phone.placeholder()}
             autoComplete="tel"
           />

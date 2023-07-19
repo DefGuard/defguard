@@ -189,7 +189,7 @@ export const WizardNetworkImport = () => {
       <form onSubmit={handleSubmit(onValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
-          outerLabel={LL.networkConfiguration.form.fields.name.label()}
+          label={LL.networkConfiguration.form.fields.name.label()}
           disabled={!isUndefined(data)}
         />
         <MessageBox>
@@ -197,7 +197,7 @@ export const WizardNetworkImport = () => {
         </MessageBox>
         <FormInput
           controller={{ control, name: 'endpoint' }}
-          outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
+          label={LL.networkConfiguration.form.fields.endpoint.label()}
           disabled={!isUndefined(data)}
         />
         <MessageBox>
@@ -206,7 +206,7 @@ export const WizardNetworkImport = () => {
         <FormSelect
           styleVariant={SelectStyleVariant.WHITE}
           controller={{ control, name: 'allowed_groups' }}
-          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          label={LL.networkConfiguration.form.fields.allowedGroups.label()}
           loading={groupsLoading}
           disabled={!isUndefined(data)}
           options={groupOptions}
@@ -216,7 +216,7 @@ export const WizardNetworkImport = () => {
         />
         <FormInput
           controller={{ control, name: 'fileName' }}
-          outerLabel={LL.wizard.locations.form.fileName()}
+          label={LL.wizard.locations.form.fileName()}
           disabled
         />
         <Button

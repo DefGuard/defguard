@@ -102,7 +102,7 @@ export const RegisterWebAuthNForm = () => {
       <FormInput
         controller={{ control, name: 'name' }}
         disabled={registerKeyFinishLoading || waitingForSecurityKey}
-        outerLabel={LL.modals.manageWebAuthNKeys.form.fields.name.label()}
+        label={LL.modals.manageWebAuthNKeys.form.fields.name.label()}
       />
       <div className="controls">
         <Button

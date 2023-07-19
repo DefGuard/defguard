@@ -94,7 +94,7 @@ export const ChangeSelfPasswordForm = () => {
       <FormInput
         controller={{ control, name: 'old_password' }}
         type="password"
-        outerLabel={LL.modals.changePasswordSelf.form.labels.oldPassword()}
+        label={LL.modals.changePasswordSelf.form.labels.oldPassword()}
       />
       <FormInput
         controller={{ control, name: 'new_password' }}
@@ -102,10 +102,10 @@ export const ChangeSelfPasswordForm = () => {
           title: LL.form.floatingErrors.title(),
         }}
         type="password"
-        outerLabel={LL.modals.changePasswordSelf.form.labels.newPassword()}
+        label={LL.modals.changePasswordSelf.form.labels.newPassword()}
       />
       <FormInput
-        outerLabel={LL.modals.changePasswordSelf.form.labels.repeat()}
+        label={LL.modals.changePasswordSelf.form.labels.repeat()}
         controller={{ control, name: 'repeat' }}
         type="password"
       />

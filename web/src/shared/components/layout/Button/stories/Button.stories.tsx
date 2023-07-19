@@ -364,6 +364,38 @@ export const ButtonDemoStory: Story = () => {
           loading
         />
       </div>
+      <div className="demo-buttons">
+        <Button
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.SAVE}
+          icon={<SvgIconCheckmarkWhite />}
+        />
+        <Button
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.DELETE}
+          icon={<SvgIconCheckmarkWhite />}
+        />
+        <Button
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          icon={<SvgIconCheckmarkWhite />}
+        />
+        <Button
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.LINK}
+          icon={<SvgIconCheckmarkWhite />}
+        />
+        <Button
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.STANDARD}
+          icon={<SvgIconCheckmarkWhite />}
+        />
+        <Button
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.CONFIRM}
+          icon={<SvgIconCheckmarkWhite />}
+        />
+      </div>
     </>
   );
 };

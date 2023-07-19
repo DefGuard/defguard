@@ -93,7 +93,7 @@ export const AddDeviceDesktopForm = () => {
     <form onSubmit={handleSubmit(handleValidSubmit)}>
       <FormInput
         controller={{ control, name: 'name' }}
-        outerLabel={LL.modals.addDevice.desktop.form.fields.name.label()}
+        label={LL.modals.addDevice.desktop.form.fields.name.label()}
       />
       <div className="controls">
         <Button
