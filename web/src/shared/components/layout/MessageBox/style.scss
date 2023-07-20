@@ -1,101 +1,150 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/mixins' as mix;
+@use '../../../scss/helpers' as *;
 
-.message-box-container {
+.message-box {
   height: auto;
-  min-height: 54px;
-  box-sizing: border-box;
-  display: flex;
+  min-height: 57px;
   width: 100%;
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 18px 1fr 22px;
+  align-items: center;
+  justify-items: start;
+  column-gap: 20px;
+  border: 0 solid transparent;
+  border-radius: 15px;
+  box-sizing: border-box;
+  padding: 0 20px;
 
-  & > .message-box {
-    box-sizing: border-box;
-    padding: 1rem 2rem;
-    width: 100%;
-    flex-grow: 1;
-    flex-shrink: 0;
-    border: 0 solid transparent;
-    border-radius: 1rem;
-    font-size: 1.2rem;
-    line-height: 1.4;
-    display: inline-grid;
-    grid-template-rows: 1fr;
-    grid-template-columns: 20px 1fr;
-    column-gap: 1rem;
-    align-content: center;
+  & > .icon-container {
+    display: flex;
+    flex-flow: row;
     align-items: center;
-    @include mix.text-weight(medium);
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+  }
 
-    &:nth-child(1) {
-      grid-row: 1;
-      grid-column: 1;
+  & > .dismiss {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    border: 0 solid transparent;
+    background-color: transparent;
+    height: 30px;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+
+    svg {
+      & > g {
+        & > g {
+          fill: var(--surface-icon-primary);
+        }
+      }
     }
+  }
 
-    &:nth-child(2) {
-      grid-column: 2;
-      grid-row: 1;
+  .message {
+    box-sizing: border-box;
+    padding: 17px 0;
+    p,
+    span,
+    b,
+    strong {
+      @include typography(app-modal-1);
     }
 
     b,
     strong {
-      @include mix.text-weight(bold);
+      font-weight: 700;
     }
 
-    svg {
-      width: 20px;
+    p,
+    span {
+      color: inherit;
+      max-width: 100%;
+      white-space: normal;
+    }
+  }
+
+  &.success {
+    background-color: var(--surface-positive-accent);
+
+    .message {
+      color: var(--text-positive);
     }
 
-    p {
-      max-width: calc(100% - 28px);
-
-      & > span {
-        display: block;
+    & > .icon-container {
+      svg {
+        & > g {
+          & > circle {
+            fill: var(--surface-positive-primary);
+          }
+          & > g {
+            & > rect {
+              fill: var(--surface-positive-accent);
+            }
+          }
+        }
       }
     }
+  }
 
-    &.success {
-      background-color: v.$light-green-bg;
-      color: v.$success;
-
-      span,
-      p {
-        color: v.$success;
+  &.warning {
+    background-color: var(--surface-important-accent);
+    .message {
+      color: var(--text-important);
+    }
+    & > .icon-container {
+      & > svg {
+        & > g {
+          & > circle {
+            fill: var(--surface-important);
+          }
+          & > rect {
+            fill: var(--surface-important-accent);
+          }
+        }
       }
     }
+  }
 
-    &.warning {
-      background-color: v.$light-orange-bg;
-      color: v.$warning;
-
-      span,
-      p {
-        color: v.$warning;
-      }
+  &.error {
+    background-color: var(--surface-alert-accent);
+    .message {
+      color: var(--text-alert);
     }
 
-    &.error {
-      background-color: v.$light-red-bg;
-      color: v.$error;
-
-      span,
-      p {
-        color: v.$error;
+    & > .icon-container {
+      & > svg {
+        & > g {
+          & > circle {
+            fill: var(--surface-alert-primary);
+          }
+          & > path {
+            fill: var(--surface-alert-accent);
+          }
+        }
       }
     }
+  }
 
-    &.info,
-    &.deactivated {
-      background-color: v.$bg-light;
-      color: v.$gray-dark;
-
-      span,
-      p {
-        color: v.$gray-dark;
-
-        & > a {
-          color: var(--gray-dark);
-          text-decoration: underline;
-          text-decoration-color: var(--gray-dark);
+  &.info {
+    background-color: var(--surface-info-modal);
+    .message {
+      color: var(--text-body-secondary);
+    }
+    & > .icon-container {
+      & > svg {
+        & > g {
+          & > circle {
+            fill: var(--surface-icon-primary);
+          }
+          & > rect {
+            fill: var(--surface-button);
+          }
         }
       }
     }

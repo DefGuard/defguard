@@ -60,7 +60,7 @@ html[data-theme='light'] {
   --surface-alert-primary: #{$brand-default-error};
   --text-important: #{$brand-default-warning};
   --surface-button: #{$greyscale-10};
-  --border-alert: #{$brand-default-error-x};
+  --border-alert: #{$brand-default-error};
   --surface-modal-accent: #{$greyscale-30};
   --surface-alert-accent: #{$brand-light-error-tertiary};
   --border-primary: #{$greyscale-20};
@@ -79,7 +79,7 @@ html[data-theme='dark'] {
   --surface-info-modal: #{$greyscale-70};
   --surface-icon-secondary: #{$greyscale-0};
   --surface-default-modal: #{$greyscale-80};
-  --border-separator: #{$greyscale-40};
+  --border-separator: #{$greyscale-70};
   --surface-nav-bg: #{$greyscale-80};
   --surface-frame-bg: #{$greyscale-90};
   --text-button-secondary: #{$greyscale-0};
@@ -97,7 +97,7 @@ html[data-theme='dark'] {
   --surface-alert-primary: #{$brand-default-error};
   --text-important: #{$brand-default-warning};
   --surface-button: #{$greyscale-80};
-  --border-alert: #{$brand-default-error-x};
+  --border-alert: #{$brand-default-error};
   --surface-modal-accent: #{$greyscale-30};
   --surface-alert-accent: #{$greyscale-90};
   --border-primary: #{$greyscale-70};

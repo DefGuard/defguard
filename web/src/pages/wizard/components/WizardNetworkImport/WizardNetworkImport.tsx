@@ -18,7 +18,7 @@ import {
   ButtonStyleVariant,
 } from '../../../../shared/components/layout/Button/types';
 import { Card } from '../../../../shared/components/layout/Card/Card';
-import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBox } from '../../../../shared/components/layout/MessageBox/MessageBox';
 import {
   SelectOption,
   SelectStyleVariant,

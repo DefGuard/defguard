@@ -19,9 +19,8 @@ import {
 } from '../../../../../../shared/components/layout/Button/types';
 import { DelayRender } from '../../../../../../shared/components/layout/DelayRender/DelayRender';
 import { LoaderSpinner } from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBox } from '../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../shared/components/layout/MessageBox/types';
 import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { IconCopy } from '../../../../../../shared/components/svg';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';

@@ -11,9 +11,8 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/components/layout/Button/types';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBox } from '../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../shared/components/layout/MessageBox/types';
 import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { IconCopy, IconDownload } from '../../../../../../shared/components/svg';
 import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';

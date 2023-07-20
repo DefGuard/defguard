@@ -13,9 +13,8 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../../shared/components/layout/Button/types';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBox } from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../../shared/components/layout/MessageBox/types';
 import { ToggleOption } from '../../../../../../../shared/components/layout/Toggle/Toggle';
 import { IconDownload } from '../../../../../../../shared/components/svg';
 import { useUserProfileStore } from '../../../../../../../shared/hooks/store/useUserProfileStore';

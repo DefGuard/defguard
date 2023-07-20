@@ -1,11 +1,11 @@
 .card {
   display: block;
   border-radius: 15px;
-  background-color: var(--white);
+  background-color: var(--surface-default-modal);
   box-sizing: border-box;
 
   &.shaded {
-    box-shadow: var(--card-shadow);
+    box-shadow: var(--box-shadow);
   }
 
   &.hide-appearance {

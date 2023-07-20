@@ -11,9 +11,8 @@ import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconButton from '../../../../../shared/components/layout/IconButton/IconButton';
 import { LoaderSpinner } from '../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBox } from '../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../shared/components/layout/MessageBox/types';
 import { Modal } from '../../../../../shared/components/layout/Modal/Modal';
 import { IconHamburgerClose } from '../../../../../shared/components/svg';
 import SvgIconCancel from '../../../../../shared/components/svg/IconCancel';

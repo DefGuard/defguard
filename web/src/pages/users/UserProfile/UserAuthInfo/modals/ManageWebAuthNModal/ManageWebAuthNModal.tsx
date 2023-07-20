@@ -4,9 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBox } from '../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../shared/components/layout/MessageBox/types';
 import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';

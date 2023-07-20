@@ -19,9 +19,8 @@ import {
 import { ExpandableCard } from '../../../../../../../shared/components/layout/ExpandableCard/ExpandableCard';
 import { Input } from '../../../../../../../shared/components/layout/Input/Input';
 import { LoaderSpinner } from '../../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBox } from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../../shared/components/layout/MessageBox/types';
 import {
   Select,
   SelectOption,
