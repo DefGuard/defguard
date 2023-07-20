@@ -4,22 +4,12 @@ import classNames from 'classnames';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { ToastOptions, useToastsStore } from '../../../../hooks/store/useToastStore';
+import { useToastsStore } from '../../../../hooks/store/useToastStore';
 import SvgIconInfoError from '../../../svg/IconInfoError';
 import SvgIconInfoNormal from '../../../svg/IconInfoNormal';
 import SvgIconInfoSuccess from '../../../svg/IconInfoSuccess';
 import SvgIconInfoWarning from '../../../svg/IconInfoWarning';
-
-export enum ToastType {
-  INFO = 'info',
-  WARNING = 'warning',
-  SUCCESS = 'success',
-  ERROR = 'error',
-}
-
-export interface ToastProps {
-  data: ToastOptions;
-}
+import { ToastProps, ToastType } from './types';
 
 export const Toast = ({ data: { id, type, message, subMessage } }: ToastProps) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

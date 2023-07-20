@@ -1,0 +1,9 @@
+.toasts {
+  display: flex;
+  flex-flow: column;
+  row-gap: 20px;
+  align-items: center;
+  & > * {
+    max-width: 250px;
+  }
+}
