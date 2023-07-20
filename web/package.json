@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@ethersproject/providers": "^5.7.2",
-    "@floating-ui/react-dom-interactions": "^0.12.0",
+    "@floating-ui/react": "^0.24.8",
     "@github/webauthn-json": "^2.1.1",
     "@hookform/resolvers": "^3.1.0",
     "@stablelib/base64": "^1.0.1",
@@ -91,9 +91,9 @@
     "zustand": "^4.3.9"
   },
   "devDependencies": {
-    "@ladle/react": "^2.16.1",
     "@babel/core": "^7.22.9",
     "@hookform/devtools": "^4.3.1",
+    "@ladle/react": "^2.16.1",
     "@svgr/cli": "^8.0.1",
     "@tanstack/react-query-devtools": "^4.29.25",
     "@tauri-apps/cli": "^1.4.0",

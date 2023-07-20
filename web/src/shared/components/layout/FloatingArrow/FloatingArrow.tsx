@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { Coords, Placement, Side } from '@floating-ui/react-dom-interactions';
+import { Coords, Placement, Side } from '@floating-ui/react';
 import classNames from 'classnames';
 import { forwardRef, useMemo } from 'react';
 

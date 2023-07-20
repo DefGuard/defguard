@@ -7,7 +7,7 @@ import {
   FloatingPortal,
   offset,
   useFloating,
-} from '@floating-ui/react-dom-interactions';
+} from '@floating-ui/react';
 import classNames from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -47,21 +47,25 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
     const floatingErrorsArrow = useRef<HTMLDivElement | null>(null);
 
-    const { reference, floating, x, y, strategy, placement, middlewareData } =
-      useFloating({
-        open: floatingErrorsOpen,
-        onOpenChange: setFloatingErrorsOpen,
-        placement: 'bottom-end',
-        middleware: [
-          offset(10),
-          flip(),
-          arrow({
-            element: floatingErrorsArrow,
-          }),
-        ],
-        whileElementsMounted: (refElement, floatingElement, updateFunc) =>
-          autoUpdate(refElement, floatingElement, updateFunc),
-      });
+    const {
+      refs: { setFloating, setReference },
+      placement,
+      middlewareData,
+      floatingStyles,
+    } = useFloating({
+      open: floatingErrorsOpen,
+      onOpenChange: setFloatingErrorsOpen,
+      placement: 'bottom-end',
+      middleware: [
+        offset(10),
+        flip(),
+        arrow({
+          element: floatingErrorsArrow,
+        }),
+      ],
+      whileElementsMounted: (refElement, floatingElement, updateFunc) =>
+        autoUpdate(refElement, floatingElement, updateFunc),
+    });
 
     const getInputContainerClassName = useMemo(() => {
       return classNames('input-container', {
@@ -126,7 +130,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           </motion.label>
         )}
         <motion.div
-          ref={reference}
+          ref={setReference}
           className={getInputContainerClassName}
           onFocus={() => {
             setFocused(true);
@@ -204,12 +208,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {floatingErrorsOpen && floatingErrors && (
               <FloatingBox
                 className="floating-input-errors"
-                ref={floating}
-                style={{
-                  position: strategy,
-                  left: x || 0,
-                  top: y || 0,
-                }}
+                ref={setFloating}
+                style={floatingStyles}
                 initial={{
                   opacity: 0,
                 }}

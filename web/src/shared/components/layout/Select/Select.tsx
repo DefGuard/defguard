@@ -7,7 +7,7 @@ import {
   offset,
   size,
   useFloating,
-} from '@floating-ui/react-dom-interactions';
+} from '@floating-ui/react';
 import classNames from 'classnames';
 import { AnimatePresence, motion, Variant, Variants } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
@@ -123,7 +123,7 @@ export const Select = <T extends SelectValue>({
   const extendable = useMemo(() => !isUndefined(onCreate), [onCreate]);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
-  const { x, y, reference, floating, strategy, refs } = useFloating({
+  const { x, y, strategy, refs } = useFloating({
     open,
     onOpenChange: setOpen,
     placement: 'bottom',
@@ -333,7 +333,7 @@ export const Select = <T extends SelectValue>({
           invalid: invalid,
           styleVariant,
         }}
-        ref={reference}
+        ref={refs.setReference}
         id={selectId}
         data-testid={testId}
       >
@@ -427,7 +427,7 @@ export const Select = <T extends SelectValue>({
               initial="hidden"
               animate="show"
               exit="hidden"
-              ref={floating}
+              ref={refs.setFloating}
               style={{
                 position: strategy,
                 left: x || 0,

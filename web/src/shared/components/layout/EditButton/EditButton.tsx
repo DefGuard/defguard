@@ -8,7 +8,7 @@ import {
   offset,
   shift,
   useFloating,
-} from '@floating-ui/react-dom-interactions';
+} from '@floating-ui/react';
 import classNames from 'classnames';
 import { HTMLMotionProps, motion } from 'framer-motion';
 import { ReactNode, useMemo, useRef, useState } from 'react';
@@ -46,7 +46,7 @@ export const EditButton = ({
       }),
     [className, visible],
   );
-  const { x, y, reference, floating, strategy, placement, middlewareData } = useFloating({
+  const { x, y, refs, strategy, placement, middlewareData } = useFloating({
     placement: 'left',
     strategy: 'fixed',
     middleware: [offset(12), flip(), shift(), arrow({ element: arrowRef })],
@@ -99,14 +99,14 @@ export const EditButton = ({
         disabled={disabled}
         type="button"
       >
-        <EditButtonIcon ref={reference} animate={getIconVariant} />
+        <EditButtonIcon ref={refs.setReference} animate={getIconVariant} />
       </motion.button>
       <FloatingPortal>
         {open && (
           <ClickAwayListener onClickAway={() => setOpen(false)}>
             <motion.div
               className="edit-button-floating-ui"
-              ref={floating}
+              ref={refs.setFloating}
               style={{
                 position: strategy,
                 top: y ?? 0,

@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { autoUpdate, offset, useFloating } from '@floating-ui/react-dom-interactions';
+import { autoUpdate, offset, useFloating } from '@floating-ui/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { AnimatePresence, motion, TargetAndTransition } from 'framer-motion';
@@ -37,7 +37,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
   const { LL } = useI18nContext();
   const queryClient = useQueryClient();
   const [floatingOpen, setFloatingOpen] = useState(false);
-  const { x, y, strategy, floating, reference } = useFloating({
+  const { x, y, strategy, refs } = useFloating({
     placement: 'bottom',
     strategy: 'fixed',
     open: floatingOpen,
@@ -152,7 +152,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
         <Label>{LL.components.gatewaysStatus.label()}</Label>
         <div
           className="status-container"
-          ref={reference}
+          ref={refs.setReference}
           onClick={() => setFloatingOpen((state) => !state)}
         >
           <div className="status">
@@ -169,7 +169,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
           <ClickAwayListener onClickAway={() => setFloatingOpen(false)}>
             <motion.div
               className="floating-ui-gateways-status"
-              ref={floating}
+              ref={refs.setFloating}
               style={{
                 position: strategy,
                 top: y ?? 0,

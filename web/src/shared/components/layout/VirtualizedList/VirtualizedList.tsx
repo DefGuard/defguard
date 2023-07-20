@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { autoUpdate, offset, useFloating } from '@floating-ui/react-dom-interactions';
+import { autoUpdate, offset, useFloating } from '@floating-ui/react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
 import { detect } from 'detect-browser';
@@ -209,7 +209,7 @@ const ListHeader = ({
   active = false,
   sortable = true,
 }: ListHeader) => {
-  const { x, y, strategy, reference, floating, update } = useFloating({
+  const { x, y, strategy, refs, update } = useFloating({
     placement: 'right',
     middleware: [offset(5)],
     whileElementsMounted: (refElement, floatingElement, updateFunc) =>
@@ -267,7 +267,7 @@ const ListHeader = ({
       }}
     >
       <motion.span
-        ref={reference}
+        ref={refs.setReference}
         variants={headerSpanVariants}
         animate={active ? 'active' : 'idle'}
       >
@@ -275,7 +275,7 @@ const ListHeader = ({
       </motion.span>
       <div
         className="floating-header-icon"
-        ref={floating}
+        ref={refs.setFloating}
         style={{
           position: strategy,
           top: y ?? 0,

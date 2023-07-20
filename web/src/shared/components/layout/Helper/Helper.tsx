@@ -1,13 +1,6 @@
 import './style.scss';
 
-import {
-  arrow,
-  autoUpdate,
-  flip,
-  offset,
-  shift,
-  useFloating,
-} from '@floating-ui/react-dom-interactions';
+import { arrow, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ReactNode, useMemo, useRef, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
@@ -33,7 +26,7 @@ export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
   const [floatOpen, setFloatOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const arrowRef = useRef(null);
-  const { x, y, strategy, floating, reference, placement, middlewareData } = useFloating({
+  const { x, y, strategy, refs, placement, middlewareData } = useFloating({
     placement: initialPlacement,
     strategy: 'fixed',
     open: floatOpen,
@@ -66,7 +59,7 @@ export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
             setModalOpen(true);
           }
         }}
-        ref={reference}
+        ref={refs.setReference}
       >
         <IconInfo />
       </button>
@@ -89,7 +82,7 @@ export const Helper = ({ children, initialPlacement = 'right' }: Props) => {
           <ClickAwayListener onClickAway={() => setFloatOpen(false)}>
             <motion.div
               className="helper-floating"
-              ref={floating}
+              ref={refs.setFloating}
               style={{
                 position: strategy,
                 top: y ?? 0,
