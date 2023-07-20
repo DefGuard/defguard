@@ -183,7 +183,7 @@ pub async fn modify_network(
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
         .await?;
-    let events = network
+    let _events = network
         .sync_allowed_devices(&mut transaction, &appstate.config.admin_groupname, None)
         .await?;
 
@@ -203,8 +203,6 @@ pub async fn modify_network(
             );
         }
     }
-    // send gateway events for changed devices
-    appstate.send_multiple_wireguard_events(events);
 
     // commit DB transaction
     transaction.commit().await?;
