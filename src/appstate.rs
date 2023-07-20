@@ -80,6 +80,7 @@ impl AppState {
 
     /// Sends multiple events to be handled by gateway GRPC server
     pub fn send_multiple_wireguard_events(&self, events: Vec<GatewayEvent>) {
+        debug!("Sending {} wireguard events", events.len());
         for event in events {
             self.send_wireguard_event(event)
         }
