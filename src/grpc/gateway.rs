@@ -179,6 +179,7 @@ impl GatewayUpdatesHandler {
             self.gateway_hostname, self.network
         );
         while let Ok(update) = self.events_rx.recv().await {
+            debug!("Received wireguard update: {:?}", update);
             let result = match update {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if network_id == self.network_id {
