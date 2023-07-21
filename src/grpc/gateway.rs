@@ -145,6 +145,7 @@ impl WireguardPeerStats {
 
 /// Helper struct for handling gateway events
 struct GatewayUpdatesHandler {
+    network_id: i64,
     network: WireguardNetwork,
     gateway_hostname: String,
     events_rx: BroadcastReceiver<GatewayEvent>,
@@ -153,12 +154,14 @@ struct GatewayUpdatesHandler {
 
 impl GatewayUpdatesHandler {
     pub fn new(
+        network_id: i64,
         network: WireguardNetwork,
         gateway_hostname: String,
         events_rx: BroadcastReceiver<GatewayEvent>,
         tx: mpsc::Sender<Result<Update, Status>>,
     ) -> Self {
         Self {
+            network_id,
             network,
             gateway_hostname,
             events_rx,
@@ -176,23 +179,24 @@ impl GatewayUpdatesHandler {
             self.gateway_hostname, self.network
         );
         while let Ok(update) = self.events_rx.recv().await {
+            debug!("Received wireguard update: {:?}", update);
             let result = match update {
                 GatewayEvent::NetworkCreated(network_id, network) => {
-                    if Some(network_id) == self.network.id {
+                    if network_id == self.network_id {
                         self.send_network_update(&network, Vec::new(), 0).await
                     } else {
                         Ok(())
                     }
                 }
                 GatewayEvent::NetworkModified(network_id, network, peers) => {
-                    if Some(network_id) == self.network.id {
+                    if network_id == self.network_id {
                         self.send_network_update(&network, peers, 1).await
                     } else {
                         Ok(())
                     }
                 }
                 GatewayEvent::NetworkDeleted(network_id, network_name) => {
-                    if Some(network_id) == self.network.id {
+                    if network_id == self.network_id {
                         self.send_network_delete(&network_name).await
                     } else {
                         Ok(())
@@ -203,7 +207,7 @@ impl GatewayUpdatesHandler {
                     match device
                         .network_info
                         .iter()
-                        .find(|info| Some(info.network_id) == self.network.id)
+                        .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
                             self.send_peer_update(
@@ -223,7 +227,7 @@ impl GatewayUpdatesHandler {
                     match device
                         .network_info
                         .iter()
-                        .find(|info| Some(info.network_id) == self.network.id)
+                        .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
                             self.send_peer_update(
@@ -243,7 +247,7 @@ impl GatewayUpdatesHandler {
                     match device
                         .network_info
                         .iter()
-                        .find(|info| Some(info.network_id) == self.network.id)
+                        .find(|info| info.network_id == self.network_id)
                     {
                         Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey).await,
                         None => Ok(()),
@@ -555,8 +559,13 @@ impl gateway_service_server::GatewayService for GatewayServer {
         // clone here before moving into a closure
         let gateway_hostname = hostname.clone();
         let handle = tokio::spawn(async move {
-            let mut update_handler =
-                GatewayUpdatesHandler::new(network, gateway_hostname, events_rx, tx);
+            let mut update_handler = GatewayUpdatesHandler::new(
+                gateway_network_id,
+                network,
+                gateway_hostname,
+                events_rx,
+                tx,
+            );
             update_handler.run().await
         });
 
