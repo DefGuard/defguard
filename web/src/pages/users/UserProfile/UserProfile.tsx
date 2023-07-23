@@ -59,7 +59,7 @@ export const UserProfile = () => {
 
   useQuery([QueryKeys.FETCH_USER_PROFILE, username], () => getUser(username), {
     onSuccess: (userProfile) => {
-      setUserProfileState({ userProfile: userProfile });
+      setUserProfileState({ userProfile });
     },
     onError: (err) => {
       toaster.error(LL.userPage.messages.failedToFetchUserData());

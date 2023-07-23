@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { TargetAndTransition } from 'framer-motion';
-import { isUndefined, orderBy } from 'lodash-es';
+import { isUndefined, sortBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -70,22 +70,14 @@ export const DeviceCard = ({ device }: Props) => {
   }, [expanded, hovered]);
 
   const sortedLocations = useMemo(() => {
-    let sortByDateAvailable = true;
-    device.networks.forEach((n) => {
-      if (!n.last_connected_at) {
-        sortByDateAvailable = false;
-      }
-    });
-    if (sortByDateAvailable) {
-      const sorted = sortByDate(
-        device.networks.filter((network) => Boolean(network.last_connected_at)),
-        (i) => i.last_connected_at as string,
-        true
-      );
+    const filtered = device.networks.filter(
+      (network) => !isUndefined(network.last_connected_at)
+    );
+    if (filtered.length) {
+      const sorted = sortByDate(filtered, (n) => n.last_connected_at as string, true);
       return sorted;
-    } else {
-      return orderBy(device.networks, ['network_id'], ['desc']);
     }
+    return sortBy(device.networks, ['network_id'], ['desc']);
   }, [device.networks]);
 
   const latestLocation = useMemo(() => {
