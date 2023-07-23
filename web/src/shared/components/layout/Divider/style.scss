@@ -1,11 +1,10 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/mixins' as mix;
+@use '../../../scss/helpers' as *;
 
 .divider {
   content: ' ';
   display: block;
   position: relative;
-  background-color: var(--separator-stroke);
+  background-color: var(--border-separator);
 
   &.horizontal {
     width: 100%;

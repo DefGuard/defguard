@@ -2,15 +2,17 @@
 
 .input {
   position: relative;
+  box-sizing: border-box;
+  padding-bottom: 25px;
 
   & > .error-message {
     position: absolute;
-    bottom: -20px;
     @include typography(app-wizard-1);
     @include text-overflow-dots;
     white-space: nowrap;
     max-width: 100%;
     overflow: hidden;
+    bottom: 0;
 
     color: var(--text-alert);
   }
@@ -44,7 +46,6 @@
     padding: 0 20px;
     border: 1px solid var(--border-primary);
     margin: 0;
-    margin-bottom: 20px;
 
     transition-timing-function: ease-in-out;
     transition-duration: 250ms;

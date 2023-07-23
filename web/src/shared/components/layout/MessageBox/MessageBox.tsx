@@ -2,8 +2,7 @@ import './style.scss';
 
 import classNames from 'classnames';
 import { isUndefined } from 'lodash-es';
-import { ComponentPropsWithoutRef, useEffect, useMemo, useState } from 'react';
-import { ReactNode } from 'react-markdown/lib/ast-to-react';
+import { ComponentPropsWithoutRef, ReactNode, useEffect, useMemo, useState } from 'react';
 
 import SvgIconInfo from '../../svg/IconInfo';
 import SvgIconInfoError from '../../svg/IconInfoError';
