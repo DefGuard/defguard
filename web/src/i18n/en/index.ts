@@ -138,6 +138,7 @@ const en: BaseTranslation = {
       },
       web: {
         title: 'Add device',
+        viewTitle: 'Device configuration',
         steps: {
           config: {
             messages: {
@@ -480,10 +481,14 @@ const en: BaseTranslation = {
       },
       card: {
         labels: {
+          publicIP: 'Public IP',
+          connectedThrough: 'Connected through',
+          connectionDate: 'Connected date',
           lastLocation: 'Last connected from',
           lastConnected: 'Last connected',
           assignedIp: 'Assigned IP',
           active: 'active',
+          noData: 'Never connected',
         },
         edit: {
           edit: 'Edit device',

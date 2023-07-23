@@ -300,6 +300,10 @@ type RootTranslation = {
 				 * A​d​d​ ​d​e​v​i​c​e
 				 */
 				title: string
+				/**
+				 * D​e​v​i​c​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				viewTitle: string
 				steps: {
 					config: {
 						messages: {
@@ -1041,6 +1045,18 @@ type RootTranslation = {
 			card: {
 				labels: {
 					/**
+					 * P​u​b​l​i​c​ ​I​P
+					 */
+					publicIP: string
+					/**
+					 * C​o​n​n​e​c​t​e​d​ ​t​h​r​o​u​g​h
+					 */
+					connectedThrough: string
+					/**
+					 * C​o​n​n​e​c​t​e​d​ ​d​a​t​e
+					 */
+					connectionDate: string
+					/**
 					 * L​a​s​t​ ​c​o​n​n​e​c​t​e​d​ ​f​r​o​m
 					 */
 					lastLocation: string
@@ -1056,6 +1072,10 @@ type RootTranslation = {
 					 * a​c​t​i​v​e
 					 */
 					active: string
+					/**
+					 * N​e​v​e​r​ ​c​o​n​n​e​c​t​e​d
+					 */
+					noData: string
 				}
 				edit: {
 					/**
@@ -3123,6 +3143,10 @@ export type TranslationFunctions = {
 				 * Add device
 				 */
 				title: () => LocalizedString
+				/**
+				 * Device configuration
+				 */
+				viewTitle: () => LocalizedString
 				steps: {
 					config: {
 						messages: {
@@ -3858,6 +3882,18 @@ export type TranslationFunctions = {
 			card: {
 				labels: {
 					/**
+					 * Public IP
+					 */
+					publicIP: () => LocalizedString
+					/**
+					 * Connected through
+					 */
+					connectedThrough: () => LocalizedString
+					/**
+					 * Connected date
+					 */
+					connectionDate: () => LocalizedString
+					/**
 					 * Last connected from
 					 */
 					lastLocation: () => LocalizedString
@@ -3873,6 +3909,10 @@ export type TranslationFunctions = {
 					 * active
 					 */
 					active: () => LocalizedString
+					/**
+					 * Never connected
+					 */
+					noData: () => LocalizedString
 				}
 				edit: {
 					/**

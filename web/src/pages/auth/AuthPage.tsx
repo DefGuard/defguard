@@ -18,7 +18,10 @@ import { MFARoute } from './MFARoute/MFARoute';
 import { useMFAStore } from './shared/hooks/useMFAStore';
 
 export const AuthPage = () => {
-  const { getAppInfo } = useApi();
+  const {
+    getAppInfo,
+    settings: { getSettings },
+  } = useApi();
   const { LL } = useI18nContext();
   const navigate = useNavigate();
   const [showRedirect, setShowRedirect] = useState(false);
@@ -96,13 +99,18 @@ export const AuthPage = () => {
         const isAdmin = isUserAdmin(user);
         let navigateURL = '/me';
         if (isAdmin) {
-          // check if VPN needs wizard
+          // check where to navigate administrator
           const appInfo = await getAppInfo();
-          setAppStore({ appInfo });
-          if (!appInfo?.network_present) {
-            navigateURL = '/admin/wizard';
+          const settings = await getSettings();
+          setAppStore({ appInfo, settings });
+          if (settings.wireguard_enabled) {
+            if (!appInfo?.network_present) {
+              navigateURL = '/admin/wizard';
+            } else {
+              navigateURL = '/admin/overview';
+            }
           } else {
-            navigateURL = '/admin/overview';
+            navigateURL = '/admin/users';
           }
         }
         setAuthStore({ user, isAdmin });

@@ -18,6 +18,7 @@ import {
   EditButtonOptionStyleVariant,
 } from '../../../../../shared/components/layout/EditButton/EditButtonOption';
 import { Label } from '../../../../../shared/components/layout/Label/Label';
+import NoData from '../../../../../shared/components/layout/NoData/NoData';
 import { IconClip } from '../../../../../shared/components/svg';
 import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
 import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
@@ -113,22 +114,33 @@ export const DeviceCard = ({ device }: Props) => {
         </header>
         <div className="section-content">
           <div>
-            <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
-            <p data-testid="device-last-connected-from">
-              {latestLocation?.last_connected_ip}
-            </p>
+            <Label>{LL.userPage.devices.card.labels.publicIP()}</Label>
+            {latestLocation?.last_connected_ip && (
+              <p data-testid="device-last-connected-from">
+                {latestLocation.last_connected_ip}
+              </p>
+            )}
+            {!latestLocation?.last_connected_ip && (
+              <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
+            )}
           </div>
           <div>
-            <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
-            <p>
-              {!isUndefined(latestLocation) &&
-                !isUndefined(latestLocation.last_connected_at) &&
-                formatDate(latestLocation.last_connected_at)}
-            </p>
+            <Label>{LL.userPage.devices.card.labels.connectedThrough()}</Label>
+            {latestLocation && latestLocation.last_connected_at && (
+              <p>{latestLocation?.network_name}</p>
+            )}
+            {!latestLocation?.last_connected_at && (
+              <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
+            )}
           </div>
           <div>
-            <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-            <p>{latestLocation?.device_wireguard_ip}</p>
+            <Label>{LL.userPage.devices.card.labels.connectionDate()}</Label>
+            {latestLocation && latestLocation.last_connected_at && (
+              <p>{formatDate(latestLocation.last_connected_at)}</p>
+            )}
+            {!latestLocation?.last_connected_at && (
+              <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
+            )}
           </div>
         </div>
       </section>
@@ -207,13 +219,21 @@ const DeviceLocation = ({
       <div className="section-content">
         <div>
           <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
-          <p data-testid="device-last-connected-from">{last_connected_ip}</p>
+          {last_connected_ip && (
+            <p data-testid="device-last-connected-from">{last_connected_ip}</p>
+          )}
+          {!last_connected_ip && (
+            <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
+          )}
         </div>
         <div>
           <Label>{LL.userPage.devices.card.labels.lastConnected()}</Label>
-          <p data-testid="device-last-connected-at">
-            {last_connected_at && formatDate(last_connected_at)}
-          </p>
+          {last_connected_at && (
+            <p data-testid="device-last-connected-at">{formatDate(last_connected_at)}</p>
+          )}
+          {!last_connected_at && (
+            <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
+          )}
         </div>
         <div>
           <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>

@@ -57,7 +57,7 @@ fn check_password_strength(password: &str) -> Result<(), OriWebError> {
     let numbers_expression = Regex::new(r"[0-9]").unwrap();
     let lowercase_expression = Regex::new(r"[a-z]").unwrap();
     let uppercase_expression = Regex::new(r"[A-Z]").unwrap();
-    if !(8..=32).contains(&password_length) {
+    if !(8..=128).contains(&password_length) {
         return Err(OriWebError::Serialization(
             "Incorrect password length".into(),
         ));

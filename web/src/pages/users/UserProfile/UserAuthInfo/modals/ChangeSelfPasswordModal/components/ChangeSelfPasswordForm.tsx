@@ -14,12 +14,7 @@ import {
 } from '../../../../../../../shared/components/layout/Button/types';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
-import {
-  patternAtLeastOneDigit,
-  patternAtLeastOneLowerCaseChar,
-  patternAtLeastOneSpecialChar,
-  patternAtLeastOneUpperCaseChar,
-} from '../../../../../../../shared/patterns';
+import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useChangeSelfPasswordModal } from '../hooks/useChangeSelfPasswordModal';
 
 type FormFields = {
@@ -38,15 +33,7 @@ export const ChangeSelfPasswordForm = () => {
       yup
         .object({
           old_password: yup.string().required(LL.form.error.required()),
-          new_password: yup
-            .string()
-            .min(8, LL.form.error.minimumLength())
-            .max(32, LL.form.error.maximumLength())
-            .matches(patternAtLeastOneDigit, LL.form.error.oneDigit())
-            .matches(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
-            .matches(patternAtLeastOneUpperCaseChar, LL.form.error.oneUppercase())
-            .matches(patternAtLeastOneLowerCaseChar, LL.form.error.oneLowercase())
-            .required(LL.form.error.required()),
+          new_password: passwordValidator(LL),
           repeat: yup
             .string()
             .required(LL.form.error.required())
@@ -57,7 +44,7 @@ export const ChangeSelfPasswordForm = () => {
             ),
         })
         .required(),
-    [LL.form.error]
+    [LL]
   );
 
   const { control, handleSubmit } = useForm<FormFields>({
