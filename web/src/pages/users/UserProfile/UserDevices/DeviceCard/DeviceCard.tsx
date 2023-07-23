@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { TargetAndTransition } from 'framer-motion';
-import { isUndefined, sortBy } from 'lodash-es';
+import { isUndefined, orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -69,23 +69,27 @@ export const DeviceCard = ({ device }: Props) => {
     return res;
   }, [expanded, hovered]);
 
-  const sortedLocations = useMemo(() => {
-    const filtered = device.networks.filter(
+  // first, order by last_connected_at then if not preset, by network_id
+  const orderedLocations = useMemo((): DeviceNetworkInfo[] => {
+    const connected = device.networks.filter(
       (network) => !isUndefined(network.last_connected_at)
     );
-    if (filtered.length) {
-      const sorted = sortByDate(filtered, (n) => n.last_connected_at as string, true);
-      return sorted;
-    }
-    return sortBy(device.networks, ['network_id'], ['desc']);
+
+    const neverConnected = device.networks.filter((network) =>
+      isUndefined(network.last_connected_at)
+    );
+
+    const connectedSorted = sortByDate(
+      connected,
+      (n) => n.last_connected_at as string,
+      true
+    );
+    const neverConnectedSorted = orderBy(neverConnected, ['network_id'], ['desc']);
+
+    return [...connectedSorted, ...neverConnectedSorted];
   }, [device.networks]);
 
-  const latestLocation = useMemo(() => {
-    if (sortedLocations.length) {
-      return sortedLocations[0];
-    }
-    return undefined;
-  }, [sortedLocations]);
+  const latestLocation = orderedLocations.length ? orderedLocations[0] : undefined;
 
   if (!user) return null;
 
@@ -137,7 +141,7 @@ export const DeviceCard = ({ device }: Props) => {
         </div>
       </section>
       <div className="locations">
-        {device.networks.map((n) => (
+        {orderedLocations.map((n) => (
           <DeviceLocation key={n.network_id} network_info={n} />
         ))}
       </div>
