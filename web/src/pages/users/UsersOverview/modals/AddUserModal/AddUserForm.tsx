@@ -15,10 +15,6 @@ import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import {
-  patternAtLeastOneDigit,
-  patternAtLeastOneLowerCaseChar,
-  patternAtLeastOneSpecialChar,
-  patternAtLeastOneUpperCaseChar,
   patternDigitOrLowercase,
   patternNoSpecialChars,
   patternStartsWithDigit,
@@ -26,6 +22,7 @@ import {
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
+import { passwordValidator } from '../../../../../shared/validators/password';
 
 interface Inputs {
   username: string;
@@ -66,15 +63,7 @@ export const AddUserForm = () => {
             .test('username-available', LL.form.error.usernameTaken(), (value?: string) =>
               value ? !reservedUserNames.current.includes(value) : false
             ),
-          password: yup
-            .string()
-            .min(8, LL.form.error.minimumLength())
-            .max(32, LL.form.error.maximumLength())
-            .matches(patternAtLeastOneDigit, LL.form.error.oneDigit())
-            .matches(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
-            .matches(patternAtLeastOneUpperCaseChar, LL.form.error.oneUppercase())
-            .matches(patternAtLeastOneLowerCaseChar, LL.form.error.oneLowercase())
-            .required(LL.form.error.required()),
+          password: passwordValidator(LL),
           email: yup
             .string()
             .required(LL.form.error.required())
@@ -98,7 +87,7 @@ export const AddUserForm = () => {
             }),
         })
         .required(),
-    [LL.form.error]
+    [LL]
   );
 
   const {

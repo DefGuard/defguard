@@ -81,29 +81,40 @@ export const ConfigStep = () => {
   );
 
   const handleConfigDownload = useCallback(() => {
-    if (selectedConfigOption?.value && !loadingConfig && selectedConfig) {
-      if (standAloneMode && device) {
+    if (standAloneMode) {
+      if (
+        device &&
+        !loadingConfig &&
+        selectedConfigOption &&
+        selectedConfigOption.value &&
+        selectedConfig
+      ) {
         const data = device.networks.find(
           (n) => n.network_id === selectedConfigOption.value
         );
         downloadWGConfig(
           selectedConfig,
+          `${device.name.toLowerCase().replace(' ', '')}-${data?.network_name
+            .toLowerCase()
+            .replace(' ', '')}`
+        );
+      }
+    } else {
+      if (
+        selectedConfigOption &&
+        selectedConfigOption.value &&
+        selectedConfig &&
+        configsData
+      ) {
+        const data = configsData.find(
+          (d) => d.network_id === selectedConfigOption?.value
+        );
+        downloadWGConfig(
+          selectedConfig,
           `${deviceName?.toLowerCase().replace(' ', '')}-${data?.network_name
             .toLowerCase()
-            .replace(' ', '')}.conf`
+            .replace(' ', '')}`
         );
-      } else {
-        if (configsData) {
-          const data = configsData.find(
-            (d) => d.network_id === selectedConfigOption?.value
-          );
-          downloadWGConfig(
-            selectedConfig,
-            `${deviceName?.toLowerCase().replace(' ', '')}-${data?.network_name
-              .toLowerCase()
-              .replace(' ', '')}.conf`
-          );
-        }
       }
     }
   }, [
@@ -112,7 +123,7 @@ export const ConfigStep = () => {
     deviceName,
     loadingConfig,
     selectedConfig,
-    selectedConfigOption?.value,
+    selectedConfigOption,
     standAloneMode,
   ]);
 

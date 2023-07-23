@@ -1,11 +1,9 @@
 import { isUndefined } from 'lodash-es';
-import { ReactNode, useEffect } from 'react';
-import { useIdleTimer } from 'react-idle-timer';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
 
 import { useAppStore } from '../../../../hooks/store/useAppStore';
 import { useAuthStore } from '../../../../hooks/store/useAuthStore';
-import useApi from '../../../../hooks/useApi';
 import { Settings } from '../../../../types';
 
 interface Props {
@@ -24,46 +22,48 @@ export const ProtectedRoute = ({
 }: Props) => {
   const currentUser = useAuthStore((state) => state.user);
   const settings = useAppStore((state) => state.settings);
-  const {
-    auth: { logout },
-  } = useApi();
 
-  const handleOnIdle = () => {
-    logout();
-  };
-  const navigate = useNavigate();
-  useIdleTimer({
-    timeout: 10 * 60 * 10000,
-    onIdle: handleOnIdle,
-    debounce: 500,
-  });
-
-  useEffect(() => {
-    if (currentUser && allowedGroups && allowedGroups.length > 0) {
-      let allowed = false;
-      for (const group of currentUser.groups) {
-        if (allowedGroups.includes(group)) {
-          allowed = true;
-          break;
-        }
-      }
-      if (!allowed) {
-        console.warn('[GUARD] Not authorized to navigate.');
-        navigate('/', { replace: true });
-      }
-    }
-  }, [allowedGroups, currentUser, navigate]);
-
+  // authorized
   if (isUndefined(currentUser) && !allowUnauthorized) {
     console.warn('[GUARD] Not authorized to navigate.');
     return <Navigate replace to="/auth/login" />;
   }
 
+  // have group
+  if (allowedGroups && allowedGroups.length > 0 && currentUser) {
+    let allowed = false;
+    for (const userGroup of currentUser.groups) {
+      if (allowedGroups.includes(userGroup)) {
+        allowed = true;
+      }
+    }
+
+    if (!allowed) {
+      if (currentUser.groups.includes('admin')) {
+        return <Navigate to="/admin/users" replace />;
+      } else {
+        return <Navigate to="/me" replace />;
+      }
+    }
+  }
+
+  if (isUndefined(settings) && moduleRequired) {
+    if (currentUser?.groups.includes('admin')) {
+      return <Navigate to="/admin/users" replace />;
+    }
+    return <Navigate to="/me" replace />;
+  }
+
+  // route module is enabled
   if (settings !== undefined && moduleRequired !== undefined) {
     if (!settings[moduleRequired]) {
       console.warn('[GUARD] Not authorized to navigate.');
-      navigate('/', { replace: true });
+      if (currentUser?.groups.includes('admin')) {
+        return <Navigate to="/admin/users" replace />;
+      }
+      return <Navigate to="/me" replace />;
     }
   }
+
   return <>{children}</>;
 };

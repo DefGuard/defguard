@@ -138,6 +138,7 @@ const pl: Translation = {
         success: 'Urządzenie dodane.',
       },
       web: {
+        viewTitle: 'Konfiguracja urządzenia',
         title: 'Dodaj urządzenie',
         steps: {
           config: {
@@ -481,6 +482,10 @@ const pl: Translation = {
       },
       card: {
         labels: {
+          noData: 'Nie połączono',
+          connectedThrough: 'Połączone przez',
+          publicIP: 'Publiczne IP',
+          connectionDate: 'Data połączenia',
           lastLocation: 'Ostatnie połączenie z',
           active: 'aktywne',
           assignedIp: 'Przydzielone IP',

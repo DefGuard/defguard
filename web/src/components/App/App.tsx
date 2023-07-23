@@ -35,7 +35,10 @@ const App = () => {
               <Route
                 path="network/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute
+                    allowedGroups={['admin']}
+                    moduleRequired="wireguard_enabled"
+                  >
                     <NetworkPage />
                   </ProtectedRoute>
                 }
