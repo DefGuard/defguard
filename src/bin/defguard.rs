@@ -1,4 +1,5 @@
 use defguard::grpc::GatewayMap;
+use defguard::wireguard_stats_purge::run_periodic_stats_purge;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
@@ -101,9 +102,17 @@ async fn main() -> Result<(), anyhow::Error> {
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
     // run services
-    tokio::select! {
-        _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
-        _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins) => (),
-    };
+    if config.disable_stats_purge {
+        tokio::select! {
+            _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
+            _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins) => (),
+        };
+    } else {
+        tokio::select! {
+            _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
+            _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins) => (),
+            _ = run_periodic_stats_purge(config.stats_purge_frequency, config.stats_purge_threshold) => (),
+        };
+    }
     Ok(())
 }
