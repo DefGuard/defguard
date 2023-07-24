@@ -130,7 +130,7 @@ pub struct DefGuardConfig {
     pub ldap_group_member_attr: String,
 
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
-    pub enable_stats_purge: bool,
+    pub disable_stats_purge: bool,
 
     #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY", default_value = "24h")]
     pub stats_purge_frequency: Duration,
