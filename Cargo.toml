@@ -68,6 +68,7 @@ regex = "1.8"
 lazy_static = "1.4"
 thiserror = "1.0"
 dotenvy = "0.15"
+humantime = "2.1"
 
 [dev-dependencies]
 matches = "0.1"
