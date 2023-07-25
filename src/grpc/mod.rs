@@ -22,6 +22,7 @@ use crate::auth::failed_login::FailedLoginMap;
 use crate::db::AppEvent;
 use chrono::{NaiveDateTime, Utc};
 use serde::Serialize;
+use std::time::Duration;
 use std::{collections::hash_map::HashMap, time::Instant};
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
@@ -249,12 +250,14 @@ pub async fn run_grpc_server(
     // Run gRPC server
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), grpc_port);
     info!("Started gRPC services");
-    let mut builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
+    let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
         let identity = Identity::from_pem(cert, key);
         Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
     } else {
         Server::builder()
     };
+    let builder = builder.http2_keepalive_interval(Some(Duration::from_secs(10)));
+    let mut builder = builder.tcp_keepalive(Some(Duration::from_secs(10)));
     let router = builder.add_service(auth_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);

@@ -84,6 +84,7 @@ pub mod ldap;
 pub mod license;
 pub(crate) mod random;
 pub mod wg_config;
+pub mod wireguard_stats_purge;
 
 #[macro_use]
 extern crate rocket;

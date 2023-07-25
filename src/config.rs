@@ -1,4 +1,5 @@
 use clap::Parser;
+use humantime::Duration;
 use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
@@ -127,6 +128,15 @@ pub struct DefGuardConfig {
         default_value = "uniqueMember"
     )]
     pub ldap_group_member_attr: String,
+
+    #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
+    pub disable_stats_purge: bool,
+
+    #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY", default_value = "24h")]
+    pub stats_purge_frequency: Duration,
+
+    #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD", default_value = "30d")]
+    pub stats_purge_threshold: Duration,
 
     #[command(subcommand)]
     pub cmd: Option<Command>,
