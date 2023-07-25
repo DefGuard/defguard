@@ -3,6 +3,7 @@ use crate::{
     config::DefGuardConfig,
     db::{AppEvent, DbPool, GatewayEvent, WebHook},
     license::License,
+    mail::Mail,
 };
 use reqwest::Client;
 use rocket::serde::json::serde_json::json;
@@ -21,6 +22,7 @@ pub struct AppState {
     pub pool: DbPool,
     tx: UnboundedSender<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
+    pub mail_tx: UnboundedSender<Mail>,
     pub license: License,
     pub webauthn: Webauthn,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -93,6 +95,7 @@ impl AppState {
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
         wireguard_tx: Sender<GatewayEvent>,
+        mail_tx: UnboundedSender<Mail>,
         license: License,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
     ) -> Self {
@@ -115,6 +118,7 @@ impl AppState {
             pool,
             tx,
             wireguard_tx,
+            mail_tx,
             license,
             webauthn,
             failed_logins,

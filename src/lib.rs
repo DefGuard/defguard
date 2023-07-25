@@ -3,7 +3,7 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::handlers::user::change_self_password;
+use crate::handlers::user::{change_self_password, onboarding};
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
@@ -56,6 +56,7 @@ use handlers::{
         remove_gateway, user_stats,
     },
 };
+use mail::Mail;
 use rocket::{
     config::{Config, SecretKey},
     error::Error as RocketError,
@@ -82,6 +83,7 @@ pub mod handlers;
 pub mod hex;
 pub mod ldap;
 pub mod license;
+pub mod mail;
 pub(crate) mod random;
 pub mod wg_config;
 
@@ -112,6 +114,7 @@ pub async fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     pool: DbPool,
@@ -175,7 +178,8 @@ pub async fn build_webapp(
                 delete_authorized_app,
                 recovery_code,
                 get_app_info,
-                change_self_password
+                change_self_password,
+                onboarding,
             ],
         )
         .mount(
@@ -271,6 +275,7 @@ pub async fn build_webapp(
             webhook_tx,
             webhook_rx,
             wireguard_tx,
+            mail_tx,
             license_decoded,
             failed_logins,
         )
@@ -286,6 +291,7 @@ pub async fn run_web_server(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
     pool: DbPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<Rocket<Ignite>, RocketError> {
@@ -294,6 +300,7 @@ pub async fn run_web_server(
         webhook_tx,
         webhook_rx,
         wireguard_tx,
+        mail_tx,
         worker_state,
         gateway_state,
         pool,

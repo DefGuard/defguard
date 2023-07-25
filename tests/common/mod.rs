@@ -1,4 +1,3 @@
-use defguard::db::UserDetails;
 #[cfg(test)]
 use defguard::{
     auth::failed_login::FailedLoginMap,
@@ -7,6 +6,7 @@ use defguard::{
     db::{init_db, AppEvent, DbPool, GatewayEvent, User},
     grpc::{GatewayMap, WorkerState},
 };
+use defguard::{db::UserDetails, mail::Mail};
 use rocket::http::Status;
 use rocket::local::asynchronous::Client;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
@@ -94,6 +94,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
+    let (mail_tx, _) = unbounded_channel::<Mail>();
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     let failed_logins = FailedLoginMap::new();
@@ -116,6 +117,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
         tx,
         rx,
         wg_tx,
+        mail_tx,
         worker_state,
         gateway_state,
         pool,

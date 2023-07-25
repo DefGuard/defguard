@@ -1,4 +1,5 @@
 use defguard::grpc::GatewayMap;
+use defguard::mail::{Mail, MailHandler};
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
@@ -72,6 +73,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
     let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(256);
+    let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let pool = init_db(
@@ -103,7 +105,8 @@ async fn main() -> Result<(), anyhow::Error> {
     // run services
     tokio::select! {
         _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
-        _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins) => (),
+        _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool, failed_logins) => (),
+        _ = MailHandler::new(mail_rx).run() => (),
     };
     Ok(())
 }
