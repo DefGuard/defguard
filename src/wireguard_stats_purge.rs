@@ -1,7 +1,7 @@
 use crate::db::{DbPool, WireguardPeerStats};
-use chrono::{DateTime, Duration as ChronoDuration, Utc};
+use chrono::{DateTime, Duration as ChronoDuration, NaiveDateTime, Utc};
 use humantime::format_duration;
-use sqlx::{query, Error as SqlxError};
+use sqlx::{query, query_scalar, Error as SqlxError};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -37,38 +37,58 @@ impl WireguardPeerStats {
         .await?;
 
         let end = Utc::now();
+        let rows_count = result.rows_affected();
 
         info!(
             "Removed {} old records from wireguard_peer_stats",
-            result.rows_affected(),
+            rows_count,
         );
 
         // record successful stats purge in DB
-        Self::record_stats_purge(pool, start, end).await?;
+        Self::record_stats_purge(pool, start, end, threshold, rows_count as i64).await?;
 
         Ok(())
     }
 
     // Check how much time has elapsed since last recorded stats purge
-    pub async fn time_since_last_purge<'e, E>(executor: E) -> Result<Duration, SqlxError>
+    pub async fn time_since_last_purge<'e, E>(executor: E) -> Result<Option<Duration>, SqlxError>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
         debug!("Checking time since last stats purge");
 
-        unimplemented!()
+        let timestamp = query_scalar!("SELECT MAX(started_at) FROM wireguard_stats_purge")
+            .fetch_one(executor)
+            .await?;
+
+        match timestamp {
+            Some(timestamp) => {
+                let time_since = Utc::now().signed_duration_since(timestamp.and_utc());
+                let time_since = time_since.to_std().expect("Failed to parse duration");
+                debug!(
+                    "Time since last stats purge: {}",
+                    format_duration(time_since)
+                );
+                Ok(Some(time_since))
+            }
+            None => Ok(None),
+        }
     }
 
     async fn record_stats_purge<'e, E>(
         executor: E,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
-    ) -> Result<Duration, SqlxError>
+        removal_threshold: NaiveDateTime,
+        records_removed: i64,
+    ) -> Result<(), SqlxError>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
         debug!("Recording successful stats purge in DB");
-        unimplemented!()
+        query!("INSERT INTO wireguard_stats_purge (started_at, finished_at, removal_threshold, records_removed) VALUES ($1, $2, $3, $4)",
+        start.naive_utc(), end.naive_utc(), removal_threshold, records_removed).execute(executor).await?;
+        Ok(())
     }
 }
 
@@ -86,7 +106,11 @@ pub async fn run_periodic_stats_purge(
     loop {
         debug!("Checking if stats purge should be executed");
         // check time elapsed since last purge
-        if WireguardPeerStats::time_since_last_purge(&pool).await? >= stats_purge_frequency {
+        let time_since_last_purge = WireguardPeerStats::time_since_last_purge(&pool).await?;
+        if match time_since_last_purge {
+            Some(time_since) => time_since >= stats_purge_frequency,
+            None => true,
+        } {
             // perform purge
             info!("Executing stats purge");
             match WireguardPeerStats::purge_old_stats(&pool, stats_purge_threshold).await {
