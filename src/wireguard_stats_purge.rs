@@ -5,6 +5,9 @@ use sqlx::{query, query_scalar, Error as SqlxError};
 use std::time::Duration;
 use tokio::time::sleep;
 
+// How long to sleep between loop iterations
+const PURGE_LOOP_SLEEP_SECONDS: u64 = 300; // 5 minutes
+
 impl WireguardPeerStats {
     /// Delete stats older than a configured threshold.
     /// This is done to prevent unnecessary table growth.
@@ -132,6 +135,6 @@ pub async fn run_periodic_stats_purge(
 
         // wait till next iteration
         debug!("Sleeping until next iteration");
-        sleep(Duration::from_secs(5 * 60)).await;
+        sleep(Duration::from_secs(PURGE_LOOP_SLEEP_SECONDS)).await;
     }
 }
