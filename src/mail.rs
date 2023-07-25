@@ -14,6 +14,9 @@ pub enum MailError {
 
     #[error(transparent)]
     AddressError(#[from] lettre::address::AddressError),
+
+    #[error(transparent)]
+    SmtpError(#[from] lettre::transport::smtp::Error),
 }
 
 #[derive(Debug, Clone)]
@@ -47,13 +50,22 @@ impl TryFrom<Mail> for Message {
     }
 }
 
-pub struct MailHandler {
+struct MailHandler {
     rx: UnboundedReceiver<Mail>,
+    mailer: AsyncSmtpTransport<Tokio1Executor>,
 }
 
 impl MailHandler {
-    pub fn new(rx: UnboundedReceiver<Mail>) -> Self {
-        Self { rx }
+    pub fn new(
+        rx: UnboundedReceiver<Mail>,
+        server: &str,
+        username: &str,
+        password: &str,
+    ) -> Result<Self, MailError> {
+        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(server)?
+            .credentials(Credentials::new(username.into(), password.into()))
+            .build();
+        Ok(Self { rx, mailer })
     }
 
     pub async fn run(mut self) {
@@ -68,20 +80,22 @@ impl MailHandler {
                 }
             };
 
-            // TODO: smtp config
-            let credentials = Credentials::new(String::new(), String::new());
-            // TODO: consider creating in constructor
-            let mailer = match AsyncSmtpTransport::<Tokio1Executor>::relay("") {
-                Ok(mailer) => mailer.credentials(credentials).build(),
-                Err(err) => {
-                    error!("Failed to create mailer: {err}");
-                    continue;
-                }
-            };
-            match mailer.send(message).await {
+            match self.mailer.send(message).await {
                 Ok(response) => info!("Mail sent successfully: {mail:?}, {response:?}"),
-                Err(err) => error!("Email sending failed: {mail:?}, {err}"),
+                Err(err) => error!("Mail sending failed: {mail:?}, {err}"),
             }
         }
     }
+}
+
+pub async fn run_mail_handler(
+    rx: UnboundedReceiver<Mail>,
+    server: &str,
+    username: &str,
+    password: &str,
+) -> Result<(), MailError> {
+    MailHandler::new(rx, server, username, password)?
+        .run()
+        .await;
+    Ok(())
 }

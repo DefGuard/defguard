@@ -128,6 +128,30 @@ pub struct DefGuardConfig {
     )]
     pub ldap_group_member_attr: String,
 
+    #[arg(
+        long,
+        env = "DEFGUARD_SMTP_SERVER",
+        requires = "smtp_user",
+        requires = "smtp_password"
+    )]
+    pub smtp_server: Option<String>,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_SMTP_USER",
+        requires = "smtp_server",
+        requires = "smtp_password"
+    )]
+    pub smtp_user: Option<String>,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_SMTP_PASSWORD",
+        requires = "smtp_server",
+        requires = "smtp_user"
+    )]
+    pub smtp_password: Option<String>,
+
     #[command(subcommand)]
     pub cmd: Option<Command>,
 }

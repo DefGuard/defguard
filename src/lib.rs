@@ -285,7 +285,7 @@ pub async fn build_webapp(
 
 /// Runs core web server exposing REST API.
 pub async fn run_web_server(
-    config: DefGuardConfig,
+    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
