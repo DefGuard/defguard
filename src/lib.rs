@@ -3,6 +3,7 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
+use crate::db::User;
 use crate::handlers::user::change_self_password;
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
@@ -313,7 +314,7 @@ pub async fn run_web_server(
 /// Public: gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=
 /// Private: wGS1qdJfYbWJsOUuP1IDgaJYpR+VaKZPVZvdmLjsH2Y=
 pub async fn init_dev_env(config: &DefGuardConfig) {
-    log::debug!("Initializing dev environment");
+    log::info!("Initializing dev environment");
     let pool = init_db(
         &config.database_host,
         config.database_port,
@@ -322,40 +323,73 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         &config.database_password,
     )
     .await;
+
+    // initialize admin user
+    User::init_admin_user(&pool, &config.default_admin_password)
+        .await
+        .expect("Failed to create admin user");
+
     let mut transaction = pool
         .begin()
         .await
         .expect("Failed to initialize transaction");
 
-    let mut network = WireguardNetwork::new(
-        "TestNet".to_string(),
-        "10.1.1.1/24".parse().unwrap(),
-        50051,
-        "0.0.0.0".to_string(),
-        None,
-        vec!["10.1.1.0/24".parse().unwrap()],
-    )
-    .expect("Could not create network");
-    network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
-    network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
-    network
-        .save(&mut transaction)
+    let network = match WireguardNetwork::find_by_name(&mut transaction, "TestNet")
         .await
-        .expect("Could not save network");
+        .expect("Failed to search for test network")
+    {
+        Some(networks) => {
+            info!("Test network exists already, skipping creation...");
+            networks.into_iter().next().unwrap()
+        }
+        None => {
+            info!("Creating test network ");
+            let mut network = WireguardNetwork::new(
+                "TestNet".to_string(),
+                "10.1.1.1/24".parse().unwrap(),
+                50051,
+                "0.0.0.0".to_string(),
+                None,
+                vec!["10.1.1.0/24".parse().unwrap()],
+            )
+            .expect("Could not create network");
+            network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
+            network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
+            network
+                .save(&mut transaction)
+                .await
+                .expect("Could not save network");
+            network
+        }
+    };
 
-    let mut device = Device::new(
-        "TestDevice".to_string(),
-        "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
-        1,
-    );
-    device
-        .save(&mut transaction)
-        .await
-        .expect("Could not save device");
-    device
-        .assign_network_ip(&mut transaction, &network, None)
-        .await
-        .expect("Could not assign IP to device");
+    match Device::find_by_pubkey(
+        &mut transaction,
+        "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=",
+    )
+    .await
+    .expect("Failed to search for test device")
+    {
+        Some(_) => {
+            info!("Test device exists already, skipping creation...");
+        }
+        None => {
+            info!("Creating test device");
+            let mut device = Device::new(
+                "TestDevice".to_string(),
+                "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
+                1,
+            );
+            device
+                .save(&mut transaction)
+                .await
+                .expect("Could not save device");
+            device
+                .assign_network_ip(&mut transaction, &network, None)
+                .await
+                .expect("Could not assign IP to device");
+        }
+    }
 
     for app_id in 1..=3 {
         let mut app = OAuth2Client::new(
