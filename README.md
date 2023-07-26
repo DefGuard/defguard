@@ -43,6 +43,15 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 
 [A detailed product roadmap can be found here](https://defguard.gitbook.io/defguard/features/roadmap).
 
+# Quick start
+
+The easiest way to run defguard is by using docker. Follow our [docker deployment guide](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose).
+
+# Deployment examples
+
+* Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
+* Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
+
 # Documentation
 
 See the [documentation](https://defguard.gitbook.io) for more information.
@@ -51,70 +60,6 @@ See the [documentation](https://defguard.gitbook.io) for more information.
 
 Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite.com)
 
-# Deployment
+# Contribution
 
-* Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
-* Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
-
-# Development environment setup
-
-Remember to clone DefGuard repository recursively (with protos):
-
-```
-git clone --recursive git@github.com:DefGuard/defguard.git
-```
-
-## With Docker Compose
-
-Using Docker Compose you can setup a simple stack with:
-
-* backend
-* database (PostgreSQL)
-* VPN gateway
-* device connected to the gateway
-* ldap
-
-This way you'll have some live stats data to work with.
-
-To do so follow these steps:
-
-1. Migrate database and insert test network and device:
-
-```
-docker compose run core init-dev-env
-```
-
-2. Run the application:
-
-Without LDAP:
-
-```
-docker compose up
-```
-
-With LDAP:
-
-```
-docker compose -f docker-compose.ldap.yaml up
-```
-
-## Cargo
-
-To run backend without Docker, you'll need:
-
-* PostgreSQL database
-* protobuf compiler (`protoc`)
-* environment variables set
-
-Run PostgreSQL with:
-
-```
-docker compose up -d db
-```
-
-You'll find environment variables in .env file. Source them however you like (we recommend https://direnv.net/).
-Once that's done, you can run backend with:
-
-```
-cargo run
-```
+Please review the [Contributing guide](https://defguard.gitbook.io/defguard/for-developers/contributing) for information on how to get started contributing to the project.

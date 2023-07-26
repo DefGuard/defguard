@@ -2,6 +2,7 @@ version: "3"
 
 services:
   core:
+    image: ghcr.io/defguard/defguard:latest
     build:
       context: .
       dockerfile: Dockerfile
