@@ -103,6 +103,7 @@ docker compose -f docker-compose.ldap.yaml up
 To run backend without Docker, you'll need:
 
 * PostgreSQL database
+* protobuf compiler (`protoc`)
 * environment variables set
 
 Run PostgreSQL with:
@@ -117,4 +118,3 @@ Once that's done, you can run backend with:
 ```
 cargo run
 ```
-
