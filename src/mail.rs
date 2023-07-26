@@ -4,8 +4,11 @@ use lettre::{
     transport::smtp::authentication::Credentials,
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
+use sqlx::{Pool, Postgres};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedReceiver;
+
+use crate::db::Settings;
 
 #[derive(Error, Debug)]
 pub enum MailError {
@@ -17,6 +20,15 @@ pub enum MailError {
 
     #[error(transparent)]
     SmtpError(#[from] lettre::transport::smtp::Error),
+
+    #[error(transparent)]
+    SqlxError(#[from] sqlx::Error),
+
+    #[error("SMTP not configured")]
+    SmtpNotConfigured,
+
+    #[error("No settings record in database")]
+    EmptySettings,
 }
 
 #[derive(Debug, Clone)]
@@ -52,26 +64,20 @@ impl TryFrom<Mail> for Message {
 
 struct MailHandler {
     rx: UnboundedReceiver<Mail>,
-    mailer: AsyncSmtpTransport<Tokio1Executor>,
+    db: Pool<Postgres>,
 }
 
 impl MailHandler {
-    pub fn new(
-        rx: UnboundedReceiver<Mail>,
-        server: &str,
-        username: &str,
-        password: &str,
-    ) -> Result<Self, MailError> {
-        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(server)?
-            .credentials(Credentials::new(username.into(), password.into()))
-            .build();
-        Ok(Self { rx, mailer })
+    pub fn new(rx: UnboundedReceiver<Mail>, db: Pool<Postgres>) -> Self {
+        Self { rx, db }
     }
 
+    /// Listens on rx channel for messages and sends them via SMTP.
     pub async fn run(mut self) {
         while let Some(mail) = self.rx.recv().await {
             debug!("Sending mail: {mail:?}");
 
+            // Construct lettre Message
             let message: Message = match mail.clone().try_into() {
                 Ok(message) => message,
                 Err(err) => {
@@ -80,22 +86,43 @@ impl MailHandler {
                 }
             };
 
-            match self.mailer.send(message).await {
-                Ok(response) => info!("Mail sent successfully: {mail:?}, {response:?}"),
-                Err(err) => error!("Mail sending failed: {mail:?}, {err}"),
+            // Build mailer and send the message
+            match self.mailer().await {
+                Ok(mailer) => match mailer.send(message).await {
+                    Ok(response) => info!("Mail sent successfully: {mail:?}, {response:?}"),
+                    Err(err) => error!("Mail sending failed: {mail:?}, {err}"),
+                },
+                Err(MailError::SmtpNotConfigured) => warn!("SMTP not configured, onboarding email sending skipped"),
+                Err(err) => error!("Error building mailer: {err}"),
             }
         }
     }
+
+    /// Builds mailer object using settings from database
+    async fn mailer(&self) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
+        let settings = self.get_settings().await?;
+        if let (Some(server), Some(user), Some(password)) = (
+            settings.smtp_server,
+            settings.smtp_user,
+            settings.smtp_password,
+        ) {
+            Ok(AsyncSmtpTransport::<Tokio1Executor>::relay(&server)?
+                .credentials(Credentials::new(user, password))
+                .build())
+        } else {
+            Err(MailError::SmtpNotConfigured)
+        }
+    }
+
+    /// Retrieves settings object from database
+    async fn get_settings(&self) -> Result<Settings, MailError> {
+        Settings::find_by_id(&self.db, 1)
+            .await?
+            .ok_or(MailError::EmptySettings)
+    }
 }
 
-pub async fn run_mail_handler(
-    rx: UnboundedReceiver<Mail>,
-    server: &str,
-    username: &str,
-    password: &str,
-) -> Result<(), MailError> {
-    MailHandler::new(rx, server, username, password)?
-        .run()
-        .await;
-    Ok(())
+/// Builds MailHandler and runs it.
+pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>, db: Pool<Postgres>) {
+    MailHandler::new(rx, db).run().await;
 }

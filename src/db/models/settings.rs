@@ -13,4 +13,7 @@ pub struct Settings {
     pub instance_name: String,
     pub main_logo_url: String,
     pub nav_logo_url: String,
+    pub smtp_server: Option<String>,
+    pub smtp_user: Option<String>,
+    pub smtp_password: Option<String>,
 }

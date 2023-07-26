@@ -103,24 +103,10 @@ async fn main() -> Result<(), anyhow::Error> {
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
     // run services
-    match (
-        &config.smtp_server,
-        &config.smtp_user,
-        &config.smtp_password,
-    ) {
-        (Some(smtp_server), Some(smtp_user), Some(smtp_password)) => {
-            tokio::select! {
-                _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
-                _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool, failed_logins) => (),
-                _ = run_mail_handler(mail_rx, smtp_server, smtp_user, smtp_password) => (),
-            };
-        }
-        _ => {
-            tokio::select! {
-                _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
-                _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool, failed_logins) => (),
-            };
-        }
-    }
+    tokio::select! {
+        _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
+        _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), failed_logins) => (),
+        _ = run_mail_handler(mail_rx, pool) => (),
+    };
     Ok(())
 }
