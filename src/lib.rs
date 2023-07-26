@@ -349,13 +349,13 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         1,
     );
     device
-        .assign_network_ip(&mut transaction, &network, None)
-        .await
-        .expect("Could not assign IP to device");
-    device
         .save(&mut transaction)
         .await
         .expect("Could not save device");
+    device
+        .assign_network_ip(&mut transaction, &network, None)
+        .await
+        .expect("Could not assign IP to device");
 
     for app_id in 1..=3 {
         let mut app = OAuth2Client::new(
