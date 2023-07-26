@@ -10,6 +10,9 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::db::Settings;
 
+const DEFAULT_SMTP_PORT: u16 = 25;
+const DEFAULT_SMTP_TLS_PORT: u16 = 587;
+
 #[derive(Error, Debug)]
 pub enum MailError {
     #[error(transparent)]
@@ -92,7 +95,9 @@ impl MailHandler {
                     Ok(response) => info!("Mail sent successfully: {mail:?}, {response:?}"),
                     Err(err) => error!("Mail sending failed: {mail:?}, {err}"),
                 },
-                Err(MailError::SmtpNotConfigured) => warn!("SMTP not configured, onboarding email sending skipped"),
+                Err(MailError::SmtpNotConfigured) => {
+                    warn!("SMTP not configured, onboarding email sending skipped")
+                }
                 Err(err) => error!("Error building mailer: {err}"),
             }
         }
@@ -101,12 +106,21 @@ impl MailHandler {
     /// Builds mailer object using settings from database
     async fn mailer(&self) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
         let settings = self.get_settings().await?;
-        if let (Some(server), Some(user), Some(password)) = (
+        if let (Some(server), Some(tls), Some(user), Some(password)) = (
             settings.smtp_server,
+            settings.smtp_tls,
             settings.smtp_user,
             settings.smtp_password,
         ) {
-            Ok(AsyncSmtpTransport::<Tokio1Executor>::relay(&server)?
+            let port: Option<u16> = settings.smtp_port.and_then(|port| port.try_into().ok());
+            let builder = if tls {
+                AsyncSmtpTransport::<Tokio1Executor>::relay(&server)?
+                    .port(port.unwrap_or(DEFAULT_SMTP_TLS_PORT))
+            } else {
+                AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&server)
+                    .port(port.unwrap_or(DEFAULT_SMTP_PORT))
+            };
+            Ok(builder
                 .credentials(Credentials::new(user, password))
                 .build())
         } else {

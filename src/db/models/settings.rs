@@ -14,6 +14,8 @@ pub struct Settings {
     pub main_logo_url: String,
     pub nav_logo_url: String,
     pub smtp_server: Option<String>,
+    pub smtp_port: Option<i32>,
+    pub smtp_tls: Option<bool>,
     pub smtp_user: Option<String>,
     pub smtp_password: Option<String>,
 }
