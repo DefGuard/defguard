@@ -3,6 +3,7 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
+use crate::db::User;
 use crate::handlers::user::change_self_password;
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
@@ -322,6 +323,12 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         &config.database_password,
     )
     .await;
+
+    // initialize admin user
+    User::init_admin_user(&pool, &config.default_admin_password)
+        .await
+        .expect("Failed to create admin user");
+
     let mut transaction = pool
         .begin()
         .await
