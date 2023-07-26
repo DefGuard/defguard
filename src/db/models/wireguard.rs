@@ -134,6 +134,28 @@ impl WireguardNetwork {
         Ok(id)
     }
 
+    pub async fn find_by_name<'e, E>(
+        executor: E,
+        name: &str,
+    ) -> Result<Option<Vec<Self>>, WireguardNetworkError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
+        let networks = query_as!(
+            WireguardNetwork,
+            r#"SELECT id as "id?", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at FROM wireguard_network WHERE name = $1"#,
+            name
+        )
+        .fetch_all(executor)
+        .await?;
+
+        if networks.is_empty() {
+            return Ok(None);
+        }
+
+        Ok(Some(networks))
+    }
+
     /// Return number of devices that use this network.
     async fn device_count(
         &self,

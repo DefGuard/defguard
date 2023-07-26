@@ -1,0 +1,116 @@
+@use '../../../../shared/scss/helpers' as *;
+
+.card-tabs {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 0 12px 0 0;
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr 85px;
+  column-gap: 10px;
+
+  & > .scroll-controls {
+    display: flex;
+    flex-flow: row nowrap;
+    column-gap: 5px;
+    & > button {
+      width: 40px;
+      height: 40px;
+      border: 0 solid transparent;
+      background-color: transparent;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+
+      & > svg {
+        width: 40px;
+        height: 40px;
+      }
+
+      &:nth-of-type(2) {
+        transform: rotateY(180deg);
+      }
+    }
+  }
+
+  & > .tabs-container {
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    overflow-y: hidden;
+    overflow-x: auto;
+    box-sizing: border-box;
+    display: grid;
+    grid-auto-columns: auto;
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: end;
+    column-gap: 5px;
+
+    // hide scroll
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    & > .card-tab {
+      height: 32px;
+      overflow: hidden;
+      width: max-content;
+      box-sizing: border-box;
+      border: 0 solid transparent;
+      border-radius: 10px 10px 0 0;
+      padding: 0 20px;
+      background-color: var(--gray-lighter);
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: center;
+      column-gap: 10px;
+      user-select: none;
+      cursor: pointer;
+
+      @include typography(15px, 22.5px, medium, var(--gray-light), 'Poppins');
+
+      & > * {
+        display: block;
+        color: inherit;
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+        white-space: nowrap;
+      }
+
+      &.active,
+      &.hovered {
+        height: 43px;
+        color: var(--text-main);
+        background-color: var(--white);
+      }
+    }
+  }
+
+  & > .card-tab-skeleton {
+    padding: 0;
+    margin: 0;
+    display: block;
+    height: 32px;
+    width: 125px;
+
+    &:nth-of-type(1) {
+      height: 43px;
+    }
+
+    &:last-of-type {
+      width: 200px;
+    }
+
+    & > .react-loading-skeleton {
+      height: 100%;
+      border-radius: 10px 10px 0 0;
+    }
+  }
+}
