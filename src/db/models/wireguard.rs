@@ -761,7 +761,7 @@ impl WireguardNetwork {
                 d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
             FROM device d
             JOIN s ON d.id = s.device_id
-            WHERE s.latest_handshake > $1 AND s.network = $2
+            WHERE s.latest_handshake >= $1 AND s.network = $2
             "#,
             oldest_handshake,
             self.id,
@@ -817,9 +817,8 @@ impl WireguardNetwork {
         &self,
         conn: &DbPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        let from = Utc::now()
-            .naive_utc()
-            .checked_sub_signed(Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES as i64));
+        let from =
+            (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES.into())).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             r#"
