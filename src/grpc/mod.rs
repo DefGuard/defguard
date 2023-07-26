@@ -8,6 +8,7 @@ use crate::{
     },
 };
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
+use enrollment::{enrollment_service_server::EnrollmentServiceServer, EnrollmentServer};
 #[cfg(feature = "wireguard")]
 use gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -29,6 +30,7 @@ use tokio::sync::broadcast::Sender;
 use uuid::Uuid;
 
 mod auth;
+pub mod enrollment;
 #[cfg(feature = "wireguard")]
 pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -237,6 +239,7 @@ pub async fn run_grpc_server(
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
+    let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(pool.clone()));
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
