@@ -12,8 +12,14 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 
 **Implemented & production tested features:**
 
-* OpenID Connect provider (with OpenLDAP synchronization)
+* OpenID Connect provider
+  - OpenLDAP synchronization
+  - nice UI to manage users
+  - users can revoke access to granted apps
+  - OAuth2 of course...
 * [Wireguard:tm:](https://www.wireguard.com/) VPN management with:
+  - multiple #PN Locations (networks/sites) - with defined access (all users or only Admin group)
+  - multiple Gateways for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/OPNSense
   - import your current WireGuard server configuration (with a wizard!)
   - *easy* device setup by users themselves (self-service)
   -  automatic IP allocation
