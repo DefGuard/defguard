@@ -102,12 +102,12 @@ impl Mail {
 
     /// Builds Mailbox structure from string representing email address
     fn mailbox(address: &str) -> Result<Mailbox, MailError> {
-        let mut split = address.split('@');
-        let (user, domain) = (
-            split.next().ok_or(AddressError::MissingParts)?,
-            split.next().ok_or(AddressError::MissingParts)?,
-        );
-        Ok(Mailbox::new(None, Address::new(user, domain)?))
+        if let Some((user, domain)) = address.split_once('@') {
+            if !(user.is_empty() || domain.is_empty()) {
+                return Ok(Mailbox::new(None, Address::new(user, domain)?));
+            }
+        }
+        Err(AddressError::MissingParts)?
     }
 }
 
