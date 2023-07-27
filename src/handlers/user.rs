@@ -13,7 +13,6 @@ use crate::{
     handlers::PasswordChangeSelf,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     license::Features,
-    mail::Mail,
 };
 use log::debug;
 use regex::Regex;
@@ -613,29 +612,5 @@ pub async fn delete_authorized_app(
         Err(OriWebError::ObjectNotFound(
             "Authorized app not found".into(),
         ))
-    }
-}
-
-#[get("/user/onboarding", format = "json")]
-pub async fn onboarding(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
-    // TODO
-    let mail = Mail {
-        from: "from@test.com".to_string(),
-        to: "to@test.com".to_string(),
-        subject: "Subject".to_string(),
-        content: "Content content tralala".to_string(),
-    };
-    match appstate.mail_tx.send(mail.clone()) {
-        Ok(_) => Ok(ApiResponse {
-            json: json!({}),
-            status: Status::Ok,
-        }),
-        Err(err) => {
-            error!("Error sending mail: {mail:?}: {err}");
-            Ok(ApiResponse {
-                json: json!({}),
-                status: Status::InternalServerError,
-            })
-        }
     }
 }

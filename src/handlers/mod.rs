@@ -18,6 +18,7 @@ pub(crate) mod app_info;
 pub(crate) mod auth;
 pub(crate) mod group;
 pub(crate) mod license;
+pub(crate) mod mail;
 #[cfg(feature = "openid")]
 pub mod openid_clients;
 #[cfg(feature = "openid")]

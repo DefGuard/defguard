@@ -18,4 +18,5 @@ pub struct Settings {
     pub smtp_tls: Option<bool>,
     pub smtp_user: Option<String>,
     pub smtp_password: Option<String>,
+    pub smtp_sender: Option<String>,
 }

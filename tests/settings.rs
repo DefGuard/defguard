@@ -44,6 +44,7 @@ async fn test_settings() {
             smtp_tls: None,
             smtp_user: None,
             smtp_password: None,
+            smtp_sender: None,
         }
     );
 

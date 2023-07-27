@@ -10,9 +10,6 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::db::Settings;
 
-const DEFAULT_SMTP_PORT: u16 = 25;
-const DEFAULT_SMTP_TLS_PORT: u16 = 587;
-
 #[derive(Error, Debug)]
 pub enum MailError {
     #[error(transparent)]
@@ -32,36 +29,85 @@ pub enum MailError {
 
     #[error("No settings record in database")]
     EmptySettings,
+
+    #[error("Invalid port: {0}")]
+    InvalidPort(i32),
+}
+
+/// Subset of Settings object representing SMTP configuration
+struct SmtpSettings {
+    pub server: String,
+    pub port: u16,
+    pub tls: bool,
+    pub user: String,
+    pub password: String,
+    pub sender: String,
+}
+
+impl SmtpSettings {
+    /// Retrieves Settings object from database and builds SmtpSettings
+    pub async fn get(db: &Pool<Postgres>) -> Result<Self, MailError> {
+        Self::from_settings(Self::get_settings(db).await?).await
+    }
+
+    /// Constructs SmtpSettings object from Settings. Returns error if SMTP settings are incomplete.
+    pub async fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
+        if let (Some(server), Some(port), Some(tls), Some(user), Some(password), Some(sender)) = (
+            settings.smtp_server,
+            settings.smtp_port,
+            settings.smtp_tls,
+            settings.smtp_user,
+            settings.smtp_password,
+            settings.smtp_sender,
+        ) {
+            let port = port.try_into().map_err(|_| MailError::InvalidPort(port))?;
+            Ok(Self {
+                server,
+                port,
+                tls,
+                user,
+                password,
+                sender,
+            })
+        } else {
+            Err(MailError::SmtpNotConfigured)
+        }
+    }
+
+    /// Retrieves Settings object from database
+    async fn get_settings(db: &Pool<Postgres>) -> Result<Settings, MailError> {
+        Settings::find_by_id(db, 1)
+            .await?
+            .ok_or(MailError::EmptySettings)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Mail {
-    pub from: String,
     pub to: String,
     pub subject: String,
     pub content: String,
 }
 
-/// Builds Mailbox structure from string representing user email address
-fn mailbox(address: &str) -> Result<Mailbox, MailError> {
-    let mut split = address.split('@');
-    let (user, domain) = (
-        split.next().ok_or(AddressError::MissingParts)?,
-        split.next().ok_or(AddressError::MissingParts)?,
-    );
-    Ok(Mailbox::new(None, Address::new(user, domain)?))
-}
-
-impl TryFrom<Mail> for Message {
-    type Error = MailError;
-
-    fn try_from(mail: Mail) -> Result<Self, Self::Error> {
-        Ok(Self::builder()
-            .from(mailbox(&mail.from)?)
-            .to(mailbox(&mail.to)?)
-            .subject(mail.subject)
+impl Mail {
+    /// Converts Mail to lettre Message
+    fn to_message(&self, from: &str) -> Result<Message, MailError> {
+        Ok(Message::builder()
+            .from(Self::mailbox(from)?)
+            .to(Self::mailbox(&self.to)?)
+            .subject(self.subject.clone())
             .header(ContentType::TEXT_HTML)
-            .body(mail.content)?)
+            .body(self.content.clone())?)
+    }
+
+    /// Builds Mailbox structure from string representing email address
+    fn mailbox(address: &str) -> Result<Mailbox, MailError> {
+        let mut split = address.split('@');
+        let (user, domain) = (
+            split.next().ok_or(AddressError::MissingParts)?,
+            split.next().ok_or(AddressError::MissingParts)?,
+        );
+        Ok(Mailbox::new(None, Address::new(user, domain)?))
     }
 }
 
@@ -79,9 +125,20 @@ impl MailHandler {
     pub async fn run(mut self) {
         while let Some(mail) = self.rx.recv().await {
             debug!("Sending mail: {mail:?}");
+            let settings = match SmtpSettings::get(&self.db).await {
+                Ok(settings) => settings,
+                Err(MailError::SmtpNotConfigured) => {
+                    warn!("SMTP not configured, email sending skipped");
+                    continue;
+                }
+                Err(err) => {
+                    error!("Error retrieving SMTP settings: {err}");
+                    continue;
+                }
+            };
 
             // Construct lettre Message
-            let message: Message = match mail.clone().try_into() {
+            let message: Message = match mail.to_message(&settings.sender) {
                 Ok(message) => message,
                 Err(err) => {
                     error!("Failed to build message: {mail:?}, {err}");
@@ -90,7 +147,7 @@ impl MailHandler {
             };
 
             // Build mailer and send the message
-            match self.mailer().await {
+            match self.mailer(settings).await {
                 Ok(mailer) => match mailer.send(message).await {
                     Ok(response) => info!("Mail sent successfully: {mail:?}, {response:?}"),
                     Err(err) => error!("Mail sending failed: {mail:?}, {err}"),
@@ -103,36 +160,20 @@ impl MailHandler {
         }
     }
 
-    /// Builds mailer object using settings from database
-    async fn mailer(&self) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
-        let settings = self.get_settings().await?;
-        if let (Some(server), Some(tls), Some(user), Some(password)) = (
-            settings.smtp_server,
-            settings.smtp_tls,
-            settings.smtp_user,
-            settings.smtp_password,
-        ) {
-            let port: Option<u16> = settings.smtp_port.and_then(|port| port.try_into().ok());
-            let builder = if tls {
-                AsyncSmtpTransport::<Tokio1Executor>::relay(&server)?
-                    .port(port.unwrap_or(DEFAULT_SMTP_TLS_PORT))
-            } else {
-                AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&server)
-                    .port(port.unwrap_or(DEFAULT_SMTP_PORT))
-            };
-            Ok(builder
-                .credentials(Credentials::new(user, password))
-                .build())
+    /// Builds mailer object with specified configuration
+    async fn mailer(
+        &self,
+        settings: SmtpSettings,
+    ) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
+        let builder = if settings.tls {
+            AsyncSmtpTransport::<Tokio1Executor>::relay(&settings.server)?.port(settings.port)
         } else {
-            Err(MailError::SmtpNotConfigured)
-        }
-    }
-
-    /// Retrieves settings object from database
-    async fn get_settings(&self) -> Result<Settings, MailError> {
-        Settings::find_by_id(&self.db, 1)
-            .await?
-            .ok_or(MailError::EmptySettings)
+            AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(settings.server)
+                .port(settings.port)
+        };
+        Ok(builder
+            .credentials(Credentials::new(settings.user, settings.password))
+            .build())
     }
 }
 

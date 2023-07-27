@@ -3,11 +3,11 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::handlers::user::{change_self_password, onboarding};
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
 };
+use crate::handlers::{mail::test_mail, user::change_self_password};
 #[cfg(feature = "openid")]
 use crate::handlers::{
     openid_clients::{
@@ -85,6 +85,7 @@ pub mod ldap;
 pub mod license;
 pub mod mail;
 pub(crate) mod random;
+pub mod templates;
 pub mod wg_config;
 
 #[macro_use]
@@ -179,7 +180,6 @@ pub async fn build_webapp(
                 recovery_code,
                 get_app_info,
                 change_self_password,
-                onboarding,
             ],
         )
         .mount(
@@ -192,7 +192,8 @@ pub async fn build_webapp(
                 change_webhook,
                 change_enabled
             ],
-        );
+        )
+        .mount("/api/v1/mail", routes![test_mail,]);
 
     #[cfg(feature = "wireguard")]
     let webapp = webapp.manage(gateway_state).mount(
