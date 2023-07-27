@@ -23,7 +23,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - import your current WireGuard server configuration (with a wizard!)
   - *easy* device setup by users themselves (self-service)
   -  automatic IP allocation
-  -  kernel & userspace WireGuard support
+  -  kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard support
   - dashboard and statistics overview of connected users/devices for admins
   - *defguard is not an official WireGuard project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
 * Multi-Factor Authentication:
