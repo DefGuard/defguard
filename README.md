@@ -2,7 +2,7 @@
     <img src="docs/header.png" alt="defguard">
  </p>
 
-Defguard is an open-source security *swiss army knife* (Identity, MFA, VPN, Yubikey, Web3).
+defguard is an open-source security *swiss army knife* (Identity, MFA, VPN, Yubikey, Web3).
 
 Building a secure organization has always been difficult and costly. Defguard provides a beautiful, easy-to-use (business users) and deploy (admin/devops) fundament to make your organization secure.
 
@@ -19,17 +19,17 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - OAuth2 of course...
 * [Wireguard:tm:](https://www.wireguard.com/) VPN management with:
   - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
-  - multiple Gateways for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/OPNSense
+  - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
   - import your current WireGuard server configuration (with a wizard!)
   - *easy* device setup by users themselves (self-service)
   -  automatic IP allocation
   -  kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard support
   - dashboard and statistics overview of connected users/devices for admins
   - *defguard is not an official WireGuard project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
-* Multi-Factor Authentication:
-  - Time-based One-Time Password Algorithm (TOTP - e.g. Google Authenticator)
+* [Multi-Factor/2FA](https://en.wikipedia.org/wiki/Multi-factor_authentication) Authentication:
+  - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
   - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
-  - Web3 - authentication with crypto software and hardware wallets using Metamask, Wallet Connect, Ledger Extension
+  - Web3 - authentication with crypto software and hardware wallets using Metamask, Ledger Extension
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
 * Webhooks & REST API
 * Web3 wallet validation
@@ -69,3 +69,7 @@ Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite
 # Contribution
 
 Please review the [Contributing guide](https://defguard.gitbook.io/defguard/for-developers/contributing) for information on how to get started contributing to the project. You might also find our [environment setup guide](https://defguard.gitbook.io/defguard/for-developers/dev-env-setup) handy.
+
+# Legal
+WireGuard is [registered trademarks](https://www.wireguard.com/trademark-policy/) of Jason A. Donenfeld.
+
