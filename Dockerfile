@@ -23,6 +23,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 RUN apt-get update && apt-get -y install protobuf-compiler libprotobuf-dev
 COPY Cargo.toml Cargo.lock build.rs sqlx-data.json ./
 COPY src src
+COPY templates templates
 COPY model-derive model-derive
 COPY proto proto
 COPY migrations migrations
