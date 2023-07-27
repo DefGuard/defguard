@@ -7,9 +7,10 @@ use rocket::{
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    error::OriWebError,
     handlers::{ApiResponse, ApiResult},
     mail::Mail,
-    templates, error::OriWebError,
+    templates,
 };
 
 const TEST_MAIL_SUBJECT: &str = "Defguard email test";
