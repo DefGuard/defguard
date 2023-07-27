@@ -30,11 +30,10 @@ pub async fn test_mail(
         "User {} sending test mail to {}",
         session.user.username, data.to
     );
-    let content = templates::test_mail();
     let mail = Mail {
         to: data.to.clone(),
         subject: TEST_MAIL_SUBJECT.to_string(),
-        content,
+        content: templates::test_mail()?,
     };
     match appstate.mail_tx.send(mail.clone()) {
         Ok(_) => Ok(ApiResponse {
