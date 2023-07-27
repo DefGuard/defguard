@@ -262,6 +262,7 @@ pub async fn run_grpc_server(
     let builder = builder.http2_keepalive_interval(Some(Duration::from_secs(10)));
     let mut builder = builder.tcp_keepalive(Some(Duration::from_secs(10)));
     let router = builder.add_service(auth_service);
+    let router = router.add_service(enrollment_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]
