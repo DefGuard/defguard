@@ -9,7 +9,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     handlers::{ApiResponse, ApiResult},
     mail::Mail,
-    templates,
+    templates, error::OriWebError,
 };
 
 const TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -36,16 +36,19 @@ pub async fn test_mail(
         content: templates::test_mail()?,
     };
     match appstate.mail_tx.send(mail.clone()) {
-        Ok(_) => Ok(ApiResponse {
-            json: json!({}),
-            status: Status::Ok,
-        }),
-        Err(err) => {
-            error!("Error sending mail: {mail:?}: {err}");
+        Ok(_) => {
+            info!(
+                "User {} sent test mail to {}",
+                session.user.username, data.to
+            );
             Ok(ApiResponse {
                 json: json!({}),
-                status: Status::InternalServerError,
+                status: Status::Ok,
             })
+        }
+        Err(err) => {
+            error!("Error sending mail: {mail:?}: {err}");
+            Err(OriWebError::Http(Status::InternalServerError))
         }
     }
 }
