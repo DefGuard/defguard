@@ -1,6 +1,6 @@
 [package]
 name = "defguard"
-version = "0.5.4"
+version = "0.6.1"
 edition = "2021"
 
 [workspace]
@@ -71,6 +71,7 @@ dotenvy = "0.15"
 lettre = { version = "0.10.4", features = ["tokio1", "tokio1-native-tls"] }
 handlebars = "4.3.7"
 serde_json = "1.0.104"
+humantime = "2.1"
 
 [dev-dependencies]
 matches = "0.1"

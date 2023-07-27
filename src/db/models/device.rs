@@ -567,7 +567,7 @@ impl Device {
                 None => {
                     info!("Created IP: {} for device: {}", ip, self.name);
                     let wireguard_network_device =
-                        WireguardNetworkDevice::new(network_id, self.id.unwrap(), ip);
+                        WireguardNetworkDevice::new(network_id, self.get_id()?, ip);
                     wireguard_network_device.insert(&mut *transaction).await?;
                     return Ok(wireguard_network_device);
                 }
