@@ -2,6 +2,7 @@ use crate::auth::failed_login::FailedLoginError;
 use crate::db::models::device::DeviceError;
 use crate::db::models::wireguard::WireguardNetworkError;
 use crate::grpc::GatewayMapError;
+use crate::templates::TemplateError;
 use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
 use rocket::http::Status;
 use sqlx::error::Error as SqlxError;
@@ -38,6 +39,8 @@ pub enum OriWebError {
     TooManyLoginAttempts(#[from] FailedLoginError),
     #[error("Bad request: {0}")]
     BadRequest(String),
+    #[error(transparent)]
+    TemplateError(#[from] TemplateError),
 }
 
 impl From<tonic::Status> for OriWebError {

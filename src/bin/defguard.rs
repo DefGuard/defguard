@@ -1,11 +1,12 @@
-use defguard::grpc::GatewayMap;
 use defguard::wireguard_stats_purge::run_periodic_stats_purge;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, User},
-    grpc::{run_grpc_server, WorkerState},
-    init_dev_env, run_web_server,
+    grpc::{run_grpc_server, GatewayMap, WorkerState},
+    init_dev_env,
+    mail::{run_mail_handler, Mail},
+    run_web_server,
 };
 use fern::{
     colors::{Color, ColoredLevelConfig},
@@ -73,6 +74,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
     let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(256);
+    let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let pool = init_db(
@@ -105,12 +107,14 @@ async fn main() -> Result<(), anyhow::Error> {
     if config.disable_stats_purge {
         tokio::select! {
             _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
-            _ = run_web_server(config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool, failed_logins) => (),
+            _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), failed_logins) => (),
+            _ = run_mail_handler(mail_rx, pool) => (),
         };
     } else {
         tokio::select! {
             _ = run_grpc_server(config.grpc_port, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
-            _ = run_web_server(config.clone(), worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, pool.clone(), failed_logins) => (),
+            _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), failed_logins) => (),
+            _ = run_mail_handler(mail_rx, pool.clone()) => (),
             _ = run_periodic_stats_purge(pool, config.stats_purge_frequency.into(), config.stats_purge_threshold.into()) => (),
         };
     }
