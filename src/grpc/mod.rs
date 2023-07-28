@@ -20,6 +20,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 use crate::auth::failed_login::FailedLoginMap;
+use crate::config::DefGuardConfig;
 use crate::db::AppEvent;
 use chrono::{NaiveDateTime, Utc};
 use serde::Serialize;
@@ -228,7 +229,7 @@ impl GatewayState {
 
 /// Runs gRPC server with core services.
 pub async fn run_grpc_server(
-    grpc_port: u16,
+    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: DbPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
@@ -239,7 +240,11 @@ pub async fn run_grpc_server(
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
-    let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(pool.clone()));
+    let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(
+        pool.clone(),
+        wireguard_tx.clone(),
+        config.admin_groupname.clone(),
+    ));
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
@@ -251,7 +256,7 @@ pub async fn run_grpc_server(
         JwtInterceptor::new(ClaimsType::Gateway),
     );
     // Run gRPC server
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), grpc_port);
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.grpc_port);
     info!("Started gRPC services");
     let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
         let identity = Identity::from_pem(cert, key);
