@@ -2,99 +2,101 @@
 
 #settings-page {
   & > .page-content {
-    box-sizing: border-box;
-    overflow-y: auto;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      'left'
-      'right';
-    position: relative;
-    padding: 3rem 1.5rem;
-    row-gap: 3rem;
-
-    @include media-breakpoint-up(lg) {
-      padding: 4rem 6rem;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: repeat(2, auto);
+    & > .card {
+      box-sizing: border-box;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto;
       grid-template-areas:
-        'header header'
-        'left right';
-      column-gap: 6rem;
-      row-gap: 5rem;
-    }
-
-    @include media-breakpoint-up(xxl) {
-      padding: 4erm 8rem 8rem 6rem;
-    }
-
-    & > header {
-      display: none;
-
-      @include media-breakpoint-up(lg) {
-        display: flex;
-        grid-area: header;
-      }
-    }
-
-    & > .left {
-      grid-area: left;
-    }
-
-    & > .right {
-      grid-area: right;
-    }
-
-    h1,
-    h2,
-    h3 {
-      user-select: none;
-    }
-
-    h2 {
-      @include card-header;
-    }
-
-    h1 {
-      @include page-header;
-    }
-
-    & > .left {
-      display: flex;
-      flex-flow: column;
-      width: 100%;
-
-      @include media-breakpoint-down(lg) {
-        row-gap: 3rem;
-      }
-    }
-
-    & > .right {
-      display: flex;
-      flex-flow: column;
+        'left'
+        'right';
+      position: relative;
+      padding: 3rem 1.5rem;
       row-gap: 3rem;
 
       @include media-breakpoint-up(lg) {
-        row-gap: 2rem;
+        padding: 4rem 6rem;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: repeat(2, auto);
+        grid-template-areas:
+          'header header'
+          'left right';
+        column-gap: 6rem;
+        row-gap: 5rem;
       }
-    }
 
-    & > .left,
-    & > .right {
-      & > * {
-        &:not(.card) {
-          & > header {
-            display: flex;
-            flex-flow: row nowrap;
-            column-gap: 1rem;
-            align-items: center;
-            align-content: center;
-            justify-content: flex-start;
-            margin-bottom: 1.5rem;
+      @include media-breakpoint-up(xxl) {
+        padding: 4erm 8rem 8rem 6rem;
+      }
 
-            @include media-breakpoint-up(lg) {
-              margin-bottom: 2.5rem;
+      & > header {
+        display: none;
+
+        @include media-breakpoint-up(lg) {
+          display: flex;
+          grid-area: header;
+        }
+      }
+
+      & > .left {
+        grid-area: left;
+      }
+
+      & > .right {
+        grid-area: right;
+      }
+
+      h1,
+      h2,
+      h3 {
+        user-select: none;
+      }
+
+      h2 {
+        @include card-header;
+      }
+
+      h1 {
+        @include page-header;
+      }
+
+      & > .left {
+        display: flex;
+        flex-flow: column;
+        width: 100%;
+
+        @include media-breakpoint-down(lg) {
+          row-gap: 3rem;
+        }
+      }
+
+      & > .right {
+        display: flex;
+        flex-flow: column;
+        row-gap: 3rem;
+
+        @include media-breakpoint-up(lg) {
+          row-gap: 2rem;
+        }
+      }
+
+      & > .left,
+      & > .right {
+        & > * {
+          &:not(.card) {
+            & > header {
+              display: flex;
+              flex-flow: row nowrap;
+              column-gap: 1rem;
+              align-items: center;
+              align-content: center;
+              justify-content: flex-start;
+              margin-bottom: 1.5rem;
+
+              @include media-breakpoint-up(lg) {
+                margin-bottom: 2.5rem;
+              }
             }
           }
         }
