@@ -1,8 +1,40 @@
+use crate::db::DbPool;
 use crate::random::gen_alphanumeric;
 use chrono::{Duration, NaiveDateTime, Utc};
+use sqlx::{query, query_as, Error as SqlxError};
+use thiserror::Error;
+use tonic::{Code, Status};
 
 pub const ENROLLMENT_TOKEN_TIMEOUT: i64 = 60 * 60 * 24; // token is valid for 24h
 pub const ENROLLMENT_SESSION_TIMEOUT: i64 = 60 * 10; // session is valid for 10m
+
+#[derive(Error, Debug)]
+pub enum EnrollmentError {
+    #[error(transparent)]
+    DbError(#[from] SqlxError),
+    #[error("Enrollment token not found")]
+    NotFound,
+    #[error("Enrollment token expired")]
+    TokenExpired,
+    #[error("Enrollment session expired")]
+    SessionExpired,
+    #[error("Enrollment token already used")]
+    TokenUsed,
+}
+
+impl From<EnrollmentError> for Status {
+    fn from(err: EnrollmentError) -> Self {
+        error!("{}", err);
+        let (code, msg) = match err {
+            EnrollmentError::DbError(_) => (Code::Internal, "unexpected error"),
+            EnrollmentError::NotFound
+            | EnrollmentError::TokenExpired
+            | EnrollmentError::SessionExpired
+            | EnrollmentError::TokenUsed => (Code::Unauthenticated, "invalid token"),
+        };
+        Status::new(code, msg)
+    }
+}
 
 // Representation of a user enrollment session
 #[derive(Clone)]
@@ -46,5 +78,45 @@ impl Enrollment {
             return now.naive_utc() < (used_at + Duration::seconds(ENROLLMENT_SESSION_TIMEOUT));
         }
         false
+    }
+
+    // check if token can be used to start an enrollment session
+    // and set timestamp if token is valid
+    // returns session deadline
+    pub async fn start_session(&mut self, pool: &DbPool) -> Result<NaiveDateTime, EnrollmentError> {
+        // check if token can be used
+        if self.is_expired() {
+            return Err(EnrollmentError::TokenExpired);
+        }
+        if self.is_used() {
+            return Err(EnrollmentError::TokenUsed);
+        }
+
+        let now = Utc::now().naive_utc();
+        query!(
+            "UPDATE enrollment SET used_at = $1 WHERE id = $2",
+            now,
+            self.id
+        )
+        .execute(pool)
+        .await?;
+        self.used_at = Some(now);
+
+        Ok(now + Duration::seconds(ENROLLMENT_SESSION_TIMEOUT))
+    }
+
+    pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, EnrollmentError> {
+        match query_as!(
+            Self,
+            "SELECT id, user_id, admin_id, created_at, expires_at, used_at \
+            FROM enrollment WHERE id = $1",
+            id
+        )
+        .fetch_optional(pool)
+        .await?
+        {
+            Some(enrollment) => Ok(enrollment),
+            None => Err(EnrollmentError::NotFound),
+        }
     }
 }
