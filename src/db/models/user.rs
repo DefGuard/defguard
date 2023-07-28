@@ -102,6 +102,11 @@ impl User {
         Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
     }
 
+    pub fn has_password(&self) -> bool {
+        // FIXME: actually implement after making password optional
+        true
+    }
+
     pub fn name(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }

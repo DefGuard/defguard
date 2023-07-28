@@ -51,7 +51,7 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
     Ok(())
 }
 
-fn check_password_strength(password: &str) -> Result<(), OriWebError> {
+pub fn check_password_strength(password: &str) -> Result<(), OriWebError> {
     let password_length = password.len();
     let special_chars_expression = Regex::new(r#"[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?~]"#).unwrap();
     let numbers_expression = Regex::new(r"[0-9]").unwrap();
@@ -121,7 +121,7 @@ pub async fn add_user(
     debug!("User {} adding user {}", session.user.username, username);
     let user_data = data.into_inner();
     if let Err(err) = check_password_strength(&user_data.password) {
-        debug!("Pasword not strong enough: {}", err);
+        debug!("Password not strong enough: {}", err);
         return Ok(ApiResponse {
             json: json!({}),
             status: Status::BadRequest,

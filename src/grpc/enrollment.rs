@@ -1,3 +1,4 @@
+use crate::handlers::user::check_password_strength;
 use crate::{
     db::{
         models::{device::DeviceInfo, enrollment::Enrollment},
@@ -93,12 +94,21 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         debug!("Activating user account");
         let enrollment = self.validate_session(&request).await?;
 
+        // check if password is strong enough
+        let request = request.into_inner();
+        if let Err(err) = check_password_strength(&request.password) {
+            error!("Password not strong enough: {}", err);
+            return Err(Status::invalid_argument("password not strong enough"));
+        }
+
         // fetch related users
         let mut user = enrollment.fetch_user(&self.pool).await?;
         info!("Activating user account for {}", user.username);
+        if user.has_password() {
+            return Err(Status::invalid_argument("user already activated"));
+        }
 
         // update user
-        let request = request.into_inner();
         user.phone = Some(request.phone_number);
         user.set_password(&request.password);
         user.save(&self.pool).await.map_err(|err| {
