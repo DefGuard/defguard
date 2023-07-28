@@ -2,7 +2,8 @@
 
 #settings-page {
   & > .page-content {
-    & > .card {
+    & > .settings-card {
+      border-radius: 0 15px 15px 15px;
       box-sizing: border-box;
       overflow-y: auto;
       display: grid;
