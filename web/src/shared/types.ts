@@ -627,6 +627,12 @@ export interface Settings {
   main_logo_url: string;
   nav_logo_url: string;
   instance_name: string;
+  smtp_server?: string;
+  smtp_port?: number;
+  smtp_tls?: boolean;
+  smtp_user?: string;
+  smtp_password?: string;
+  smtp_sender?: string;
 }
 
 export interface Webhook {

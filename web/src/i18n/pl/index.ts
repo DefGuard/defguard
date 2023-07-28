@@ -739,6 +739,51 @@ const pl: Translation = {
           </a>
 			`,
     },
+    smtp: {
+      header: 'Ustawienia SMTP',
+      form: {
+        title: 'Ustawienia',
+        fields: {
+          server: {
+            label: 'Adres serwera',
+            placeholder: 'Addres',
+          },
+          port: {
+            label: 'Port',
+            placeholder: 'Port',
+          },
+          tls: {
+            label: 'TLS',
+            placeholder: '',
+          },
+          user: {
+            label: 'Użytkownik',
+            placeholder: 'Użytkownik',
+          },
+          password: {
+            label: 'Hasło',
+            placeholder: 'Hasło',
+          },
+          sender: {
+            label: 'Adres wysyłającego',
+            placeholder: 'Addres',
+            helper: `
+              <p>
+                Systemowe wiadomości będą nadawane z tego adresu. Np. no-reply@my-company.com.
+              </p>
+            `,
+          },
+        },
+        controls: {
+          submit: 'Save changes',
+        },
+      },
+      helper: `
+        <p>
+          Skonfiguruj serwer SMTP do wysyłania wiadomości systemowych do użytkowników.
+        </p>
+			`,
+    },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',
       licenseCardTitles: {

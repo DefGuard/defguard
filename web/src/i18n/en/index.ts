@@ -738,6 +738,52 @@ const en: BaseTranslation = {
           </a>
 			`,
     },
+    smtp: {
+      header: 'SMTP Settings',
+      form: {
+        title: 'Settings',
+        fields: {
+          server: {
+            label: 'Server address',
+            placeholder: 'Address',
+          },
+          port: {
+            label: 'Server port',
+            placeholder: 'Port',
+          },
+          tls: {
+            label: 'Use TLS',
+            placeholder: '',
+          },
+          user: {
+            label: 'Server username',
+            placeholder: 'Username',
+          },
+          password: {
+            label: 'Server password',
+            placeholder: 'Password',
+          },
+          sender: {
+            label: 'Sender email address',
+            placeholder: 'Address',
+            helper: `
+              <p>
+                System messages will be sent from this address.
+                E.g. no-reply@my-company.com.
+              </p>
+            `,
+          },
+        },
+        controls: {
+          submit: 'Save changes',
+        },
+      },
+      helper: `
+        <p>
+          Here you can configure SMTP server used to send system messages to the users.
+        </p>
+			`,
+    },
     licenseCard: {
       header: 'License & Support Information',
       licenseCardTitles: {
