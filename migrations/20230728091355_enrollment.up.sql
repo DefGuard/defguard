@@ -8,3 +8,5 @@ CREATE TABLE enrollment (
     FOREIGN KEY(user_id) REFERENCES "user"(id),
     FOREIGN KEY(admin_id) REFERENCES "user"(id)
 );
+
+ALTER TABLE "user" ALTER COLUMN password_hash DROP NOT NULL;

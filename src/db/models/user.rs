@@ -39,7 +39,7 @@ pub enum MFAMethod {
 pub struct User {
     pub id: Option<i64>,
     pub username: String,
-    password_hash: String,
+    password_hash: Option<String>,
     pub last_name: String,
     pub first_name: String,
     pub email: String,
@@ -77,7 +77,7 @@ impl User {
         Self {
             id: None,
             username,
-            password_hash: Self::hash_password(password).unwrap(),
+            password_hash: Some(Self::hash_password(password).unwrap()),
             last_name,
             first_name,
             email,
@@ -94,17 +94,24 @@ impl User {
     }
 
     pub fn set_password(&mut self, password: &str) {
-        self.password_hash = Self::hash_password(password).unwrap();
+        self.password_hash = Some(Self::hash_password(password).unwrap());
     }
 
     pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
-        let parsed_hash = PasswordHash::new(&self.password_hash)?;
-        Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
+        match &self.password_hash {
+            Some(hash) => {
+                let parsed_hash = PasswordHash::new(hash)?;
+                Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
+            }
+            None => {
+                error!("Password not set for user {}", self.username);
+                Err(HashError::Password)
+            }
+        }
     }
 
     pub fn has_password(&self) -> bool {
-        // FIXME: actually implement after making password optional
-        true
+        self.password_hash.is_some()
     }
 
     pub fn name(&self) -> String {
