@@ -1,6 +1,6 @@
 use crate::db::models::enrollment::Enrollment;
 use crate::db::{DbPool, User};
-use tonic::{Code, Request, Response, Status};
+use tonic::{Request, Response, Status};
 tonic::include_proto!("enrollment");
 
 pub struct EnrollmentServer {
@@ -11,6 +11,25 @@ impl EnrollmentServer {
     #[must_use]
     pub fn new(pool: DbPool) -> Self {
         Self { pool }
+    }
+
+    // check if token provided with request corresponds to a valid enrollment session
+    async fn validate_session<T>(&self, request: Request<T>) -> Result<Enrollment, Status> {
+        debug!("Validating enrollment session token");
+        let token = match request.metadata().get("authorization") {
+            Some(token) => token
+                .to_str()
+                .map_err(|_| Status::unauthenticated("Invalid token"))?,
+            None => return Err(Status::unauthenticated("Missing authorization header")),
+        };
+
+        let enrollment = Enrollment::find_by_id(&self.pool, token).await?;
+
+        if enrollment.is_session_valid() {
+            Ok(enrollment)
+        } else {
+            Err(Status::unauthenticated("Enrollment session expired"))
+        }
     }
 }
 
@@ -26,18 +45,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let mut enrollment = Enrollment::find_by_id(&self.pool, &request.token).await?;
 
         // fetch related users
-        let Some(user) = User::find_by_id(&self.pool, enrollment.user_id)
-            .await
-            .map_err(|_| Status::new(Code::Internal, "unexpected error"))? else {
-            error!("User not found for enrollment token {}", enrollment.id);
-            return Err(Status::new(Code::Internal, "unexpected error"))
-        };
-        let Some(admin) = User::find_by_id(&self.pool, enrollment.admin_id)
-            .await
-            .map_err(|_| Status::new(Code::Internal, "unexpected error"))?else {
-            error!("Admin not found for enrollment token {}", enrollment.id);
-            return Err(Status::new(Code::Internal, "unexpected error"))
-        };
+        let user = enrollment.fetch_user(&self.pool).await?;
+        let admin = enrollment.fetch_admin(&self.pool).await?;
 
         // validate token & start session
         info!("Starting enrollment session for user {}", user.username);
@@ -56,15 +65,27 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
     async fn activate_user(
         &self,
-        _request: Request<ActivateUserRequest>,
+        request: Request<ActivateUserRequest>,
     ) -> Result<Response<()>, Status> {
+        debug!("Activating user account");
+        let enrollment = self.validate_session(request).await?;
+
+        // fetch related users
+        let user = enrollment.fetch_user(&self.pool).await?;
+        info!("Activating user account for {}", user.username);
         unimplemented!()
     }
 
     async fn create_device(
         &self,
-        _request: Request<NewDevice>,
+        request: Request<NewDevice>,
     ) -> Result<Response<CreateDeviceResponse>, Status> {
+        debug!("Adding new user device");
+        let enrollment = self.validate_session(request).await?;
+
+        // fetch related users
+        let user = enrollment.fetch_user(&self.pool).await?;
+        info!("dding new device for user {}", user.username);
         unimplemented!()
     }
 }

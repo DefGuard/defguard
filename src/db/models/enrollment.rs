@@ -1,4 +1,4 @@
-use crate::db::DbPool;
+use crate::db::{DbPool, User};
 use crate::random::gen_alphanumeric;
 use chrono::{Duration, NaiveDateTime, Utc};
 use sqlx::{query, query_as, Error as SqlxError};
@@ -20,13 +20,19 @@ pub enum EnrollmentError {
     SessionExpired,
     #[error("Enrollment token already used")]
     TokenUsed,
+    #[error("Enrollment user not found")]
+    UserNotFound,
+    #[error("Enrollment admin not found")]
+    AdminNotFound,
 }
 
 impl From<EnrollmentError> for Status {
     fn from(err: EnrollmentError) -> Self {
         error!("{}", err);
         let (code, msg) = match err {
-            EnrollmentError::DbError(_) => (Code::Internal, "unexpected error"),
+            EnrollmentError::DbError(_)
+            | EnrollmentError::AdminNotFound
+            | EnrollmentError::UserNotFound => (Code::Internal, "unexpected error"),
             EnrollmentError::NotFound
             | EnrollmentError::TokenExpired
             | EnrollmentError::SessionExpired
@@ -118,5 +124,25 @@ impl Enrollment {
             Some(enrollment) => Ok(enrollment),
             None => Err(EnrollmentError::NotFound),
         }
+    }
+
+    pub async fn fetch_user(&self, pool: &DbPool) -> Result<User, EnrollmentError> {
+        debug!("Fetching user for enrollment");
+        let Some(user) = User::find_by_id(pool, self.user_id)
+            .await? else {
+            error!("User not found for enrollment token {}", self.id);
+            return Err(EnrollmentError::UserNotFound)
+        };
+        Ok(user)
+    }
+
+    pub async fn fetch_admin(&self, pool: &DbPool) -> Result<User, EnrollmentError> {
+        debug!("Fetching user for enrollment");
+        let Some(user) = User::find_by_id(pool, self.admin_id)
+            .await? else {
+            error!("Admin not found for enrollment token {}", self.id);
+            return Err(EnrollmentError::AdminNotFound)
+        };
+        Ok(user)
     }
 }
