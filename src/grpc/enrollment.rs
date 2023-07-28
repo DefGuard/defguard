@@ -32,7 +32,10 @@ impl EnrollmentServer {
             Some(token) => token
                 .to_str()
                 .map_err(|_| Status::unauthenticated("Invalid token"))?,
-            None => return Err(Status::unauthenticated("Missing authorization header")),
+            None => {
+                error!("Missing authorization header in request");
+                return Err(Status::unauthenticated("Missing authorization header"));
+            }
         };
 
         let enrollment = Enrollment::find_by_id(&self.pool, token).await?;
@@ -40,6 +43,7 @@ impl EnrollmentServer {
         if enrollment.is_session_valid() {
             Ok(enrollment)
         } else {
+            error!("Enrollment session expired");
             Err(Status::unauthenticated("Enrollment session expired"))
         }
     }
