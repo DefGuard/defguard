@@ -21,6 +21,8 @@ pub enum EnrollmentError {
     UserNotFound,
     #[error("Enrollment admin not found")]
     AdminNotFound,
+    #[error("User account is already activated")]
+    AlreadyActive,
 }
 
 impl From<EnrollmentError> for Status {
@@ -34,6 +36,7 @@ impl From<EnrollmentError> for Status {
             | EnrollmentError::TokenExpired
             | EnrollmentError::SessionExpired
             | EnrollmentError::TokenUsed => (Code::Unauthenticated, "invalid token"),
+            EnrollmentError::AlreadyActive => (Code::InvalidArgument, "already active"),
         };
         Status::new(code, msg)
     }
@@ -174,11 +177,15 @@ impl User {
         admin: &User,
         token_timeout_seconds: u64,
         send_user_notification: bool,
-    ) -> Result<(), EnrollmentError> {
+    ) -> Result<String, EnrollmentError> {
         info!(
             "User {} starting enrollment for user {}, notification enabled: {}",
             admin.username, self.username, send_user_notification
         );
+        if self.has_password() {
+            return Err(EnrollmentError::AlreadyActive);
+        }
+
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
         let enrollment = Enrollment::new(user_id, admin_id, token_timeout_seconds);
@@ -189,6 +196,6 @@ impl User {
             unimplemented!()
         }
 
-        Ok(())
+        Ok(enrollment.id)
     }
 }

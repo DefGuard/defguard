@@ -156,15 +156,19 @@ pub async fn add_user(
     user.save(&appstate.pool).await?;
 
     // initialize enrollment process if password was not provided
-    if !user.has_password() {
-        user.start_enrollment(
-            &appstate.pool,
-            &session.user,
-            appstate.config.enrollment_token_timeout.as_secs(),
-            user_data.send_enrollment_notification,
-        )
-        .await?;
-    }
+    let enrollment_token = if !user.has_password() {
+        let token = user
+            .start_enrollment(
+                &appstate.pool,
+                &session.user,
+                appstate.config.enrollment_token_timeout.as_secs(),
+                user_data.send_enrollment_notification,
+            )
+            .await?;
+        Some(token)
+    } else {
+        None
+    };
 
     // add LDAP user
     if appstate.license.validate(&Features::Ldap) {
@@ -176,9 +180,14 @@ pub async fn add_user(
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info));
     info!("User {} added user {}", session.user.username, username);
-    // TODO: return enrollment token if available
+    let response_body = match enrollment_token {
+        Some(token) => {
+            json!({ "token": token })
+        }
+        None => json!({}),
+    };
     Ok(ApiResponse {
-        json: json!({}),
+        json: response_body,
         status: Status::Created,
     })
 }
