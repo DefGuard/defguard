@@ -2,6 +2,7 @@ use super::{
     user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange, RecoveryCodes,
     Username, WalletChallenge, WalletChange, WalletSignature,
 };
+use crate::handlers::StartEnrollmentRequest;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -182,7 +183,7 @@ pub async fn add_user(
     info!("User {} added user {}", session.user.username, username);
     let response_body = match enrollment_token {
         Some(token) => {
-            json!({ "token": token })
+            json!({ "enrollment_token": token })
         }
         None => json!({}),
     };
@@ -193,13 +194,40 @@ pub async fn add_user(
 }
 
 // Trigger enrollment process manually
-#[post("/user/<username>/start_enrollment")]
+#[post("/user/<username>/start_enrollment", format = "json", data = "<data>")]
 pub async fn start_enrollment(
+    _admin: AdminRole,
     session: SessionInfo,
     appstate: &State<AppState>,
     username: &str,
+    data: Json<StartEnrollmentRequest>,
 ) -> ApiResult {
-    unimplemented!()
+    debug!(
+        "User {} starting enrollment for user {}",
+        session.user.username, username
+    );
+
+    let user = match User::find_by_username(&appstate.pool, username).await? {
+        Some(user) => Ok(user),
+        None => Err(OriWebError::ObjectNotFound(format!(
+            "user {} not found",
+            username
+        ))),
+    }?;
+
+    let enrollment_token = user
+        .start_enrollment(
+            &appstate.pool,
+            &session.user,
+            appstate.config.enrollment_token_timeout.as_secs(),
+            data.send_enrollment_notification,
+        )
+        .await?;
+
+    Ok(ApiResponse {
+        json: json!({ "enrollment_token": enrollment_token }),
+        status: Status::Created,
+    })
 }
 
 #[post("/user/available", format = "json", data = "<data>")]

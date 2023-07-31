@@ -159,6 +159,12 @@ pub struct AddUserData {
     pub send_enrollment_notification: bool,
 }
 
+#[derive(Deserialize)]
+pub struct StartEnrollmentRequest {
+    #[serde(default)]
+    pub send_enrollment_notification: bool,
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct PasswordChangeSelf {
     pub old_password: String,
