@@ -68,12 +68,8 @@ export const AddUserForm = () => {
             .string()
             .required(LL.form.error.required())
             .matches(patternValidEmail, LL.form.error.invalid()),
-          last_name: yup
-            .string()
-            .required(LL.form.error.required()),
-          first_name: yup
-            .string()
-            .required(LL.form.error.required()),
+          last_name: yup.string().required(LL.form.error.required()),
+          first_name: yup.string().required(LL.form.error.required()),
           phone: yup
             .string()
             .optional()

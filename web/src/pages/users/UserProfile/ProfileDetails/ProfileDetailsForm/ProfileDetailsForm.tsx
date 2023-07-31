@@ -81,12 +81,8 @@ export const ProfileDetailsForm = () => {
               }
               return false;
             }),
-          first_name: yup
-            .string()
-            .required(LL.form.error.required()),
-          last_name: yup
-            .string()
-            .required(LL.form.error.required()),
+          first_name: yup.string().required(LL.form.error.required()),
+          last_name: yup.string().required(LL.form.error.required()),
           phone: yup
             .string()
             .optional()
