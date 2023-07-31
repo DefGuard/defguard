@@ -174,6 +174,16 @@ pub async fn add_user(
     })
 }
 
+// Trigger enrollment process manually
+#[post("/user/<username>/start_enrollment")]
+pub async fn start_enrollment(
+    session: SessionInfo,
+    appstate: &State<AppState>,
+    username: &str,
+) -> ApiResult {
+    unimplemented!()
+}
+
 #[post("/user/available", format = "json", data = "<data>")]
 pub async fn username_available(
     _admin: AdminRole,
