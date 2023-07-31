@@ -26,15 +26,15 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternValidEmail } from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
-import { Settings, TestMail } from '../../../shared/types';
+import { Settings } from '../../../shared/types';
 import { validateIpOrDomain } from '../../../shared/validators';
+import { TestForm } from './TestForm';
 
 export const SmtpCard = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     settings: { editSettings },
-    mail: { sendTestMail },
   } = useApi();
 
   const [settings] = useAppStore((state) => [state.settings, state.setAppStore]);
@@ -46,16 +46,6 @@ export const SmtpCard = () => {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       toaster.success(LL.settingsPage.messages.editSuccess());
-    },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
-      console.error(err);
-    },
-  });
-
-  const { mutate: testMutate, isLoading: isTestLoading } = useMutation([], sendTestMail, {
-    onSuccess: () => {
-      toaster.success(LL.settingsPage.smtp.test_form.controls.success());
     },
     onError: (err) => {
       toaster.error(LL.messages.error());
@@ -107,33 +97,10 @@ export const SmtpCard = () => {
     mode: 'all',
   });
 
-  const testFormSchema = useMemo(
-    () =>
-      yup
-        .object()
-        .shape({
-          to: yup.string().matches(patternValidEmail, LL.form.error.invalid()),
-        })
-        .required(),
-    [LL.form.error]
-  );
-
-  const { control: testControl, handleSubmit: handleTestSubmit } = useForm<TestMail>({
-    defaultValues: {
-      to: '',
-    },
-    resolver: yupResolver(testFormSchema),
-    mode: 'all',
-  });
-
   if (!settings) return null;
 
   const onSubmit: SubmitHandler<Settings> = (data) => {
     mutate({ ...settings, ...data });
-  };
-
-  const onTestSubmit: SubmitHandler<TestMail> = async (data) => {
-    testMutate(data);
   };
 
   return (
@@ -199,28 +166,7 @@ export const SmtpCard = () => {
             controller={{ control, name: 'smtp_tls' }}
           />
         </form>
-        <form id="smtp-test-form" onSubmit={handleTestSubmit(onTestSubmit)}>
-          <FormInput
-            outerLabel={LL.settingsPage.smtp.test_form.fields.to.label()}
-            controller={{ control: testControl, name: 'to' }}
-            placeholder={LL.settingsPage.smtp.test_form.fields.to.placeholder()}
-            required
-          />
-          <div className="controls">
-            <Button
-              text={
-                breakpoint !== 'mobile'
-                  ? LL.settingsPage.smtp.test_form.controls.submit()
-                  : undefined
-              }
-              icon={<IconCheckmarkWhite />}
-              size={ButtonSize.SMALL}
-              styleVariant={ButtonStyleVariant.SAVE}
-              loading={isTestLoading}
-              type="submit"
-            />
-          </div>
-        </form>
+        <TestForm />
       </Card>
     </section>
   );
