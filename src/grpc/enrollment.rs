@@ -105,6 +105,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let mut user = enrollment.fetch_user(&self.pool).await?;
         info!("Activating user account for {}", user.username);
         if user.has_password() {
+            error!("User {} already activated", user.username);
             return Err(Status::invalid_argument("user already activated"));
         }
 
@@ -117,7 +118,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         })?;
 
         // sync with LDAP
-        todo!();
+        // TODO: implement LDAP sync
 
         Ok(Response::new(()))
     }
