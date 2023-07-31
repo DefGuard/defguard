@@ -5,10 +5,6 @@ use sqlx::{query, query_as, Error as SqlxError};
 use thiserror::Error;
 use tonic::{Code, Status};
 
-// TODO: move into main defguard config
-pub const ENROLLMENT_TOKEN_TIMEOUT: i64 = 60 * 60 * 24; // token is valid for 24h
-pub const ENROLLMENT_SESSION_TIMEOUT: i64 = 60 * 10; // session is valid for 10m
-
 #[derive(Error, Debug)]
 pub enum EnrollmentError {
     #[error(transparent)]
@@ -55,14 +51,14 @@ pub struct Enrollment {
 }
 
 impl Enrollment {
-    pub fn new(user_id: i64, admin_id: i64) -> Self {
+    pub fn new(user_id: i64, admin_id: i64, token_timeout_seconds: u64) -> Self {
         let now = Utc::now();
         Self {
             id: gen_alphanumeric(32),
             user_id,
             admin_id,
             created_at: now.naive_utc(),
-            expires_at: (now + Duration::seconds(ENROLLMENT_TOKEN_TIMEOUT)).naive_utc(),
+            expires_at: (now + Duration::seconds(token_timeout_seconds as i64)).naive_utc(),
             used_at: None,
         }
     }
@@ -95,10 +91,10 @@ impl Enrollment {
 
     // check if enrollment session is still valid
     // after using the token user has 10 minutes to complete enrollment
-    pub fn is_session_valid(&self) -> bool {
+    pub fn is_session_valid(&self, session_timeout_seconds: u64) -> bool {
         if let Some(used_at) = self.used_at {
             let now = Utc::now();
-            return now.naive_utc() < (used_at + Duration::seconds(ENROLLMENT_SESSION_TIMEOUT));
+            return now.naive_utc() < (used_at + Duration::seconds(session_timeout_seconds as i64));
         }
         false
     }
@@ -106,7 +102,11 @@ impl Enrollment {
     // check if token can be used to start an enrollment session
     // and set timestamp if token is valid
     // returns session deadline
-    pub async fn start_session(&mut self, pool: &DbPool) -> Result<NaiveDateTime, EnrollmentError> {
+    pub async fn start_session(
+        &mut self,
+        pool: &DbPool,
+        session_timeout_seconds: u64,
+    ) -> Result<NaiveDateTime, EnrollmentError> {
         // check if token can be used
         if self.is_expired() {
             return Err(EnrollmentError::TokenExpired);
@@ -125,7 +125,7 @@ impl Enrollment {
         .await?;
         self.used_at = Some(now);
 
-        Ok(now + Duration::seconds(ENROLLMENT_SESSION_TIMEOUT))
+        Ok(now + Duration::seconds(session_timeout_seconds as i64))
     }
 
     pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, EnrollmentError> {
@@ -172,6 +172,7 @@ impl User {
         &self,
         pool: &DbPool,
         admin: &User,
+        token_timeout_seconds: u64,
         send_user_notification: bool,
     ) -> Result<(), EnrollmentError> {
         info!(
@@ -180,7 +181,7 @@ impl User {
         );
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
-        let enrollment = Enrollment::new(user_id, admin_id);
+        let enrollment = Enrollment::new(user_id, admin_id, token_timeout_seconds);
         enrollment.save(pool).await?;
 
         if send_user_notification {

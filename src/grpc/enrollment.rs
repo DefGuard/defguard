@@ -49,7 +49,7 @@ impl EnrollmentServer {
 
         let enrollment = Enrollment::find_by_id(&self.pool, token).await?;
 
-        if enrollment.is_session_valid() {
+        if enrollment.is_session_valid(self.config.enrollment_session_timeout.as_secs()) {
             Ok(enrollment)
         } else {
             error!("Enrollment session expired");
@@ -82,7 +82,9 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // validate token & start session
         info!("Starting enrollment session for user {}", user.username);
-        let session_deadline = enrollment.start_session(&self.pool).await?;
+        let session_deadline = enrollment
+            .start_session(&self.pool, self.config.enrollment_session_timeout.as_secs())
+            .await?;
 
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),

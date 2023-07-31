@@ -160,6 +160,7 @@ pub async fn add_user(
         user.start_enrollment(
             &appstate.pool,
             &session.user,
+            appstate.config.enrollment_token_timeout.as_secs(),
             user_data.send_enrollment_notification,
         )
         .await?;
@@ -175,6 +176,7 @@ pub async fn add_user(
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info));
     info!("User {} added user {}", session.user.username, username);
+    // TODO: return enrollment token if available
     Ok(ApiResponse {
         json: json!({}),
         status: Status::Created,
