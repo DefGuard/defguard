@@ -778,6 +778,17 @@ const pl: Translation = {
           submit: 'Save changes',
         },
       },
+      test_form: {
+        fields: {
+          to: {
+            label: 'Adres',
+            placeholder: 'Adres',
+          },
+        },
+        controls: {
+          submit: "Wyślij"
+        }
+      },
       helper: `
         <p>
           Skonfiguruj serwer SMTP do wysyłania wiadomości systemowych do użytkowników.

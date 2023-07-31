@@ -778,6 +778,17 @@ const en: BaseTranslation = {
           submit: 'Save changes',
         },
       },
+      test_form: {
+        fields: {
+          to: {
+            label: 'Address',
+            placeholder: 'Address',
+          },
+        },
+        controls: {
+          submit: "Send"
+        }
+      },
       helper: `
         <p>
           Here you can configure SMTP server used to send system messages to the users.

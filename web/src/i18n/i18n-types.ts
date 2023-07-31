@@ -1795,6 +1795,26 @@ type RootTranslation = {
 					submit: string
 				}
 			}
+			test_form: {
+				fields: {
+					to: {
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+					}
+				}
+				controls: {
+					/**
+					 * S​e​n​d
+					 */
+					submit: string
+				}
+			}
 			/**
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
@@ -4717,6 +4737,26 @@ export type TranslationFunctions = {
 				controls: {
 					/**
 					 * Save changes
+					 */
+					submit: () => LocalizedString
+				}
+			}
+			test_form: {
+				fields: {
+					to: {
+						/**
+						 * Address
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Send
 					 */
 					submit: () => LocalizedString
 				}

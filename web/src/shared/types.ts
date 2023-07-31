@@ -775,11 +775,17 @@ export interface Web3StartRequest {
 export interface TOTPRequest {
   code: number;
 }
+
 export interface WebAuthnRegistrationRequest {
   name: string;
   rpkc: PublicKeyCredentialWithAttestationJSON;
 }
+
 export interface RemoveUserClientRequest {
   username: string;
   client_id: string;
+}
+
+export interface TestMail {
+  to: string;
 }

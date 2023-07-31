@@ -26,7 +26,7 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternValidEmail } from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
-import { Settings } from '../../../shared/types';
+import { Settings, TestMail } from '../../../shared/types';
 import { validateIpOrDomain } from '../../../shared/validators';
 
 export const SmtpCard = () => {
@@ -96,10 +96,34 @@ export const SmtpCard = () => {
     mode: 'all',
   });
 
+  const testFormSchema = useMemo(
+    () =>
+      yup
+        .object()
+        .shape({
+          to: yup.string().matches(patternValidEmail, LL.form.error.invalid()),
+        })
+        .required(),
+    [LL.form.error]
+  );
+
+  const { control: testControl, handleSubmit: handleTestSubmit } = useForm<TestMail>({
+    defaultValues: {
+      to: "",
+    },
+    resolver: yupResolver(testFormSchema),
+    mode: 'all',
+  });
+
   if (!settings) return null;
 
   const onSubmit: SubmitHandler<Settings> = (data) => {
     mutate({ ...settings, ...data });
+  };
+
+  const onTestSubmit: SubmitHandler<TestMail> = (data) => {
+    // TODO
+    console.log("Sending test email to:", data);
   };
 
   return (
@@ -164,6 +188,28 @@ export const SmtpCard = () => {
             labelPosition="right"
             controller={{ control, name: 'smtp_tls' }}
           />
+        </form>
+        <form id="smtp-form" onSubmit={handleTestSubmit(onTestSubmit)}>
+          <FormInput
+            outerLabel={LL.settingsPage.smtp.test_form.fields.to.label()}
+            controller={{ control: testControl, name: 'to' }}
+            placeholder={LL.settingsPage.smtp.test_form.fields.to.placeholder()}
+            required
+          />
+          <div className="controls">
+            <Button
+              text={
+                breakpoint !== 'mobile'
+                  ? LL.settingsPage.smtp.test_form.controls.submit()
+                  : undefined
+              }
+              icon={<IconCheckmarkWhite />}
+              size={ButtonSize.SMALL}
+              styleVariant={ButtonStyleVariant.SAVE}
+              loading={isLoading}
+              type="submit"
+            />
+          </div>
         </form>
       </Card>
     </section>
