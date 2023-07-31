@@ -154,7 +154,7 @@ impl Enrollment {
     }
 
     pub async fn fetch_admin(&self, pool: &DbPool) -> Result<User, EnrollmentError> {
-        debug!("Fetching user for enrollment");
+        debug!("Fetching admin for enrollment");
         let Some(user) = User::find_by_id(pool, self.admin_id)
             .await? else {
             error!("Admin not found for enrollment token {}", self.id);
