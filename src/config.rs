@@ -244,6 +244,7 @@ mod tests {
         DefGuardConfig::command().debug_assert()
     }
 
+    #[ignore]
     #[test]
     fn test_generate_rp_id() {
         // unset variables

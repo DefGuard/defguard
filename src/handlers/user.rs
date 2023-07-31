@@ -120,13 +120,8 @@ pub async fn add_user(
     let username = data.username.clone();
     debug!("User {} adding user {}", session.user.username, username);
     let user_data = data.into_inner();
-    if let Err(err) = check_password_strength(&user_data.password) {
-        debug!("Password not strong enough: {}", err);
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: Status::BadRequest,
-        });
-    }
+
+    // check username
     if let Err(err) = check_username(&username) {
         debug!("{}", err);
         return Ok(ApiResponse {
@@ -134,18 +129,42 @@ pub async fn add_user(
             status: Status::BadRequest,
         });
     }
+    let password = match &user_data.password {
+        Some(password) => {
+            // check password strength
+            if let Err(err) = check_password_strength(password) {
+                debug!("Password not strong enough: {}", err);
+                return Ok(ApiResponse {
+                    json: json!({}),
+                    status: Status::BadRequest,
+                });
+            }
+            Some(password.as_str())
+        }
+        None => None,
+    };
+
+    // create new user
     let mut user = User::new(
         user_data.username,
-        &user_data.password,
+        password,
         user_data.last_name,
         user_data.first_name,
         user_data.email,
         user_data.phone,
     );
     user.save(&appstate.pool).await?;
+
+    // initialize enrollment process if password was not provided
+    todo!();
+
+    // add LDAP user
     if appstate.license.validate(&Features::Ldap) {
-        let _result = ldap_add_user(&appstate.config, &user, &user_data.password).await;
+        if let Some(password) = user_data.password {
+            let _result = ldap_add_user(&appstate.config, &user, &password).await;
+        }
     };
+
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info));
     info!("User {} added user {}", session.user.username, username);

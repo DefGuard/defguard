@@ -116,6 +116,9 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
+        // sync with LDAP
+        todo!();
+
         Ok(Response::new(()))
     }
 

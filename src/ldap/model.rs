@@ -6,7 +6,7 @@ impl User {
     pub fn from_searchentry(entry: &SearchEntry, username: &str, password: &str) -> Self {
         Self::new(
             username.into(),
-            password,
+            Some(password),
             get_value_or_default(entry, "sn"),
             get_value_or_default(entry, "givenName"),
             get_value_or_default(entry, "mail"),

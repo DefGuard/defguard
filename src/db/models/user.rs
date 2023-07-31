@@ -68,16 +68,19 @@ impl User {
     #[must_use]
     pub fn new(
         username: String,
-        password: &str,
+        password: Option<&str>,
         last_name: String,
         first_name: String,
         email: String,
         phone: Option<String>,
     ) -> Self {
+        let password_hash = password.map(|password_hash| {
+            Self::hash_password(password_hash).expect("Failed to hash password")
+        });
         Self {
             id: None,
             username,
-            password_hash: Some(Self::hash_password(password).unwrap()),
+            password_hash,
             last_name,
             first_name,
             email,
