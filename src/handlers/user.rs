@@ -156,7 +156,10 @@ pub async fn add_user(
     user.save(&appstate.pool).await?;
 
     // initialize enrollment process if password was not provided
-    todo!();
+    if !user.has_password() {
+        user.start_enrollment(&appstate.pool, &session.user, false)
+            .await?;
+    }
 
     // add LDAP user
     if appstate.license.validate(&Features::Ldap) {

@@ -5,6 +5,7 @@ use sqlx::{query, query_as, Error as SqlxError};
 use thiserror::Error;
 use tonic::{Code, Status};
 
+// TODO: move into main defguard config
 pub const ENROLLMENT_TOKEN_TIMEOUT: i64 = 60 * 60 * 24; // token is valid for 24h
 pub const ENROLLMENT_SESSION_TIMEOUT: i64 = 60 * 10; // session is valid for 10m
 
@@ -64,6 +65,22 @@ impl Enrollment {
             expires_at: (now + Duration::seconds(ENROLLMENT_TOKEN_TIMEOUT)).naive_utc(),
             used_at: None,
         }
+    }
+
+    pub async fn save(&self, pool: &DbPool) -> Result<(), EnrollmentError> {
+        query!(
+            "INSERT INTO enrollment (id, user_id, admin_id, created_at, expires_at, used_at) \
+            VALUES ($1, $2, $3, $4, $5, $6)",
+            self.id,
+            self.user_id,
+            self.admin_id,
+            self.created_at,
+            self.expires_at,
+            self.used_at,
+        )
+        .execute(pool)
+        .await?;
+        Ok(())
     }
 
     // check if token has already expired
@@ -144,5 +161,33 @@ impl Enrollment {
             return Err(EnrollmentError::AdminNotFound)
         };
         Ok(user)
+    }
+}
+
+impl User {
+    /// Start user enrollment process
+    /// This creates a new enrollment token valid for 24h
+    /// and optionally sends enrollment email notification to user
+    pub async fn start_enrollment(
+        &self,
+        pool: &DbPool,
+        admin: &User,
+        send_user_notification: bool,
+    ) -> Result<(), EnrollmentError> {
+        info!(
+            "User {} starting enrollment for user {}, notification enabled: {}",
+            admin.username, self.username, send_user_notification
+        );
+        let user_id = self.id.expect("User without ID");
+        let admin_id = admin.id.expect("Admin user without ID");
+        let enrollment = Enrollment::new(user_id, admin_id);
+        enrollment.save(pool).await?;
+
+        if send_user_notification {
+            // TODO: implement actually sending user notifications
+            unimplemented!()
+        }
+
+        Ok(())
     }
 }
