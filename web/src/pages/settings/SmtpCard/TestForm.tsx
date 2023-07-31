@@ -1,29 +1,31 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useI18nContext } from "../../../i18n/i18n-react";
-import useApi from "../../../shared/hooks/useApi";
-import { useToaster } from "../../../shared/hooks/useToaster";
-import { useBreakpoint } from "use-breakpoint";
-import { useMemo } from "react";
+import { yupResolver } from '@hookform/resolvers/yup';
+import { useMutation } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
+import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
-import { deviceBreakpoints } from "../../../shared/constants";
-import { patternValidEmail } from "../../../shared/patterns";
-import { SubmitHandler, useForm } from "react-hook-form";
-import { TestMail } from "../../../shared/types";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { FormInput } from "../../../shared/components/Form/FormInput/FormInput";
-import { Button } from "../../../shared/components/layout/Button/Button";
-import { IconCheckmarkWhite } from "../../../shared/components/svg";
-import { ButtonSize, ButtonStyleVariant } from "../../../shared/components/layout/Button/types";
+
+import { useI18nContext } from '../../../i18n/i18n-react';
+import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
+import { Button } from '../../../shared/components/layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/components/layout/Button/types';
+import { IconCheckmarkWhite } from '../../../shared/components/svg';
+import { deviceBreakpoints } from '../../../shared/constants';
+import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
+import { patternValidEmail } from '../../../shared/patterns';
+import { TestMail } from '../../../shared/types';
 
 export const TestForm = () => {
-
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     mail: { sendTestMail },
   } = useApi();
 
-  const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
   const { mutate, isLoading } = useMutation([], sendTestMail, {
@@ -81,5 +83,5 @@ export const TestForm = () => {
         />
       </div>
     </form>
-  )
-}
+  );
+};
