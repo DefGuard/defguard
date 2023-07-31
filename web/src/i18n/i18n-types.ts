@@ -1746,7 +1746,6 @@ type RootTranslation = {
 						 * U​s​e​ ​T​L​S
 						 */
 						label: string
-						placeholder: string
 					}
 					user: {
 						/**
@@ -1796,6 +1795,10 @@ type RootTranslation = {
 				}
 			}
 			test_form: {
+				/**
+				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
+				 */
+				title: string
 				fields: {
 					to: {
 						/**
@@ -4696,7 +4699,6 @@ export type TranslationFunctions = {
 						 * Use TLS
 						 */
 						label: () => LocalizedString
-						placeholder: () => LocalizedString
 					}
 					user: {
 						/**
@@ -4746,6 +4748,10 @@ export type TranslationFunctions = {
 				}
 			}
 			test_form: {
+				/**
+				 * Send test email
+				 */
+				title: () => LocalizedString
 				fields: {
 					to: {
 						/**

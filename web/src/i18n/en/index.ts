@@ -753,7 +753,6 @@ const en: BaseTranslation = {
           },
           tls: {
             label: 'Use TLS',
-            placeholder: '',
           },
           user: {
             label: 'Server username',
@@ -779,6 +778,7 @@ const en: BaseTranslation = {
         },
       },
       test_form: {
+        title: 'Send test email',
         fields: {
           to: {
             label: 'Address',

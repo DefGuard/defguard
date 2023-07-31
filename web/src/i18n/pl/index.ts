@@ -746,7 +746,7 @@ const pl: Translation = {
         fields: {
           server: {
             label: 'Adres serwera',
-            placeholder: 'Addres',
+            placeholder: 'Adres',
           },
           port: {
             label: 'Port',
@@ -754,7 +754,6 @@ const pl: Translation = {
           },
           tls: {
             label: 'TLS',
-            placeholder: '',
           },
           user: {
             label: 'Użytkownik',
@@ -766,7 +765,7 @@ const pl: Translation = {
           },
           sender: {
             label: 'Adres wysyłającego',
-            placeholder: 'Addres',
+            placeholder: 'Adres',
             helper: `
               <p>
                 Systemowe wiadomości będą nadawane z tego adresu. Np. no-reply@my-company.com.
@@ -779,6 +778,7 @@ const pl: Translation = {
         },
       },
       test_form: {
+        title: 'Wyślij emaila testowego',
         fields: {
           to: {
             label: 'Adres',

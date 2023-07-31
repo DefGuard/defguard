@@ -61,27 +61,32 @@ export const TestForm = () => {
   };
 
   return (
-    <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
-      <FormInput
-        outerLabel={LL.settingsPage.smtp.test_form.fields.to.label()}
-        controller={{ control: testControl, name: 'to' }}
-        placeholder={LL.settingsPage.smtp.test_form.fields.to.placeholder()}
-        required
-      />
-      <div className="controls">
-        <Button
-          text={
-            breakpoint !== 'mobile'
-              ? LL.settingsPage.smtp.test_form.controls.submit()
-              : undefined
-          }
-          icon={<IconCheckmarkWhite />}
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.SAVE}
-          loading={isLoading}
-          type="submit"
+    <>
+      <header>
+        <h3>{LL.settingsPage.smtp.test_form.title()}</h3>
+      </header>
+      <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
+        <FormInput
+          outerLabel={LL.settingsPage.smtp.test_form.fields.to.label()}
+          controller={{ control: testControl, name: 'to' }}
+          placeholder={LL.settingsPage.smtp.test_form.fields.to.placeholder()}
+          required
         />
-      </div>
-    </form>
+        <div className="controls">
+          <Button
+            text={
+              breakpoint !== 'mobile'
+                ? LL.settingsPage.smtp.test_form.controls.submit()
+                : undefined
+            }
+            icon={<IconCheckmarkWhite />}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.SAVE}
+            loading={isLoading}
+            type="submit"
+          />
+        </div>
+      </form>
+    </>
   );
 };
