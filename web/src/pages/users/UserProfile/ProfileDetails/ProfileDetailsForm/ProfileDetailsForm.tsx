@@ -73,7 +73,7 @@ export const ProfileDetailsForm = () => {
             .string()
             .required(LL.form.error.required())
             .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
-            .min(4, LL.form.error.minimumLength())
+            .min(3, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
             .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {
               if (value && value.length) {
@@ -83,12 +83,10 @@ export const ProfileDetailsForm = () => {
             }),
           first_name: yup
             .string()
-            .required(LL.form.error.required())
-            .min(4, LL.form.error.minimumLength()),
+            .required(LL.form.error.required()),
           last_name: yup
             .string()
-            .required(LL.form.error.required())
-            .min(4, LL.form.error.minimumLength()),
+            .required(LL.form.error.required()),
           phone: yup
             .string()
             .optional()
