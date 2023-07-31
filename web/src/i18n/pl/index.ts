@@ -786,9 +786,9 @@ const pl: Translation = {
           },
         },
         controls: {
-          submit: "Wyślij",
-          success: "Email testowy wysłany pomyślnie",
-        }
+          submit: 'Wyślij',
+          success: 'Email testowy wysłany pomyślnie',
+        },
       },
       helper: `
         <p>

@@ -439,7 +439,7 @@ export interface ApiHook {
   };
   mail: {
     sendTestMail: (data: TestMail) => EmptyApiResponse;
-  }
+  };
 }
 
 export interface NavigationStore {

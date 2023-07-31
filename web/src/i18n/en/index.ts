@@ -786,9 +786,9 @@ const en: BaseTranslation = {
           },
         },
         controls: {
-          submit: "Send",
-          success: "Test email sent successfully",
-        }
+          submit: 'Send',
+          success: 'Test email sent successfully',
+        },
       },
       helper: `
         <p>

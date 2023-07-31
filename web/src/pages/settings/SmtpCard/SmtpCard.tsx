@@ -120,7 +120,7 @@ export const SmtpCard = () => {
 
   const { control: testControl, handleSubmit: handleTestSubmit } = useForm<TestMail>({
     defaultValues: {
-      to: "",
+      to: '',
     },
     resolver: yupResolver(testFormSchema),
     mode: 'all',

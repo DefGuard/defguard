@@ -456,7 +456,7 @@ const useApi = (props?: HookProps): ApiHook => {
     },
     mail: {
       sendTestMail: sendTestMail,
-    }
+    },
   };
 };
 
