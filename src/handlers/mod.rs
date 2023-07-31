@@ -155,6 +155,8 @@ pub struct AddUserData {
     pub email: String,
     pub phone: Option<String>,
     pub password: Option<String>,
+    #[serde(default)]
+    pub send_enrollment_notification: bool,
 }
 
 #[derive(Deserialize, Serialize)]

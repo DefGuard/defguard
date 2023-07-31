@@ -157,8 +157,12 @@ pub async fn add_user(
 
     // initialize enrollment process if password was not provided
     if !user.has_password() {
-        user.start_enrollment(&appstate.pool, &session.user, false)
-            .await?;
+        user.start_enrollment(
+            &appstate.pool,
+            &session.user,
+            user_data.send_enrollment_notification,
+        )
+        .await?;
     }
 
     // add LDAP user
