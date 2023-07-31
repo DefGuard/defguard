@@ -119,6 +119,14 @@ impl From<WireguardNetworkError> for OriWebError {
 impl From<EnrollmentError> for OriWebError {
     fn from(err: EnrollmentError) -> Self {
         error!("{}", err);
-        todo!()
+        match err {
+            EnrollmentError::DbError(msg) => OriWebError::DbError(msg.to_string()),
+            EnrollmentError::NotFound
+            | EnrollmentError::UserNotFound
+            | EnrollmentError::AdminNotFound => OriWebError::ObjectNotFound(err.to_string()),
+            EnrollmentError::TokenExpired
+            | EnrollmentError::SessionExpired
+            | EnrollmentError::TokenUsed => OriWebError::Authorization(err.to_string()),
+        }
     }
 }
