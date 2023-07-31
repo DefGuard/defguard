@@ -34,6 +34,7 @@ export const SmtpCard = () => {
   const toaster = useToaster();
   const {
     settings: { editSettings },
+    mail: { sendTestMail },
   } = useApi();
 
   const [settings] = useAppStore((state) => [state.settings, state.setAppStore]);
@@ -45,6 +46,16 @@ export const SmtpCard = () => {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       toaster.success(LL.settingsPage.messages.editSuccess());
+    },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
+
+  const { mutate: testMutate, isLoading: isTestLoading } = useMutation([], sendTestMail, {
+    onSuccess: () => {
+      toaster.success(LL.settingsPage.smtp.test_form.controls.success());
     },
     onError: (err) => {
       toaster.error(LL.messages.error());
@@ -121,9 +132,8 @@ export const SmtpCard = () => {
     mutate({ ...settings, ...data });
   };
 
-  const onTestSubmit: SubmitHandler<TestMail> = (data) => {
-    // TODO
-    console.log("Sending test email to:", data);
+  const onTestSubmit: SubmitHandler<TestMail> = async (data) => {
+    testMutate(data);
   };
 
   return (
@@ -189,7 +199,7 @@ export const SmtpCard = () => {
             controller={{ control, name: 'smtp_tls' }}
           />
         </form>
-        <form id="smtp-form" onSubmit={handleTestSubmit(onTestSubmit)}>
+        <form id="smtp-test-form" onSubmit={handleTestSubmit(onTestSubmit)}>
           <FormInput
             outerLabel={LL.settingsPage.smtp.test_form.fields.to.label()}
             controller={{ control: testControl, name: 'to' }}
@@ -206,7 +216,7 @@ export const SmtpCard = () => {
               icon={<IconCheckmarkWhite />}
               size={ButtonSize.SMALL}
               styleVariant={ButtonStyleVariant.SAVE}
-              loading={isLoading}
+              loading={isTestLoading}
               type="submit"
             />
           </div>

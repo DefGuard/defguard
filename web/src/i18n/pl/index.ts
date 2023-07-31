@@ -786,7 +786,8 @@ const pl: Translation = {
           },
         },
         controls: {
-          submit: "Wyślij"
+          submit: "Wyślij",
+          success: "Email testowy wysłany pomyślnie",
         }
       },
       helper: `

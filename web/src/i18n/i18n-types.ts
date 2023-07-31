@@ -1813,6 +1813,10 @@ type RootTranslation = {
 					 * S​e​n​d
 					 */
 					submit: string
+					/**
+					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t​ ​s​u​c​c​e​s​s​f​u​l​l​y
+					 */
+					success: string
 				}
 			}
 			/**
@@ -4759,6 +4763,10 @@ export type TranslationFunctions = {
 					 * Send
 					 */
 					submit: () => LocalizedString
+					/**
+					 * Test email sent successfully
+					 */
+					success: () => LocalizedString
 				}
 			}
 			/**

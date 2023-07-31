@@ -437,6 +437,9 @@ export interface ApiHook {
     editSettings: (data: Settings) => EmptyApiResponse;
     setDefaultBranding: (id: string) => Promise<Settings>;
   };
+  mail: {
+    sendTestMail: (data: TestMail) => EmptyApiResponse;
+  }
 }
 
 export interface NavigationStore {

@@ -342,6 +342,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const changePasswordSelf: ApiHook['changePasswordSelf'] = (data) =>
     client.put('/user/change_password', data).then(unpackRequest);
 
+  const sendTestMail: ApiHook['mail']['sendTestMail'] = (data) =>
+    client.post('/mail/test', data).then(unpackRequest);
+
   return {
     getAppInfo,
     changePasswordSelf,
@@ -451,6 +454,9 @@ const useApi = (props?: HookProps): ApiHook => {
       editSettings: editSettings,
       setDefaultBranding: setDefaultBranding,
     },
+    mail: {
+      sendTestMail: sendTestMail,
+    }
   };
 };
 
