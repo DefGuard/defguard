@@ -1,4 +1,7 @@
+use crate::config::DefGuardConfig;
 use crate::handlers::user::check_password_strength;
+use crate::ldap::utils::ldap_add_user;
+use crate::license::{Features, License};
 use crate::{
     db::{
         models::{device::DeviceInfo, enrollment::Enrollment},
@@ -13,16 +16,21 @@ tonic::include_proto!("enrollment");
 pub struct EnrollmentServer {
     pool: DbPool,
     wireguard_tx: Sender<GatewayEvent>,
-    admin_groupname: String,
+    config: DefGuardConfig,
+    ldap_feature_active: bool,
 }
 
 impl EnrollmentServer {
     #[must_use]
-    pub fn new(pool: DbPool, wireguard_tx: Sender<GatewayEvent>, admin_groupname: String) -> Self {
+    pub fn new(pool: DbPool, wireguard_tx: Sender<GatewayEvent>, config: DefGuardConfig) -> Self {
+        // check if LDAP feature is enabled
+        let license_decoded = License::decode(&config.license);
+        let ldap_feature_active = license_decoded.validate(&Features::Ldap);
         Self {
             pool,
             wireguard_tx,
-            admin_groupname,
+            config,
+            ldap_feature_active,
         }
     }
 
@@ -118,7 +126,9 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         })?;
 
         // sync with LDAP
-        // TODO: implement LDAP sync
+        if self.ldap_feature_active {
+            let _result = ldap_add_user(&self.config, &user, &request.password).await;
+        };
 
         Ok(Response::new(()))
     }
@@ -152,7 +162,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         })?;
 
         let (network_info, configs) = device
-            .add_to_all_networks(&mut transaction, &self.admin_groupname)
+            .add_to_all_networks(&mut transaction, &self.config.admin_groupname)
             .await
             .map_err(|err| {
                 error!(

@@ -243,7 +243,7 @@ pub async fn run_grpc_server(
     let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(
         pool.clone(),
         wireguard_tx.clone(),
-        config.admin_groupname.clone(),
+        config.clone(),
     ));
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
