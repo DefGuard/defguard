@@ -16,6 +16,13 @@ import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
 
+type ModulesSettings =
+  | 'openid_enabled'
+  | 'ldap_enabled'
+  | 'wireguard_enabled'
+  | 'webhooks_enabled'
+  | 'worker_enabled';
+
 export const ModulesCard = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
@@ -37,12 +44,7 @@ export const ModulesCard = () => {
     },
   });
 
-  const handleChange = (
-    key: keyof Omit<
-      Settings,
-      'id' | 'challenge_template' | 'main_logo_url' | 'instance_name' | 'nav_logo_url'
-    >
-  ) => {
+  const handleChange = (key: ModulesSettings) => {
     if (settings && !isLoading) {
       const cloned = cloneDeep(settings) as Settings;
       cloned[key] = !cloned[key];
