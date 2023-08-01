@@ -1,11 +1,23 @@
 @use '../../../shared/scss/helpers' as *;
 
 #settings-page {
-  .web3-settings {
+  .smtp {
+    @include media-breakpoint-up(lg) {
+      margin-bottom: 30px;
+    }
 
     & > .card {
       box-sizing: border-box;
       padding: 25px 20px 25px 15px;
+
+      & > form {
+        align-items: stretch;
+        justify-content: flex-start;
+
+        .helper {
+          margin-left: auto;
+        }
+      }
 
       & > header {
         display: flex;
@@ -21,23 +33,11 @@
         }
 
         & > .controls {
+          display: flex;
+          flex-flow: row;
           margin-left: auto;
+          gap: 10px;
         }
-      }
-
-      & > textarea {
-        resize: none;
-        width: 100%;
-        max-width: 100%;
-        overflow-x: hidden;
-        height: 147px;
-        margin: 0;
-        box-sizing: border-box;
-        padding: 20px 15px;
-        border-radius: 10px;
-        border: 1px solid var(--gray-lighter);
-
-        @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
       }
     }
   }

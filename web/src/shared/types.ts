@@ -437,6 +437,9 @@ export interface ApiHook {
     editSettings: (data: Settings) => EmptyApiResponse;
     setDefaultBranding: (id: string) => Promise<Settings>;
   };
+  mail: {
+    sendTestMail: (data: TestMail) => EmptyApiResponse;
+  };
 }
 
 export interface NavigationStore {
@@ -627,6 +630,12 @@ export interface Settings {
   main_logo_url: string;
   nav_logo_url: string;
   instance_name: string;
+  smtp_server?: string;
+  smtp_port?: number;
+  smtp_encryption: string;
+  smtp_user?: string;
+  smtp_password?: string;
+  smtp_sender?: string;
 }
 
 export interface Webhook {
@@ -769,11 +778,17 @@ export interface Web3StartRequest {
 export interface TOTPRequest {
   code: number;
 }
+
 export interface WebAuthnRegistrationRequest {
   name: string;
   rpkc: PublicKeyCredentialWithAttestationJSON;
 }
+
 export interface RemoveUserClientRequest {
   username: string;
   client_id: string;
+}
+
+export interface TestMail {
+  to: string;
 }

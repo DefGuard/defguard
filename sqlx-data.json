@@ -1052,6 +1052,125 @@
     },
     "query": "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE refresh_token = $1"
   },
+  "32ee49340d5d57e6536e506535cc18327ecb90e52f029c3e361dddcb8841aac3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "openid_enabled",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "ldap_enabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "wireguard_enabled",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "webhooks_enabled",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "worker_enabled",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "challenge_template",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "instance_name",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "main_logo_url",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "nav_logo_url",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_server",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_port",
+          "ordinal": 11,
+          "type_info": "Int4"
+        },
+        {
+          "name": "smtp_encryption: _",
+          "ordinal": 12,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "starttls",
+                  "implicittls"
+                ]
+              },
+              "name": "smtp_encryption"
+            }
+          }
+        },
+        {
+          "name": "smtp_user",
+          "ordinal": 13,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_password",
+          "ordinal": 14,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_sender",
+          "ordinal": 15,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\" \"smtp_encryption: _\", \"smtp_user\", \"smtp_password\", \"smtp_sender\" FROM \"settings\""
+  },
   "33813a92407a52297f68cff8c6c3dcd8ae0d54ac743398e9ab3cf9e6a28c3660": {
     "describe": {
       "columns": [],
@@ -1314,116 +1433,6 @@
       }
     },
     "query": "DELETE FROM \"webhook\" WHERE id = $1"
-  },
-  "3fbc35832a03ed6c307a74ed2037705c7c052124b0855da2ab7dc90d3f0dd7ee": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "openid_enabled",
-          "ordinal": 1,
-          "type_info": "Bool"
-        },
-        {
-          "name": "ldap_enabled",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "wireguard_enabled",
-          "ordinal": 3,
-          "type_info": "Bool"
-        },
-        {
-          "name": "webhooks_enabled",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "worker_enabled",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "challenge_template",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "instance_name",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "main_logo_url",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "nav_logo_url",
-          "ordinal": 9,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_server",
-          "ordinal": 10,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_port",
-          "ordinal": 11,
-          "type_info": "Int4"
-        },
-        {
-          "name": "smtp_tls",
-          "ordinal": 12,
-          "type_info": "Bool"
-        },
-        {
-          "name": "smtp_user",
-          "ordinal": 13,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_password",
-          "ordinal": 14,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_sender",
-          "ordinal": 15,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_tls\", \"smtp_user\", \"smtp_password\", \"smtp_sender\" FROM \"settings\" WHERE id = $1"
   },
   "3fe95f7f36317af0d3b95e0b460536fd8e597e01cdc54936d3270b0a5937d708": {
     "describe": {
@@ -1999,6 +2008,51 @@
     },
     "query": "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') ON CONFLICT DO NOTHING RETURNING id"
   },
+  "71a9183f5c6c4de460472c866f384b86294ca48b7166b1bed6ccba06dfb58141": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "starttls",
+                  "implicittls"
+                ]
+              },
+              "name": "smtp_encryption"
+            }
+          },
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"settings\" (\"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\", \"smtp_user\", \"smtp_password\", \"smtp_sender\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id"
+  },
   "72d23351a50aab914232b485b109ffaaf3abe58e73f8180f9dc0211dd4aa5f53": {
     "describe": {
       "columns": [
@@ -2107,114 +2161,6 @@
     },
     "query": "SELECT id \"id!\", name FROM webauthn WHERE user_id = $1"
   },
-  "79e5364158e720c80aaa1a8b7eae59e136213282402efc349352e5fc29155904": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "openid_enabled",
-          "ordinal": 1,
-          "type_info": "Bool"
-        },
-        {
-          "name": "ldap_enabled",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "wireguard_enabled",
-          "ordinal": 3,
-          "type_info": "Bool"
-        },
-        {
-          "name": "webhooks_enabled",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "worker_enabled",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "challenge_template",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "instance_name",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "main_logo_url",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "nav_logo_url",
-          "ordinal": 9,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_server",
-          "ordinal": 10,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_port",
-          "ordinal": 11,
-          "type_info": "Int4"
-        },
-        {
-          "name": "smtp_tls",
-          "ordinal": 12,
-          "type_info": "Bool"
-        },
-        {
-          "name": "smtp_user",
-          "ordinal": 13,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_password",
-          "ordinal": 14,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_sender",
-          "ordinal": 15,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_tls\", \"smtp_user\", \"smtp_password\", \"smtp_sender\" FROM \"settings\""
-  },
   "7acf1bf5bd1597e01908c3a9e4d5540db061f77d69de853abe8e5f09149dfdf8": {
     "describe": {
       "columns": [
@@ -2289,40 +2235,6 @@
       }
     },
     "query": "DELETE FROM wireguard_peer_stats\n            WHERE collected_at < $1\n            AND (device_id, network, collected_at) NOT IN (\n                SELECT device_id, network, MAX(collected_at)\n                FROM wireguard_peer_stats\n                GROUP BY device_id, network\n            )"
-  },
-  "7cc364e35b0bfc75844ca88e05d6bbf7960523150a8cbe4554933ba83a3d4953": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Int4",
-          "Bool",
-          "Text",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"settings\" (\"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_tls\", \"smtp_user\", \"smtp_password\", \"smtp_sender\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id"
   },
   "7d502cb019e69adc755d828bc581fa56c24c48245689fd21799ec96b1dac10ad": {
     "describe": {
@@ -2962,6 +2874,44 @@
     },
     "query": "SELECT id \"id?\", \"user_id\", \"client_id\", \"code\", \"redirect_uri\", \"scope\", \"auth_time\", \"nonce\", \"code_challenge\" FROM \"authorization_code\" WHERE id = $1"
   },
+  "9b3c26534e794af37a478dbb2b3e43ef082cd0dfe0c7489cadead5295f08885d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "starttls",
+                  "implicittls"
+                ]
+              },
+              "name": "smtp_encryption"
+            }
+          },
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE \"settings\" SET \"openid_enabled\" = $2, \"ldap_enabled\" = $3, \"wireguard_enabled\" = $4, \"webhooks_enabled\" = $5, \"worker_enabled\" = $6, \"challenge_template\" = $7, \"instance_name\" = $8, \"main_logo_url\" = $9, \"nav_logo_url\" = $10, \"smtp_server\" = $11, \"smtp_port\" = $12, \"smtp_encryption\" = $13, \"smtp_user\" = $14, \"smtp_password\" = $15, \"smtp_sender\" = $16 WHERE id = $1"
+  },
   "9bb9a07281e19a57b10ddfeba1d1eec91021f371d0cf40d6dbdb82e38f28aa04": {
     "describe": {
       "columns": [],
@@ -3188,6 +3138,127 @@
       }
     },
     "query": "UPDATE oauth2token SET access_token = $2, refresh_token = $3, expires_in = $4 WHERE access_token = $1"
+  },
+  "a51219672e246b69f57553f5e7cffdd189397c4dc0580ff334c7cf3a7f6b7ec3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "openid_enabled",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "ldap_enabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "wireguard_enabled",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "webhooks_enabled",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "worker_enabled",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "challenge_template",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "instance_name",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "main_logo_url",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "nav_logo_url",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_server",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_port",
+          "ordinal": 11,
+          "type_info": "Int4"
+        },
+        {
+          "name": "smtp_encryption: _",
+          "ordinal": 12,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "starttls",
+                  "implicittls"
+                ]
+              },
+              "name": "smtp_encryption"
+            }
+          }
+        },
+        {
+          "name": "smtp_user",
+          "ordinal": 13,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_password",
+          "ordinal": 14,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_sender",
+          "ordinal": 15,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\" \"smtp_encryption: _\", \"smtp_user\", \"smtp_password\", \"smtp_sender\" FROM \"settings\" WHERE id = $1"
   },
   "a8f720a41ab4509570490d444180ae58f20596491a3ac2be3ab00a8a19c78c58": {
     "describe": {
@@ -4206,33 +4277,6 @@
       }
     },
     "query": "INSERT INTO \"group\" (\"name\") VALUES ($1) RETURNING id"
-  },
-  "eab64f99ff82f832bbc64ab022de31cb9a1e47c8040e41bc068953586d8452b7": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Int4",
-          "Bool",
-          "Text",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE \"settings\" SET \"openid_enabled\" = $2, \"ldap_enabled\" = $3, \"wireguard_enabled\" = $4, \"webhooks_enabled\" = $5, \"worker_enabled\" = $6, \"challenge_template\" = $7, \"instance_name\" = $8, \"main_logo_url\" = $9, \"nav_logo_url\" = $10, \"smtp_server\" = $11, \"smtp_port\" = $12, \"smtp_tls\" = $13, \"smtp_user\" = $14, \"smtp_password\" = $15, \"smtp_sender\" = $16 WHERE id = $1"
   },
   "eb00cea26638259fe12354abc085bbf893f10e62afb409fb0f198d33aadf1497": {
     "describe": {

@@ -1,4 +1,13 @@
 use model_derive::Model;
+use sqlx::Type;
+
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug)]
+#[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
+pub enum SmtpEncryption {
+    None,
+    StartTls,
+    ImplicitTls,
+}
 
 #[derive(Model, Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Settings {
@@ -15,7 +24,8 @@ pub struct Settings {
     pub nav_logo_url: String,
     pub smtp_server: Option<String>,
     pub smtp_port: Option<i32>,
-    pub smtp_tls: Option<bool>,
+    #[model(enum)]
+    pub smtp_encryption: SmtpEncryption,
     pub smtp_user: Option<String>,
     pub smtp_password: Option<String>,
     pub smtp_sender: Option<String>,
