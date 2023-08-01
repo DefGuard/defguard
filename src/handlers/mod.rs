@@ -18,6 +18,7 @@ pub(crate) mod app_info;
 pub(crate) mod auth;
 pub(crate) mod group;
 pub(crate) mod license;
+pub(crate) mod mail;
 #[cfg(feature = "openid")]
 pub mod openid_clients;
 #[cfg(feature = "openid")]
@@ -40,14 +41,6 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub type ApiResult = Result<ApiResponse, OriWebError>;
 
-fn internal_server_error(msg: &str) -> (Value, Status) {
-    error!("{}", msg);
-    (
-        json!({"msg": "Internal server error"}),
-        Status::InternalServerError,
-    )
-}
-
 impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
     fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, Status> {
         let (json, status) = match self {
@@ -60,19 +53,17 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
                 error!("{}", msg);
                 (json!({ "msg": msg }), Status::Forbidden)
             }
-            OriWebError::DbError(msg) => internal_server_error(&msg),
-            OriWebError::Grpc(msg) => internal_server_error(&msg),
-            OriWebError::Ldap(msg) => internal_server_error(&msg),
-            OriWebError::WebauthnRegistration(msg) => internal_server_error(&msg),
-            OriWebError::IncorrectUsername(msg) => {
+            OriWebError::DbError(msg)
+            | OriWebError::Grpc(msg)
+            | OriWebError::Ldap(msg)
+            | OriWebError::WebauthnRegistration(msg)
+            | OriWebError::Serialization(msg)
+            | OriWebError::ModelError(msg) => {
                 error!("{}", msg);
-                (json!({ "msg": msg }), Status::BadRequest)
-            }
-            OriWebError::Serialization(msg) => internal_server_error(&msg),
-            OriWebError::ModelError(msg) => internal_server_error(&msg),
-            OriWebError::PubkeyValidation(msg) => {
-                error!("{}", msg);
-                (json!({ "msg": msg }), Status::BadRequest)
+                (
+                    json!({"msg": "Internal server error"}),
+                    Status::InternalServerError,
+                )
             }
             OriWebError::Http(status) => {
                 error!("{}", status);
@@ -82,9 +73,18 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
                 json!({ "msg": "Too many login attempts" }),
                 Status::TooManyRequests,
             ),
-            OriWebError::BadRequest(msg) => {
+            OriWebError::IncorrectUsername(msg)
+            | OriWebError::PubkeyValidation(msg)
+            | OriWebError::BadRequest(msg) => {
                 error!("{}", msg);
                 (json!({ "msg": msg }), Status::BadRequest)
+            }
+            OriWebError::TemplateError(err) => {
+                error!("Template error: {err}");
+                (
+                    json!({"msg": "Internal server error"}),
+                    Status::InternalServerError,
+                )
             }
         };
         Response::build_from(json.respond_to(request)?)

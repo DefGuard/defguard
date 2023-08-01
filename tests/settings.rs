@@ -39,6 +39,12 @@ async fn test_settings() {
                 This request will not trigger a blockchain transaction or cost any gas fees."
                 .trim_start()
                 .into(),
+            smtp_server: None,
+            smtp_port: None,
+            smtp_tls: None,
+            smtp_user: None,
+            smtp_password: None,
+            smtp_sender: None,
         }
     );
 
