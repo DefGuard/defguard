@@ -8,7 +8,7 @@ use sqlx::{Pool, Postgres};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-use crate::db::Settings;
+use crate::db::{models::settings::SmtpEncryption, Settings};
 
 #[derive(Error, Debug)]
 pub enum MailError {
@@ -38,7 +38,7 @@ pub enum MailError {
 struct SmtpSettings {
     pub server: String,
     pub port: u16,
-    pub tls: bool,
+    pub encryption: SmtpEncryption,
     pub user: String,
     pub password: String,
     pub sender: String,
@@ -52,10 +52,17 @@ impl SmtpSettings {
 
     /// Constructs SmtpSettings object from Settings. Returns error if SMTP settings are incomplete.
     pub async fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
-        if let (Some(server), Some(port), Some(tls), Some(user), Some(password), Some(sender)) = (
+        if let (
+            Some(server),
+            Some(port),
+            Some(encryption),
+            Some(user),
+            Some(password),
+            Some(sender),
+        ) = (
             settings.smtp_server,
             settings.smtp_port,
-            settings.smtp_tls,
+            settings.smtp_encryption,
             settings.smtp_user,
             settings.smtp_password,
             settings.smtp_sender,
@@ -64,7 +71,7 @@ impl SmtpSettings {
             Ok(Self {
                 server,
                 port,
-                tls,
+                encryption,
                 user,
                 password,
                 sender,
@@ -165,12 +172,18 @@ impl MailHandler {
         &self,
         settings: SmtpSettings,
     ) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
-        let builder = if settings.tls {
-            AsyncSmtpTransport::<Tokio1Executor>::relay(&settings.server)?.port(settings.port)
-        } else {
-            AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(settings.server)
-                .port(settings.port)
-        };
+        let builder = match settings.encryption {
+            SmtpEncryption::None => {
+                AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(settings.server)
+            }
+            SmtpEncryption::StartTls => {
+                AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&settings.server)?
+            }
+            SmtpEncryption::ImplicitTls => {
+                AsyncSmtpTransport::<Tokio1Executor>::relay(&settings.server)?
+            }
+        }
+        .port(settings.port);
         Ok(builder
             .credentials(Credentials::new(settings.user, settings.password))
             .build())

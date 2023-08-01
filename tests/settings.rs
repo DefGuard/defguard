@@ -41,7 +41,7 @@ async fn test_settings() {
                 .into(),
             smtp_server: None,
             smtp_port: None,
-            smtp_tls: None,
+            smtp_encryption: None,
             smtp_user: None,
             smtp_password: None,
             smtp_sender: None,

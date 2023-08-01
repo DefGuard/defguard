@@ -67,7 +67,7 @@ export const SmtpCard = () => {
             .number()
             .max(65535, LL.form.error.portMax())
             .typeError(LL.form.error.validPort()),
-          smtp_tls: yup.boolean(),
+          smtp_encryption: yup.boolean(),
           smtp_user: yup.string(),
           smtp_password: yup.string(),
           smtp_sender: yup.string().matches(patternValidEmail, LL.form.error.invalid()),
@@ -80,7 +80,7 @@ export const SmtpCard = () => {
       return {
         smtp_server: settings?.smtp_server,
         smtp_port: settings?.smtp_port,
-        smtp_tls: settings?.smtp_tls,
+        smtp_encryption: settings?.smtp_encryption,
         smtp_user: settings?.smtp_user,
         smtp_password: settings?.smtp_password,
         smtp_sender: settings?.smtp_sender,
@@ -88,7 +88,7 @@ export const SmtpCard = () => {
     }, [
       settings?.smtp_server,
       settings?.smtp_port,
-      settings?.smtp_tls,
+      settings?.smtp_encryption,
       settings?.smtp_user,
       settings?.smtp_password,
       settings?.smtp_sender,
@@ -163,7 +163,7 @@ export const SmtpCard = () => {
           <FormCheckBox
             label={LL.settingsPage.smtp.form.fields.tls.label()}
             labelPosition="right"
-            controller={{ control, name: 'smtp_tls' }}
+            controller={{ control, name: 'smtp_encryption' }}
           />
         </form>
         <TestForm />
