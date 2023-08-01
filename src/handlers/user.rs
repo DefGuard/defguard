@@ -25,7 +25,7 @@ use rocket::{
 /// Verify the given username
 fn check_username(username: &str) -> Result<(), OriWebError> {
     let length = username.len();
-    if !(4..64).contains(&length) {
+    if !(3..64).contains(&length) {
         return Err(OriWebError::Serialization(format!(
             "Username ({}) has incorrect length",
             username
