@@ -8,7 +8,7 @@ use crate::{
     },
 };
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
-use enrollment::{enrollment_service_server::EnrollmentServiceServer, EnrollmentServer};
+use enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer};
 #[cfg(feature = "wireguard")]
 use gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
 #[cfg(any(feature = "wireguard", feature = "worker"))]

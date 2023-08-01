@@ -11,7 +11,15 @@ use crate::{
 };
 use tokio::sync::broadcast::Sender;
 use tonic::{Request, Response, Status};
-tonic::include_proto!("enrollment");
+
+pub mod proto {
+    tonic::include_proto!("enrollment");
+}
+use proto::{
+    enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
+    Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
+    InitialUserInfo, NewDevice,
+};
 
 pub struct EnrollmentServer {
     pool: DbPool,
@@ -185,6 +193,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         })?;
 
         let response = CreateDeviceResponse {
+            device: Some(device.into()),
             configs: configs.into_iter().map(|config| config.into()).collect(),
         };
 
@@ -219,6 +228,18 @@ impl From<handlers::wireguard::DeviceConfig> for DeviceConfig {
             network_id: config.network_id,
             network_name: config.network_name,
             config: config.config,
+        }
+    }
+}
+
+impl From<Device> for ProtoDevice {
+    fn from(device: Device) -> Self {
+        Self {
+            id: device.get_id().expect("Failed to get device ID"),
+            name: device.name,
+            pubkey: device.wireguard_pubkey,
+            user_id: device.user_id,
+            created_at: device.created.timestamp(),
         }
     }
 }
