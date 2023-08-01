@@ -1,4 +1,7 @@
-use defguard::{db::models::settings::Settings, handlers::Auth};
+use defguard::{
+    db::models::settings::{Settings, SmtpEncryption},
+    handlers::Auth,
+};
 use rocket::{http::Status, local::asynchronous::Client};
 
 mod common;
@@ -41,7 +44,7 @@ async fn test_settings() {
                 .into(),
             smtp_server: None,
             smtp_port: None,
-            smtp_encryption: None,
+            smtp_encryption: SmtpEncryption::StartTls,
             smtp_user: None,
             smtp_password: None,
             smtp_sender: None,

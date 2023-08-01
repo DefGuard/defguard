@@ -52,14 +52,7 @@ impl SmtpSettings {
 
     /// Constructs SmtpSettings object from Settings. Returns error if SMTP settings are incomplete.
     pub async fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
-        if let (
-            Some(server),
-            Some(port),
-            encryption,
-            Some(user),
-            Some(password),
-            Some(sender),
-        ) = (
+        if let (Some(server), Some(port), encryption, Some(user), Some(password), Some(sender)) = (
             settings.smtp_server,
             settings.smtp_port,
             settings.smtp_encryption,
