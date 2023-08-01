@@ -632,7 +632,7 @@ export interface Settings {
   instance_name: string;
   smtp_server?: string;
   smtp_port?: number;
-  smtp_encryption?: boolean;
+  smtp_encryption: string;
   smtp_user?: string;
   smtp_password?: string;
   smtp_sender?: string;

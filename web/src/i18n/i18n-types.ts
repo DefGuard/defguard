@@ -1741,9 +1741,9 @@ type RootTranslation = {
 						 */
 						placeholder: string
 					}
-					tls: {
+					encryption: {
 						/**
-						 * U​s​e​ ​T​L​S
+						 * E​n​c​r​y​p​t​i​o​n
 						 */
 						label: string
 					}
@@ -4694,9 +4694,9 @@ export type TranslationFunctions = {
 						 */
 						placeholder: () => LocalizedString
 					}
-					tls: {
+					encryption: {
 						/**
-						 * Use TLS
+						 * Encryption
 						 */
 						label: () => LocalizedString
 					}

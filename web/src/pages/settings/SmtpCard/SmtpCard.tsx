@@ -9,8 +9,8 @@ import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { FormCheckBox } from '../../../shared/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
 import { Button } from '../../../shared/components/layout/Button/Button';
 import {
   ButtonSize,
@@ -18,6 +18,10 @@ import {
 } from '../../../shared/components/layout/Button/types';
 import { Card } from '../../../shared/components/layout/Card/Card';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
+import {
+  SelectOption,
+  SelectStyleVariant,
+} from '../../../shared/components/layout/Select/Select';
 import { IconCheckmarkWhite } from '../../../shared/components/svg';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
@@ -29,6 +33,10 @@ import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
 import { validateIpOrDomain } from '../../../shared/validators';
 import { TestForm } from './TestForm';
+
+interface Inputs extends Omit<Settings, 'smtp_encryption'> {
+  smtp_encryption: SelectOption<string>;
+}
 
 export const SmtpCard = () => {
   const { LL } = useI18nContext();
@@ -67,7 +75,7 @@ export const SmtpCard = () => {
             .number()
             .max(65535, LL.form.error.portMax())
             .typeError(LL.form.error.validPort()),
-          smtp_encryption: yup.boolean(),
+          smtp_encryption: yup.object().required(),
           smtp_user: yup.string(),
           smtp_password: yup.string(),
           smtp_sender: yup.string().matches(patternValidEmail, LL.form.error.invalid()),
@@ -75,12 +83,34 @@ export const SmtpCard = () => {
         .required(),
     [LL.form.error]
   );
-  const { control, handleSubmit } = useForm<Settings>({
+
+  const encryptionOptions = [
+    {
+      key: 1,
+      value: 'None',
+      label: 'None',
+    },
+    {
+      key: 2,
+      value: 'StartTls',
+      label: 'Start TLS',
+    },
+    {
+      key: 3,
+      value: 'ImplicitTls',
+      label: 'Implicit TLS',
+    },
+  ];
+
+  const defaultEncryption =
+    encryptionOptions.filter((option) => option.value === settings?.smtp_encryption)[0] ||
+    encryptionOptions[1];
+  const { control, handleSubmit } = useForm<Inputs>({
     defaultValues: useMemo(() => {
       return {
         smtp_server: settings?.smtp_server,
         smtp_port: settings?.smtp_port,
-        smtp_encryption: settings?.smtp_encryption,
+        smtp_encryption: defaultEncryption,
         smtp_user: settings?.smtp_user,
         smtp_password: settings?.smtp_password,
         smtp_sender: settings?.smtp_sender,
@@ -88,10 +118,10 @@ export const SmtpCard = () => {
     }, [
       settings?.smtp_server,
       settings?.smtp_port,
-      settings?.smtp_encryption,
       settings?.smtp_user,
       settings?.smtp_password,
       settings?.smtp_sender,
+      defaultEncryption,
     ]),
     resolver: yupResolver(formSchema),
     mode: 'all',
@@ -99,8 +129,8 @@ export const SmtpCard = () => {
 
   if (!settings) return null;
 
-  const onSubmit: SubmitHandler<Settings> = (data) => {
-    mutate({ ...settings, ...data });
+  const onSubmit: SubmitHandler<Inputs> = (data) => {
+    mutate({ ...settings, ...data, smtp_encryption: data.smtp_encryption.value });
   };
 
   return (
@@ -160,10 +190,12 @@ export const SmtpCard = () => {
             required
           />
           <Helper>{parse(LL.settingsPage.smtp.form.fields.sender.helper())}</Helper>
-          <FormCheckBox
-            label={LL.settingsPage.smtp.form.fields.tls.label()}
-            labelPosition="right"
+          <FormSelect
+            data-testid="groups-select"
+            styleVariant={SelectStyleVariant.WHITE}
+            options={encryptionOptions}
             controller={{ control, name: 'smtp_encryption' }}
+            outerLabel={LL.settingsPage.smtp.form.fields.encryption.label()}
           />
         </form>
         <TestForm />

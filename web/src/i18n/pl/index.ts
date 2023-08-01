@@ -752,8 +752,8 @@ const pl: Translation = {
             label: 'Port',
             placeholder: 'Port',
           },
-          tls: {
-            label: 'TLS',
+          encryption: {
+            label: 'Szyfrowanie',
           },
           user: {
             label: 'Użytkownik',

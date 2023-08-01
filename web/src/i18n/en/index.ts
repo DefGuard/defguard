@@ -751,8 +751,8 @@ const en: BaseTranslation = {
             label: 'Server port',
             placeholder: 'Port',
           },
-          tls: {
-            label: 'Use TLS',
+          encryption: {
+            label: 'Encryption',
           },
           user: {
             label: 'Server username',

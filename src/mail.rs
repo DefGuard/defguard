@@ -55,7 +55,7 @@ impl SmtpSettings {
         if let (
             Some(server),
             Some(port),
-            Some(encryption),
+            encryption,
             Some(user),
             Some(password),
             Some(sender),
