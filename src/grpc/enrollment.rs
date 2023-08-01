@@ -140,6 +140,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let _result = ldap_add_user(&self.config, &user, &request.password).await;
         };
 
+        // TODO: send welcome email when user is activated
+
         Ok(Response::new(()))
     }
 

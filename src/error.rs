@@ -128,6 +128,7 @@ impl From<EnrollmentError> for OriWebError {
             | EnrollmentError::SessionExpired
             | EnrollmentError::TokenUsed => OriWebError::Authorization(err.to_string()),
             EnrollmentError::AlreadyActive => OriWebError::BadRequest(err.to_string()),
+            EnrollmentError::NotificationError(_) => OriWebError::Http(Status::InternalServerError),
         }
     }
 }

@@ -21,3 +21,13 @@ pub fn test_mail() -> Result<String, TemplateError> {
 
     Ok(bars.render("mail_test", &json!({"parent": "mail_base"}))?)
 }
+
+// mail with link to enrollment service
+pub fn enrollment_start_mail() -> Result<String, TemplateError> {
+    unimplemented!()
+}
+
+// welcome message sent when activating an account through enrollment
+pub fn enrollment_welcome_mail() -> Result<String, TemplateError> {
+    unimplemented!()
+}

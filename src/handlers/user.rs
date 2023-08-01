@@ -164,6 +164,7 @@ pub async fn add_user(
                 &session.user,
                 appstate.config.enrollment_token_timeout.as_secs(),
                 user_data.send_enrollment_notification,
+                appstate.mail_tx.clone(),
             )
             .await?;
         Some(token)
@@ -221,6 +222,7 @@ pub async fn start_enrollment(
             &session.user,
             appstate.config.enrollment_token_timeout.as_secs(),
             data.send_enrollment_notification,
+            appstate.mail_tx.clone(),
         )
         .await?;
 

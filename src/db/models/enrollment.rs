@@ -1,9 +1,14 @@
 use crate::db::{DbPool, User};
+use crate::mail::Mail;
 use crate::random::gen_alphanumeric;
+use crate::templates;
 use chrono::{Duration, NaiveDateTime, Utc};
 use sqlx::{query, query_as, Error as SqlxError};
 use thiserror::Error;
+use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
+
+const ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
 
 #[derive(Error, Debug)]
 pub enum EnrollmentError {
@@ -23,6 +28,8 @@ pub enum EnrollmentError {
     AdminNotFound,
     #[error("User account is already activated")]
     AlreadyActive,
+    #[error("Failed to send enrollment notification: {0}")]
+    NotificationError(String),
 }
 
 impl From<EnrollmentError> for Status {
@@ -31,7 +38,8 @@ impl From<EnrollmentError> for Status {
         let (code, msg) = match err {
             EnrollmentError::DbError(_)
             | EnrollmentError::AdminNotFound
-            | EnrollmentError::UserNotFound => (Code::Internal, "unexpected error"),
+            | EnrollmentError::UserNotFound
+            | EnrollmentError::NotificationError(_) => (Code::Internal, "unexpected error"),
             EnrollmentError::NotFound
             | EnrollmentError::TokenExpired
             | EnrollmentError::SessionExpired
@@ -177,6 +185,7 @@ impl User {
         admin: &User,
         token_timeout_seconds: u64,
         send_user_notification: bool,
+        mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, EnrollmentError> {
         info!(
             "User {} starting enrollment for user {}, notification enabled: {}",
@@ -192,8 +201,22 @@ impl User {
         enrollment.save(pool).await?;
 
         if send_user_notification {
-            // TODO: implement actually sending user notifications
-            unimplemented!()
+            debug!("Sending enrollment start mail to {}", self.username);
+            let mail = Mail {
+                to: self.email.clone(),
+                subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
+                content: templates::enrollment_start_mail()
+                    .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+            };
+            match mail_tx.send(mail.clone()) {
+                Ok(_) => {
+                    info!("Sent enrollment start mail to {}", self.username);
+                }
+                Err(err) => {
+                    error!("Error sending mail: {mail:?}: {err}");
+                    return Err(EnrollmentError::NotificationError(err.to_string()));
+                }
+            }
         }
 
         Ok(enrollment.id)
