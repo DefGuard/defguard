@@ -3,6 +3,7 @@ use crate::mail::Mail;
 use crate::random::gen_alphanumeric;
 use crate::templates;
 use chrono::{Duration, NaiveDateTime, Utc};
+use reqwest::Url;
 use sqlx::{query, query_as, Error as SqlxError};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
@@ -184,6 +185,7 @@ impl User {
         pool: &DbPool,
         admin: &User,
         token_timeout_seconds: u64,
+        enrollment_service_url: Url,
         send_user_notification: bool,
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, EnrollmentError> {
@@ -205,7 +207,7 @@ impl User {
             let mail = Mail {
                 to: self.email.clone(),
                 subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
-                content: templates::enrollment_start_mail()
+                content: templates::enrollment_start_mail(enrollment_service_url, &enrollment.id)
                     .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
             };
             match mail_tx.send(mail.clone()) {
