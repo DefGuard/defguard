@@ -1,4 +1,5 @@
-{{#*inline "page"}}
+{% extends "mail_base" %}
+{% block content %}
     <div class="r  pr-16 pl-16" style="background:#f9f9f9;background-color:#f9f9f9;margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
         style="background:#f9f9f9;background-color:#f9f9f9;width:100%;">
@@ -48,5 +49,4 @@
         </tbody>
       </table>
     </div>
-{{/inline}}
-{{> (lookup this "parent")}}
+{% endblock content %}
