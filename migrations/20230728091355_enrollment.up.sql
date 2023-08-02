@@ -10,3 +10,7 @@ CREATE TABLE enrollment (
 );
 
 ALTER TABLE "user" ALTER COLUMN password_hash DROP NOT NULL;
+
+ALTER TABLE settings ADD COLUMN enrollment_vpn_step_optional boolean NULL;
+ALTER TABLE settings ADD COLUMN enrollment_welcome_message text NULL;
+ALTER TABLE settings ADD COLUMN enrollment_welcome_email text NULL;
