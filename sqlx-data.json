@@ -244,26 +244,6 @@
     },
     "query": "INSERT INTO \"wallet\" (\"user_id\", \"address\", \"name\", \"chain_id\", \"challenge_message\", \"challenge_signature\", \"creation_timestamp\", \"validation_timestamp\", \"use_for_mfa\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
   },
-  "0ad599ef120ecc02b030bd1276172929d6a612846acf4a5489c36a04cb57de59": {
-    "describe": {
-      "columns": [
-        {
-          "name": "recovery_codes",
-          "ordinal": 0,
-          "type_info": "TextArray"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT recovery_codes FROM \"user\" WHERE id = $1"
-  },
   "0b53e81d6f1ce3c3a68c871e7a4b9e41db58b112d12281516e10421d46fbbd94": {
     "describe": {
       "columns": [
@@ -2053,6 +2033,19 @@
     },
     "query": "INSERT INTO \"settings\" (\"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\", \"smtp_user\", \"smtp_password\", \"smtp_sender\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id"
   },
+  "727ed093b693f0f48e83779f9ee58de725cbec807ae286ae5900f426f2492f9d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE enrollment SET used_at = $1 WHERE id = $2"
+  },
   "72d23351a50aab914232b485b109ffaaf3abe58e73f8180f9dc0211dd4aa5f53": {
     "describe": {
       "columns": [
@@ -2330,7 +2323,7 @@
       "nullable": [
         false,
         false,
-        false,
+        true,
         false,
         false,
         false,
@@ -2438,6 +2431,51 @@
     },
     "query": "UPDATE \"group\" SET \"name\" = $2 WHERE id = $1"
   },
+  "865131a7e440c7e5f297cb8620487fe0cf641f481175adaf22982d1f983d362e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "wireguard_pubkey",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            WITH s AS (\n                SELECT DISTINCT ON (device_id) *\n                FROM wireguard_peer_stats\n                ORDER BY device_id, latest_handshake DESC\n            )\n            SELECT\n                d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created\n            FROM device d\n            JOIN s ON d.id = s.device_id\n            WHERE s.latest_handshake >= $1 AND s.network = $2\n            "
+  },
   "872e70c5006c45dc3502642444a4d00e5f8a5c23062392e1a60613936acfa07b": {
     "describe": {
       "columns": [],
@@ -2449,6 +2487,23 @@
       }
     },
     "query": "DELETE FROM wireguard_network_allowed_group WHERE network_id=$1"
+  },
+  "8774fc3844dfab8d43b70e382ae3202355eb686269e65c15b34c811682c9ea80": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int8",
+          "Int8",
+          "Timestamp",
+          "Timestamp",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "INSERT INTO enrollment (id, user_id, admin_id, created_at, expires_at, used_at) VALUES ($1, $2, $3, $4, $5, $6)"
   },
   "8880011a898ca2b97b0cfdbf027509d4855f46e4871caaa1fc95f2f612efcc4b": {
     "describe": {
@@ -3840,7 +3895,7 @@
       "nullable": [
         false,
         false,
-        false,
+        true,
         false,
         false,
         false,
@@ -4111,7 +4166,7 @@
       "nullable": [
         false,
         false,
-        false,
+        true,
         false,
         false,
         false,
@@ -4367,51 +4422,6 @@
     },
     "query": "SELECT id \"id?\", name, wireguard_pubkey, user_id, created FROM device WHERE wireguard_pubkey = $1"
   },
-  "ebedd4da7e655cdf71aced749b1ba85e2988ec3b1b71ccae652d561a4652f039": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "wireguard_pubkey",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "created",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Timestamp",
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n            WITH s AS (\n                SELECT DISTINCT ON (device_id) *\n                FROM wireguard_peer_stats\n                ORDER BY device_id, latest_handshake DESC\n            )\n            SELECT\n                d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created\n            FROM device d\n            JOIN s ON d.id = s.device_id\n            WHERE s.latest_handshake > $1 AND s.network = $2\n            "
-  },
   "ee6ed3df25517a6fedf6981166e58601de53af70dd28f69b84caca6e36cb8956": {
     "describe": {
       "columns": [],
@@ -4485,6 +4495,56 @@
       }
     },
     "query": "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE access_token = $1"
+  },
+  "f1568559d14533fbb348ae6d9e4d8f553b21f68eb430bdae73dbb181271f3428": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "admin_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "expires_at",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "used_at",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, user_id, admin_id, created_at, expires_at, used_at FROM enrollment WHERE id = $1"
   },
   "f5a52d311dd0ac4c76cf1638f30cffd8c97fe2b4987fcfb9f9ca523ab6e5bf5d": {
     "describe": {
