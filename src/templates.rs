@@ -6,6 +6,7 @@ use thiserror::Error;
 static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.tpl");
 static MAIL_ENROLLMENT_START: &str = include_str!("../templates/mail_enrollment_start.tpl");
+static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tpl");
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
@@ -45,6 +46,13 @@ pub fn enrollment_start_mail(
 }
 
 // welcome message sent when activating an account through enrollment
-pub fn enrollment_welcome_mail() -> Result<String, TemplateError> {
-    unimplemented!()
+pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
+    let mut bars = Handlebars::new();
+    bars.register_template_string("mail_base", MAIL_BASE)?;
+    bars.register_template_string("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
+
+    Ok(bars.render(
+        "mail_enrollment_welcome",
+        &json!({"parent": "mail_base", "content": content}),
+    )?)
 }

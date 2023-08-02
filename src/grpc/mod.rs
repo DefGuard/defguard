@@ -22,6 +22,7 @@ use tonic::transport::{Identity, Server, ServerTlsConfig};
 use crate::auth::failed_login::FailedLoginMap;
 use crate::config::DefGuardConfig;
 use crate::db::AppEvent;
+use crate::mail::Mail;
 use chrono::{NaiveDateTime, Utc};
 use serde::Serialize;
 use std::time::Duration;
@@ -234,6 +235,7 @@ pub async fn run_grpc_server(
     pool: DbPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -243,6 +245,7 @@ pub async fn run_grpc_server(
     let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(
         pool.clone(),
         wireguard_tx.clone(),
+        mail_tx,
         config.clone(),
     ));
     #[cfg(feature = "worker")]

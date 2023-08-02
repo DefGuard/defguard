@@ -7,36 +7,47 @@ use crate::{
         models::{device::DeviceInfo, enrollment::Enrollment},
         DbPool, Device, GatewayEvent, User,
     },
-    handlers,
+    handlers, templates,
 };
 use tokio::sync::broadcast::Sender;
+use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
+use crate::mail::Mail;
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
     Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
     InitialUserInfo, NewDevice,
 };
 
+const ENROLLMENT_WELCOME_MAIL_SUBJECT: &str = "Welcome to Defguard";
+
 pub struct EnrollmentServer {
     pool: DbPool,
     wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
     config: DefGuardConfig,
     ldap_feature_active: bool,
 }
 
 impl EnrollmentServer {
     #[must_use]
-    pub fn new(pool: DbPool, wireguard_tx: Sender<GatewayEvent>, config: DefGuardConfig) -> Self {
+    pub fn new(
+        pool: DbPool,
+        wireguard_tx: Sender<GatewayEvent>,
+        mail_tx: UnboundedSender<Mail>,
+        config: DefGuardConfig,
+    ) -> Self {
         // check if LDAP feature is enabled
         let license_decoded = License::decode(&config.license);
         let ldap_feature_active = license_decoded.validate(&Features::Ldap);
         Self {
             pool,
             wireguard_tx,
+            mail_tx,
             config,
             ldap_feature_active,
         }
@@ -140,7 +151,31 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let _result = ldap_add_user(&self.config, &user, &request.password).await;
         };
 
-        // TODO: send welcome email when user is activated
+        // TODO: replace with configured content
+        static WELCOME_CONTENT: &str = "<h1>Welcome to Defguard</h1>";
+
+        // send welcome email
+        debug!("Sending welcome mail to {}", user.username);
+        let mail = Mail {
+            to: user.email.clone(),
+            subject: ENROLLMENT_WELCOME_MAIL_SUBJECT.to_string(),
+            content: templates::enrollment_welcome_mail(WELCOME_CONTENT).map_err(|err| {
+                error!(
+                    "Failed to render welcome email for user {}: {}",
+                    user.username, err
+                );
+                Status::internal("unexpected error")
+            })?,
+        };
+        match self.mail_tx.send(mail.clone()) {
+            Ok(_) => {
+                info!("Sent enrollment welcome mail to {}", user.username);
+            }
+            Err(err) => {
+                error!("Error sending welcome mail: {mail:?}: {err}");
+                Status::internal("unexpected error");
+            }
+        }
 
         Ok(Response::new(()))
     }
