@@ -1539,6 +1539,16 @@ type RootTranslation = {
 		 * G​l​o​b​a​l​ ​S​e​t​t​i​n​g​s
 		 */
 		title: string
+		tabs: {
+			/**
+			 * B​a​s​i​c
+			 */
+			basic: string
+			/**
+			 * S​M​T​P
+			 */
+			smtp: string
+		}
 		messages: {
 			/**
 			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
@@ -1746,6 +1756,10 @@ type RootTranslation = {
 						 * E​n​c​r​y​p​t​i​o​n
 						 */
 						label: string
+						/**
+						 * N​o​n​e
+						 */
+						none: string
 					}
 					user: {
 						/**
@@ -4499,6 +4513,16 @@ export type TranslationFunctions = {
 		 * Global Settings
 		 */
 		title: () => LocalizedString
+		tabs: {
+			/**
+			 * Basic
+			 */
+			basic: () => LocalizedString
+			/**
+			 * SMTP
+			 */
+			smtp: () => LocalizedString
+		}
 		messages: {
 			/**
 			 * Settings updated
@@ -4703,6 +4727,10 @@ export type TranslationFunctions = {
 						 * Encryption
 						 */
 						label: () => LocalizedString
+						/**
+						 * None
+						 */
+						none: () => LocalizedString
 					}
 					user: {
 						/**

@@ -653,7 +653,11 @@ const pl: Translation = {
     },
   },
   settingsPage: {
-    title: 'Ustawienia globalne',
+    title: 'Ustawienia Globalne',
+    tabs: {
+      basic: 'Podstawowe',
+      smtp: 'SMTP',
+    },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
       challengeSuccess: 'Zmieniono wiadomość do podpisu.',
@@ -754,6 +758,7 @@ const pl: Translation = {
           },
           encryption: {
             label: 'Szyfrowanie',
+            none: 'Brak',
           },
           user: {
             label: 'Użytkownik',
