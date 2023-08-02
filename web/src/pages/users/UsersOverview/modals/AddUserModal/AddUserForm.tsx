@@ -144,6 +144,7 @@ export const AddUserForm = () => {
             const { password, ...rest } = data;
             userData = rest;
           }
+          // TODO: add notification toggle to form
           addUserMutation.mutate({ ...userData, send_enrollment_notification: true });
         })
         .catch(() => {
