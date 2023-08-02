@@ -1710,6 +1710,127 @@ type RootTranslation = {
 			 */
 			helper: RequiredParams<'documentationLink'>
 		}
+		smtp: {
+			/**
+			 * S​M​T​P​ ​S​e​t​t​i​n​g​s
+			 */
+			header: string
+			form: {
+				/**
+				 * S​e​t​t​i​n​g​s
+				 */
+				title: string
+				fields: {
+					server: {
+						/**
+						 * S​e​r​v​e​r​ ​a​d​d​r​e​s​s
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+					}
+					port: {
+						/**
+						 * S​e​r​v​e​r​ ​p​o​r​t
+						 */
+						label: string
+						/**
+						 * P​o​r​t
+						 */
+						placeholder: string
+					}
+					encryption: {
+						/**
+						 * E​n​c​r​y​p​t​i​o​n
+						 */
+						label: string
+					}
+					user: {
+						/**
+						 * S​e​r​v​e​r​ ​u​s​e​r​n​a​m​e
+						 */
+						label: string
+						/**
+						 * U​s​e​r​n​a​m​e
+						 */
+						placeholder: string
+					}
+					password: {
+						/**
+						 * S​e​r​v​e​r​ ​p​a​s​s​w​o​r​d
+						 */
+						label: string
+						/**
+						 * P​a​s​s​w​o​r​d
+						 */
+						placeholder: string
+					}
+					sender: {
+						/**
+						 * S​e​n​d​e​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+						/**
+						 * 
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​f​r​o​m​ ​t​h​i​s​ ​a​d​d​r​e​s​s​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​E​.​g​.​ ​n​o​-​r​e​p​l​y​@​m​y​-​c​o​m​p​a​n​y​.​c​o​m​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+						 */
+						helper: string
+					}
+				}
+				controls: {
+					/**
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
+					 */
+					submit: string
+				}
+			}
+			test_form: {
+				/**
+				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
+				 */
+				title: string
+				fields: {
+					to: {
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+					}
+				}
+				controls: {
+					/**
+					 * S​e​n​d
+					 */
+					submit: string
+					/**
+					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t​ ​s​u​c​c​e​s​s​f​u​l​l​y
+					 */
+					success: string
+				}
+			}
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​r​v​e​r​ ​u​s​e​d​ ​t​o​ ​s​e​n​d​ ​s​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​t​o​ ​t​h​e​ ​u​s​e​r​s​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​	​	​
+			 */
+			helper: string
+		}
 		licenseCard: {
 			/**
 			 * L​i​c​e​n​s​e​ ​&​ ​S​u​p​p​o​r​t​ ​I​n​f​o​r​m​a​t​i​o​n
@@ -4541,6 +4662,127 @@ export type TranslationFunctions = {
 				
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
+		}
+		smtp: {
+			/**
+			 * SMTP Settings
+			 */
+			header: () => LocalizedString
+			form: {
+				/**
+				 * Settings
+				 */
+				title: () => LocalizedString
+				fields: {
+					server: {
+						/**
+						 * Server address
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+					}
+					port: {
+						/**
+						 * Server port
+						 */
+						label: () => LocalizedString
+						/**
+						 * Port
+						 */
+						placeholder: () => LocalizedString
+					}
+					encryption: {
+						/**
+						 * Encryption
+						 */
+						label: () => LocalizedString
+					}
+					user: {
+						/**
+						 * Server username
+						 */
+						label: () => LocalizedString
+						/**
+						 * Username
+						 */
+						placeholder: () => LocalizedString
+					}
+					password: {
+						/**
+						 * Server password
+						 */
+						label: () => LocalizedString
+						/**
+						 * Password
+						 */
+						placeholder: () => LocalizedString
+					}
+					sender: {
+						/**
+						 * Sender email address
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * 
+					              <p>
+					                System messages will be sent from this address.
+					                E.g. no-reply@my-company.com.
+					              </p>
+					            
+						 */
+						helper: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Save changes
+					 */
+					submit: () => LocalizedString
+				}
+			}
+			test_form: {
+				/**
+				 * Send test email
+				 */
+				title: () => LocalizedString
+				fields: {
+					to: {
+						/**
+						 * Address
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Send
+					 */
+					submit: () => LocalizedString
+					/**
+					 * Test email sent successfully
+					 */
+					success: () => LocalizedString
+				}
+			}
+			/**
+			 * 
+		        <p>
+		          Here you can configure SMTP server used to send system messages to the users.
+		        </p>
+				
+			 */
+			helper: () => LocalizedString
 		}
 		licenseCard: {
 			/**

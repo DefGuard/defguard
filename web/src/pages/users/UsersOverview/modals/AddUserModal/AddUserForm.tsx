@@ -52,7 +52,7 @@ export const AddUserForm = () => {
             .required(LL.form.error.required())
             .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
             .matches(patternDigitOrLowercase, LL.form.error.invalid())
-            .min(4, LL.form.error.minimumLength())
+            .min(3, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
             .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {
               if (value && value.length) {
@@ -68,14 +68,8 @@ export const AddUserForm = () => {
             .string()
             .required(LL.form.error.required())
             .matches(patternValidEmail, LL.form.error.invalid()),
-          last_name: yup
-            .string()
-            .required(LL.form.error.required())
-            .min(4, LL.form.error.minimumLength()),
-          first_name: yup
-            .string()
-            .required(LL.form.error.required())
-            .min(4, LL.form.error.minimumLength()),
+          last_name: yup.string().required(LL.form.error.required()),
+          first_name: yup.string().required(LL.form.error.required()),
           phone: yup
             .string()
             .optional()

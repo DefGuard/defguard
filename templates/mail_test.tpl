@@ -19,6 +19,7 @@
                           <p style="Margin:0;text-align:left;mso-line-height-alt:14px;mso-ansi-font-size:12px;"><span
                               style="font-size:12px;font-family:Roboto,Arial,sans-serif;font-weight:400;color:#222222;line-height:117%;mso-line-height-alt:14px;mso-ansi-font-size:12px;">
                               This is test email from Defguard system. If you received it your SMTP configuration is ok.
+                          </span></p>
                         </div>
                       </td>
                     </tr>

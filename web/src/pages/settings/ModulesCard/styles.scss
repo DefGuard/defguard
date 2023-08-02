@@ -3,15 +3,15 @@
 #settings-page {
   .modules {
     @include media-breakpoint-up(lg) {
-      margin-bottom: 3rem;
+      margin-bottom: 30px;
     }
 
     & > .card {
       display: flex;
       flex-flow: column;
       box-sizing: border-box;
-      padding: 1.2rem 1.5rem 2rem;
-      row-gap: 1.5rem;
+      padding: 12px 15px 20px;
+      row-gap: 15px;
 
       .checkbox {
         & > .label {
