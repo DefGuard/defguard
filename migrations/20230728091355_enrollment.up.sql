@@ -5,7 +5,7 @@ CREATE TABLE enrollment (
     created_at timestamp without time zone NOT NULL,
     expires_at timestamp without time zone NOT NULL,
     used_at timestamp without time zone,
-    FOREIGN KEY(user_id) REFERENCES "user"(id),
+    FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE,
     FOREIGN KEY(admin_id) REFERENCES "user"(id)
 );
 
