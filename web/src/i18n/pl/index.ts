@@ -788,6 +788,7 @@ const pl: Translation = {
         controls: {
           submit: 'Wyślij',
           success: 'Email testowy wysłany pomyślnie',
+          error: 'Błąd wysyłania emaila testowego',
         },
       },
       helper: `

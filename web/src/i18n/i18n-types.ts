@@ -1820,6 +1820,10 @@ type RootTranslation = {
 					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t​ ​s​u​c​c​e​s​s​f​u​l​l​y
 					 */
 					success: string
+					/**
+					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​t​e​s​t​ ​e​m​a​i​l​:
+					 */
+					error: string
 				}
 			}
 			/**
@@ -4773,6 +4777,10 @@ export type TranslationFunctions = {
 					 * Test email sent successfully
 					 */
 					success: () => LocalizedString
+					/**
+					 * Error sending test email:
+					 */
+					error: () => LocalizedString
 				}
 			}
 			/**

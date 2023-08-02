@@ -33,7 +33,10 @@ export const TestForm = () => {
       toaster.success(LL.settingsPage.smtp.test_form.controls.success());
     },
     onError: (err) => {
-      toaster.error(LL.messages.error());
+      toaster.error(
+        `${LL.settingsPage.smtp.test_form.controls.error()}`,
+        `${err.response?.data?.error?}`
+      );
       console.error(err);
     },
   });
