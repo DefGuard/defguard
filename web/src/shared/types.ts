@@ -636,6 +636,10 @@ export interface Settings {
   smtp_user?: string;
   smtp_password?: string;
   smtp_sender?: string;
+  enrollment_vpn_step_optional: boolean;
+  enrollment_welcome_message: string;
+  enrollment_welcome_email: string;
+  enrollment_use_welcome_message_as_email: boolean;
 }
 
 export interface Webhook {

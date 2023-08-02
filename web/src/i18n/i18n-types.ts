@@ -1831,6 +1831,86 @@ type RootTranslation = {
 			 */
 			helper: string
 		}
+		enrollment: {
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.
+			 */
+			helper: string
+			vpnOptionality: {
+				/**
+				 * V​P​N​ ​s​t​e​p​ ​o​p​t​i​o​n​a​l​i​t​y
+				 */
+				header: string
+				/**
+				 * Y​o​u​ ​c​a​n​ ​c​h​o​o​s​e​ ​w​h​e​t​h​e​r​ ​c​r​e​a​t​i​n​g​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​ ​i​s​ ​o​p​t​i​o​n​a​l​ ​o​r​ ​m​a​n​d​a​t​o​r​y​ ​d​u​r​i​n​g​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				helper: string
+			}
+			welcomeMessage: {
+				/**
+				 * W​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+				 */
+				header: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				helper: string
+			}
+			welcomeEmail: {
+				/**
+				 * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
+				 */
+				header: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				helper: string
+			}
+			form: {
+				controls: {
+					/**
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
+					 */
+					submit: string
+				}
+				vpnOptionality: {
+				}
+				welcomeMessage: {
+					/**
+					 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
+					 */
+					helper: string
+					/**
+					 * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+					 */
+					placeholder: string
+				}
+				welcomeEmail: {
+					/**
+					 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.​ ​Y​o​u​ ​c​a​n​ ​r​e​u​s​e​ ​t​h​e​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e​ ​h​e​r​e​.
+					 */
+					helper: string
+					/**
+					 * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​e​m​a​i​l
+					 */
+					placeholder: string
+				}
+			}
+		}
 		licenseCard: {
 			/**
 			 * L​i​c​e​n​s​e​ ​&​ ​S​u​p​p​o​r​t​ ​I​n​f​o​r​m​a​t​i​o​n
@@ -4783,6 +4863,86 @@ export type TranslationFunctions = {
 				
 			 */
 			helper: () => LocalizedString
+		}
+		enrollment: {
+			/**
+			 * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device.
+			 */
+			helper: () => LocalizedString
+			vpnOptionality: {
+				/**
+				 * VPN step optionality
+				 */
+				header: () => LocalizedString
+				/**
+				 * You can choose whether creating a VPN device is optional or mandatory during enrollment
+				 */
+				helper: () => LocalizedString
+			}
+			welcomeMessage: {
+				/**
+				 * Welcome message
+				 */
+				header: () => LocalizedString
+				/**
+				 * 
+			        <p>In this text input you can use Markdown:</p>
+			        <ul>
+			          <li>Headings start with a hash #</li>
+			          <li>Use asterisks for <i>*italics*</i></li>
+			          <li>Use two asterisks for <b>**bold**</b></li>
+			        </ul>
+			        
+				 */
+				helper: () => LocalizedString
+			}
+			welcomeEmail: {
+				/**
+				 * Welcome e-mail
+				 */
+				header: () => LocalizedString
+				/**
+				 * 
+			        <p>In this text input you can use Markdown:</p>
+			        <ul>
+			          <li>Headings start with a hash #</li>
+			          <li>Use asterisks for <i>*italics*</i></li>
+			          <li>Use two asterisks for <b>**bold**</b></li>
+			        </ul>
+			        
+				 */
+				helper: () => LocalizedString
+			}
+			form: {
+				controls: {
+					/**
+					 * Save changes
+					 */
+					submit: () => LocalizedString
+				}
+				vpnOptionality: {
+				}
+				welcomeMessage: {
+					/**
+					 * This information will be displayed for the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly.
+					 */
+					helper: () => LocalizedString
+					/**
+					 * Please input welcome message
+					 */
+					placeholder: () => LocalizedString
+				}
+				welcomeEmail: {
+					/**
+					 * This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.
+					 */
+					helper: () => LocalizedString
+					/**
+					 * Please input welcome email
+					 */
+					placeholder: () => LocalizedString
+				}
+			}
 		}
 		licenseCard: {
 			/**

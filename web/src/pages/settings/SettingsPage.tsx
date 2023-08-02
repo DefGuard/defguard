@@ -15,10 +15,12 @@ import { ModulesCard } from './ModulesCard/ModulesCard';
 import { SmtpCard } from './SmtpCard/SmtpCard';
 import { SupportCard } from './SupportCard/SupportCard';
 import { Web3Settings } from './Web3Settings/Web3Settings';
+import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
 
 enum Tabs {
   Global,
   Smtp,
+  Enrollment,
 }
 
 export const SettingsPage = () => {
@@ -39,6 +41,14 @@ export const SettingsPage = () => {
       },
       content: 'SMTP',
       active: tab === Tabs.Smtp,
+    },
+    {
+      key: 3,
+      onClick: () => {
+        setTab(Tabs.Enrollment);
+      },
+      content: 'Enrollment',
+      active: tab === Tabs.Enrollment,
     },
   ];
   const settings = useAppStore((state) => state.settings);
@@ -68,6 +78,7 @@ export const SettingsPage = () => {
           </>
         )}
         {tab === Tabs.Smtp && <SmtpCard />}
+        {tab === Tabs.Enrollment && <EnrollmentTab />}
       </Card>
     </PageContainer>
   );
