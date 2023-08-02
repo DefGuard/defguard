@@ -41,13 +41,19 @@ pub fn enrollment_start_mail(
 }
 
 // welcome message sent when activating an account through enrollment
+// content is stored in markdown, so it's parsed into HTML
 pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
     let mut tera = Tera::default();
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
 
+    // convert content to HTML
+    let parser = pulldown_cmark::Parser::new(content);
+    let mut html_output = String::new();
+    pulldown_cmark::html::push_html(&mut html_output, parser);
+
     let mut context = Context::new();
-    context.insert("content", content);
+    context.insert("welcome_message_content", &html_output);
 
     Ok(tera.render("mail_enrollment_welcome", &context)?)
 }

@@ -16,11 +16,9 @@
                   <tbody>
                     <tr>
                       <td align="left" class="x" style="font-size:0;word-break:break-word;">
-                        <div style="text-align:left;">
-                          <p style="Margin:0;text-align:left;mso-line-height-alt:14px;mso-ansi-font-size:12px;font-size:12px;font-family:Roboto,Arial,sans-serif;font-weight:400;color:#222222;line-height:117%;mso-line-height-alt:14px;mso-ansi-font-size:12px;">
-                            {{ content }}
-                          </p>
-                        </div>
+                          <div style="Margin:0;text-align:left;mso-line-height-alt:14px;mso-ansi-font-size:12px;font-size:12px;font-family:Roboto,Arial,sans-serif;font-weight:400;color:#222222;line-height:117%;mso-line-height-alt:14px;mso-ansi-font-size:12px;">
+                            {{ welcome_message_content }}
+                          </div>
                       </td>
                     </tr>
                   </tbody>
