@@ -1,5 +1,4 @@
 #![allow(clippy::derive_partial_eq_without_eq)]
-#![allow(clippy::result_large_err)]
 // Rocket macro
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]

@@ -16,6 +16,7 @@ use tonic::{Request, Response, Status};
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
+use crate::db::Settings;
 use crate::mail::Mail;
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
@@ -151,15 +152,31 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let _result = ldap_add_user(&self.config, &user, &request.password).await;
         };
 
-        // TODO: replace with configured content
-        static WELCOME_CONTENT: &str = "<h1>Welcome to Defguard</h1>";
-
         // send welcome email
         debug!("Sending welcome mail to {}", user.username);
+        let settings = Settings::find_by_id(&self.pool, 1)
+            .await
+            .map_err(|err| {
+                error!("Failed to get settings: {err}");
+                Status::internal("unexpected error")
+            })?
+            .ok_or_else(|| {
+                error!("Failed to get settings");
+                Status::internal("unexpected error")
+            })?;
+        let content = match settings.enrollment_use_welcome_message_as_email {
+            true => settings.enrollment_welcome_message,
+            false => settings.enrollment_welcome_email,
+        }
+        .ok_or_else(|| {
+            error!("Welcome message not configured");
+            Status::internal("unexpected error")
+        })?;
+
         let mail = Mail {
             to: user.email.clone(),
             subject: ENROLLMENT_WELCOME_MAIL_SUBJECT.to_string(),
-            content: templates::enrollment_welcome_mail(WELCOME_CONTENT).map_err(|err| {
+            content: templates::enrollment_welcome_mail(&content).map_err(|err| {
                 error!(
                     "Failed to render welcome email for user {}: {}",
                     user.username, err

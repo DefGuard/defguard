@@ -34,7 +34,7 @@ pub fn enrollment_start_mail(
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
 
-    let mut context = tera::Context::new();
+    let mut context = Context::new();
     context.insert("url", &enrollment_service_url.to_string());
 
     Ok(tera.render("mail_enrollment_start", &context)?)
@@ -46,7 +46,7 @@ pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
 
-    let mut context = tera::Context::new();
+    let mut context = Context::new();
     context.insert("content", content);
 
     Ok(tera.render("mail_enrollment_welcome", &context)?)
