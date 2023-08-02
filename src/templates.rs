@@ -1,6 +1,5 @@
-use handlebars::Handlebars;
 use reqwest::Url;
-use serde_json::json;
+use tera::{Context, Tera};
 use thiserror::Error;
 
 static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
@@ -11,18 +10,14 @@ static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollmen
 #[derive(Error, Debug)]
 pub enum TemplateError {
     #[error(transparent)]
-    RenderError(#[from] handlebars::RenderError),
-
-    #[error(transparent)]
-    TemplateError(#[from] handlebars::TemplateError),
+    TemplateError(#[from] tera::Error),
 }
 
 pub fn test_mail() -> Result<String, TemplateError> {
-    let mut bars = Handlebars::new();
-    bars.register_template_string("mail_base", MAIL_BASE)?;
-    bars.register_template_string("mail_test", MAIL_TEST)?;
-
-    Ok(bars.render("mail_test", &json!({"parent": "mail_base"}))?)
+    let mut tera = Tera::default();
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_test", MAIL_TEST)?;
+    Ok(tera.render("mail_test", &Context::new())?)
 }
 
 // mail with link to enrollment service
@@ -35,24 +30,43 @@ pub fn enrollment_start_mail(
         .query_pairs_mut()
         .append_pair("token", enrollment_token);
 
-    let mut bars = Handlebars::new();
-    bars.register_template_string("mail_base", MAIL_BASE)?;
-    bars.register_template_string("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
+    let mut tera = Tera::default();
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
 
-    Ok(bars.render(
+    let mut context = tera::Context::new();
+    context.insert("url", enrollment_service_url.to_string());
+
+    Ok(tera.render(
         "mail_enrollment_start",
-        &json!({"parent": "mail_base", "url": enrollment_service_url.to_string()}),
+        &context,
     )?)
 }
 
 // welcome message sent when activating an account through enrollment
 pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
-    let mut bars = Handlebars::new();
-    bars.register_template_string("mail_base", MAIL_BASE)?;
-    bars.register_template_string("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
+    let mut tera = Tera::default();
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
 
-    Ok(bars.render(
+    let mut context = tera::Context::new();
+    context.insert("content", content);
+
+    Ok(tera.render(
         "mail_enrollment_welcome",
-        &json!({"parent": "mail_base", "content": content}),
+        &context,
     )?)
 }
+
+#[cfg(test)]
+mod test {
+    use claims::assert_ok;
+
+    use super::*;
+    #[test]
+    fn test_test_mail() {
+        assert_ok!(test_mail());
+    }
+}
+
+
