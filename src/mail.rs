@@ -130,11 +130,12 @@ impl MailHandler {
         tx: Option<Sender<Result<Response, MailError>>>,
         result: Result<Response, MailError>,
     ) {
-        let tx = if let Some(tx) = tx { tx } else { return };
-        if tx.send(result).is_ok() {
-            debug!("SMTP result sent back to caller");
-        } else {
-            error!("Error sending SMTP result back to caller")
+        if let Some(tx) = tx {
+            if tx.send(result).is_ok() {
+                debug!("SMTP result sent back to caller");
+            } else {
+                error!("Error sending SMTP result back to caller")
+            }
         }
     }
 

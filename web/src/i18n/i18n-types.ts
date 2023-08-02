@@ -1821,7 +1821,7 @@ type RootTranslation = {
 					 */
 					success: string
 					/**
-					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​t​e​s​t​ ​e​m​a​i​l​:
+					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​t​e​s​t​ ​e​m​a​i​l
 					 */
 					error: string
 				}
@@ -4778,7 +4778,7 @@ export type TranslationFunctions = {
 					 */
 					success: () => LocalizedString
 					/**
-					 * Error sending test email:
+					 * Error sending test email
 					 */
 					error: () => LocalizedString
 				}
