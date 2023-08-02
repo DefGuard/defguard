@@ -35,12 +35,9 @@ pub fn enrollment_start_mail(
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
 
     let mut context = tera::Context::new();
-    context.insert("url", enrollment_service_url.to_string());
+    context.insert("url", &enrollment_service_url.to_string());
 
-    Ok(tera.render(
-        "mail_enrollment_start",
-        &context,
-    )?)
+    Ok(tera.render("mail_enrollment_start", &context)?)
 }
 
 // welcome message sent when activating an account through enrollment
@@ -52,10 +49,7 @@ pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
     let mut context = tera::Context::new();
     context.insert("content", content);
 
-    Ok(tera.render(
-        "mail_enrollment_welcome",
-        &context,
-    )?)
+    Ok(tera.render("mail_enrollment_welcome", &context)?)
 }
 
 #[cfg(test)]
@@ -68,5 +62,3 @@ mod test {
         assert_ok!(test_mail());
     }
 }
-
-
