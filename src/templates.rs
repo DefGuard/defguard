@@ -61,4 +61,17 @@ mod test {
     fn test_test_mail() {
         assert_ok!(test_mail());
     }
+
+    #[test]
+    fn test_enrollment_start_mail() {
+        assert_ok!(enrollment_start_mail(
+            Url::parse("http://localhost:8080"),
+            "test_token"
+        ));
+    }
+
+    #[test]
+    fn test_enrollment_welcome_mail() {
+        assert_ok!(enrollment_welcome_mail("Hi there! Welcome to DefGuard."));
+    }
 }
