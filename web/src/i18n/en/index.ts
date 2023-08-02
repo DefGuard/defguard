@@ -319,6 +319,9 @@ const en: BaseTranslation = {
             placeholder: 'Phone',
             label: 'Phone',
           },
+          enableEnrollment: {
+            label: 'Use remote enrollment',
+          },
         },
       },
     },

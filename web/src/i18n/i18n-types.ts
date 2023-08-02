@@ -671,6 +671,12 @@ type RootTranslation = {
 						 */
 						label: string
 					}
+					enableEnrollment: {
+						/**
+						 * U​s​e​ ​r​e​m​o​t​e​ ​e​n​r​o​l​l​m​e​n​t
+						 */
+						label: string
+					}
 				}
 			}
 		}
@@ -3711,6 +3717,12 @@ export type TranslationFunctions = {
 						placeholder: () => LocalizedString
 						/**
 						 * Phone
+						 */
+						label: () => LocalizedString
+					}
+					enableEnrollment: {
+						/**
+						 * Use remote enrollment
 						 */
 						label: () => LocalizedString
 					}

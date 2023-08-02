@@ -210,11 +210,12 @@ export interface AddWalletRequest {
 
 export interface AddUserRequest {
   username: string;
-  password: string;
+  password?: string;
   email: string;
   last_name: string;
   first_name: string;
   phone?: string;
+  send_enrollment_notification: boolean;
 }
 
 export interface GroupsResponse {
