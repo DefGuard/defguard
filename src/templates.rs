@@ -1,5 +1,4 @@
-use handlebars::Handlebars;
-use serde_json::json;
+use tera::{Context, Tera};
 use thiserror::Error;
 
 static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
@@ -8,16 +7,23 @@ static MAIL_TEST: &str = include_str!("../templates/mail_test.tpl");
 #[derive(Error, Debug)]
 pub enum TemplateError {
     #[error(transparent)]
-    RenderError(#[from] handlebars::RenderError),
-
-    #[error(transparent)]
-    TemplateError(#[from] handlebars::TemplateError),
+    TemplateError(#[from] tera::Error),
 }
 
 pub fn test_mail() -> Result<String, TemplateError> {
-    let mut bars = Handlebars::new();
-    bars.register_template_string("mail_base", MAIL_BASE)?;
-    bars.register_template_string("mail_test", MAIL_TEST)?;
+    let mut tera = Tera::default();
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_test", MAIL_TEST)?;
+    Ok(tera.render("mail_test", &Context::new())?)
+}
 
-    Ok(bars.render("mail_test", &json!({"parent": "mail_base"}))?)
+#[cfg(test)]
+mod test {
+    use claims::assert_ok;
+
+    use super::*;
+    #[test]
+    fn test_test_mail() {
+        assert_ok!(test_mail());
+    }
 }
