@@ -15,6 +15,7 @@ import {
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/types';
 import { Card } from '../../../shared/components/layout/Card/Card';
+import { CheckBox } from '../../../shared/components/layout/Checkbox/CheckBox';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox, {
   MessageBoxType,
@@ -31,6 +32,7 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
+import {FormCheckBox} from "../../../shared/components/Form/FormCheckBox/FormCheckBox";
 
 interface Inputs extends Omit<Settings, 'enrollment_vpn_step_optional'> {
   enrollment_vpn_step_optional: SelectOption<boolean>;
@@ -199,6 +201,11 @@ export const EnrollmentTab = () => {
               <MessageBox>
                 <p>{LL.settingsPage.enrollment.form.welcomeEmail.helper()}</p>
               </MessageBox>
+              <FormCheckBox
+                disabled={isLoading}
+                label={LL.settingsPage.enrollment.form.useMessageAsEmail.label()}
+                controller={{ control, name: 'enrollment_use_welcome_message_as_email' }}
+              />
               <textarea
                 value={welcomeEmail}
                 onChange={(e) => setWelcomeEmail(e.target.value)}

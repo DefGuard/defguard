@@ -1887,8 +1887,6 @@ type RootTranslation = {
 					 */
 					submit: string
 				}
-				vpnOptionality: {
-				}
 				welcomeMessage: {
 					/**
 					 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
@@ -1908,6 +1906,12 @@ type RootTranslation = {
 					 * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​e​m​a​i​l
 					 */
 					placeholder: string
+				}
+				useMessageAsEmail: {
+					/**
+					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+					 */
+					label: string
 				}
 			}
 		}
@@ -4920,8 +4924,6 @@ export type TranslationFunctions = {
 					 */
 					submit: () => LocalizedString
 				}
-				vpnOptionality: {
-				}
 				welcomeMessage: {
 					/**
 					 * This information will be displayed for the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly.
@@ -4941,6 +4943,12 @@ export type TranslationFunctions = {
 					 * Please input welcome email
 					 */
 					placeholder: () => LocalizedString
+				}
+				useMessageAsEmail: {
+					/**
+					 * Same as welcome message
+					 */
+					label: () => LocalizedString
 				}
 			}
 		}
