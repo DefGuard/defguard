@@ -803,50 +803,50 @@ const pl: Translation = {
     },
     enrollment: {
       helper:
-        'Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device.',
+        'Enrollment to proces, w ramach którego nowy użytkownik może samodzielnie aktywować swoje konto, ustawić hasło i skonfigurować urządzenie VPN.',
       vpnOptionality: {
-        header: 'VPN step optionality',
+        header: 'Opcjonalność kroku VPN',
         helper:
-          'You can choose whether creating a VPN device is optional or mandatory during enrollment',
+          'Możesz zdecydować czy dodawanie urządzenia VPN jest obowiązkowym czy opcjonalnym krokiem enrollmentu',
       },
       welcomeMessage: {
-        header: 'Welcome message',
+        header: 'Wiadomość powitalna',
         helper: `
-        <p>In this text input you can use Markdown:</p>
+        <p>W tym polu możesz używać Markdown:</p>
         <ul>
-          <li>Headings start with a hash #</li>
-          <li>Use asterisks for <i>*italics*</i></li>
-          <li>Use two asterisks for <b>**bold**</b></li>
+          <li>Nagłówki zaczynają się od #</li>
+          <li>Użyj asterysków aby uzyskać <i>*kursywę*</i></li>
+          <li>Użyj dwóch asterysków aby uzyskać <b>**pogrubienie**</b></li>
         </ul>
         `,
       },
       welcomeEmail: {
-        header: 'Welcome e-mail',
+        header: 'E-mail powitalny',
         helper: `
-        <p>In this text input you can use Markdown:</p>
+        <p>W tym polu możesz używać Markdown:</p>
         <ul>
-          <li>Headings start with a hash #</li>
-          <li>Use asterisks for <i>*italics*</i></li>
-          <li>Use two asterisks for <b>**bold**</b></li>
+          <li>Nagłówki zaczynają się od #</li>
+          <li>Użyj asterysków aby uzyskać <i>*kursywę*</i></li>
+          <li>Użyj dwóch asterysków aby uzyskać <b>**pogrubienie**</b></li>
         </ul>
         `,
       },
       form: {
         controls: {
-          submit: 'Save changes',
+          submit: 'Zapisz zmiany',
         },
         welcomeMessage: {
           helper:
-            'This information will be displayed for the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly.',
-          placeholder: 'Please input welcome message',
+            'Ta wiadomość będzie pokazywana użytkownikom po zakończeniu enrollmentu. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków.',
+          placeholder: 'Wpisz wiadomość powitalną',
         },
         welcomeEmail: {
           helper:
-            'This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.',
-          placeholder: 'Please input welcome email',
+            'Ta wiadomość zostanie wysłana do użytkowników po zakończeniu enrollmentu. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków. Możesz użyć tej samej treści co w wiadomości powitalnej.',
+          placeholder: 'Wpisz email powitalny',
         },
         useMessageAsEmail: {
-          label: 'Same as welcome message',
+          label: 'Taki sam jak wiadomość powitalna',
         },
       },
     },
