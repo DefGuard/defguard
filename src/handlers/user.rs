@@ -205,15 +205,14 @@ pub async fn start_enrollment(
     data: Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
-        "User {} starting enrollment for user {}",
-        session.user.username, username
+        "User {} starting enrollment for user {username}",
+        session.user.username
     );
 
     let user = match User::find_by_username(&appstate.pool, username).await? {
         Some(user) => Ok(user),
         None => Err(OriWebError::ObjectNotFound(format!(
-            "user {} not found",
-            username
+            "user {username} not found"
         ))),
     }?;
 

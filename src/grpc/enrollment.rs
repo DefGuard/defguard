@@ -55,8 +55,11 @@ impl EnrollmentServer {
     }
 
     // check if token provided with request corresponds to a valid enrollment session
-    async fn validate_session<T>(&self, request: &Request<T>) -> Result<Enrollment, Status> {
-        debug!("Validating enrollment session token");
+    async fn validate_session<T: std::fmt::Debug>(
+        &self,
+        request: &Request<T>,
+    ) -> Result<Enrollment, Status> {
+        debug!("Validating enrollment session token: {request:?}");
         let token = match request.metadata().get("authorization") {
             Some(token) => token
                 .to_str()
