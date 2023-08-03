@@ -159,7 +159,7 @@ pub struct DefGuardConfig {
     pub cmd: Option<Command>,
 }
 
-#[derive(Clone, Parser, Debug)]
+#[derive(Clone, Parser)]
 pub enum Command {
     #[command(
         about = "Initialize development environment. Inserts test network and device into database."
