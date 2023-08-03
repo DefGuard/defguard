@@ -29,7 +29,7 @@ import { Tag } from '../Tag/Tag';
 import { SelectArrowIcon } from './SelectArrowIcon';
 import { SelectOption } from './SelectOption';
 
-export type SelectValue = string | number;
+export type SelectValue = string | number | boolean;
 
 export interface SelectOption<T extends SelectValue> {
   value: T;

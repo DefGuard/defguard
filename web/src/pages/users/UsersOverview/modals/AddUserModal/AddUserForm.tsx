@@ -141,6 +141,7 @@ export const AddUserForm = () => {
           setCheckingUsername(false);
           let userData = data;
           if (enableEnrollment) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { password, ...rest } = data;
             userData = rest;
           }

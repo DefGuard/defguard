@@ -8,7 +8,6 @@ import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormCheckBox } from '../../../shared/components/Form/FormCheckBox/FormCheckBox';
-import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
 import { Button } from '../../../shared/components/layout/Button/Button';
 import {
@@ -16,7 +15,6 @@ import {
   ButtonStyleVariant,
 } from '../../../shared/components/layout/Button/types';
 import { Card } from '../../../shared/components/layout/Card/Card';
-import { CheckBox } from '../../../shared/components/layout/Checkbox/CheckBox';
 import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import MessageBox, {
   MessageBoxType,
@@ -63,19 +61,15 @@ export const EnrollmentTab = () => {
     },
   });
 
-  const formSchema = useMemo(
-    () =>
-      yup
-        .object()
-        .shape({
-          enrollment_vpn_step_optional: yup.object(),
-          enrollment_welcome_message: yup.string(),
-          enrollment_welcome_email: yup.string(),
-          enrollment_use_welcome_message_as_email: yup.boolean(),
-        })
-        .required(),
-    [LL.form.error]
-  );
+  const formSchema = yup
+    .object()
+    .shape({
+      enrollment_vpn_step_optional: yup.object(),
+      enrollment_welcome_message: yup.string(),
+      enrollment_welcome_email: yup.string(),
+      enrollment_use_welcome_message_as_email: yup.boolean(),
+    })
+    .required();
 
   const vpnOptionalityOptions = [
     {
