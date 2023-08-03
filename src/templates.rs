@@ -71,7 +71,7 @@ mod test {
     #[test]
     fn test_enrollment_start_mail() {
         assert_ok!(enrollment_start_mail(
-            Url::parse("http://localhost:8080"),
+            Url::parse("http://localhost:8080").unwrap(),
             "test_token"
         ));
     }

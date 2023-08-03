@@ -647,7 +647,7 @@ mod test {
 
         let mut user = User::new(
             "testuser".to_string(),
-            "hunter2",
+            Some("hunter2"),
             "Tester".to_string(),
             "Test".to_string(),
             "test@test.com".to_string(),

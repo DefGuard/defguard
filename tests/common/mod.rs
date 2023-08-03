@@ -52,7 +52,7 @@ async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
 
     let mut test_user = User::new(
         "hpotter".into(),
-        "pass123",
+        Some("pass123"),
         "Potter".into(),
         "Harry".into(),
         "h.potter@hogwart.edu.uk".into(),

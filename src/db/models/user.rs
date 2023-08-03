@@ -566,7 +566,7 @@ mod test {
     async fn test_user(pool: DbPool) {
         let mut user = User::new(
             "hpotter".into(),
-            "pass123",
+            Some("pass123"),
             "Potter".into(),
             "Harry".into(),
             "h.potter@hogwart.edu.uk".into(),
@@ -595,7 +595,7 @@ mod test {
     async fn test_all_users(pool: DbPool) {
         let mut harry = User::new(
             "hpotter".into(),
-            "pass123",
+            Some("pass123"),
             "Potter".into(),
             "Harry".into(),
             "h.potter@hogwart.edu.uk".into(),
@@ -605,7 +605,7 @@ mod test {
 
         let mut albus = User::new(
             "adumbledore".into(),
-            "magic!",
+            Some("magic!"),
             "Dumbledore".into(),
             "Albus".into(),
             "a.dumbledore@hogwart.edu.uk".into(),
@@ -626,7 +626,7 @@ mod test {
     async fn test_recovery_codes(pool: DbPool) {
         let mut harry = User::new(
             "hpotter".into(),
-            "pass123",
+            Some("pass123"),
             "Potter".into(),
             "Harry".into(),
             "h.potter@hogwart.edu.uk".into(),

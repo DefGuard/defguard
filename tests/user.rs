@@ -267,7 +267,8 @@ async fn test_crud_user() {
         first_name: "Albus".into(),
         email: "a.dumbledore@hogwart.edu.uk".into(),
         phone: Some("1234".into()),
-        password: "Password1234543$!".into(),
+        password: Some("Password1234543$!".into()),
+        send_enrollment_notification: false,
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
@@ -440,7 +441,8 @@ async fn test_check_username() {
             first_name: "Albus".into(),
             email: "a.dumbledore@hogwart.edu.uk".into(),
             phone: Some("1234".into()),
-            password: "Alohomora!12".into(),
+            password: Some("Alohomora!12".into()),
+            send_enrollment_notification: false,
         };
         let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
         assert_eq!(response.status(), Status::BadRequest);
@@ -453,7 +455,8 @@ async fn test_check_username() {
             first_name: "Albus".into(),
             email: "a.dumbledore@hogwart.edu.uk".into(),
             phone: Some("1234".into()),
-            password: "Alohomora!12".into(),
+            password: Some("Alohomora!12".into()),
+            send_enrollment_notification: false,
         };
         let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
         assert_eq!(response.status(), Status::Created);
@@ -483,8 +486,9 @@ async fn test_check_password_strength() {
             first_name: "testpassfn".into(),
             last_name: "testpassln".into(),
             email: format!("testpass{}@test.test", index),
-            password: password.to_owned().into(),
+            password: Some(password.to_owned().into()),
             phone: None,
+            send_enrollment_notification: false,
         };
         let response = client
             .post("/api/v1/user")
@@ -499,7 +503,8 @@ async fn test_check_password_strength() {
         last_name: "Pass".into(),
         email: "strongpass@test.test".into(),
         phone: None,
-        password: strong_password.into(),
+        password: Some(strong_password.into()),
+        send_enrollment_notification: false,
     };
     let response = client
         .post("/api/v1/user")

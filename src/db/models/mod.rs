@@ -249,7 +249,7 @@ mod test {
     async fn test_user_info(pool: DbPool) {
         let mut user = User::new(
             "hpotter".into(),
-            "pass123",
+            Some("pass123"),
             "Potter".into(),
             "Harry".into(),
             "h.potter@hogwart.edu.uk".into(),

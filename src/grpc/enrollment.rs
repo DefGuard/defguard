@@ -183,13 +183,14 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 );
                 Status::internal("unexpected error")
             })?,
+            result_tx: None,
         };
-        match self.mail_tx.send(mail.clone()) {
+        match self.mail_tx.send(mail) {
             Ok(_) => {
                 info!("Sent enrollment welcome mail to {}", user.username);
             }
             Err(err) => {
-                error!("Error sending welcome mail: {mail:?}: {err}");
+                error!("Error sending welcome mail: {err}");
                 Status::internal("unexpected error");
             }
         }

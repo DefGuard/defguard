@@ -52,7 +52,7 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
     // standard user in other, non-allowed group
     let mut other_user = User::new(
         "ssnape".into(),
-        "pass123",
+        Some("pass123"),
         "Snape".into(),
         "Severus".into(),
         "s.snape@hogwart.edu.uk".into(),
@@ -75,7 +75,7 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
     // standard user in no groups
     let mut non_group_user = User::new(
         "dobby".into(),
-        "pass123",
+        Some("pass123"),
         "Elf".into(),
         "Dobby".into(),
         "dobby@hogwart.edu.uk".into(),

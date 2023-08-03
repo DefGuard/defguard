@@ -209,13 +209,14 @@ impl User {
                 subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
                 content: templates::enrollment_start_mail(enrollment_service_url, &enrollment.id)
                     .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+                result_tx: None,
             };
-            match mail_tx.send(mail.clone()) {
+            match mail_tx.send(mail) {
                 Ok(_) => {
                     info!("Sent enrollment start mail to {}", self.username);
                 }
                 Err(err) => {
-                    error!("Error sending mail: {mail:?}: {err}");
+                    error!("Error sending mail: {err}");
                     return Err(EnrollmentError::NotificationError(err.to_string()));
                 }
             }
