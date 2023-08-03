@@ -320,6 +320,9 @@ const pl: Translation = {
             placeholder: 'Telefon',
             label: 'Telefon',
           },
+          enableEnrollment: {
+            label: 'Użyj zdalnego enrollmentu',
+          },
         },
       },
     },
@@ -685,7 +688,6 @@ const pl: Translation = {
         },
       },
     },
-
     defaultNetworkSelect: {
       header: 'Domyślny widok sieci',
       helper: `<p>Tutaj możesz zmienić domyślny widok sieci.</p>
@@ -801,6 +803,55 @@ const pl: Translation = {
           Skonfiguruj serwer SMTP do wysyłania wiadomości systemowych do użytkowników.
         </p>
 			`,
+    },
+    enrollment: {
+      helper:
+        'Enrollment to proces, w ramach którego nowy użytkownik może samodzielnie aktywować swoje konto, ustawić hasło i skonfigurować urządzenie VPN.',
+      vpnOptionality: {
+        header: 'Opcjonalność kroku VPN',
+        helper:
+          'Możesz zdecydować czy dodawanie urządzenia VPN jest obowiązkowym czy opcjonalnym krokiem enrollmentu',
+      },
+      welcomeMessage: {
+        header: 'Wiadomość powitalna',
+        helper: `
+        <p>W tym polu możesz używać Markdown:</p>
+        <ul>
+          <li>Nagłówki zaczynają się od #</li>
+          <li>Użyj asterysków aby uzyskać <i>*kursywę*</i></li>
+          <li>Użyj dwóch asterysków aby uzyskać <b>**pogrubienie**</b></li>
+        </ul>
+        `,
+      },
+      welcomeEmail: {
+        header: 'E-mail powitalny',
+        helper: `
+        <p>W tym polu możesz używać Markdown:</p>
+        <ul>
+          <li>Nagłówki zaczynają się od #</li>
+          <li>Użyj asterysków aby uzyskać <i>*kursywę*</i></li>
+          <li>Użyj dwóch asterysków aby uzyskać <b>**pogrubienie**</b></li>
+        </ul>
+        `,
+      },
+      form: {
+        controls: {
+          submit: 'Zapisz zmiany',
+        },
+        welcomeMessage: {
+          helper:
+            'Ta wiadomość będzie pokazywana użytkownikom po zakończeniu enrollmentu. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków.',
+          placeholder: 'Wpisz wiadomość powitalną',
+        },
+        welcomeEmail: {
+          helper:
+            'Ta wiadomość zostanie wysłana do użytkowników po zakończeniu enrollmentu. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków. Możesz użyć tej samej treści co w wiadomości powitalnej.',
+          placeholder: 'Wpisz email powitalny',
+        },
+        useMessageAsEmail: {
+          label: 'Taki sam jak wiadomość powitalna',
+        },
+      },
     },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',

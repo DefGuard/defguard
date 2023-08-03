@@ -39,7 +39,7 @@ pub enum MFAMethod {
 pub struct User {
     pub id: Option<i64>,
     pub username: String,
-    password_hash: String,
+    password_hash: Option<String>,
     pub last_name: String,
     pub first_name: String,
     pub email: String,
@@ -68,16 +68,19 @@ impl User {
     #[must_use]
     pub fn new(
         username: String,
-        password: &str,
+        password: Option<&str>,
         last_name: String,
         first_name: String,
         email: String,
         phone: Option<String>,
     ) -> Self {
+        let password_hash = password.map(|password_hash| {
+            Self::hash_password(password_hash).expect("Failed to hash password")
+        });
         Self {
             id: None,
             username,
-            password_hash: Self::hash_password(password).unwrap(),
+            password_hash,
             last_name,
             first_name,
             email,
@@ -94,12 +97,24 @@ impl User {
     }
 
     pub fn set_password(&mut self, password: &str) {
-        self.password_hash = Self::hash_password(password).unwrap();
+        self.password_hash = Some(Self::hash_password(password).unwrap());
     }
 
     pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
-        let parsed_hash = PasswordHash::new(&self.password_hash)?;
-        Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
+        match &self.password_hash {
+            Some(hash) => {
+                let parsed_hash = PasswordHash::new(hash)?;
+                Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
+            }
+            None => {
+                error!("Password not set for user {}", self.username);
+                Err(HashError::Password)
+            }
+        }
+    }
+
+    pub fn has_password(&self) -> bool {
+        self.password_hash.is_some()
     }
 
     pub fn name(&self) -> String {
@@ -551,7 +566,7 @@ mod test {
     async fn test_user(pool: DbPool) {
         let mut user = User::new(
             "hpotter".into(),
-            "pass123",
+            Some("pass123"),
             "Potter".into(),
             "Harry".into(),
             "h.potter@hogwart.edu.uk".into(),
@@ -580,7 +595,7 @@ mod test {
     async fn test_all_users(pool: DbPool) {
         let mut harry = User::new(
             "hpotter".into(),
-            "pass123",
+            Some("pass123"),
             "Potter".into(),
             "Harry".into(),
             "h.potter@hogwart.edu.uk".into(),
@@ -590,7 +605,7 @@ mod test {
 
         let mut albus = User::new(
             "adumbledore".into(),
-            "magic!",
+            Some("magic!"),
             "Dumbledore".into(),
             "Albus".into(),
             "a.dumbledore@hogwart.edu.uk".into(),
@@ -611,7 +626,7 @@ mod test {
     async fn test_recovery_codes(pool: DbPool) {
         let mut harry = User::new(
             "hpotter".into(),
-            "pass123",
+            Some("pass123"),
             "Potter".into(),
             "Harry".into(),
             "h.potter@hogwart.edu.uk".into(),

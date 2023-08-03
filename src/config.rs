@@ -138,6 +138,19 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD", default_value = "30d")]
     pub stats_purge_threshold: Duration,
 
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
+    pub enrollment_url: Url,
+
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT", default_value = "24h")]
+    pub enrollment_token_timeout: Duration,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_ENROLLMENT_SESSION_TIMEOUT",
+        default_value = "10m"
+    )]
+    pub enrollment_session_timeout: Duration,
+
     #[command(subcommand)]
     pub cmd: Option<Command>,
 }

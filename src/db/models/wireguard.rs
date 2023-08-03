@@ -783,7 +783,7 @@ impl WireguardNetwork {
                 d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
             FROM device d
             JOIN s ON d.id = s.device_id
-            WHERE s.latest_handshake > $1 AND s.network = $2
+            WHERE s.latest_handshake >= $1 AND s.network = $2
             "#,
             oldest_handshake,
             self.id,
@@ -839,9 +839,8 @@ impl WireguardNetwork {
         &self,
         conn: &DbPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        let from = Utc::now()
-            .naive_utc()
-            .checked_sub_signed(Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES as i64));
+        let from =
+            (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES.into())).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             r#"
@@ -1019,7 +1018,7 @@ mod test {
     async fn add_devices(pool: &DbPool, network: &WireguardNetwork, count: usize) {
         let mut user = User::new(
             "testuser".to_string(),
-            "hunter2",
+            Some("hunter2"),
             "Tester".to_string(),
             "Test".to_string(),
             "test@test.com".to_string(),
@@ -1100,7 +1099,7 @@ mod test {
 
         let mut user = User::new(
             "testuser".to_string(),
-            "hunter2",
+            Some("hunter2"),
             "Tester".to_string(),
             "Test".to_string(),
             "test@test.com".to_string(),
@@ -1150,7 +1149,7 @@ mod test {
 
         let mut user = User::new(
             "testuser".to_string(),
-            "hunter2",
+            Some("hunter2"),
             "Tester".to_string(),
             "Test".to_string(),
             "test@test.com".to_string(),

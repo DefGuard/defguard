@@ -45,8 +45,8 @@ use handlers::{
     settings::{get_settings, set_default_branding, update_settings},
     user::{
         add_user, change_password, delete_authorized_app, delete_security_key, delete_user,
-        delete_wallet, get_user, list_users, me, modify_user, set_wallet, update_wallet,
-        username_available, wallet_challenge,
+        delete_wallet, get_user, list_users, me, modify_user, set_wallet, start_enrollment,
+        update_wallet, username_available, wallet_challenge,
     },
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
@@ -150,6 +150,7 @@ pub async fn build_webapp(
                 list_users,
                 get_user,
                 add_user,
+                start_enrollment,
                 modify_user,
                 delete_user,
                 delete_security_key,

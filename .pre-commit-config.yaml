@@ -6,7 +6,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-added-large-files
   - repo: https://github.com/doublify/pre-commit-rust
-    rev: master
+    rev: v1.0
     hooks:
       - id: fmt
       - id: clippy

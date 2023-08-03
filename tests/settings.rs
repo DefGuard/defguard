@@ -48,6 +48,10 @@ async fn test_settings() {
             smtp_user: None,
             smtp_password: None,
             smtp_sender: None,
+            enrollment_vpn_step_optional: true,
+            enrollment_welcome_message: None,
+            enrollment_welcome_email: None,
+            enrollment_use_welcome_message_as_email: true,
         }
     );
 

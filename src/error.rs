@@ -1,5 +1,6 @@
 use crate::auth::failed_login::FailedLoginError;
 use crate::db::models::device::DeviceError;
+use crate::db::models::enrollment::EnrollmentError;
 use crate::db::models::wireguard::WireguardNetworkError;
 use crate::grpc::GatewayMapError;
 use crate::templates::TemplateError;
@@ -34,7 +35,7 @@ pub enum OriWebError {
     #[error("Public key invalid {0}")]
     PubkeyValidation(String),
     #[error("HTTP error: {0}")]
-    Http(rocket::http::Status),
+    Http(Status),
     #[error(transparent)]
     TooManyLoginAttempts(#[from] FailedLoginError),
     #[error("Bad request: {0}")]
@@ -111,6 +112,23 @@ impl From<WireguardNetworkError> for OriWebError {
             | WireguardNetworkError::Unexpected(_)
             | WireguardNetworkError::DeviceError(_)
             | WireguardNetworkError::DeviceNotAllowed(_) => Self::Http(Status::InternalServerError),
+        }
+    }
+}
+
+impl From<EnrollmentError> for OriWebError {
+    fn from(err: EnrollmentError) -> Self {
+        error!("{}", err);
+        match err {
+            EnrollmentError::DbError(msg) => OriWebError::DbError(msg.to_string()),
+            EnrollmentError::NotFound
+            | EnrollmentError::UserNotFound
+            | EnrollmentError::AdminNotFound => OriWebError::ObjectNotFound(err.to_string()),
+            EnrollmentError::TokenExpired
+            | EnrollmentError::SessionExpired
+            | EnrollmentError::TokenUsed => OriWebError::Authorization(err.to_string()),
+            EnrollmentError::AlreadyActive => OriWebError::BadRequest(err.to_string()),
+            EnrollmentError::NotificationError(_) => OriWebError::Http(Status::InternalServerError),
         }
     }
 }

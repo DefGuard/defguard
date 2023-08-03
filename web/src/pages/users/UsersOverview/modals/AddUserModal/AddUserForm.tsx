@@ -5,6 +5,7 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { FormCheckBox } from '../../../../../shared/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../shared/components/layout/Button/Button';
 import {
@@ -26,11 +27,13 @@ import { passwordValidator } from '../../../../../shared/validators/password';
 
 interface Inputs {
   username: string;
-  password: string;
+  password?: string;
   email: string;
   last_name: string;
   first_name: string;
   phone?: string;
+  // had to add field for conditional form validation to work
+  enable_enrollment: boolean;
 }
 
 export const AddUserForm = () => {
@@ -63,7 +66,9 @@ export const AddUserForm = () => {
             .test('username-available', LL.form.error.usernameTaken(), (value?: string) =>
               value ? !reservedUserNames.current.includes(value) : false
             ),
-          password: passwordValidator(LL),
+          password: yup
+            .string()
+            .when('enable_enrollment', { is: false, then: () => passwordValidator(LL) }),
           email: yup
             .string()
             .required(LL.form.error.required())
@@ -79,6 +84,7 @@ export const AddUserForm = () => {
               }
               return true;
             }),
+          enable_enrollment: yup.boolean(),
         })
         .required(),
     [LL]
@@ -89,6 +95,7 @@ export const AddUserForm = () => {
     control,
     formState: { isValid },
     trigger,
+    watch,
   } = useForm<Inputs>({
     resolver: yupResolver(formSchema),
     mode: 'all',
@@ -100,6 +107,7 @@ export const AddUserForm = () => {
       password: '',
       phone: '',
       username: '',
+      enable_enrollment: false,
     },
   });
 
@@ -122,6 +130,8 @@ export const AddUserForm = () => {
     },
   });
 
+  const enableEnrollment = watch('enable_enrollment');
+
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
     if (reservedUserNames.current.includes(data.username)) {
       trigger('username', { shouldFocus: true });
@@ -129,7 +139,14 @@ export const AddUserForm = () => {
       usernameAvailable(data.username)
         .then(() => {
           setCheckingUsername(false);
-          addUserMutation.mutate(data);
+          let userData = data;
+          if (enableEnrollment) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { password, ...rest } = data;
+            userData = rest;
+          }
+          // TODO: add notification toggle to form
+          addUserMutation.mutate({ ...userData, send_enrollment_notification: true });
         })
         .catch(() => {
           setCheckingUsername(false);
@@ -159,7 +176,12 @@ export const AddUserForm = () => {
             }}
             type="password"
             autoComplete="password"
-            required
+            required={!enableEnrollment}
+            disabled={enableEnrollment}
+          />
+          <FormCheckBox
+            label={LL.modals.addUser.form.fields.enableEnrollment.label()}
+            controller={{ control, name: 'enable_enrollment' }}
           />
           <FormInput
             outerLabel={LL.modals.addUser.form.fields.email.label()}
