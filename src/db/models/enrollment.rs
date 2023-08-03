@@ -155,6 +155,17 @@ impl Enrollment {
         }
     }
 
+    pub async fn fetch_all(pool: &DbPool) -> Result<Vec<Self>, EnrollmentError> {
+        let enrollments = query_as!(
+            Self,
+            "SELECT id, user_id, admin_id, created_at, expires_at, used_at \
+            FROM enrollment",
+        )
+        .fetch_all(pool)
+        .await?;
+        Ok(enrollments)
+    }
+
     pub async fn fetch_user(&self, pool: &DbPool) -> Result<User, EnrollmentError> {
         debug!("Fetching user for enrollment");
         let Some(user) = User::find_by_id(pool, self.user_id)
