@@ -320,6 +320,9 @@ const pl: Translation = {
             placeholder: 'Telefon',
             label: 'Telefon',
           },
+          enableEnrollment: {
+            label: 'Użyj zdalnego enrollmentu',
+          },
         },
       },
     },
