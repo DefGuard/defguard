@@ -18,28 +18,29 @@ import { Web3Settings } from './Web3Settings/Web3Settings';
 import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
 
 enum Tabs {
-  Global,
+  Basic,
   Smtp,
   Enrollment,
 }
 
 export const SettingsPage = () => {
-  const [tab, setTab] = useState(Tabs.Global);
+  const { LL } = useI18nContext();
+  const [tab, setTab] = useState(Tabs.Basic);
   const tabs = [
     {
       key: 1,
       onClick: () => {
-        setTab(Tabs.Global);
+        setTab(Tabs.Basic);
       },
-      content: 'Global settings',
-      active: tab === Tabs.Global,
+      content: LL.settingsPage.tabs.basic(),
+      active: tab === Tabs.Basic,
     },
     {
       key: 2,
       onClick: () => {
         setTab(Tabs.Smtp);
       },
-      content: 'SMTP',
+      content: LL.settingsPage.tabs.smtp(),
       active: tab === Tabs.Smtp,
     },
     {
@@ -52,7 +53,6 @@ export const SettingsPage = () => {
     },
   ];
   const settings = useAppStore((state) => state.settings);
-  const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   return (
     <PageContainer id="settings-page">
@@ -63,7 +63,7 @@ export const SettingsPage = () => {
       </header>
       {breakpoint === 'desktop' && <CardTabs tabs={tabs} />}
       <Card className="settings-card" hideMobile>
-        {tab === Tabs.Global && (
+        {tab === Tabs.Basic && (
           <>
             <div className="left">
               <BrandingCard />

@@ -1,5 +1,6 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
@@ -19,6 +20,8 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { patternValidEmail } from '../../../shared/patterns';
 import { TestMail } from '../../../shared/types';
 
+type SMTPError = AxiosError<{ error: string }>;
+
 export const TestForm = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
@@ -32,8 +35,11 @@ export const TestForm = () => {
     onSuccess: () => {
       toaster.success(LL.settingsPage.smtp.test_form.controls.success());
     },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
+    onError: (err: SMTPError) => {
+      toaster.error(
+        `${LL.settingsPage.smtp.test_form.controls.error()}`,
+        `${err.response?.data.error}`
+      );
       console.error(err);
     },
   });

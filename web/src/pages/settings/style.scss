@@ -2,10 +2,10 @@
 
 #settings-page {
   & > .page-content {
+    overflow-y: auto;
+    border-radius: 0 15px 15px 15px;
+    box-sizing: border-box;
     & > .settings-card {
-      border-radius: 0 15px 15px 15px;
-      box-sizing: border-box;
-      overflow-y: auto;
       display: grid;
       grid-template-columns: 1fr;
       grid-template-rows: auto auto;
