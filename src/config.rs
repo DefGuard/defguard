@@ -4,7 +4,7 @@ use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
 
-#[derive(Clone, Parser)]
+#[derive(Clone, Parser, Serialize)]
 #[command(version)]
 pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
@@ -54,6 +54,7 @@ pub struct DefGuardConfig {
     pub default_admin_password: String,
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
+    #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
 
     // relying party id and relying party origin for WebAuthn
@@ -133,9 +134,11 @@ pub struct DefGuardConfig {
     pub disable_stats_purge: bool,
 
     #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY", default_value = "24h")]
+    #[serde(skip_serializing)]
     pub stats_purge_frequency: Duration,
 
     #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD", default_value = "30d")]
+    #[serde(skip_serializing)]
     pub stats_purge_threshold: Duration,
 
     #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
@@ -152,10 +155,11 @@ pub struct DefGuardConfig {
     pub enrollment_session_timeout: Duration,
 
     #[command(subcommand)]
+    #[serde(skip_serializing)]
     pub cmd: Option<Command>,
 }
 
-#[derive(Clone, Parser)]
+#[derive(Clone, Parser, Debug)]
 pub enum Command {
     #[command(
         about = "Initialize development environment. Inserts test network and device into database."

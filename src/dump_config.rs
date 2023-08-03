@@ -30,5 +30,6 @@ pub async fn dump_config(db: &Pool<Postgres>, config: &DefGuardConfig) -> Value 
         "version": VERSION,
         "devices": devices,
         "users": users,
+        "config": config,
     })
 }
