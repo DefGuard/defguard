@@ -5,7 +5,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::{
     config::DefGuardConfig,
-    db::{models::device::WireguardNetworkDevice, Settings, WireguardNetwork, User},
+    db::{models::device::WireguardNetworkDevice, Settings, User, WireguardNetwork},
     VERSION,
 };
 

@@ -10,6 +10,9 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,
 
+    #[arg(long, env = "DEFGUARD_LOG_FILE")]
+    pub log_file: Option<String>,
+
     #[arg(long, env = "DEFGUARD_AUTH_SESSION_LIFETIME")]
     pub session_auth_lifetime: Option<i64>,
 

@@ -1,8 +1,8 @@
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
-    dump_config::dump_config,
     db::Settings,
+    dump_config::dump_config,
     error::OriWebError,
     AppState,
 };

@@ -3,7 +3,8 @@ use crate::db::Device;
 use crate::{
     auth::SessionInfo,
     db::{DbPool, User, UserInfo},
-    error::OriWebError, VERSION,
+    error::OriWebError,
+    VERSION,
 };
 use rocket::{
     http::{ContentType, Status},

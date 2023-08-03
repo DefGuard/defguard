@@ -78,14 +78,15 @@ use tokio::sync::{
 pub mod appstate;
 pub mod auth;
 pub mod config;
-pub mod dump_config;
 pub mod db;
+pub mod dump_config;
 mod error;
 pub mod grpc;
 pub mod handlers;
 pub mod hex;
 pub mod ldap;
 pub mod license;
+pub mod logging;
 pub mod mail;
 pub(crate) mod random;
 pub mod templates;
