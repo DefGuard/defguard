@@ -201,8 +201,8 @@ impl User {
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, EnrollmentError> {
         info!(
-            "User {} starting enrollment for user {}, notification enabled: {}",
-            admin.username, self.username, send_user_notification
+            "User {} starting enrollment for user {}, notification enabled: {send_user_notification}",
+            admin.username, self.username
         );
         if self.has_password() {
             return Err(EnrollmentError::AlreadyActive);

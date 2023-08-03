@@ -685,7 +685,6 @@ const pl: Translation = {
         },
       },
     },
-
     defaultNetworkSelect: {
       header: 'Domyślny widok sieci',
       helper: `<p>Tutaj możesz zmienić domyślny widok sieci.</p>
@@ -801,6 +800,55 @@ const pl: Translation = {
           Skonfiguruj serwer SMTP do wysyłania wiadomości systemowych do użytkowników.
         </p>
 			`,
+    },
+    enrollment: {
+      helper:
+        'Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device.',
+      vpnOptionality: {
+        header: 'VPN step optionality',
+        helper:
+          'You can choose whether creating a VPN device is optional or mandatory during enrollment',
+      },
+      welcomeMessage: {
+        header: 'Welcome message',
+        helper: `
+        <p>In this text input you can use Markdown:</p>
+        <ul>
+          <li>Headings start with a hash #</li>
+          <li>Use asterisks for <i>*italics*</i></li>
+          <li>Use two asterisks for <b>**bold**</b></li>
+        </ul>
+        `,
+      },
+      welcomeEmail: {
+        header: 'Welcome e-mail',
+        helper: `
+        <p>In this text input you can use Markdown:</p>
+        <ul>
+          <li>Headings start with a hash #</li>
+          <li>Use asterisks for <i>*italics*</i></li>
+          <li>Use two asterisks for <b>**bold**</b></li>
+        </ul>
+        `,
+      },
+      form: {
+        controls: {
+          submit: 'Save changes',
+        },
+        welcomeMessage: {
+          helper:
+            'This information will be displayed for the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly.',
+          placeholder: 'Please input welcome message',
+        },
+        welcomeEmail: {
+          helper:
+            'This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.',
+          placeholder: 'Please input welcome email',
+        },
+        useMessageAsEmail: {
+          label: 'Same as welcome message',
+        },
+      },
     },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',

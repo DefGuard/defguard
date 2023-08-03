@@ -80,7 +80,7 @@ impl EnrollmentServer {
     /// Sends given `GatewayEvent` to be handled by gateway GRPC server
     pub fn send_wireguard_event(&self, event: GatewayEvent) {
         if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending wireguard event {}", err);
+            error!("Error sending wireguard event {err}");
         }
     }
 }
@@ -91,7 +91,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         &self,
         request: Request<EnrollmentStartRequest>,
     ) -> Result<Response<EnrollmentStartResponse>, Status> {
-        debug!("Starting enrollment session");
+        debug!("Starting enrollment session: {request:?}");
         let request = request.into_inner();
         // fetch enrollment token
         let mut enrollment = Enrollment::find_by_id(&self.pool, &request.token).await?;
@@ -121,13 +121,13 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         &self,
         request: Request<ActivateUserRequest>,
     ) -> Result<Response<()>, Status> {
-        debug!("Activating user account");
+        debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(&request).await?;
 
         // check if password is strong enough
         let request = request.into_inner();
         if let Err(err) = check_password_strength(&request.password) {
-            error!("Password not strong enough: {}", err);
+            error!("Password not strong enough: {err}");
             return Err(Status::invalid_argument("password not strong enough"));
         }
 
@@ -143,7 +143,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         user.phone = Some(request.phone_number);
         user.set_password(&request.password);
         user.save(&self.pool).await.map_err(|err| {
-            error!("Failed to update user {}: {}", user.username, err);
+            error!("Failed to update user {}: {err}", user.username);
             Status::internal("unexpected error")
         })?;
 
@@ -178,8 +178,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             subject: ENROLLMENT_WELCOME_MAIL_SUBJECT.to_string(),
             content: templates::enrollment_welcome_mail(&content).map_err(|err| {
                 error!(
-                    "Failed to render welcome email for user {}: {}",
-                    user.username, err
+                    "Failed to render welcome email for user {}: {err}",
+                    user.username
                 );
                 Status::internal("unexpected error")
             })?,
@@ -202,7 +202,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         &self,
         request: Request<NewDevice>,
     ) -> Result<Response<CreateDeviceResponse>, Status> {
-        debug!("Adding new user device");
+        debug!("Adding new user device: {request:?}");
         let enrollment = self.validate_session(&request).await?;
 
         // fetch related users
@@ -222,7 +222,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             Status::internal("unexpected error")
         })?;
         device.save(&mut transaction).await.map_err(|err| {
-            error!("Failed to save device {}: {}", device.name, err);
+            error!("Failed to save device {}: {err}", device.name);
             Status::internal("unexpected error")
         })?;
 
@@ -231,8 +231,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             .await
             .map_err(|err| {
                 error!(
-                    "Failed to add device {} to existing networks: {}",
-                    device.name, err
+                    "Failed to add device {} to existing networks: {err}",
+                    device.name
                 );
                 Status::internal("unexpected error")
             })?;

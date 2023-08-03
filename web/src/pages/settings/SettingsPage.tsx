@@ -11,11 +11,11 @@ import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { BrandingCard } from './BrandingCard/BrandingCard';
 import { BuiltByCard } from './BuiltByCard/BuiltByCard';
+import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
 import { ModulesCard } from './ModulesCard/ModulesCard';
 import { SmtpCard } from './SmtpCard/SmtpCard';
 import { SupportCard } from './SupportCard/SupportCard';
 import { Web3Settings } from './Web3Settings/Web3Settings';
-import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
 
 enum Tabs {
   Basic,
