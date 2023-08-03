@@ -1984,6 +1984,54 @@
     },
     "query": "UPDATE \"oauth2authorizedapp\" SET \"user_id\" = $2, \"oauth2client_id\" = $3 WHERE id = $1"
   },
+  "770a9b7a9944ea1985bdcc7f712d62d823d5a5980b6f8c2aeefcc701ed92f6a7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "admin_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "expires_at",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "used_at",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id, user_id, admin_id, created_at, expires_at, used_at FROM enrollment"
+  },
   "77532f50fc8765ac97323cd3df60df8ae443769670c459426d738ac8d4fab6f4": {
     "describe": {
       "columns": [
