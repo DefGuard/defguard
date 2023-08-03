@@ -88,7 +88,7 @@ export const SmtpCard = () => {
     {
       key: 1,
       value: 'None',
-      label: 'None',
+      label: LL.settingsPage.smtp.form.fields.encryption.none(),
     },
     {
       key: 2,

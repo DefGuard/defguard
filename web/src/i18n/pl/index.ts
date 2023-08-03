@@ -653,7 +653,11 @@ const pl: Translation = {
     },
   },
   settingsPage: {
-    title: 'Ustawienia globalne',
+    title: 'Ustawienia Globalne',
+    tabs: {
+      basic: 'Podstawowe',
+      smtp: 'SMTP',
+    },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
       challengeSuccess: 'Zmieniono wiadomość do podpisu.',
@@ -754,6 +758,7 @@ const pl: Translation = {
           },
           encryption: {
             label: 'Szyfrowanie',
+            none: 'Brak',
           },
           user: {
             label: 'Użytkownik',
@@ -788,6 +793,7 @@ const pl: Translation = {
         controls: {
           submit: 'Wyślij',
           success: 'Email testowy wysłany pomyślnie',
+          error: 'Błąd wysyłania emaila testowego',
         },
       },
       helper: `

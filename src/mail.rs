@@ -1,14 +1,18 @@
+use std::time::Duration;
+
 use lettre::{
     address::AddressError,
     message::{header::ContentType, Mailbox},
-    transport::smtp::authentication::Credentials,
+    transport::smtp::{authentication::Credentials, response::Response},
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use sqlx::{Pool, Postgres};
 use thiserror::Error;
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::{mpsc::UnboundedReceiver, oneshot::Sender};
 
 use crate::db::{models::settings::SmtpEncryption, Settings};
+
+static SMTP_TIMEOUT_SECONDS: u64 = 15;
 
 #[derive(Error, Debug)]
 pub enum MailError {
@@ -82,11 +86,12 @@ impl SmtpSettings {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Mail {
     pub to: String,
     pub subject: String,
     pub content: String,
+    pub result_tx: Option<Sender<Result<Response, MailError>>>,
 }
 
 impl Mail {
@@ -121,6 +126,19 @@ impl MailHandler {
         Self { rx, db }
     }
 
+    pub fn send_result(
+        tx: Option<Sender<Result<Response, MailError>>>,
+        result: Result<Response, MailError>,
+    ) {
+        if let Some(tx) = tx {
+            if tx.send(result).is_ok() {
+                debug!("SMTP result sent back to caller");
+            } else {
+                error!("Error sending SMTP result back to caller")
+            }
+        }
+    }
+
     /// Listens on rx channel for messages and sends them via SMTP.
     pub async fn run(mut self) {
         while let Some(mail) = self.rx.recv().await {
@@ -145,17 +163,27 @@ impl MailHandler {
                     continue;
                 }
             };
-
             // Build mailer and send the message
+            let (to, subject) = (mail.to, mail.subject);
             match self.mailer(settings).await {
                 Ok(mailer) => match mailer.send(message).await {
-                    Ok(response) => info!("Mail sent successfully: {mail:?}, {response:?}"),
-                    Err(err) => error!("Mail sending failed: {mail:?}, {err}"),
+                    Ok(response) => {
+                        Self::send_result(mail.result_tx, Ok(response.clone()));
+                        info!("Mail sent successfully to: {to}, subject: {subject}, response: {response:?}");
+                    }
+                    Err(err) => {
+                        error!("Mail sending failed to: {to}, subject: {subject}, error: {err}");
+                        Self::send_result(mail.result_tx, Err(MailError::SmtpError(err)));
+                    }
                 },
                 Err(MailError::SmtpNotConfigured) => {
-                    warn!("SMTP not configured, onboarding email sending skipped")
+                    warn!("SMTP not configured, onboarding email sending skipped");
+                    Self::send_result(mail.result_tx, Err(MailError::SmtpNotConfigured));
                 }
-                Err(err) => error!("Error building mailer: {err}"),
+                Err(err) => {
+                    error!("Error building mailer: {err}");
+                    Self::send_result(mail.result_tx, Err(err))
+                }
             }
         }
     }
@@ -176,7 +204,8 @@ impl MailHandler {
                 AsyncSmtpTransport::<Tokio1Executor>::relay(&settings.server)?
             }
         }
-        .port(settings.port);
+        .port(settings.port)
+        .timeout(Some(Duration::from_secs(SMTP_TIMEOUT_SECONDS)));
         Ok(builder
             .credentials(Credentials::new(settings.user, settings.password))
             .build())

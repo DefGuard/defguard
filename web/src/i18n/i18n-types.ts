@@ -1539,6 +1539,16 @@ type RootTranslation = {
 		 * G​l​o​b​a​l​ ​S​e​t​t​i​n​g​s
 		 */
 		title: string
+		tabs: {
+			/**
+			 * B​a​s​i​c
+			 */
+			basic: string
+			/**
+			 * S​M​T​P
+			 */
+			smtp: string
+		}
 		messages: {
 			/**
 			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
@@ -1746,6 +1756,10 @@ type RootTranslation = {
 						 * E​n​c​r​y​p​t​i​o​n
 						 */
 						label: string
+						/**
+						 * N​o​n​e
+						 */
+						none: string
 					}
 					user: {
 						/**
@@ -1820,6 +1834,10 @@ type RootTranslation = {
 					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t​ ​s​u​c​c​e​s​s​f​u​l​l​y
 					 */
 					success: string
+					/**
+					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​t​e​s​t​ ​e​m​a​i​l
+					 */
+					error: string
 				}
 			}
 			/**
@@ -4495,6 +4513,16 @@ export type TranslationFunctions = {
 		 * Global Settings
 		 */
 		title: () => LocalizedString
+		tabs: {
+			/**
+			 * Basic
+			 */
+			basic: () => LocalizedString
+			/**
+			 * SMTP
+			 */
+			smtp: () => LocalizedString
+		}
 		messages: {
 			/**
 			 * Settings updated
@@ -4699,6 +4727,10 @@ export type TranslationFunctions = {
 						 * Encryption
 						 */
 						label: () => LocalizedString
+						/**
+						 * None
+						 */
+						none: () => LocalizedString
 					}
 					user: {
 						/**
@@ -4773,6 +4805,10 @@ export type TranslationFunctions = {
 					 * Test email sent successfully
 					 */
 					success: () => LocalizedString
+					/**
+					 * Error sending test email
+					 */
+					error: () => LocalizedString
 				}
 			}
 			/**

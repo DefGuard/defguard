@@ -653,6 +653,10 @@ const en: BaseTranslation = {
   },
   settingsPage: {
     title: 'Global Settings',
+    tabs: {
+      basic: 'Basic',
+      smtp: 'SMTP',
+    },
     messages: {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
@@ -753,6 +757,7 @@ const en: BaseTranslation = {
           },
           encryption: {
             label: 'Encryption',
+            none: 'None',
           },
           user: {
             label: 'Server username',
@@ -788,6 +793,7 @@ const en: BaseTranslation = {
         controls: {
           submit: 'Send',
           success: 'Test email sent successfully',
+          error: 'Error sending test email',
         },
       },
       helper: `
