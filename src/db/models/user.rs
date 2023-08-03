@@ -35,7 +35,7 @@ pub enum MFAMethod {
     Web3,
 }
 
-#[derive(Model, PartialEq)]
+#[derive(Model, PartialEq, Serialize)]
 pub struct User {
     pub id: Option<i64>,
     pub username: String,

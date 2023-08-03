@@ -1,6 +1,7 @@
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
+    dump_config::dump_config,
     db::Settings,
     error::OriWebError,
     AppState,
@@ -65,4 +66,18 @@ pub async fn set_default_branding(
         }
         None => Err(OriWebError::DbError("Cannot restore settings".into())),
     }
+}
+
+#[get("/settings/dump_config", format = "json")]
+pub async fn dump_configuration(
+    _admin: AdminRole,
+    appstate: &State<AppState>,
+    session: SessionInfo,
+) -> ApiResult {
+    debug!("User {} dumping app configuration", session.user.username);
+    info!("User {} dumped app configuration", session.user.username);
+    Ok(ApiResponse {
+        json: dump_config(&appstate.pool, &appstate.config).await,
+        status: Status::Ok,
+    })
 }

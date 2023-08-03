@@ -3,7 +3,7 @@ use crate::db::Device;
 use crate::{
     auth::SessionInfo,
     db::{DbPool, User, UserInfo},
-    error::OriWebError,
+    error::OriWebError, VERSION,
 };
 use rocket::{
     http::{ContentType, Status},
@@ -11,7 +11,6 @@ use rocket::{
     response::{Responder, Response},
     serde::json::{serde_json::json, Value},
 };
-use std::env;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 pub(crate) mod app_info;
@@ -36,8 +35,6 @@ pub struct ApiResponse {
     pub json: Value,
     pub status: Status,
 }
-
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub type ApiResult = Result<ApiResponse, OriWebError>;
 

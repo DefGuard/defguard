@@ -3,7 +3,7 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::db::User;
+use crate::{db::User, handlers::settings::dump_configuration};
 
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
@@ -78,6 +78,7 @@ use tokio::sync::{
 pub mod appstate;
 pub mod auth;
 pub mod config;
+pub mod dump_config;
 pub mod db;
 mod error;
 pub mod grpc;
@@ -96,6 +97,8 @@ extern crate rocket;
 
 #[macro_use]
 extern crate serde;
+
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Catch missing files and serve "index.html".
 #[get("/<path..>", rank = 4)]
@@ -168,6 +171,7 @@ pub async fn build_webapp(
                 get_settings,
                 update_settings,
                 set_default_branding,
+                dump_configuration,
                 mfa_enable,
                 mfa_disable,
                 totp_secret,
