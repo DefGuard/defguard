@@ -1547,13 +1547,21 @@ type RootTranslation = {
 		title: string
 		tabs: {
 			/**
-			 * B​a​s​i​c
+			 * G​e​n​e​r​a​l
 			 */
-			basic: string
+			general: string
 			/**
 			 * S​M​T​P
 			 */
 			smtp: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			support: string
 		}
 		messages: {
 			/**
@@ -4611,13 +4619,21 @@ export type TranslationFunctions = {
 		title: () => LocalizedString
 		tabs: {
 			/**
-			 * Basic
+			 * General
 			 */
-			basic: () => LocalizedString
+			general: () => LocalizedString
 			/**
 			 * SMTP
 			 */
 			smtp: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
+			/**
+			 * Support
+			 */
+			support: () => LocalizedString
 		}
 		messages: {
 			/**

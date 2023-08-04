@@ -9,31 +9,28 @@ import { CardTabs } from '../../shared/components/layout/CardTabs/CardTabs';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
-import { BrandingCard } from './BrandingCard/BrandingCard';
-import { BuiltByCard } from './BuiltByCard/BuiltByCard';
 import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
-import { ModulesCard } from './ModulesCard/ModulesCard';
-import { SmtpCard } from './SmtpCard/SmtpCard';
-import { SupportCard } from './SupportCard/SupportCard';
-import { Web3Settings } from './Web3Settings/Web3Settings';
+import { GeneralTab } from './GeneralTab/GeneralTab';
+import { SmtpTab } from './SmtpTab/SmtpTab';
 
 enum Tabs {
-  Basic,
+  General,
   Smtp,
   Enrollment,
+  Support,
 }
 
 export const SettingsPage = () => {
   const { LL } = useI18nContext();
-  const [tab, setTab] = useState(Tabs.Basic);
+  const [tab, setTab] = useState(Tabs.General);
   const tabs = [
     {
       key: 1,
       onClick: () => {
-        setTab(Tabs.Basic);
+        setTab(Tabs.General);
       },
-      content: LL.settingsPage.tabs.basic(),
-      active: tab === Tabs.Basic,
+      content: LL.settingsPage.tabs.general(),
+      active: tab === Tabs.General,
     },
     {
       key: 2,
@@ -48,8 +45,16 @@ export const SettingsPage = () => {
       onClick: () => {
         setTab(Tabs.Enrollment);
       },
-      content: 'Enrollment',
+      content: LL.settingsPage.tabs.enrollment(),
       active: tab === Tabs.Enrollment,
+    },
+    {
+      key: 4,
+      onClick: () => {
+        setTab(Tabs.Support);
+      },
+      content: LL.settingsPage.tabs.support(),
+      active: tab === Tabs.Support,
     },
   ];
   const settings = useAppStore((state) => state.settings);
@@ -63,21 +68,8 @@ export const SettingsPage = () => {
       </header>
       {breakpoint === 'desktop' && <CardTabs tabs={tabs} />}
       <Card className="settings-card" hideMobile>
-        {tab === Tabs.Basic && (
-          <>
-            <div className="left">
-              <BrandingCard />
-              <ModulesCard />
-              {/*<DefaultNetworkSelect /> */}
-            </div>
-            <div className="right">
-              <Web3Settings />
-              <SupportCard />
-              <BuiltByCard />
-            </div>
-          </>
-        )}
-        {tab === Tabs.Smtp && <SmtpCard />}
+        {tab === Tabs.General && <GeneralTab />}
+        {tab === Tabs.Smtp && <SmtpTab />}
         {tab === Tabs.Enrollment && <EnrollmentTab />}
       </Card>
     </PageContainer>

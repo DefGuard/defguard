@@ -658,8 +658,10 @@ const pl: Translation = {
   settingsPage: {
     title: 'Ustawienia Globalne',
     tabs: {
-      basic: 'Podstawowe',
+      general: 'Podstawowe',
       smtp: 'SMTP',
+      enrollment: 'Rejestracja',
+      support: 'Support',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',

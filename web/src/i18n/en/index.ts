@@ -657,8 +657,10 @@ const en: BaseTranslation = {
   settingsPage: {
     title: 'Global Settings',
     tabs: {
-      basic: 'Basic',
+      general: 'General',
       smtp: 'SMTP',
+      enrollment: 'Enrollment',
+      support: 'Support',
     },
     messages: {
       editSuccess: 'Settings updated',
