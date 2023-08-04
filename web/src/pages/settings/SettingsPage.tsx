@@ -12,6 +12,7 @@ import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
 import { GeneralTab } from './GeneralTab/GeneralTab';
 import { SmtpTab } from './SmtpTab/SmtpTab';
+import { SupportTab } from './SupportTab/SupportTab';
 
 enum Tabs {
   General,
@@ -71,6 +72,7 @@ export const SettingsPage = () => {
         {tab === Tabs.General && <GeneralTab />}
         {tab === Tabs.Smtp && <SmtpTab />}
         {tab === Tabs.Enrollment && <EnrollmentTab />}
+        {tab === Tabs.Support && <SupportTab />}
       </Card>
     </PageContainer>
   );

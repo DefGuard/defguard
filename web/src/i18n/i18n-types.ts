@@ -1947,6 +1947,20 @@ type RootTranslation = {
 				}
 			}
 		}
+		debugDataCard: {
+			/**
+			 * S​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			title: string
+			/**
+			 * 
+		​I​f​ ​y​o​u​ ​n​e​e​d​ ​a​s​s​i​s​t​a​n​c​e​ ​o​r​ ​y​o​u​ ​w​e​r​e​ ​a​s​k​e​d​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​s​u​p​p​o​r​t​ ​d​a​t​a​ ​b​y​ ​o​u​r​ ​t​e​a​m​ ​(​f​o​r​ ​e​x​a​m​p​l​e​ ​o​n​ ​o​u​r​ ​M​a​t​r​i​x​ ​s​u​p​p​o​r​t​ ​c​h​a​n​n​e​l​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​,​ ​y​o​u​ ​h​a​v​e​ ​t​w​o​ ​o​p​t​i​o​n​s​:​
+		​*​ ​E​i​t​h​e​r​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​c​l​i​c​k​ ​"​S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​
+		​*​ ​O​r​ ​c​l​i​c​k​ ​"​D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​b​u​g​ ​r​e​p​o​r​t​ ​i​n​ ​o​u​r​ ​g​i​t​h​u​b​ ​a​t​t​a​c​h​i​n​g​ ​t​h​i​s​ ​f​i​l​e​s​.​
+	
+			 */
+			body: string
+		}
 		licenseCard: {
 			/**
 			 * L​i​c​e​n​s​e​ ​&​ ​S​u​p​p​o​r​t​ ​I​n​f​o​r​m​a​t​i​o​n
@@ -5015,6 +5029,20 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 				}
 			}
+		}
+		debugDataCard: {
+			/**
+			 * Support data
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+		* Either you can configure SMTP settings and click "Send support data"
+		* Or click "Download support data" and create a bug report in our github attaching this files.
+	
+			 */
+			body: () => LocalizedString
 		}
 		licenseCard: {
 			/**

@@ -855,6 +855,14 @@ const pl: Translation = {
         },
       },
     },
+    debugDataCard: {
+      title: 'Dane wsparcia technicznego',
+      body: `
+Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygenerowanie danych wsparcia technicznego (np. na naszym kanale Matrix: **#defguard-support:teonite.com**), masz dwie opcje:
+* Możesz skonfigurować ustawienia SMTP i kliknąć: "Wyślij dane wsparcia technicznego".
+* Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie na naszym github załączając te pliki.
+`,
+    },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',
       licenseCardTitles: {
