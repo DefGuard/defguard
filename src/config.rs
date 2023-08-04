@@ -148,6 +148,7 @@ pub struct DefGuardConfig {
     pub enrollment_url: Url,
 
     #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT", default_value = "24h")]
+    #[serde(skip_serializing)]
     pub enrollment_token_timeout: Duration,
 
     #[arg(
@@ -155,6 +156,7 @@ pub struct DefGuardConfig {
         env = "DEFGUARD_ENROLLMENT_SESSION_TIMEOUT",
         default_value = "10m"
     )]
+    #[serde(skip_serializing)]
     pub enrollment_session_timeout: Duration,
 
     #[command(subcommand)]

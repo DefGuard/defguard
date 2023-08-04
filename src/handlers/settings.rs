@@ -2,7 +2,6 @@ use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
     db::Settings,
-    dump_config::dump_config,
     error::OriWebError,
     AppState,
 };
@@ -12,7 +11,7 @@ use rocket::{
     State,
 };
 
-#[get("/settings", format = "json")]
+#[get("/", format = "json")]
 pub async fn get_settings(appstate: &State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
     let settings = Settings::find_by_id(&appstate.pool, 1).await?;
@@ -23,7 +22,7 @@ pub async fn get_settings(appstate: &State<AppState>) -> ApiResult {
     })
 }
 
-#[put("/settings", format = "json", data = "<data>")]
+#[put("/", format = "json", data = "<data>")]
 pub async fn update_settings(
     _admin: AdminRole,
     appstate: &State<AppState>,
@@ -37,7 +36,7 @@ pub async fn update_settings(
     Ok(ApiResponse::default())
 }
 
-#[get("/settings/<id>", format = "json")]
+#[get("/<id>", format = "json")]
 pub async fn set_default_branding(
     _admin: AdminRole,
     appstate: &State<AppState>,
@@ -66,18 +65,4 @@ pub async fn set_default_branding(
         }
         None => Err(OriWebError::DbError("Cannot restore settings".into())),
     }
-}
-
-#[get("/settings/dump_config", format = "json")]
-pub async fn dump_configuration(
-    _admin: AdminRole,
-    appstate: &State<AppState>,
-    session: SessionInfo,
-) -> ApiResult {
-    debug!("User {} dumping app configuration", session.user.username);
-    info!("User {} dumped app configuration", session.user.username);
-    Ok(ApiResponse {
-        json: dump_config(&appstate.pool, &appstate.config).await,
-        status: Status::Ok,
-    })
 }

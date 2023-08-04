@@ -24,6 +24,7 @@ pub mod openid_clients;
 #[cfg(feature = "openid")]
 pub mod openid_flow;
 pub(crate) mod settings;
+pub(crate) mod support;
 pub(crate) mod user;
 pub(crate) mod webhooks;
 #[cfg(feature = "wireguard")]

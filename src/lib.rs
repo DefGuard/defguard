@@ -3,7 +3,10 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::{db::User, handlers::settings::dump_configuration};
+use crate::{
+    db::User,
+    handlers::support::{configuration, logs},
+};
 
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
@@ -79,7 +82,6 @@ pub mod appstate;
 pub mod auth;
 pub mod config;
 pub mod db;
-pub mod dump_config;
 mod error;
 pub mod grpc;
 pub mod handlers;
@@ -89,6 +91,7 @@ pub mod license;
 pub mod logging;
 pub mod mail;
 pub(crate) mod random;
+pub mod support;
 pub mod templates;
 pub mod wg_config;
 pub mod wireguard_stats_purge;
@@ -169,10 +172,6 @@ pub async fn build_webapp(
                 add_group_member,
                 remove_group_member,
                 get_license,
-                get_settings,
-                update_settings,
-                set_default_branding,
-                dump_configuration,
                 mfa_enable,
                 mfa_disable,
                 totp_secret,
@@ -191,6 +190,11 @@ pub async fn build_webapp(
                 change_self_password,
             ],
         )
+        .mount(
+            "/api/v1/settings",
+            routes![get_settings, update_settings, set_default_branding],
+        )
+        .mount("/api/v1/support", routes![configuration, logs])
         .mount(
             "/api/v1/webhook",
             routes![
