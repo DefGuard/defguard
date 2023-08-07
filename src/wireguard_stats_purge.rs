@@ -42,10 +42,7 @@ impl WireguardPeerStats {
         let end = Utc::now();
         let rows_count = result.rows_affected();
 
-        info!(
-            "Removed {} old records from wireguard_peer_stats",
-            rows_count,
-        );
+        info!("Removed {rows_count} old records from wireguard_peer_stats",);
 
         // record successful stats purge in DB
         Self::record_stats_purge(pool, start, end, threshold, rows_count as i64).await?;
