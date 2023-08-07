@@ -189,6 +189,13 @@ pub async fn start_enrollment(
         session.user.username
     );
 
+    // validate request
+    if data.send_enrollment_notification && data.email.is_none() {
+        return Err(OriWebError::BadRequest(
+            "Email notification is enabled, but email was not provided".into(),
+        ));
+    }
+
     let user = match User::find_by_username(&appstate.pool, username).await? {
         Some(user) => Ok(user),
         None => Err(OriWebError::ObjectNotFound(format!(
@@ -202,7 +209,7 @@ pub async fn start_enrollment(
         .start_enrollment(
             &mut transaction,
             &session.user,
-            &data.email,
+            data.email.clone(),
             appstate.config.enrollment_token_timeout.as_secs(),
             appstate.config.enrollment_url.clone(),
             data.send_enrollment_notification,

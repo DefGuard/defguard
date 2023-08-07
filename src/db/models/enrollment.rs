@@ -63,20 +63,25 @@ pub struct Enrollment {
     pub id: String,
     pub user_id: i64,
     pub admin_id: i64,
-    pub email: String,
+    pub email: Option<String>,
     pub created_at: NaiveDateTime,
     pub expires_at: NaiveDateTime,
     pub used_at: Option<NaiveDateTime>,
 }
 
 impl Enrollment {
-    pub fn new(user_id: i64, admin_id: i64, email: &str, token_timeout_seconds: u64) -> Self {
+    pub fn new(
+        user_id: i64,
+        admin_id: i64,
+        email: Option<String>,
+        token_timeout_seconds: u64,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: gen_alphanumeric(32),
             user_id,
             admin_id,
-            email: email.to_string(),
+            email,
             created_at: now.naive_utc(),
             expires_at: (now + Duration::seconds(token_timeout_seconds as i64)).naive_utc(),
             used_at: None,
@@ -228,7 +233,7 @@ impl User {
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
         admin: &User,
-        email: &str,
+        email: Option<String>,
         token_timeout_seconds: u64,
         enrollment_service_url: Url,
         send_user_notification: bool,
@@ -248,16 +253,17 @@ impl User {
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
-        let enrollment = Enrollment::new(user_id, admin_id, email, token_timeout_seconds);
+        let enrollment = Enrollment::new(user_id, admin_id, email.clone(), token_timeout_seconds);
         enrollment.save(&mut *transaction).await?;
 
-        if send_user_notification {
+        if send_user_notification && email.is_some() {
+            let email = email.unwrap();
             debug!(
                 "Sending enrollment start mail for user {} to {email}",
                 self.username
             );
             let mail = Mail {
-                to: email.to_string(),
+                to: email.clone(),
                 subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
                 content: templates::enrollment_start_mail(enrollment_service_url, &enrollment.id)
                     .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,

@@ -161,9 +161,9 @@ pub struct AddUserData {
 
 #[derive(Deserialize)]
 pub struct StartEnrollmentRequest {
-    pub email: String,
     #[serde(default)]
     pub send_enrollment_notification: bool,
+    pub email: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]

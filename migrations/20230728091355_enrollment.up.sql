@@ -2,7 +2,7 @@ CREATE TABLE enrollment (
     id text PRIMARY KEY NOT NULL,
     user_id bigint NOT NULL,
     admin_id bigint NOT NULL,
-    email text NOT NULL,
+    email text NULL,
     created_at timestamp without time zone NOT NULL,
     expires_at timestamp without time zone NOT NULL,
     used_at timestamp without time zone,
