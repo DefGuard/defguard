@@ -128,7 +128,7 @@ impl Enrollment {
     // returns session deadline
     pub async fn start_session(
         &mut self,
-        pool: &DbPool,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
         session_timeout_seconds: u64,
     ) -> Result<NaiveDateTime, EnrollmentError> {
         // check if token can be used
@@ -145,7 +145,7 @@ impl Enrollment {
             now,
             self.id
         )
-        .execute(pool)
+        .execute(transaction)
         .await?;
         self.used_at = Some(now);
 
