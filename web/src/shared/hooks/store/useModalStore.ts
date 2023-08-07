@@ -48,6 +48,10 @@ export const useModalStore = create<UseModalStore>((set) => ({
     visible: false,
     user: undefined,
   },
+  startEnrollmentModal: {
+    visible: false,
+    user: undefined,
+  },
   keyDetailModal: {
     visible: false,
   },
@@ -105,6 +109,10 @@ export const useModalStore = create<UseModalStore>((set) => ({
   setChangeWalletModal: (data) =>
     set((state) => ({
       changeWalletModal: { ...state.changeWalletModal, ...data },
+    })),
+  setStartEnrollmentModal: (data) =>
+    set((state) => ({
+      startEnrollmentModal: { ...state.startEnrollmentModal, ...data },
     })),
   setDeleteUserModal: (data) =>
     set((state) => ({

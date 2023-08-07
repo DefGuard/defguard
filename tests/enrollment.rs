@@ -1,8 +1,9 @@
-use defguard::db::models::enrollment::Enrollment;
-use defguard::db::DbPool;
-use defguard::handlers::{AddUserData, Auth};
-use rocket::serde::Deserialize;
-use rocket::{http::Status, local::asynchronous::Client};
+use defguard::{
+    db::{models::enrollment::Enrollment, DbPool},
+    handlers::{AddUserData, Auth},
+};
+use rocket::{http::Status, local::asynchronous::Client, serde::Deserialize};
+use serde_json::json;
 
 mod common;
 use crate::common::make_test_client;
@@ -28,19 +29,25 @@ async fn test_initialize_enrollment() {
         email: "a.dumbledore@hogwart.edu.uk".into(),
         phone: Some("1234".into()),
         password: Some("Password1234543$!".into()),
-        send_enrollment_notification: false,
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
-    assert_eq!(response.into_string().await.unwrap(), "{}");
 
     // verify enrollment token was not created
     let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
     assert_eq!(enrollments.len(), 0);
 
+    // try to start enrollment
+    let response = client
+        .post("/api/v1/user/adumbledore/start_enrollment")
+        .json(&json!({}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
+
     // create user without password
     #[derive(Deserialize)]
-    struct EnrollmentResponse {
+    struct StartEnrollmentResponse {
         enrollment_token: String,
     }
     let new_user = AddUserData {
@@ -50,11 +57,22 @@ async fn test_initialize_enrollment() {
         email: "a.dumbledore@hogwart.edu.uk".into(),
         phone: Some("1234".into()),
         password: None,
-        send_enrollment_notification: false,
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
-    let response: EnrollmentResponse = response.into_json().await.unwrap();
+
+    // verify enrollment token was not created
+    let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
+    assert_eq!(enrollments.len(), 0);
+
+    // try to start enrollment
+    let response = client
+        .post("/api/v1/user/adumbledore2/start_enrollment")
+        .json(&json!({}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let response: StartEnrollmentResponse = response.into_json().await.unwrap();
 
     // verify enrollment token was created
     let enrollment = Enrollment::find_by_id(&pool, &response.enrollment_token)

@@ -1,23 +1,22 @@
-use crate::config::DefGuardConfig;
-use crate::handlers::user::check_password_strength;
-use crate::ldap::utils::ldap_add_user;
-use crate::license::{Features, License};
 use crate::{
+    config::DefGuardConfig,
     db::{
         models::{device::DeviceInfo, enrollment::Enrollment},
-        DbPool, Device, GatewayEvent, User,
+        DbPool, Device, GatewayEvent, Settings, User,
     },
-    handlers, templates,
+    handlers::{self, user::check_password_strength},
+    ldap::utils::ldap_add_user,
+    license::{Features, License},
+    mail::Mail,
+    templates,
 };
-use tokio::sync::broadcast::Sender;
-use tokio::sync::mpsc::UnboundedSender;
+use sqlx::Transaction;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
 
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
-use crate::db::Settings;
-use crate::mail::Mail;
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
     Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
@@ -88,6 +87,22 @@ impl EnrollmentServer {
     }
 }
 
+async fn get_settings(
+    transaction: &mut Transaction<'_, sqlx::Postgres>,
+) -> Result<Settings, Status> {
+    let settings = Settings::find_by_id(transaction, 1)
+        .await
+        .map_err(|err| {
+            error!("Failed to get settings: {err}");
+            Status::internal("unexpected error")
+        })?
+        .ok_or_else(|| {
+            error!("Failed to get settings");
+            Status::internal("unexpected error")
+        })?;
+    Ok(settings)
+}
+
 #[tonic::async_trait]
 impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn start_enrollment(
@@ -103,19 +118,34 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let user = enrollment.fetch_user(&self.pool).await?;
         let admin = enrollment.fetch_admin(&self.pool).await?;
 
+        let mut transaction = self.pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction");
+            Status::internal("unexpected error")
+        })?;
+
         // validate token & start session
         info!("Starting enrollment session for user {}", user.username);
         let session_deadline = enrollment
-            .start_session(&self.pool, self.config.enrollment_session_timeout.as_secs())
+            .start_session(
+                &mut transaction,
+                self.config.enrollment_session_timeout.as_secs(),
+            )
             .await?;
+
+        let settings = get_settings(&mut transaction).await?;
 
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),
             user: Some(user.into()),
             deadline_timestamp: session_deadline.timestamp(),
-            final_page_content: "<h1>Hi there!</h1>".to_string(),
+            final_page_content: settings.enrollment_welcome_message()?,
             vpn_setup_optional: false,
         };
+
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction");
+            Status::internal("unexpected error")
+        })?;
 
         Ok(Response::new(response))
     }
@@ -142,10 +172,15 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             return Err(Status::invalid_argument("user already activated"));
         }
 
+        let mut transaction = self.pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction");
+            Status::internal("unexpected error")
+        })?;
+
         // update user
         user.phone = Some(request.phone_number);
         user.set_password(&request.password);
-        user.save(&self.pool).await.map_err(|err| {
+        user.save(&mut transaction).await.map_err(|err| {
             error!("Failed to update user {}: {err}", user.username);
             Status::internal("unexpected error")
         })?;
@@ -157,24 +192,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // send welcome email
         debug!("Sending welcome mail to {}", user.username);
-        let settings = Settings::find_by_id(&self.pool, 1)
-            .await
-            .map_err(|err| {
-                error!("Failed to get settings: {err}");
-                Status::internal("unexpected error")
-            })?
-            .ok_or_else(|| {
-                error!("Failed to get settings");
-                Status::internal("unexpected error")
-            })?;
-        let content = match settings.enrollment_use_welcome_message_as_email {
-            true => settings.enrollment_welcome_message,
-            false => settings.enrollment_welcome_email,
-        }
-        .ok_or_else(|| {
-            error!("Welcome message not configured");
-            Status::internal("unexpected error")
-        })?;
+        let settings = get_settings(&mut transaction).await?;
+        let content = settings.enrollment_welcome_email()?;
 
         let mail = Mail {
             to: user.email.clone(),
@@ -197,6 +216,11 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 Status::internal("unexpected error");
             }
         }
+
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction");
+            Status::internal("unexpected error")
+        })?;
 
         Ok(Response::new(()))
     }
@@ -276,6 +300,7 @@ impl From<User> for InitialUserInfo {
             last_name: user.last_name,
             login: user.username,
             email: user.email,
+            phone_number: user.phone,
         }
     }
 }

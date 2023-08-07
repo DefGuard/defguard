@@ -1458,6 +1458,60 @@
     },
     "query": "\n        UPDATE wireguard_network_device\n        SET wireguard_ip = $3\n        WHERE device_id = $1 AND wireguard_network_id = $2\n        "
   },
+  "49749227cacd46dd9a392d58233a511ee03c0df12cb28ce247d574923fee31a9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "admin_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "expires_at",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "used_at",
+          "ordinal": 6,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at FROM enrollment"
+  },
   "4e1d29f6440594e4303d9ff7da541b4bca33b44e931126ba8c6b31304a9206b3": {
     "describe": {
       "columns": [],
@@ -1889,6 +1943,74 @@
     },
     "query": "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') ON CONFLICT DO NOTHING RETURNING id"
   },
+  "71465915aa72eed5d35fb82149a1bd32df7c4f5af1457dfa5406b3c82fb77231": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM enrollment\n            WHERE user_id = $1\n            AND used_at IS NULL"
+  },
+  "71e9c3921543a990ba6c6a8a0a9254757a1208ea9bfb2e0570626a39f8463467": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "admin_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "expires_at",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "used_at",
+          "ordinal": 6,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at FROM enrollment WHERE id = $1"
+  },
   "727ed093b693f0f48e83779f9ee58de725cbec807ae286ae5900f426f2492f9d": {
     "describe": {
       "columns": [],
@@ -1983,54 +2105,6 @@
       }
     },
     "query": "UPDATE \"oauth2authorizedapp\" SET \"user_id\" = $2, \"oauth2client_id\" = $3 WHERE id = $1"
-  },
-  "770a9b7a9944ea1985bdcc7f712d62d823d5a5980b6f8c2aeefcc701ed92f6a7": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "admin_id",
-          "ordinal": 2,
-          "type_info": "Int8"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 3,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "expires_at",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "used_at",
-          "ordinal": 5,
-          "type_info": "Timestamp"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        true
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id, user_id, admin_id, created_at, expires_at, used_at FROM enrollment"
   },
   "77532f50fc8765ac97323cd3df60df8ae443769670c459426d738ac8d4fab6f4": {
     "describe": {
@@ -2534,23 +2608,6 @@
       }
     },
     "query": "DELETE FROM wireguard_network_allowed_group WHERE network_id=$1"
-  },
-  "8774fc3844dfab8d43b70e382ae3202355eb686269e65c15b34c811682c9ea80": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Int8",
-          "Int8",
-          "Timestamp",
-          "Timestamp",
-          "Timestamp"
-        ]
-      }
-    },
-    "query": "INSERT INTO enrollment (id, user_id, admin_id, created_at, expires_at, used_at) VALUES ($1, $2, $3, $4, $5, $6)"
   },
   "8880011a898ca2b97b0cfdbf027509d4855f46e4871caaa1fc95f2f612efcc4b": {
     "describe": {
@@ -4620,55 +4677,23 @@
     },
     "query": "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE access_token = $1"
   },
-  "f1568559d14533fbb348ae6d9e4d8f553b21f68eb430bdae73dbb181271f3428": {
+  "effe03b1e22929191b7d07e51586153215f982b9c8e43f68ebb62597df31d8f8": {
     "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "admin_id",
-          "ordinal": 2,
-          "type_info": "Int8"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 3,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "expires_at",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "used_at",
-          "ordinal": 5,
-          "type_info": "Timestamp"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        true
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
-          "Text"
+          "Text",
+          "Int8",
+          "Int8",
+          "Text",
+          "Timestamp",
+          "Timestamp",
+          "Timestamp"
         ]
       }
     },
-    "query": "SELECT id, user_id, admin_id, created_at, expires_at, used_at FROM enrollment WHERE id = $1"
+    "query": "INSERT INTO enrollment (id, user_id, admin_id, email, created_at, expires_at, used_at) VALUES ($1, $2, $3, $4, $5, $6, $7)"
   },
   "f5a52d311dd0ac4c76cf1638f30cffd8c97fe2b4987fcfb9f9ca523ab6e5bf5d": {
     "describe": {

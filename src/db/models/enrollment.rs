@@ -1,10 +1,12 @@
-use crate::db::{DbPool, User};
-use crate::mail::Mail;
-use crate::random::gen_alphanumeric;
-use crate::templates;
+use crate::{
+    db::{DbPool, Settings, User},
+    mail::Mail,
+    random::gen_alphanumeric,
+    templates,
+};
 use chrono::{Duration, NaiveDateTime, Utc};
 use reqwest::Url;
-use sqlx::{query, query_as, Error as SqlxError};
+use sqlx::{query, query_as, Error as SqlxError, Transaction};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
@@ -31,6 +33,10 @@ pub enum EnrollmentError {
     AlreadyActive,
     #[error("Failed to send enrollment notification: {0}")]
     NotificationError(String),
+    #[error("Enrollment welcome message not configured")]
+    WelcomeMsgNotConfigured,
+    #[error("Enrollment welcome email not configured")]
+    WelcomeEmailNotConfigured,
 }
 
 impl From<EnrollmentError> for Status {
@@ -40,7 +46,9 @@ impl From<EnrollmentError> for Status {
             EnrollmentError::DbError(_)
             | EnrollmentError::AdminNotFound
             | EnrollmentError::UserNotFound
-            | EnrollmentError::NotificationError(_) => (Code::Internal, "unexpected error"),
+            | EnrollmentError::NotificationError(_)
+            | EnrollmentError::WelcomeMsgNotConfigured
+            | EnrollmentError::WelcomeEmailNotConfigured => (Code::Internal, "unexpected error"),
             EnrollmentError::NotFound
             | EnrollmentError::TokenExpired
             | EnrollmentError::SessionExpired
@@ -57,36 +65,47 @@ pub struct Enrollment {
     pub id: String,
     pub user_id: i64,
     pub admin_id: i64,
+    pub email: Option<String>,
     pub created_at: NaiveDateTime,
     pub expires_at: NaiveDateTime,
     pub used_at: Option<NaiveDateTime>,
 }
 
 impl Enrollment {
-    pub fn new(user_id: i64, admin_id: i64, token_timeout_seconds: u64) -> Self {
+    pub fn new(
+        user_id: i64,
+        admin_id: i64,
+        email: Option<String>,
+        token_timeout_seconds: u64,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: gen_alphanumeric(32),
             user_id,
             admin_id,
+            email,
             created_at: now.naive_utc(),
             expires_at: (now + Duration::seconds(token_timeout_seconds as i64)).naive_utc(),
             used_at: None,
         }
     }
 
-    pub async fn save(&self, pool: &DbPool) -> Result<(), EnrollmentError> {
+    pub async fn save(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), EnrollmentError> {
         query!(
-            "INSERT INTO enrollment (id, user_id, admin_id, created_at, expires_at, used_at) \
-            VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO enrollment (id, user_id, admin_id, email, created_at, expires_at, used_at) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7)",
             self.id,
             self.user_id,
             self.admin_id,
+            self.email,
             self.created_at,
             self.expires_at,
             self.used_at,
         )
-        .execute(pool)
+        .execute(transaction)
         .await?;
         Ok(())
     }
@@ -116,7 +135,7 @@ impl Enrollment {
     // returns session deadline
     pub async fn start_session(
         &mut self,
-        pool: &DbPool,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
         session_timeout_seconds: u64,
     ) -> Result<NaiveDateTime, EnrollmentError> {
         // check if token can be used
@@ -133,7 +152,7 @@ impl Enrollment {
             now,
             self.id
         )
-        .execute(pool)
+        .execute(transaction)
         .await?;
         self.used_at = Some(now);
 
@@ -143,7 +162,7 @@ impl Enrollment {
     pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, EnrollmentError> {
         match query_as!(
             Self,
-            "SELECT id, user_id, admin_id, created_at, expires_at, used_at \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at \
             FROM enrollment WHERE id = $1",
             id
         )
@@ -158,7 +177,7 @@ impl Enrollment {
     pub async fn fetch_all(pool: &DbPool) -> Result<Vec<Self>, EnrollmentError> {
         let enrollments = query_as!(
             Self,
-            "SELECT id, user_id, admin_id, created_at, expires_at, used_at \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at \
             FROM enrollment",
         )
         .fetch_all(pool)
@@ -185,6 +204,27 @@ impl Enrollment {
         };
         Ok(user)
     }
+
+    pub async fn delete_unused_user_tokens(
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        user_id: i64,
+    ) -> Result<(), EnrollmentError> {
+        debug!("Deleting unused enrollment tokens for user {user_id}");
+        let result = query!(
+            r#"DELETE FROM enrollment
+            WHERE user_id = $1
+            AND used_at IS NULL"#,
+            user_id
+        )
+        .execute(transaction)
+        .await?;
+        debug!(
+            "Deleted {} unused enrollment tokens for user {user_id}",
+            result.rows_affected()
+        );
+
+        Ok(())
+    }
 }
 
 impl User {
@@ -193,8 +233,9 @@ impl User {
     /// and optionally sends enrollment email notification to user
     pub async fn start_enrollment(
         &self,
-        pool: &DbPool,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
         admin: &User,
+        email: Option<String>,
         token_timeout_seconds: u64,
         enrollment_service_url: Url,
         send_user_notification: bool,
@@ -210,13 +251,21 @@ impl User {
 
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
-        let enrollment = Enrollment::new(user_id, admin_id, token_timeout_seconds);
-        enrollment.save(pool).await?;
 
-        if send_user_notification {
-            debug!("Sending enrollment start mail to {}", self.username);
+        self.clear_unused_enrollment_tokens(&mut *transaction)
+            .await?;
+
+        let enrollment = Enrollment::new(user_id, admin_id, email.clone(), token_timeout_seconds);
+        enrollment.save(&mut *transaction).await?;
+
+        if send_user_notification && email.is_some() {
+            let email = email.unwrap();
+            debug!(
+                "Sending enrollment start mail for user {} to {email}",
+                self.username
+            );
             let mail = Mail {
-                to: self.email.clone(),
+                to: email.clone(),
                 subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
                 content: templates::enrollment_start_mail(enrollment_service_url, &enrollment.id)
                     .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
@@ -224,7 +273,10 @@ impl User {
             };
             match mail_tx.send(mail) {
                 Ok(_) => {
-                    info!("Sent enrollment start mail to {}", self.username);
+                    info!(
+                        "Sent enrollment start mail for user {} to {email}",
+                        self.username
+                    );
                 }
                 Err(err) => {
                     error!("Error sending mail: {err}");
@@ -234,5 +286,36 @@ impl User {
         }
 
         Ok(enrollment.id)
+    }
+
+    // Remove unused tokens when triggering user enrollment
+    async fn clear_unused_enrollment_tokens(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), EnrollmentError> {
+        info!(
+            "Removing unused enrollment tokens for user {}",
+            self.username
+        );
+        Enrollment::delete_unused_user_tokens(transaction, self.id.expect("Missing user ID")).await
+    }
+}
+
+impl Settings {
+    pub fn enrollment_welcome_message(&self) -> Result<String, EnrollmentError> {
+        self.enrollment_welcome_message.clone().ok_or_else(|| {
+            error!("Enrollment welcome message not configured");
+            EnrollmentError::WelcomeMsgNotConfigured
+        })
+    }
+
+    pub fn enrollment_welcome_email(&self) -> Result<String, EnrollmentError> {
+        if self.enrollment_use_welcome_message_as_email {
+            return self.enrollment_welcome_message();
+        }
+        self.enrollment_welcome_email.clone().ok_or_else(|| {
+            error!("Enrollment welcome email not configured");
+            EnrollmentError::WelcomeEmailNotConfigured
+        })
     }
 }
