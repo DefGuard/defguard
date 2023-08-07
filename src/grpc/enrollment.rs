@@ -1,24 +1,22 @@
-use crate::config::DefGuardConfig;
-use crate::handlers::user::check_password_strength;
-use crate::ldap::utils::ldap_add_user;
-use crate::license::{Features, License};
 use crate::{
+    config::DefGuardConfig,
     db::{
         models::{device::DeviceInfo, enrollment::Enrollment},
-        DbPool, Device, GatewayEvent, User,
+        DbPool, Device, GatewayEvent, Settings, User,
     },
-    handlers, templates,
+    handlers::{self, user::check_password_strength},
+    ldap::utils::ldap_add_user,
+    license::{Features, License},
+    mail::Mail,
+    templates,
 };
 use sqlx::Transaction;
-use tokio::sync::broadcast::Sender;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
 
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
-use crate::db::Settings;
-use crate::mail::Mail;
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
     Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,

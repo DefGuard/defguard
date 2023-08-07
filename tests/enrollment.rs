@@ -1,8 +1,8 @@
-use defguard::db::models::enrollment::Enrollment;
-use defguard::db::DbPool;
-use defguard::handlers::{AddUserData, Auth};
-use rocket::serde::Deserialize;
-use rocket::{http::Status, local::asynchronous::Client};
+use defguard::{
+    db::{models::enrollment::Enrollment, DbPool},
+    handlers::{AddUserData, Auth},
+};
+use rocket::{http::Status, local::asynchronous::Client, serde::Deserialize};
 use serde_json::json;
 
 mod common;

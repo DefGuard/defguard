@@ -1,7 +1,9 @@
-use crate::db::{DbPool, Settings, User};
-use crate::mail::Mail;
-use crate::random::gen_alphanumeric;
-use crate::templates;
+use crate::{
+    db::{DbPool, Settings, User},
+    mail::Mail,
+    random::gen_alphanumeric,
+    templates,
+};
 use chrono::{Duration, NaiveDateTime, Utc};
 use reqwest::Url;
 use sqlx::{query, query_as, Error as SqlxError, Transaction};
