@@ -26,6 +26,11 @@ export const UserEditButton = ({ user }: Props) => {
   return (
     <EditButton>
       <EditButtonOption
+        key="start-enrollment"
+        text={LL.usersOverview.list.editButton.startEnrollment()}
+        onClick={() => setChangePasswordModal({ visible: true, user: user })}
+      />
+      <EditButtonOption
         key="change-password"
         text={LL.usersOverview.list.editButton.changePassword()}
         onClick={() => setChangePasswordModal({ visible: true, user: user })}

@@ -564,6 +564,7 @@ const en: BaseTranslation = {
         edit: 'Edit account',
         provision: 'Provision YubiKey',
         delete: 'Delete account',
+        startEnrollment: 'Start enrollment',
       },
     },
   },
