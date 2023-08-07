@@ -333,6 +333,12 @@ const useApi = (props?: HookProps): ApiHook => {
   const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
     client.get(`/settings/${id}`).then(unpackRequest);
 
+  const downloadSupportData: ApiHook['settings']['downloadSupportData'] = async () =>
+    client.get<unknown>(`/support/configuration`).then((res) => res.data);
+
+  const downloadLogs: ApiHook['settings']['downloadLogs'] = async () =>
+    client.get<string>(`/support/logs`).then((res) => res.data);
+
   const getGatewaysStatus: ApiHook['network']['getGatewaysStatus'] = (networkId) =>
     client.get(`/network/${networkId}/gateways`).then(unpackRequest);
 
@@ -453,6 +459,8 @@ const useApi = (props?: HookProps): ApiHook => {
       getSettings: getSettings,
       editSettings: editSettings,
       setDefaultBranding: setDefaultBranding,
+      downloadSupportData,
+      downloadLogs,
     },
     mail: {
       sendTestMail: sendTestMail,

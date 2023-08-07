@@ -863,6 +863,9 @@ If you need assistance or you were asked to generate support data by our team (f
 * Either you can configure SMTP settings and click "Send support data"
 * Or click "Download support data" and create a bug report in our github attaching this files.
 `,
+      downloadSupportData: 'Download support data',
+      downloadLogs: 'Download logs',
+      sendMail: 'Send e-mail',
     },
     licenseCard: {
       header: 'License & Support Information',

@@ -1960,6 +1960,18 @@ type RootTranslation = {
 	
 			 */
 			body: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			downloadSupportData: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​l​o​g​s
+			 */
+			downloadLogs: string
+			/**
+			 * S​e​n​d​ ​e​-​m​a​i​l
+			 */
+			sendMail: string
 		}
 		licenseCard: {
 			/**
@@ -5043,6 +5055,18 @@ export type TranslationFunctions = {
 	
 			 */
 			body: () => LocalizedString
+			/**
+			 * Download support data
+			 */
+			downloadSupportData: () => LocalizedString
+			/**
+			 * Download logs
+			 */
+			downloadLogs: () => LocalizedString
+			/**
+			 * Send e-mail
+			 */
+			sendMail: () => LocalizedString
 		}
 		licenseCard: {
 			/**

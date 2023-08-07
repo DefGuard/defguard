@@ -1,13 +1,11 @@
 import './style.scss';
 
 import { useState } from 'react';
-import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { Card } from '../../shared/components/layout/Card/Card';
 import { CardTabs } from '../../shared/components/layout/CardTabs/CardTabs';
 import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
-import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
 import { GeneralTab } from './GeneralTab/GeneralTab';
@@ -59,7 +57,6 @@ export const SettingsPage = () => {
     },
   ];
   const settings = useAppStore((state) => state.settings);
-  const { breakpoint } = useBreakpoint(deviceBreakpoints);
   return (
     <PageContainer id="settings-page">
       <header>
@@ -67,7 +64,7 @@ export const SettingsPage = () => {
           {settings?.instance_name} {LL.settingsPage.title()}
         </h1>
       </header>
-      {breakpoint === 'desktop' && <CardTabs tabs={tabs} />}
+      <CardTabs tabs={tabs} />
       <Card className="settings-card" hideMobile>
         {tab === Tabs.General && <GeneralTab />}
         {tab === Tabs.Smtp && <SmtpTab />}

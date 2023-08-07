@@ -862,6 +862,9 @@ Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygen
 * Możesz skonfigurować ustawienia SMTP i kliknąć: "Wyślij dane wsparcia technicznego".
 * Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie na naszym github załączając te pliki.
 `,
+      downloadSupportData: 'Pobierz dane wsparcia technicznego',
+      downloadLogs: 'Pobierz logi',
+      sendMail: 'Wyślij e-mail',
     },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',
