@@ -218,6 +218,16 @@ export interface AddUserRequest {
   phone?: string;
 }
 
+export interface StartEnrollmentRequest {
+  username: string;
+  send_enrollment_notification: boolean;
+  email?: string;
+}
+
+export interface StartEnrollmentResponse {
+  enrollment_url: string;
+  enrollment_token: string;
+}
 export interface GroupsResponse {
   groups: string[];
 }
@@ -339,6 +349,7 @@ export interface ApiHook {
   user: {
     getMe: () => Promise<User>;
     addUser: (data: AddUserRequest) => EmptyApiResponse;
+    startEnrollment: (data: StartEnrollmentRequest) => Promise<StartEnrollmentResponse>;
     getUser: (username: string) => Promise<UserProfile>;
     getUsers: () => Promise<User[]>;
     editUser: (data: UserEditRequest) => Promise<User>;

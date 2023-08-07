@@ -30,6 +30,25 @@ const en: BaseTranslation = {
     },
     startEnrollment: {
       title: 'Start enrollment',
+      messages: {
+        success: 'User enrollment started',
+        error: 'Failed to start user enrollment',
+      },
+      form: {
+        email: {
+          label: 'Email',
+        },
+        mode: {
+          options: {
+            email: 'Send token by email',
+            manual: 'Deliver token yourself',
+          },
+        },
+        submit: 'Start enrollment',
+      },
+      tokenCard: {
+        title: 'Copy enrollment token'
+      }
     },
     deleteNetwork: {
       title: 'Delete {name:string} location',

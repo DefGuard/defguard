@@ -23,6 +23,8 @@ import {
   OpenidClient,
   RemoveUserClientRequest,
   Settings,
+  StartEnrollmentRequest,
+  StartEnrollmentResponse,
   User,
   UserEditRequest,
   UserGroupRequest,
@@ -159,6 +161,11 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const changePassword = ({ username, ...rest }: ChangePasswordRequest) =>
     client.put<EmptyApiResponse>(`/user/${username}/password`, rest);
+
+  const startEnrollment = ({ username, ...rest }: StartEnrollmentRequest) =>
+    client
+      .post<StartEnrollmentResponse>(`/user/${username}/start_enrollment`, rest)
+      .then((response) => response.data);
 
   const walletChallenge = ({
     username,
@@ -368,6 +375,7 @@ const useApi = (props?: HookProps): ApiHook => {
       deleteWallet,
       addToGroup,
       removeFromGroup,
+      startEnrollment,
     },
     device: {
       addDevice: addDevice,

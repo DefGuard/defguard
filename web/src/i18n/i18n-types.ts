@@ -88,6 +88,46 @@ type RootTranslation = {
 			 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 			 */
 			title: string
+			messages: {
+				/**
+				 * U​s​e​r​ ​e​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​u​s​e​r​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				error: string
+			}
+			form: {
+				email: {
+					/**
+					 * E​m​a​i​l
+					 */
+					label: string
+				}
+				mode: {
+					options: {
+						/**
+						 * S​e​n​d​ ​t​o​k​e​n​ ​b​y​ ​e​m​a​i​l
+						 */
+						email: string
+						/**
+						 * D​e​l​i​v​e​r​ ​t​o​k​e​n​ ​y​o​u​r​s​e​l​f
+						 */
+						manual: string
+					}
+				}
+				/**
+				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				submit: string
+			}
+			tokenCard: {
+				/**
+				 * C​o​p​y​ ​e​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n
+				 */
+				title: string
+			}
 		}
 		deleteNetwork: {
 			/**
@@ -3172,6 +3212,46 @@ export type TranslationFunctions = {
 			 * Start enrollment
 			 */
 			title: () => LocalizedString
+			messages: {
+				/**
+				 * User enrollment started
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to start user enrollment
+				 */
+				error: () => LocalizedString
+			}
+			form: {
+				email: {
+					/**
+					 * Email
+					 */
+					label: () => LocalizedString
+				}
+				mode: {
+					options: {
+						/**
+						 * Send token by email
+						 */
+						email: () => LocalizedString
+						/**
+						 * Deliver token yourself
+						 */
+						manual: () => LocalizedString
+					}
+				}
+				/**
+				 * Start enrollment
+				 */
+				submit: () => LocalizedString
+			}
+			tokenCard: {
+				/**
+				 * Copy enrollment token
+				 */
+				title: () => LocalizedString
+			}
 		}
 		deleteNetwork: {
 			/**

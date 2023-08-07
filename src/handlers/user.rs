@@ -220,7 +220,7 @@ pub async fn start_enrollment(
     transaction.commit().await?;
 
     Ok(ApiResponse {
-        json: json!({ "enrollment_token": enrollment_token }),
+        json: json!({ "enrollment_token": enrollment_token, "enrollment_url":  appstate.config.enrollment_url.to_string()}),
         status: Status::Created,
     })
 }

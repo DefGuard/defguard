@@ -4,6 +4,7 @@ import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { ModalWithTitle } from '../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
+import { StartEnrollmentForm } from './StartEnrollmentForm';
 
 const StartEnrollmentModal: React.FC = () => {
   const [{ visible: isOpen }, setModalState] = useModalStore(
@@ -22,7 +23,7 @@ const StartEnrollmentModal: React.FC = () => {
       setIsOpen={setIsOpen}
       id="start-enrollment-modal"
     >
-      <div>Start enrollment</div>
+      <StartEnrollmentForm />
     </ModalWithTitle>
   );
 };
