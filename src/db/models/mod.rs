@@ -40,7 +40,7 @@ pub struct WalletInfo {
     pub use_for_mfa: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OAuth2AuthorizedAppInfo {
     pub oauth2client_id: i64,
     pub user_id: i64,
@@ -55,7 +55,7 @@ pub struct SecurityKey {
 }
 
 // Basic user info used in user list, etc.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct UserInfo {
     pub id: Option<i64>,
     pub username: String,

@@ -70,7 +70,7 @@ const useApi = (props?: HookProps): ApiHook => {
   });
 
   const addUser = async (data: AddUserRequest) => {
-    return client.post<EmptyApiResponse>(`/user/`, data).then((res) => res.data);
+    return client.post<User>(`/user/`, data).then((res) => res.data);
   };
 
   const getMe = () => client.get<User>(`/me`).then((res) => res.data);

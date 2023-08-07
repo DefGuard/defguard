@@ -348,7 +348,7 @@ export interface ApiHook {
   };
   user: {
     getMe: () => Promise<User>;
-    addUser: (data: AddUserRequest) => EmptyApiResponse;
+    addUser: (data: AddUserRequest) => Promise<User>;
     startEnrollment: (data: StartEnrollmentRequest) => Promise<StartEnrollmentResponse>;
     getUser: (username: string) => Promise<UserProfile>;
     getUsers: () => Promise<User[]>;
