@@ -4,7 +4,7 @@ use crate::random::gen_alphanumeric;
 use crate::templates;
 use chrono::{Duration, NaiveDateTime, Utc};
 use reqwest::Url;
-use sqlx::{query, query_as, Error as SqlxError};
+use sqlx::{query, query_as, Error as SqlxError, Transaction};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
@@ -83,7 +83,10 @@ impl Enrollment {
         }
     }
 
-    pub async fn save(&self, pool: &DbPool) -> Result<(), EnrollmentError> {
+    pub async fn save(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), EnrollmentError> {
         query!(
             "INSERT INTO enrollment (id, user_id, admin_id, email, created_at, expires_at, used_at) \
             VALUES ($1, $2, $3, $4, $5, $6, $7)",
@@ -95,7 +98,7 @@ impl Enrollment {
             self.expires_at,
             self.used_at,
         )
-        .execute(pool)
+        .execute(transaction)
         .await?;
         Ok(())
     }
@@ -196,7 +199,7 @@ impl Enrollment {
     }
 
     pub async fn delete_unused_user_tokens(
-        pool: &DbPool,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
         user_id: i64,
     ) -> Result<(), EnrollmentError> {
         debug!("Deleting unused enrollment tokens for user {user_id}");
@@ -206,7 +209,7 @@ impl Enrollment {
             AND used_at IS NULL"#,
             user_id
         )
-        .execute(pool)
+        .execute(transaction)
         .await?;
         debug!(
             "Deleted {} unused enrollment tokens for user {user_id}",
@@ -223,7 +226,7 @@ impl User {
     /// and optionally sends enrollment email notification to user
     pub async fn start_enrollment(
         &self,
-        pool: &DbPool,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
         admin: &User,
         email: &str,
         token_timeout_seconds: u64,
@@ -242,10 +245,11 @@ impl User {
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
 
-        self.clear_unused_enrollment_tokens(pool).await?;
+        self.clear_unused_enrollment_tokens(&mut *transaction)
+            .await?;
 
         let enrollment = Enrollment::new(user_id, admin_id, email, token_timeout_seconds);
-        enrollment.save(pool).await?;
+        enrollment.save(&mut *transaction).await?;
 
         if send_user_notification {
             debug!(
@@ -277,12 +281,15 @@ impl User {
     }
 
     // Remove unused tokens when triggering user enrollment
-    async fn clear_unused_enrollment_tokens(&self, pool: &DbPool) -> Result<(), EnrollmentError> {
+    async fn clear_unused_enrollment_tokens(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), EnrollmentError> {
         info!(
             "Removing unused enrollment tokens for user {}",
             self.username
         );
-        Enrollment::delete_unused_user_tokens(pool, self.id.expect("Missing user ID")).await
+        Enrollment::delete_unused_user_tokens(transaction, self.id.expect("Missing user ID")).await
     }
 }
 

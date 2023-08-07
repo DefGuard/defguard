@@ -196,9 +196,11 @@ pub async fn start_enrollment(
         ))),
     }?;
 
+    let mut transaction = appstate.pool.begin().await?;
+
     let enrollment_token = user
         .start_enrollment(
-            &appstate.pool,
+            &mut transaction,
             &session.user,
             &data.email,
             appstate.config.enrollment_token_timeout.as_secs(),
@@ -207,6 +209,8 @@ pub async fn start_enrollment(
             appstate.mail_tx.clone(),
         )
         .await?;
+
+    transaction.commit().await?;
 
     Ok(ApiResponse {
         json: json!({ "enrollment_token": enrollment_token }),
