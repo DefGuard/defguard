@@ -44,7 +44,9 @@ impl From<EnrollmentError> for Status {
             EnrollmentError::DbError(_)
             | EnrollmentError::AdminNotFound
             | EnrollmentError::UserNotFound
-            | EnrollmentError::NotificationError(_) => (Code::Internal, "unexpected error"),
+            | EnrollmentError::NotificationError(_)
+            | EnrollmentError::WelcomeMsgNotConfigured
+            | EnrollmentError::WelcomeEmailNotConfigured => (Code::Internal, "unexpected error"),
             EnrollmentError::NotFound
             | EnrollmentError::TokenExpired
             | EnrollmentError::SessionExpired
