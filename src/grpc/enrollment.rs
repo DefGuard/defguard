@@ -88,6 +88,20 @@ impl EnrollmentServer {
     }
 }
 
+async fn get_settings(pool: &DbPool) -> Result<Settings, Status> {
+    let settings = Settings::find_by_id(pool, 1)
+        .await
+        .map_err(|err| {
+            error!("Failed to get settings: {err}");
+            Status::internal("unexpected error")
+        })?
+        .ok_or_else(|| {
+            error!("Failed to get settings");
+            Status::internal("unexpected error")
+        })?;
+    Ok(settings)
+}
+
 #[tonic::async_trait]
 impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn start_enrollment(
@@ -109,11 +123,13 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             .start_session(&self.pool, self.config.enrollment_session_timeout.as_secs())
             .await?;
 
+        let settings = get_settings(&self.pool).await?;
+
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),
             user: Some(user.into()),
             deadline_timestamp: session_deadline.timestamp(),
-            final_page_content: "<h1>Hi there!</h1>".to_string(),
+            final_page_content: settings.enrollment_welcome_message()?,
             vpn_setup_optional: false,
         };
 
@@ -157,24 +173,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // send welcome email
         debug!("Sending welcome mail to {}", user.username);
-        let settings = Settings::find_by_id(&self.pool, 1)
-            .await
-            .map_err(|err| {
-                error!("Failed to get settings: {err}");
-                Status::internal("unexpected error")
-            })?
-            .ok_or_else(|| {
-                error!("Failed to get settings");
-                Status::internal("unexpected error")
-            })?;
-        let content = match settings.enrollment_use_welcome_message_as_email {
-            true => settings.enrollment_welcome_message,
-            false => settings.enrollment_welcome_email,
-        }
-        .ok_or_else(|| {
-            error!("Welcome message not configured");
-            Status::internal("unexpected error")
-        })?;
+        let settings = get_settings(&self.pool).await?;
+        let content = settings.enrollment_welcome_email()?;
 
         let mail = Mail {
             to: user.email.clone(),
