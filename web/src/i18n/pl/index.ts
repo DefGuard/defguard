@@ -28,6 +28,28 @@ const pl: Translation = {
         submit: 'Zmień hasło',
       },
     },
+    startEnrollment: {
+      title: 'Rozpocznij rejestrację',
+      messages: {
+        success: 'Rejestracja użytkownika rozpoczęta',
+        error: 'Błąd rejestracji użytkownika',
+      },
+      form: {
+        email: {
+          label: 'Email',
+        },
+        mode: {
+          options: {
+            email: 'Wyślij token przez email',
+            manual: 'Przekaż token ręcznie',
+          },
+        },
+        submit: 'Rozpocznij rejestrację',
+      },
+      tokenCard: {
+        title: 'Skopiuj token',
+      },
+    },
     deleteNetwork: {
       cancel: 'Wróć',
       submit: 'Usuń lokalizację',

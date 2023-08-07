@@ -77,7 +77,6 @@ export const StartEnrollmentForm = () => {
     field: { value: choiceValue },
   } = useController({ control, name: 'mode' });
 
-
   const setModalState = useModalStore((state) => state.setStartEnrollmentModal);
   const user = useModalStore((state) => state.startEnrollmentModal.user);
 

@@ -47,8 +47,8 @@ const en: BaseTranslation = {
         submit: 'Start enrollment',
       },
       tokenCard: {
-        title: 'Copy enrollment token'
-      }
+        title: 'Copy enrollment token',
+      },
     },
     deleteNetwork: {
       title: 'Delete {name:string} location',

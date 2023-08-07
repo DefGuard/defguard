@@ -23,7 +23,7 @@ import { QueryKeys } from '../../../shared/queries';
 import { User } from '../../../shared/types';
 import { UsersList } from './components/UsersList/UsersList';
 import AddUserModal from './modals/AddUserModal/AddUserModal';
-import StartEnrollmentModal from "./modals/StartEnrollmentModal/StartEnrollmentModal";
+import StartEnrollmentModal from './modals/StartEnrollmentModal/StartEnrollmentModal';
 
 enum FilterOptions {
   ALL = 'all',
