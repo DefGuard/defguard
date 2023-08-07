@@ -1,4 +1,4 @@
-use crate::db::{DbPool, User};
+use crate::db::{DbPool, Settings, User};
 use crate::mail::Mail;
 use crate::random::gen_alphanumeric;
 use crate::templates;
@@ -31,6 +31,10 @@ pub enum EnrollmentError {
     AlreadyActive,
     #[error("Failed to send enrollment notification: {0}")]
     NotificationError(String),
+    #[error("Enrollment welcome message not configured")]
+    WelcomeMsgNotConfigured,
+    #[error("Enrollment welcome email not configured")]
+    WelcomeEmailNotConfigured,
 }
 
 impl From<EnrollmentError> for Status {
