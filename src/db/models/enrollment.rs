@@ -194,6 +194,27 @@ impl Enrollment {
         };
         Ok(user)
     }
+
+    pub async fn delete_unused_user_tokens(
+        pool: &DbPool,
+        user_id: i64,
+    ) -> Result<(), EnrollmentError> {
+        debug!("Deleting unused enrollment tokens for user {user_id}");
+        let result = query!(
+            r#"DELETE FROM enrollment
+            WHERE user_id = $1
+            AND used_at IS NULL"#,
+            user_id
+        )
+        .execute(pool)
+        .await?;
+        debug!(
+            "Deleted {} unused enrollment tokens for user {user_id}",
+            result.rows_affected()
+        );
+
+        Ok(())
+    }
 }
 
 impl User {
@@ -220,6 +241,9 @@ impl User {
 
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
+
+        self.clear_unused_enrollment_tokens(pool).await?;
+
         let enrollment = Enrollment::new(user_id, admin_id, email, token_timeout_seconds);
         enrollment.save(pool).await?;
 
@@ -250,6 +274,15 @@ impl User {
         }
 
         Ok(enrollment.id)
+    }
+
+    // Remove unused tokens when triggering user enrollment
+    async fn clear_unused_enrollment_tokens(&self, pool: &DbPool) -> Result<(), EnrollmentError> {
+        info!(
+            "Removing unused enrollment tokens for user {}",
+            self.username
+        );
+        Enrollment::delete_unused_user_tokens(pool, self.id.expect("Missing user ID")).await
     }
 }
 
