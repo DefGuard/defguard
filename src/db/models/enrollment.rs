@@ -239,3 +239,22 @@ impl User {
         Ok(enrollment.id)
     }
 }
+
+impl Settings {
+    pub fn enrollment_welcome_message(&self) -> Result<String, EnrollmentError> {
+        self.enrollment_welcome_message.clone().ok_or_else(|| {
+            error!("Enrollment welcome message not configured");
+            EnrollmentError::WelcomeMsgNotConfigured
+        })
+    }
+
+    pub fn enrollment_welcome_email(&self) -> Result<String, EnrollmentError> {
+        if self.enrollment_use_welcome_message_as_email {
+            return self.enrollment_welcome_message();
+        }
+        self.enrollment_welcome_email.clone().ok_or_else(|| {
+            error!("Enrollment welcome email not configured");
+            EnrollmentError::WelcomeEmailNotConfigured
+        })
+    }
+}
