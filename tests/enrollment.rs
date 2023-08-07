@@ -3,6 +3,7 @@ use defguard::db::DbPool;
 use defguard::handlers::{AddUserData, Auth};
 use rocket::serde::Deserialize;
 use rocket::{http::Status, local::asynchronous::Client};
+use serde_json::json;
 
 mod common;
 use crate::common::make_test_client;
@@ -38,9 +39,17 @@ async fn test_initialize_enrollment() {
     let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
     assert_eq!(enrollments.len(), 0);
 
+    // try to start enrollment
+    let response = client
+        .post("/api/v1/user/adumbledore/start_enrollment")
+        .json(&json!({}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::BadRequest);
+
     // create user without password
     #[derive(Deserialize)]
-    struct EnrollmentResponse {
+    struct StartEnrollmentResponse {
         enrollment_token: String,
     }
     let new_user = AddUserData {
@@ -54,7 +63,19 @@ async fn test_initialize_enrollment() {
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
-    let response: EnrollmentResponse = response.into_json().await.unwrap();
+
+    // verify enrollment token was not created
+    let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
+    assert_eq!(enrollments.len(), 0);
+
+    // try to start enrollment
+    let response = client
+        .post("/api/v1/user/adumbledore2/start_enrollment")
+        .json(&json!({}))
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::Created);
+    let response: StartEnrollmentResponse = response.into_json().await.unwrap();
 
     // verify enrollment token was created
     let enrollment = Enrollment::find_by_id(&pool, &response.enrollment_token)
