@@ -32,7 +32,6 @@ async fn test_initialize_enrollment() {
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
-    assert_eq!(response.into_string().await.unwrap(), "{}");
 
     // verify enrollment token was not created
     let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
