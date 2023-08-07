@@ -216,7 +216,6 @@ export interface AddUserRequest {
   last_name: string;
   first_name: string;
   phone?: string;
-  send_enrollment_notification: boolean;
 }
 
 export interface GroupsResponse {
