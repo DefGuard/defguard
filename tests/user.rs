@@ -268,7 +268,6 @@ async fn test_crud_user() {
         email: "a.dumbledore@hogwart.edu.uk".into(),
         phone: Some("1234".into()),
         password: Some("Password1234543$!".into()),
-        send_enrollment_notification: false,
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
@@ -442,7 +441,6 @@ async fn test_check_username() {
             email: "a.dumbledore@hogwart.edu.uk".into(),
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
-            send_enrollment_notification: false,
         };
         let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
         assert_eq!(response.status(), Status::BadRequest);
@@ -456,7 +454,6 @@ async fn test_check_username() {
             email: "a.dumbledore@hogwart.edu.uk".into(),
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
-            send_enrollment_notification: false,
         };
         let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
         assert_eq!(response.status(), Status::Created);
@@ -488,7 +485,6 @@ async fn test_check_password_strength() {
             email: format!("testpass{}@test.test", index),
             password: Some(password.to_owned().into()),
             phone: None,
-            send_enrollment_notification: false,
         };
         let response = client
             .post("/api/v1/user")
@@ -504,7 +500,6 @@ async fn test_check_password_strength() {
         email: "strongpass@test.test".into(),
         phone: None,
         password: Some(strong_password.into()),
-        send_enrollment_notification: false,
     };
     let response = client
         .post("/api/v1/user")

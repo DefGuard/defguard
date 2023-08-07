@@ -29,7 +29,6 @@ async fn test_initialize_enrollment() {
         email: "a.dumbledore@hogwart.edu.uk".into(),
         phone: Some("1234".into()),
         password: Some("Password1234543$!".into()),
-        send_enrollment_notification: false,
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
@@ -59,7 +58,6 @@ async fn test_initialize_enrollment() {
         email: "a.dumbledore@hogwart.edu.uk".into(),
         phone: Some("1234".into()),
         password: None,
-        send_enrollment_notification: false,
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
     assert_eq!(response.status(), Status::Created);
