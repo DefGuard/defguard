@@ -36,6 +36,7 @@ export type User = {
   ssh_key?: string;
   groups: string[];
   authorized_apps?: OAuth2AuthorizedApps[];
+  is_active: boolean;
 };
 
 export type UserProfile = {

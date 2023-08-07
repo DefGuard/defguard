@@ -71,6 +71,7 @@ pub struct UserInfo {
     pub groups: Vec<String>,
     pub mfa_method: MFAMethod,
     pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
+    pub is_active: bool,
 }
 
 impl UserInfo {
@@ -93,6 +94,7 @@ impl UserInfo {
             groups,
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
+            is_active: user.has_password(),
         })
     }
 
