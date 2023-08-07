@@ -204,6 +204,7 @@ impl User {
         &self,
         pool: &DbPool,
         admin: &User,
+        email: &str,
         token_timeout_seconds: u64,
         enrollment_service_url: Url,
         send_user_notification: bool,
@@ -219,13 +220,16 @@ impl User {
 
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
-        let enrollment = Enrollment::new(user_id, admin_id, token_timeout_seconds);
+        let enrollment = Enrollment::new(user_id, admin_id, email, token_timeout_seconds);
         enrollment.save(pool).await?;
 
         if send_user_notification {
-            debug!("Sending enrollment start mail to {}", self.username);
+            debug!(
+                "Sending enrollment start mail for user {} to {email}",
+                self.username
+            );
             let mail = Mail {
-                to: self.email.clone(),
+                to: email.to_string(),
                 subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
                 content: templates::enrollment_start_mail(enrollment_service_url, &enrollment.id)
                     .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
@@ -233,7 +237,10 @@ impl User {
             };
             match mail_tx.send(mail) {
                 Ok(_) => {
-                    info!("Sent enrollment start mail to {}", self.username);
+                    info!(
+                        "Sent enrollment start mail for user {} to {email}",
+                        self.username
+                    );
                 }
                 Err(err) => {
                     error!("Error sending mail: {err}");
