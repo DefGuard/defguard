@@ -57,18 +57,20 @@ pub struct Enrollment {
     pub id: String,
     pub user_id: i64,
     pub admin_id: i64,
+    pub email: String,
     pub created_at: NaiveDateTime,
     pub expires_at: NaiveDateTime,
     pub used_at: Option<NaiveDateTime>,
 }
 
 impl Enrollment {
-    pub fn new(user_id: i64, admin_id: i64, token_timeout_seconds: u64) -> Self {
+    pub fn new(user_id: i64, admin_id: i64, email: &str, token_timeout_seconds: u64) -> Self {
         let now = Utc::now();
         Self {
             id: gen_alphanumeric(32),
             user_id,
             admin_id,
+            email: email.to_string(),
             created_at: now.naive_utc(),
             expires_at: (now + Duration::seconds(token_timeout_seconds as i64)).naive_utc(),
             used_at: None,
@@ -77,11 +79,12 @@ impl Enrollment {
 
     pub async fn save(&self, pool: &DbPool) -> Result<(), EnrollmentError> {
         query!(
-            "INSERT INTO enrollment (id, user_id, admin_id, created_at, expires_at, used_at) \
-            VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO enrollment (id, user_id, admin_id, email, created_at, expires_at, used_at) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7)",
             self.id,
             self.user_id,
             self.admin_id,
+            self.email,
             self.created_at,
             self.expires_at,
             self.used_at,
@@ -143,7 +146,7 @@ impl Enrollment {
     pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, EnrollmentError> {
         match query_as!(
             Self,
-            "SELECT id, user_id, admin_id, created_at, expires_at, used_at \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at \
             FROM enrollment WHERE id = $1",
             id
         )
@@ -158,7 +161,7 @@ impl Enrollment {
     pub async fn fetch_all(pool: &DbPool) -> Result<Vec<Self>, EnrollmentError> {
         let enrollments = query_as!(
             Self,
-            "SELECT id, user_id, admin_id, created_at, expires_at, used_at \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at \
             FROM enrollment",
         )
         .fetch_all(pool)
