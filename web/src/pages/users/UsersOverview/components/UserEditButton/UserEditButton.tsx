@@ -21,6 +21,7 @@ export const UserEditButton = ({ user }: Props) => {
   const setProvisionKeyModal = useModalStore((state) => state.setProvisionKeyModal);
   const setDeleteUserModal = useModalStore((state) => state.setDeleteUserModal);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
+  const setStartEnrollmentModal = useModalStore((state) => state.setStartEnrollmentModal);
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const currentUser = useAuthStore((state) => state.user);
   return (
@@ -29,7 +30,7 @@ export const UserEditButton = ({ user }: Props) => {
         <EditButtonOption
           key="start-enrollment"
           text={LL.usersOverview.list.editButton.startEnrollment()}
-          onClick={() => setChangePasswordModal({ visible: true, user: user })}
+          onClick={() => setStartEnrollmentModal({ visible: true, user: user })}
         />
       )}
       <EditButtonOption

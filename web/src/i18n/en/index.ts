@@ -28,6 +28,9 @@ const en: BaseTranslation = {
         cancel: 'Cancel',
       },
     },
+    startEnrollment: {
+      title: 'Start enrollment',
+    },
     deleteNetwork: {
       title: 'Delete {name:string} location',
       subTitle: 'This action will permanently delete this location.',

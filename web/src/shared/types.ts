@@ -511,6 +511,11 @@ export interface ChangeWalletModal {
   user?: User;
 }
 
+export interface StartEnrollmentModal {
+  visible: boolean;
+  user?: User;
+}
+
 export interface ChangeUserPasswordModal {
   visible: boolean;
   user?: User;
@@ -582,6 +587,7 @@ export interface UseModalStore {
   licenseModal: StandardModalState;
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
+  startEnrollmentModal: StartEnrollmentModal;
   provisionKeyModal: ProvisionKeyModal;
   webhookModal: WebhookModal;
   addOpenidClientModal: StandardModalState;
@@ -602,6 +608,7 @@ export interface UseModalStore {
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
+  setStartEnrollmentModal: ModalSetter<StartEnrollmentModal>;
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
