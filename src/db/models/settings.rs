@@ -30,7 +30,7 @@ pub struct Settings {
     pub smtp_password: Option<String>,
     pub smtp_sender: Option<String>,
     pub enrollment_vpn_step_optional: bool,
-    pub(crate) enrollment_welcome_message: Option<String>,
-    pub(crate) enrollment_welcome_email: Option<String>,
-    pub(crate) enrollment_use_welcome_message_as_email: bool,
+    pub enrollment_welcome_message: Option<String>,
+    pub enrollment_welcome_email: Option<String>,
+    pub enrollment_use_welcome_message_as_email: bool,
 }
