@@ -139,7 +139,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             user: Some(user.into()),
             deadline_timestamp: session_deadline.timestamp(),
             final_page_content: settings.enrollment_welcome_message()?,
-            vpn_setup_optional: false,
+            vpn_setup_optional: settings.enrollment_vpn_step_optional,
         };
 
         transaction.commit().await.map_err(|_| {
