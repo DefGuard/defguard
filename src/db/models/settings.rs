@@ -1,5 +1,6 @@
+use crate::db::DbPool;
 use model_derive::Model;
-use sqlx::Type;
+use sqlx::{query, Type};
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
@@ -44,4 +45,54 @@ impl Settings {
 
         Ok(settings.expect("Settings not found"))
     }
+
+    // Set default values for settings if not set yet
+    pub async fn init_defaults(pool: &DbPool) -> Result<(), sqlx::Error> {
+        info!("Initializing default settings");
+
+        // query!(
+        //     "UPDATE settings SET enrollment_welcome_message = $1 WHERE id = 1 ON CONFLICT DO NOTHING",
+        //     defaults::WELCOME_MESSAGE
+        // )
+        // .execute(pool)
+        // .await?;
+
+        Ok(())
+    }
+}
+
+mod defaults {
+    pub const WELCOME_MESSAGE: &str = "Dear {{ first_name }} {{ last_name }},
+
+By completing the enrollment process, you now have now access to all company systems.
+
+Your login to all systems is: {{ username }}
+
+# Company systems
+
+Here are the most important company systems:
+
+- defguard: {{ defguard_url }} - where you can change your password and manage your VPN devices
+- our chat system: https://chat.example.com - join our default room #TownHall
+- knowledge base: https://example.com ...
+- our JIRA: https://example.atlassian.net...
+
+# Governance
+
+To kickoff your onboarding, please get familiar with:
+
+- our employee handbook: https://knowledgebase.example.com/Welcome
+- security policy: https://knowledgebase.example.com/security
+
+If you have any questions contact our HR:
+John Hary - mobile +48 123 123 123
+
+The person that enrolled you is:
+{{ admin_first_name }} {{ admin_last_name }},
+email: {{ admin_email }}
+mobile: {{ admin_phone }}
+
+--
+Sent by defguard {{ defguard_version }}
+Star us on GitHub! https://github.com/defguard/defguard";
 }

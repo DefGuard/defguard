@@ -1,3 +1,4 @@
+use defguard::db::Settings;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
@@ -90,6 +91,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // initialize admin user
     User::init_admin_user(&pool, &config.default_admin_password).await?;
+
+    // initialize default settings
+    Settings::init_defaults(&pool).await?;
 
     // read grpc TLS cert and key
     let grpc_cert = config
