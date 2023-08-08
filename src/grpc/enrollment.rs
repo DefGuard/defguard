@@ -2,7 +2,7 @@ use crate::{
     config::DefGuardConfig,
     db::{
         models::{device::DeviceInfo, enrollment::Enrollment},
-        DbPool, Device, GatewayEvent, User,
+        DbPool, Device, GatewayEvent, User, Settings
     },
     handlers::{self, user::check_password_strength},
     ldap::utils::ldap_add_user,
@@ -85,22 +85,6 @@ impl EnrollmentServer {
     }
 }
 
-async fn get_settings(
-    transaction: &mut Transaction<'_, sqlx::Postgres>,
-) -> Result<Settings, Status> {
-    let settings = Settings::find_by_id(transaction, 1)
-        .await
-        .map_err(|err| {
-            error!("Failed to get settings: {err}");
-            Status::internal("unexpected error")
-        })?
-        .ok_or_else(|| {
-            error!("Failed to get settings");
-            Status::internal("unexpected error")
-        })?;
-    Ok(settings)
-}
-
 #[tonic::async_trait]
 impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn start_enrollment(
@@ -130,7 +114,10 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             )
             .await?;
 
-        let settings = get_settings(&mut transaction).await?;
+        let settings = Settings::get_settings(&mut transaction).await.map_err(|_| {
+            error!("Failed to get settings");
+            Status::internal("unexpected error")
+        })?;
 
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),
