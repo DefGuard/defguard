@@ -7,10 +7,6 @@ import Skeleton from 'react-loading-skeleton';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Card } from '../../../../shared/components/layout/Card/Card';
-import { Label } from '../../../../shared/components/layout/Label/Label';
-import NoData from '../../../../shared/components/layout/NoData/NoData';
-import { Tag } from '../../../../shared/components/layout/Tag/Tag';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../shared/hooks/useApi';
@@ -19,6 +15,10 @@ import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { ProfileDetailsForm } from './ProfileDetailsForm/ProfileDetailsForm';
+import { Label } from 'recharts';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import NoData from '../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Tag } from '../../../../shared/defguard-ui/components/Layout/Tag/Tag';
 
 export const ProfileDetails = () => {
   const { LL } = useI18nContext();

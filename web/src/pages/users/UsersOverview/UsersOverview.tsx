@@ -7,16 +7,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import SvgIconUserAddNew from '../../../shared/components/svg/IconUserAddNew';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { LoaderSpinner } from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import { Search } from '../../../shared/components/layout/Search/Search';
-import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
-import SvgIconUserAddNew from '../../../shared/components/svg/IconUserAddNew';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';

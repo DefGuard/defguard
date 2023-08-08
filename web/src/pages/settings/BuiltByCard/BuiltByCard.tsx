@@ -1,7 +1,7 @@
+import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
 import './style.scss';
 
-import { Card } from '../../../shared/components/layout/Card/Card';
-import TeoniteLogoGif from '../../../shared/images/gif/tnt-built.gif';
+import TeoniteLogoGif from '/src/shared/images/gif/tnt-built.gif';
 
 export const BuiltByCard = () => {
   return (

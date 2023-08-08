@@ -2,7 +2,6 @@ import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
@@ -10,20 +9,20 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import QRCode from 'react-qr-code';
 import * as yup from 'yup';
 
+import { clipboard } from '@tauri-apps/api';
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import { IconCopy } from '../../../../../../shared/components/svg';
+import { DelayRender } from '../../../../../../shared/components/utils/DelayRender/DelayRender';
+import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/types';
-import { DelayRender } from '../../../../../../shared/components/layout/DelayRender/DelayRender';
-import { LoaderSpinner } from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
-import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
-import { IconCopy } from '../../../../../../shared/components/svg';
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { LoaderSpinner } from '../../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';

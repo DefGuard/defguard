@@ -6,18 +6,16 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Button } from '../../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
-import {
-  Divider,
-  DividerDirection,
-} from '../../../../shared/components/layout/Divider/Divider';
 import { DefguardNoIcon } from '../../../../shared/components/svg';
 import SvgIconArrowGrayLeft from '../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../shared/components/svg/IconArrowGrayRight';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Divider } from '../../../../shared/defguard-ui/components/Layout/Divider/Divider';
+import { DividerDirection } from '../../../../shared/defguard-ui/components/Layout/Divider/types';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';

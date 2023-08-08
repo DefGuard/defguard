@@ -33,7 +33,7 @@ module.exports = {
         code: 90,
         comments: 140,
         tabWidth: 2,
-        ignorePattern: '^import .* |.*LL\\..*|.*d=.*',
+        ignorePattern: '^import .* |.*LL\\..*|.*d=.* | ^(?!.*(import|from|\} from)\s)',
         ignoreComments: true,
         ignoreRegExpLiterals: true,
         ignoreTemplateLiterals: true,

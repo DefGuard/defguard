@@ -6,12 +6,6 @@ import { Controller, SubmitErrorHandler, SubmitHandler, useForm } from 'react-ho
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../../../shared/components/Form/FormSelect/FormSelect';
-import {
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../../../shared/components/layout/Select/Select';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
@@ -29,6 +23,9 @@ import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
+import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { SelectOption } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 
 interface Inputs {
   username: string;

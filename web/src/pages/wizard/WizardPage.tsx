@@ -5,7 +5,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { WizardMapDevices } from './components/WizardMapDevices/WizardMapDevices';
 import { WizardNav } from './components/WizardNav/WizardNav';

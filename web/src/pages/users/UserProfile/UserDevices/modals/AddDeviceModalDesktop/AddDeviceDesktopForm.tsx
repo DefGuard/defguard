@@ -5,18 +5,18 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/types';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
 import { generateWGKeys } from '../../../../../../shared/utils/generateWGKeys';
+import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 
 interface FormInputs {
   name: string;

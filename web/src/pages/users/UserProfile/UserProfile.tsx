@@ -8,16 +8,6 @@ import { useParams } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { EditButton } from '../../../shared/components/layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../shared/components/layout/EditButton/EditButtonOption';
 import { IconCheckmarkWhite, IconEdit } from '../../../shared/components/svg';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
@@ -32,6 +22,16 @@ import { UserAuthInfo } from './UserAuthInfo/UserAuthInfo';
 import { UserDevices } from './UserDevices/UserDevices';
 import { UserWallets } from './UserWallets/UserWallets';
 import { UserYubiKeys } from './UserYubiKeys/UserYubiKeys';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonStyleVariant,
+  ButtonSize,
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import {
+  EditButtonOption,
+  EditButtonOptionStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 
 export const UserProfile = () => {
   const toaster = useToaster();

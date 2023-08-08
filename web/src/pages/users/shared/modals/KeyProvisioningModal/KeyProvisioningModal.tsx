@@ -9,12 +9,6 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import IconButton from '../../../../../shared/components/layout/IconButton/IconButton';
-import { LoaderSpinner } from '../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../shared/components/layout/MessageBox/MessageBox';
-import Modal from '../../../../../shared/components/layout/Modal/Modal';
 import { IconHamburgerClose } from '../../../../../shared/components/svg';
 import SvgIconCancel from '../../../../../shared/components/svg/IconCancel';
 import { deviceBreakpoints } from '../../../../../shared/constants';
@@ -25,6 +19,10 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { WorkerJobStatus, WorkerJobStatusError } from '../../../../../shared/types';
 import WorkerLoader from './WorkerLoader/WorkerLoader';
 import { WorkerSelectionForm } from './WorkerSelectionForm/WorkerSelectionForm';
+import { LoaderSpinner } from '../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { Modal } from '../../../../../shared/defguard-ui/components/Layout/modals/Modal/Modal';
 
 export const KeyProvisioningModal = () => {
   const { LL } = useI18nContext();

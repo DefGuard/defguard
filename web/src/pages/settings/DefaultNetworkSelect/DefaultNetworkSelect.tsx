@@ -5,16 +5,13 @@ import { useMemo } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Helper } from '../../../shared/components/layout/Helper/Helper';
-import {
-  Select,
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { externalLink } from '../../../shared/links';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../../overview/hooks/store/useOverviewStore';
+import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 
 export const DefaultNetworkSelect = () => {
   const { LL } = useI18nContext();

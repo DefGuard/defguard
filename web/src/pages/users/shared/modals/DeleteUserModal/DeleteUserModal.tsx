@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../../../shared/components/layout/ConfirmModal/ConfirmModal';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { User } from '../../../../../shared/types';
+import ConfirmModal, {
+  ConfirmModalType,
+} from '../../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 
 export const DeleteUserModal = () => {
   const {

@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -7,26 +6,6 @@ import QRCode from 'react-qr-code';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import {
-  ActionButton,
-  ActionButtonVariant,
-} from '../../../../../../../shared/components/layout/ActionButton/ActionButton';
-import { Button } from '../../../../../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/types';
-import { ExpandableCard } from '../../../../../../../shared/components/layout/ExpandableCard/ExpandableCard';
-import { Input } from '../../../../../../../shared/components/layout/Input/Input';
-import { LoaderSpinner } from '../../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
-import {
-  Select,
-  SelectOption,
-  SelectSizeVariant,
-} from '../../../../../../../shared/components/layout/Select/Select';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../../shared/queries';
@@ -37,6 +16,23 @@ import {
 } from '../../../../../../../shared/types';
 import { downloadWGConfig } from '../../../../../../../shared/utils/downloadWGConfig';
 import { DeviceModalSetupMode, useDeviceModal } from '../../../hooks/useDeviceModal';
+import { ActionButton } from '../../../../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
+import { ActionButtonVariant } from '../../../../../../../shared/defguard-ui/components/Layout/ActionButton/types';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { ExpandableCard } from '../../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
+import { Input } from '../../../../../../../shared/defguard-ui/components/Layout/Input/Input';
+import { LoaderSpinner } from '../../../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { Select } from '../../../../../../../shared/defguard-ui/components/Layout/Select/Select';
+import {
+  SelectOption,
+  SelectSizeVariant,
+} from '../../../../../../../shared/defguard-ui/components/Layout/Select/types';
 
 export const ConfigStep = () => {
   const {

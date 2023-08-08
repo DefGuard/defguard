@@ -5,14 +5,14 @@ import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import UserInitials from '../../../../../shared/components/layout/UserInitials/UserInitials';
+import { deviceBreakpoints } from '../../../../../shared/constants';
+import UserInitials from '../../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
   VirtualizedList,
-} from '../../../../../shared/components/layout/VirtualizedList/VirtualizedList';
-import { deviceBreakpoints } from '../../../../../shared/constants';
+} from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { User } from '../../../../../shared/types';

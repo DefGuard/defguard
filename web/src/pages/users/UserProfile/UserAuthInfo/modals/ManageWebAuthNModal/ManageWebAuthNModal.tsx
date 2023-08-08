@@ -4,10 +4,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
-import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../shared/hooks/useApi';
@@ -16,6 +12,9 @@ import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { RegisterWebAuthNForm } from './components/RegisterWebAuthNForm';
 import { WebAuthNKeyRow } from './components/WebAuthNKeyRow';
+import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 
 export const ManageWebAuthNKeysModal = () => {
   const { LL } = useI18nContext();

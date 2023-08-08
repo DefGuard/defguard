@@ -10,19 +10,16 @@ import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../../shared/components/Form/FormSelect/FormSelect';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
-import { Card } from '../../../../shared/components/layout/Card/Card';
-import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
-import {
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../../shared/components/layout/Select/Select';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';

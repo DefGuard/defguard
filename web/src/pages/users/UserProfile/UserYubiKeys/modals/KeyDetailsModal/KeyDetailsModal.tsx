@@ -5,14 +5,14 @@ import { motion } from 'framer-motion';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
+import KeyBox from '../../../../shared/components/KeyBox/KeyBox';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/types';
-import Modal from '../../../../../../shared/components/layout/Modal/Modal';
-import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
-import KeyBox from '../../../../shared/components/KeyBox/KeyBox';
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Modal } from '../../../../../../shared/defguard-ui/components/Layout/modals/Modal/Modal';
 
 export const KeyDetailsModal = () => {
   const { LL } = useI18nContext();

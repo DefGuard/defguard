@@ -1,5 +1,4 @@
-import { create } from 'zustand';
-
+import { createWithEqualityFn } from 'zustand/traditional';
 import { AddDeviceConfig, Device, StandardModalState } from '../../../../../shared/types';
 
 export enum DeviceModalSetupMode {
@@ -17,25 +16,28 @@ const defaultValues: StoreValues = {
   device: undefined,
 };
 
-export const useDeviceModal = create<Store>((set, get) => ({
-  ...defaultValues,
-  nextStep: (values) => {
-    const { currentStep, endStep } = get();
-    // close modal when finished
-    if (endStep === currentStep) {
-      return set({ visible: false });
-    } else {
-      if (values) {
-        return set({ ...values, currentStep: currentStep + 1 });
+export const useDeviceModal = createWithEqualityFn<Store>(
+  (set, get) => ({
+    ...defaultValues,
+    nextStep: (values) => {
+      const { currentStep, endStep } = get();
+      // close modal when finished
+      if (endStep === currentStep) {
+        return set({ visible: false });
       } else {
-        return set({ currentStep: currentStep + 1 });
+        if (values) {
+          return set({ ...values, currentStep: currentStep + 1 });
+        } else {
+          return set({ currentStep: currentStep + 1 });
+        }
       }
-    }
-  },
-  setState: (newValues) => set((old) => ({ ...old, ...newValues })),
-  open: (initial) => set({ ...defaultValues, ...initial }),
-  reset: () => set(defaultValues),
-}));
+    },
+    setState: (newValues) => set((old) => ({ ...old, ...newValues })),
+    open: (initial) => set({ ...defaultValues, ...initial }),
+    reset: () => set(defaultValues),
+  }),
+  Object.is,
+);
 
 type Store = StoreValues & StoreMethods;
 

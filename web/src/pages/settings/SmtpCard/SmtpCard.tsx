@@ -9,19 +9,6 @@ import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
-import { Button } from '../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { Card } from '../../../shared/components/layout/Card/Card';
-import { Helper } from '../../../shared/components/layout/Helper/Helper';
-import {
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../shared/components/layout/Select/Select';
 import { IconCheckmarkWhite } from '../../../shared/components/svg';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
@@ -33,6 +20,16 @@ import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
 import { validateIpOrDomain } from '../../../shared/validators';
 import { TestForm } from './TestForm';
+import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 
 interface Inputs extends Omit<Settings, 'smtp_encryption'> {
   smtp_encryption: SelectOption<string>;

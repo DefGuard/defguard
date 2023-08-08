@@ -1,12 +1,10 @@
 import './style.scss';
 
-import clipboard from 'clipboardy';
 import { saveAs } from 'file-saver';
 import { AnimatePresence, motion, Variants } from 'framer-motion';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Subject, switchMap, timer } from 'rxjs';
 
-import IconButton from '../../../../../shared/components/layout/IconButton/IconButton';
 import SvgIconCopy from '../../../../../shared/components/svg/IconCopy';
 import SvgIconDownload from '../../../../../shared/components/svg/IconDownload';
 import SvgIconUserListExpanded from '../../../../../shared/components/svg/IconUserListExpanded';

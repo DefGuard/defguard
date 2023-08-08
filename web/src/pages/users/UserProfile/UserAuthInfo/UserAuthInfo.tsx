@@ -3,7 +3,6 @@ import './style.scss';
 import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Card } from '../../../../shared/components/layout/Card/Card';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { ChangeSelfPasswordModal } from './modals/ChangeSelfPasswordModal/ChangeSelfPasswordModal';
 import { ManageWebAuthNKeysModal } from './modals/ManageWebAuthNModal/ManageWebAuthNModal';
@@ -11,6 +10,7 @@ import { RecoveryCodesModal } from './modals/RecoveryCodesModal/RecoveryCodesMod
 import { RegisterTOTPModal } from './modals/RegisterTOTPModal/RegisterTOTPModal';
 import { UserAuthInfoMFA } from './UserAuthInfoMFA';
 import { UserAuthInfoPassword } from './UserAuthInfoPassword';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 
 export const UserAuthInfo = () => {
   const { LL } = useI18nContext();

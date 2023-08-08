@@ -4,7 +4,6 @@ import { isUndefined } from 'lodash-es';
 import { alphabetical } from 'radash';
 import { useMemo } from 'react';
 import Skeleton from 'react-loading-skeleton';
-import { useAccount } from 'wagmi';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';

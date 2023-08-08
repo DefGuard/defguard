@@ -1,6 +1,6 @@
 import { Subject } from 'rxjs';
-import { create } from 'zustand';
 
+import { createWithEqualityFn } from 'zustand/traditional';
 import { UserProfile } from '../../types';
 
 const defaultValues: StoreValues = {
@@ -12,11 +12,14 @@ const defaultValues: StoreValues = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const useUserProfileStore = create<Store>((set) => ({
-  ...defaultValues,
-  setState: (newState) => set((oldState) => ({ ...oldState, ...newState })),
-  reset: () => set(defaultValues),
-}));
+export const useUserProfileStore = createWithEqualityFn<Store>(
+  (set) => ({
+    ...defaultValues,
+    setState: (newState) => set((oldState) => ({ ...oldState, ...newState })),
+    reset: () => set(defaultValues),
+  }),
+  Object.is,
+);
 
 type Store = StoreValues & StoreMethods;
 

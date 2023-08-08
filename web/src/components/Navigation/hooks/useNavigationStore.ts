@@ -1,12 +1,12 @@
 import { pick } from 'lodash-es';
-import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 const defaultState: StoreValues = {
   isOpen: false,
 };
 
-export const useNavigationStore = create<Store>()(
+export const useNavigationStore = createWithEqualityFn<Store>()(
   persist(
     (set) => ({
       ...defaultState,
@@ -19,6 +19,7 @@ export const useNavigationStore = create<Store>()(
       partialize: (state) => pick(state, ['isOpen']),
     },
   ),
+  Object.is,
 );
 
 type Store = StoreValues & StoreMethods;

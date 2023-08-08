@@ -1,14 +1,17 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 const defaultValues: StoreValues = {
   visible: false,
 };
 
-export const useChangeSelfPasswordModal = create<Store>((set) => ({
-  ...defaultValues,
-  open: () => set({ visible: true }),
-  reset: () => set(defaultValues),
-}));
+export const useChangeSelfPasswordModal = createWithEqualityFn<Store>(
+  (set) => ({
+    ...defaultValues,
+    open: () => set({ visible: true }),
+    reset: () => set(defaultValues),
+  }),
+  Object.is,
+);
 
 type Store = StoreValues & StoreMethods;
 

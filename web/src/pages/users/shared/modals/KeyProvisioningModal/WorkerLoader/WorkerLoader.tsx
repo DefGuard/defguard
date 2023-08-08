@@ -4,18 +4,17 @@ import { saveAs } from 'file-saver';
 import { AnimatePresence, motion } from 'framer-motion';
 import React from 'react';
 
-import { Button } from '../../../../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/types';
-import { LoaderSpinner } from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { WorkerJobStatus } from '../../../../../../shared/types';
 import KeyBox from '../../../components/KeyBox/KeyBox';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { LoaderSpinner } from '../../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 
 interface Props {
   setIsOpen: (v: boolean) => void;

@@ -6,16 +6,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { LoaderSpinner } from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import NoData from '../../shared/components/layout/NoData/NoData';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
-import { Search } from '../../shared/components/layout/Search/Search';
-import { Select, SelectOption } from '../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../shared/constants';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { ProvisionersList } from './ProvisionersList/ProvisionersList';
 import { ProvisioningStationSetup } from './ProvisioningStationSetup';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
+import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Select } from '../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
 
 export const ProvisionersPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);

@@ -1,21 +1,20 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
-import { useMutation } from 'wagmi';
 import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Card } from '../../../../shared/components/layout/Card/Card';
-import { LoaderSpinner } from '../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import { SelectOption } from '../../../../shared/components/layout/Select/Select';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import {
   ListHeader,
   VirtualizedList,
-} from '../../../../shared/components/layout/VirtualizedList/VirtualizedList';
+} from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';

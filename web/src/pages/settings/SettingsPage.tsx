@@ -4,9 +4,6 @@ import { useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { Card } from '../../shared/components/layout/Card/Card';
-import { CardTabs } from '../../shared/components/layout/CardTabs/CardTabs';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
 import { deviceBreakpoints } from '../../shared/constants';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { BrandingCard } from './BrandingCard/BrandingCard';
@@ -16,6 +13,8 @@ import { ModulesCard } from './ModulesCard/ModulesCard';
 import { SmtpCard } from './SmtpCard/SmtpCard';
 import { SupportCard } from './SupportCard/SupportCard';
 import { Web3Settings } from './Web3Settings/Web3Settings';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
+import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 
 enum Tabs {
   Basic,

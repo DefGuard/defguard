@@ -3,13 +3,13 @@ import './style.scss';
 import { ReactNode } from 'react';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import { IconCheckmarkWhite } from '../../../../../../shared/components/svg';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/types';
-import { Card } from '../../../../../../shared/components/layout/Card/Card';
-import { IconCheckmarkWhite } from '../../../../../../shared/components/svg';
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
 
 type Props = {
   icon: ReactNode;

@@ -8,17 +8,6 @@ import { isUndefined, orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
-import Badge from '../../../../../shared/components/layout/Badge/Badge';
-import { Card } from '../../../../../shared/components/layout/Card/Card';
-import { DeviceAvatar } from '../../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
-import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../../../shared/components/layout/EditButton/EditButtonOption';
-import { Label } from '../../../../../shared/components/layout/Label/Label';
-import NoData from '../../../../../shared/components/layout/NoData/NoData';
 import { IconClip } from '../../../../../shared/components/svg';
 import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
 import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
@@ -29,6 +18,17 @@ import { sortByDate } from '../../../../../shared/utils/sortByDate';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
 import { DeviceModalSetupMode, useDeviceModal } from '../hooks/useDeviceModal';
 import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
+import { Label } from 'recharts';
+import { AvatarBox } from '../../../../../shared/defguard-ui/components/Layout/AvatarBox/AvatarBox';
+import Badge from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { DeviceAvatar } from '../../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
+import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import {
+  EditButtonOption,
+  EditButtonOptionStyleVariant,
+} from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import NoData from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 
 dayjs.extend(utc);
 

@@ -1,19 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import { useMemo } from 'react';
 import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import {
-  ActionButton,
-  ActionButtonVariant,
-} from '../../shared/components/layout/ActionButton/ActionButton';
-import { Card } from '../../shared/components/layout/Card/Card';
-import { ExpandableCard } from '../../shared/components/layout/ExpandableCard/ExpandableCard';
 import { YubikeyProvisioningGraphic } from '../../shared/components/svg';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { QueryKeys } from '../../shared/queries';
+import { ActionButton } from '../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
+import { ActionButtonVariant } from '../../shared/defguard-ui/components/Layout/ActionButton/types';
+import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
+import { ExpandableCard } from '../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 
 export const ProvisioningStationSetup = () => {
   const { LL } = useI18nContext();

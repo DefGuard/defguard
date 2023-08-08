@@ -24,10 +24,6 @@ type RootTranslation = {
 		 */
 		success: string
 		/**
-		 * C​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
-		 */
-		successClipboard: string
-		/**
 		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
 		 */
 		errorVersion: string
@@ -36,9 +32,19 @@ type RootTranslation = {
 		 */
 		errorLicense: string
 		/**
-		 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
+		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
-		clipboardError: string
+		insecureContext: string
+		clipboard: {
+			/**
+			 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
+			 */
+			error: string
+			/**
+			 * C​o​n​t​e​n​t​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d​.
+			 */
+			success: string
+		}
 	}
 	modals: {
 		changePasswordSelf: {
@@ -3098,10 +3104,6 @@ export type TranslationFunctions = {
 		 */
 		success: () => LocalizedString
 		/**
-		 * Copied to clipboard
-		 */
-		successClipboard: () => LocalizedString
-		/**
 		 * Failed to get application version.
 		 */
 		errorVersion: () => LocalizedString
@@ -3110,9 +3112,19 @@ export type TranslationFunctions = {
 		 */
 		errorLicense: () => LocalizedString
 		/**
-		 * Clipboard is not accessible.
+		 * Context is not secure.
 		 */
-		clipboardError: () => LocalizedString
+		insecureContext: () => LocalizedString
+		clipboard: {
+			/**
+			 * Clipboard is not accessible.
+			 */
+			error: () => LocalizedString
+			/**
+			 * Content copied to clipboard.
+			 */
+			success: () => LocalizedString
+		}
 	}
 	modals: {
 		changePasswordSelf: {

@@ -1,5 +1,4 @@
-import { create } from 'zustand';
-
+import { createWithEqualityFn } from 'zustand/traditional';
 import { Device } from '../../../../../shared/types';
 
 const defaultValues: StoreValues = {
@@ -7,12 +6,15 @@ const defaultValues: StoreValues = {
   device: undefined,
 };
 
-export const useEditDeviceModal = create<Store>((set) => ({
-  ...defaultValues,
-  setState: (values) => set((old) => ({ ...old, ...values })),
-  open: (values) => set({ ...defaultValues, ...values }),
-  close: () => set({ visible: false }),
-}));
+export const useEditDeviceModal = createWithEqualityFn<Store>(
+  (set) => ({
+    ...defaultValues,
+    setState: (values) => set((old) => ({ ...old, ...values })),
+    open: (values) => set({ ...defaultValues, ...values }),
+    close: () => set({ visible: false }),
+  }),
+  Object.is,
+);
 
 type StoreValues = {
   visible: boolean;

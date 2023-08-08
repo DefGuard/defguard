@@ -1,26 +1,25 @@
 import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import { saveAs } from 'file-saver';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { Button } from '../../../../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/types';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
-import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
 import { IconCopy, IconDownload } from '../../../../../../shared/components/svg';
 import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
+import { clipboard } from '@tauri-apps/api';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 
 export const RecoveryCodesModal = () => {
   const { LL } = useI18nContext();

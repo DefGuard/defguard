@@ -1,7 +1,7 @@
 import { Subject } from 'rxjs';
-import { create } from 'zustand';
 
 import { Network } from '../../../shared/types';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 type NetworkPageStore = {
   saveSubject: Subject<void>;
@@ -11,10 +11,13 @@ type NetworkPageStore = {
   setState: (data: Partial<NetworkPageStore>) => void;
 };
 
-export const useNetworkPageStore = create<NetworkPageStore>()((set) => ({
-  saveSubject: new Subject(),
-  loading: false,
-  networks: [],
-  selectedNetworkId: 1,
-  setState: (newState) => set(() => newState),
-}));
+export const useNetworkPageStore = createWithEqualityFn<NetworkPageStore>()(
+  (set) => ({
+    saveSubject: new Subject(),
+    loading: false,
+    networks: [],
+    selectedNetworkId: 1,
+    setState: (newState) => set(() => newState),
+  }),
+  Object.is,
+);

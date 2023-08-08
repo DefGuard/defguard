@@ -1,7 +1,7 @@
+import { Label } from 'recharts';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { Label } from '../../../../../shared/components/layout/Label/Label';
-import NoData from '../../../../../shared/components/layout/NoData/NoData';
-import { Tag } from '../../../../../shared/components/layout/Tag/Tag';
+import NoData from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Tag } from '../../../../../shared/defguard-ui/components/Layout/Tag/Tag';
 import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 
 interface Props {

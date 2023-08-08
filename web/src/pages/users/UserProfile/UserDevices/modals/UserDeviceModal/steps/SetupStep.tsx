@@ -6,17 +6,6 @@ import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../../../shared/components/Form/FormInput/FormInput';
-import { FormToggle } from '../../../../../../../shared/components/Form/FormToggle/FormToggle';
-import { Button } from '../../../../../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/types';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
-import { ToggleOption } from '../../../../../../../shared/components/layout/Toggle/Toggle';
 import { IconDownload } from '../../../../../../../shared/components/svg';
 import { useUserProfileStore } from '../../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
@@ -27,6 +16,16 @@ import { patternValidWireguardKey } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../../shared/utils/generateWGKeys';
 import { DeviceModalSetupMode, useDeviceModal } from '../../../hooks/useDeviceModal';
+import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormToggle } from '../../../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonStyleVariant,
+  ButtonSize,
+} from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { ToggleOption } from '../../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
 
 interface FormValues {
   name: string;

@@ -1,7 +1,7 @@
 import { omit } from 'lodash-es';
 import { Subject } from 'rxjs';
-import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 import { ImportedDevice, Network } from '../../../shared/types';
 
@@ -28,7 +28,7 @@ const defaultValues: StoreFields = {
   },
 };
 
-export const useWizardStore = create<WizardStore>()(
+export const useWizardStore = createWithEqualityFn<WizardStore>()(
   persist(
     (set, get) => ({
       ...defaultValues,
@@ -55,6 +55,7 @@ export const useWizardStore = create<WizardStore>()(
       storage: createJSONStorage(() => localStorage),
     },
   ),
+  Object.is,
 );
 
 export type WizardStore = StoreFields & StoreMethods;

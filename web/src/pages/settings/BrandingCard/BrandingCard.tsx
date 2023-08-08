@@ -9,14 +9,6 @@ import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { Card } from '../../../shared/components/layout/Card/Card';
-import { Helper } from '../../../shared/components/layout/Helper/Helper';
 import { IconCheckmarkWhite } from '../../../shared/components/svg';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
@@ -26,6 +18,14 @@ import { externalLink } from '../../../shared/links';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
+import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
 
 export const BrandingCard = () => {
   const { LL } = useI18nContext();

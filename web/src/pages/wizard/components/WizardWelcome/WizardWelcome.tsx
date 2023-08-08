@@ -2,13 +2,13 @@ import './style.scss';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { RenderTranslation } from '../../../../shared/components/i18n/RenderTranslation/RenderTranslation';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { IconInfo } from '../../../../shared/components/svg';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
-import { Card } from '../../../../shared/components/layout/Card/Card';
-import { IconInfo } from '../../../../shared/components/svg';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 export const WizardWelcome = () => {

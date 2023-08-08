@@ -6,21 +6,21 @@ import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../shared/components/layout/ConfirmModal/ConfirmModal';
-import { EditButton } from '../../../shared/components/layout/EditButton/EditButton';
+import { IconCheckmarkGreen, IconDeactivated } from '../../../shared/components/svg';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import {
   EditButtonOption,
   EditButtonOptionStyleVariant,
-} from '../../../shared/components/layout/EditButton/EditButtonOption';
+} from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import {
   ListHeader,
   ListSortDirection,
   VirtualizedList,
-} from '../../../shared/components/layout/VirtualizedList/VirtualizedList';
-import { IconCheckmarkGreen, IconDeactivated } from '../../../shared/components/svg';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
+import ConfirmModal, {
+  ConfirmModalType,
+} from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';

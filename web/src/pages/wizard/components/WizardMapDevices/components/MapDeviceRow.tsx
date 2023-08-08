@@ -2,14 +2,13 @@ import { TargetAndTransition } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { Control, useController } from 'react-hook-form';
 
-import { RowBox } from '../../../../../shared/components/layout/RowBox/RowBox';
+import { ColorsRGB } from '../../../../../shared/constants';
+import { RowBox } from '../../../../../shared/defguard-ui/components/Layout/RowBox/RowBox';
+import { Select } from '../../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  Select,
   SelectOption,
   SelectSizeVariant,
-  SelectStyleVariant,
-} from '../../../../../shared/components/layout/Select/Select';
-import { ColorsRGB } from '../../../../../shared/constants';
+} from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { WizardMapFormValues } from '../WizardMapDevices';
 
 type Props = {

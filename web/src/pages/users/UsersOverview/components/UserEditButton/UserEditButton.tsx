@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
+import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import {
   EditButtonOption,
   EditButtonOptionStyleVariant,
-} from '../../../../../shared/components/layout/EditButton/EditButtonOption';
+} from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
