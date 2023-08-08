@@ -3,7 +3,8 @@ import { useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Select, SelectOption } from '../../../../shared/components/layout/Select/Select';
+import { Select } from '../../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import { useOverviewStore } from '../../hooks/store/useOverviewStore';
 
 export const OverViewNetworkSelect = () => {

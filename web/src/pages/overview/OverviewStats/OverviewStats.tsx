@@ -7,16 +7,16 @@ import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import {
-  NetworkDirection,
-  NetworkSpeed,
-} from '../../../shared/components/layout/NetworkSpeed/NetworkSpeed';
-import {
   Icon24HConnections,
   IconActiveConnections,
   IconPacketsIn,
   IconPacketsOut,
 } from '../../../shared/components/svg';
 import { deviceBreakpoints } from '../../../shared/constants';
+import {
+  NetworkDirection,
+  NetworkSpeed,
+} from '../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
 import { NetworkUserStats, WireguardNetworkStats } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { NetworkUsageChart } from '../OverviewConnectedUsers/shared/components/NetworkUsageChart/NetworkUsageChart';

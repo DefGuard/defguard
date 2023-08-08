@@ -6,11 +6,11 @@ import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
-import { LoaderSpinner } from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import NoData from '../../shared/components/layout/NoData/NoData';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { GatewaysStatus } from '../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import { deviceBreakpoints } from '../../shared/constants';
+import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';

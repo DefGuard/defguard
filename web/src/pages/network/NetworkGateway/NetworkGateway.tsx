@@ -6,13 +6,11 @@ import parse from 'html-react-parser';
 import { useCallback, useMemo } from 'react';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import {
-  ActionButton,
-  ActionButtonVariant,
-} from '../../../shared/components/layout/ActionButton/ActionButton';
-import { ExpandableCard } from '../../../shared/components/layout/ExpandableCard/ExpandableCard';
-import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
 import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
+import { ActionButton } from '../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
+import { ActionButtonVariant } from '../../../shared/defguard-ui/components/Layout/ActionButton/types';
+import { ExpandableCard } from '../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
+import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { externalLink } from '../../../shared/links';

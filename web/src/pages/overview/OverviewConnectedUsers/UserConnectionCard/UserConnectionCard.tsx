@@ -9,24 +9,24 @@ import { useMemo, useState } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import Badge, {
-  BadgeStyleVariant,
-} from '../../../../shared/components/layout/Badge/Badge';
-import {
-  DeviceAvatar,
-  DeviceAvatarVariants,
-} from '../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
-import {
-  NetworkDirection,
-  NetworkSpeed,
-} from '../../../../shared/components/layout/NetworkSpeed/NetworkSpeed';
-import UserInitials, {
-  UserInitialsType,
-} from '../../../../shared/components/layout/UserInitials/UserInitials';
 import SvgIconClip from '../../../../shared/components/svg/IconClip';
 import SvgIconCollapse from '../../../../shared/components/svg/IconCollapse';
 import SvgIconConnected from '../../../../shared/components/svg/IconConnected';
 import SvgIconExpand from '../../../../shared/components/svg/IconExpand';
+import Badge, {
+  BadgeStyleVariant,
+} from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import {
+  DeviceAvatar,
+  DeviceAvatarVariants,
+} from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
+import {
+  NetworkDirection,
+  NetworkSpeed,
+} from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
+import UserInitials, {
+  UserInitialsType,
+} from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';

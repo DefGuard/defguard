@@ -1,10 +1,7 @@
 import { useMemo } from 'react';
 
-import {
-  Select,
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../shared/components/layout/Select/Select';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 
 export const OverviewStatsFilterSelect = () => {

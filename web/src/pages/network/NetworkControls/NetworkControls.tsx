@@ -7,18 +7,19 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../shared/components/layout/ConfirmModal/ConfirmModal';
-import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
 import { IconCheckmarkWhite } from '../../../shared/components/svg';
 import SvgIconX from '../../../shared/components/svg/IconX';
 import { deviceBreakpoints } from '../../../shared/constants';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import ConfirmModal, {
+  ConfirmModalType,
+} from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { useWizardStore } from '../../wizard/hooks/useWizardStore';
