@@ -1,5 +1,5 @@
-import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 import { MFALoginResponse, UserMFAMethod } from '../../../../shared/types';
 
@@ -15,7 +15,10 @@ const defaultState: MFALoginResponse = {
   webauthn_available: false,
 };
 
-export const useMFAStore = create<MFAStore, [['zustand/persist', MFAStore]]>(
+export const useMFAStore = createWithEqualityFn<
+  MFAStore,
+  [['zustand/persist', MFAStore]]
+>(
   persist(
     (set) => ({
       ...defaultState,
@@ -27,4 +30,5 @@ export const useMFAStore = create<MFAStore, [['zustand/persist', MFAStore]]>(
       storage: createJSONStorage(() => sessionStorage),
     },
   ),
+  Object.is,
 );

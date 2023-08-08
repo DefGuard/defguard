@@ -1,11 +1,11 @@
 import { pick } from 'lodash-es';
 import { Subject } from 'rxjs';
-import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 import { LoginSubjectData, User } from '../../types';
 
-export const useAuthStore = create<AuthStore>()(
+export const useAuthStore = createWithEqualityFn<AuthStore>()(
   persist(
     (set, get) => ({
       user: undefined,
@@ -26,6 +26,7 @@ export const useAuthStore = create<AuthStore>()(
       storage: createJSONStorage(() => sessionStorage),
     },
   ),
+  Object.is,
 );
 export interface AuthStore {
   loginSubject: Subject<LoginSubjectData>;
