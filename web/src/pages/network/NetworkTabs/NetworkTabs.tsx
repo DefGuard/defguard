@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { CardTabs } from '../../../shared/components/layout/CardTabs/CardTabs';
 import { useWizardStore } from '../../wizard/hooks/useWizardStore';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 

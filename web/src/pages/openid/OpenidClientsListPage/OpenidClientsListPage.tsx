@@ -4,36 +4,37 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clipboard from 'clipboardy';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
+import { Search } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
+import { IconCheckmarkGreen, IconDeactivated } from '../../../shared/components/svg';
+import SvgIconPlusWhite from '../../../shared/components/svg/IconPlusWhite';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../shared/components/layout/ConfirmModal/ConfirmModal';
-import { EditButton } from '../../../shared/components/layout/EditButton/EditButton';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import {
   EditButtonOption,
   EditButtonOptionStyleVariant,
-} from '../../../shared/components/layout/EditButton/EditButtonOption';
-import { LoaderSpinner } from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import NoData from '../../../shared/components/layout/NoData/NoData';
-import { PageContainer } from '../../../shared/components/layout/PageContainer/PageContainer';
-import { Search } from '../../../shared/components/layout/Search/Search';
-import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
+} from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import ConfirmModal, {
+  ConfirmModalType,
+} from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import NoData from '../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
   VirtualizedList,
-} from '../../../shared/components/layout/VirtualizedList/VirtualizedList';
-import { IconCheckmarkGreen, IconDeactivated } from '../../../shared/components/svg';
-import SvgIconPlusWhite from '../../../shared/components/svg/IconPlusWhite';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';

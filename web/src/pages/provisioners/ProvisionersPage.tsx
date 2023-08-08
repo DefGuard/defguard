@@ -3,19 +3,20 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
+import { Search } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { deviceBreakpoints } from '../../shared/constants';
-import useApi from '../../shared/hooks/useApi';
-import { QueryKeys } from '../../shared/queries';
-import { ProvisionersList } from './ProvisionersList/ProvisionersList';
-import { ProvisioningStationSetup } from './ProvisioningStationSetup';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
+import { deviceBreakpoints } from '../../shared/constants';
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Select } from '../../shared/defguard-ui/components/Layout/Select/Select';
 import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
+import useApi from '../../shared/hooks/useApi';
+import { QueryKeys } from '../../shared/queries';
+import { ProvisionersList } from './ProvisionersList/ProvisionersList';
+import { ProvisioningStationSetup } from './ProvisioningStationSetup';
 
 export const ProvisionersPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);

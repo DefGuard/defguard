@@ -13,14 +13,14 @@ import {
   EditButtonOption,
   EditButtonOptionStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import ConfirmModal, {
+  ConfirmModalType,
+} from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 import {
   ListHeader,
   ListSortDirection,
   VirtualizedList,
 } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';

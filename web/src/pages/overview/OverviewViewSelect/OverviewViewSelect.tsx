@@ -2,8 +2,9 @@ import { useEffect, useMemo } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../../shared/constants';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 

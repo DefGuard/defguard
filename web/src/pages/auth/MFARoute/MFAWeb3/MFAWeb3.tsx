@@ -5,11 +5,11 @@ import { useAccount, useSignTypedData } from 'wagmi';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';

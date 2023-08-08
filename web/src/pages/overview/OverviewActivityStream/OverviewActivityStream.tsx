@@ -4,7 +4,7 @@ import { useI18nContext } from '../../../i18n/i18n-react';
 import {
   ActivityStatus,
   ActivityType,
-} from '../../../shared/components/layout/ActivityStatus/ActivityStatus';
+} from '../../../shared/defguard-ui/components/Layout/ActivityStatus/ActivityStatus';
 
 export const OverviewActivityStream = () => {
   const { LL } = useI18nContext();

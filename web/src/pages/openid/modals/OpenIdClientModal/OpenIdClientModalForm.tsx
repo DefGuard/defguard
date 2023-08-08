@@ -8,18 +8,16 @@ import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FormCheckBox } from '../../../../shared/components/Form/FormCheckBox/FormCheckBox';
-import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
-import {
-  ActionButton,
-  ActionButtonVariant,
-} from '../../../../shared/components/layout/ActionButton/ActionButton';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
+import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { ActionButton } from '../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
+import { ActionButtonVariant } from '../../../../shared/defguard-ui/components/Layout/ActionButton/types';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
-import { ExpandableCard } from '../../../../shared/components/layout/ExpandableCard/ExpandableCard';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { ExpandableCard } from '../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
