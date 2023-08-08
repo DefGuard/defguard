@@ -85,6 +85,22 @@ impl EnrollmentServer {
     }
 }
 
+async fn get_settings(
+    transaction: &mut Transaction<'_, sqlx::Postgres>,
+) -> Result<Settings, Status> {
+    let settings = Settings::find_by_id(transaction, 1)
+        .await
+        .map_err(|err| {
+            error!("Failed to get settings: {err}");
+            Status::internal("unexpected error")
+        })?
+        .ok_or_else(|| {
+            error!("Failed to get settings");
+            Status::internal("unexpected error")
+        })?;
+    Ok(settings)
+}
+
 #[tonic::async_trait]
 impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn start_enrollment(
@@ -114,6 +130,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             )
             .await?;
 
+        let settings = get_settings(&mut transaction).await?;
+
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),
             user: Some(user.into()),
@@ -121,7 +139,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             final_page_content: enrollment
                 .get_welcome_page_content(&mut transaction)
                 .await?,
-            vpn_setup_optional: false,
+            vpn_setup_optional: settings.enrollment_vpn_step_optional,
         };
 
         transaction.commit().await.map_err(|_| {
