@@ -4,7 +4,7 @@ use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
 
-#[derive(Clone, Parser)]
+#[derive(Clone, Debug, Parser)]
 #[command(version)]
 pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
@@ -155,7 +155,7 @@ pub struct DefGuardConfig {
     pub cmd: Option<Command>,
 }
 
-#[derive(Clone, Parser)]
+#[derive(Clone, Debug, Parser)]
 pub enum Command {
     #[command(
         about = "Initialize development environment. Inserts test network and device into database."

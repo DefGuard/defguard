@@ -73,6 +73,7 @@ use std::{
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
+    OnceCell,
 };
 
 pub mod appstate;
@@ -96,6 +97,8 @@ extern crate rocket;
 
 #[macro_use]
 extern crate serde;
+
+pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
 /// Catch missing files and serve "index.html".
 #[get("/<path..>", rank = 4)]

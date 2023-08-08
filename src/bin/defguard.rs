@@ -7,6 +7,7 @@ use defguard::{
     mail::{run_mail_handler, Mail},
     run_web_server,
     wireguard_stats_purge::run_periodic_stats_purge,
+    SERVER_CONFIG,
 };
 use fern::{
     colors::{Color, ColoredLevelConfig},
@@ -61,6 +62,7 @@ async fn main() -> Result<(), anyhow::Error> {
         dotenvy::dotenv().ok();
     }
     let config = DefGuardConfig::new();
+    SERVER_CONFIG.set(config.clone())?;
     logger_setup(&config.log_level)?;
     match config.openid_signing_key {
         Some(_) => log::info!("Using RSA OpenID signing key"),

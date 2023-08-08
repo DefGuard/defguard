@@ -2,15 +2,13 @@ use crate::{
     config::DefGuardConfig,
     db::{
         models::{device::DeviceInfo, enrollment::Enrollment},
-        DbPool, Device, GatewayEvent, Settings, User,
+        DbPool, Device, GatewayEvent, User,
     },
     handlers::{self, user::check_password_strength},
     ldap::utils::ldap_add_user,
     license::{Features, License},
     mail::Mail,
-    templates,
 };
-use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
 
@@ -87,22 +85,6 @@ impl EnrollmentServer {
     }
 }
 
-async fn get_settings(
-    transaction: &mut Transaction<'_, sqlx::Postgres>,
-) -> Result<Settings, Status> {
-    let settings = Settings::find_by_id(transaction, 1)
-        .await
-        .map_err(|err| {
-            error!("Failed to get settings: {err}");
-            Status::internal("unexpected error")
-        })?
-        .ok_or_else(|| {
-            error!("Failed to get settings");
-            Status::internal("unexpected error")
-        })?;
-    Ok(settings)
-}
-
 #[tonic::async_trait]
 impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn start_enrollment(
@@ -132,13 +114,13 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             )
             .await?;
 
-        let settings = get_settings(&mut transaction).await?;
-
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),
             user: Some(user.into()),
             deadline_timestamp: session_deadline.timestamp(),
-            final_page_content: settings.enrollment_welcome_message()?,
+            final_page_content: enrollment
+                .get_welcome_page_content(&mut transaction)
+                .await?,
             vpn_setup_optional: false,
         };
 
@@ -192,19 +174,19 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // send welcome email
         debug!("Sending welcome mail to {}", user.username);
-        let settings = get_settings(&mut transaction).await?;
-        let content = settings.enrollment_welcome_email()?;
-
         let mail = Mail {
             to: user.email.clone(),
             subject: ENROLLMENT_WELCOME_MAIL_SUBJECT.to_string(),
-            content: templates::enrollment_welcome_mail(&content).map_err(|err| {
-                error!(
-                    "Failed to render welcome email for user {}: {err}",
-                    user.username
-                );
-                Status::internal("unexpected error")
-            })?,
+            content: enrollment
+                .get_welcome_email_content(&mut transaction)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to render welcome email for user {}: {err}",
+                        user.username
+                    );
+                    Status::internal("unexpected error")
+                })?,
             result_tx: None,
         };
         match self.mail_tx.send(mail) {

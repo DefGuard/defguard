@@ -34,3 +34,14 @@ pub struct Settings {
     pub enrollment_welcome_email: Option<String>,
     pub enrollment_use_welcome_message_as_email: bool,
 }
+
+impl Settings {
+    pub(crate) async fn get_settings<'e, E>(executor: E) -> Result<Settings, sqlx::Error>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
+        let settings = Settings::find_by_id(executor, 1).await?;
+
+        Ok(settings.expect("Settings not found"))
+    }
+}
