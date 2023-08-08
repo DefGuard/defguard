@@ -5,7 +5,7 @@
 
 use crate::{
     db::User,
-    handlers::support::{configuration, logs},
+    handlers::{support::{configuration, logs}, mail::send_support_data},
 };
 
 #[cfg(feature = "worker")]
@@ -206,7 +206,7 @@ pub async fn build_webapp(
                 change_enabled
             ],
         )
-        .mount("/api/v1/mail", routes![test_mail,]);
+        .mount("/api/v1/mail", routes![test_mail, send_support_data]);
 
     #[cfg(feature = "wireguard")]
     let webapp = webapp.manage(gateway_state).mount(

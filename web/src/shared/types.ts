@@ -442,6 +442,7 @@ export interface ApiHook {
   };
   mail: {
     sendTestMail: (data: TestMail) => EmptyApiResponse;
+    sendSupportMail: () => EmptyApiResponse;
   };
 }
 

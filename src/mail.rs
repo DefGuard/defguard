@@ -8,7 +8,7 @@ use lettre::{
 };
 use sqlx::{Pool, Postgres};
 use thiserror::Error;
-use tokio::sync::{mpsc::UnboundedReceiver, oneshot::Sender};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::db::{models::settings::SmtpEncryption, Settings};
 
@@ -91,7 +91,7 @@ pub struct Mail {
     pub subject: String,
     pub content: String,
     pub attachments: Vec<Attachment>,
-    pub result_tx: Option<Sender<Result<Response, MailError>>>,
+    pub result_tx: Option<UnboundedSender<Result<Response, MailError>>>,
 }
 
 pub struct Attachment {
@@ -150,8 +150,8 @@ impl MailHandler {
         Self { rx, db }
     }
 
-    pub fn send_result(
-        tx: Option<Sender<Result<Response, MailError>>>,
+    pub async fn send_result(
+        tx: Option<UnboundedSender<Result<Response, MailError>>>,
         result: Result<Response, MailError>,
     ) {
         if let Some(tx) = tx {
@@ -181,7 +181,7 @@ impl MailHandler {
             };
 
             // Construct lettre Message
-            // let result_tx = mail.result_tx;
+            let result_tx = mail.result_tx.clone();
             let message: Message = match mail.to_message(&settings.sender) {
                 Ok(message) => message,
                 Err(err) => {
@@ -193,21 +193,21 @@ impl MailHandler {
             match self.mailer(settings).await {
                 Ok(mailer) => match mailer.send(message).await {
                     Ok(response) => {
-                        Self::send_result(mail.result_tx, Ok(response.clone()));
+                        Self::send_result(result_tx, Ok(response.clone())).await;
                         info!("Mail sent successfully to: {to}, subject: {subject}, response: {response:?}");
                     }
                     Err(err) => {
                         error!("Mail sending failed to: {to}, subject: {subject}, error: {err}");
-                        Self::send_result(mail.result_tx, Err(MailError::SmtpError(err)));
+                        Self::send_result(result_tx, Err(MailError::SmtpError(err))).await;
                     }
                 },
                 Err(MailError::SmtpNotConfigured) => {
                     warn!("SMTP not configured, onboarding email sending skipped");
-                    Self::send_result(mail.result_tx, Err(MailError::SmtpNotConfigured));
+                    Self::send_result(result_tx, Err(MailError::SmtpNotConfigured)).await;
                 }
                 Err(err) => {
                     error!("Error building mailer: {err}");
-                    Self::send_result(mail.result_tx, Err(err))
+                    Self::send_result(result_tx, Err(err)).await
                 }
             }
         }

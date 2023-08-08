@@ -7,7 +7,7 @@ use rocket::{
     serde::json::{serde_json::json, Json},
     State,
 };
-use tokio::sync::oneshot::channel;
+use tokio::sync::mpsc::unbounded_channel;
 
 use crate::{
     appstate::AppState,
@@ -19,7 +19,6 @@ use crate::{
 };
 
 const TEST_MAIL_SUBJECT: &str = "Defguard email test";
-// TODO
 const SUPPORT_EMAIL_ADDRESS: &str = "jchmielewski@teonite.com";
 const SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
 
@@ -51,7 +50,7 @@ pub async fn test_mail(
         session.user.username, data.to
     );
 
-    let (tx, rx) = channel();
+    let (tx, mut rx) = unbounded_channel();
     let mail = Mail {
         to: data.to.clone(),
         subject: TEST_MAIL_SUBJECT.to_string(),
@@ -61,8 +60,8 @@ pub async fn test_mail(
     };
     let (to, subject) = (mail.to.clone(), mail.subject.clone());
     match appstate.mail_tx.send(mail) {
-        Ok(_) => match rx.await {
-            Ok(Ok(_)) => {
+        Ok(_) => match rx.recv().await {
+            Some(Ok(_)) => {
                 info!(
                     "User {} sent test mail to {}",
                     session.user.username, data.to
@@ -72,15 +71,19 @@ pub async fn test_mail(
                     status: Status::Ok,
                 })
             }
-            Ok(Err(err)) => Ok(internal_error(&to, &subject, &err)),
-            Err(err) => Ok(internal_error(&to, &subject, &err)),
+            Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
+            None => Ok(internal_error(
+                &to,
+                &subject,
+                &String::from("None received"),
+            )),
         },
         Err(err) => Ok(internal_error(&to, &subject, &err)),
     }
 }
 
 #[post("/support", format = "json")]
-pub async fn support(
+pub async fn send_support_data(
     _admin: AdminRole,
     session: SessionInfo,
     appstate: &State<AppState>,
@@ -97,7 +100,7 @@ pub async fn support(
         content: config.into(),
         content_type: ContentType::TEXT_PLAIN,
     };
-    let (tx, rx) = channel();
+    let (tx, mut rx) = unbounded_channel();
     let mail = Mail {
         to: SUPPORT_EMAIL_ADDRESS.to_string(),
         subject: SUPPORT_EMAIL_SUBJECT.to_string(),
@@ -107,8 +110,8 @@ pub async fn support(
     };
     let (to, subject) = (mail.to.clone(), mail.subject.clone());
     match appstate.mail_tx.send(mail) {
-        Ok(_) => match rx.await {
-            Ok(Ok(_)) => {
+        Ok(_) => match rx.recv().await {
+            Some(Ok(_)) => {
                 info!(
                     "User {} sent support mail to {}",
                     session.user.username, SUPPORT_EMAIL_ADDRESS
@@ -118,8 +121,12 @@ pub async fn support(
                     status: Status::Ok,
                 })
             }
-            Ok(Err(err)) => Ok(internal_error(&to, &subject, &err)),
-            Err(err) => Ok(internal_error(&to, &subject, &err)),
+            Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
+            None => Ok(internal_error(
+                &to,
+                &subject,
+                &String::from("None received"),
+            )),
         },
         Err(err) => Ok(internal_error(&to, &subject, &err)),
     }

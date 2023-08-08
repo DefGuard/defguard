@@ -27,6 +27,7 @@ export const DebugDataCard = () => {
     settings?.smtp_sender;
   const {
     settings: { downloadSupportData, downloadLogs },
+    mail: {sendSupportMail},
   } = useApi();
   const {
     data: supportData,
