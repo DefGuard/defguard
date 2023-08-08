@@ -6,6 +6,7 @@ static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.tpl");
 static MAIL_ENROLLMENT_START: &str = include_str!("../templates/mail_enrollment_start.tpl");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tpl");
+static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tpl");
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
@@ -13,6 +14,7 @@ pub enum TemplateError {
     TemplateError(#[from] tera::Error),
 }
 
+// test message sent when requested during SMTP configuration process
 pub fn test_mail() -> Result<String, TemplateError> {
     let mut tera = Tera::default();
     tera.add_raw_template("mail_base", MAIL_BASE)?;
@@ -58,6 +60,15 @@ pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
     Ok(tera.render("mail_enrollment_welcome", &context)?)
 }
 
+// message with support data
+pub fn support_data_mail() -> Result<String, TemplateError> {
+    let mut tera = Tera::default();
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_support_data", MAIL_SUPPORT_DATA)?;
+
+    Ok(tera.render("mail_support_data", &Context::new())?)
+}
+
 #[cfg(test)]
 mod test {
     use claims::assert_ok;
@@ -79,5 +90,10 @@ mod test {
     #[test]
     fn test_enrollment_welcome_mail() {
         assert_ok!(enrollment_welcome_mail("Hi there! Welcome to DefGuard."));
+    }
+
+    #[test]
+    fn test_support_data_mail() {
+        assert_ok!(support_data_mail());
     }
 }

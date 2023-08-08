@@ -186,6 +186,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 );
                 Status::internal("unexpected error")
             })?,
+            attachments: Vec::new(),
             result_tx: None,
         };
         match self.mail_tx.send(mail) {

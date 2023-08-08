@@ -220,6 +220,7 @@ impl User {
                 subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
                 content: templates::enrollment_start_mail(enrollment_service_url, &enrollment.id)
                     .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+                attachments: Vec::new(),
                 result_tx: None,
             };
             match mail_tx.send(mail) {
