@@ -3,7 +3,6 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
-import { Search } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
