@@ -39,7 +39,7 @@ export const WizardMapDevices = () => {
   const setImportedDevices = useWizardStore((state) => state.setImportedDevices);
   const [submitSubject, nextStepSubject] = useWizardStore(
     (state) => [state.submitSubject, state.nextStepSubject],
-    shallow
+    shallow,
   );
   const importedDevices = useWizardStore((state) => state.importedNetworkDevices);
   const importedNetwork = useWizardStore((state) => state.importedNetworkConfig);
@@ -55,7 +55,7 @@ export const WizardMapDevices = () => {
           user_id: yup.number().required().min(1),
           wireguard_pubkey: yup.string().required(),
           name: yup.string().required(),
-        })
+        }),
       ),
     });
   }, []);
@@ -92,7 +92,7 @@ export const WizardMapDevices = () => {
         key: user.id as number,
         meta: ``,
       })) ?? [],
-    [users]
+    [users],
   );
 
   const getHeaders = useMemo(
@@ -101,14 +101,14 @@ export const WizardMapDevices = () => {
       { text: 'IP', key: 1, sortable: false },
       { text: 'User', key: 2, sortable: false },
     ],
-    []
+    [],
   );
 
   const renderRow = useCallback(
     (data: DeviceRowData) => (
       <MapDeviceRow options={getUsersOptions} control={control} index={data.itemIndex} />
     ),
-    [control, getUsersOptions]
+    [control, getUsersOptions],
   );
 
   const handleValidSubmit: SubmitHandler<WizardMapFormValues> = (values) => {

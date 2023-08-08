@@ -17,6 +17,6 @@ export const useAppStore = create<AppStore>()(
       name: 'app-store',
       partialize: (store) => pick(store, ['settings', 'language']),
       storage: createJSONStorage(() => sessionStorage),
-    }
-  )
+    },
+  ),
 );

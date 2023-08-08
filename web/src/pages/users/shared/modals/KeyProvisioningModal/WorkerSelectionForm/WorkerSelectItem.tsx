@@ -145,7 +145,7 @@ const WorkerSelectItem = React.forwardRef<HTMLInputElement, Props>(
         </div>
       </motion.div>
     );
-  }
+  },
 );
 
 export default WorkerSelectItem;

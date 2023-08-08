@@ -60,7 +60,7 @@ export const RegisterWebAuthNForm = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const formSchema = useMemo(
@@ -75,7 +75,7 @@ export const RegisterWebAuthNForm = () => {
         })
         .required(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale]
+    [locale],
   );
 
   const {
@@ -141,7 +141,7 @@ export const RegisterWebAuthNForm = () => {
                   errorType = split[0];
                   if (errorType === 'InvalidStateError') {
                     toaster.error(
-                      LL.modals.manageWebAuthNKeys.messages.duplicateKeyError()
+                      LL.modals.manageWebAuthNKeys.messages.duplicateKeyError(),
                     );
                   }
                 } else {

@@ -62,7 +62,7 @@
           margin: 0;
           padding: 0;
 
-          @include typography(12px, 14px, medium, var(--gray-light));
+          @include typography-legacy(12px, 14px, medium, var(--gray-light));
         }
       }
     }

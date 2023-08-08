@@ -60,7 +60,7 @@ export const patternValidUrl = new RegExp(
     // resource path (optional)
     '(?:[/?#]\\S*)?' +
     '$',
-  'i'
+  'i',
 );
 
 export const patternValidDomain =

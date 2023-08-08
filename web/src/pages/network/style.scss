@@ -98,7 +98,7 @@
         margin-bottom: 20px;
 
         h2 {
-          @include typography(20px, 30px, semiBold, var(--text-main), 'Poppins');
+          @include typography-legacy(20px, 30px, semiBold, var(--text-main), 'Poppins');
         }
       }
 

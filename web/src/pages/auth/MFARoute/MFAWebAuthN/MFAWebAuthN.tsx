@@ -33,7 +33,7 @@ export const MFAWebAuthN = () => {
   const toaster = useToaster();
   const [webauthnAvailable, web3Available, totpAvailable] = useMFAStore(
     (state) => [state.webauthn_available, state.web3_available, state.totp_available],
-    shallow
+    shallow,
   );
 
   const { mutate: mfaFinish, isLoading: mfaFinishLoading } = useMutation(
@@ -45,7 +45,7 @@ export const MFAWebAuthN = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const { mutate: mfaStart, isLoading: mfaStartLoading } = useMutation(
@@ -63,7 +63,7 @@ export const MFAWebAuthN = () => {
           })
           .finally(() => setAwaitingKey(false));
       },
-    }
+    },
   );
 
   useEffect(() => {

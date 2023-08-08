@@ -83,7 +83,7 @@ export const UsersOverview = () => {
             .includes(usersSearchValue.toLocaleLowerCase()) ||
           user.last_name
             ?.toLocaleLowerCase()
-            .includes(usersSearchValue.toLocaleLowerCase())
+            .includes(usersSearchValue.toLocaleLowerCase()),
       );
     }
     if (searched.length) {

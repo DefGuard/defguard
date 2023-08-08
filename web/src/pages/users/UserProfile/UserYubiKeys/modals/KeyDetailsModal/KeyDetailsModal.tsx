@@ -18,7 +18,7 @@ export const KeyDetailsModal = () => {
   const { LL } = useI18nContext();
   const [{ visible: isOpen, user }, setModalValues] = useModalStore(
     (state) => [state.keyDetailModal, state.setKeyDetailModal],
-    shallow
+    shallow,
   );
 
   const setIsOpen = (v: boolean) => setModalValues({ visible: v });

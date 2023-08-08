@@ -62,7 +62,7 @@ export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const { mutate: updateWalletMFAMutation } = useMutation(
@@ -86,7 +86,7 @@ export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const copyWalletAddress = useCallback(() => {

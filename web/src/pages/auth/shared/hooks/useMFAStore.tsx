@@ -25,6 +25,6 @@ export const useMFAStore = create<MFAStore, [['zustand/persist', MFAStore]]>(
     {
       name: 'mfa-storage',
       storage: createJSONStorage(() => sessionStorage),
-    }
-  )
+    },
+  ),
 );

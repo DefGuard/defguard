@@ -32,7 +32,7 @@ export const MFAWeb3 = () => {
   const toaster = useToaster();
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
     (state) => [state.totp_available, state.web3_available, state.webauthn_available],
-    shallow
+    shallow,
   );
   const loginSubject = useAuthStore((state) => state.loginSubject);
 
@@ -47,7 +47,7 @@ export const MFAWeb3 = () => {
         if (isConnected) {
         }
       },
-    }
+    },
   );
 
   const { mutate: mfaStartMutation, isLoading: startLoading } = useMutation(
@@ -65,7 +65,7 @@ export const MFAWeb3 = () => {
           toaster.error(LL.loginPage.mfa.wallet.messages.walletError());
         }
       },
-    }
+    },
   );
 
   const navigate = useNavigate();

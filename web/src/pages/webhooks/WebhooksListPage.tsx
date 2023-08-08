@@ -74,7 +74,7 @@ export const WebhooksListPage = () => {
         key: 3,
       },
     ],
-    [LL.webhooksOverview.filterLabels]
+    [LL.webhooksOverview.filterLabels],
   );
   const [selectedFilter, setSelectedFilter] = useState(filterOptions[0]);
   const { mutate: deleteWebhookMutation, isLoading: deleteWebhookIsLoading } =
@@ -220,7 +220,7 @@ export const WebhooksListPage = () => {
       res = clone(webhooks);
       if (searchValue && searchValue.length) {
         res = res.filter((webhook) =>
-          webhook.url.toLowerCase().includes(searchValue.toLowerCase())
+          webhook.url.toLowerCase().includes(searchValue.toLowerCase()),
         );
       }
       res = orderBy(res, ['url'], ['asc']);

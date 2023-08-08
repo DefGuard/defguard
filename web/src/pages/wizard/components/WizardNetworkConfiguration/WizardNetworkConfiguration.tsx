@@ -44,7 +44,7 @@ export const WizardNetworkConfiguration = () => {
 
   const [submitSubject, nextSubject, setWizardState] = useWizardStore(
     (state) => [state.submitSubject, state.nextStepSubject, state.setState],
-    shallow
+    shallow,
   );
 
   const wizardNetworkConfiguration = useWizardStore((state) => state.manualNetworkConfig);
@@ -74,7 +74,7 @@ export const WizardNetworkConfiguration = () => {
           key: g,
           value: g,
           label: titleCase(g),
-        }))
+        })),
       );
     },
     onError: (err) => {
@@ -137,7 +137,7 @@ export const WizardNetworkConfiguration = () => {
           allowed_groups: yup.array().optional(),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
 
   const getDefaultValues = useMemo((): FormInputs => {

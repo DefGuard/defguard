@@ -24,7 +24,7 @@ export const ProfileDetails = () => {
   const { LL } = useI18nContext();
   const [editMode, userProfile] = useUserProfileStore(
     (state) => [state.editMode, state.userProfile],
-    shallow
+    shallow,
   );
   return (
     <section id="profile-details">
@@ -61,7 +61,7 @@ const ViewMode = () => {
       onError: () => {
         toaster.error(LL.messages.error());
       },
-    }
+    },
   );
   const user = useUserProfileStore((store) => store.userProfile?.user);
 

@@ -32,7 +32,7 @@ export const Navigation = () => {
   const { LL } = useI18nContext();
   const [currentUser, resetAuthStore] = useAuthStore(
     (state) => [state.user, state.resetState],
-    shallow
+    shallow,
   );
   const setStore = useNavigationStore((state) => state.setState);
   const networksPresent = useAppStore((state) => state.appInfo?.network_present);

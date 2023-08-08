@@ -1,46 +1,35 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgIconHamburgerMenu1 = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={30} height={30} {...props}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={30}
+    height={30}
+    viewBox="0 0 30 30"
+    {...props}
+  >
     <defs>
-      <clipPath id="icon-hamburger-menu-1_svg__a">
+      <clipPath id="a">
         <path
-          className="icon-hamburger-menu-1_svg__a"
-          transform="translate(-4 -4)"
           d="M0 0h30v30H0z"
+          style={{
+            opacity: 0,
+            fill: '#899ca8',
+          }}
+          transform="translate(-4 -4)"
         />
       </clipPath>
-      <style>
-        {
-          '\n      .icon-hamburger-menu-1_svg__a,.icon-hamburger-menu-1_svg__c{fill:#899ca8}.icon-hamburger-menu-1_svg__a{opacity:0}.icon-hamburger-menu-1_svg__b{clip-path:url(#icon-hamburger-menu-1_svg__a)}\n    '
-        }
-      </style>
+      <style>{'.c{fill:#899ca8}'}</style>
     </defs>
-    <g transform="translate(-308 -223)" className="icon-hamburger-menu-1_svg__b">
-      <rect
-        className="icon-hamburger-menu-1_svg__c"
-        width={20}
-        height={2}
-        rx={1}
-        transform="translate(313 231)"
-      />
-      <rect
-        className="icon-hamburger-menu-1_svg__c"
-        width={14}
-        height={2}
-        rx={1}
-        transform="translate(313 237)"
-      />
-      <rect
-        className="icon-hamburger-menu-1_svg__c"
-        width={14}
-        height={2}
-        rx={1}
-        transform="translate(313 243)"
-      />
+    <g
+      style={{
+        clipPath: 'url(#a)',
+      }}
+      transform="translate(-308 -223)"
+    >
+      <rect width={20} height={2} className="c" rx={1} transform="translate(313 231)" />
+      <rect width={14} height={2} className="c" rx={1} transform="translate(313 237)" />
+      <rect width={14} height={2} className="c" rx={1} transform="translate(313 243)" />
     </g>
   </svg>
 );
-
 export default SvgIconHamburgerMenu1;

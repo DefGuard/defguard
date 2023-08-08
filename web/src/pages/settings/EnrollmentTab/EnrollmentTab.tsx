@@ -86,7 +86,7 @@ export const EnrollmentTab = () => {
 
   const defaultVpnOptionality =
     vpnOptionalityOptions.filter(
-      (option) => option.value === settings?.enrollment_vpn_step_optional
+      (option) => option.value === settings?.enrollment_vpn_step_optional,
     )[0] || vpnOptionalityOptions[0];
   const { control, handleSubmit } = useForm<Inputs>({
     defaultValues: useMemo(() => {

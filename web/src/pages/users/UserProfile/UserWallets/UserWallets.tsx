@@ -37,7 +37,7 @@ export const UserWallets = () => {
     ) {
       toaster.warning(
         LL.userPage.wallets.messages.duplicate.primary(),
-        LL.userPage.wallets.messages.duplicate.sub()
+        LL.userPage.wallets.messages.duplicate.sub(),
       );
     } else {
       setModalsState({ addWalletModal: { visible: true } });

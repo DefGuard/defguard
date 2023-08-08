@@ -15,7 +15,7 @@ const modalSteps: ReactNode[] = [<SetupStep key={0} />, <ConfigStep key={1} />];
 export const UserDeviceModal = () => {
   const [visible, currentStep, device, mode] = useDeviceModal(
     (state) => [state.visible, state.currentStep, state.device, state.setupMode],
-    shallow
+    shallow,
   );
   const { LL } = useI18nContext();
   const setDeviceModal = useDeviceModal((state) => state.setState);

@@ -56,7 +56,7 @@ export const DeviceCard = ({ device }: Props) => {
       classNames('device-card', {
         expanded,
       }),
-    [expanded]
+    [expanded],
   );
 
   const getContainerAnimate = useMemo((): TargetAndTransition => {
@@ -72,17 +72,17 @@ export const DeviceCard = ({ device }: Props) => {
   // first, order by last_connected_at then if not preset, by network_id
   const orderedLocations = useMemo((): DeviceNetworkInfo[] => {
     const connected = device.networks.filter(
-      (network) => !isUndefined(network.last_connected_at)
+      (network) => !isUndefined(network.last_connected_at),
     );
 
     const neverConnected = device.networks.filter((network) =>
-      isUndefined(network.last_connected_at)
+      isUndefined(network.last_connected_at),
     );
 
     const connectedSorted = sortByDate(
       connected,
       (n) => n.last_connected_at as string,
-      true
+      true,
     );
     const neverConnectedSorted = orderBy(neverConnected, ['network_id'], ['desc']);
 

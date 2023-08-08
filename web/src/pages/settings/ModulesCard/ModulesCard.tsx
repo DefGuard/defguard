@@ -62,7 +62,7 @@ export const ModulesCard = () => {
           {parse(
             LL.settingsPage.modulesVisibility.helper({
               documentationLink: externalLink.gitbook.base,
-            })
+            }),
           )}
         </Helper>
       </header>

@@ -45,12 +45,12 @@ export const UserAuthInfoMFA = () => {
 
   const mfaWebAuthNEnabled = useMemo(
     () => userProfile?.security_keys && userProfile.security_keys.length > 0,
-    [userProfile]
+    [userProfile],
   );
 
   const mfaWeb3Enabled = useMemo(
     () => !isUndefined(userProfile?.wallets.find((w) => w.use_for_mfa === true)),
-    [userProfile]
+    [userProfile],
   );
 
   const toaster = useToaster();
@@ -78,7 +78,7 @@ export const UserAuthInfoMFA = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const { mutate: editUserMutation } = useMutation([MutationKeys.EDIT_USER], editUser, {

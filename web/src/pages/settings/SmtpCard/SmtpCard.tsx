@@ -69,7 +69,7 @@ export const SmtpCard = () => {
           smtp_server: yup
             .string()
             .test(LL.form.error.endpoint(), (val: string | undefined) =>
-              !val ? true : validateIpOrDomain(val)
+              !val ? true : validateIpOrDomain(val),
             ),
           smtp_port: yup
             .number()
@@ -81,7 +81,7 @@ export const SmtpCard = () => {
           smtp_sender: yup.string().matches(patternValidEmail, LL.form.error.invalid()),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
 
   const encryptionOptions = [

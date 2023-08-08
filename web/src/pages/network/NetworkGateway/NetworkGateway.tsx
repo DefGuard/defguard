@@ -33,7 +33,7 @@ export const NetworkGatewaySetup = () => {
     {
       refetchOnMount: true,
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
   const command = useCallback(() => {
@@ -59,7 +59,7 @@ export const NetworkGatewaySetup = () => {
         }}
       />,
     ],
-    [command, toaster, LL.messages]
+    [command, toaster, LL.messages],
   );
   return (
     <section className="gateway">
@@ -72,7 +72,7 @@ export const NetworkGatewaySetup = () => {
             ? LL.gatewaySetup.messages.runCommand({
                 setupGatewayDocs: externalLink.gitbook.setup.gateway,
               })
-            : LL.gatewaySetup.messages.createNetwork()
+            : LL.gatewaySetup.messages.createNetwork(),
         )}
       </MessageBox>
       {networkToken && (

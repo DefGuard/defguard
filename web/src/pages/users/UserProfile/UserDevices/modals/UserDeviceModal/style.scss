@@ -89,7 +89,7 @@
       & > .top {
         & > .expand-button {
           & > span {
-            @include typography(12px, 1.2, medium, var(--gray-light));
+            @include typography-legacy(12px, 1.2, medium, var(--gray-light));
           }
         }
 

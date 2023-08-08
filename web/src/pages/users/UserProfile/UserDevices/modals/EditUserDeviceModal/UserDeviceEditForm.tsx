@@ -84,7 +84,7 @@ export const EditUserDeviceForm = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const onSubmitSuccess: SubmitHandler<Inputs> = (values) => {

@@ -388,7 +388,7 @@ export interface ApiHook {
         };
         start: () => Promise<CredentialRequestOptionsJSON>;
         finish: (
-          data: PublicKeyCredentialWithAssertionJSON
+          data: PublicKeyCredentialWithAssertionJSON,
         ) => Promise<MFAFinishResponse>;
         deleteKey: (data: DeleteWebAuthNKeyRequest) => EmptyApiResponse;
       };

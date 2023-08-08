@@ -40,11 +40,11 @@ export const ChangeSelfPasswordForm = () => {
             .test(
               'password-match',
               LL.form.error.repeat(),
-              (value, context) => value === context.parent.new_password
+              (value, context) => value === context.parent.new_password,
             ),
         })
         .required(),
-    [LL]
+    [LL],
   );
 
   const { control, handleSubmit } = useForm<FormFields>({

@@ -84,7 +84,7 @@ export const NetworkEditForm = () => {
   const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
   const [selectedNetworkId, networks] = useNetworkPageStore(
     (state) => [state.selectedNetworkId, state.networks],
-    shallow
+    shallow,
   );
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
@@ -121,7 +121,7 @@ export const NetworkEditForm = () => {
           key: g,
           value: g,
           label: titleCase(g),
-        }))
+        })),
       );
     },
     onError: (err) => {

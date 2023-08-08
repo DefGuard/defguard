@@ -157,5 +157,5 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
         </div>
       </div>
     );
-  }
+  },
 );

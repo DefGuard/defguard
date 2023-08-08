@@ -92,7 +92,7 @@
       }
 
       h1 {
-        @include typography(41px, 57px, semiBold, var(--text-main), 'Poppins');
+        @include typography-legacy(41px, 57px, semiBold, var(--text-main), 'Poppins');
 
         grid-column: 1;
         grid-row: 1;
@@ -187,11 +187,11 @@
     }
 
     h1 {
-      @include typography(41px, 57px, semiBold, var(--text-main), 'Poppins');
+      @include typography-legacy(41px, 57px, semiBold, var(--text-main), 'Poppins');
     }
 
     h2 {
-      @include typography(20px, 28px, semiBold, var(--text-main), 'Poppins');
+      @include typography-legacy(20px, 28px, semiBold, var(--text-main), 'Poppins');
     }
   }
 

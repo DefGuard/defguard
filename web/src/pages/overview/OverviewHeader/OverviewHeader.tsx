@@ -25,13 +25,13 @@ export const OverviewHeader = ({ loading = false }: Props) => {
   const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
   const [selectedNetworkId, networks] = useOverviewStore(
     (state) => [state.selectedNetworkId, state.networks],
-    shallow
+    shallow,
   );
   const navigate = useNavigate();
 
   const selectedNetwork = useMemo(
     () => networks?.find((n) => n.id === selectedNetworkId),
-    [networks, selectedNetworkId]
+    [networks, selectedNetworkId],
   );
 
   const handleNetworkAction = () => {

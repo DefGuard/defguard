@@ -79,7 +79,7 @@ export const DefaultNetworkSelect = () => {
           {parse(
             LL.settingsPage.defaultNetworkSelect.helper({
               documentationLink: externalLink.gitbook.base,
-            })
+            }),
           )}
         </Helper>
       </header>

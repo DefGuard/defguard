@@ -38,7 +38,7 @@ export const TestForm = () => {
     onError: (err: SMTPError) => {
       toaster.error(
         `${LL.settingsPage.smtp.test_form.controls.error()}`,
-        `${err.response?.data.error}`
+        `${err.response?.data.error}`,
       );
       console.error(err);
     },
@@ -51,7 +51,7 @@ export const TestForm = () => {
           to: yup.string().matches(patternValidEmail, LL.form.error.invalid()),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
 
   const { control: testControl, handleSubmit: handleTestSubmit } = useForm<TestMail>({

@@ -37,7 +37,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
   const networkPresent = useAppStore((state) => state.appInfo?.network_present);
   const [currentStep, loading] = useWizardStore(
     (state) => [state.currentStep, state.loading],
-    shallow
+    shallow,
   );
   const [back, submitSubject, next, nextSubject, resetState] = useWizardStore(
     (state) => [
@@ -47,7 +47,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
       state.nextStepSubject,
       state.resetState,
     ],
-    shallow
+    shallow,
   );
 
   useEffect(() => {

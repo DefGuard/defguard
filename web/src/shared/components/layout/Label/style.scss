@@ -1,7 +1,0 @@
-@use '../../../../shared/scss/helpers' as *;
-
-label {
-  @include label-text;
-
-  user-select: none;
-}

@@ -200,7 +200,7 @@
         background-color: var(--bg-light);
 
         & > span {
-          @include typography(12px, 14px, medium, var(--gray-light));
+          @include typography-legacy(12px, 14px, medium, var(--gray-light));
         }
       }
     }
@@ -219,7 +219,7 @@
     & > .name {
       grid-row: 1;
       grid-column: 1 / 2;
-      @include typography(15px, 21px, medium, $font-family: 'Poppins');
+      @include typography-legacy(15px, 21px, medium, $font-family: 'Poppins');
       @include text-overflow-dots;
       user-select: none;
     }
@@ -250,7 +250,7 @@
       justify-content: center;
       height: 100%;
       & > span {
-        @include typography(15px, 18px, medium);
+        @include typography-legacy(15px, 18px, medium);
         @include text-overflow-dots;
 
         text-align: left;
@@ -259,7 +259,7 @@
   }
 
   .network-usage {
-    @include typography(12px, 14px, medium);
+    @include typography-legacy(12px, 14px, medium);
   }
 
   .network-usage-summary {
@@ -293,7 +293,7 @@
   span {
     &.label {
       user-select: none;
-      @include typography(12px, 14px, medium, var(--gray-light));
+      @include typography-legacy(12px, 14px, medium, var(--gray-light));
     }
   }
 }

@@ -57,7 +57,7 @@ export const OverviewPage = () => {
           }
         }
       },
-    }
+    },
   );
 
   const { data: networkStats } = useQuery(
@@ -71,7 +71,7 @@ export const OverviewPage = () => {
       refetchOnWindowFocus: false,
       refetchInterval: STATUS_REFETCH_TIMEOUT,
       enabled: !isUndefined(selectedNetworkId),
-    }
+    },
   );
 
   const { data: networkUsersStats, isLoading: userStatsLoading } = useQuery(
@@ -85,7 +85,7 @@ export const OverviewPage = () => {
       enabled: !isUndefined(statsFilter) && !isUndefined(selectedNetworkId),
       refetchOnWindowFocus: false,
       refetchInterval: STATUS_REFETCH_TIMEOUT,
-    }
+    },
   );
 
   const getNetworkUsers = useMemo(() => {
@@ -97,7 +97,7 @@ export const OverviewPage = () => {
           const devices = sortByDate(i.devices, (d) => d.connected_at, false);
           return devices[0].connected_at;
         },
-        false
+        false,
       );
     }
     return res;

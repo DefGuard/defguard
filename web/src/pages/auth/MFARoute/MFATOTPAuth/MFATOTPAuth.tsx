@@ -27,7 +27,7 @@ export const MFATOTPAuth = () => {
   const loginSubject = useAuthStore((state) => state.loginSubject);
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
     (state) => [state.totp_available, state.web3_available, state.webauthn_available],
-    shallow
+    shallow,
   );
   const {
     auth: {

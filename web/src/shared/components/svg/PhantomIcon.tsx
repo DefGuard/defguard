@@ -1,9 +1,6 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg
-    viewBox="0 0 24 24"
     xmlns="http://www.w3.org/2000/svg"
     xmlSpace="preserve"
     style={{
@@ -12,6 +9,7 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
       strokeLinejoin: 'round',
       strokeMiterlimit: 2,
     }}
+    viewBox="0 0 24 24"
     {...props}
   >
     <circle
@@ -19,25 +17,25 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
       cy={12}
       r={12}
       style={{
-        fill: 'url(#phantom-icon_svg__a)',
+        fill: 'url(#a)',
       }}
     />
     <path
       d="M20.591 12.146h-2.116c0-4.311-3.507-7.806-7.833-7.806-4.273 0-7.747 3.41-7.832 7.647-.088 4.38 4.036 8.183 8.432 8.183h.553c3.876 0 9.07-3.023 9.882-6.707.15-.679-.388-1.317-1.086-1.317Zm-13.093.192a1.052 1.052 0 0 1-2.103 0v-1.695a1.052 1.052 0 0 1 2.103 0v1.695Zm3.652 0a1.052 1.052 0 0 1-2.103 0v-1.695a1.052 1.052 0 0 1 2.103 0v1.695Z"
       style={{
-        fill: 'url(#phantom-icon_svg__b)',
+        fill: 'url(#b)',
         fillRule: 'nonzero',
       }}
     />
     <defs>
       <linearGradient
-        id="phantom-icon_svg__a"
+        id="a"
         x1={0}
-        y1={0}
         x2={1}
+        y1={0}
         y2={0}
-        gradientUnits="userSpaceOnUse"
         gradientTransform="matrix(0 24 -24 0 12 0)"
+        gradientUnits="userSpaceOnUse"
       >
         <stop
           offset={0}
@@ -55,13 +53,13 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
         />
       </linearGradient>
       <linearGradient
-        id="phantom-icon_svg__b"
+        id="b"
         x1={0}
-        y1={0}
         x2={1}
+        y1={0}
         y2={0}
-        gradientUnits="userSpaceOnUse"
         gradientTransform="rotate(90 3.957 8.298) scale(15.8298)"
+        gradientUnits="userSpaceOnUse"
       >
         <stop
           offset={0}
@@ -81,5 +79,4 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
     </defs>
   </svg>
 );
-
 export default SvgPhantomIcon;

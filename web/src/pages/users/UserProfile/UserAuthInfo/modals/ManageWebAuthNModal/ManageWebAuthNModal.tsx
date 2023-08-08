@@ -44,7 +44,7 @@ export const ManageWebAuthNKeysModal = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   return (

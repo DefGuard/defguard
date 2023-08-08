@@ -38,11 +38,11 @@ export const ProvisionersPage = () => {
         value: FilterOptions.UNAVAILABLE,
       },
     ],
-    [LL.provisionersOverview.filterLabels]
+    [LL.provisionersOverview.filterLabels],
   );
 
   const [selectedFilterOption, setSelectedFilterOption] = useState(
-    filterSelectOptions[0]
+    filterSelectOptions[0],
   );
   const [searchValue, setSearchValue] = useState<string>('');
 
@@ -56,7 +56,7 @@ export const ProvisionersPage = () => {
     {
       refetchOnWindowFocus: false,
       refetchInterval: 5000,
-    }
+    },
   );
 
   const filteredProvisioners = useMemo(() => {

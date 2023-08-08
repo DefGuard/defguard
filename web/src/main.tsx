@@ -19,5 +19,5 @@ root.render(
         </TypesafeI18n>
       </Web3ContextProvider>
     </QueryClientProvider>
-  </StrictMode>
+  </StrictMode>,
 );

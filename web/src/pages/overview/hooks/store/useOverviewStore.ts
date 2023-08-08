@@ -22,6 +22,6 @@ export const useOverviewStore = create<
       name: 'overview-store',
       storage: createJSONStorage(() => sessionStorage),
       partialize: (store) => omit(store, ['setState', 'networks']),
-    }
-  )
+    },
+  ),
 );

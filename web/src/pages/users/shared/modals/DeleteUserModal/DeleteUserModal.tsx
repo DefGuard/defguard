@@ -23,7 +23,7 @@ export const DeleteUserModal = () => {
 
   const [modalState, setModalState] = useModalStore(
     (state) => [state.deleteUserModal, state.setDeleteUserModal],
-    shallow
+    shallow,
   );
 
   const toaster = useToaster();
@@ -31,7 +31,7 @@ export const DeleteUserModal = () => {
   const { mutate, isLoading } = useMutation((user: User) => deleteUser(user), {
     onSuccess: (_, variables) => {
       toaster.success(
-        LL.modals.deleteUser.messages.success({ username: variables.username })
+        LL.modals.deleteUser.messages.success({ username: variables.username }),
       );
       queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
       queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);

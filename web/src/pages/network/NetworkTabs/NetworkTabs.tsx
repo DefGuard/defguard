@@ -25,7 +25,7 @@ export const NetworkTabs = () => {
         content: n.name,
         active: n.id === selectedNetworkId,
       })),
-    [networks, selectedNetworkId, setPageState]
+    [networks, selectedNetworkId, setPageState],
   );
 
   return (
