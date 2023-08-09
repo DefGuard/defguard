@@ -21,8 +21,6 @@ use proto::{
     InitialUserInfo, NewDevice,
 };
 
-const ENROLLMENT_WELCOME_MAIL_SUBJECT: &str = "Welcome to Defguard";
-
 pub struct EnrollmentServer {
     pool: DbPool,
     wireguard_tx: Sender<GatewayEvent>,
@@ -179,11 +177,18 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let _result = ldap_add_user(&self.config, &user, &request.password).await;
         };
 
+        let settings = Settings::get_settings(&mut transaction)
+            .await
+            .map_err(|_| {
+                error!("Failed to get settings");
+                Status::internal("unexpected error")
+            })?;
+
         // send welcome email
         debug!("Sending welcome mail to {}", user.username);
         let mail = Mail {
             to: user.email.clone(),
-            subject: ENROLLMENT_WELCOME_MAIL_SUBJECT.to_string(),
+            subject: settings.enrollment_welcome_email_subject.unwrap(),
             content: enrollment
                 .get_welcome_email_content(&mut transaction)
                 .await
