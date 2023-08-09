@@ -77,7 +77,7 @@ export const WebhooksListPage = () => {
     ],
     [LL.webhooksOverview.filterLabels],
   );
-  const [selectedFilter, setSelectedFilter] = useState(filterOptions[0]);
+  const [selectedFilter, setSelectedFilter] = useState(FilterOption.ALL);
   const { mutate: deleteWebhookMutation, isLoading: deleteWebhookIsLoading } =
     useMutation([MutationKeys.DELETE_WEBHOOK], deleteWebhook, {
       onSuccess: () => {
@@ -225,7 +225,7 @@ export const WebhooksListPage = () => {
         );
       }
       res = orderBy(res, ['url'], ['asc']);
-      switch (selectedFilter.value) {
+      switch (selectedFilter) {
         case FilterOption.ALL:
           break;
         case FilterOption.ENABLED:
@@ -239,13 +239,13 @@ export const WebhooksListPage = () => {
       }
     }
     setFilteredWebhooks(res);
-  }, [webhooks, searchValue, selectedFilter.value]);
+  }, [webhooks, searchValue, selectedFilter]);
 
   useEffect(() => {
-    if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOption.ALL) {
-      setSelectedFilter(filterOptions[0]);
+    if (breakpoint !== 'desktop' && selectedFilter !== FilterOption.ALL) {
+      setSelectedFilter(FilterOption.ALL);
     }
-  }, [breakpoint, filterOptions, selectedFilter.value]);
+  }, [breakpoint, filterOptions, selectedFilter]);
 
   const getListPadding = useMemo(() => {
     if (breakpoint === 'desktop') {
@@ -283,11 +283,7 @@ export const WebhooksListPage = () => {
             <Select
               options={filterOptions}
               selected={selectedFilter}
-              onChange={(o) => {
-                if (o && !Array.isArray(o)) {
-                  setSelectedFilter(o);
-                }
-              }}
+              onChangeSingle={(filter) => setSelectedFilter(filter)}
             />
           )}
           <Button

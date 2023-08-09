@@ -134,7 +134,7 @@ export const OpenidClientsListPage = () => {
     if (!clients || (clients && clients.length === 0)) return [];
     let res = orderBy(clients, ['name'], ['asc']);
     res = res.filter((c) => c.name.toLowerCase().includes(searchValue.toLowerCase()));
-    switch (selectedFilter.value) {
+    switch (selectedFilter) {
       case FilterOption.ALL:
         break;
       case FilterOption.ENABLED:
@@ -145,7 +145,7 @@ export const OpenidClientsListPage = () => {
         break;
     }
     return res;
-  }, [clients, searchValue, selectedFilter.value]);
+  }, [clients, searchValue, selectedFilter]);
 
   const listHeaders = useMemo(() => {
     const res: ListHeader[] = [
@@ -261,10 +261,10 @@ export const OpenidClientsListPage = () => {
   }, [breakpoint]);
 
   useEffect(() => {
-    if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOption.ALL) {
+    if (breakpoint !== 'desktop' && selectedFilter !== FilterOption.ALL) {
       setSelectedFilter(selectOptions[0]);
     }
-  }, [breakpoint, selectOptions, selectedFilter.value]);
+  }, [breakpoint, selectOptions, selectedFilter]);
 
   return (
     <PageContainer id="openid-clients-list">

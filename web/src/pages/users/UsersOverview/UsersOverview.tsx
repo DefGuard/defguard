@@ -57,7 +57,7 @@ export const UsersOverview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
 
-  const [selectedFilter, setSelectedFilter] = useState(filterSelectOptions[0]);
+  const [selectedFilter, setSelectedFilter] = useState(FilterOptions.ALL);
 
   const {
     user: { getUsers },
@@ -90,7 +90,7 @@ export const UsersOverview = () => {
     if (searched.length) {
       searched = orderBy(searched, ['username'], ['asc']);
     }
-    switch (selectedFilter.value) {
+    switch (selectedFilter) {
       case FilterOptions.ALL:
         break;
       case FilterOptions.ADMIN:
@@ -101,11 +101,11 @@ export const UsersOverview = () => {
         break;
     }
     return searched;
-  }, [selectedFilter.value, users, usersSearchValue]);
+  }, [selectedFilter, users, usersSearchValue]);
 
   useEffect(() => {
-    if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOptions.ALL) {
-      setSelectedFilter(filterSelectOptions[0]);
+    if (breakpoint !== 'desktop' && selectedFilter !== FilterOptions.ALL) {
+      setSelectedFilter(FilterOptions.ALL);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [breakpoint]);
@@ -134,15 +134,10 @@ export const UsersOverview = () => {
         <div className="controls">
           {breakpoint === 'desktop' && (
             <Select
-              multi={false}
               searchable={false}
               selected={selectedFilter}
               options={filterSelectOptions}
-              onChange={(option) => {
-                if (option && !Array.isArray(option)) {
-                  setSelectedFilter(option);
-                }
-              }}
+              onChangeSingle={(filter) => setSelectedFilter(filter)}
             />
           )}
           <Button

@@ -35,8 +35,10 @@
     }
   },
   "dependencies": {
+    "@floating-ui/react": "^0.25.0",
     "@github/webauthn-json": "^2.1.1",
     "@hookform/resolvers": "^3.1.0",
+    "@ladle/react": "^2.17.1",
     "@stablelib/base64": "^1.0.1",
     "@stablelib/x25519": "^1.0.3",
     "@tanstack/query-core": "^4.32.6",

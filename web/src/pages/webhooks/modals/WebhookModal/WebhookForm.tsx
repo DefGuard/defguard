@@ -203,22 +203,22 @@ export const WebhookForm = () => {
         <FormCheckBox
           controller={{ control, name: 'on_user_created' }}
           label={LL.modals.webhookModal.form.fields.userCreated.label()}
-          labelPosition="right"
+          labelPlacement="right"
         />
         <FormCheckBox
           controller={{ control, name: 'on_user_deleted' }}
           label={LL.modals.webhookModal.form.fields.userDeleted.label()}
-          labelPosition="right"
+          labelPlacement="right"
         />
         <FormCheckBox
           controller={{ control, name: 'on_user_modified' }}
           label={LL.modals.webhookModal.form.fields.userModified.label()}
-          labelPosition="right"
+          labelPlacement="right"
         />
         <FormCheckBox
           controller={{ control, name: 'on_hwkey_provision' }}
           label={LL.modals.webhookModal.form.fields.hwkeyProvision.label()}
-          labelPosition="right"
+          labelPlacement="right"
         />
       </div>
       <div className="controls">
