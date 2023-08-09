@@ -8,13 +8,16 @@ use crate::{
     ldap::utils::ldap_add_user,
     license::{Features, License},
     mail::Mail,
+    templates,
 };
+use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
 
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
+use crate::db::models::enrollment::EnrollmentError;
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
     Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
@@ -185,31 +188,13 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             })?;
 
         // send welcome email
-        debug!("Sending welcome mail to {}", user.username);
-        let mail = Mail {
-            to: user.email.clone(),
-            subject: settings.enrollment_welcome_email_subject.unwrap(),
-            content: enrollment
-                .get_welcome_email_content(&mut transaction)
-                .await
-                .map_err(|err| {
-                    error!(
-                        "Failed to render welcome email for user {}: {err}",
-                        user.username
-                    );
-                    Status::internal("unexpected error")
-                })?,
-            result_tx: None,
-        };
-        match self.mail_tx.send(mail) {
-            Ok(_) => {
-                info!("Sent enrollment welcome mail to {}", user.username);
-            }
-            Err(err) => {
-                error!("Error sending welcome mail: {err}");
-                Status::internal("unexpected error");
-            }
-        }
+        enrollment
+            .send_welcome_email(&mut transaction, &self.mail_tx, &user, &settings)
+            .await?;
+
+        // send success notification to admin
+        let admin = enrollment.fetch_admin(&mut transaction).await?;
+        enrollment.send_admin_notification(&self.mail_tx, &admin, &user)?;
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
@@ -317,6 +302,66 @@ impl From<Device> for ProtoDevice {
             pubkey: device.wireguard_pubkey,
             user_id: device.user_id,
             created_at: device.created.timestamp(),
+        }
+    }
+}
+
+impl Enrollment {
+    async fn send_welcome_email(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        mail_tx: &UnboundedSender<Mail>,
+        user: &User,
+        settings: &Settings,
+    ) -> Result<(), EnrollmentError> {
+        debug!("Sending welcome mail to {}", user.username);
+        let mail = Mail {
+            to: user.email.clone(),
+            subject: settings.enrollment_welcome_email_subject.clone().unwrap(),
+            content: self.get_welcome_email_content(&mut *transaction).await?,
+            result_tx: None,
+        };
+        match mail_tx.send(mail) {
+            Ok(_) => {
+                info!("Sent enrollment welcome mail to {}", user.username);
+                Ok(())
+            }
+            Err(err) => {
+                error!("Error sending welcome mail: {err}");
+                Err(EnrollmentError::NotificationError(err.to_string()))
+            }
+        }
+    }
+
+    // Notify admin that a user has completed enrollment
+    fn send_admin_notification(
+        &self,
+        mail_tx: &UnboundedSender<Mail>,
+        admin: &User,
+        user: &User,
+    ) -> Result<(), EnrollmentError> {
+        debug!(
+            "Sending enrollment success notification for user {} to {}",
+            user.username, admin.username
+        );
+        let mail = Mail {
+            to: admin.email.clone(),
+            subject: "[defguard] User enrollment completed".into(),
+            content: templates::enrollment_admin_notification(user, admin)?,
+            result_tx: None,
+        };
+        match mail_tx.send(mail) {
+            Ok(_) => {
+                info!(
+                    "Sent enrollment success notification for user {} to {}",
+                    user.username, admin.username
+                );
+                Ok(())
+            }
+            Err(err) => {
+                error!("Error sending welcome mail: {err}");
+                Err(EnrollmentError::NotificationError(err.to_string()))
+            }
         }
     }
 }
