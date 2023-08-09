@@ -57,6 +57,10 @@ impl Settings {
         let default_settings = HashMap::from([
             ("enrollment_welcome_message", defaults::WELCOME_MESSAGE),
             ("enrollment_welcome_email", defaults::WELCOME_MESSAGE),
+            (
+                "enrollment_welcome_email_subject",
+                defaults::WELCOME_EMAIL_SUBJECT,
+            ),
         ]);
 
         for (field, value) in default_settings {
@@ -103,4 +107,6 @@ mobile: {{ admin_phone }}
 Sent by defguard {{ defguard_version }}
 Star us on GitHub! https://github.com/defguard/defguard\
 ";
+
+    pub const WELCOME_EMAIL_SUBJECT: &str = "[defguard] Welcome message after enrollment";
 }
