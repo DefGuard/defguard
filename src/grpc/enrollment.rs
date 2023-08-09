@@ -2,7 +2,7 @@ use crate::{
     config::DefGuardConfig,
     db::{
         models::{device::DeviceInfo, enrollment::Enrollment},
-        DbPool, Device, GatewayEvent, User, Settings
+        DbPool, Device, GatewayEvent, Settings, User,
     },
     handlers::{self, user::check_password_strength},
     ldap::utils::ldap_add_user,
@@ -114,10 +114,12 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             )
             .await?;
 
-        let settings = Settings::get_settings(&mut transaction).await.map_err(|_| {
-            error!("Failed to get settings");
-            Status::internal("unexpected error")
-        })?;
+        let settings = Settings::get_settings(&mut transaction)
+            .await
+            .map_err(|_| {
+                error!("Failed to get settings");
+                Status::internal("unexpected error")
+            })?;
 
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),

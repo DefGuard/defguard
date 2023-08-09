@@ -1,6 +1,7 @@
 use crate::db::DbPool;
 use model_derive::Model;
 use sqlx::{query, Type};
+use std::collections::HashMap;
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
@@ -46,16 +47,21 @@ impl Settings {
         Ok(settings.expect("Settings not found"))
     }
 
-    // Set default values for settings if not set yet
+    // Set default values for settings if not set yet.
+    // This is only relevant to a subset of settings which are nullable
+    // and we want to initialize their values.
     pub async fn init_defaults(pool: &DbPool) -> Result<(), sqlx::Error> {
         info!("Initializing default settings");
 
-        // query!(
-        //     "UPDATE settings SET enrollment_welcome_message = $1 WHERE id = 1 ON CONFLICT DO NOTHING",
-        //     defaults::WELCOME_MESSAGE
-        // )
-        // .execute(pool)
-        // .await?;
+        let default_settings = HashMap::from([
+            ("enrollment_welcome_message", defaults::WELCOME_MESSAGE),
+            ("enrollment_welcome_email", defaults::WELCOME_MESSAGE),
+        ]);
+
+        for (field, value) in default_settings {
+            let query_string = format!("UPDATE settings SET {field} = $1 WHERE {field} IS NULL");
+            query(&query_string).bind(value).execute(pool).await?;
+        }
 
         Ok(())
     }
@@ -68,7 +74,7 @@ By completing the enrollment process, you now have now access to all company sys
 
 Your login to all systems is: {{ username }}
 
-# Company systems
+## Company systems
 
 Here are the most important company systems:
 
@@ -77,7 +83,7 @@ Here are the most important company systems:
 - knowledge base: https://example.com ...
 - our JIRA: https://example.atlassian.net...
 
-# Governance
+## Governance
 
 To kickoff your onboarding, please get familiar with:
 
@@ -94,5 +100,6 @@ mobile: {{ admin_phone }}
 
 --
 Sent by defguard {{ defguard_version }}
-Star us on GitHub! https://github.com/defguard/defguard";
+Star us on GitHub! https://github.com/defguard/defguard\
+";
 }
