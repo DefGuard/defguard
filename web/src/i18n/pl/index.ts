@@ -871,6 +871,9 @@ const pl: Translation = {
             'Ta wiadomość zostanie wysłana do użytkowników po zakończeniu rejestracji. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków. Możesz użyć tej samej treści co w wiadomości powitalnej.',
           placeholder: 'Wpisz email powitalny',
         },
+        welcomeEmailSubject: {
+          label: 'Temat',
+        },
         useMessageAsEmail: {
           label: 'Taki sam jak wiadomość powitalna',
         },

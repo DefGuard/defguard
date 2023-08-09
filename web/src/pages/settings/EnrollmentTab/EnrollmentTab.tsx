@@ -1,3 +1,5 @@
+import './styles.scss';
+
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
@@ -31,6 +33,7 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
+import {FormInput} from "../../../shared/components/Form/FormInput/FormInput";
 
 interface Inputs extends Omit<Settings, 'enrollment_vpn_step_optional'> {
   enrollment_vpn_step_optional: SelectOption<boolean>;
@@ -67,6 +70,7 @@ export const EnrollmentTab = () => {
       enrollment_vpn_step_optional: yup.object(),
       enrollment_welcome_message: yup.string(),
       enrollment_welcome_email: yup.string(),
+      enrollment_welcome_email_subject: yup.string(),
       enrollment_use_welcome_message_as_email: yup.boolean(),
     })
     .required();
@@ -94,6 +98,7 @@ export const EnrollmentTab = () => {
         enrollment_vpn_step_optional: defaultVpnOptionality,
         enrollment_welcome_message: settings?.enrollment_welcome_message,
         enrollment_welcome_email: settings?.enrollment_welcome_email,
+        enrollment_welcome_email_subject: settings?.enrollment_welcome_email_subject,
         enrollment_use_welcome_message_as_email:
           settings?.enrollment_use_welcome_message_as_email,
       };
@@ -101,6 +106,7 @@ export const EnrollmentTab = () => {
       defaultVpnOptionality,
       settings?.enrollment_welcome_message,
       settings?.enrollment_welcome_email,
+      settings?.enrollment_welcome_email_subject,
       settings?.enrollment_use_welcome_message_as_email,
     ]),
     resolver: yupResolver(formSchema),
@@ -121,9 +127,11 @@ export const EnrollmentTab = () => {
   if (!settings) return null;
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
+    console.log(data);
     settings.enrollment_vpn_step_optional = data.enrollment_vpn_step_optional.value;
     settings.enrollment_welcome_message = welcomeMessage;
     settings.enrollment_welcome_email = welcomeEmail;
+    settings.enrollment_welcome_email_subject = data.enrollment_welcome_email_subject;
     settings.enrollment_use_welcome_message_as_email =
       data.enrollment_use_welcome_message_as_email;
     mutate(settings);
@@ -192,6 +200,10 @@ export const EnrollmentTab = () => {
                 <h2>{LL.settingsPage.enrollment.welcomeEmail.header()}</h2>
                 <Helper>{parse(LL.settingsPage.enrollment.welcomeEmail.helper())}</Helper>
               </header>
+              <FormInput
+                outerLabel={LL.settingsPage.enrollment.form.welcomeEmailSubject.label()}
+                controller={{ control, name: 'enrollment_welcome_email_subject' }}
+              />
               <MessageBox>
                 <p>{LL.settingsPage.enrollment.form.welcomeEmail.helper()}</p>
               </MessageBox>

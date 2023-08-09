@@ -658,6 +658,7 @@ export interface Settings {
   enrollment_vpn_step_optional: boolean;
   enrollment_welcome_message: string;
   enrollment_welcome_email: string;
+  enrollment_welcome_email_subject: string;
   enrollment_use_welcome_message_as_email: boolean;
 }
 

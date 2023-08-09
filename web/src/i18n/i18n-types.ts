@@ -1981,6 +1981,12 @@ type RootTranslation = {
 					 */
 					placeholder: string
 				}
+				welcomeEmailSubject: {
+					/**
+					 * S​u​b​j​e​c​t
+					 */
+					label: string
+				}
 				useMessageAsEmail: {
 					/**
 					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
@@ -5091,6 +5097,12 @@ export type TranslationFunctions = {
 					 * Please input welcome email
 					 */
 					placeholder: () => LocalizedString
+				}
+				welcomeEmailSubject: {
+					/**
+					 * Subject
+					 */
+					label: () => LocalizedString
 				}
 				useMessageAsEmail: {
 					/**
