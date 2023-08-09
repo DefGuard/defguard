@@ -98,6 +98,7 @@ extern crate rocket;
 #[macro_use]
 extern crate serde;
 
+// TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
 /// Catch missing files and serve "index.html".
