@@ -15,4 +15,5 @@ ALTER TABLE "user" ALTER COLUMN password_hash DROP NOT NULL;
 ALTER TABLE settings ADD COLUMN enrollment_vpn_step_optional boolean NOT NULL default true;
 ALTER TABLE settings ADD COLUMN enrollment_welcome_message text NULL;
 ALTER TABLE settings ADD COLUMN enrollment_welcome_email text NULL;
+ALTER TABLE settings ADD COLUMN enrollment_welcome_email_subject text NULL;
 ALTER TABLE settings ADD COLUMN enrollment_use_welcome_message_as_email boolean NOT NULL default true;
