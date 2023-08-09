@@ -1,12 +1,15 @@
 use crate::{
     db::{DbPool, Settings, User},
+    handlers::VERSION,
     mail::Mail,
     random::gen_alphanumeric,
-    templates,
+    templates::{self, TemplateError},
+    SERVER_CONFIG,
 };
 use chrono::{Duration, NaiveDateTime, Utc};
 use reqwest::Url;
 use sqlx::{query, query_as, Error as SqlxError, Transaction};
+use tera::{Context, Tera};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
@@ -37,6 +40,10 @@ pub enum EnrollmentError {
     WelcomeMsgNotConfigured,
     #[error("Enrollment welcome email not configured")]
     WelcomeEmailNotConfigured,
+    #[error(transparent)]
+    TemplateErrorInternal(#[from] tera::Error),
+    #[error(transparent)]
+    TemplateError(#[from] TemplateError),
 }
 
 impl From<EnrollmentError> for Status {
@@ -48,7 +55,9 @@ impl From<EnrollmentError> for Status {
             | EnrollmentError::UserNotFound
             | EnrollmentError::NotificationError(_)
             | EnrollmentError::WelcomeMsgNotConfigured
-            | EnrollmentError::WelcomeEmailNotConfigured => (Code::Internal, "unexpected error"),
+            | EnrollmentError::WelcomeEmailNotConfigured
+            | EnrollmentError::TemplateError(_)
+            | EnrollmentError::TemplateErrorInternal(_) => (Code::Internal, "unexpected error"),
             EnrollmentError::NotFound
             | EnrollmentError::TokenExpired
             | EnrollmentError::SessionExpired
@@ -185,9 +194,12 @@ impl Enrollment {
         Ok(enrollments)
     }
 
-    pub async fn fetch_user(&self, pool: &DbPool) -> Result<User, EnrollmentError> {
+    pub async fn fetch_user<'e, E>(&self, executor: E) -> Result<User, EnrollmentError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         debug!("Fetching user for enrollment");
-        let Some(user) = User::find_by_id(pool, self.user_id)
+        let Some(user) = User::find_by_id(executor, self.user_id)
             .await? else {
             error!("User not found for enrollment token {}", self.id);
             return Err(EnrollmentError::UserNotFound)
@@ -195,9 +207,12 @@ impl Enrollment {
         Ok(user)
     }
 
-    pub async fn fetch_admin(&self, pool: &DbPool) -> Result<User, EnrollmentError> {
+    pub async fn fetch_admin<'e, E>(&self, executor: E) -> Result<User, EnrollmentError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         debug!("Fetching admin for enrollment");
-        let Some(user) = User::find_by_id(pool, self.admin_id)
+        let Some(user) = User::find_by_id(executor, self.admin_id)
             .await? else {
             error!("Admin not found for enrollment token {}", self.id);
             return Err(EnrollmentError::AdminNotFound)
@@ -224,6 +239,77 @@ impl Enrollment {
         );
 
         Ok(())
+    }
+
+    /// Prepare context for rendering welcome messages
+    /// Available tags include:
+    /// - first_name
+    /// - last_name
+    /// - username
+    /// - defguard_url
+    /// - defguard_version
+    /// - admin_first_name
+    /// - admin_last_name
+    /// - admin_email
+    /// - admin_phone
+    pub async fn get_welcome_message_context(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    ) -> Result<Context, EnrollmentError> {
+        debug!(
+            "Preparing welcome message context for enrollment token {}",
+            self.id
+        );
+
+        let user = self.fetch_user(&mut *transaction).await?;
+        let admin = self.fetch_admin(&mut *transaction).await?;
+
+        let mut context = Context::new();
+        context.insert("first_name", &user.first_name);
+        context.insert("last_name", &user.last_name);
+        context.insert("username", &user.username);
+        context.insert("defguard_url", &SERVER_CONFIG.get().unwrap().url);
+        context.insert("defguard_version", &VERSION);
+        context.insert("admin_first_name", &admin.first_name);
+        context.insert("admin_last_name", &admin.last_name);
+        context.insert("admin_email", &admin.email);
+        context.insert("admin_phone", &admin.phone);
+
+        Ok(context)
+    }
+
+    // Replace template tags and return markdown content
+    // to be displayed on final enrollment page
+    pub async fn get_welcome_page_content(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    ) -> Result<String, EnrollmentError> {
+        let settings = Settings::get_settings(&mut *transaction).await?;
+
+        // load configured content as template
+        let mut tera = Tera::default();
+        tera.add_raw_template("welcome_page", &settings.enrollment_welcome_message()?)?;
+
+        let context = self.get_welcome_message_context(&mut *transaction).await?;
+
+        Ok(tera.render("welcome_page", &context)?)
+    }
+
+    // Render welcome email content
+    pub async fn get_welcome_email_content(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+    ) -> Result<String, EnrollmentError> {
+        let settings = Settings::get_settings(&mut *transaction).await?;
+
+        // load configured content as template
+        let mut tera = Tera::default();
+        tera.add_raw_template("welcome_email", &settings.enrollment_welcome_email()?)?;
+
+        let context = self.get_welcome_message_context(&mut *transaction).await?;
+        let content = tera.render("welcome_email", &context)?;
+
+        Ok(templates::enrollment_welcome_mail(&content)?)
     }
 }
 
@@ -264,11 +350,18 @@ impl User {
                 "Sending enrollment start mail for user {} to {email}",
                 self.username
             );
+            let base_message_context = enrollment
+                .get_welcome_message_context(&mut *transaction)
+                .await?;
             let mail = Mail {
                 to: email.clone(),
                 subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
-                content: templates::enrollment_start_mail(enrollment_service_url, &enrollment.id)
-                    .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+                content: templates::enrollment_start_mail(
+                    base_message_context,
+                    enrollment_service_url,
+                    &enrollment.id,
+                )
+                .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
                 result_tx: None,
             };
             match mail_tx.send(mail) {

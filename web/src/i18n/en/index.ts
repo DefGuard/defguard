@@ -872,6 +872,9 @@ const en: BaseTranslation = {
             'This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.',
           placeholder: 'Please input welcome email',
         },
+        welcomeEmailSubject: {
+          label: 'Subject',
+        },
         useMessageAsEmail: {
           label: 'Same as welcome message',
         },

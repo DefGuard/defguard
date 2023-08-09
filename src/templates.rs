@@ -22,6 +22,7 @@ pub fn test_mail() -> Result<String, TemplateError> {
 
 // mail with link to enrollment service
 pub fn enrollment_start_mail(
+    mut context: Context,
     mut enrollment_service_url: Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
@@ -34,7 +35,6 @@ pub fn enrollment_start_mail(
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
 
-    let mut context = Context::new();
     context.insert("url", &enrollment_service_url.to_string());
 
     Ok(tera.render("mail_enrollment_start", &context)?)
@@ -71,6 +71,7 @@ mod test {
     #[test]
     fn test_enrollment_start_mail() {
         assert_ok!(enrollment_start_mail(
+            Context::new(),
             Url::parse("http://localhost:8080").unwrap(),
             "test_token"
         ));

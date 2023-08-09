@@ -130,7 +130,9 @@ impl From<EnrollmentError> for OriWebError {
             EnrollmentError::AlreadyActive => OriWebError::BadRequest(err.to_string()),
             EnrollmentError::NotificationError(_)
             | EnrollmentError::WelcomeMsgNotConfigured
-            | EnrollmentError::WelcomeEmailNotConfigured => {
+            | EnrollmentError::WelcomeEmailNotConfigured
+            | EnrollmentError::TemplateError(_)
+            | EnrollmentError::TemplateErrorInternal(_) => {
                 OriWebError::Http(Status::InternalServerError)
             }
         }

@@ -8,9 +8,7 @@ use crate::{
     ldap::utils::ldap_add_user,
     license::{Features, License},
     mail::Mail,
-    templates,
 };
-use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
 
@@ -22,8 +20,6 @@ use proto::{
     Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
     InitialUserInfo, NewDevice,
 };
-
-const ENROLLMENT_WELCOME_MAIL_SUBJECT: &str = "Welcome to Defguard";
 
 pub struct EnrollmentServer {
     pool: DbPool,
@@ -87,22 +83,6 @@ impl EnrollmentServer {
     }
 }
 
-async fn get_settings(
-    transaction: &mut Transaction<'_, sqlx::Postgres>,
-) -> Result<Settings, Status> {
-    let settings = Settings::find_by_id(transaction, 1)
-        .await
-        .map_err(|err| {
-            error!("Failed to get settings: {err}");
-            Status::internal("unexpected error")
-        })?
-        .ok_or_else(|| {
-            error!("Failed to get settings");
-            Status::internal("unexpected error")
-        })?;
-    Ok(settings)
-}
-
 #[tonic::async_trait]
 impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn start_enrollment(
@@ -132,13 +112,20 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             )
             .await?;
 
-        let settings = get_settings(&mut transaction).await?;
+        let settings = Settings::get_settings(&mut transaction)
+            .await
+            .map_err(|_| {
+                error!("Failed to get settings");
+                Status::internal("unexpected error")
+            })?;
 
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),
             user: Some(user.into()),
             deadline_timestamp: session_deadline.timestamp(),
-            final_page_content: settings.enrollment_welcome_message()?,
+            final_page_content: enrollment
+                .get_welcome_page_content(&mut transaction)
+                .await?,
             vpn_setup_optional: settings.enrollment_vpn_step_optional,
         };
 
@@ -190,21 +177,28 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let _result = ldap_add_user(&self.config, &user, &request.password).await;
         };
 
+        let settings = Settings::get_settings(&mut transaction)
+            .await
+            .map_err(|_| {
+                error!("Failed to get settings");
+                Status::internal("unexpected error")
+            })?;
+
         // send welcome email
         debug!("Sending welcome mail to {}", user.username);
-        let settings = get_settings(&mut transaction).await?;
-        let content = settings.enrollment_welcome_email()?;
-
         let mail = Mail {
             to: user.email.clone(),
-            subject: ENROLLMENT_WELCOME_MAIL_SUBJECT.to_string(),
-            content: templates::enrollment_welcome_mail(&content).map_err(|err| {
-                error!(
-                    "Failed to render welcome email for user {}: {err}",
-                    user.username
-                );
-                Status::internal("unexpected error")
-            })?,
+            subject: settings.enrollment_welcome_email_subject.unwrap(),
+            content: enrollment
+                .get_welcome_email_content(&mut transaction)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to render welcome email for user {}: {err}",
+                        user.username
+                    );
+                    Status::internal("unexpected error")
+                })?,
             result_tx: None,
         };
         match self.mail_tx.send(mail) {

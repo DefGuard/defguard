@@ -51,6 +51,7 @@ async fn test_settings() {
             enrollment_vpn_step_optional: true,
             enrollment_welcome_message: None,
             enrollment_welcome_email: None,
+            enrollment_welcome_email_subject: None,
             enrollment_use_welcome_message_as_email: true,
         }
     );
