@@ -448,9 +448,11 @@ export interface ApiHook {
     getSettings: () => Promise<Settings>;
     editSettings: (data: Settings) => EmptyApiResponse;
     setDefaultBranding: (id: string) => Promise<Settings>;
+  };
+  support: {
     downloadSupportData: () => Promise<unknown>;
     downloadLogs: () => Promise<string>;
-  };
+  }
   mail: {
     sendTestMail: (data: TestMail) => EmptyApiResponse;
     sendSupportMail: () => EmptyApiResponse;

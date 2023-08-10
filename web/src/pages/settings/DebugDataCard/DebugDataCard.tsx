@@ -29,7 +29,7 @@ export const DebugDataCard = () => {
     settings?.smtp_password &&
     settings?.smtp_sender;
   const {
-    settings: { downloadSupportData, downloadLogs },
+    support: { downloadSupportData, downloadLogs },
     mail: { sendSupportMail },
   } = useApi();
   const {

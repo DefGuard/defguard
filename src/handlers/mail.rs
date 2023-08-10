@@ -20,7 +20,7 @@ use crate::{
 };
 
 const TEST_MAIL_SUBJECT: &str = "Defguard email test";
-const SUPPORT_EMAIL_ADDRESS: &str = "jchmielewski@teonite.com";
+const SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 const SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
 
 #[derive(Clone, Deserialize)]

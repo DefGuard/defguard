@@ -281,6 +281,7 @@ impl From<User> for InitialUserInfo {
             last_name: user.last_name,
             login: user.username,
             email: user.email,
+            phone_number: user.phone,
         }
     }
 }
