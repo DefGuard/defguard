@@ -3,7 +3,7 @@ import './style.scss';
 import { ReactNode } from 'react';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { IconCheckmarkWhite } from '../../../../../../shared/components/svg';
+import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';
 import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,

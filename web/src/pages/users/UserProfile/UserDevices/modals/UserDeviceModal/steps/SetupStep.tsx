@@ -6,7 +6,17 @@ import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import { IconDownload } from '../../../../../../../shared/components/svg';
+import IconDownload from '../../../../../../../shared/components/svg/IconDownload';
+import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormToggle } from '../../../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { ToggleOption } from '../../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
 import { useUserProfileStore } from '../../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
@@ -16,16 +26,6 @@ import { patternValidWireguardKey } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../../shared/utils/generateWGKeys';
 import { DeviceModalSetupMode, useDeviceModal } from '../../../hooks/useDeviceModal';
-import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { FormToggle } from '../../../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
-import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
-import {
-  ButtonStyleVariant,
-  ButtonSize,
-} from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
-import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { ToggleOption } from '../../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
 
 interface FormValues {
   name: string;
@@ -140,7 +140,7 @@ export const SetupStep = () => {
         username: user.username,
       }).then((response) => {
         const configs = response.configs.map((c) => {
-          c.config = c.config.replaceAll(/YOUR_PRIVATE_KEY/g, keys.privateKey);
+          c.config = c.config.replace(/YOUR_PRIVATE_KEY/g, keys.privateKey);
           return c;
         });
         const device = response.device;
@@ -185,12 +185,12 @@ export const SetupStep = () => {
       </MessageBox>
       <form onSubmit={handleSubmit(validSubmitHandler)}>
         <FormInput
-          outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.name.label()}
+          label={LL.modals.addDevice.web.steps.setup.form.fields.name.label()}
           controller={{ control, name: 'name' }}
         />
         <FormToggle options={toggleOptions} controller={{ control, name: 'choice' }} />
         <FormInput
-          outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
+          label={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
           controller={{ control, name: 'publicKey' }}
           disabled={choiceValue === DeviceModalSetupMode.AUTO_CONFIG}
         />

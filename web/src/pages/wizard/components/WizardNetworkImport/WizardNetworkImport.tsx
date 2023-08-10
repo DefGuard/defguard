@@ -31,7 +31,7 @@ import { useWizardStore } from '../../hooks/useWizardStore';
 
 interface FormInputs extends Omit<ImportNetworkRequest, 'allowed_groups'> {
   fileName: string;
-  allowed_groups: SelectOption<string>[];
+  allowed_groups: string[];
 }
 const defaultValues: FormInputs = {
   name: '',
@@ -120,10 +120,7 @@ export const WizardNetworkImport = () => {
     (data) => {
       if (!isLoading) {
         setWizardState({ loading: true });
-        importNetworkMutation({
-          ...data,
-          allowed_groups: data.allowed_groups.map((o) => o.value),
-        });
+        importNetworkMutation(data);
       }
     },
     [importNetworkMutation, isLoading, setWizardState],
@@ -186,7 +183,7 @@ export const WizardNetworkImport = () => {
       <form onSubmit={handleSubmit(onValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
-          outerLabel={LL.networkConfiguration.form.fields.name.label()}
+          label={LL.networkConfiguration.form.fields.name.label()}
           disabled={!isUndefined(data)}
         />
         <MessageBox>
@@ -194,26 +191,23 @@ export const WizardNetworkImport = () => {
         </MessageBox>
         <FormInput
           controller={{ control, name: 'endpoint' }}
-          outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
+          label={LL.networkConfiguration.form.fields.endpoint.label()}
           disabled={!isUndefined(data)}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
         </MessageBox>
         <FormSelect
-          styleVariant={SelectStyleVariant.WHITE}
           controller={{ control, name: 'allowed_groups' }}
-          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          label={LL.networkConfiguration.form.fields.allowedGroups.label()}
           loading={groupsLoading}
           disabled={!isUndefined(data)}
           options={groupOptions}
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
-          multi
-          searchable
         />
         <FormInput
           controller={{ control, name: 'fileName' }}
-          outerLabel={LL.wizard.locations.form.fileName()}
+          label={LL.wizard.locations.form.fileName()}
           disabled
         />
         <Button

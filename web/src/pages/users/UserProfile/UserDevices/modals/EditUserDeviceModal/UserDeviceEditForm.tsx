@@ -5,6 +5,12 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
@@ -14,12 +20,6 @@ import {
 } from '../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { useEditDeviceModal } from '../../hooks/useEditDeviceModal';
-import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 
 interface Inputs {
   name: string;
@@ -96,11 +96,11 @@ export const EditUserDeviceForm = () => {
   return (
     <form onSubmit={handleSubmit(onSubmitSuccess)}>
       <FormInput
-        outerLabel={LL.modals.editDevice.form.fields.name.label()}
+        label={LL.modals.editDevice.form.fields.name.label()}
         controller={{ control, name: 'name' }}
       />
       <FormInput
-        outerLabel={LL.modals.editDevice.form.fields.publicKey.label()}
+        label={LL.modals.editDevice.form.fields.publicKey.label()}
         controller={{ control, name: 'wireguard_pubkey' }}
       />
       <div className="controls">

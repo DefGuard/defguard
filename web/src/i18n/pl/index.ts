@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import type { Translation } from '../i18n-types';
 
 const pl: Translation = {
@@ -276,7 +277,7 @@ const pl: Translation = {
     provisionKeys: {
       title: 'Provisionowanie YubiKeya:',
       infoBox: `Wybrany provisioner musi mieć podłączony <b>pusty</b> YubiKey.
-                Aby zresetować YubiKey uruchom
+                Aby zresetować YubiKey uruchom
                 <b>gpg --card-edit</b> przed generowaniem kluczy.`,
       selectionLabel:
         'Wybierz jeden z następujących provisionerów, aby wygenrować klucze na YubiKey:',

@@ -164,6 +164,9 @@ dependencies:
   yup:
     specifier: ^1.2.0
     version: 1.2.0
+  zod:
+    specifier: ^3.21.4
+    version: 3.21.4
   zustand:
     specifier: ^4.4.1
     version: 4.4.1(@types/react@18.2.19)(react@18.2.0)
@@ -9957,6 +9960,10 @@ packages:
       tiny-case: 1.0.3
       toposort: 2.0.2
       type-fest: 2.19.0
+    dev: false
+
+  /zod@3.21.4:
+    resolution: {integrity: sha512-m46AKbrzKVzOzs/DZgVnG5H55N1sv1M8qZU3A8RIKbs3mrACDNeIOeilDymVb2HdmP8uwshOCF4uJ8uM9rCqJw==}
     dev: false
 
   /zustand@4.4.1(@types/react@18.2.19)(react@18.2.0):

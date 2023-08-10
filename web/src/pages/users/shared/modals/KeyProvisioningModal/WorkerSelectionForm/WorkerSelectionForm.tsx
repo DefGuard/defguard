@@ -6,15 +6,15 @@ import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { Provisioner } from '../../../../../../shared/types';
 import WorkerSelectItem from './WorkerSelectItem';
-import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
-import {
-  ButtonStyleVariant,
-  ButtonSize,
-} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 
 interface Props {
   setIsOpen: (v: boolean) => void;

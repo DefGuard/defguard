@@ -1,4 +1,5 @@
 import { createWithEqualityFn } from 'zustand/traditional';
+
 import { AddDeviceConfig, Device, StandardModalState } from '../../../../../shared/types';
 
 export enum DeviceModalSetupMode {

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
+import { CardTabs } from '../../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
 import { useWizardStore } from '../../wizard/hooks/useWizardStore';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 

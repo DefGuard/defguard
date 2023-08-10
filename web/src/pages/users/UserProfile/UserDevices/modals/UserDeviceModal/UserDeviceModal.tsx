@@ -5,10 +5,10 @@ import { ReactNode } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { DeviceModalSetupMode, useDeviceModal } from '../../hooks/useDeviceModal';
 import { ConfigStep } from './steps/ConfigStep';
 import { SetupStep } from './steps/SetupStep';
-import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 
 const modalSteps: ReactNode[] = [<SetupStep key={0} />, <ConfigStep key={1} />];
 

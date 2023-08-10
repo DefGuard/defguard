@@ -9,9 +9,8 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import QRCode from 'react-qr-code';
 import * as yup from 'yup';
 
-import { clipboard } from '@tauri-apps/api';
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { IconCopy } from '../../../../../../shared/components/svg';
+import IconCopy from '../../../../../../shared/components/svg/IconCopy';
 import { DelayRender } from '../../../../../../shared/components/utils/DelayRender/DelayRender';
 import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -25,6 +24,7 @@ import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/
 import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
+import { useClipboard } from '../../../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
@@ -58,6 +58,7 @@ export const RegisterTOTPModal = () => {
 };
 
 const TOTPRegisterQRCode = () => {
+  const { writeToClipboard } = useClipboard();
   const {
     auth: {
       mfa: {
@@ -85,15 +86,7 @@ const TOTPRegisterQRCode = () => {
 
   const handleCopy = () => {
     if (qrData) {
-      clipboard
-        .write(qrData)
-        .then(() => {
-          toaster.success(LL.modals.registerTOTP.messages.totpCopied());
-        })
-        .catch((e) => {
-          toaster.error(LL.messages.clipboardError());
-          console.error(e);
-        });
+      writeToClipboard(qrData, LL.modals.registerTOTP.messages.totpCopied());
     }
   };
 
@@ -178,7 +171,7 @@ const TOTPRegisterForm = () => {
     <form data-testid="register-totp-form" onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
         controller={{ control, name: 'code' }}
-        outerLabel={LL.modals.registerTOTP.form.fields.code.label()}
+        label={LL.modals.registerTOTP.form.fields.code.label()}
         autoComplete="one-time-code"
         required
       />

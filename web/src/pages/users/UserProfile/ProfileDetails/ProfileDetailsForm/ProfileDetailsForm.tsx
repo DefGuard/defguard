@@ -6,6 +6,8 @@ import { Controller, SubmitErrorHandler, SubmitHandler, useForm } from 'react-ho
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
@@ -23,9 +25,6 @@ import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
-import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
-import { SelectOption } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 
 interface Inputs {
   username: string;
@@ -33,7 +32,7 @@ interface Inputs {
   last_name: string;
   phone: string;
   email: string;
-  groups: SelectOption<string>[];
+  groups: string[];
   authorized_apps: OAuth2AuthorizedApps[];
 }
 
@@ -109,16 +108,6 @@ export const ProfileDetailsForm = () => {
   const formDefaultValues = useMemo((): Inputs => {
     const ommited = pick(omitNull(userProfile?.user), Object.keys(defaultValues));
     const res = { ...defaultValues, ...ommited };
-    if (ommited.groups) {
-      const groupOptions: SelectOption<string>[] = ommited.groups.map((g) => ({
-        key: g,
-        value: g,
-        label: titleCase(g),
-      }));
-      res.groups = groupOptions;
-    } else {
-      res.groups = [];
-    }
     return res as Inputs;
   }, [userProfile]);
 
@@ -169,13 +158,11 @@ export const ProfileDetailsForm = () => {
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
     if (userProfile && userProfile.user) {
       setUserProfile({ loading: true });
-      const groups = values.groups.map((g) => g.value);
       mutate({
         username: userProfile.user.username,
         data: {
           ...userProfile.user,
           ...values,
-          groups: groups,
           totp_enabled: userProfile.user.totp_enabled,
         },
       });
@@ -212,7 +199,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.username.label()}
+            label={LL.userPage.userDetails.fields.username.label()}
             controller={{ control, name: 'username' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -222,7 +209,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.firstName.label()}
+            label={LL.userPage.userDetails.fields.firstName.label()}
             controller={{ control, name: 'first_name' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -232,7 +219,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.lastName.label()}
+            label={LL.userPage.userDetails.fields.lastName.label()}
             controller={{ control, name: 'last_name' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -242,7 +229,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.phone.label()}
+            label={LL.userPage.userDetails.fields.phone.label()}
             controller={{ control, name: 'phone' }}
             disabled={userEditLoading}
           />
@@ -251,7 +238,7 @@ export const ProfileDetailsForm = () => {
       <div className="row">
         <div className="item">
           <FormInput
-            outerLabel={LL.userPage.userDetails.fields.email.label()}
+            label={LL.userPage.userDetails.fields.email.label()}
             controller={{ control, name: 'email' }}
             disabled={userEditLoading || !isAdmin}
             required
@@ -262,13 +249,10 @@ export const ProfileDetailsForm = () => {
         <div className="item">
           <FormSelect
             data-testid="groups-select"
-            styleVariant={SelectStyleVariant.WHITE}
             options={groupsOptions}
             controller={{ control, name: 'groups' }}
-            outerLabel={LL.userPage.userDetails.fields.groups.label()}
+            label={LL.userPage.userDetails.fields.groups.label()}
             loading={groupsLoading || userEditLoading}
-            searchable={true}
-            multi={true}
             disabled={!isAdmin}
           />
         </div>

@@ -7,14 +7,8 @@ import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { IconCheckmarkWhite } from '../../../shared/components/svg/index';
+import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
 import { deviceBreakpoints } from '../../../shared/constants';
-import { useAppStore } from '../../../shared/hooks/store/useAppStore';
-import useApi from '../../../shared/hooks/useApi';
-import { useToaster } from '../../../shared/hooks/useToaster';
-import { MutationKeys } from '../../../shared/mutations';
-import { QueryKeys } from '../../../shared/queries';
-import { Settings } from '../../../shared/types';
 import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -26,11 +20,18 @@ import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
 import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
+import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
+import { MutationKeys } from '../../../shared/mutations';
+import { QueryKeys } from '../../../shared/queries';
 
-interface Inputs extends Omit<Settings, 'enrollment_vpn_step_optional'> {
-  enrollment_vpn_step_optional: SelectOption<boolean>;
-}
+type FormFields = {
+  enrollment_vpn_step_optional: boolean;
+  enrollment_use_welcome_message_as_email: boolean;
+  enrollment_welcome_message: string;
+  enrollment_welcome_email: string;
+};
 
 export const EnrollmentTab = () => {
   const [welcomeMessage, setWelcomeMessage] = useState('');
@@ -67,38 +68,34 @@ export const EnrollmentTab = () => {
     })
     .required();
 
-  const vpnOptionalityOptions = [
-    {
-      key: 1,
-      value: true,
-      label: 'Optional',
-    },
-    {
-      key: 2,
-      value: false,
-      label: 'Mandatory',
-    },
-  ];
+  const vpnOptionalityOptions = useMemo(
+    () => [
+      {
+        key: 1,
+        value: true,
+        label: 'Optional',
+      },
+      {
+        key: 2,
+        value: false,
+        label: 'Mandatory',
+      },
+    ],
+    [],
+  );
 
-  const defaultVpnOptionality =
-    vpnOptionalityOptions.filter(
-      (option) => option.value === settings?.enrollment_vpn_step_optional,
-    )[0] || vpnOptionalityOptions[0];
-  const { control, handleSubmit } = useForm<Inputs>({
-    defaultValues: useMemo(() => {
-      return {
-        enrollment_vpn_step_optional: defaultVpnOptionality,
-        enrollment_welcome_message: settings?.enrollment_welcome_message,
-        enrollment_welcome_email: settings?.enrollment_welcome_email,
-        enrollment_use_welcome_message_as_email:
-          settings?.enrollment_use_welcome_message_as_email,
-      };
-    }, [
-      defaultVpnOptionality,
-      settings?.enrollment_welcome_message,
-      settings?.enrollment_welcome_email,
-      settings?.enrollment_use_welcome_message_as_email,
-    ]),
+  const defaultValues = useMemo((): FormFields => {
+    return {
+      enrollment_vpn_step_optional: vpnOptionalityOptions[0].value,
+      enrollment_welcome_message: settings?.enrollment_welcome_message ?? '',
+      enrollment_welcome_email: settings?.enrollment_welcome_email ?? '',
+      enrollment_use_welcome_message_as_email:
+        settings?.enrollment_use_welcome_message_as_email ?? false,
+    };
+  }, [settings, vpnOptionalityOptions]);
+
+  const { control, handleSubmit } = useForm<FormFields>({
+    defaultValues,
     resolver: yupResolver(formSchema),
     mode: 'all',
   });
@@ -116,13 +113,8 @@ export const EnrollmentTab = () => {
 
   if (!settings) return null;
 
-  const onSubmit: SubmitHandler<Inputs> = (data) => {
-    settings.enrollment_vpn_step_optional = data.enrollment_vpn_step_optional.value;
-    settings.enrollment_welcome_message = welcomeMessage;
-    settings.enrollment_welcome_email = welcomeEmail;
-    settings.enrollment_use_welcome_message_as_email =
-      data.enrollment_use_welcome_message_as_email;
-    mutate(settings);
+  const onSubmit: SubmitHandler<FormFields> = (data) => {
+    mutate({ ...settings, ...data });
   };
 
   return (
@@ -156,7 +148,6 @@ export const EnrollmentTab = () => {
                 </Helper>
               </header>
               <FormSelect
-                styleVariant={SelectStyleVariant.WHITE}
                 options={vpnOptionalityOptions}
                 controller={{ control, name: 'enrollment_vpn_step_optional' }}
               />

@@ -2,19 +2,12 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { Label } from 'recharts';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { IconEth } from '../../../../../shared/components/svg';
+import IconEth from '../../../../../shared/components/svg/IconEth';
 import { deviceBreakpoints } from '../../../../../shared/constants';
-import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
-import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
-import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { MutationKeys } from '../../../../../shared/mutations';
-import { QueryKeys } from '../../../../../shared/queries';
-import { WalletInfo } from '../../../../../shared/types';
-import { Label } from 'recharts';
 import { AvatarBox } from '../../../../../shared/defguard-ui/components/Layout/AvatarBox/AvatarBox';
 import Badge, {
   BadgeStyleVariant,
@@ -25,6 +18,14 @@ import {
   EditButtonOption,
   EditButtonOptionStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
+import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
+import useApi from '../../../../../shared/hooks/useApi';
+import { useClipboard } from '../../../../../shared/hooks/useClipboard';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { MutationKeys } from '../../../../../shared/mutations';
+import { QueryKeys } from '../../../../../shared/queries';
+import { WalletInfo } from '../../../../../shared/types';
 
 interface Props {
   wallet: WalletInfo;
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props) => {
+  const { writeToClipboard } = useClipboard();
   const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const setModalsState = useModalStore((state) => state.setState);
@@ -89,19 +91,8 @@ export const WalletCard = ({ wallet, connected = false, showMFA = false }: Props
   );
 
   const copyWalletAddress = useCallback(() => {
-    if (window.isSecureContext) {
-      navigator.clipboard
-        .writeText(wallet.address)
-        .then(() => {
-          toaster.success(LL.userPage.wallets.messages.addressCopied());
-        })
-        .catch(() => {
-          toaster.error(LL.messages.clipboardError());
-        });
-    } else {
-      toaster.warning('Clipboard is not accessable in this context.');
-    }
-  }, [LL.messages, LL.userPage.wallets.messages, toaster, wallet.address]);
+    writeToClipboard(wallet.address, LL.userPage.wallets.messages.addressCopied());
+  }, [LL.userPage.wallets.messages, wallet.address, writeToClipboard]);
 
   return (
     <Card

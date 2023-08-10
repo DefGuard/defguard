@@ -9,9 +9,15 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { IconHamburgerClose } from '../../../../../shared/components/svg';
 import SvgIconCancel from '../../../../../shared/components/svg/IconCancel';
+import IconHamburgerClose from '../../../../../shared/components/svg/IconHamburgerClose';
 import { deviceBreakpoints } from '../../../../../shared/constants';
+import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { LoaderSpinner } from '../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { Modal } from '../../../../../shared/defguard-ui/components/Layout/modals/Modal/Modal';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -19,10 +25,6 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { WorkerJobStatus, WorkerJobStatusError } from '../../../../../shared/types';
 import WorkerLoader from './WorkerLoader/WorkerLoader';
 import { WorkerSelectionForm } from './WorkerSelectionForm/WorkerSelectionForm';
-import { LoaderSpinner } from '../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { MessageBoxType } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { Modal } from '../../../../../shared/defguard-ui/components/Layout/modals/Modal/Modal';
 
 export const KeyProvisioningModal = () => {
   const { LL } = useI18nContext();
@@ -152,14 +154,14 @@ export const KeyProvisioningModal = () => {
                 {LL.modals.provisionKeys.title()}
                 <span className="user"> {selectedUser?.username}</span>
               </p>
-              <IconButton
+              <Button
+                styleVariant={ButtonStyleVariant.ICON}
                 className="blank"
-                whileHover={{ scale: 1.2 }}
                 onClick={() => setIsOpen(false)}
               >
                 {breakpoint !== 'desktop' ? <IconHamburgerClose /> : null}
                 {breakpoint === 'desktop' ? <SvgIconCancel /> : null}
-              </IconButton>
+              </Button>
             </header>
             <MessageBox type={MessageBoxType.INFO}>
               <p

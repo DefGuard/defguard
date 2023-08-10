@@ -1,5 +1,6 @@
 import { BrowserProvider, JsonRpcError, Provider, Signer } from 'ethers';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
+
 import { Web3Context } from './web3Context';
 
 const ethereum = window.ethereum;
@@ -35,7 +36,7 @@ export const Web3ContextProvider = ({ children }: Props) => {
       }
     }
     return Promise.reject('No ethereum in window');
-  }, [provider, ethereum?.isMetaMask]);
+  }, [provider]);
 
   useEffect(() => {
     if (provider) {
@@ -58,8 +59,8 @@ export const Web3ContextProvider = ({ children }: Props) => {
           }
         });
 
-        provider.on('chainChanged', async (cId: string) => {
-          setChainId(parseInt(cId, 16));
+        provider.on('chainChanged', async () => {
+          window.location.reload();
         });
       };
 
@@ -81,7 +82,7 @@ export const Web3ContextProvider = ({ children }: Props) => {
       };
       init();
     }
-  }, [ethereum?.isMetaMask]);
+  }, []);
 
   return (
     <Web3Context.Provider

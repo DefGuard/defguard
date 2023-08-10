@@ -1,7 +1,6 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
-import clipboard from 'clipboardy';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
@@ -20,6 +19,7 @@ import {
 import { ExpandableCard } from '../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
+import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { patternValidUrl } from '../../../../shared/patterns';
@@ -32,6 +32,7 @@ const defaultValuesEmptyForm: FormInputs = {
 };
 
 export const OpenIdClientModalForm = () => {
+  const { writeToClipboard } = useClipboard();
   const { LL } = useI18nContext();
   const {
     openid: { addOpenidClient, editOpenidClient },
@@ -164,7 +165,7 @@ export const OpenIdClientModalForm = () => {
     <form onSubmit={handleSubmit(onValidSubmit)} data-testid="openid-client-form">
       <FormInput
         controller={{ control, name: 'name' }}
-        outerLabel={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
+        label={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
         placeholder={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
         disabled={modalState.viewMode}
         required
@@ -175,7 +176,7 @@ export const OpenIdClientModalForm = () => {
             key={field.id}
             controller={{ control, name: `redirect_uri.${index}.url` }}
             placeholder={LL.openidOverview.modals.openidClientModal.form.fields.redirectUri.placeholder()}
-            outerLabel={LL.openidOverview.modals.openidClientModal.form.fields.redirectUri.label(
+            label={LL.openidOverview.modals.openidClientModal.form.fields.redirectUri.label(
               { count: index + 1 },
             )}
             disposable
@@ -199,7 +200,7 @@ export const OpenIdClientModalForm = () => {
           data-testid="field-scope-openid"
           label={LL.openidOverview.modals.openidClientModal.form.fields.openid.label()}
           disabled={modalState.viewMode}
-          labelPosition="right"
+          labelPlacement="right"
           controller={{ control, name: 'scope' }}
           customValue={(context: OpenIdScope[]) =>
             !isUndefined(context.find((scope) => scope === OpenIdScope.OPENID))
@@ -218,7 +219,7 @@ export const OpenIdClientModalForm = () => {
           data-testid="field-scope-profile"
           disabled={modalState.viewMode}
           label={LL.openidOverview.modals.openidClientModal.form.fields.profile.label()}
-          labelPosition="right"
+          labelPlacement="right"
           controller={{ control, name: 'scope' }}
           customValue={(context: OpenIdScope[]) =>
             !isUndefined(context.find((scope) => scope === OpenIdScope.PROFILE))
@@ -237,7 +238,7 @@ export const OpenIdClientModalForm = () => {
           data-testid="field-scope-email"
           disabled={modalState.viewMode}
           label={LL.openidOverview.modals.openidClientModal.form.fields.email.label()}
-          labelPosition="right"
+          labelPlacement="right"
           controller={{ control, name: 'scope' }}
           customValue={(context: OpenIdScope[]) =>
             !isUndefined(context.find((scope) => scope === OpenIdScope.EMAIL))
@@ -256,7 +257,7 @@ export const OpenIdClientModalForm = () => {
           data-testid="field-scope-phone"
           disabled={modalState.viewMode}
           label={LL.openidOverview.modals.openidClientModal.form.fields.phone.label()}
-          labelPosition="right"
+          labelPlacement="right"
           controller={{ control, name: 'scope' }}
           customValue={(context: OpenIdScope[]) =>
             !isUndefined(context.find((scope) => scope === OpenIdScope.PHONE))
@@ -282,19 +283,14 @@ export const OpenIdClientModalForm = () => {
                 data-testid="copy-client-id"
                 key={1}
                 variant={ActionButtonVariant.COPY}
-                onClick={() =>
-                  clipboard
-                    .write(modalState.client ? modalState.client.client_id : '')
-                    .then(() => {
-                      toaster.success(
-                        LL.openidOverview.modals.openidClientModal.messages.clientIdCopy(),
-                      );
-                    })
-                    .catch((err) => {
-                      toaster.error(LL.messages.clipboardError());
-                      console.error(err);
-                    })
-                }
+                onClick={() => {
+                  if (modalState.client) {
+                    writeToClipboard(
+                      modalState.client.client_id,
+                      LL.openidOverview.modals.openidClientModal.messages.clientIdCopy(),
+                    );
+                  }
+                }}
               />,
             ]}
           >
@@ -307,19 +303,15 @@ export const OpenIdClientModalForm = () => {
               <ActionButton
                 key={1}
                 variant={ActionButtonVariant.COPY}
-                onClick={() =>
-                  clipboard
-                    .write(modalState.client ? modalState.client.client_secret : '')
-                    .then(() => {
-                      toaster.success(
-                        LL.openidOverview.modals.openidClientModal.messages.clientSecretCopy(),
-                      );
-                    })
-                    .catch((err) => {
-                      toaster.error(LL.messages.clipboardError());
-                      console.error(err);
-                    })
-                }
+                disabled={isUndefined(modalState.client)}
+                onClick={() => {
+                  if (modalState.client) {
+                    writeToClipboard(
+                      modalState.client.client_secret,
+                      LL.openidOverview.modals.openidClientModal.messages.clientSecretCopy(),
+                    );
+                  }
+                }}
               />,
             ]}
           >

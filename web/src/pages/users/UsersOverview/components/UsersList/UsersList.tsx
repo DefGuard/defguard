@@ -11,8 +11,8 @@ import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
-  VirtualizedList,
-} from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
+} from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { VirtualizedList } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { User } from '../../../../../shared/types';

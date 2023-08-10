@@ -88,6 +88,7 @@
     "use-breakpoint": "^3.1.1",
     "vite-plugin-node-polyfills": "^0.11.0",
     "yup": "^1.2.0",
+    "zod": "^3.21.4",
     "zustand": "^4.4.1"
   },
   "devDependencies": {

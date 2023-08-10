@@ -8,8 +8,19 @@ import { useParams } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { IconCheckmarkWhite, IconEdit } from '../../../shared/components/svg';
+import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
+import IconEdit from '../../../shared/components/svg/IconEdit';
 import { deviceBreakpoints } from '../../../shared/constants';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import {
+  EditButtonOption,
+  EditButtonOptionStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
@@ -22,16 +33,6 @@ import { UserAuthInfo } from './UserAuthInfo/UserAuthInfo';
 import { UserDevices } from './UserDevices/UserDevices';
 import { UserWallets } from './UserWallets/UserWallets';
 import { UserYubiKeys } from './UserYubiKeys/UserYubiKeys';
-import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
-import {
-  ButtonStyleVariant,
-  ButtonSize,
-} from '../../../shared/defguard-ui/components/Layout/Button/types';
-import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 
 export const UserProfile = () => {
   const toaster = useToaster();

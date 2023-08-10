@@ -5,30 +5,33 @@ import utc from 'dayjs/plugin/utc';
 import { floor } from 'lodash-es';
 import { useMemo, useState } from 'react';
 
-import Badge, {
-  BadgeStyleVariant,
-} from '../../../../shared/components/layout/Badge/Badge';
-import {
-  DeviceAvatar,
-  DeviceAvatarVariants,
-} from '../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
-import IconButton from '../../../../shared/components/layout/IconButton/IconButton';
-import {
-  NetworkDirection,
-  NetworkSpeed,
-} from '../../../../shared/components/layout/NetworkSpeed/NetworkSpeed';
-import UserInitials, {
-  UserInitialsType,
-} from '../../../../shared/components/layout/UserInitials/UserInitials';
-import { IconPacketsIn, IconPacketsOut } from '../../../../shared/components/svg';
 import SvgIconConnected from '../../../../shared/components/svg/IconConnected';
+import IconPacketsIn from '../../../../shared/components/svg/IconPacketsIn';
+import IconPacketsOut from '../../../../shared/components/svg/IconPacketsOut';
 import SvgIconUserList from '../../../../shared/components/svg/IconUserList';
 import SvgIconUserListElement from '../../../../shared/components/svg/IconUserListElement';
 import SvgIconUserListExpanded from '../../../../shared/components/svg/IconUserListExpanded';
+import Badge, {
+  BadgeStyleVariant,
+} from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
+import { ButtonStyleVariant } from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import {
+  DeviceAvatar,
+  DeviceAvatarVariants,
+} from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
+import {
+  NetworkDirection,
+  NetworkSpeed,
+} from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
+import UserInitials, {
+  UserInitialsType,
+} from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { summarizeDeviceStats } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
+
 dayjs.extend(utc);
 
 interface Props {
@@ -226,17 +229,6 @@ const DeviceIps = ({ publicIp, wireguardIp }: DeviceIpsProps) => {
   );
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const Connections = () => {
-  return (
-    <div className="connections">
-      <UserInitials first_name="Z" last_name="K" type={UserInitialsType.SMALL} />
-      <UserInitials first_name="A" last_name="P" type={UserInitialsType.SMALL} />
-      <UserInitials first_name="R" last_name="O" type={UserInitialsType.SMALL} />
-    </div>
-  );
-};
-
 interface ConnectionTimeProps {
   connectedAt: string;
 }
@@ -269,8 +261,12 @@ interface ExpandButtonProps {
 
 const ExpandButton = ({ expanded, onExpand }: ExpandButtonProps) => {
   return (
-    <IconButton onClick={() => onExpand()} className="blank expand-devices">
+    <Button
+      styleVariant={ButtonStyleVariant.ICON}
+      onClick={() => onExpand()}
+      className="blank expand-devices"
+    >
       {expanded ? <SvgIconUserListExpanded /> : <SvgIconUserList />}
-    </IconButton>
+    </Button>
   );
 };

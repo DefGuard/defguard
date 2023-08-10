@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { DefguardNoIcon } from '../../../../shared/components/svg';
+import DefguardNoIcon from '../../../../shared/components/svg/DefguardNoIcon';
 import SvgIconArrowGrayLeft from '../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../shared/components/svg/IconArrowGrayRight';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';

@@ -4,9 +4,9 @@ import { useBreakpoint } from 'use-breakpoint';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 
 export const OverviewViewSelect = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);

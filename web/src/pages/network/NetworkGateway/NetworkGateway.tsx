@@ -1,7 +1,6 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import parse from 'html-react-parser';
 import { useCallback, useMemo } from 'react';
 
@@ -12,14 +11,14 @@ import { ActionButtonVariant } from '../../../shared/defguard-ui/components/Layo
 import { ExpandableCard } from '../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import useApi from '../../../shared/hooks/useApi';
-import { useToaster } from '../../../shared/hooks/useToaster';
+import { useClipboard } from '../../../shared/hooks/useClipboard';
 import { externalLink } from '../../../shared/links';
 import { QueryKeys } from '../../../shared/queries';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
 export const NetworkGatewaySetup = () => {
+  const { writeToClipboard } = useClipboard();
   const selectedNetworkId = useNetworkPageStore((state) => state.selectedNetworkId);
-  const toaster = useToaster();
   const { LL } = useI18nContext();
   const {
     network: { getNetworkToken },
@@ -45,19 +44,11 @@ export const NetworkGatewaySetup = () => {
         key={1}
         variant={ActionButtonVariant.COPY}
         onClick={() => {
-          clipboard
-            .write(command())
-            .then(() => {
-              toaster.success(LL.messages.successClipboard());
-            })
-            .catch((err) => {
-              toaster.error(LL.messages.clipboardError());
-              console.error(err);
-            });
+          writeToClipboard(command());
         }}
       />,
     ],
-    [command, toaster, LL.messages],
+    [command, writeToClipboard],
   );
   return (
     <section className="gateway">

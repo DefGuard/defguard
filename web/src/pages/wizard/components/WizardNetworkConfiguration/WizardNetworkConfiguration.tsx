@@ -26,9 +26,7 @@ import {
 } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
-type FormInputs = Omit<ModifyNetworkRequest['network'], 'allowed_groups'> & {
-  allowed_groups: SelectOption<string>[];
-};
+type FormInputs = ModifyNetworkRequest['network'];
 
 export const WizardNetworkConfiguration = () => {
   const [componentMount, setComponentMount] = useState(false);
@@ -150,10 +148,7 @@ export const WizardNetworkConfiguration = () => {
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
     if (!isLoading) {
       setWizardState({ loading: true });
-      addNetworkMutation({
-        ...values,
-        allowed_groups: values.allowed_groups.map((o) => o.value),
-      });
+      addNetworkMutation(values);
     }
   };
 
@@ -173,53 +168,50 @@ export const WizardNetworkConfiguration = () => {
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
-          outerLabel={LL.networkConfiguration.form.fields.name.label()}
+          label={LL.networkConfiguration.form.fields.name.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.address()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'address' }}
-          outerLabel={LL.networkConfiguration.form.fields.address.label()}
+          label={LL.networkConfiguration.form.fields.address.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.gateway()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'endpoint' }}
-          outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
+          label={LL.networkConfiguration.form.fields.endpoint.label()}
         />
         <FormInput
           controller={{ control, name: 'port' }}
-          outerLabel={LL.networkConfiguration.form.fields.port.label()}
+          label={LL.networkConfiguration.form.fields.port.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedIps()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'allowed_ips' }}
-          outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
+          label={LL.networkConfiguration.form.fields.allowedIps.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.dns()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'dns' }}
-          outerLabel={LL.networkConfiguration.form.fields.dns.label()}
+          label={LL.networkConfiguration.form.fields.dns.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
         </MessageBox>
         <FormSelect
-          styleVariant={SelectStyleVariant.WHITE}
           controller={{ control, name: 'allowed_groups' }}
-          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          label={LL.networkConfiguration.form.fields.allowedGroups.label()}
           loading={groupsLoading}
           disabled={groupsError || (!groupsLoading && groupOptions.length === 0)}
           options={groupOptions}
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
-          multi
-          searchable
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

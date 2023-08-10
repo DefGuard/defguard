@@ -7,7 +7,8 @@ import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
-import { IconCheckmarkGreen, IconDeactivated } from '../../shared/components/svg';
+import IconCheckmarkGreen from '../../shared/components/svg/IconCheckmarkGreen';
+import IconDeactivated from '../../shared/components/svg/IconDeactivated';
 import SvgIconPlusWhite from '../../shared/components/svg/IconPlusWhite';
 import { deviceBreakpoints } from '../../shared/constants';
 import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
@@ -16,14 +17,11 @@ import {
   ButtonStyleVariant,
 } from '../../shared/defguard-ui/components/Layout/Button/types';
 import { EditButton } from '../../shared/defguard-ui/components/Layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOption } from '../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../shared/defguard-ui/components/Layout/EditButton/types';
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import ConfirmModal from '../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModalType } from '../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../shared/defguard-ui/components/Layout/Select/Select';
@@ -32,8 +30,8 @@ import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
-  VirtualizedList,
-} from '../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
+} from '../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { VirtualizedList } from '../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import { useModalStore } from '../../shared/hooks/store/useModalStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';

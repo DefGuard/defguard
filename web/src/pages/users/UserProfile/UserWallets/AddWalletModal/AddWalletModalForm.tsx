@@ -127,7 +127,7 @@ export const AddWalletModalForm = () => {
       <FormInput
         controller={{ control, name: 'name' }}
         placeholder={LL.modals.addWallet.form.fields.name.placeholder()}
-        outerLabel={LL.modals.addWallet.form.fields.name.label()}
+        label={LL.modals.addWallet.form.fields.name.label()}
       />
       <FormInput
         controller={{
@@ -135,7 +135,7 @@ export const AddWalletModalForm = () => {
           name: 'address',
         }}
         placeholder={LL.modals.addWallet.form.fields.address.placeholder()}
-        outerLabel={LL.modals.addWallet.form.fields.address.label()}
+        label={LL.modals.addWallet.form.fields.address.label()}
         disabled={true}
       />
       <section className="controls">

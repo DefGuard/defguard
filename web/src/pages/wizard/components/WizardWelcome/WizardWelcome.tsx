@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { RenderTranslation } from '../../../../shared/components/i18n/RenderTranslation/RenderTranslation';
-import { IconInfo } from '../../../../shared/components/svg';
+import IconInfo from '../../../../shared/components/svg/IconInfo';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,

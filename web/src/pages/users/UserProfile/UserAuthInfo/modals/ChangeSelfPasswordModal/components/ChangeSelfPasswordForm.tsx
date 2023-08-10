@@ -1,10 +1,10 @@
 import { yupResolver } from '@hookform/resolvers/yup';
+import { useMutation } from '@tanstack/react-query';
 import { pick } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
-import { useMutation } from '@tanstack/react-query';
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -81,7 +81,7 @@ export const ChangeSelfPasswordForm = () => {
       <FormInput
         controller={{ control, name: 'old_password' }}
         type="password"
-        outerLabel={LL.modals.changePasswordSelf.form.labels.oldPassword()}
+        label={LL.modals.changePasswordSelf.form.labels.oldPassword()}
       />
       <FormInput
         controller={{ control, name: 'new_password' }}
@@ -89,10 +89,10 @@ export const ChangeSelfPasswordForm = () => {
           title: LL.form.floatingErrors.title(),
         }}
         type="password"
-        outerLabel={LL.modals.changePasswordSelf.form.labels.newPassword()}
+        label={LL.modals.changePasswordSelf.form.labels.newPassword()}
       />
       <FormInput
-        outerLabel={LL.modals.changePasswordSelf.form.labels.repeat()}
+        label={LL.modals.changePasswordSelf.form.labels.repeat()}
         controller={{ control, name: 'repeat' }}
         type="password"
       />

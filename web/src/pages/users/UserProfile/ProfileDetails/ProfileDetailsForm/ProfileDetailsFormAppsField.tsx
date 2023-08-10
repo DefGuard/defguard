@@ -1,4 +1,5 @@
 import { Label } from 'recharts';
+
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import NoData from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Tag } from '../../../../../shared/defguard-ui/components/Layout/Tag/Tag';

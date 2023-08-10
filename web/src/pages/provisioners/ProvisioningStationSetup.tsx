@@ -3,18 +3,18 @@ import { useMemo } from 'react';
 import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { YubikeyProvisioningGraphic } from '../../shared/components/svg';
+import YubikeyProvisioningGraphic from '../../shared/components/svg/YubikeyProvisioningGraphic';
 import { ActionButton } from '../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
 import { ActionButtonVariant } from '../../shared/defguard-ui/components/Layout/ActionButton/types';
 import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import { ExpandableCard } from '../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import useApi from '../../shared/hooks/useApi';
-import { useToaster } from '../../shared/hooks/useToaster';
+import { useClipboard } from '../../shared/hooks/useClipboard';
 import { QueryKeys } from '../../shared/queries';
 
 export const ProvisioningStationSetup = () => {
+  const { writeToClipboard } = useClipboard();
   const { LL } = useI18nContext();
-  const toaster = useToaster();
   const {
     provisioning: { getWorkerToken },
   } = useApi();
@@ -40,19 +40,11 @@ export const ProvisioningStationSetup = () => {
         key={1}
         variant={ActionButtonVariant.COPY}
         onClick={() => {
-          clipboard
-            .write(command)
-            .then(() => {
-              toaster.success(LL.provisionersOverview.messages.codeCopied());
-            })
-            .catch((err) => {
-              toaster.error(LL.messages.clipboardError());
-              console.error(err);
-            });
+          writeToClipboard(command, LL.provisionersOverview.messages.codeCopied());
         }}
       />,
     ],
-    [LL.messages, LL.provisionersOverview.messages, command, toaster],
+    [LL.provisionersOverview.messages, command, writeToClipboard],
   );
 
   return (

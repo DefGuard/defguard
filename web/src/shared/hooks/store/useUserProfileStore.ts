@@ -1,6 +1,6 @@
 import { Subject } from 'rxjs';
-
 import { createWithEqualityFn } from 'zustand/traditional';
+
 import { UserProfile } from '../../types';
 
 const defaultValues: StoreValues = {

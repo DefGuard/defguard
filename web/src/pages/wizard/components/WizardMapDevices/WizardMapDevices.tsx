@@ -11,10 +11,8 @@ import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
-import {
-  ListHeader,
-  VirtualizedList,
-} from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
+import { ListHeader } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';

@@ -6,19 +6,13 @@ import utc from 'dayjs/plugin/utc';
 import { TargetAndTransition } from 'framer-motion';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
+import { Label } from 'recharts';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { IconClip } from '../../../../../shared/components/svg';
+import IconClip from '../../../../../shared/components/svg/IconClip';
 import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
 import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
 import { ColorsRGB } from '../../../../../shared/constants';
-import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
-import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
-import { sortByDate } from '../../../../../shared/utils/sortByDate';
-import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
-import { DeviceModalSetupMode, useDeviceModal } from '../hooks/useDeviceModal';
-import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
-import { Label } from 'recharts';
 import { AvatarBox } from '../../../../../shared/defguard-ui/components/Layout/AvatarBox/AvatarBox';
 import Badge from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
 import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/Card';
@@ -29,6 +23,12 @@ import {
   EditButtonOptionStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import NoData from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
+import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
+import { sortByDate } from '../../../../../shared/utils/sortByDate';
+import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
+import { DeviceModalSetupMode, useDeviceModal } from '../hooks/useDeviceModal';
+import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
 
 dayjs.extend(utc);
 

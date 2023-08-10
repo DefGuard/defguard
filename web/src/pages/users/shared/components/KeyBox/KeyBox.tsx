@@ -10,6 +10,12 @@ import SvgIconDownload from '../../../../../shared/components/svg/IconDownload';
 import SvgIconUserListExpanded from '../../../../../shared/components/svg/IconUserListExpanded';
 import SvgIconUserListHover from '../../../../../shared/components/svg/IconUserListHover';
 import { ColorsRGB } from '../../../../../shared/constants';
+import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { useClipboard } from '../../../../../shared/hooks/useClipboard';
 
 interface Props {
   title: string;
@@ -47,17 +53,15 @@ const KeyBox = ({
   const [collapsed, setCollapsed] = useState(initiallyOpen);
   const [copiedVisible, setCopiedVisible] = useState(false);
   const [copySubject, setCopySubject] = useState<Subject<void> | undefined>();
+  const { writeToClipboard } = useClipboard();
 
   const handleCopy = () => {
-    clipboard
-      .write(keyValue as string)
-      .then(() => {
+    if (keyValue) {
+      writeToClipboard(keyValue).then(() => {
         setCopiedVisible(true);
         copySubject?.next();
-      })
-      .catch((e) => {
-        console.error(e);
       });
+    }
   };
 
   const handleDownload = () => {
@@ -109,12 +113,22 @@ const KeyBox = ({
             {title}
           </motion.span>
           <motion.div className="actions">
-            <IconButton onClick={handleCopy} className="primary" disabled={disabled}>
+            <Button
+              size={ButtonSize.LARGE}
+              styleVariant={ButtonStyleVariant.ICON}
+              onClick={handleCopy}
+              disabled={disabled}
+            >
               <SvgIconCopy />
-            </IconButton>
-            <IconButton onClick={handleDownload} className="primary" disabled={disabled}>
+            </Button>
+            <Button
+              size={ButtonSize.LARGE}
+              styleVariant={ButtonStyleVariant.ICON}
+              onClick={handleDownload}
+              disabled={disabled}
+            >
               <SvgIconDownload />
-            </IconButton>
+            </Button>
           </motion.div>
         </div>
         {collapsible && collapsed ? (

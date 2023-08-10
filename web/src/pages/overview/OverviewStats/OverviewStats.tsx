@@ -6,12 +6,10 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import {
-  Icon24HConnections,
-  IconActiveConnections,
-  IconPacketsIn,
-  IconPacketsOut,
-} from '../../../shared/components/svg';
+import Icon24HConnections from '../../../shared/components/svg/Icon24HConnections';
+import IconActiveConnections from '../../../shared/components/svg/IconActiveConnections';
+import IconPacketsIn from '../../../shared/components/svg/IconPacketsIn';
+import IconPacketsOut from '../../../shared/components/svg/IconPacketsOut';
 import { deviceBreakpoints } from '../../../shared/constants';
 import {
   NetworkDirection,

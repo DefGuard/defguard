@@ -1,15 +1,14 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
-import { Search } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
-import { IconCheckmarkGreen, IconDeactivated } from '../../../shared/components/svg';
+import IconCheckmarkGreen from '../../../shared/components/svg/IconCheckmarkGreen';
+import IconDeactivated from '../../../shared/components/svg/IconDeactivated';
 import SvgIconPlusWhite from '../../../shared/components/svg/IconPlusWhite';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -18,26 +17,25 @@ import {
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOption } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import ConfirmModal from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import NoData from '../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
 import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
-  VirtualizedList,
-} from '../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
+} from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { VirtualizedList } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useClipboard } from '../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
@@ -45,6 +43,7 @@ import { OpenidClient } from '../../../shared/types';
 import { OpenIdClientModal } from '../modals/OpenIdClientModal/OpenIdClientModal';
 
 export const OpenidClientsListPage = () => {
+  const { writeToClipboard } = useClipboard();
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const queryClient = useQueryClient();
@@ -79,7 +78,7 @@ export const OpenidClientsListPage = () => {
     [LL],
   );
 
-  const [selectedFilter, setSelectedFilter] = useState(selectOptions[0]);
+  const [selectedFilter, setSelectedFilter] = useState(FilterOption.ALL);
 
   const { mutate: deleteClientMutation, isLoading: deleteClientLoading } = useMutation(
     [MutationKeys.DELETE_OPENID_CLIENT],
@@ -214,14 +213,10 @@ export const OpenidClientsListPage = () => {
               data-testid="copy-openid-client-id"
               text={LL.openidOverview.list.editButton.copy()}
               onClick={() => {
-                clipboard
-                  .write(client.client_id)
-                  .then(() => {
-                    toaster.success(LL.openidOverview.messages.copySuccess());
-                  })
-                  .catch(() => {
-                    toaster.error(LL.messages.clipboardError());
-                  });
+                writeToClipboard(
+                  client.client_id,
+                  LL.openidOverview.messages.copySuccess(),
+                );
               }}
             />
             <EditButtonOption
@@ -238,13 +233,12 @@ export const OpenidClientsListPage = () => {
     ];
     return res;
   }, [
-    LL.messages,
+    writeToClipboard,
     LL.openidOverview.list.editButton,
     LL.openidOverview.list.status,
     LL.openidOverview.messages,
     editClientStatusMutation,
     setOpenIdClientModalState,
-    toaster,
   ]);
 
   const getListPadding = useMemo(() => {
@@ -262,7 +256,7 @@ export const OpenidClientsListPage = () => {
 
   useEffect(() => {
     if (breakpoint !== 'desktop' && selectedFilter !== FilterOption.ALL) {
-      setSelectedFilter(selectOptions[0]);
+      setSelectedFilter(FilterOption.ALL);
     }
   }, [breakpoint, selectOptions, selectedFilter]);
 
@@ -290,11 +284,7 @@ export const OpenidClientsListPage = () => {
             <Select
               options={selectOptions}
               selected={selectedFilter}
-              onChange={(o) => {
-                if (o && !Array.isArray(o)) {
-                  setSelectedFilter(o);
-                }
-              }}
+              onChangeSingle={(res) => setSelectedFilter(res)}
             />
           )}
           <Button

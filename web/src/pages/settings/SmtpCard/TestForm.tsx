@@ -7,18 +7,18 @@ import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { IconCheckmarkWhite } from '../../../shared/components/svg';
+import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
 import { deviceBreakpoints } from '../../../shared/constants';
-import useApi from '../../../shared/hooks/useApi';
-import { useToaster } from '../../../shared/hooks/useToaster';
-import { patternValidEmail } from '../../../shared/patterns';
-import { TestMail } from '../../../shared/types';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
+import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
+import { patternValidEmail } from '../../../shared/patterns';
+import { TestMail } from '../../../shared/types';
 
 type SMTPError = AxiosError<{ error: string }>;
 
@@ -73,7 +73,7 @@ export const TestForm = () => {
       </header>
       <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
         <FormInput
-          outerLabel={LL.settingsPage.smtp.test_form.fields.to.label()}
+          label={LL.settingsPage.smtp.test_form.fields.to.label()}
           controller={{ control: testControl, name: 'to' }}
           placeholder={LL.settingsPage.smtp.test_form.fields.to.placeholder()}
           required

@@ -7,7 +7,7 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { IconCheckmarkWhite } from '../../../shared/components/svg';
+import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconX from '../../../shared/components/svg/IconX';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
