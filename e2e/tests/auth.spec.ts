@@ -5,7 +5,9 @@ import { defaultUserAdmin, routes } from '../config';
 import { acceptRecovery } from '../utils/controllers/acceptRecovery';
 import { createUser } from '../utils/controllers/createUser';
 import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/login';
+import { logout } from '../utils/controllers/logout';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
+import { changePassword } from '../utils/controllers/profile';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
@@ -73,4 +75,15 @@ test('Add user to admin group', async ({ page, context }) => {
   await loginBasic(page, testUser);
   await waitForRoute(page, routes.admin.wizard);
   expect(page.url()).toBe(routes.base + routes.admin.wizard);
+});
+
+test('Change user password', async ({ page, context }) => {
+  await waitForBase(page);
+  const testUser = await createUser(context, faker.person.lastName().toLowerCase());
+  await loginBasic(page, testUser);
+  testUser.password = await changePassword(page, testUser.password);
+  await logout(page);
+  await loginBasic(page, testUser);
+  await waitForRoute(page, routes.me);
+  expect(page.url()).toBe(routes.base + routes.me);
 });

@@ -45,6 +45,7 @@ export const UserAuthInfoPassword = () => {
                 }
               }
             }}
+            data-testid="button-change-password"
           />
         </div>
       </section>
