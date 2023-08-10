@@ -84,7 +84,11 @@ export const UsersList = ({ users }: Props) => {
       },
       {
         key: 'username',
-        render: (user: User) => <span className="username">{user.username}</span>,
+        render: (user: User) => (
+          <span className="username" data-testid="username">
+            {user.username}
+          </span>
+        ),
       },
       {
         key: 'phone',

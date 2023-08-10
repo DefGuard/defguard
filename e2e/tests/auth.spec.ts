@@ -7,7 +7,7 @@ import { createUser } from '../utils/controllers/createUser';
 import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
-import { changePassword } from '../utils/controllers/profile';
+import { changePassword, changePasswordByAdmin } from '../utils/controllers/profile';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
@@ -79,11 +79,23 @@ test('Add user to admin group', async ({ page, context }) => {
 
 test('Change user password', async ({ page, context }) => {
   await waitForBase(page);
-  const testUser = await createUser(context, faker.person.lastName().toLowerCase());
+  const testUser = await createUser(context, faker.person.firstName().toLowerCase());
   await loginBasic(page, testUser);
   testUser.password = await changePassword(page, testUser.password);
   await logout(page);
   await loginBasic(page, testUser);
+  await waitForRoute(page, routes.me);
+  expect(page.url()).toBe(routes.base + routes.me);
+});
+
+test('Change user password by admin', async ({ page, context }) => {
+  await loginBasic(page, defaultUserAdmin);
+  const user = await createUser(context, faker.person.firstName().toLowerCase());
+  await page.goto(routes.base + routes.admin.users);
+  await page.getByText(user.username).click();
+  user.password = await changePasswordByAdmin(page);
+  await logout(page);
+  await loginBasic(page, user);
   await waitForRoute(page, routes.me);
   expect(page.url()).toBe(routes.base + routes.me);
 });
