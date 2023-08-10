@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { saveAs } from 'file-saver';
 import { useEffect } from 'react';
 import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
@@ -14,10 +15,13 @@ import SvgIconArrowGrayUp from '../../../shared/components/svg/IconArrowGrayUp';
 import SvgIconDownload from '../../../shared/components/svg/IconDownload';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
+import { SMTPError } from '../../../shared/types';
 
 export const DebugDataCard = () => {
   const { LL } = useI18nContext();
+  const toaster = useToaster();
   const settings = useAppStore((state) => state.settings);
   const smtp_configured =
     settings?.smtp_server &&
@@ -27,7 +31,7 @@ export const DebugDataCard = () => {
     settings?.smtp_sender;
   const {
     settings: { downloadSupportData, downloadLogs },
-    mail: {sendSupportMail},
+    mail: { sendSupportMail },
   } = useApi();
   const {
     data: supportData,
@@ -47,6 +51,18 @@ export const DebugDataCard = () => {
     queryFn: downloadLogs,
     enabled: false,
   });
+  const { mutate: sendMail, isLoading: mailLoading } = useMutation([], sendSupportMail, {
+    onSuccess: () => {
+      toaster.success(LL.settingsPage.debugDataCard.mailSent());
+    },
+    onError: (err: SMTPError) => {
+      toaster.error(
+        `${LL.settingsPage.debugDataCard.mailError()}`,
+        `${err.response?.data.error}`
+      );
+      console.error(err);
+    },
+  });
   useEffect(() => {
     if (!supportData || configLoading) {
       return;
@@ -57,6 +73,7 @@ export const DebugDataCard = () => {
     const timestamp = new Date().toISOString().replaceAll(':', '');
     saveAs(content, `defguard-support-data-${timestamp}.json`);
   }, [supportData, configLoading]);
+
   useEffect(() => {
     if (!logs || logsLoading) {
       return;
@@ -65,10 +82,11 @@ export const DebugDataCard = () => {
     const timestamp = new Date().toISOString().replaceAll(':', '');
     saveAs(content, `defguard-logs-${timestamp}.json`);
   }, [logs, logsLoading]);
-  const sendMail = () => {
-    // TODO
-    console.log('send mail');
+
+  const onSendMail = async () => {
+    sendMail();
   };
+
   return (
     <>
       <ContentCard
@@ -95,11 +113,12 @@ export const DebugDataCard = () => {
       />
       <Button
         className="support-data-button"
-        onClick={sendMail}
+        onClick={() => onSendMail()}
         size={ButtonSize.SMALL}
         styleVariant={ButtonStyleVariant.PRIMARY}
         icon={<SvgIconArrowGrayUp />}
         text={LL.settingsPage.debugDataCard.sendMail()}
+        loading={mailLoading}
         disabled={!smtp_configured}
       />
     </>

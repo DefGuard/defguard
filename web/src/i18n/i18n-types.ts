@@ -1872,7 +1872,7 @@ type RootTranslation = {
 					submit: string
 				}
 			}
-			test_form: {
+			testForm: {
 				/**
 				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
 				 */
@@ -1895,11 +1895,11 @@ type RootTranslation = {
 					 */
 					submit: string
 					/**
-					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t​ ​s​u​c​c​e​s​s​f​u​l​l​y
+					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t
 					 */
 					success: string
 					/**
-					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​t​e​s​t​ ​e​m​a​i​l
+					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
 					 */
 					error: string
 				}
@@ -2028,6 +2028,14 @@ type RootTranslation = {
 			 * S​e​n​d​ ​e​-​m​a​i​l
 			 */
 			sendMail: string
+			/**
+			 * E​m​a​i​l​ ​s​e​n​t
+			 */
+			mailSent: string
+			/**
+			 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
+			 */
+			mailError: string
 		}
 		licenseCard: {
 			/**
@@ -5023,7 +5031,7 @@ export type TranslationFunctions = {
 					submit: () => LocalizedString
 				}
 			}
-			test_form: {
+			testForm: {
 				/**
 				 * Send test email
 				 */
@@ -5046,11 +5054,11 @@ export type TranslationFunctions = {
 					 */
 					submit: () => LocalizedString
 					/**
-					 * Test email sent successfully
+					 * Test email sent
 					 */
 					success: () => LocalizedString
 					/**
-					 * Error sending test email
+					 * Error sending email
 					 */
 					error: () => LocalizedString
 				}
@@ -5179,6 +5187,14 @@ export type TranslationFunctions = {
 			 * Send e-mail
 			 */
 			sendMail: () => LocalizedString
+			/**
+			 * Email sent
+			 */
+			mailSent: () => LocalizedString
+			/**
+			 * Error sending email
+			 */
+			mailError: () => LocalizedString
 		}
 		licenseCard: {
 			/**

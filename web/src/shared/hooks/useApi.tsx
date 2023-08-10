@@ -359,7 +359,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.post('/mail/test', data).then(unpackRequest);
 
   const sendSupportMail: ApiHook['mail']['sendSupportMail'] = () =>
-    client.post('/mail/support').then(unpackRequest);
+    client.post('/mail/support', {}).then(unpackRequest);
 
   return {
     getAppInfo,
@@ -475,6 +475,7 @@ const useApi = (props?: HookProps): ApiHook => {
     },
     mail: {
       sendTestMail: sendTestMail,
+      sendSupportMail: sendSupportMail,
     },
   };
 };

@@ -4,7 +4,7 @@ import {
   PublicKeyCredentialWithAssertionJSON,
   PublicKeyCredentialWithAttestationJSON,
 } from '@github/webauthn-json';
-import { AxiosPromise } from 'axios';
+import { AxiosError, AxiosPromise } from 'axios';
 
 import { Locales } from '../i18n/i18n-types';
 
@@ -819,3 +819,5 @@ export interface RemoveUserClientRequest {
 export interface TestMail {
   to: string;
 }
+
+export type SMTPError = AxiosError<{ error: string }>;

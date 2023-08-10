@@ -810,7 +810,7 @@ const en: BaseTranslation = {
           submit: 'Save changes',
         },
       },
-      test_form: {
+      testForm: {
         title: 'Send test email',
         fields: {
           to: {
@@ -820,8 +820,8 @@ const en: BaseTranslation = {
         },
         controls: {
           submit: 'Send',
-          success: 'Test email sent successfully',
-          error: 'Error sending test email',
+          success: 'Test email sent',
+          error: 'Error sending email',
         },
       },
       helper: `
@@ -892,6 +892,8 @@ If you need assistance or you were asked to generate support data by our team (f
       downloadSupportData: 'Download support data',
       downloadLogs: 'Download logs',
       sendMail: 'Send e-mail',
+      mailSent: 'Email sent',
+      mailError: 'Error sending email',
     },
     licenseCard: {
       header: 'License & Support Information',

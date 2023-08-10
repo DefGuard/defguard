@@ -809,7 +809,7 @@ const pl: Translation = {
           submit: 'Save changes',
         },
       },
-      test_form: {
+      testForm: {
         title: 'Wyślij emaila testowego',
         fields: {
           to: {
@@ -819,8 +819,8 @@ const pl: Translation = {
         },
         controls: {
           submit: 'Wyślij',
-          success: 'Email testowy wysłany pomyślnie',
-          error: 'Błąd wysyłania emaila testowego',
+          success: 'Email wysłany pomyślnie',
+          error: 'Błąd wysyłania emaila',
         },
       },
       helper: `
@@ -891,6 +891,8 @@ Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygen
       downloadSupportData: 'Pobierz dane wsparcia technicznego',
       downloadLogs: 'Pobierz logi',
       sendMail: 'Wyślij e-mail',
+      mailSent: 'Email wysłany',
+      mailError: 'Error sending email',
     },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',
