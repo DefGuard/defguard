@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
 import { faker } from '@faker-js/faker';
+import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../config';
 import { acceptRecovery } from '../utils/controllers/acceptRecovery';
