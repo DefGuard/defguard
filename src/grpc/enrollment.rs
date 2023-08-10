@@ -1,7 +1,10 @@
 use crate::{
     config::DefGuardConfig,
     db::{
-        models::{device::DeviceInfo, enrollment::Enrollment},
+        models::{
+            device::DeviceInfo,
+            enrollment::{Enrollment, EnrollmentError},
+        },
         DbPool, Device, GatewayEvent, Settings, User,
     },
     handlers::{self, user::check_password_strength},
@@ -17,7 +20,6 @@ use tonic::{Request, Response, Status};
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
-use crate::db::models::enrollment::EnrollmentError;
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
     Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
@@ -307,6 +309,7 @@ impl From<Device> for ProtoDevice {
 }
 
 impl Enrollment {
+    // Send configured welcome email to user after finishing enrollment
     async fn send_welcome_email(
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
