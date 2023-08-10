@@ -203,29 +203,6 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
-        // let mail = Mail {
-        //     to: user.email.clone(),
-        //     subject: ENROLLMENT_WELCOME_MAIL_SUBJECT.to_string(),
-        //     content: templates::enrollment_welcome_mail(&content).map_err(|err| {
-        //         error!(
-        //             "Failed to render welcome email for user {}: {err}",
-        //             user.username
-        //         );
-        //         Status::internal("unexpected error")
-        //     })?,
-        //     attachments: Vec::new(),
-        //     result_tx: None,
-        // };
-        // match self.mail_tx.send(mail) {
-        //     Ok(_) => {
-        //         info!("Sent enrollment welcome mail to {}", user.username);
-        //     }
-        //     Err(err) => {
-        //         error!("Error sending welcome mail: {err}");
-        //         Status::internal("unexpected error");
-        //     }
-        // }
-
         Ok(Response::new(()))
     }
 
