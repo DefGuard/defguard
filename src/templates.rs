@@ -1,3 +1,4 @@
+use crate::db::User;
 use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
@@ -6,6 +7,8 @@ static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.tpl");
 static MAIL_ENROLLMENT_START: &str = include_str!("../templates/mail_enrollment_start.tpl");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tpl");
+static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
+    include_str!("../templates/mail_enrollment_admin_notification.tpl");
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
@@ -56,6 +59,24 @@ pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
     context.insert("welcome_message_content", &html_output);
 
     Ok(tera.render("mail_enrollment_welcome", &context)?)
+}
+
+// notification sent to admin after user completes enrollment
+pub fn enrollment_admin_notification(user: &User, admin: &User) -> Result<String, TemplateError> {
+    let mut tera = Tera::default();
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template(
+        "mail_enrollment_admin_notification",
+        MAIL_ENROLLMENT_ADMIN_NOTIFICATION,
+    )?;
+
+    let mut context = Context::new();
+    context.insert("first_name", &user.first_name);
+    context.insert("last_name", &user.last_name);
+    context.insert("admin_first_name", &admin.first_name);
+    context.insert("admin_last_name", &admin.last_name);
+
+    Ok(tera.render("mail_enrollment_admin_notification", &context)?)
 }
 
 #[cfg(test)]
