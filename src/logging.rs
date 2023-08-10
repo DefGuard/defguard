@@ -1,10 +1,9 @@
-use std::str::FromStr;
-
 use fern::{
     colors::{Color, ColoredLevelConfig},
     Dispatch,
 };
 use log::LevelFilter;
+use std::str::FromStr;
 
 /// Configures fern logging library.
 pub fn init(log_level: &str, file: &Option<String>) -> Result<(), fern::InitError> {

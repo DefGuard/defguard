@@ -5,7 +5,10 @@
 
 use crate::{
     db::User,
-    handlers::{support::{configuration, logs}, mail::send_support_data},
+    handlers::{
+        mail::send_support_data,
+        support::{configuration, logs},
+    },
 };
 
 #[cfg(feature = "worker")]

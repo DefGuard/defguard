@@ -109,13 +109,13 @@ impl From<Attachment> for SinglePart {
 
 impl Mail {
     /// Converts Mail to lettre Message
-    fn to_message(self, from: &str) -> Result<Message, MailError> {
+    fn into_message(self, from: &str) -> Result<Message, MailError> {
         let builder = Message::builder()
             .from(Self::mailbox(from)?)
             .to(Self::mailbox(&self.to)?)
             .subject(self.subject.clone());
         match self.attachments {
-            attachments if attachments.len() == 0 => Ok(builder
+            attachments if attachments.is_empty() => Ok(builder
                 .header(ContentType::TEXT_HTML)
                 .body(self.content.clone())?),
             attachments => {
@@ -182,7 +182,7 @@ impl MailHandler {
 
             // Construct lettre Message
             let result_tx = mail.result_tx.clone();
-            let message: Message = match mail.to_message(&settings.sender) {
+            let message: Message = match mail.into_message(&settings.sender) {
                 Ok(message) => message,
                 Err(err) => {
                     error!("Failed to build message to: {to}, subject: {subject}, error: {err}");

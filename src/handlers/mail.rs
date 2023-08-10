@@ -12,6 +12,7 @@ use tokio::sync::mpsc::unbounded_channel;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    config::DefGuardConfig,
     handlers::{ApiResponse, ApiResult},
     mail::{Attachment, Mail},
     support::dump_config,
@@ -82,6 +83,21 @@ pub async fn test_mail(
     }
 }
 
+async fn read_logs(config: &DefGuardConfig) -> String {
+    let path = match &config.log_file {
+        Some(path) => path,
+        None => return "Log file not configured".to_string(),
+    };
+
+    match tokio::fs::read_to_string(path).await {
+        Ok(logs) => logs,
+        Err(err) => {
+            error!("Error dumping app logs: {err}");
+            format!("Error dumping app logs: {err}")
+        }
+    }
+}
+
 #[post("/support", format = "json")]
 pub async fn send_support_data(
     _admin: AdminRole,
@@ -92,12 +108,18 @@ pub async fn send_support_data(
         "User {} sending support mail to {}",
         session.user.username, SUPPORT_EMAIL_ADDRESS
     );
-    let config = dump_config(&appstate.pool, &appstate.config)
-        .await
-        .to_string();
+    let config = dump_config(&appstate.pool, &appstate.config).await;
+    let config =
+        serde_json::to_string_pretty(&config).unwrap_or("Json formatting error".to_string());
     let config = Attachment {
-        filename: format!("defguard-support-data-{}", Utc::now().to_string()),
+        filename: format!("defguard-support-data-{}.json", Utc::now()),
         content: config.into(),
+        content_type: ContentType::TEXT_PLAIN,
+    };
+    let logs = read_logs(&appstate.config).await;
+    let logs = Attachment {
+        filename: format!("defguard-logs-{}.txt", Utc::now()),
+        content: logs.into(),
         content_type: ContentType::TEXT_PLAIN,
     };
     let (tx, mut rx) = unbounded_channel();
@@ -105,7 +127,7 @@ pub async fn send_support_data(
         to: SUPPORT_EMAIL_ADDRESS.to_string(),
         subject: SUPPORT_EMAIL_SUBJECT.to_string(),
         content: support_data_mail()?,
-        attachments: vec![config],
+        attachments: vec![config, logs],
         result_tx: Some(tx),
     };
     let (to, subject) = (mail.to.clone(), mail.subject.clone());
