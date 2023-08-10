@@ -1,3 +1,4 @@
+use defguard::db::Settings;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
@@ -7,6 +8,7 @@ use defguard::{
     mail::{run_mail_handler, Mail},
     run_web_server,
     wireguard_stats_purge::run_periodic_stats_purge,
+    SERVER_CONFIG,
 };
 use std::{
     fs::read_to_string,
@@ -21,6 +23,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let config = DefGuardConfig::new();
     logging::init(&config.log_level, &config.log_file)?;
+    SERVER_CONFIG.set(config.clone())?;
     match config.openid_signing_key {
         Some(_) => log::info!("Using RSA OpenID signing key"),
         None => log::info!("Using HMAC OpenID signing key"),
@@ -47,6 +50,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // initialize admin user
     User::init_admin_user(&pool, &config.default_admin_password).await?;
+
+    // initialize default settings
+    Settings::init_defaults(&pool).await?;
 
     // read grpc TLS cert and key
     let grpc_cert = config

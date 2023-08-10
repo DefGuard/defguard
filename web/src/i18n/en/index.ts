@@ -28,6 +28,28 @@ const en: BaseTranslation = {
         cancel: 'Cancel',
       },
     },
+    startEnrollment: {
+      title: 'Start enrollment',
+      messages: {
+        success: 'User enrollment started',
+        error: 'Failed to start user enrollment',
+      },
+      form: {
+        email: {
+          label: 'Email',
+        },
+        mode: {
+          options: {
+            email: 'Send token by email',
+            manual: 'Deliver token yourself',
+          },
+        },
+        submit: 'Start enrollment',
+      },
+      tokenCard: {
+        title: 'Copy enrollment token',
+      },
+    },
     deleteNetwork: {
       title: 'Delete {name:string} location',
       subTitle: 'This action will permanently delete this location.',
@@ -564,6 +586,7 @@ const en: BaseTranslation = {
         edit: 'Edit account',
         provision: 'Provision YubiKey',
         delete: 'Delete account',
+        startEnrollment: 'Start enrollment',
       },
     },
   },
@@ -850,6 +873,9 @@ const en: BaseTranslation = {
           helper:
             'This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.',
           placeholder: 'Please input welcome email',
+        },
+        welcomeEmailSubject: {
+          label: 'Subject',
         },
         useMessageAsEmail: {
           label: 'Same as welcome message',

@@ -28,6 +28,28 @@ const pl: Translation = {
         submit: 'Zmień hasło',
       },
     },
+    startEnrollment: {
+      title: 'Rozpocznij rejestrację',
+      messages: {
+        success: 'Rejestracja użytkownika rozpoczęta',
+        error: 'Błąd rejestracji użytkownika',
+      },
+      form: {
+        email: {
+          label: 'Email',
+        },
+        mode: {
+          options: {
+            email: 'Wyślij token przez email',
+            manual: 'Przekaż token ręcznie',
+          },
+        },
+        submit: 'Rozpocznij rejestrację',
+      },
+      tokenCard: {
+        title: 'Skopiuj token',
+      },
+    },
     deleteNetwork: {
       cancel: 'Wróć',
       submit: 'Usuń lokalizację',
@@ -321,7 +343,7 @@ const pl: Translation = {
             label: 'Telefon',
           },
           enableEnrollment: {
-            label: 'Użyj zdalnego enrollmentu',
+            label: 'Użyj zdalnej rejestracji',
           },
         },
       },
@@ -565,6 +587,7 @@ const pl: Translation = {
         edit: 'Edytuj konto',
         provision: 'Stwórz klucze na YubiKey',
         delete: 'Usuń konto',
+        startEnrollment: 'Rozpocznij rejestrację',
       },
     },
   },
@@ -808,11 +831,11 @@ const pl: Translation = {
     },
     enrollment: {
       helper:
-        'Enrollment to proces, w ramach którego nowy użytkownik może samodzielnie aktywować swoje konto, ustawić hasło i skonfigurować urządzenie VPN.',
+        'Rejestracja to proces, w ramach którego nowy użytkownik może samodzielnie aktywować swoje konto, ustawić hasło i skonfigurować urządzenie VPN.',
       vpnOptionality: {
         header: 'Opcjonalność kroku VPN',
         helper:
-          'Możesz zdecydować czy dodawanie urządzenia VPN jest obowiązkowym czy opcjonalnym krokiem enrollmentu',
+          'Możesz zdecydować czy dodawanie urządzenia VPN jest obowiązkowym czy opcjonalnym krokiem rejestracji',
       },
       welcomeMessage: {
         header: 'Wiadomość powitalna',
@@ -842,13 +865,16 @@ const pl: Translation = {
         },
         welcomeMessage: {
           helper:
-            'Ta wiadomość będzie pokazywana użytkownikom po zakończeniu enrollmentu. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków.',
+            'Ta wiadomość będzie pokazywana użytkownikom po zakończeniu rejestracji. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków.',
           placeholder: 'Wpisz wiadomość powitalną',
         },
         welcomeEmail: {
           helper:
-            'Ta wiadomość zostanie wysłana do użytkowników po zakończeniu enrollmentu. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków. Możesz użyć tej samej treści co w wiadomości powitalnej.',
+            'Ta wiadomość zostanie wysłana do użytkowników po zakończeniu rejestracji. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków. Możesz użyć tej samej treści co w wiadomości powitalnej.',
           placeholder: 'Wpisz email powitalny',
+        },
+        welcomeEmailSubject: {
+          label: 'Temat',
         },
         useMessageAsEmail: {
           label: 'Taki sam jak wiadomość powitalna',

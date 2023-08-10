@@ -2,13 +2,9 @@
     <img src="docs/header.png" alt="defguard">
  </p>
 
-defguard is an open-source security *swiss army knife* (Identity, MFA, VPN, Yubikey, Web3).
+In a nutshell, from a **functionality** point defguard is an **OpenID Identity Provider** (SSO for your apps) and **Wireguard VPN  Service** for building secure private networks (roadwarrior, mesh/peer-to-peer, site-to-site).
 
-Building a secure organization has always been difficult and costly. Defguard provides a beautiful, easy-to-use (business users) and deploy (admin/devops) fundament to make your organization secure.
-
-**Why?**
-
-The story and motivation behind defguard [can be found here: https://teonite.com/blog/defguard/](https://teonite.com/blog/defguard/)
+On a broader aspect, it's a **security platform for building secure organizations**, addressing the most critical pain points and requirements to construct a privacy-aware, secure fundament for your users and systems. Read more about this in our [documentation](https://defguard.gitbook.io).
 
 **Implemented & production tested features:**
 
@@ -45,28 +41,32 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 
 Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
 
-# Roadmap
+## Roadmap
 
 [A detailed product roadmap can be found here](https://defguard.gitbook.io/defguard/features/roadmap).
 
-# Quick start
+## Quick start
 
 The easiest way to run defguard is by using docker. Follow our [docker deployment guide](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose).
 
-# Deployment examples
+## Deployment examples
 
 * Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
 * Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
 
-# Documentation
+## Why?
+
+The story and motivation behind defguard [can be found here: https://teonite.com/blog/defguard/](https://teonite.com/blog/defguard/)
+
+## Documentation
 
 See the [documentation](https://defguard.gitbook.io) for more information.
 
-# Community and Support
+## Community and Support
 
 Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite.com)
 
-# Contribution
+## Contribution
 
 Please review the [Contributing guide](https://defguard.gitbook.io/defguard/for-developers/contributing) for information on how to get started contributing to the project. You might also find our [environment setup guide](https://defguard.gitbook.io/defguard/for-developers/dev-env-setup) handy.
 

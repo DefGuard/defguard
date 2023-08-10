@@ -36,6 +36,7 @@ export type User = {
   ssh_key?: string;
   groups: string[];
   authorized_apps?: OAuth2AuthorizedApps[];
+  is_active: boolean;
 };
 
 export type UserProfile = {
@@ -215,9 +216,18 @@ export interface AddUserRequest {
   last_name: string;
   first_name: string;
   phone?: string;
-  send_enrollment_notification: boolean;
 }
 
+export interface StartEnrollmentRequest {
+  username: string;
+  send_enrollment_notification: boolean;
+  email?: string;
+}
+
+export interface StartEnrollmentResponse {
+  enrollment_url: string;
+  enrollment_token: string;
+}
 export interface GroupsResponse {
   groups: string[];
 }
@@ -338,7 +348,8 @@ export interface ApiHook {
   };
   user: {
     getMe: () => Promise<User>;
-    addUser: (data: AddUserRequest) => EmptyApiResponse;
+    addUser: (data: AddUserRequest) => Promise<User>;
+    startEnrollment: (data: StartEnrollmentRequest) => Promise<StartEnrollmentResponse>;
     getUser: (username: string) => Promise<UserProfile>;
     getUsers: () => Promise<User[]>;
     editUser: (data: UserEditRequest) => Promise<User>;
@@ -513,6 +524,11 @@ export interface ChangeWalletModal {
   user?: User;
 }
 
+export interface StartEnrollmentModal {
+  visible: boolean;
+  user?: User;
+}
+
 export interface ChangeUserPasswordModal {
   visible: boolean;
   user?: User;
@@ -584,6 +600,7 @@ export interface UseModalStore {
   licenseModal: StandardModalState;
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
+  startEnrollmentModal: StartEnrollmentModal;
   provisionKeyModal: ProvisionKeyModal;
   webhookModal: WebhookModal;
   addOpenidClientModal: StandardModalState;
@@ -604,6 +621,7 @@ export interface UseModalStore {
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
+  setStartEnrollmentModal: ModalSetter<StartEnrollmentModal>;
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
@@ -643,6 +661,7 @@ export interface Settings {
   enrollment_vpn_step_optional: boolean;
   enrollment_welcome_message: string;
   enrollment_welcome_email: string;
+  enrollment_welcome_email_subject: string;
   enrollment_use_welcome_message_as_email: boolean;
 }
 

@@ -79,6 +79,7 @@ use std::{
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
+    OnceCell,
 };
 
 pub mod appstate;
@@ -106,6 +107,8 @@ extern crate rocket;
 extern crate serde;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+// TODO: use in more contexts instead of cloning/passing config around
+pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
 /// Catch missing files and serve "index.html".
 #[get("/<path..>", rank = 4)]
