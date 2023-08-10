@@ -452,7 +452,7 @@ export interface ApiHook {
   support: {
     downloadSupportData: () => Promise<unknown>;
     downloadLogs: () => Promise<string>;
-  }
+  };
   mail: {
     sendTestMail: (data: TestMail) => EmptyApiResponse;
     sendSupportMail: () => EmptyApiResponse;
