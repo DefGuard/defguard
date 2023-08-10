@@ -23,6 +23,7 @@
     "prettier": "^2.8.8"
   },
   "dependencies": {
+    "@faker-js/faker": "^8.0.2",
     "@playwright/test": "^1.32.3",
     "@types/lodash": "^4.14.195",
     "axios": "^1.4.0",

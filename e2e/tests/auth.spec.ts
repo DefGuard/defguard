@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../config';
@@ -62,4 +63,14 @@ test('Recovery code login', async ({ page, context }) => {
   await loginRecoveryCodes(page, testUser, recoveryCodes[0]);
   await waitForRoute(page, routes.me);
   expect(page.url()).toBe(routes.base + routes.me);
+});
+
+test('Add user to admin group', async ({ page, context }) => {
+  await waitForBase(page);
+  const testUser = await createUser(context, faker.person.lastName().toLowerCase(), [
+    'Admin',
+  ]);
+  await loginBasic(page, testUser);
+  await waitForRoute(page, routes.admin.wizard);
+  expect(page.url()).toBe(routes.base + routes.admin.wizard);
 });
