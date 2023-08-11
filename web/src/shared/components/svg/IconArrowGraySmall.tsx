@@ -8,11 +8,11 @@ const SvgIconArrowGraySmall = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-arrow-gray-small_svg__a">
         <path fill="#899ca8" d="M0 0h22v22H0z" data-name="Rectangle 2812" opacity={0} />
       </clipPath>
     </defs>
-    <g fill="#899ca8" clipPath="url(#a)">
+    <g fill="#899ca8" clipPath="url(#icon-arrow-gray-small_svg__a)">
       <rect
         width={6}
         height={2}

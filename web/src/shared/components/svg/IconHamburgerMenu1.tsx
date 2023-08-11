@@ -8,7 +8,7 @@ const SvgIconHamburgerMenu1 = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-hamburger-menu-1_svg__a">
         <path
           d="M0 0h30v30H0z"
           style={{
@@ -18,17 +18,35 @@ const SvgIconHamburgerMenu1 = (props: SVGProps<SVGSVGElement>) => (
           transform="translate(-4 -4)"
         />
       </clipPath>
-      <style>{'.c{fill:#899ca8}'}</style>
+      <style>{'.icon-hamburger-menu-1_svg__c{fill:#899ca8}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-hamburger-menu-1_svg__a)',
       }}
       transform="translate(-308 -223)"
     >
-      <rect width={20} height={2} className="c" rx={1} transform="translate(313 231)" />
-      <rect width={14} height={2} className="c" rx={1} transform="translate(313 237)" />
-      <rect width={14} height={2} className="c" rx={1} transform="translate(313 243)" />
+      <rect
+        width={20}
+        height={2}
+        className="icon-hamburger-menu-1_svg__c"
+        rx={1}
+        transform="translate(313 231)"
+      />
+      <rect
+        width={14}
+        height={2}
+        className="icon-hamburger-menu-1_svg__c"
+        rx={1}
+        transform="translate(313 237)"
+      />
+      <rect
+        width={14}
+        height={2}
+        className="icon-hamburger-menu-1_svg__c"
+        rx={1}
+        transform="translate(313 243)"
+      />
     </g>
   </svg>
 );

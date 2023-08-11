@@ -88,7 +88,6 @@
     "terser": "^5.19.2",
     "typesafe-i18n": "^5.26.0",
     "use-breakpoint": "^3.1.1",
-    "vite-plugin-node-polyfills": "^0.11.0",
     "yup": "^1.2.0",
     "zod": "^3.21.4",
     "zustand": "^4.4.1"
@@ -104,6 +103,7 @@
     "@types/byte-size": "^8.1.0",
     "@types/file-saver": "^2.0.5",
     "@types/lodash-es": "^4.17.8",
+    "@types/node": "^20.4.9",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
     "@types/react-router-dom": "^5.3.3",

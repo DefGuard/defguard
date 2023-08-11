@@ -8,7 +8,7 @@ const SvgIconPlusWhite = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-plus-white_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,15 +17,27 @@ const SvgIconPlusWhite = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.c{fill:#617684}'}</style>
+      <style>{'.icon-plus-white_svg__c{fill:#617684}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-plus-white_svg__a)',
       }}
     >
-      <rect width={10} height={2} className="c" rx={1} transform="rotate(-90 13 3)" />
-      <rect width={10} height={2} className="c" rx={1} transform="rotate(-180 8 6)" />
+      <rect
+        width={10}
+        height={2}
+        className="icon-plus-white_svg__c"
+        rx={1}
+        transform="rotate(-90 13 3)"
+      />
+      <rect
+        width={10}
+        height={2}
+        className="icon-plus-white_svg__c"
+        rx={1}
+        transform="rotate(-180 8 6)"
+      />
     </g>
   </svg>
 );

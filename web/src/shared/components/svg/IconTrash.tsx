@@ -8,7 +8,7 @@ const SvgIconTrash = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-trash_svg__a">
         <path
           fill="#899ca8"
           d="M603 1461v22h-22v-22z"
@@ -17,7 +17,7 @@ const SvgIconTrash = (props: SVGProps<SVGSVGElement>) => (
         />
       </clipPath>
     </defs>
-    <g clipPath="url(#a)" transform="translate(-581 -1461)">
+    <g clipPath="url(#icon-trash_svg__a)" transform="translate(-581 -1461)">
       <g fill="#899ca8" data-name="Group 4725">
         <path
           d="M597.996 1467.459a1 1 0 0 0-1.07.924l-.835 11.376h-7.9l-.835-11.376a1 1 0 1 0-1.994.147l.9 12.3a1 1 0 0 0 1 .927h9.755a1 1 0 0 0 1-.927l.9-12.3a1 1 0 0 0-.921-1.071Z"

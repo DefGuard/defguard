@@ -4,11 +4,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { useMemo } from 'react';
 import Skeleton from 'react-loading-skeleton';
-import { Label } from 'recharts';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Label } from '../../../../shared/defguard-ui/components/Layout/Label/Label';
 import NoData from '../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Tag } from '../../../../shared/defguard-ui/components/Layout/Tag/Tag';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';

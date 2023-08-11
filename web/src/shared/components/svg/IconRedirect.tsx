@@ -8,7 +8,7 @@ const SvgIconRedirect = (props: SVGProps<SVGSVGElement>) => (
     viewBox="0 0 372 369"
     {...props}
   >
-    <g clipPath="url(#a)">
+    <g clipPath="url(#icon-redirect_svg__a)">
       <path
         fill="#CBD3D8"
         d="M96.96 170.506h94.39v14.167H96.96v-14.167ZM86.78 94.832l8.11-9.675 76.27 68.417-8.11 9.502-76.27-68.244ZM198.252 170.506h79.204v14.167h-79.204v-14.167ZM210.158 143.553l65.745-58.396 8.283 9.503-65.745 58.396-8.283-9.503Z"
@@ -154,7 +154,7 @@ const SvgIconRedirect = (props: SVGProps<SVGSVGElement>) => (
       />
     </g>
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-redirect_svg__a">
         <path fill="#fff" d="M.5.5h371v368H.5z" />
       </clipPath>
     </defs>

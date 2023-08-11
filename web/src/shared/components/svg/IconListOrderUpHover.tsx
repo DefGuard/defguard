@@ -8,7 +8,7 @@ const SvgIconListOrderUpHover = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-list-order-up-hover_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,21 +17,39 @@ const SvgIconListOrderUpHover = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.c{fill:#899ca8}'}</style>
+      <style>{'.icon-list-order-up-hover_svg__c{fill:#899ca8}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-list-order-up-hover_svg__a)',
       }}
       transform="rotate(-90 11 11)"
     >
       <g transform="rotate(90 4 12)">
-        <rect width={14} height={2} className="c" rx={1} transform="translate(0 8)" />
-        <rect width={10} height={2} className="c" rx={1} transform="translate(0 4)" />
-        <rect width={10} height={2} className="c" rx={1} />
+        <rect
+          width={14}
+          height={2}
+          className="icon-list-order-up-hover_svg__c"
+          rx={1}
+          transform="translate(0 8)"
+        />
+        <rect
+          width={10}
+          height={2}
+          className="icon-list-order-up-hover_svg__c"
+          rx={1}
+          transform="translate(0 4)"
+        />
+        <rect width={10} height={2} className="icon-list-order-up-hover_svg__c" rx={1} />
       </g>
       <g transform="translate(6)">
-        <rect width={8} height={2} className="c" rx={1} transform="translate(0 2)" />
+        <rect
+          width={8}
+          height={2}
+          className="icon-list-order-up-hover_svg__c"
+          rx={1}
+          transform="translate(0 2)"
+        />
         <g
           style={{
             fill: '#899ca8',

@@ -8,7 +8,7 @@ const SvgIconDelete = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-delete_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,11 +17,11 @@ const SvgIconDelete = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.d{fill:#cb3f3f}'}</style>
+      <style>{'.icon-delete_svg__d{fill:#cb3f3f}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-delete_svg__a)',
       }}
       transform="rotate(90 11 11)"
     >
@@ -53,11 +53,17 @@ const SvgIconDelete = (props: SVGProps<SVGSVGElement>) => (
       <rect
         width={8}
         height={2}
-        className="d"
+        className="icon-delete_svg__d"
         rx={1}
         transform="rotate(45 -4.57 14.45)"
       />
-      <rect width={8} height={2} className="d" rx={1} transform="rotate(135 5.43 7.45)" />
+      <rect
+        width={8}
+        height={2}
+        className="icon-delete_svg__d"
+        rx={1}
+        transform="rotate(135 5.43 7.45)"
+      />
     </g>
   </svg>
 );

@@ -7,10 +7,10 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import SvgIconEditAlt from '../../shared/components/svg/IconEditAlt';
 import SvgIconNavOpenId from '../../shared/components/svg/IconNavOpenid';
 import SvgIconNavProfile from '../../shared/components/svg/IconNavProfile';
 import SvgIconNavProvisioners from '../../shared/components/svg/IconNavProvisioners';
+import SvgIconNavSettings from '../../shared/components/svg/IconNavSettings';
 import SvgIconNavUsers from '../../shared/components/svg/IconNavUsers';
 import SvgIconNavVpn from '../../shared/components/svg/IconNavVpn';
 import SvgIconNavWebhooks from '../../shared/components/svg/IconNavWebhooks';
@@ -67,7 +67,7 @@ export const Navigation = () => {
       {
         title: LL.navigation.bar.settings(),
         linkPath: '/admin/settings',
-        icon: <SvgIconEditAlt />,
+        icon: <SvgIconNavSettings />,
         allowedToView: ['admin'],
         enabled: true,
       },

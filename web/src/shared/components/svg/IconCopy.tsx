@@ -8,11 +8,11 @@ const SvgIconCopy = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-copy_svg__a">
         <path fill="#899ca8" d="M0 0h22v22H0z" data-name="Rectangle 2627" opacity={0} />
       </clipPath>
     </defs>
-    <g clipPath="url(#a)" transform="rotate(90 11 11)">
+    <g clipPath="url(#icon-copy_svg__a)" transform="rotate(90 11 11)">
       <g fill="#899ca8" data-name="Group 4639" transform="rotate(-90 53.5 280.5)">
         <rect
           width={10}

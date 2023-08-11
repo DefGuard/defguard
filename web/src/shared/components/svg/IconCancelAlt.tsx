@@ -8,7 +8,7 @@ const SvgIconCancelAlt = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-cancel-alt_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,25 +17,25 @@ const SvgIconCancelAlt = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.c{fill:#0c8ce0}'}</style>
+      <style>{'.icon-cancel-alt_svg__c{fill:#0c8ce0}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-cancel-alt_svg__a)',
       }}
       transform="rotate(90 11 11)"
     >
       <rect
         width={16}
         height={2}
-        className="c"
+        className="icon-cancel-alt_svg__c"
         rx={1}
         transform="rotate(45 -2.571 9.621)"
       />
       <rect
         width={16}
         height={2}
-        className="c"
+        className="icon-cancel-alt_svg__c"
         rx={1}
         transform="rotate(135 7.429 6.621)"
       />

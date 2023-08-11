@@ -8,7 +8,7 @@ const SvgIconDeactivated = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-deactivated_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,11 +17,11 @@ const SvgIconDeactivated = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.d{fill:#899ca8}'}</style>
+      <style>{'.icon-deactivated_svg__d{fill:#899ca8}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-deactivated_svg__a)',
       }}
       transform="rotate(90 11 11)"
     >
@@ -53,7 +53,7 @@ const SvgIconDeactivated = (props: SVGProps<SVGSVGElement>) => (
       <rect
         width={14}
         height={2}
-        className="d"
+        className="icon-deactivated_svg__d"
         rx={1}
         transform="rotate(45 -3.07 10.83)"
       />

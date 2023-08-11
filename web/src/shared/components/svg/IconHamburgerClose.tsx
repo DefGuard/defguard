@@ -8,36 +8,40 @@ const SvgIconHamburgerClose = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
-        <path d="M-4-4h30v30H-4z" className="a" />
+      <clipPath id="icon-hamburger-close_svg__a">
+        <path d="M-4-4h30v30H-4z" className="icon-hamburger-close_svg__a" />
       </clipPath>
-      <clipPath id="b">
-        <path d="M0 0h22v22H0z" className="a" />
+      <clipPath id="icon-hamburger-close_svg__b">
+        <path d="M0 0h22v22H0z" className="icon-hamburger-close_svg__a" />
       </clipPath>
-      <style>{'.a,.c{fill:#899ca8}.a{opacity:0}'}</style>
+      <style>
+        {
+          '.icon-hamburger-close_svg__a,.icon-hamburger-close_svg__c{fill:#899ca8}.icon-hamburger-close_svg__a{opacity:0}'
+        }
+      </style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-hamburger-close_svg__a)',
       }}
     >
       <g
         style={{
-          clipPath: 'url(#b)',
+          clipPath: 'url(#icon-hamburger-close_svg__b)',
         }}
         transform="rotate(90 11 15)"
       >
         <rect
           width={19.998}
           height={2}
-          className="c"
+          className="icon-hamburger-close_svg__c"
           rx={1}
           transform="rotate(45 -1.57 7.208)"
         />
         <rect
           width={19.997}
           height={2}
-          className="c"
+          className="icon-hamburger-close_svg__c"
           rx={1}
           transform="rotate(135 8.429 6.208)"
         />

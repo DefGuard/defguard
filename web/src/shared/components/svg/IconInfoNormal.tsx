@@ -8,7 +8,7 @@ const SvgIconInfoNormal = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <style>{'.icon-info-normal-b{fill:#fff}'}</style>
+      <style>{'.icon-info-normal_svg__icon-info-normal-b{fill:#fff}'}</style>
     </defs>
     <g transform="translate(-786 -145)">
       <circle
@@ -23,14 +23,14 @@ const SvgIconInfoNormal = (props: SVGProps<SVGSVGElement>) => (
       <rect
         width={2}
         height={7}
-        className="icon-info-normal-b"
+        className="icon-info-normal_svg__icon-info-normal-b"
         rx={1}
         transform="translate(794 152)"
       />
       <rect
         width={2}
         height={2}
-        className="icon-info-normal-b"
+        className="icon-info-normal_svg__icon-info-normal-b"
         rx={1}
         transform="translate(794 149)"
       />

@@ -8,7 +8,7 @@ const SvgIconInfoSuccess = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <style>{'.b{fill:#fff}'}</style>
+      <style>{'.icon-info-success_svg__b{fill:#fff}'}</style>
     </defs>
     <g transform="translate(-786 -145)">
       <circle
@@ -24,14 +24,14 @@ const SvgIconInfoSuccess = (props: SVGProps<SVGSVGElement>) => (
         <rect
           width={8}
           height={2}
-          className="b"
+          className="icon-info-success_svg__b"
           rx={1}
           transform="rotate(135 368.746 241.708)"
         />
         <rect
           width={5}
           height={2}
-          className="b"
+          className="icon-info-success_svg__b"
           rx={1}
           transform="rotate(45 212.04 1032.873)"
         />

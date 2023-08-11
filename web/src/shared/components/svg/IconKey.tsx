@@ -8,7 +8,7 @@ const SvgIconKey = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-key_svg__a">
         <path
           fill="#899ca8"
           d="M603 1504v22h-22v-22z"
@@ -17,7 +17,7 @@ const SvgIconKey = (props: SVGProps<SVGSVGElement>) => (
         />
       </clipPath>
     </defs>
-    <g clipPath="url(#a)" transform="translate(-581 -1504)">
+    <g clipPath="url(#icon-key_svg__a)" transform="translate(-581 -1504)">
       <g data-name="Group 4729">
         <g data-name="Group 4727">
           <path

@@ -8,7 +8,7 @@ const SvgIconEditHover = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-edit-hover_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -21,7 +21,7 @@ const SvgIconEditHover = (props: SVGProps<SVGSVGElement>) => (
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-edit-hover_svg__a)',
       }}
     >
       <path

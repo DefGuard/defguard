@@ -8,7 +8,7 @@ const SvgIconWaitingHover = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-waiting-hover_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,21 +17,21 @@ const SvgIconWaitingHover = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.c{fill:#0c8ce0}'}</style>
+      <style>{'.icon-waiting-hover_svg__c{fill:#0c8ce0}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-waiting-hover_svg__a)',
       }}
       transform="rotate(-90 11 11)"
     >
       <path
         d="m9.41 14.207 1.882-2.51h3.834a.7.7 0 0 0 0-1.394h-4.183a.7.7 0 0 0-.558.279l-2.091 2.789a.7.7 0 0 0 1.115.837Z"
-        className="c"
+        className="icon-waiting-hover_svg__c"
       />
       <path
         d="M20 11a9 9 0 1 0-9 9 9.01 9.01 0 0 0 9-9ZM3.394 11A7.606 7.606 0 1 1 11 18.606 7.615 7.615 0 0 1 3.394 11Z"
-        className="c"
+        className="icon-waiting-hover_svg__c"
       />
     </g>
   </svg>

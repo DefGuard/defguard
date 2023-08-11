@@ -8,11 +8,11 @@ const SvgIconTagDismiss = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-tag-dismiss_svg__a">
         <path fill="#cbd3d8" d="M0 0h16v16H0z" data-name="Rectangle 2114" />
       </clipPath>
     </defs>
-    <g fill="#cbd3d8" clipPath="url(#a)">
+    <g fill="#cbd3d8" clipPath="url(#icon-tag-dismiss_svg__a)">
       <rect
         width={10}
         height={2}

@@ -8,7 +8,7 @@ const SvgIconSearch = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-search_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,13 +17,13 @@ const SvgIconSearch = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.c{fill:#899ca8}'}</style>
+      <style>{'.icon-search_svg__c{fill:#899ca8}'}</style>
     </defs>
     <path
       d="M6.379 0a6.375 6.375 0 0 1 4.951 10.4L14 13.067l-.933.933-2.667-2.67A6.378 6.378 0 1 1 6.379 0Zm0 11.438A5.059 5.059 0 1 0 1.32 6.379a5.065 5.065 0 0 0 5.059 5.059Z"
-      className="c"
+      className="icon-search_svg__c"
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-search_svg__a)',
       }}
       transform="translate(4 4)"
     />

@@ -1,6 +1,8 @@
-import { BrowserProvider, JsonRpcError, Provider, Signer } from 'ethers';
+import { BrowserProvider, JsonRpcError, JsonRpcSigner } from 'ethers';
+import { isUndefined } from 'lodash-es';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 
+import { ConnectInfo } from './types';
 import { Web3Context } from './web3Context';
 
 const ethereum = window.ethereum;
@@ -11,8 +13,8 @@ type Props = {
 
 export const Web3ContextProvider = ({ children }: Props) => {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [provider, setProvider] = useState<Provider | undefined>();
-  const [signer, setSigner] = useState<Signer | undefined>();
+  const [provider, setProvider] = useState<BrowserProvider | undefined>();
+  const [signer, setSigner] = useState<JsonRpcSigner | undefined>();
   const [chainId, setChainId] = useState<number | undefined>();
   const [address, setAddress] = useState<string | undefined>();
   const [isConnected, setConnected] = useState<boolean>(false);
@@ -45,47 +47,47 @@ export const Web3ContextProvider = ({ children }: Props) => {
     return Promise.reject('No ethereum in window');
   }, [provider]);
 
+  const handleAccountsChange = useCallback((accounts: string[]) => {
+    if (accounts.length) {
+      console.log(accounts);
+      setAddress(accounts[0]);
+    }
+  }, []);
+
+  const handleConnect = useCallback((data: ConnectInfo) => {
+    const { chainId } = data;
+    setChainId(parseInt(chainId, 16));
+    setConnected(true);
+  }, []);
+
+  const handleDisconnect = useCallback(() => {
+    setConnected(false);
+  }, []);
+
   useEffect(() => {
-    if (provider) {
-      const setupListeners = async () => {
-        provider.on('connect', async () => {
-          setConnected(true);
-        });
-
-        provider.on('disconnect', async () => {
-          setConnected(false);
-        });
-
-        provider.on('accountsChanged', async (accounts: string[]) => {
-          if (accounts && accounts.length) {
-            setAddress(accounts[0]);
-          } else {
-            setChainId(undefined);
-            setAddress(undefined);
-            setConnected(false);
-          }
-        });
-
-        provider.on('chainChanged', async () => {
-          window.location.reload();
-        });
-      };
-
-      setupListeners();
-
+    if (ethereum && ethereum.isMetaMask) {
+      ethereum.on('accountsChanged', handleAccountsChange);
+      ethereum.on('connect', handleConnect);
+      ethereum.on('disconnect', handleDisconnect);
+      ethereum.on('chainChanged', () => window.location.reload());
       return () => {
-        provider.removeAllListeners('');
+        ethereum.removeListener('accountsChanged', handleAccountsChange);
+        ethereum.removeListener('connect', handleConnect);
+        ethereum.removeListener('disconnect', handleDisconnect);
       };
     }
-  }, [provider]);
+  }, [handleAccountsChange, handleConnect, handleDisconnect]);
 
   useEffect(() => {
-    if (ethereum?.isMetaMask) {
+    if (ethereum && ethereum?.isMetaMask) {
       const init = async () => {
         const p = new BrowserProvider(ethereum);
         const s = await p.getSigner();
         setProvider(p);
         setSigner(s);
+        if (!isUndefined(ethereum.isConnected)) {
+          setConnected(ethereum.isConnected());
+        }
       };
       init();
     }

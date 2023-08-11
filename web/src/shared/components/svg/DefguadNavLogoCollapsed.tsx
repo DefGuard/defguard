@@ -8,7 +8,13 @@ const SvgDefguadNavLogoCollapsed = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <linearGradient id="a" x1={0.5} x2={0.5} y2={1} gradientUnits="objectBoundingBox">
+      <linearGradient
+        id="defguad-nav-logo-collapsed_svg__a"
+        x1={0.5}
+        x2={0.5}
+        y2={1}
+        gradientUnits="objectBoundingBox"
+      >
         <stop offset={0} stopColor="#2accff" />
         <stop offset={1} stopColor="#0071d4" />
       </linearGradient>
@@ -23,7 +29,7 @@ const SvgDefguadNavLogoCollapsed = (props: SVGProps<SVGSVGElement>) => (
     <path
       d="M1660.863-2055.789v-15.961l-3.477-2v7.965l-6.954-4-10.431 6v24.018l10.431 6 6.954-4v4.015l-3.473 2 3.477 2 3.473-2v-20.032l-10.431-6-6.954 4v-8.01l6.954-4 6.954 4v4Zm-10.431 2.012 3.477 2-3.477 2-3.477-2Zm0 8 6.954-4v8.006l-6.954 4-6.954-4v-8.006Z"
       style={{
-        fill: 'url(#a)',
+        fill: 'url(#defguad-nav-logo-collapsed_svg__a)',
       }}
       transform="translate(-1640 2073.751)"
     />

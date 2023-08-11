@@ -8,19 +8,31 @@ const SvgIconPacketsOut = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
-        <path d="M0 0h16v16H0z" className="a" />
+      <clipPath id="icon-packets-out_svg__a">
+        <path d="M0 0h16v16H0z" className="icon-packets-out_svg__a" />
       </clipPath>
-      <style>{'.a{fill:#cb3f3f}'}</style>
+      <style>{'.icon-packets-out_svg__a{fill:#cb3f3f}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-packets-out_svg__a)',
       }}
       transform="translate(1.997 5)"
     >
-      <rect width={2} height={2} className="a" rx={1} transform="translate(9 2)" />
-      <rect width={2} height={2} className="a" rx={1} transform="translate(6 2)" />
+      <rect
+        width={2}
+        height={2}
+        className="icon-packets-out_svg__a"
+        rx={1}
+        transform="translate(9 2)"
+      />
+      <rect
+        width={2}
+        height={2}
+        className="icon-packets-out_svg__a"
+        rx={1}
+        transform="translate(6 2)"
+      />
       <g
         style={{
           fill: '#cb3f3f',

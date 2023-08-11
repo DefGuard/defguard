@@ -8,7 +8,7 @@ const SvgIconDisconnected = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-disconnected_svg__a">
         <path
           d="M0 0h16v16H0z"
           style={{
@@ -19,7 +19,7 @@ const SvgIconDisconnected = (props: SVGProps<SVGSVGElement>) => (
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-disconnected_svg__a)',
       }}
     >
       <circle

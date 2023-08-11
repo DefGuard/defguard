@@ -17,7 +17,10 @@ import {
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import {
+  SelectOption,
+  SelectSizeVariant,
+} from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
@@ -134,6 +137,7 @@ export const UsersOverview = () => {
         <div className="controls">
           {breakpoint === 'desktop' && (
             <Select
+              sizeVariant={SelectSizeVariant.SMALL}
               searchable={false}
               selected={selectedFilter}
               options={filterSelectOptions}

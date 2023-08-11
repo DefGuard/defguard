@@ -8,7 +8,7 @@ const SvgIconArrowWhiteLeft = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-arrow-white-left_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,24 +17,24 @@ const SvgIconArrowWhiteLeft = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.c{fill:#fff}'}</style>
+      <style>{'.icon-arrow-white-left_svg__c{fill:#fff}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-arrow-white-left_svg__a)',
       }}
     >
       <rect
         width={8}
         height={2}
-        className="c"
+        className="icon-arrow-white-left_svg__c"
         rx={1}
         transform="rotate(-45 16.742 -2.863)"
       />
       <rect
         width={8}
         height={2}
-        className="c"
+        className="icon-arrow-white-left_svg__c"
         rx={1}
         transform="rotate(-135 9.814 5.893)"
       />

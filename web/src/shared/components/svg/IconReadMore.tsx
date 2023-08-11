@@ -8,7 +8,7 @@ const SvgIconReadMore = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-read-more_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,17 +17,35 @@ const SvgIconReadMore = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.c{fill:#0c8ce0}'}</style>
+      <style>{'.icon-read-more_svg__c{fill:#0c8ce0}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-read-more_svg__a)',
       }}
       transform="translate(-312 -227)"
     >
-      <rect width={14} height={2} className="c" rx={1} transform="translate(316 233)" />
-      <rect width={10} height={2} className="c" rx={1} transform="translate(316 237)" />
-      <rect width={10} height={2} className="c" rx={1} transform="translate(316 241)" />
+      <rect
+        width={14}
+        height={2}
+        className="icon-read-more_svg__c"
+        rx={1}
+        transform="translate(316 233)"
+      />
+      <rect
+        width={10}
+        height={2}
+        className="icon-read-more_svg__c"
+        rx={1}
+        transform="translate(316 237)"
+      />
+      <rect
+        width={10}
+        height={2}
+        className="icon-read-more_svg__c"
+        rx={1}
+        transform="translate(316 241)"
+      />
     </g>
   </svg>
 );

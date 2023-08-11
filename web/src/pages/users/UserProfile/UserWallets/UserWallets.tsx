@@ -2,7 +2,7 @@ import './style.scss';
 
 import { isUndefined } from 'lodash-es';
 import { alphabetical } from 'radash';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -47,6 +47,10 @@ export const UserWallets = () => {
       setModalsState({ addWalletModal: { visible: true } });
     }
   };
+
+  useEffect(() => {
+    console.log({ connect, isConnecting, isConnected });
+  }, [connect, isConnected, isConnecting]);
 
   return (
     <section id="user-wallets">

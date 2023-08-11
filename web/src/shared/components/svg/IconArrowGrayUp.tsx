@@ -8,7 +8,7 @@ const SvgIconArrowGrayUp = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-arrow-gray-up_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,25 +17,25 @@ const SvgIconArrowGrayUp = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.c{fill:#899ca8}'}</style>
+      <style>{'.icon-arrow-gray-up_svg__c{fill:#899ca8}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-arrow-gray-up_svg__a)',
       }}
       transform="rotate(90 11 11)"
     >
       <rect
         width={8}
         height={2}
-        className="c"
+        className="icon-arrow-gray-up_svg__c"
         rx={1}
         transform="rotate(45 -7.4 14.862)"
       />
       <rect
         width={8}
         height={2}
-        className="c"
+        className="icon-arrow-gray-up_svg__c"
         rx={1}
         transform="rotate(135 5.672 6.106)"
       />

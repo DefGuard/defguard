@@ -1,9 +1,11 @@
-import { Eip1193Provider } from 'ethers';
+import { BrowserProvider, Eip1193Provider } from 'ethers';
 
 declare global {
   interface Window {
-    ethereum?: Eip1193Provider & {
-      isMetaMask?: boolean;
-    };
+    ethereum?: Eip1193Provider &
+      BrowserProvider & {
+        isMetaMask?: boolean;
+        isConnected?: () => boolean;
+      };
   }
 }

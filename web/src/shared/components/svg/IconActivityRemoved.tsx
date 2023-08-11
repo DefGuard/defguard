@@ -8,14 +8,14 @@ const SvgIconActivityRemoved = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
-        <path d="M0 0h16v16H0z" className="a" />
+      <clipPath id="icon-activity-removed_svg__a">
+        <path d="M0 0h16v16H0z" className="icon-activity-removed_svg__a" />
       </clipPath>
-      <style>{'.a{fill:#cb3f3f}'}</style>
+      <style>{'.icon-activity-removed_svg__a{fill:#cb3f3f}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-activity-removed_svg__a)',
       }}
     >
       <g
@@ -42,7 +42,7 @@ const SvgIconActivityRemoved = (props: SVGProps<SVGSVGElement>) => (
       <rect
         width={10}
         height={2}
-        className="a"
+        className="icon-activity-removed_svg__a"
         rx={1}
         transform="rotate(135 5.05 5.122)"
       />

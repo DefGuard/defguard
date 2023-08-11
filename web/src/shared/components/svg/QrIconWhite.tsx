@@ -8,11 +8,11 @@ const SvgQrIconWhite = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="qr-icon-white_svg__a">
         <path fill="#fff" d="M0 0h21.541v21.212H0z" data-name="Rectangle 3014" />
       </clipPath>
     </defs>
-    <g fill="#fff" clipPath="url(#a)" data-name="Group 4749">
+    <g fill="#fff" clipPath="url(#qr-icon-white_svg__a)" data-name="Group 4749">
       <path
         d="M7.495 8.5H1a1 1 0 0 1-1-1V1a1 1 0 0 1 1-1h6.495a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1M2 6.5h4.495V2H2Z"
         data-name="Path 5698"

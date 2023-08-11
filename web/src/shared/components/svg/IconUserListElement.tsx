@@ -8,7 +8,7 @@ const SvgIconUserListElement = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-user-list-element_svg__a">
         <path
           d="M0 0h22v22H0z"
           style={{
@@ -17,39 +17,39 @@ const SvgIconUserListElement = (props: SVGProps<SVGSVGElement>) => (
           }}
         />
       </clipPath>
-      <style>{'.c{fill:#899ca8}'}</style>
+      <style>{'.icon-user-list-element_svg__c{fill:#899ca8}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-user-list-element_svg__a)',
       }}
       transform="translate(-313 -224.475)"
     >
       <rect
         width={10}
         height={2}
-        className="c"
+        className="icon-user-list-element_svg__c"
         rx={1}
         transform="translate(319 237.475)"
       />
       <rect
         width={5}
         height={2}
-        className="c"
+        className="icon-user-list-element_svg__c"
         rx={1}
         transform="rotate(45 -119.83 511.254)"
       />
       <rect
         width={5}
         height={2}
-        className="c"
+        className="icon-user-list-element_svg__c"
         rx={1}
         transform="rotate(-45 453.425 -271.805)"
       />
       <rect
         width={10}
         height={2}
-        className="c"
+        className="icon-user-list-element_svg__c"
         rx={1}
         transform="rotate(90 45.762 275.238)"
       />

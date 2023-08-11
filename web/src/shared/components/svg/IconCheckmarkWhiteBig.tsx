@@ -8,7 +8,7 @@ const SvgIconCheckmarkWhiteBig = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <defs>
-      <clipPath id="a">
+      <clipPath id="icon-checkmark-white-big_svg__a">
         <path
           d="M0 0h36v36H0z"
           style={{
@@ -18,25 +18,25 @@ const SvgIconCheckmarkWhiteBig = (props: SVGProps<SVGSVGElement>) => (
           transform="translate(.203 .203)"
         />
       </clipPath>
-      <style>{'.c{fill:#fff}'}</style>
+      <style>{'.icon-checkmark-white-big_svg__c{fill:#fff}'}</style>
     </defs>
     <g
       style={{
-        clipPath: 'url(#a)',
+        clipPath: 'url(#icon-checkmark-white-big_svg__a)',
       }}
       transform="rotate(90 18.203 18)"
     >
       <rect
         width={19.857}
         height={3.31}
-        className="c"
+        className="icon-checkmark-white-big_svg__c"
         rx={1.655}
         transform="rotate(45 -.06 17.375)"
       />
       <rect
         width={13.238}
         height={3.31}
-        className="c"
+        className="icon-checkmark-white-big_svg__c"
         rx={1.655}
         transform="rotate(-45 39.078 -4.59)"
       />
