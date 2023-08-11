@@ -57,6 +57,12 @@ export default defineConfig({
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+    rollupOptions: {
+      logLevel: 'silent',
+      onwarn: (warning, warn) => {
+        return;
+      },
+    },
   },
   css: {
     postcss: {

@@ -1,6 +1,7 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { isUndefined } from 'lodash-es';
+import { useEffect, useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
@@ -17,6 +18,9 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
 import { chainName } from '../../../../../shared/utils/chainName';
+import { useWeb3Account } from '../../../../../shared/web3/hooks/useWeb3Account';
+import { useWeb3Connection } from '../../../../../shared/web3/hooks/useWeb3Connection';
+import { useWeb3Signer } from '../../../../../shared/web3/hooks/useWeb3Signer';
 
 interface FormValues {
   name: string;
@@ -36,46 +40,50 @@ export const AddWalletModalForm = () => {
   } = useApi();
   const { LL, locale } = useI18nContext();
 
-  const { address, isConnected } = useAccount();
-  const { disconnect, disconnectAsync } = useDisconnect();
-  const { chain } = useNetwork();
   const queryClient = useQueryClient();
-  const { signTypedDataAsync } = useSignTypedData();
+
+  const { isConnected } = useWeb3Connection();
+  const { address, chainId } = useWeb3Account();
+  const { signer } = useWeb3Signer();
+
+  const [isSigning, setIsSigning] = useState(false);
 
   const AddWalletMutation = useMutation(setWallet, {
     mutationKey: [MutationKeys.SET_WALLET],
 
     onSuccess: () => {
       setModalsState({ addWalletModal: { visible: false } });
-      disconnect();
       queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
     },
 
     onError: () => {
       setModalsState({ addWalletModal: { visible: false } });
-      disconnect();
     },
   });
 
   const WalletChallengeMutation = useMutation(walletChallenge, {
     mutationKey: [MutationKeys.WALLET_CHALLENGE],
     onSuccess: async (data, variables) => {
-      if (!chain?.id) return;
+      if (isUndefined(chainId) || !signer) return;
       const message = JSON.parse(data.message);
       const types = message.types;
       const domain = message.domain;
       const value = message.message;
-      const signature = await signTypedDataAsync({ types, domain, value });
-      AddWalletMutation.mutate({
-        name: variables.name || 'My wallet',
-        chain_id: chain.id,
-        username: variables.username,
-        address: variables.address,
-        signature,
+      setIsSigning(true);
+      const signature = await signer.signTypedData(domain, types, value).catch((e) => {
+        setIsSigning(false);
+        console.error(e);
+        return undefined;
       });
-    },
-    onError: () => {
-      disconnect();
+      if (signature) {
+        AddWalletMutation.mutate({
+          name: variables.name || 'My wallet',
+          chain_id: chainId,
+          username: variables.username,
+          address: variables.address,
+          signature,
+        });
+      }
     },
   });
 
@@ -90,28 +98,23 @@ export const AddWalletModalForm = () => {
   }, [locale]);
 
   const defaultFormValues = useMemo((): FormValues => {
-    if (address && chain?.id) {
-      const mappedName = chainName(chain.id);
+    if (address && chainId) {
+      const mappedName = chainName(chainId);
       return {
         name: mappedName || 'My wallet',
         address: address || '',
       };
     }
     return defaultValues;
-  }, [address, chain?.id]);
+  }, [address, chainId]);
 
-  const {
-    handleSubmit,
-    control,
-    formState: { isValid, isSubmitted },
-  } = useForm<FormValues>({
+  const { handleSubmit, control, reset } = useForm<FormValues>({
     resolver: yupResolver(schema),
     mode: 'all',
     defaultValues: defaultFormValues,
   });
 
   const onSubmit: SubmitHandler<FormValues> = async (values) => {
-    const chainId = chain?.id;
     if (user?.username && chainId) {
       WalletChallengeMutation.mutate({
         name: values.name,
@@ -121,6 +124,11 @@ export const AddWalletModalForm = () => {
       });
     }
   };
+
+  // makes sure default values are set upon mount
+  useEffect(() => {
+    reset();
+  }, [defaultFormValues, reset]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit, (e) => console.error(e))}>
@@ -144,7 +152,6 @@ export const AddWalletModalForm = () => {
           text={LL.form.cancel()}
           className="cancel"
           onClick={async () => {
-            await disconnectAsync();
             setModalsState({ addWalletModal: { visible: false } });
           }}
           type="button"
@@ -154,7 +161,7 @@ export const AddWalletModalForm = () => {
             size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.PRIMARY}
             type="submit"
-            disabled={!isValid || isSubmitted}
+            loading={isSigning || WalletChallengeMutation.isLoading}
             text={LL.modals.addWallet.form.controls.submit()}
           />
         )}

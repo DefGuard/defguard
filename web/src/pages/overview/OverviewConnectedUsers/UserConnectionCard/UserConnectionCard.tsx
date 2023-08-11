@@ -13,20 +13,14 @@ import SvgIconClip from '../../../../shared/components/svg/IconClip';
 import SvgIconCollapse from '../../../../shared/components/svg/IconCollapse';
 import SvgIconConnected from '../../../../shared/components/svg/IconConnected';
 import SvgIconExpand from '../../../../shared/components/svg/IconExpand';
-import Badge, {
-  BadgeStyleVariant,
-} from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
-import {
-  DeviceAvatar,
-  DeviceAvatarVariants,
-} from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
-import {
-  NetworkDirection,
-  NetworkSpeed,
-} from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
-import UserInitials, {
-  UserInitialsType,
-} from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
+import Badge from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import { BadgeStyleVariant } from '../../../../shared/defguard-ui/components/Layout/Badge/types';
+import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
+import { DeviceAvatarVariants } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/types';
+import { NetworkSpeed } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
+import { NetworkDirection } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
+import { UserInitialsType } from '../../../../shared/defguard-ui/components/Layout/UserInitials/types';
+import UserInitials from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';

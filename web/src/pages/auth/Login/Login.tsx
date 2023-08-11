@@ -93,7 +93,6 @@ export const Login = () => {
           placeholder={LL.form.placeholders.username()}
           autoComplete="username"
           data-testid="login-form-username"
-          innerLabel
           required
         />
         <FormInput
@@ -102,7 +101,6 @@ export const Login = () => {
           type="password"
           autoComplete="password"
           data-testid="login-form-password"
-          innerLabel
           required
         />
         <Button

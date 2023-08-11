@@ -2,20 +2,24 @@ import './style.scss';
 
 import { isUndefined } from 'lodash-es';
 import { alphabetical } from 'radash';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { useToaster } from '../../../../shared/hooks/useToaster';
+import { useWeb3Account } from '../../../../shared/web3/hooks/useWeb3Account';
+import { useWeb3Connection } from '../../../../shared/web3/hooks/useWeb3Connection';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { AddWalletModal } from './AddWalletModal/AddWalletModal';
 import { WalletCard } from './WalletCard/WalletCard';
 
 export const UserWallets = () => {
+  const { address } = useWeb3Account();
+  const { isConnected, connect } = useWeb3Connection();
   const { LL } = useI18nContext();
-  const { isConnected, address } = useAccount();
+  const [isConnecting, setConnecting] = useState(false);
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const isMe = useUserProfileStore((state) => state.isMe);
   const setModalsState = useModalStore((state) => state.setState);
@@ -30,6 +34,7 @@ export const UserWallets = () => {
 
   const handleAddWallet = () => {
     if (
+      address &&
       isConnected &&
       userProfile &&
       !isUndefined(userProfile.wallets.find((w) => w.address === address))
@@ -69,14 +74,18 @@ export const UserWallets = () => {
       )}
       {userProfile && (
         <AddComponentBox
+          disabled={isUndefined(window.ethereum) || isUndefined(connect) || isConnecting}
           callback={() => {
-            if (!isConnected) {
-              setModalsState({
-                connectWalletModal: {
-                  visible: true,
-                  onConnect: handleAddWallet,
-                },
-              });
+            if (!isConnected && connect) {
+              connect()
+                .then(() => {
+                  setConnecting(false);
+                  handleAddWallet();
+                })
+                .catch((e) => {
+                  setConnecting(false);
+                  console.error(e);
+                });
             } else {
               handleAddWallet();
             }

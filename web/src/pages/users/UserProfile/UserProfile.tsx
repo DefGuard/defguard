@@ -17,10 +17,8 @@ import {
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOption } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';

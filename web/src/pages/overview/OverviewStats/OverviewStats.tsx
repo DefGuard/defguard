@@ -11,10 +11,8 @@ import IconActiveConnections from '../../../shared/components/svg/IconActiveConn
 import IconPacketsIn from '../../../shared/components/svg/IconPacketsIn';
 import IconPacketsOut from '../../../shared/components/svg/IconPacketsOut';
 import { deviceBreakpoints } from '../../../shared/constants';
-import {
-  NetworkDirection,
-  NetworkSpeed,
-} from '../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
+import { NetworkSpeed } from '../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
+import { NetworkDirection } from '../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
 import { NetworkUserStats, WireguardNetworkStats } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { NetworkUsageChart } from '../OverviewConnectedUsers/shared/components/NetworkUsageChart/NetworkUsageChart';

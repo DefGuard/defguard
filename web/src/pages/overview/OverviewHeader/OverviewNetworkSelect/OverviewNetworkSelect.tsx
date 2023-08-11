@@ -15,19 +15,7 @@ export const OverViewNetworkSelect = () => {
   );
   const setOverviewStore = useOverviewStore((state) => state.setState);
 
-  const selected = useMemo((): SelectOption<number> | undefined => {
-    const network = networks?.find((n) => n.id === selectedNetworkId);
-    if (network) {
-      return {
-        label: network.name,
-        value: network.id,
-        key: network.id,
-      };
-    }
-    return undefined;
-  }, [networks, selectedNetworkId]);
-
-  const options = useMemo((): SelectOption<number>[] | undefined => {
+  const options = useMemo((): SelectOption<number>[] => {
     if (networks) {
       return networks.map((n) => ({
         label: n.name,
@@ -35,19 +23,17 @@ export const OverViewNetworkSelect = () => {
         value: n.id,
       }));
     }
-    return undefined;
+    return [];
   }, [networks]);
 
   return (
     <Select
       placeholder={LL.networkOverview.controls.selectNetwork.placeholder()}
       loading={isUndefined(networks) || networks.length === 0}
-      selected={selected}
+      selected={selectedNetworkId}
       options={options}
-      onChange={(option) => {
-        if (!Array.isArray(option) && networks) {
-          setOverviewStore({ selectedNetworkId: option?.value });
-        }
+      onChangeSingle={(res) => {
+        setOverviewStore({ selectedNetworkId: res });
       }}
     />
   );

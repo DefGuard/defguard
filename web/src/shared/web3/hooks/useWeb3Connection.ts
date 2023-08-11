@@ -7,10 +7,11 @@ export const useWeb3Connection = () => {
 
   if (!contextData) return {};
 
-  const { isConnected, connect } = contextData;
+  const { isConnected, connect, isConnecting } = contextData;
 
   return {
     isConnected,
     connect,
+    isConnecting,
   };
 };

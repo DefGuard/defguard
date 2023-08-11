@@ -9,15 +9,12 @@ import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconEth from '../../../../../shared/components/svg/IconEth';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { AvatarBox } from '../../../../../shared/defguard-ui/components/Layout/AvatarBox/AvatarBox';
-import Badge, {
-  BadgeStyleVariant,
-} from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import Badge from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import { BadgeStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Badge/types';
 import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../shared/hooks/useApi';

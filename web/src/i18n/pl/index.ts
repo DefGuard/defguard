@@ -5,10 +5,13 @@ const pl: Translation = {
   messages: {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
-    successClipboard: 'Skopiowano do schowka',
     errorVersion: 'Nie udało się uzyskać wersji aplikacji.',
     errorLicense: 'Nie udało się uzyskać licencji.',
-    clipboardError: 'Schowek nie jest dostępny.',
+    clipboard: {
+      success: 'Skopiowano do schowka',
+      error: 'Schowek nie jest dostępny',
+    },
+    insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
     changePasswordSelf: {

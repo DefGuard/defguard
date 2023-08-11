@@ -18,10 +18,8 @@ import Badge from '../../../../../shared/defguard-ui/components/Layout/Badge/Bad
 import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { DeviceAvatar } from '../../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
 import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import NoData from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';

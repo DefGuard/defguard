@@ -15,9 +15,8 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import ConfirmModal from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
 import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../shared/hooks/useApi';

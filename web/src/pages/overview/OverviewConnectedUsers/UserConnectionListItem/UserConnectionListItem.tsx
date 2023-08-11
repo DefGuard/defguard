@@ -11,22 +11,16 @@ import IconPacketsOut from '../../../../shared/components/svg/IconPacketsOut';
 import SvgIconUserList from '../../../../shared/components/svg/IconUserList';
 import SvgIconUserListElement from '../../../../shared/components/svg/IconUserListElement';
 import SvgIconUserListExpanded from '../../../../shared/components/svg/IconUserListExpanded';
-import Badge, {
-  BadgeStyleVariant,
-} from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import Badge from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import { BadgeStyleVariant } from '../../../../shared/defguard-ui/components/Layout/Badge/types';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import { ButtonStyleVariant } from '../../../../shared/defguard-ui/components/Layout/Button/types';
-import {
-  DeviceAvatar,
-  DeviceAvatarVariants,
-} from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
-import {
-  NetworkDirection,
-  NetworkSpeed,
-} from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
-import UserInitials, {
-  UserInitialsType,
-} from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
+import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
+import { DeviceAvatarVariants } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/types';
+import { NetworkSpeed } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
+import { NetworkDirection } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
+import { UserInitialsType } from '../../../../shared/defguard-ui/components/Layout/UserInitials/types';
+import UserInitials from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { summarizeDeviceStats } from '../../helpers/stats';

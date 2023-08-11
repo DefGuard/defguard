@@ -10,6 +10,7 @@ type Props = {
 };
 
 export const Web3ContextProvider = ({ children }: Props) => {
+  const [isConnecting, setIsConnecting] = useState(false);
   const [provider, setProvider] = useState<Provider | undefined>();
   const [signer, setSigner] = useState<Signer | undefined>();
   const [chainId, setChainId] = useState<number | undefined>();
@@ -18,6 +19,7 @@ export const Web3ContextProvider = ({ children }: Props) => {
 
   const connect = useCallback(async () => {
     if (ethereum?.isMetaMask && provider) {
+      setIsConnecting(true);
       try {
         const accounts = await (ethereum.request({
           method: 'eth_requestAccounts',
@@ -30,8 +32,13 @@ export const Web3ContextProvider = ({ children }: Props) => {
           if (typeof cId === 'string') {
             setChainId(parseInt(cId, 16));
           }
+          setIsConnecting(false);
+          return Promise.resolve({
+            address: accounts[0],
+          });
         }
       } catch (e) {
+        setIsConnecting(false);
         return Promise.reject(e as JsonRpcError);
       }
     }
@@ -86,7 +93,7 @@ export const Web3ContextProvider = ({ children }: Props) => {
 
   return (
     <Web3Context.Provider
-      value={{ chainId, address, isConnected, signer, provider, connect }}
+      value={{ chainId, address, isConnected, signer, provider, connect, isConnecting }}
     >
       {children}
     </Web3Context.Provider>
