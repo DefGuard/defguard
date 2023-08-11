@@ -89,13 +89,14 @@ test('Change user password', async ({ page, context }) => {
 });
 
 test('Change user password by admin', async ({ page, context }) => {
+  await waitForBase(page);
+  const testUser = await createUser(context, faker.person.firstName().toLowerCase());
   await loginBasic(page, defaultUserAdmin);
-  const user = await createUser(context, faker.person.firstName().toLowerCase());
   await page.goto(routes.base + routes.admin.users);
-  await page.getByText(user.username).click();
-  user.password = await changePasswordByAdmin(page);
+  await page.getByText(testUser.username).click();
+  testUser.password = await changePasswordByAdmin(page);
   await logout(page);
-  await loginBasic(page, user);
+  await loginBasic(page, testUser);
   await waitForRoute(page, routes.me);
   expect(page.url()).toBe(routes.base + routes.me);
 });
