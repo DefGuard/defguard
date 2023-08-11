@@ -680,8 +680,10 @@ const en: BaseTranslation = {
   settingsPage: {
     title: 'Global Settings',
     tabs: {
-      basic: 'Basic',
+      general: 'General',
       smtp: 'SMTP',
+      enrollment: 'Enrollment',
+      support: 'Support',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -808,7 +810,7 @@ const en: BaseTranslation = {
           submit: 'Save changes',
         },
       },
-      test_form: {
+      testForm: {
         title: 'Send test email',
         fields: {
           to: {
@@ -818,8 +820,8 @@ const en: BaseTranslation = {
         },
         controls: {
           submit: 'Send',
-          success: 'Test email sent successfully',
-          error: 'Error sending test email',
+          success: 'Test email sent',
+          error: 'Error sending email',
         },
       },
       helper: `
@@ -879,6 +881,19 @@ const en: BaseTranslation = {
           label: 'Same as welcome message',
         },
       },
+    },
+    debugDataCard: {
+      title: 'Support data',
+      body: `
+If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+* Either you can configure SMTP settings and click "Send support data"
+* Or click "Download support data" and create a bug report in our GitHub attaching this file.
+`,
+      downloadSupportData: 'Download support data',
+      downloadLogs: 'Download logs',
+      sendMail: 'Send email',
+      mailSent: 'Email sent',
+      mailError: 'Error sending email',
     },
     licenseCard: {
       header: 'License & Support Information',

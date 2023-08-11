@@ -2,13 +2,13 @@ use std::time::Duration;
 
 use lettre::{
     address::AddressError,
-    message::{header::ContentType, Mailbox},
+    message::{header::ContentType, Mailbox, MultiPart, SinglePart},
     transport::smtp::{authentication::Credentials, response::Response},
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use sqlx::{Pool, Postgres};
 use thiserror::Error;
-use tokio::sync::{mpsc::UnboundedReceiver, oneshot::Sender};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::db::{models::settings::SmtpEncryption, Settings};
 
@@ -86,23 +86,47 @@ impl SmtpSettings {
     }
 }
 
-#[derive(Debug)]
 pub struct Mail {
     pub to: String,
     pub subject: String,
     pub content: String,
-    pub result_tx: Option<Sender<Result<Response, MailError>>>,
+    pub attachments: Vec<Attachment>,
+    pub result_tx: Option<UnboundedSender<Result<Response, MailError>>>,
+}
+
+pub struct Attachment {
+    pub filename: String,
+    pub content: Vec<u8>,
+    pub content_type: ContentType,
+}
+
+impl From<Attachment> for SinglePart {
+    fn from(attachment: Attachment) -> Self {
+        lettre::message::Attachment::new(attachment.filename)
+            .body(attachment.content, attachment.content_type)
+    }
 }
 
 impl Mail {
     /// Converts Mail to lettre Message
-    fn to_message(&self, from: &str) -> Result<Message, MailError> {
-        Ok(Message::builder()
+    fn into_message(self, from: &str) -> Result<Message, MailError> {
+        let builder = Message::builder()
             .from(Self::mailbox(from)?)
             .to(Self::mailbox(&self.to)?)
-            .subject(self.subject.clone())
-            .header(ContentType::TEXT_HTML)
-            .body(self.content.clone())?)
+            .subject(self.subject.clone());
+        match self.attachments {
+            attachments if attachments.is_empty() => Ok(builder
+                .header(ContentType::TEXT_HTML)
+                .body(self.content.clone())?),
+            attachments => {
+                let mut multipart =
+                    MultiPart::mixed().singlepart(SinglePart::html(self.content.clone()));
+                for attachment in attachments {
+                    multipart = multipart.singlepart(attachment.into());
+                }
+                Ok(builder.multipart(multipart)?)
+            }
+        }
     }
 
     /// Builds Mailbox structure from string representing email address
@@ -126,8 +150,8 @@ impl MailHandler {
         Self { rx, db }
     }
 
-    pub fn send_result(
-        tx: Option<Sender<Result<Response, MailError>>>,
+    pub async fn send_result(
+        tx: Option<UnboundedSender<Result<Response, MailError>>>,
         result: Result<Response, MailError>,
     ) {
         if let Some(tx) = tx {
@@ -142,7 +166,8 @@ impl MailHandler {
     /// Listens on rx channel for messages and sends them via SMTP.
     pub async fn run(mut self) {
         while let Some(mail) = self.rx.recv().await {
-            debug!("Sending mail: {mail:?}");
+            let (to, subject) = (mail.to.clone(), mail.subject.clone());
+            debug!("Sending mail to: {to}, subject: {subject}");
             let settings = match SmtpSettings::get(&self.db).await {
                 Ok(settings) => settings,
                 Err(MailError::SmtpNotConfigured) => {
@@ -156,33 +181,33 @@ impl MailHandler {
             };
 
             // Construct lettre Message
-            let message: Message = match mail.to_message(&settings.sender) {
+            let result_tx = mail.result_tx.clone();
+            let message: Message = match mail.into_message(&settings.sender) {
                 Ok(message) => message,
                 Err(err) => {
-                    error!("Failed to build message: {mail:?}, {err}");
+                    error!("Failed to build message to: {to}, subject: {subject}, error: {err}");
                     continue;
                 }
             };
             // Build mailer and send the message
-            let (to, subject) = (mail.to, mail.subject);
             match self.mailer(settings).await {
                 Ok(mailer) => match mailer.send(message).await {
                     Ok(response) => {
-                        Self::send_result(mail.result_tx, Ok(response.clone()));
+                        Self::send_result(result_tx, Ok(response.clone())).await;
                         info!("Mail sent successfully to: {to}, subject: {subject}, response: {response:?}");
                     }
                     Err(err) => {
                         error!("Mail sending failed to: {to}, subject: {subject}, error: {err}");
-                        Self::send_result(mail.result_tx, Err(MailError::SmtpError(err)));
+                        Self::send_result(result_tx, Err(MailError::SmtpError(err))).await;
                     }
                 },
                 Err(MailError::SmtpNotConfigured) => {
                     warn!("SMTP not configured, onboarding email sending skipped");
-                    Self::send_result(mail.result_tx, Err(MailError::SmtpNotConfigured));
+                    Self::send_result(result_tx, Err(MailError::SmtpNotConfigured)).await;
                 }
                 Err(err) => {
                     error!("Error building mailer: {err}");
-                    Self::send_result(mail.result_tx, Err(err))
+                    Self::send_result(result_tx, Err(err)).await
                 }
             }
         }

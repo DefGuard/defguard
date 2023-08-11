@@ -1,6 +1,5 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
@@ -18,9 +17,7 @@ import { deviceBreakpoints } from '../../../shared/constants';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { patternValidEmail } from '../../../shared/patterns';
-import { TestMail } from '../../../shared/types';
-
-type SMTPError = AxiosError<{ error: string }>;
+import { SMTPError, TestMail } from '../../../shared/types';
 
 export const TestForm = () => {
   const { LL } = useI18nContext();
@@ -33,11 +30,11 @@ export const TestForm = () => {
 
   const { mutate, isLoading } = useMutation([], sendTestMail, {
     onSuccess: () => {
-      toaster.success(LL.settingsPage.smtp.test_form.controls.success());
+      toaster.success(LL.settingsPage.smtp.testForm.controls.success());
     },
     onError: (err: SMTPError) => {
       toaster.error(
-        `${LL.settingsPage.smtp.test_form.controls.error()}`,
+        `${LL.settingsPage.smtp.testForm.controls.error()}`,
         `${err.response?.data.error}`
       );
       console.error(err);
@@ -69,20 +66,20 @@ export const TestForm = () => {
   return (
     <>
       <header>
-        <h3>{LL.settingsPage.smtp.test_form.title()}</h3>
+        <h3>{LL.settingsPage.smtp.testForm.title()}</h3>
       </header>
       <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
         <FormInput
-          outerLabel={LL.settingsPage.smtp.test_form.fields.to.label()}
+          outerLabel={LL.settingsPage.smtp.testForm.fields.to.label()}
           controller={{ control: testControl, name: 'to' }}
-          placeholder={LL.settingsPage.smtp.test_form.fields.to.placeholder()}
+          placeholder={LL.settingsPage.smtp.testForm.fields.to.placeholder()}
           required
         />
         <div className="controls">
           <Button
             text={
               breakpoint !== 'mobile'
-                ? LL.settingsPage.smtp.test_form.controls.submit()
+                ? LL.settingsPage.smtp.testForm.controls.submit()
                 : undefined
             }
             icon={<IconCheckmarkWhite />}

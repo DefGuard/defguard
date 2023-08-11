@@ -3,7 +3,13 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::db::User;
+use crate::{
+    db::User,
+    handlers::{
+        mail::send_support_data,
+        support::{configuration, logs},
+    },
+};
 
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
@@ -86,8 +92,10 @@ pub mod handlers;
 pub mod hex;
 pub mod ldap;
 pub mod license;
+pub mod logging;
 pub mod mail;
 pub(crate) mod random;
+pub mod support;
 pub mod templates;
 pub mod wg_config;
 pub mod wireguard_stats_purge;
@@ -98,6 +106,7 @@ extern crate rocket;
 #[macro_use]
 extern crate serde;
 
+pub static VERSION: &str = env!("CARGO_PKG_VERSION");
 // TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
@@ -169,9 +178,6 @@ pub async fn build_webapp(
                 add_group_member,
                 remove_group_member,
                 get_license,
-                get_settings,
-                update_settings,
-                set_default_branding,
                 mfa_enable,
                 mfa_disable,
                 totp_secret,
@@ -191,6 +197,11 @@ pub async fn build_webapp(
             ],
         )
         .mount(
+            "/api/v1/settings",
+            routes![get_settings, update_settings, set_default_branding],
+        )
+        .mount("/api/v1/support", routes![configuration, logs])
+        .mount(
             "/api/v1/webhook",
             routes![
                 add_webhook,
@@ -201,7 +212,7 @@ pub async fn build_webapp(
                 change_enabled
             ],
         )
-        .mount("/api/v1/mail", routes![test_mail,]);
+        .mount("/api/v1/mail", routes![test_mail, send_support_data]);
 
     #[cfg(feature = "wireguard")]
     let webapp = webapp.manage(gateway_state).mount(

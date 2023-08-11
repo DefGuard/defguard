@@ -322,6 +322,7 @@ impl Enrollment {
             to: user.email.clone(),
             subject: settings.enrollment_welcome_email_subject.clone().unwrap(),
             content: self.get_welcome_email_content(&mut *transaction).await?,
+            attachments: Vec::new(),
             result_tx: None,
         };
         match mail_tx.send(mail) {
@@ -351,6 +352,7 @@ impl Enrollment {
             to: admin.email.clone(),
             subject: "[defguard] User enrollment completed".into(),
             content: templates::enrollment_admin_notification(user, admin)?,
+            attachments: Vec::new(),
             result_tx: None,
         };
         match mail_tx.send(mail) {

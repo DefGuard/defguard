@@ -1,10 +1,9 @@
 use crate::{
     db::{DbPool, Settings, User},
-    handlers::VERSION,
     mail::Mail,
     random::gen_alphanumeric,
     templates::{self, TemplateError},
-    SERVER_CONFIG,
+    SERVER_CONFIG, VERSION,
 };
 use chrono::{Duration, NaiveDateTime, Utc};
 use reqwest::Url;
@@ -362,6 +361,7 @@ impl User {
                     &enrollment.id,
                 )
                 .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+                attachments: Vec::new(),
                 result_tx: None,
             };
             match mail_tx.send(mail) {
