@@ -886,11 +886,11 @@ const pl: Translation = {
       body: `
 Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygenerowanie danych wsparcia technicznego (np. na naszym kanale Matrix: **#defguard-support:teonite.com**), masz dwie opcje:
 * Możesz skonfigurować ustawienia SMTP i kliknąć: "Wyślij dane wsparcia technicznego".
-* Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie na naszym github załączając te pliki.
+* Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie w naszym repozytorium GitHub załączając te pliki.
 `,
       downloadSupportData: 'Pobierz dane wsparcia technicznego',
       downloadLogs: 'Pobierz logi',
-      sendMail: 'Wyślij e-mail',
+      sendMail: 'Wyślij email',
       mailSent: 'Email wysłany',
       mailError: 'Error sending email',
     },

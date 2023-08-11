@@ -10,10 +10,10 @@ use crate::{
     VERSION,
 };
 
-/// Unwraps the result returning a json representation of value or error
+/// Unwraps the result returning a JSON representation of value or error
 fn unwrap_json(result: Result<impl Serialize, impl Display>) -> Value {
     match result {
-        Ok(value) => to_value(value).expect("conversion to json failed"),
+        Ok(value) => to_value(value).expect("conversion to JSON failed"),
         Err(err) => json!({"error": err.to_string()}),
     }
 }
@@ -28,15 +28,18 @@ pub async fn dump_config(db: &Pool<Postgres>, config: &DefGuardConfig) -> Value 
             // Devices for each network
             let mut devices = HashMap::<i64, Value>::default();
             for network in &networks {
-                let network_id = network.id.unwrap();
+                let network_id = match network.id {
+                    Some(id) => id,
+                    None => continue,
+                };
                 devices.insert(
                     network_id,
                     unwrap_json(WireguardNetworkDevice::all_for_network(db, network_id).await),
                 );
             }
             (
-                to_value(networks).expect("json serialization error"),
-                to_value(devices).expect("json serialization error"),
+                to_value(networks).expect("JSON serialization error"),
+                to_value(devices).expect("JSON serialization error"),
             )
         }
         Err(err) => (json!({"error": err.to_string()}), Value::Null),

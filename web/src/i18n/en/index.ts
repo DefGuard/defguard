@@ -887,11 +887,11 @@ const en: BaseTranslation = {
       body: `
 If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
 * Either you can configure SMTP settings and click "Send support data"
-* Or click "Download support data" and create a bug report in our github attaching this files.
+* Or click "Download support data" and create a bug report in our GitHub attaching this file.
 `,
       downloadSupportData: 'Download support data',
       downloadLogs: 'Download logs',
-      sendMail: 'Send e-mail',
+      sendMail: 'Send email',
       mailSent: 'Email sent',
       mailError: 'Error sending email',
     },

@@ -106,7 +106,7 @@ extern crate rocket;
 #[macro_use]
 extern crate serde;
 
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub static VERSION: &str = env!("CARGO_PKG_VERSION");
 // TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 

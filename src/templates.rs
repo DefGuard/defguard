@@ -17,7 +17,7 @@ pub enum TemplateError {
     TemplateError(#[from] tera::Error),
 }
 
-// test message sent when requested during SMTP configuration process
+// sends test message when requested during SMTP configuration process
 pub fn test_mail() -> Result<String, TemplateError> {
     let mut tera = Tera::default();
     tera.add_raw_template("mail_base", MAIL_BASE)?;
