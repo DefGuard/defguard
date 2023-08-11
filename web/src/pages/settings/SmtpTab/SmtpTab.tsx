@@ -38,7 +38,7 @@ interface Inputs extends Omit<Settings, 'smtp_encryption'> {
   smtp_encryption: SelectOption<string>;
 }
 
-export const SmtpCard = () => {
+export const SmtpTab = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {

@@ -681,8 +681,10 @@ const pl: Translation = {
   settingsPage: {
     title: 'Ustawienia Globalne',
     tabs: {
-      basic: 'Podstawowe',
+      general: 'Podstawowe',
       smtp: 'SMTP',
+      enrollment: 'Rejestracja',
+      support: 'Support',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
@@ -807,7 +809,7 @@ const pl: Translation = {
           submit: 'Save changes',
         },
       },
-      test_form: {
+      testForm: {
         title: 'Wyślij emaila testowego',
         fields: {
           to: {
@@ -817,8 +819,8 @@ const pl: Translation = {
         },
         controls: {
           submit: 'Wyślij',
-          success: 'Email testowy wysłany pomyślnie',
-          error: 'Błąd wysyłania emaila testowego',
+          success: 'Email wysłany pomyślnie',
+          error: 'Błąd wysyłania emaila',
         },
       },
       helper: `
@@ -878,6 +880,19 @@ const pl: Translation = {
           label: 'Taki sam jak wiadomość powitalna',
         },
       },
+    },
+    debugDataCard: {
+      title: 'Dane wsparcia technicznego',
+      body: `
+Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygenerowanie danych wsparcia technicznego (np. na naszym kanale Matrix: **#defguard-support:teonite.com**), masz dwie opcje:
+* Możesz skonfigurować ustawienia SMTP i kliknąć: "Wyślij dane wsparcia technicznego".
+* Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie w naszym repozytorium GitHub załączając te pliki.
+`,
+      downloadSupportData: 'Pobierz dane wsparcia technicznego',
+      downloadLogs: 'Pobierz logi',
+      sendMail: 'Wyślij email',
+      mailSent: 'Email wysłany',
+      mailError: 'Error sending email',
     },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',
