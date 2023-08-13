@@ -5,6 +5,8 @@
     & > .message-box {
       margin-bottom: 3.2rem;
       min-height: 70px;
+      width: calc(100% - 60px);
+      margin-left: 30px;
     }
 
     & > form {
