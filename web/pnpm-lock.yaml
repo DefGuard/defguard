@@ -1,5 +1,9 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
 dependencies:
   '@floating-ui/react':
     specifier: ^0.25.0
@@ -13,6 +17,9 @@ dependencies:
   '@ladle/react':
     specifier: ^2.17.2
     version: 2.17.2(@types/node@20.4.9)(react-dom@18.2.0)(react@18.2.0)(sass@1.65.1)(terser@5.19.2)
+  '@metamask/detect-provider':
+    specifier: ^2.0.0
+    version: 2.0.0
   '@stablelib/base64':
     specifier: ^1.0.1
     version: 1.0.1
@@ -2394,6 +2401,11 @@ packages:
       '@types/mdx': 2.0.6
       '@types/react': 18.2.20
       react: 18.2.0
+    dev: false
+
+  /@metamask/detect-provider@2.0.0:
+    resolution: {integrity: sha512-sFpN+TX13E9fdBDh9lvQeZdJn4qYoRb/6QF2oZZK/Pn559IhCFacPMU1rMuqyXoFQF3JSJfii2l98B87QDPeCQ==}
+    engines: {node: '>=14.0.0'}
     dev: false
 
   /@noble/hashes@1.1.2:
@@ -9723,7 +9735,3 @@ packages:
   /zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
     dev: false
-
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false

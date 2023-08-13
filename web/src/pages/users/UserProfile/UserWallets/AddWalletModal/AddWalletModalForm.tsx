@@ -1,6 +1,6 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { isUndefined } from 'lodash-es';
+import { isUndefined, omit } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
@@ -66,7 +66,7 @@ export const AddWalletModalForm = () => {
     onSuccess: async (data, variables) => {
       if (isUndefined(chainId) || !signer) return;
       const message = JSON.parse(data.message);
-      const types = message.types;
+      const types = omit(message.types, ['EIP712Domain']);
       const domain = message.domain;
       const value = message.message;
       setIsSigning(true);

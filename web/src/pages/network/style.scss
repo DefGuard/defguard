@@ -102,7 +102,7 @@
         }
       }
 
-      .message-box-container {
+      .message-box {
         &:not(:last-child) {
           margin-bottom: 20px;
         }
@@ -113,7 +113,7 @@
           width: 100%;
         }
 
-        & > .message-box-container {
+        & > .message-box {
           &:not(:last-child) {
             margin-bottom: 32px;
           }

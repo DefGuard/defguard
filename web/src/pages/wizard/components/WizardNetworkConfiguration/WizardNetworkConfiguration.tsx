@@ -212,6 +212,11 @@ export const WizardNetworkConfiguration = () => {
           disabled={groupsError || (!groupsLoading && groupOptions.length === 0)}
           options={groupOptions}
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
+          renderSelected={(group) => ({
+            key: group,
+            displayValue: titleCase(group),
+          })}
+          onRemove={(group, selected) => selected.filter((g) => g !== group)}
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

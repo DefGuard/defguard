@@ -22,9 +22,7 @@ export const AddWalletModal = () => {
       }
       backdrop
     >
-      <MessageBox type={MessageBoxType.INFO}>
-        <p>{LL.modals.addWallet.infoBox()}</p>
-      </MessageBox>
+      <MessageBox type={MessageBoxType.INFO} message={LL.modals.addWallet.infoBox()} />
       <AddWalletModalForm />
     </ModalWithTitle>
   );

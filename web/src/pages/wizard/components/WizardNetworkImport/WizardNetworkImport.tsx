@@ -204,6 +204,11 @@ export const WizardNetworkImport = () => {
           disabled={!isUndefined(data)}
           options={groupOptions}
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
+          renderSelected={(group) => ({
+            key: group,
+            displayValue: titleCase(group),
+          })}
+          onRemove={(group, selected) => selected.filter((g) => g !== group)}
         />
         <FormInput
           controller={{ control, name: 'fileName' }}

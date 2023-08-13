@@ -2,7 +2,7 @@
 
 #add-user-device-modal {
   & > .step-0 {
-    & > .message-box-container {
+    & > .message-box {
       margin-bottom: 3.2rem;
       min-height: 70px;
     }
@@ -36,7 +36,7 @@
   & > .step-1 {
     padding: 0 3rem 2.5rem;
 
-    & > .message-box-container {
+    & > .message-box {
       padding: 0;
       margin-bottom: 2.5rem;
 

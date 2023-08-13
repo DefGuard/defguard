@@ -278,6 +278,10 @@ export const NetworkEditForm = () => {
             const inf = options as SelectOption<string>[];
             return inf.filter((o) => o.value.toLowerCase().includes(val.toLowerCase()));
           }}
+          renderSelected={(val) => ({
+            key: val,
+            displayValue: titleCase(val),
+          })}
         />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>

@@ -85,7 +85,10 @@
         & > .select {
           margin-left: auto;
           width: 200px;
-          height: 40px;
+
+          & > .select-container {
+            height: 40px;
+          }
         }
 
         & > .provisioners-count {

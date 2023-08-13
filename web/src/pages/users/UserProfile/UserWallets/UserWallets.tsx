@@ -2,7 +2,7 @@ import './style.scss';
 
 import { isUndefined } from 'lodash-es';
 import { alphabetical } from 'radash';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -17,9 +17,8 @@ import { WalletCard } from './WalletCard/WalletCard';
 
 export const UserWallets = () => {
   const { address } = useWeb3Account();
-  const { isConnected, connect } = useWeb3Connection();
+  const { isConnected, isConnecting, connect } = useWeb3Connection();
   const { LL } = useI18nContext();
-  const [isConnecting, setConnecting] = useState(false);
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const isMe = useUserProfileStore((state) => state.isMe);
   const setModalsState = useModalStore((state) => state.setState);
@@ -47,10 +46,6 @@ export const UserWallets = () => {
       setModalsState({ addWalletModal: { visible: true } });
     }
   };
-
-  useEffect(() => {
-    console.log({ connect, isConnecting, isConnected });
-  }, [connect, isConnected, isConnecting]);
 
   return (
     <section id="user-wallets">
@@ -83,11 +78,9 @@ export const UserWallets = () => {
             if (!isConnected && connect) {
               connect()
                 .then(() => {
-                  setConnecting(false);
                   handleAddWallet();
                 })
                 .catch((e) => {
-                  setConnecting(false);
                   console.error(e);
                 });
             } else {

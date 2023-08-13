@@ -254,6 +254,11 @@ export const ProfileDetailsForm = () => {
             label={LL.userPage.userDetails.fields.groups.label()}
             loading={groupsLoading || userEditLoading}
             disabled={!isAdmin}
+            renderSelected={(val) => ({
+              key: val,
+              displayValue: titleCase(val),
+            })}
+            onRemove={(removed, selected) => selected.filter((v) => v !== removed)}
           />
         </div>
       </div>

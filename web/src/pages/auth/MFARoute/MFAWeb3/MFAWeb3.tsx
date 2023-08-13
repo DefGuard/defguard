@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { isUndefined } from 'lodash-es';
+import { isUndefined, omit } from 'lodash-es';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
@@ -60,7 +60,7 @@ export const MFAWeb3 = () => {
       onSuccess: async (data) => {
         if (isConnected && signer && address) {
           const message = JSON.parse(data.challenge);
-          const types = message.types;
+          const types = omit(message.types, ['EIP712Domain']);
           const domain = message.domain;
           const value = message.message;
           signer

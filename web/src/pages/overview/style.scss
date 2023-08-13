@@ -48,6 +48,10 @@
 
       & > .select {
         width: 100%;
+
+        .select-container {
+          height: 40px;
+        }
       }
     }
 
@@ -117,7 +121,9 @@
 
         & > .select {
           min-width: 200px;
-          height: 40px;
+          .select-container {
+            height: 40px;
+          }
         }
 
         & > button {
