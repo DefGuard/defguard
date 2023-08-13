@@ -3,7 +3,7 @@ import { createWithEqualityFn } from 'zustand/traditional';
 import { UseModalStore } from '../../types';
 
 /**
- * This approach is depraceted, please use separate stores for each modal to keep things clean
+ * This approach is deprecated, please use separate stores for each modal to keep things clean
  */
 export const useModalStore = createWithEqualityFn<UseModalStore>(
   (set) => ({

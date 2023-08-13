@@ -1,59 +1,20 @@
+use defguard::db::Settings;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, User},
     grpc::{run_grpc_server, GatewayMap, WorkerState},
-    init_dev_env,
+    init_dev_env, logging,
     mail::{run_mail_handler, Mail},
     run_web_server,
     wireguard_stats_purge::run_periodic_stats_purge,
+    SERVER_CONFIG,
 };
-use fern::{
-    colors::{Color, ColoredLevelConfig},
-    Dispatch,
-};
-use log::{LevelFilter, SetLoggerError};
 use std::{
     fs::read_to_string,
-    str::FromStr,
     sync::{Arc, Mutex},
 };
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
-
-/// Configures fern logging library.
-fn logger_setup(log_level: &str) -> Result<(), SetLoggerError> {
-    let colors = ColoredLevelConfig::new()
-        .trace(Color::BrightWhite)
-        .debug(Color::BrightCyan)
-        .info(Color::BrightGreen)
-        .warn(Color::BrightYellow)
-        .error(Color::BrightRed);
-    Dispatch::new()
-        .format(move |out, message, record| {
-            // explicitly handle potentially malicious escape sequences
-            let mut formatted_message = String::new();
-            for c in message.to_string().chars() {
-                match c {
-                    '\n' => formatted_message.push_str("\\n"),
-                    '\r' => formatted_message.push_str("\\r"),
-                    '\u{0008}' => formatted_message.push_str("\\u{{0008}}"),
-                    _ => formatted_message.push(c),
-                }
-            }
-
-            out.finish(format_args!(
-                "[{}][{}][{}] {}",
-                chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
-                colors.color(record.level()),
-                record.target(),
-                formatted_message
-            ));
-        })
-        .level(LevelFilter::from_str(log_level).unwrap_or(LevelFilter::Info))
-        .level_for("sqlx", LevelFilter::Warn)
-        .chain(std::io::stdout())
-        .apply()
-}
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -61,7 +22,8 @@ async fn main() -> Result<(), anyhow::Error> {
         dotenvy::dotenv().ok();
     }
     let config = DefGuardConfig::new();
-    logger_setup(&config.log_level)?;
+    logging::init(&config.log_level, &config.log_file)?;
+    SERVER_CONFIG.set(config.clone())?;
     match config.openid_signing_key {
         Some(_) => log::info!("Using RSA OpenID signing key"),
         None => log::info!("Using HMAC OpenID signing key"),
@@ -88,6 +50,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // initialize admin user
     User::init_admin_user(&pool, &config.default_admin_password).await?;
+
+    // initialize default settings
+    Settings::init_defaults(&pool).await?;
 
     // read grpc TLS cert and key
     let grpc_cert = config

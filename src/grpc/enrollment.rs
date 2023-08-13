@@ -1,30 +1,30 @@
-use crate::config::DefGuardConfig;
-use crate::handlers::user::check_password_strength;
-use crate::ldap::utils::ldap_add_user;
-use crate::license::{Features, License};
 use crate::{
+    config::DefGuardConfig,
     db::{
-        models::{device::DeviceInfo, enrollment::Enrollment},
-        DbPool, Device, GatewayEvent, User,
+        models::{
+            device::DeviceInfo,
+            enrollment::{Enrollment, EnrollmentError},
+        },
+        DbPool, Device, GatewayEvent, Settings, User,
     },
-    handlers, templates,
+    handlers::{self, user::check_password_strength},
+    ldap::utils::ldap_add_user,
+    license::{Features, License},
+    mail::Mail,
+    templates,
 };
-use tokio::sync::broadcast::Sender;
-use tokio::sync::mpsc::UnboundedSender;
+use sqlx::Transaction;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
 
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
-use crate::db::Settings;
-use crate::mail::Mail;
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
     Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
     InitialUserInfo, NewDevice,
 };
-
-const ENROLLMENT_WELCOME_MAIL_SUBJECT: &str = "Welcome to Defguard";
 
 pub struct EnrollmentServer {
     pool: DbPool,
@@ -103,19 +103,41 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let user = enrollment.fetch_user(&self.pool).await?;
         let admin = enrollment.fetch_admin(&self.pool).await?;
 
+        let mut transaction = self.pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction");
+            Status::internal("unexpected error")
+        })?;
+
         // validate token & start session
         info!("Starting enrollment session for user {}", user.username);
         let session_deadline = enrollment
-            .start_session(&self.pool, self.config.enrollment_session_timeout.as_secs())
+            .start_session(
+                &mut transaction,
+                self.config.enrollment_session_timeout.as_secs(),
+            )
             .await?;
+
+        let settings = Settings::get_settings(&mut transaction)
+            .await
+            .map_err(|_| {
+                error!("Failed to get settings");
+                Status::internal("unexpected error")
+            })?;
 
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),
             user: Some(user.into()),
             deadline_timestamp: session_deadline.timestamp(),
-            final_page_content: "<h1>Hi there!</h1>".to_string(),
-            vpn_setup_optional: false,
+            final_page_content: enrollment
+                .get_welcome_page_content(&mut transaction)
+                .await?,
+            vpn_setup_optional: settings.enrollment_vpn_step_optional,
         };
+
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction");
+            Status::internal("unexpected error")
+        })?;
 
         Ok(Response::new(response))
     }
@@ -142,10 +164,15 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             return Err(Status::invalid_argument("user already activated"));
         }
 
+        let mut transaction = self.pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction");
+            Status::internal("unexpected error")
+        })?;
+
         // update user
         user.phone = Some(request.phone_number);
         user.set_password(&request.password);
-        user.save(&self.pool).await.map_err(|err| {
+        user.save(&mut transaction).await.map_err(|err| {
             error!("Failed to update user {}: {err}", user.username);
             Status::internal("unexpected error")
         })?;
@@ -155,48 +182,26 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let _result = ldap_add_user(&self.config, &user, &request.password).await;
         };
 
-        // send welcome email
-        debug!("Sending welcome mail to {}", user.username);
-        let settings = Settings::find_by_id(&self.pool, 1)
+        let settings = Settings::get_settings(&mut transaction)
             .await
-            .map_err(|err| {
-                error!("Failed to get settings: {err}");
-                Status::internal("unexpected error")
-            })?
-            .ok_or_else(|| {
+            .map_err(|_| {
                 error!("Failed to get settings");
                 Status::internal("unexpected error")
             })?;
-        let content = match settings.enrollment_use_welcome_message_as_email {
-            true => settings.enrollment_welcome_message,
-            false => settings.enrollment_welcome_email,
-        }
-        .ok_or_else(|| {
-            error!("Welcome message not configured");
+
+        // send welcome email
+        enrollment
+            .send_welcome_email(&mut transaction, &self.mail_tx, &user, &settings)
+            .await?;
+
+        // send success notification to admin
+        let admin = enrollment.fetch_admin(&mut transaction).await?;
+        enrollment.send_admin_notification(&self.mail_tx, &admin, &user)?;
+
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
-
-        let mail = Mail {
-            to: user.email.clone(),
-            subject: ENROLLMENT_WELCOME_MAIL_SUBJECT.to_string(),
-            content: templates::enrollment_welcome_mail(&content).map_err(|err| {
-                error!(
-                    "Failed to render welcome email for user {}: {err}",
-                    user.username
-                );
-                Status::internal("unexpected error")
-            })?,
-            result_tx: None,
-        };
-        match self.mail_tx.send(mail) {
-            Ok(_) => {
-                info!("Sent enrollment welcome mail to {}", user.username);
-            }
-            Err(err) => {
-                error!("Error sending welcome mail: {err}");
-                Status::internal("unexpected error");
-            }
-        }
 
         Ok(Response::new(()))
     }
@@ -276,6 +281,7 @@ impl From<User> for InitialUserInfo {
             last_name: user.last_name,
             login: user.username,
             email: user.email,
+            phone_number: user.phone,
         }
     }
 }
@@ -298,6 +304,69 @@ impl From<Device> for ProtoDevice {
             pubkey: device.wireguard_pubkey,
             user_id: device.user_id,
             created_at: device.created.timestamp(),
+        }
+    }
+}
+
+impl Enrollment {
+    // Send configured welcome email to user after finishing enrollment
+    async fn send_welcome_email(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        mail_tx: &UnboundedSender<Mail>,
+        user: &User,
+        settings: &Settings,
+    ) -> Result<(), EnrollmentError> {
+        debug!("Sending welcome mail to {}", user.username);
+        let mail = Mail {
+            to: user.email.clone(),
+            subject: settings.enrollment_welcome_email_subject.clone().unwrap(),
+            content: self.get_welcome_email_content(&mut *transaction).await?,
+            attachments: Vec::new(),
+            result_tx: None,
+        };
+        match mail_tx.send(mail) {
+            Ok(_) => {
+                info!("Sent enrollment welcome mail to {}", user.username);
+                Ok(())
+            }
+            Err(err) => {
+                error!("Error sending welcome mail: {err}");
+                Err(EnrollmentError::NotificationError(err.to_string()))
+            }
+        }
+    }
+
+    // Notify admin that a user has completed enrollment
+    fn send_admin_notification(
+        &self,
+        mail_tx: &UnboundedSender<Mail>,
+        admin: &User,
+        user: &User,
+    ) -> Result<(), EnrollmentError> {
+        debug!(
+            "Sending enrollment success notification for user {} to {}",
+            user.username, admin.username
+        );
+        let mail = Mail {
+            to: admin.email.clone(),
+            subject: "[defguard] User enrollment completed".into(),
+            content: templates::enrollment_admin_notification(user, admin)?,
+            attachments: Vec::new(),
+            result_tx: None,
+        };
+        match mail_tx.send(mail) {
+            Ok(_) => {
+                info!(
+                    "Sent enrollment success notification for user {} to {}",
+                    user.username, admin.username
+                );
+                Ok(())
+            }
+            Err(err) => {
+                error!("Error sending welcome mail: {err}");
+                Err(EnrollmentError::NotificationError(err.to_string()))
+            }
         }
     }
 }

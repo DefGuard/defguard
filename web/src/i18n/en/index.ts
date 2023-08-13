@@ -32,6 +32,28 @@ const en: BaseTranslation = {
         cancel: 'Cancel',
       },
     },
+    startEnrollment: {
+      title: 'Start enrollment',
+      messages: {
+        success: 'User enrollment started',
+        error: 'Failed to start user enrollment',
+      },
+      form: {
+        email: {
+          label: 'Email',
+        },
+        mode: {
+          options: {
+            email: 'Send token by email',
+            manual: 'Deliver token yourself',
+          },
+        },
+        submit: 'Start enrollment',
+      },
+      tokenCard: {
+        title: 'Copy enrollment token',
+      },
+    },
     deleteNetwork: {
       title: 'Delete {name:string} location',
       subTitle: 'This action will permanently delete this location.',
@@ -568,6 +590,7 @@ const en: BaseTranslation = {
         edit: 'Edit account',
         provision: 'Provision YubiKey',
         delete: 'Delete account',
+        startEnrollment: 'Start enrollment',
       },
     },
   },
@@ -661,8 +684,10 @@ const en: BaseTranslation = {
   settingsPage: {
     title: 'Global Settings',
     tabs: {
-      basic: 'Basic',
+      general: 'General',
       smtp: 'SMTP',
+      enrollment: 'Enrollment',
+      support: 'Support',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -789,7 +814,7 @@ const en: BaseTranslation = {
           submit: 'Save changes',
         },
       },
-      test_form: {
+      testForm: {
         title: 'Send test email',
         fields: {
           to: {
@@ -799,8 +824,8 @@ const en: BaseTranslation = {
         },
         controls: {
           submit: 'Send',
-          success: 'Test email sent successfully',
-          error: 'Error sending test email',
+          success: 'Test email sent',
+          error: 'Error sending email',
         },
       },
       helper: `
@@ -853,10 +878,26 @@ const en: BaseTranslation = {
             'This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.',
           placeholder: 'Please input welcome email',
         },
+        welcomeEmailSubject: {
+          label: 'Subject',
+        },
         useMessageAsEmail: {
           label: 'Same as welcome message',
         },
       },
+    },
+    debugDataCard: {
+      title: 'Support data',
+      body: `
+If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+* Either you can configure SMTP settings and click "Send support data"
+* Or click "Download support data" and create a bug report in our GitHub attaching this file.
+`,
+      downloadSupportData: 'Download support data',
+      downloadLogs: 'Download logs',
+      sendMail: 'Send email',
+      mailSent: 'Email sent',
+      mailError: 'Error sending email',
     },
     licenseCard: {
       header: 'License & Support Information',

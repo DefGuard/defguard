@@ -1,7 +1,7 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -98,7 +98,6 @@ export const AddUserForm = () => {
     control,
     formState: { isValid },
     trigger,
-    watch,
   } = useForm<Inputs>({
     resolver: yupResolver(formSchema),
     mode: 'all',
@@ -114,16 +113,24 @@ export const AddUserForm = () => {
     },
   });
 
+  const {
+    field: { value: enableEnrollment },
+  } = useController({ control, name: 'enable_enrollment' });
+
   const queryClient = useQueryClient();
 
   const setModalState = useModalStore((state) => state.setAddUserModal);
+  const setEnrollmentModalState = useModalStore((state) => state.setStartEnrollmentModal);
 
   const toaster = useToaster();
 
   const addUserMutation = useMutation(addUser, {
-    onSuccess: () => {
+    onSuccess: (user) => {
       queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
       toaster.success('User added.');
+      if (enableEnrollment) {
+        setEnrollmentModalState({ visible: true, user });
+      }
       setModalState({ visible: false });
     },
     onError: (err) => {
@@ -132,8 +139,6 @@ export const AddUserForm = () => {
       toaster.error('Error occurred.');
     },
   });
-
-  const enableEnrollment = watch('enable_enrollment');
 
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
     if (reservedUserNames.current.includes(data.username)) {
@@ -149,7 +154,7 @@ export const AddUserForm = () => {
             userData = rest;
           }
           // TODO: add notification toggle to form
-          addUserMutation.mutate({ ...userData, send_enrollment_notification: true });
+          addUserMutation.mutate(userData);
         })
         .catch(() => {
           setCheckingUsername(false);

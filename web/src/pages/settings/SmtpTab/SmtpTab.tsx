@@ -39,7 +39,7 @@ type FormFields = {
   smtp_sender: string;
 };
 
-export const SmtpCard = () => {
+export const SmtpTab = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {

@@ -32,6 +32,28 @@ const pl: Translation = {
         submit: 'Zmień hasło',
       },
     },
+    startEnrollment: {
+      title: 'Rozpocznij rejestrację',
+      messages: {
+        success: 'Rejestracja użytkownika rozpoczęta',
+        error: 'Błąd rejestracji użytkownika',
+      },
+      form: {
+        email: {
+          label: 'Email',
+        },
+        mode: {
+          options: {
+            email: 'Wyślij token przez email',
+            manual: 'Przekaż token ręcznie',
+          },
+        },
+        submit: 'Rozpocznij rejestrację',
+      },
+      tokenCard: {
+        title: 'Skopiuj token',
+      },
+    },
     deleteNetwork: {
       cancel: 'Wróć',
       submit: 'Usuń lokalizację',
@@ -325,7 +347,7 @@ const pl: Translation = {
             label: 'Telefon',
           },
           enableEnrollment: {
-            label: 'Użyj zdalnego enrollmentu',
+            label: 'Użyj zdalnej rejestracji',
           },
         },
       },
@@ -569,6 +591,7 @@ const pl: Translation = {
         edit: 'Edytuj konto',
         provision: 'Stwórz klucze na YubiKey',
         delete: 'Usuń konto',
+        startEnrollment: 'Rozpocznij rejestrację',
       },
     },
   },
@@ -662,8 +685,10 @@ const pl: Translation = {
   settingsPage: {
     title: 'Ustawienia Globalne',
     tabs: {
-      basic: 'Podstawowe',
+      general: 'Podstawowe',
       smtp: 'SMTP',
+      enrollment: 'Rejestracja',
+      support: 'Support',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
@@ -788,7 +813,7 @@ const pl: Translation = {
           submit: 'Save changes',
         },
       },
-      test_form: {
+      testForm: {
         title: 'Wyślij emaila testowego',
         fields: {
           to: {
@@ -798,8 +823,8 @@ const pl: Translation = {
         },
         controls: {
           submit: 'Wyślij',
-          success: 'Email testowy wysłany pomyślnie',
-          error: 'Błąd wysyłania emaila testowego',
+          success: 'Email wysłany pomyślnie',
+          error: 'Błąd wysyłania emaila',
         },
       },
       helper: `
@@ -810,11 +835,11 @@ const pl: Translation = {
     },
     enrollment: {
       helper:
-        'Enrollment to proces, w ramach którego nowy użytkownik może samodzielnie aktywować swoje konto, ustawić hasło i skonfigurować urządzenie VPN.',
+        'Rejestracja to proces, w ramach którego nowy użytkownik może samodzielnie aktywować swoje konto, ustawić hasło i skonfigurować urządzenie VPN.',
       vpnOptionality: {
         header: 'Opcjonalność kroku VPN',
         helper:
-          'Możesz zdecydować czy dodawanie urządzenia VPN jest obowiązkowym czy opcjonalnym krokiem enrollmentu',
+          'Możesz zdecydować czy dodawanie urządzenia VPN jest obowiązkowym czy opcjonalnym krokiem rejestracji',
       },
       welcomeMessage: {
         header: 'Wiadomość powitalna',
@@ -844,18 +869,34 @@ const pl: Translation = {
         },
         welcomeMessage: {
           helper:
-            'Ta wiadomość będzie pokazywana użytkownikom po zakończeniu enrollmentu. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków.',
+            'Ta wiadomość będzie pokazywana użytkownikom po zakończeniu rejestracji. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków.',
           placeholder: 'Wpisz wiadomość powitalną',
         },
         welcomeEmail: {
           helper:
-            'Ta wiadomość zostanie wysłana do użytkowników po zakończeniu enrollmentu. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków. Możesz użyć tej samej treści co w wiadomości powitalnej.',
+            'Ta wiadomość zostanie wysłana do użytkowników po zakończeniu rejestracji. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków. Możesz użyć tej samej treści co w wiadomości powitalnej.',
           placeholder: 'Wpisz email powitalny',
+        },
+        welcomeEmailSubject: {
+          label: 'Temat',
         },
         useMessageAsEmail: {
           label: 'Taki sam jak wiadomość powitalna',
         },
       },
+    },
+    debugDataCard: {
+      title: 'Dane wsparcia technicznego',
+      body: `
+Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygenerowanie danych wsparcia technicznego (np. na naszym kanale Matrix: **#defguard-support:teonite.com**), masz dwie opcje:
+* Możesz skonfigurować ustawienia SMTP i kliknąć: "Wyślij dane wsparcia technicznego".
+* Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie w naszym repozytorium GitHub załączając te pliki.
+`,
+      downloadSupportData: 'Pobierz dane wsparcia technicznego',
+      downloadLogs: 'Pobierz logi',
+      sendMail: 'Wyślij email',
+      mailSent: 'Email wysłany',
+      mailError: 'Error sending email',
     },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',

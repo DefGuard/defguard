@@ -23,6 +23,8 @@ import {
   OpenidClient,
   RemoveUserClientRequest,
   Settings,
+  StartEnrollmentRequest,
+  StartEnrollmentResponse,
   User,
   UserEditRequest,
   UserGroupRequest,
@@ -68,7 +70,7 @@ const useApi = (props?: HookProps): ApiHook => {
   });
 
   const addUser = async (data: AddUserRequest) => {
-    return client.post<EmptyApiResponse>(`/user/`, data).then((res) => res.data);
+    return client.post<User>(`/user/`, data).then((res) => res.data);
   };
 
   const getMe = () => client.get<User>(`/me`).then((res) => res.data);
@@ -159,6 +161,11 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const changePassword = ({ username, ...rest }: ChangePasswordRequest) =>
     client.put<EmptyApiResponse>(`/user/${username}/password`, rest);
+
+  const startEnrollment = ({ username, ...rest }: StartEnrollmentRequest) =>
+    client
+      .post<StartEnrollmentResponse>(`/user/${username}/start_enrollment`, rest)
+      .then((response) => response.data);
 
   const walletChallenge = ({
     username,
@@ -333,6 +340,12 @@ const useApi = (props?: HookProps): ApiHook => {
   const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
     client.get(`/settings/${id}`).then(unpackRequest);
 
+  const downloadSupportData: ApiHook['support']['downloadSupportData'] = async () =>
+    client.get<unknown>(`/support/configuration`).then((res) => res.data);
+
+  const downloadLogs: ApiHook['support']['downloadLogs'] = async () =>
+    client.get<string>(`/support/logs`).then((res) => res.data);
+
   const getGatewaysStatus: ApiHook['network']['getGatewaysStatus'] = (networkId) =>
     client.get(`/network/${networkId}/gateways`).then(unpackRequest);
 
@@ -344,6 +357,9 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const sendTestMail: ApiHook['mail']['sendTestMail'] = (data) =>
     client.post('/mail/test', data).then(unpackRequest);
+
+  const sendSupportMail: ApiHook['mail']['sendSupportMail'] = () =>
+    client.post('/mail/support', {}).then(unpackRequest);
 
   return {
     getAppInfo,
@@ -368,6 +384,7 @@ const useApi = (props?: HookProps): ApiHook => {
       deleteWallet,
       addToGroup,
       removeFromGroup,
+      startEnrollment,
     },
     device: {
       addDevice: addDevice,
@@ -454,8 +471,13 @@ const useApi = (props?: HookProps): ApiHook => {
       editSettings: editSettings,
       setDefaultBranding: setDefaultBranding,
     },
+    support: {
+      downloadSupportData,
+      downloadLogs,
+    },
     mail: {
       sendTestMail: sendTestMail,
+      sendSupportMail: sendSupportMail,
     },
   };
 };
