@@ -4,7 +4,7 @@ import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { ModalWithTitle } from '../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
+import { ModalWithTitle } from '../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { WebhookForm } from './WebhookForm';
 

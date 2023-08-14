@@ -1,11 +1,15 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgDefguadNavLogoCollapsed = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={20.863} height={44} {...props}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={20.863}
+    height={44}
+    viewBox="0 0 20.863 44"
+    {...props}
+  >
     <defs>
       <linearGradient
-        id="defguad-nav-logo-collapsed_svg__defguad-nav-logo-collapsed-a"
+        id="defguad-nav-logo-collapsed_svg__a"
         x1={0.5}
         x2={0.5}
         y2={1}
@@ -14,21 +18,21 @@ const SvgDefguadNavLogoCollapsed = (props: SVGProps<SVGSVGElement>) => (
         <stop offset={0} stopColor="#2accff" />
         <stop offset={1} stopColor="#0071d4" />
       </linearGradient>
-      <style>
-        {
-          '\n      .defguad-nav-logo-collapsed_svg__defguad-nav-logo-collapsed-a{fill:none}.defguad-nav-logo-collapsed_svg__defguad-nav-logo-collapsed-b{fill:url(#defguad-nav-logo-collapsed_svg__defguad-nav-logo-collapsed-a)}\n    '
-        }
-      </style>
     </defs>
     <path
-      className="defguad-nav-logo-collapsed_svg__defguad-nav-logo-collapsed-a"
-      d="m13.909 21.976-3.477-2.007-3.477 2.007 3.477 2.008Z"
+      d="m1710.288-1889.281-3.477-2.007-3.477 2.007 3.477 2.008Z"
+      style={{
+        fill: 'none',
+      }}
+      transform="translate(-1696.379 1911.257)"
     />
     <path
-      className="defguad-nav-logo-collapsed_svg__defguad-nav-logo-collapsed-b"
-      d="M20.863 17.962V2.001l-3.477-2v7.965l-6.954-4-10.431 6v24.018l10.431 6 6.954-4v4.015l-3.473 2 3.477 2 3.473-2V21.967l-10.431-6-6.954 4v-8.01l6.954-4 6.954 4v4Zm-10.431 2.012 3.477 2-3.477 2-3.477-2Zm0 8 6.954-4v8.006l-6.954 4-6.954-4v-8.006Z"
+      d="M1660.863-2055.789v-15.961l-3.477-2v7.965l-6.954-4-10.431 6v24.018l10.431 6 6.954-4v4.015l-3.473 2 3.477 2 3.473-2v-20.032l-10.431-6-6.954 4v-8.01l6.954-4 6.954 4v4Zm-10.431 2.012 3.477 2-3.477 2-3.477-2Zm0 8 6.954-4v8.006l-6.954 4-6.954-4v-8.006Z"
+      style={{
+        fill: 'url(#defguad-nav-logo-collapsed_svg__a)',
+      }}
+      transform="translate(-1640 2073.751)"
     />
   </svg>
 );
-
 export default SvgDefguadNavLogoCollapsed;

@@ -1,9 +1,6 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg
-    viewBox="0 0 24 24"
     xmlns="http://www.w3.org/2000/svg"
     xmlSpace="preserve"
     style={{
@@ -12,6 +9,7 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
       strokeLinejoin: 'round',
       strokeMiterlimit: 2,
     }}
+    viewBox="0 0 24 24"
     {...props}
   >
     <circle
@@ -33,11 +31,11 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
       <linearGradient
         id="phantom-icon_svg__a"
         x1={0}
-        y1={0}
         x2={1}
+        y1={0}
         y2={0}
-        gradientUnits="userSpaceOnUse"
         gradientTransform="matrix(0 24 -24 0 12 0)"
+        gradientUnits="userSpaceOnUse"
       >
         <stop
           offset={0}
@@ -57,11 +55,11 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
       <linearGradient
         id="phantom-icon_svg__b"
         x1={0}
-        y1={0}
         x2={1}
+        y1={0}
         y2={0}
-        gradientUnits="userSpaceOnUse"
         gradientTransform="rotate(90 3.957 8.298) scale(15.8298)"
+        gradientUnits="userSpaceOnUse"
       >
         <stop
           offset={0}
@@ -81,5 +79,4 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
     </defs>
   </svg>
 );
-
 export default SvgPhantomIcon;

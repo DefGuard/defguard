@@ -2,7 +2,6 @@ import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
@@ -11,21 +10,21 @@ import QRCode from 'react-qr-code';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import IconCopy from '../../../../../../shared/components/svg/IconCopy';
+import { DelayRender } from '../../../../../../shared/components/utils/DelayRender/DelayRender';
+import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/types';
-import { DelayRender } from '../../../../../../shared/components/layout/DelayRender/DelayRender';
-import { LoaderSpinner } from '../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
-import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
-import { IconCopy } from '../../../../../../shared/components/svg';
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { LoaderSpinner } from '../../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
+import { useClipboard } from '../../../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
@@ -59,6 +58,7 @@ export const RegisterTOTPModal = () => {
 };
 
 const TOTPRegisterQRCode = () => {
+  const { writeToClipboard } = useClipboard();
   const {
     auth: {
       mfa: {
@@ -81,20 +81,12 @@ const TOTPRegisterQRCode = () => {
 
   const qrData = useMemo(
     () => (data ? `otpauth://totp/Defguard?secret=${data.secret}` : undefined),
-    [data]
+    [data],
   );
 
   const handleCopy = () => {
     if (qrData) {
-      clipboard
-        .write(qrData)
-        .then(() => {
-          toaster.success(LL.modals.registerTOTP.messages.totpCopied());
-        })
-        .catch((e) => {
-          toaster.error(LL.messages.clipboardError());
-          console.error(e);
-        });
+      writeToClipboard(qrData, LL.modals.registerTOTP.messages.totpCopied());
     }
   };
 
@@ -179,7 +171,7 @@ const TOTPRegisterForm = () => {
     <form data-testid="register-totp-form" onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
         controller={{ control, name: 'code' }}
-        outerLabel={LL.modals.registerTOTP.form.fields.code.label()}
+        label={LL.modals.registerTOTP.form.fields.code.label()}
         autoComplete="one-time-code"
         required
       />

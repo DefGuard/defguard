@@ -1,17 +1,17 @@
 import { yupResolver } from '@hookform/resolvers/yup';
+import { useMutation } from '@tanstack/react-query';
 import { pick } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useMutation } from 'wagmi';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../../../../../shared/components/layout/Button/Button';
+import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/types';
+} from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import { passwordValidator } from '../../../../../../../shared/validators/password';
@@ -40,11 +40,11 @@ export const ChangeSelfPasswordForm = () => {
             .test(
               'password-match',
               LL.form.error.repeat(),
-              (value, context) => value === context.parent.new_password
+              (value, context) => value === context.parent.new_password,
             ),
         })
         .required(),
-    [LL]
+    [LL],
   );
 
   const { control, handleSubmit } = useForm<FormFields>({
@@ -84,7 +84,7 @@ export const ChangeSelfPasswordForm = () => {
       <FormInput
         controller={{ control, name: 'old_password' }}
         type="password"
-        outerLabel={LL.modals.changePasswordSelf.form.labels.oldPassword()}
+        label={LL.modals.changePasswordSelf.form.labels.oldPassword()}
       />
       <FormInput
         controller={{ control, name: 'new_password' }}
@@ -92,10 +92,10 @@ export const ChangeSelfPasswordForm = () => {
           title: LL.form.floatingErrors.title(),
         }}
         type="password"
-        outerLabel={LL.modals.changePasswordSelf.form.labels.newPassword()}
+        label={LL.modals.changePasswordSelf.form.labels.newPassword()}
       />
       <FormInput
-        outerLabel={LL.modals.changePasswordSelf.form.labels.repeat()}
+        label={LL.modals.changePasswordSelf.form.labels.repeat()}
         controller={{ control, name: 'repeat' }}
         type="password"
       />

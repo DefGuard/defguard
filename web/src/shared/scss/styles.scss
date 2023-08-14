@@ -1,5 +1,6 @@
 @use './base';
 @use './helpers';
 @use './components';
-@use './themes';
+@use './legacy-variables';
 @use './fonts.scss';
+@use '../defguard-ui/scss';

@@ -59,7 +59,7 @@ export const NavigationMobile = ({ navItems, onLogout }: Props) => {
         title: LL.navigation.mobileTitles.overview(),
       },
     ],
-    [LL.navigation.mobileTitles]
+    [LL.navigation.mobileTitles],
   );
 
   const getPageTitle = useMemo(() => {

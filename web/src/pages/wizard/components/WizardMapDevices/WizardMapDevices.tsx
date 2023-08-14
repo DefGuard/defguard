@@ -1,21 +1,18 @@
 import './style.scss';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
-import { useMutation } from 'wagmi';
 import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Card } from '../../../../shared/components/layout/Card/Card';
-import { LoaderSpinner } from '../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import { SelectOption } from '../../../../shared/components/layout/Select/Select';
-import {
-  ListHeader,
-  VirtualizedList,
-} from '../../../../shared/components/layout/VirtualizedList/VirtualizedList';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import { ListHeader } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
@@ -39,7 +36,7 @@ export const WizardMapDevices = () => {
   const setImportedDevices = useWizardStore((state) => state.setImportedDevices);
   const [submitSubject, nextStepSubject] = useWizardStore(
     (state) => [state.submitSubject, state.nextStepSubject],
-    shallow
+    shallow,
   );
   const importedDevices = useWizardStore((state) => state.importedNetworkDevices);
   const importedNetwork = useWizardStore((state) => state.importedNetworkConfig);
@@ -55,7 +52,7 @@ export const WizardMapDevices = () => {
           user_id: yup.number().required().min(1),
           wireguard_pubkey: yup.string().required(),
           name: yup.string().required(),
-        })
+        }),
       ),
     });
   }, []);
@@ -92,7 +89,7 @@ export const WizardMapDevices = () => {
         key: user.id as number,
         meta: ``,
       })) ?? [],
-    [users]
+    [users],
   );
 
   const getHeaders = useMemo(
@@ -101,14 +98,14 @@ export const WizardMapDevices = () => {
       { text: 'IP', key: 1, sortable: false },
       { text: 'User', key: 2, sortable: false },
     ],
-    []
+    [],
   );
 
   const renderRow = useCallback(
     (data: DeviceRowData) => (
       <MapDeviceRow options={getUsersOptions} control={control} index={data.itemIndex} />
     ),
-    [control, getUsersOptions]
+    [control, getUsersOptions],
   );
 
   const handleValidSubmit: SubmitHandler<WizardMapFormValues> = (values) => {

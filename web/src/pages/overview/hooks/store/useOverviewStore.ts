@@ -1,10 +1,10 @@
 import { omit } from 'lodash-es';
-import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 import { OverviewLayoutType, OverviewStore } from '../../../../shared/types';
 
-export const useOverviewStore = create<
+export const useOverviewStore = createWithEqualityFn<
   OverviewStore,
   [['zustand/persist', Omit<OverviewStore, 'setState' | 'networks'>]]
 >(
@@ -22,6 +22,7 @@ export const useOverviewStore = create<
       name: 'overview-store',
       storage: createJSONStorage(() => sessionStorage),
       partialize: (store) => omit(store, ['setState', 'networks']),
-    }
-  )
+    },
+  ),
+  Object.is,
 );

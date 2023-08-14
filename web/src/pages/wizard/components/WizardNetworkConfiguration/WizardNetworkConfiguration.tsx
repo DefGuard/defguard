@@ -8,14 +8,11 @@ import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../../shared/components/Form/FormSelect/FormSelect';
-import { Card } from '../../../../shared/components/layout/Card/Card';
-import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
-import {
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../../shared/components/layout/Select/Select';
+import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
@@ -29,9 +26,7 @@ import {
 } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
-type FormInputs = Omit<ModifyNetworkRequest['network'], 'allowed_groups'> & {
-  allowed_groups: SelectOption<string>[];
-};
+type FormInputs = ModifyNetworkRequest['network'];
 
 export const WizardNetworkConfiguration = () => {
   const [componentMount, setComponentMount] = useState(false);
@@ -44,7 +39,7 @@ export const WizardNetworkConfiguration = () => {
 
   const [submitSubject, nextSubject, setWizardState] = useWizardStore(
     (state) => [state.submitSubject, state.nextStepSubject, state.setState],
-    shallow
+    shallow,
   );
 
   const wizardNetworkConfiguration = useWizardStore((state) => state.manualNetworkConfig);
@@ -74,7 +69,7 @@ export const WizardNetworkConfiguration = () => {
           key: g,
           value: g,
           label: titleCase(g),
-        }))
+        })),
       );
     },
     onError: (err) => {
@@ -137,7 +132,7 @@ export const WizardNetworkConfiguration = () => {
           allowed_groups: yup.array().optional(),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
 
   const getDefaultValues = useMemo((): FormInputs => {
@@ -153,10 +148,7 @@ export const WizardNetworkConfiguration = () => {
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
     if (!isLoading) {
       setWizardState({ loading: true });
-      addNetworkMutation({
-        ...values,
-        allowed_groups: values.allowed_groups.map((o) => o.value),
-      });
+      addNetworkMutation(values);
     }
   };
 
@@ -176,53 +168,55 @@ export const WizardNetworkConfiguration = () => {
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
-          outerLabel={LL.networkConfiguration.form.fields.name.label()}
+          label={LL.networkConfiguration.form.fields.name.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.address()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'address' }}
-          outerLabel={LL.networkConfiguration.form.fields.address.label()}
+          label={LL.networkConfiguration.form.fields.address.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.gateway()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'endpoint' }}
-          outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
+          label={LL.networkConfiguration.form.fields.endpoint.label()}
         />
         <FormInput
           controller={{ control, name: 'port' }}
-          outerLabel={LL.networkConfiguration.form.fields.port.label()}
+          label={LL.networkConfiguration.form.fields.port.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedIps()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'allowed_ips' }}
-          outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
+          label={LL.networkConfiguration.form.fields.allowedIps.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.dns()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'dns' }}
-          outerLabel={LL.networkConfiguration.form.fields.dns.label()}
+          label={LL.networkConfiguration.form.fields.dns.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
         </MessageBox>
         <FormSelect
-          styleVariant={SelectStyleVariant.WHITE}
           controller={{ control, name: 'allowed_groups' }}
-          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          label={LL.networkConfiguration.form.fields.allowedGroups.label()}
           loading={groupsLoading}
           disabled={groupsError || (!groupsLoading && groupOptions.length === 0)}
           options={groupOptions}
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
-          multi
-          searchable
+          renderSelected={(group) => ({
+            key: group,
+            displayValue: titleCase(group),
+          })}
+          onRemove={(group, selected) => selected.filter((g) => g !== group)}
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

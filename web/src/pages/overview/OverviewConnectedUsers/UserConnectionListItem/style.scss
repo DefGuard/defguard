@@ -29,13 +29,13 @@
       padding-left: 52px;
 
       & > .full-name {
-        @include mix.typography(15px, 18px, medium);
+        @include mix.typography-legacy(15px, 18px, medium);
       }
     }
 
     & > .active-time {
       & > .time {
-        @include mix.typography(15px, 18px, medium, v.$text-main);
+        @include mix.typography-legacy(15px, 18px, medium, v.$text-main);
       }
     }
   }
@@ -73,13 +73,13 @@
       }
 
       & > .name {
-        @include mix.typography(12px, 14px, medium, v.$text-main);
+        @include mix.typography-legacy(12px, 14px, medium, v.$text-main);
       }
     }
 
     & > .active-time {
       & > .time {
-        @include mix.typography(12px, 14px, medium, v.$text-main);
+        @include mix.typography-legacy(12px, 14px, medium, v.$text-main);
       }
     }
   }
@@ -110,7 +110,7 @@
       justify-content: center;
 
       span {
-        @include mix.typography(12px, 14px, medium, v.$gray-light);
+        @include mix.typography-legacy(12px, 14px, medium, v.$gray-light);
       }
     }
   }

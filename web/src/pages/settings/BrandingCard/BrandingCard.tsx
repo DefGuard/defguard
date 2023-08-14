@@ -3,22 +3,22 @@ import './styles.scss';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { Card } from '../../../shared/components/layout/Card/Card';
-import { Helper } from '../../../shared/components/layout/Helper/Helper';
-import { IconCheckmarkWhite } from '../../../shared/components/svg';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -26,6 +26,18 @@ import { externalLink } from '../../../shared/links';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
+
+type FormFields = {
+  instance_name: string;
+  main_logo_url: string;
+  nav_logo_url: string;
+};
+
+const defaultSettings: FormFields = {
+  instance_name: 'Defguard',
+  main_logo_url: '/svg/logo-defguard-white.svg',
+  nav_logo_url: '/svg/defguard-nav-logo.svg',
+};
 
 export const BrandingCard = () => {
   const { LL } = useI18nContext();
@@ -42,12 +54,6 @@ export const BrandingCard = () => {
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
-  const defaultSettings = {
-    instance_name: 'Defguard',
-    main_logo_url: '/svg/logo-defguard-white.svg',
-    nav_logo_url: '/svg/defguard-nav-logo.svg',
-  };
-
   const { mutate, isLoading } = useMutation([MutationKeys.EDIT_SETTINGS], editSettings, {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
@@ -58,21 +64,20 @@ export const BrandingCard = () => {
       console.error(err);
     },
   });
+
   const { mutate: setDefaultBrandingMutation } = useMutation(
     [MutationKeys.EDIT_SETTINGS],
     setDefaultBranding,
     {
       onSuccess: (settings) => {
         setAppStore({ settings });
-        reset();
-        queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
         toaster.success(LL.settingsPage.messages.editSuccess());
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const formSchema = useMemo(
@@ -89,55 +94,60 @@ export const BrandingCard = () => {
             .required(LL.form.error.required()),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
+
+  const defaultValues = useMemo((): FormFields => {
+    return {
+      instance_name: settings?.instance_name ?? '',
+      main_logo_url:
+        settings?.main_logo_url === defaultSettings.main_logo_url
+          ? ''
+          : settings?.main_logo_url ?? '',
+      nav_logo_url:
+        settings?.nav_logo_url === defaultSettings.nav_logo_url
+          ? ''
+          : settings?.nav_logo_url ?? '',
+    };
+  }, [settings?.instance_name, settings?.main_logo_url, settings?.nav_logo_url]);
+
   const { control, handleSubmit, reset } = useForm<Settings>({
-    defaultValues: useMemo(() => {
-      return {
-        instance_name: settings?.instance_name,
-        main_logo_url:
-          settings?.main_logo_url === defaultSettings.main_logo_url
-            ? ''
-            : settings?.main_logo_url,
-        nav_logo_url:
-          settings?.nav_logo_url === defaultSettings.nav_logo_url
-            ? ''
-            : settings?.nav_logo_url,
-      };
-    }, [
-      defaultSettings.main_logo_url,
-      defaultSettings.nav_logo_url,
-      settings?.instance_name,
-      settings?.main_logo_url,
-      settings?.nav_logo_url,
-    ]),
-    resolver: yupResolver(formSchema),
+    defaultValues,
     mode: 'all',
+    resolver: yupResolver(formSchema),
   });
 
-  if (!settings) return null;
+  useEffect(() => {
+    reset();
+  }, [reset, defaultValues]);
 
-  const onSubmit: SubmitHandler<Settings> = (data) => {
-    settings.instance_name = data.instance_name;
-    if (data.main_logo_url != '') {
-      settings.main_logo_url = data.main_logo_url;
+  const onSubmit: SubmitHandler<FormFields> = (data) => {
+    if (settings) {
+      const res = { ...settings };
+      res.instance_name = data.instance_name;
+      if (data.main_logo_url != '') {
+        res.main_logo_url = data.main_logo_url;
+      }
+      if (data.nav_logo_url != '') {
+        res.nav_logo_url = data.nav_logo_url;
+      }
+      mutate(res);
     }
-    if (data.nav_logo_url != '') {
-      settings.nav_logo_url = data.nav_logo_url;
-    }
-    mutate(settings);
   };
 
   const disableRestoreDefault = () => {
-    if (
-      settings.instance_name === defaultSettings.instance_name &&
-      settings.nav_logo_url === defaultSettings.nav_logo_url &&
-      settings.main_logo_url === defaultSettings.main_logo_url
-    ) {
-      return true;
-    } else {
-      return false;
+    if (settings) {
+      if (
+        settings.instance_name === defaultSettings.instance_name &&
+        settings.nav_logo_url === defaultSettings.nav_logo_url &&
+        settings.main_logo_url === defaultSettings.main_logo_url
+      ) {
+        return true;
+      } else {
+        return false;
+      }
     }
+    return true;
   };
 
   return (
@@ -148,7 +158,7 @@ export const BrandingCard = () => {
           {parse(
             LL.settingsPage.instanceBranding.helper({
               documentationLink: externalLink.gitbook.base,
-            })
+            }),
           )}
         </Helper>
       </header>
@@ -186,7 +196,7 @@ export const BrandingCard = () => {
         </header>
         <form id="branding-form" onSubmit={handleSubmit(onSubmit)}>
           <FormInput
-            outerLabel={LL.settingsPage.instanceBranding.form.fields.instanceName.label()}
+            label={LL.settingsPage.instanceBranding.form.fields.instanceName.label()}
             controller={{ control, name: 'instance_name' }}
             placeholder={LL.settingsPage.instanceBranding.form.fields.instanceName.placeholder()}
             required
@@ -195,7 +205,7 @@ export const BrandingCard = () => {
             {parse(LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.helper())}
           </Helper>
           <FormInput
-            outerLabel={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.label()}
+            label={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.label()}
             controller={{ control, name: 'main_logo_url' }}
             placeholder={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.placeholder()}
             required
@@ -206,7 +216,7 @@ export const BrandingCard = () => {
             </p>
           </Helper>
           <FormInput
-            outerLabel={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.label()}
+            label={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.label()}
             controller={{ control, name: 'nav_logo_url' }}
             placeholder={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.placeholder()}
             required

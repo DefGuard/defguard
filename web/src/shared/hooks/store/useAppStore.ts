@@ -1,10 +1,10 @@
 import { pick } from 'lodash-es';
-import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 import { AppStore } from '../../types';
 
-export const useAppStore = create<AppStore>()(
+export const useAppStore = createWithEqualityFn<AppStore>()(
   persist(
     (set) => ({
       settings: undefined,
@@ -17,6 +17,7 @@ export const useAppStore = create<AppStore>()(
       name: 'app-store',
       partialize: (store) => pick(store, ['settings', 'language']),
       storage: createJSONStorage(() => sessionStorage),
-    }
-  )
+    },
+  ),
+  Object.is,
 );

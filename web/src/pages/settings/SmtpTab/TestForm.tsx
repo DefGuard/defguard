@@ -1,23 +1,26 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { IconCheckmarkWhite } from '../../../shared/components/svg';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { patternValidEmail } from '../../../shared/patterns';
-import { SMTPError, TestMail } from '../../../shared/types';
+import { TestMail } from '../../../shared/types';
+
+type SMTPError = AxiosError<{ error: string }>;
 
 export const TestForm = () => {
   const { LL } = useI18nContext();
@@ -35,7 +38,7 @@ export const TestForm = () => {
     onError: (err: SMTPError) => {
       toaster.error(
         `${LL.settingsPage.smtp.testForm.controls.error()}`,
-        `${err.response?.data.error}`
+        `${err.response?.data.error}`,
       );
       console.error(err);
     },
@@ -48,7 +51,7 @@ export const TestForm = () => {
           to: yup.string().matches(patternValidEmail, LL.form.error.invalid()),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
 
   const { control: testControl, handleSubmit: handleTestSubmit } = useForm<TestMail>({
@@ -70,7 +73,7 @@ export const TestForm = () => {
       </header>
       <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
         <FormInput
-          outerLabel={LL.settingsPage.smtp.testForm.fields.to.label()}
+          label={LL.settingsPage.smtp.testForm.fields.to.label()}
           controller={{ control: testControl, name: 'to' }}
           placeholder={LL.settingsPage.smtp.testForm.fields.to.placeholder()}
           required

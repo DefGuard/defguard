@@ -7,13 +7,13 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FormCheckBox } from '../../../../shared/components/Form/FormCheckBox/FormCheckBox';
-import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
+import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
@@ -123,7 +123,7 @@ export const WebhookForm = () => {
           }),
         })
         .required(),
-    [LL.form.error, LL.modals.webhookModal.form.error]
+    [LL.form.error, LL.modals.webhookModal.form.error],
   );
 
   const { control, handleSubmit } = useForm<FormInputs>({
@@ -147,7 +147,7 @@ export const WebhookForm = () => {
         setModalState({ visible: false, webhook: undefined });
         console.error(err);
       },
-    }
+    },
   );
   const { mutate: editWebhookMutation, isLoading: editMutationIsLoading } = useMutation(
     [MutationKeys.EDIT_WEBHOOK],
@@ -164,7 +164,7 @@ export const WebhookForm = () => {
         setModalState({ visible: false, webhook: undefined });
         console.error(err);
       },
-    }
+    },
   );
 
   const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
@@ -180,20 +180,20 @@ export const WebhookForm = () => {
   return (
     <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
-        outerLabel={LL.modals.webhookModal.form.fields.url.label()}
+        label={LL.modals.webhookModal.form.fields.url.label()}
         controller={{ control, name: 'url' }}
         placeholder={LL.modals.webhookModal.form.fields.url.placeholder()}
         required
       />
       <FormInput
-        outerLabel={LL.modals.webhookModal.form.fields.description.label()}
+        label={LL.modals.webhookModal.form.fields.description.label()}
         controller={{ control, name: 'description' }}
         placeholder={LL.modals.webhookModal.form.fields.description.placeholder()}
         required
         type="text"
       />
       <FormInput
-        outerLabel={LL.modals.webhookModal.form.fields.token.label()}
+        label={LL.modals.webhookModal.form.fields.token.label()}
         controller={{ control, name: 'token' }}
         placeholder={LL.modals.webhookModal.form.fields.token.placeholder()}
         required
@@ -203,22 +203,22 @@ export const WebhookForm = () => {
         <FormCheckBox
           controller={{ control, name: 'on_user_created' }}
           label={LL.modals.webhookModal.form.fields.userCreated.label()}
-          labelPosition="right"
+          labelPlacement="right"
         />
         <FormCheckBox
           controller={{ control, name: 'on_user_deleted' }}
           label={LL.modals.webhookModal.form.fields.userDeleted.label()}
-          labelPosition="right"
+          labelPlacement="right"
         />
         <FormCheckBox
           controller={{ control, name: 'on_user_modified' }}
           label={LL.modals.webhookModal.form.fields.userModified.label()}
-          labelPosition="right"
+          labelPlacement="right"
         />
         <FormCheckBox
           controller={{ control, name: 'on_hwkey_provision' }}
           label={LL.modals.webhookModal.form.fields.hwkeyProvision.label()}
-          labelPosition="right"
+          labelPlacement="right"
         />
       </div>
       <div className="controls">

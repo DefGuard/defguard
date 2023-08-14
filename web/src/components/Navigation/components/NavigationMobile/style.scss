@@ -22,7 +22,7 @@
     user-select: none;
 
     @include text-overflow-dots;
-    @include typography(20px, 1.2, semiBold, var(--text-main), 'Poppins');
+    @include typography-legacy(20px, 1.2, semiBold, var(--text-main), 'Poppins');
   }
 
   .hamburger {

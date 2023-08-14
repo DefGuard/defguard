@@ -3,30 +3,19 @@ import { useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Select, SelectOption } from '../../../../shared/components/layout/Select/Select';
+import { Select } from '../../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import { useOverviewStore } from '../../hooks/store/useOverviewStore';
 
 export const OverViewNetworkSelect = () => {
   const { LL } = useI18nContext();
   const [selectedNetworkId, networks] = useOverviewStore(
     (state) => [state.selectedNetworkId, state.networks],
-    shallow
+    shallow,
   );
   const setOverviewStore = useOverviewStore((state) => state.setState);
 
-  const selected = useMemo((): SelectOption<number> | undefined => {
-    const network = networks?.find((n) => n.id === selectedNetworkId);
-    if (network) {
-      return {
-        label: network.name,
-        value: network.id,
-        key: network.id,
-      };
-    }
-    return undefined;
-  }, [networks, selectedNetworkId]);
-
-  const options = useMemo((): SelectOption<number>[] | undefined => {
+  const options = useMemo((): SelectOption<number>[] => {
     if (networks) {
       return networks.map((n) => ({
         label: n.name,
@@ -34,19 +23,17 @@ export const OverViewNetworkSelect = () => {
         value: n.id,
       }));
     }
-    return undefined;
+    return [];
   }, [networks]);
 
   return (
     <Select
       placeholder={LL.networkOverview.controls.selectNetwork.placeholder()}
       loading={isUndefined(networks) || networks.length === 0}
-      selected={selected}
+      selected={selectedNetworkId}
       options={options}
-      onChange={(option) => {
-        if (!Array.isArray(option) && networks) {
-          setOverviewStore({ selectedNetworkId: option?.value });
-        }
+      onChangeSingle={(res) => {
+        setOverviewStore({ selectedNetworkId: res });
       }}
     />
   );

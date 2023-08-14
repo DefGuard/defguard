@@ -1,5 +1,5 @@
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
+import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { ChangeSelfPasswordForm } from './components/ChangeSelfPasswordForm';
 import { useChangeSelfPasswordModal } from './hooks/useChangeSelfPasswordModal';
 

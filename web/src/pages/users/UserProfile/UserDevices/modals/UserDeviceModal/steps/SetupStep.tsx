@@ -6,18 +6,17 @@ import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../../../shared/components/Form/FormInput/FormInput';
-import { FormToggle } from '../../../../../../../shared/components/Form/FormToggle/FormToggle';
-import { Button } from '../../../../../../../shared/components/layout/Button/Button';
+import IconDownload from '../../../../../../../shared/components/svg/IconDownload';
+import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormToggle } from '../../../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/types';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
-import { ToggleOption } from '../../../../../../../shared/components/layout/Toggle/Toggle';
-import { IconDownload } from '../../../../../../../shared/components/svg';
+} from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { ToggleOption } from '../../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
 import { useUserProfileStore } from '../../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
@@ -49,7 +48,7 @@ export const SetupStep = () => {
 
   const reservedNames = useMemo(
     () => userProfile?.devices.map((d) => d.name) ?? [],
-    [userProfile?.devices]
+    [userProfile?.devices],
   );
 
   const toggleOptions = useMemo(() => {
@@ -79,7 +78,7 @@ export const SetupStep = () => {
             .test(
               'is-duplicated',
               LL.modals.addDevice.web.steps.setup.form.errors.name.duplicatedName(),
-              (value) => !reservedNames?.includes(value)
+              (value) => !reservedNames?.includes(value),
             ),
           publicKey: yup.string().when('choice', {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -97,7 +96,7 @@ export const SetupStep = () => {
           }),
         })
         .required(),
-    [LL.form.error, LL.modals.addDevice.web.steps.setup.form.errors.name, reservedNames]
+    [LL.form.error, LL.modals.addDevice.web.steps.setup.form.errors.name, reservedNames],
   );
 
   const {
@@ -128,7 +127,7 @@ export const SetupStep = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const validSubmitHandler: SubmitHandler<FormValues> = async (values) => {
@@ -141,7 +140,7 @@ export const SetupStep = () => {
         username: user.username,
       }).then((response) => {
         const configs = response.configs.map((c) => {
-          c.config = c.config.replaceAll(/YOUR_PRIVATE_KEY/g, keys.privateKey);
+          c.config = c.config.replace(/YOUR_PRIVATE_KEY/g, keys.privateKey);
           return c;
         });
         const device = response.device;
@@ -181,17 +180,17 @@ export const SetupStep = () => {
         {parser(
           LL.modals.addDevice.web.steps.setup.infoMessage({
             addDevicesDocs: externalLink.gitbook.wireguard.addDevices,
-          })
+          }),
         )}
       </MessageBox>
       <form onSubmit={handleSubmit(validSubmitHandler)}>
         <FormInput
-          outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.name.label()}
+          label={LL.modals.addDevice.web.steps.setup.form.fields.name.label()}
           controller={{ control, name: 'name' }}
         />
         <FormToggle options={toggleOptions} controller={{ control, name: 'choice' }} />
         <FormInput
-          outerLabel={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
+          label={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
           controller={{ control, name: 'publicKey' }}
           disabled={choiceValue === DeviceModalSetupMode.AUTO_CONFIG}
         />
