@@ -14,7 +14,7 @@ COPY model-derive model-derive
 COPY proto proto
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef AS builder 
+FROM chef AS builder
 # build deps from recipe & cache as docker layer
 COPY --from=planner /build/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -30,7 +30,7 @@ COPY migrations migrations
 ENV SQLX_OFFLINE true
 RUN cargo install --locked --path . --root /build
 
-FROM node:19-alpine3.16 as web
+FROM node:20.5-alpine3.17 as web
 
 WORKDIR /app
 COPY web/package.json .
