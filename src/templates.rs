@@ -2,7 +2,7 @@ use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
 
-use crate::{db::User, handlers::VERSION};
+use crate::{db::User, VERSION};
 
 static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.tpl");
@@ -90,10 +90,12 @@ pub fn enrollment_admin_notification(user: &User, admin: &User) -> Result<String
 // message with support data
 pub fn support_data_mail() -> Result<String, TemplateError> {
     let mut tera = Tera::default();
+    let mut context = Context::new();
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_support_data", MAIL_SUPPORT_DATA)?;
+    context.insert("version", &VERSION);
 
-    Ok(tera.render("mail_support_data", &Context::new())?)
+    Ok(tera.render("mail_support_data", &context)?)
 }
 
 #[cfg(test)]
