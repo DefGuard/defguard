@@ -7,10 +7,10 @@ import Skeleton from 'react-loading-skeleton';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Card } from '../../../../shared/components/layout/Card/Card';
-import { Label } from '../../../../shared/components/layout/Label/Label';
-import NoData from '../../../../shared/components/layout/NoData/NoData';
-import { Tag } from '../../../../shared/components/layout/Tag/Tag';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Label } from '../../../../shared/defguard-ui/components/Layout/Label/Label';
+import NoData from '../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Tag } from '../../../../shared/defguard-ui/components/Layout/Tag/Tag';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../shared/hooks/useApi';
@@ -24,7 +24,7 @@ export const ProfileDetails = () => {
   const { LL } = useI18nContext();
   const [editMode, userProfile] = useUserProfileStore(
     (state) => [state.editMode, state.userProfile],
-    shallow
+    shallow,
   );
   return (
     <section id="profile-details">
@@ -61,7 +61,7 @@ const ViewMode = () => {
       onError: () => {
         toaster.error(LL.messages.error());
       },
-    }
+    },
   );
   const user = useUserProfileStore((store) => store.userProfile?.user);
 

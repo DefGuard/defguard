@@ -8,12 +8,12 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
@@ -42,7 +42,7 @@ export const Login = () => {
         })
         .required(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale]
+    [locale],
   );
 
   const {
@@ -70,7 +70,7 @@ export const Login = () => {
           {
             message: 'username or password is incorrect',
           },
-          { shouldFocus: true }
+          { shouldFocus: true },
         );
       } else {
         console.error(error);
@@ -93,7 +93,6 @@ export const Login = () => {
           placeholder={LL.form.placeholders.username()}
           autoComplete="username"
           data-testid="login-form-username"
-          innerLabel
           required
         />
         <FormInput
@@ -102,7 +101,6 @@ export const Login = () => {
           type="password"
           autoComplete="password"
           data-testid="login-form-password"
-          innerLabel
           required
         />
         <Button

@@ -1,7 +1,7 @@
 import './style.scss';
 
-import Modal from '../../../../../shared/components/layout/Modal/Modal';
 import SvgIconHamburgerClose from '../../../../../shared/components/svg/IconHamburgerClose';
+import { Modal } from '../../../../../shared/defguard-ui/components/Layout/modals/Modal/Modal';
 import { useNavigationStore } from '../../../hooks/useNavigationStore';
 import { NavigationItems } from '../../../types';
 import { NavigationBar } from '../../NavigationBar/NavigationBar';

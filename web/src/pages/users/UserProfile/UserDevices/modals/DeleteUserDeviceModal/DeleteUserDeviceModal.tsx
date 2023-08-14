@@ -4,9 +4,8 @@ import { isUndefined } from 'lodash-es';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../../../../shared/components/layout/ConfirmModal/ConfirmModal';
+import ConfirmModal from '../../../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModalType } from '../../../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
@@ -18,11 +17,11 @@ export const DeleteUserDeviceModal = () => {
   const toaster = useToaster();
   const [device, visible] = useDeleteDeviceModal(
     (state) => [state.device, state.visible],
-    shallow
+    shallow,
   );
   const [setModalState, closeModal] = useDeleteDeviceModal(
     (state) => [state.setState, state.close],
-    shallow
+    shallow,
   );
   const {
     device: { deleteDevice },
@@ -42,7 +41,7 @@ export const DeleteUserDeviceModal = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   return (

@@ -26,7 +26,7 @@ export const NavigationBar = ({ navItems, onLogout, isOpen }: Props) => {
       classNames('nav-bar', {
         open: isOpen,
       }),
-    [isOpen]
+    [isOpen],
   );
 
   return (

@@ -5,12 +5,12 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../../../shared/components/layout/Button/Button';
+import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../shared/components/layout/Button/types';
+} from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -40,11 +40,11 @@ export const ChangePasswordForm = () => {
             .test(
               'password-match',
               LL.form.error.repeat(),
-              (value, context) => value === context.parent.new_password
+              (value, context) => value === context.parent.new_password,
             ),
         })
         .required(),
-    [LL]
+    [LL],
   );
 
   const {
@@ -96,7 +96,7 @@ export const ChangePasswordForm = () => {
   return (
     <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
-        outerLabel={LL.modals.changeUserPassword.form.fields.newPassword.label()}
+        label={LL.modals.changeUserPassword.form.fields.newPassword.label()}
         controller={{ control, name: 'new_password' }}
         floatingErrors={{
           title: LL.form.floatingErrors.title(),
@@ -104,7 +104,7 @@ export const ChangePasswordForm = () => {
         type="password"
       />
       <FormInput
-        outerLabel={LL.modals.changeUserPassword.form.fields.confirmPassword.label()}
+        label={LL.modals.changeUserPassword.form.fields.confirmPassword.label()}
         controller={{ control, name: 'repeat' }}
         type="password"
       />

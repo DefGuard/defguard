@@ -5,12 +5,12 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/types';
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../../shared/hooks/useApi';
@@ -42,7 +42,7 @@ export const AddDeviceDesktopForm = () => {
         })
         .required(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale]
+    [locale],
   );
 
   const { mutateAsync, isLoading } = useMutation([MutationKeys.ADD_DEVICE], addDevice, {
@@ -93,7 +93,7 @@ export const AddDeviceDesktopForm = () => {
     <form onSubmit={handleSubmit(handleValidSubmit)}>
       <FormInput
         controller={{ control, name: 'name' }}
-        outerLabel={LL.modals.addDevice.desktop.form.fields.name.label()}
+        label={LL.modals.addDevice.desktop.form.fields.name.label()}
       />
       <div className="controls">
         <Button

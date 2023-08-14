@@ -9,6 +9,7 @@ export enum ColorsRGB {
   TextMain = '#222222',
   GrayLighter = '#cbd3d8',
   GrayLight = '#899CA8',
+  // eslint-disable-next-line
   GrayDark = '#617684',
   GrayDarker = '#485964',
   Success = '#14bc6e',

@@ -6,33 +6,32 @@ import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { Button } from '../../shared/components/layout/Button/Button';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
+import IconCheckmarkGreen from '../../shared/components/svg/IconCheckmarkGreen';
+import IconDeactivated from '../../shared/components/svg/IconDeactivated';
+import SvgIconPlusWhite from '../../shared/components/svg/IconPlusWhite';
+import { deviceBreakpoints } from '../../shared/constants';
+import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../shared/components/layout/Button/types';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../shared/components/layout/ConfirmModal/ConfirmModal';
-import { EditButton } from '../../shared/components/layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../shared/components/layout/EditButton/EditButtonOption';
-import { LoaderSpinner } from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import NoData from '../../shared/components/layout/NoData/NoData';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
-import { Search } from '../../shared/components/layout/Search/Search';
-import { Select, SelectOption } from '../../shared/components/layout/Select/Select';
+} from '../../shared/defguard-ui/components/Layout/Button/types';
+import { EditButton } from '../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import { EditButtonOption } from '../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../shared/defguard-ui/components/Layout/EditButton/types';
+import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import ConfirmModal from '../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModalType } from '../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
+import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
+import { Select } from '../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
 import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
-  VirtualizedList,
-} from '../../shared/components/layout/VirtualizedList/VirtualizedList';
-import { IconCheckmarkGreen, IconDeactivated } from '../../shared/components/svg';
-import SvgIconPlusWhite from '../../shared/components/svg/IconPlusWhite';
-import { deviceBreakpoints } from '../../shared/constants';
+} from '../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { VirtualizedList } from '../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import { useModalStore } from '../../shared/hooks/store/useModalStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
@@ -74,9 +73,9 @@ export const WebhooksListPage = () => {
         key: 3,
       },
     ],
-    [LL.webhooksOverview.filterLabels]
+    [LL.webhooksOverview.filterLabels],
   );
-  const [selectedFilter, setSelectedFilter] = useState(filterOptions[0]);
+  const [selectedFilter, setSelectedFilter] = useState(FilterOption.ALL);
   const { mutate: deleteWebhookMutation, isLoading: deleteWebhookIsLoading } =
     useMutation([MutationKeys.DELETE_WEBHOOK], deleteWebhook, {
       onSuccess: () => {
@@ -220,11 +219,11 @@ export const WebhooksListPage = () => {
       res = clone(webhooks);
       if (searchValue && searchValue.length) {
         res = res.filter((webhook) =>
-          webhook.url.toLowerCase().includes(searchValue.toLowerCase())
+          webhook.url.toLowerCase().includes(searchValue.toLowerCase()),
         );
       }
       res = orderBy(res, ['url'], ['asc']);
-      switch (selectedFilter.value) {
+      switch (selectedFilter) {
         case FilterOption.ALL:
           break;
         case FilterOption.ENABLED:
@@ -238,13 +237,13 @@ export const WebhooksListPage = () => {
       }
     }
     setFilteredWebhooks(res);
-  }, [webhooks, searchValue, selectedFilter.value]);
+  }, [webhooks, searchValue, selectedFilter]);
 
   useEffect(() => {
-    if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOption.ALL) {
-      setSelectedFilter(filterOptions[0]);
+    if (breakpoint !== 'desktop' && selectedFilter !== FilterOption.ALL) {
+      setSelectedFilter(FilterOption.ALL);
     }
-  }, [breakpoint, filterOptions, selectedFilter.value]);
+  }, [breakpoint, filterOptions, selectedFilter]);
 
   const getListPadding = useMemo(() => {
     if (breakpoint === 'desktop') {
@@ -282,11 +281,7 @@ export const WebhooksListPage = () => {
             <Select
               options={filterOptions}
               selected={selectedFilter}
-              onChange={(o) => {
-                if (o && !Array.isArray(o)) {
-                  setSelectedFilter(o);
-                }
-              }}
+              onChangeSingle={(filter) => setSelectedFilter(filter)}
             />
           )}
           <Button

@@ -1,15 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../../../shared/components/layout/EditButton/EditButtonOption';
+import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { User } from '../../../../../shared/types';
+import { useEnrollmentModalStore } from '../../modals/StartEnrollmentModal/hooks/useEnrollmentModalStore';
 
 type Props = {
   user: User;
@@ -21,7 +20,7 @@ export const UserEditButton = ({ user }: Props) => {
   const setProvisionKeyModal = useModalStore((state) => state.setProvisionKeyModal);
   const setDeleteUserModal = useModalStore((state) => state.setDeleteUserModal);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
-  const setStartEnrollmentModal = useModalStore((state) => state.setStartEnrollmentModal);
+  const openEnrollmentModal = useEnrollmentModalStore((state) => state.open);
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const currentUser = useAuthStore((state) => state.user);
   return (
@@ -30,7 +29,7 @@ export const UserEditButton = ({ user }: Props) => {
         <EditButtonOption
           key="start-enrollment"
           text={LL.usersOverview.list.editButton.startEnrollment()}
-          onClick={() => setStartEnrollmentModal({ visible: true, user })}
+          onClick={() => openEnrollmentModal(user)}
         />
       )}
       <EditButtonOption

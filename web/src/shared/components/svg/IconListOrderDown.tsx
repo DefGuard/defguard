@@ -1,57 +1,78 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgIconListOrderDown = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} {...props}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={22}
+    height={22}
+    viewBox="0 0 22 22"
+    {...props}
+  >
     <defs>
       <clipPath id="icon-list-order-down_svg__a">
-        <path className="icon-list-order-down_svg__a" d="M0 0h22v22H0z" />
+        <path
+          d="M0 0h22v22H0z"
+          style={{
+            opacity: 0,
+            fill: '#899ca8',
+          }}
+        />
       </clipPath>
-      <style>
-        {
-          '\n      .icon-list-order-down_svg__a,.icon-list-order-down_svg__c,.icon-list-order-down_svg__d{fill:#899ca8}.icon-list-order-down_svg__a{opacity:0}.icon-list-order-down_svg__b{clip-path:url(#icon-list-order-down_svg__a)}.icon-list-order-down_svg__e,.icon-list-order-down_svg__f{stroke:none}.icon-list-order-down_svg__f{fill:#899ca8}\n    '
-        }
-      </style>
+      <style>{'.icon-list-order-down_svg__c{fill:#899ca8}'}</style>
     </defs>
-    <g className="icon-list-order-down_svg__b">
-      <g transform="translate(8 6)">
-        <rect className="icon-list-order-down_svg__c" width={14} height={2} rx={1} />
+    <g
+      style={{
+        clipPath: 'url(#icon-list-order-down_svg__a)',
+      }}
+      transform="rotate(90 11 11)"
+    >
+      <g transform="rotate(-90 10 4)">
+        <rect width={14} height={2} className="icon-list-order-down_svg__c" rx={1} />
         <rect
-          className="icon-list-order-down_svg__c"
           width={10}
           height={2}
+          className="icon-list-order-down_svg__c"
           rx={1}
           transform="translate(0 4)"
         />
         <rect
-          className="icon-list-order-down_svg__c"
           width={10}
           height={2}
+          className="icon-list-order-down_svg__c"
           rx={1}
           transform="translate(0 8)"
         />
       </g>
-      <g transform="rotate(90 0 6)">
+      <g transform="translate(6 16)">
         <rect
-          className="icon-list-order-down_svg__c"
           width={8}
           height={2}
+          className="icon-list-order-down_svg__c"
           rx={1}
           transform="translate(0 2)"
         />
-        <g className="icon-list-order-down_svg__d">
+        <g
+          style={{
+            fill: '#899ca8',
+          }}
+        >
           <path
-            className="icon-list-order-down_svg__e"
-            d="M7 4.234V1.766L9.056 3 7 4.234Z"
+            d="M4.234 4H1.766L3 1.944 4.234 4Z"
+            style={{
+              stroke: 'none',
+            }}
+            transform="rotate(90 5.5 5.5)"
           />
           <path
-            className="icon-list-order-down_svg__f"
-            d="M10.056 3a.991.991 0 0 1-.485.857L7.514 5.091A1 1 0 0 1 6 4.234V1.766A1 1 0 0 1 7.514.91l2.057 1.234a.991.991 0 0 1 .485.857Z"
+            d="M3 .944c.332 0 .663.161.857.485l1.234 2.057A1 1 0 0 1 4.234 5H1.766A1 1 0 0 1 .91 3.486l1.234-2.057A.991.991 0 0 1 3 .944Z"
+            style={{
+              fill: '#899ca8',
+              stroke: 'none',
+            }}
+            transform="rotate(90 5.5 5.5)"
           />
         </g>
       </g>
     </g>
   </svg>
 );
-
 export default SvgIconListOrderDown;

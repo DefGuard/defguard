@@ -6,23 +6,21 @@ import utc from 'dayjs/plugin/utc';
 import { TargetAndTransition } from 'framer-motion';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
+import { Label } from 'recharts';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { AvatarBox } from '../../../../../shared/components/layout/AvatarBox/AvatarBox';
-import Badge from '../../../../../shared/components/layout/Badge/Badge';
-import { Card } from '../../../../../shared/components/layout/Card/Card';
-import { DeviceAvatar } from '../../../../../shared/components/layout/DeviceAvatar/DeviceAvatar';
-import { EditButton } from '../../../../../shared/components/layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../../../shared/components/layout/EditButton/EditButtonOption';
-import { Label } from '../../../../../shared/components/layout/Label/Label';
-import NoData from '../../../../../shared/components/layout/NoData/NoData';
-import { IconClip } from '../../../../../shared/components/svg';
+import IconClip from '../../../../../shared/components/svg/IconClip';
 import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
 import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
 import { ColorsRGB } from '../../../../../shared/constants';
+import { AvatarBox } from '../../../../../shared/defguard-ui/components/Layout/AvatarBox/AvatarBox';
+import Badge from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { DeviceAvatar } from '../../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
+import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import NoData from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
@@ -56,7 +54,7 @@ export const DeviceCard = ({ device }: Props) => {
       classNames('device-card', {
         expanded,
       }),
-    [expanded]
+    [expanded],
   );
 
   const getContainerAnimate = useMemo((): TargetAndTransition => {
@@ -72,17 +70,17 @@ export const DeviceCard = ({ device }: Props) => {
   // first, order by last_connected_at then if not preset, by network_id
   const orderedLocations = useMemo((): DeviceNetworkInfo[] => {
     const connected = device.networks.filter(
-      (network) => !isUndefined(network.last_connected_at)
+      (network) => !isUndefined(network.last_connected_at),
     );
 
     const neverConnected = device.networks.filter((network) =>
-      isUndefined(network.last_connected_at)
+      isUndefined(network.last_connected_at),
     );
 
     const connectedSorted = sortByDate(
       connected,
       (n) => n.last_connected_at as string,
-      true
+      true,
     );
     const neverConnectedSorted = orderBy(neverConnected, ['network_id'], ['desc']);
 

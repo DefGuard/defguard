@@ -1,13 +1,17 @@
+/* eslint-disable max-len */
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
   messages: {
     error: 'Error has occurred.',
     success: 'Operation succeeded',
-    successClipboard: 'Copied to clipboard',
     errorVersion: 'Failed to get application version.',
     errorLicense: 'Failed to get license.',
-    clipboardError: 'Clipboard is not accessible.',
+    insecureContext: 'Context is not secure.',
+    clipboard: {
+      error: 'Clipboard is not accessible.',
+      success: 'Content copied to clipboard.',
+    },
   },
   modals: {
     changePasswordSelf: {

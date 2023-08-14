@@ -33,7 +33,7 @@
       }
       & > p {
         display: block;
-        @include typography(15px, 18px, medium, var(--gray-light), 'Roboto');
+        @include typography-legacy(15px, 18px, medium, var(--gray-light), 'Roboto');
 
         width: 100%;
         text-align: center;
@@ -42,11 +42,11 @@
 
     & > header {
       user-select: none;
-      @include typography(15px, 23px, semiBold, var(--text-main), 'Poppins');
+      @include typography-legacy(15px, 23px, semiBold, var(--text-main), 'Poppins');
       text-align: center;
 
       @include media-breakpoint-up(lg) {
-        @include typography(24px, 36px, semiBold, var(--text-main), 'Poppins');
+        @include typography-legacy(24px, 36px, semiBold, var(--text-main), 'Poppins');
       }
 
       @include media-breakpoint-up(xl) {

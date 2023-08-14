@@ -5,13 +5,13 @@ import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { FormCheckBox } from '../../../../../shared/components/Form/FormCheckBox/FormCheckBox';
-import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
-import { Button } from '../../../../../shared/components/layout/Button/Button';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
+import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../shared/components/layout/Button/types';
+} from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -24,6 +24,7 @@ import {
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
 import { passwordValidator } from '../../../../../shared/validators/password';
+import { useEnrollmentModalStore } from '../StartEnrollmentModal/hooks/useEnrollmentModalStore';
 
 interface Inputs {
   username: string;
@@ -63,8 +64,11 @@ export const AddUserForm = () => {
               }
               return false;
             })
-            .test('username-available', LL.form.error.usernameTaken(), (value?: string) =>
-              value ? !reservedUserNames.current.includes(value) : false
+            .test(
+              'username-available',
+              LL.form.error.usernameTaken(),
+              (value?: string) =>
+                value ? !reservedUserNames.current.includes(value) : false,
             ),
           password: yup
             .string()
@@ -87,7 +91,7 @@ export const AddUserForm = () => {
           enable_enrollment: yup.boolean(),
         })
         .required(),
-    [LL]
+    [LL],
   );
 
   const {
@@ -117,7 +121,7 @@ export const AddUserForm = () => {
   const queryClient = useQueryClient();
 
   const setModalState = useModalStore((state) => state.setAddUserModal);
-  const setEnrollmentModalState = useModalStore((state) => state.setStartEnrollmentModal);
+  const openEnrollmentModal = useEnrollmentModalStore((state) => state.open);
 
   const toaster = useToaster();
 
@@ -126,7 +130,7 @@ export const AddUserForm = () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
       toaster.success('User added.');
       if (enableEnrollment) {
-        setEnrollmentModalState({ visible: true, user });
+        openEnrollmentModal(user);
       }
       setModalState({ visible: false });
     },
@@ -168,12 +172,12 @@ export const AddUserForm = () => {
           <FormInput
             placeholder={LL.modals.addUser.form.fields.username.placeholder()}
             controller={{ control, name: 'username' }}
-            outerLabel={LL.modals.addUser.form.fields.username.label()}
+            label={LL.modals.addUser.form.fields.username.label()}
             autoComplete="username"
             required
           />
           <FormInput
-            outerLabel={LL.modals.addUser.form.fields.password.label()}
+            label={LL.modals.addUser.form.fields.password.label()}
             placeholder={LL.modals.addUser.form.fields.password.placeholder()}
             controller={{ control, name: 'password' }}
             floatingErrors={{
@@ -189,7 +193,7 @@ export const AddUserForm = () => {
             controller={{ control, name: 'enable_enrollment' }}
           />
           <FormInput
-            outerLabel={LL.modals.addUser.form.fields.email.label()}
+            label={LL.modals.addUser.form.fields.email.label()}
             placeholder={LL.modals.addUser.form.fields.email.placeholder()}
             controller={{ control, name: 'email' }}
             autoComplete="email"
@@ -198,14 +202,14 @@ export const AddUserForm = () => {
         </div>
         <div className="item">
           <FormInput
-            outerLabel={LL.modals.addUser.form.fields.firstName.label()}
+            label={LL.modals.addUser.form.fields.firstName.label()}
             controller={{ control, name: 'first_name' }}
             placeholder={LL.modals.addUser.form.fields.firstName.placeholder()}
             autoComplete="given-name"
             required
           />
           <FormInput
-            outerLabel={LL.modals.addUser.form.fields.lastName.label()}
+            label={LL.modals.addUser.form.fields.lastName.label()}
             controller={{ control, name: 'last_name' }}
             placeholder={LL.modals.addUser.form.fields.lastName.placeholder()}
             autoComplete="family-name"
@@ -213,7 +217,7 @@ export const AddUserForm = () => {
           />
           <FormInput
             controller={{ control, name: 'phone' }}
-            outerLabel={LL.modals.addUser.form.fields.phone.label()}
+            label={LL.modals.addUser.form.fields.phone.label()}
             placeholder={LL.modals.addUser.form.fields.phone.placeholder()}
             autoComplete="tel"
           />

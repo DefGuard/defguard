@@ -93,6 +93,10 @@
       align-items: center;
       justify-content: flex-start;
 
+      .select-container {
+        height: 40px;
+      }
+
       @include media-breakpoint-up(lg) {
         height: auto;
         padding: 0 6rem 2.7rem;
