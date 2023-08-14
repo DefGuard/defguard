@@ -3,4 +3,4 @@
 	url = ../proto.git
 [submodule "web/src/shared/defguard-ui"]
 	path = web/src/shared/defguard-ui
-	url = git@github.com:DefGuard/ui.git
+	url = ../ui.git
