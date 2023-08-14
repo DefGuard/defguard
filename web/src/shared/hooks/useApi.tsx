@@ -340,6 +340,12 @@ const useApi = (props?: HookProps): ApiHook => {
   const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
     client.get(`/settings/${id}`).then(unpackRequest);
 
+  const downloadSupportData: ApiHook['support']['downloadSupportData'] = async () =>
+    client.get<unknown>(`/support/configuration`).then((res) => res.data);
+
+  const downloadLogs: ApiHook['support']['downloadLogs'] = async () =>
+    client.get<string>(`/support/logs`).then((res) => res.data);
+
   const getGatewaysStatus: ApiHook['network']['getGatewaysStatus'] = (networkId) =>
     client.get(`/network/${networkId}/gateways`).then(unpackRequest);
 
@@ -351,6 +357,9 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const sendTestMail: ApiHook['mail']['sendTestMail'] = (data) =>
     client.post('/mail/test', data).then(unpackRequest);
+
+  const sendSupportMail: ApiHook['mail']['sendSupportMail'] = () =>
+    client.post('/mail/support', {}).then(unpackRequest);
 
   return {
     getAppInfo,
@@ -462,8 +471,13 @@ const useApi = (props?: HookProps): ApiHook => {
       editSettings: editSettings,
       setDefaultBranding: setDefaultBranding,
     },
+    support: {
+      downloadSupportData,
+      downloadLogs,
+    },
     mail: {
       sendTestMail: sendTestMail,
+      sendSupportMail: sendSupportMail,
     },
   };
 };

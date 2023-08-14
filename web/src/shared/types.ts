@@ -4,7 +4,7 @@ import {
   PublicKeyCredentialWithAssertionJSON,
   PublicKeyCredentialWithAttestationJSON,
 } from '@github/webauthn-json';
-import { AxiosPromise } from 'axios';
+import { AxiosError, AxiosPromise } from 'axios';
 
 import { Locales } from '../i18n/i18n-types';
 
@@ -449,8 +449,13 @@ export interface ApiHook {
     editSettings: (data: Settings) => EmptyApiResponse;
     setDefaultBranding: (id: string) => Promise<Settings>;
   };
+  support: {
+    downloadSupportData: () => Promise<unknown>;
+    downloadLogs: () => Promise<string>;
+  };
   mail: {
     sendTestMail: (data: TestMail) => EmptyApiResponse;
+    sendSupportMail: () => EmptyApiResponse;
   };
 }
 
@@ -816,3 +821,5 @@ export interface RemoveUserClientRequest {
 export interface TestMail {
   to: string;
 }
+
+export type SMTPError = AxiosError<{ error: string }>;

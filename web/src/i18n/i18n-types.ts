@@ -1597,13 +1597,21 @@ type RootTranslation = {
 		title: string
 		tabs: {
 			/**
-			 * B​a​s​i​c
+			 * G​e​n​e​r​a​l
 			 */
-			basic: string
+			general: string
 			/**
 			 * S​M​T​P
 			 */
 			smtp: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			support: string
 		}
 		messages: {
 			/**
@@ -1864,7 +1872,7 @@ type RootTranslation = {
 					submit: string
 				}
 			}
-			test_form: {
+			testForm: {
 				/**
 				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
 				 */
@@ -1887,11 +1895,11 @@ type RootTranslation = {
 					 */
 					submit: string
 					/**
-					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t​ ​s​u​c​c​e​s​s​f​u​l​l​y
+					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t
 					 */
 					success: string
 					/**
-					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​t​e​s​t​ ​e​m​a​i​l
+					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
 					 */
 					error: string
 				}
@@ -1994,6 +2002,40 @@ type RootTranslation = {
 					label: string
 				}
 			}
+		}
+		debugDataCard: {
+			/**
+			 * S​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			title: string
+			/**
+			 * 
+		​I​f​ ​y​o​u​ ​n​e​e​d​ ​a​s​s​i​s​t​a​n​c​e​ ​o​r​ ​y​o​u​ ​w​e​r​e​ ​a​s​k​e​d​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​s​u​p​p​o​r​t​ ​d​a​t​a​ ​b​y​ ​o​u​r​ ​t​e​a​m​ ​(​f​o​r​ ​e​x​a​m​p​l​e​ ​o​n​ ​o​u​r​ ​M​a​t​r​i​x​ ​s​u​p​p​o​r​t​ ​c​h​a​n​n​e​l​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​,​ ​y​o​u​ ​h​a​v​e​ ​t​w​o​ ​o​p​t​i​o​n​s​:​
+		​*​ ​E​i​t​h​e​r​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​c​l​i​c​k​ ​"​S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​
+		​*​ ​O​r​ ​c​l​i​c​k​ ​"​D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​b​u​g​ ​r​e​p​o​r​t​ ​i​n​ ​o​u​r​ ​G​i​t​H​u​b​ ​a​t​t​a​c​h​i​n​g​ ​t​h​i​s​ ​f​i​l​e​.​
+	
+			 */
+			body: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			downloadSupportData: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​l​o​g​s
+			 */
+			downloadLogs: string
+			/**
+			 * S​e​n​d​ ​e​m​a​i​l
+			 */
+			sendMail: string
+			/**
+			 * E​m​a​i​l​ ​s​e​n​t
+			 */
+			mailSent: string
+			/**
+			 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
+			 */
+			mailError: string
 		}
 		licenseCard: {
 			/**
@@ -4717,13 +4759,21 @@ export type TranslationFunctions = {
 		title: () => LocalizedString
 		tabs: {
 			/**
-			 * Basic
+			 * General
 			 */
-			basic: () => LocalizedString
+			general: () => LocalizedString
 			/**
 			 * SMTP
 			 */
 			smtp: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
+			/**
+			 * Support
+			 */
+			support: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -4981,7 +5031,7 @@ export type TranslationFunctions = {
 					submit: () => LocalizedString
 				}
 			}
-			test_form: {
+			testForm: {
 				/**
 				 * Send test email
 				 */
@@ -5004,11 +5054,11 @@ export type TranslationFunctions = {
 					 */
 					submit: () => LocalizedString
 					/**
-					 * Test email sent successfully
+					 * Test email sent
 					 */
 					success: () => LocalizedString
 					/**
-					 * Error sending test email
+					 * Error sending email
 					 */
 					error: () => LocalizedString
 				}
@@ -5111,6 +5161,40 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 				}
 			}
+		}
+		debugDataCard: {
+			/**
+			 * Support data
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+		* Either you can configure SMTP settings and click "Send support data"
+		* Or click "Download support data" and create a bug report in our GitHub attaching this file.
+	
+			 */
+			body: () => LocalizedString
+			/**
+			 * Download support data
+			 */
+			downloadSupportData: () => LocalizedString
+			/**
+			 * Download logs
+			 */
+			downloadLogs: () => LocalizedString
+			/**
+			 * Send email
+			 */
+			sendMail: () => LocalizedString
+			/**
+			 * Email sent
+			 */
+			mailSent: () => LocalizedString
+			/**
+			 * Error sending email
+			 */
+			mailError: () => LocalizedString
 		}
 		licenseCard: {
 			/**
