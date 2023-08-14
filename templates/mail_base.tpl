@@ -293,7 +293,7 @@
                               <tr>
                                 <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                                   <div style="font-family:Poppins;font-size:12px;font-weight:300;line-height:1;text-align:center;color:#899CA8;">
-                                    <p style="font-size:12px;font-family:Roboto,Arial,sans-serif;font-weight:300;color:#899CA8;line-height:117%;mso-line-height-alt:14px;mso-ansi-font-size:12px;">Copyright © 2023 teonite</p>
+                                    <p style="font-size:12px;font-family:Roboto,Arial,sans-serif;font-weight:300;color:#899CA8;line-height:117%;mso-line-height-alt:14px;mso-ansi-font-size:12px;">Copyright © 2023 <a href="teonite.com" style="font-size:12px;font-family:Roboto,Arial,sans-serif;font-weight:300;color:#899CA8;line-height:117%;mso-line-height-alt:14px;mso-ansi-font-size:12px;cursor:pointer;text-decoration:none;">teonite</a></p>
                                     <p style="font-size:12px;font-family:Roboto,Arial,sans-serif;font-weight:300;color:#899CA8;line-height:117%;mso-line-height-alt:14px;mso-ansi-font-size:12px;">Sent by defguard v. {{version}}</p>
                                   </div>
                                 </td>
