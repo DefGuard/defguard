@@ -12,22 +12,21 @@
     #outlook a {
       padding: 0;
     }
-
-	  div > span.im {
-	    color: inherit !important;
-	  }
-	  p > span.im {
-	    color: inherit !important;
-	  }
     .im {
-	color: inherit !important
+	color: inherit !important;
 	}
-     .ii a[href] {
-	color: #617684; !important
+
+    div > span.im {
+	color: inherit !important;
 	}
-     a {
-	color: #617684; !important
+    p > span.im {
+    	color: inherit !important;
 	}
+
+    .ii a, a[href], a:hover {
+	color: #899CA8 !important;
+	}
+
 
     body {
       margin: 0;
@@ -52,21 +51,19 @@
       text-decoration: none;
       -ms-interpolation-mode: bicubic;
     }
-    span {
-	color: #222222; !important 
-    }
-
-    span ul li a {
-	color #899CA8 !important
-    }
 
     p {
-      text-align: center !important;
       display: block;
       margin: 13px 0;
     }
-    h1, h2, h3 {
-	font-family: 'Poppins'; !important
+
+    u+#body a,
+    #MessageViewBody a {
+      color: #899CA8;
+      font-size: inherit;
+      font-family: inherit;
+      font-weight: inherit;
+      line-height: inherit;
     }
 
   </style>
@@ -142,11 +139,9 @@
     }
 
   </style>
-  <style type="text/css">
-  </style>
 </head>
 
-<body style="word-spacing:normal;background-color:#f9f9f9;">
+<body id="body" style="word-spacing:normal;background-color:#f9f9f9;">
   <div style="background-color:#f9f9f9;">
     <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#f9f9f9" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="background:#f9f9f9;background-color:#f9f9f9;margin:0px auto;max-width:600px;">
@@ -181,7 +176,7 @@
       </table>
     </div>
     <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#f9f9f9" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
-    <div style="background:#f9f9f9;background-color:#f9f9f9;margin:0px auto;max-width:600px;">
+    <div style="background:#f9f9f9;background-color:#f9f9f9;margin:0px auto;max-width:600px;" class="main">
 	{%block content%}
 
 	{% endblock %}

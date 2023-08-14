@@ -25,7 +25,7 @@
                           <tbody>
                             <tr>
                               <td align="center" bgcolor="#OC8CE0" role="presentation" style="border:none;border-radius:10px;cursor:auto;height:50px;mso-padding-alt:10px 25px;background:#OC8CE0;" valign="middle">
-                                <a href="{{url}}" style="display:inline-block;width:90px;background:#OC8CE0;color:#FFFFFF;font-family:Roboto;font-size:15px;font-weight:600;line-height:normal;margin:0;text-decoration:none;text-transform:none;padding:10px 25px;mso-padding-alt:0px;border-radius:10px;" target="_blank"> Click here </a>
+                                <a href="{{url}}" style="display:inline-block;width:90px;background:#OC8CE0;color:#FFFFFF !important;font-family:Roboto;font-size:15px;font-weight:600;line-height:normal;margin:0;text-decoration:none;text-transform:none;padding:10px 25px;mso-padding-alt:0px;border-radius:10px;" target="_blank"> Click here </a>
                               </td>
                             </tr>
                           </tbody>
