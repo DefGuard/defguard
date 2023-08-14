@@ -1,6 +1,5 @@
 import './style.scss';
 
-import React from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -8,7 +7,7 @@ import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Lay
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { AddUserForm } from './AddUserForm';
 
-const AddUserModal: React.FC = () => {
+const AddUserModal = () => {
   const [{ visible: isOpen }, setModalState] = useModalStore(
     (state) => [state.addUserModal, state.setAddUserModal],
     shallow,

@@ -6,21 +6,17 @@
       margin-bottom: 30px;
     }
 
+    & > form {
+      align-items: stretch;
+      justify-content: flex-start;
 
-      & > form {
-        align-items: stretch;
-        justify-content: flex-start;
-
-        .helper {
-          margin-left: auto;
-        }
-
-        & .input-container {
-          width: 100%;
-        }
-      }
+      .helper {
+        margin-left: auto;
       }
 
-
-
+      & .input-container {
+        width: 100%;
+      }
+    }
+  }
 }

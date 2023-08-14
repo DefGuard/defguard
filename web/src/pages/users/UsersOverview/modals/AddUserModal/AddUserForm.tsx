@@ -24,6 +24,7 @@ import {
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
 import { passwordValidator } from '../../../../../shared/validators/password';
+import { useEnrollmentModalStore } from '../StartEnrollmentModal/hooks/useEnrollmentModalStore';
 
 interface Inputs {
   username: string;
@@ -120,7 +121,7 @@ export const AddUserForm = () => {
   const queryClient = useQueryClient();
 
   const setModalState = useModalStore((state) => state.setAddUserModal);
-  const setEnrollmentModalState = useModalStore((state) => state.setStartEnrollmentModal);
+  const openEnrollmentModal = useEnrollmentModalStore((state) => state.open);
 
   const toaster = useToaster();
 
@@ -129,7 +130,7 @@ export const AddUserForm = () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
       toaster.success('User added.');
       if (enableEnrollment) {
-        setEnrollmentModalState({ visible: true, user });
+        openEnrollmentModal(user);
       }
       setModalState({ visible: false });
     },

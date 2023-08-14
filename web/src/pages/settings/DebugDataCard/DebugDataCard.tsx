@@ -4,14 +4,14 @@ import { useEffect } from 'react';
 import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import SvgIconArrowGrayUp from '../../../shared/components/svg/IconArrowGrayUp';
+import SvgIconDownload from '../../../shared/components/svg/IconDownload';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { ContentCard } from '../../../shared/components/layout/ContentCard/ContentCard';
-import SvgIconArrowGrayUp from '../../../shared/components/svg/IconArrowGrayUp';
-import SvgIconDownload from '../../../shared/components/svg/IconDownload';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { ContentCard } from '../../../shared/defguard-ui/components/Layout/ContentCard/ContentCard';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -57,7 +57,7 @@ export const DebugDataCard = () => {
     onError: (err: SMTPError) => {
       toaster.error(
         `${LL.settingsPage.debugDataCard.mailError()}`,
-        `${err.response?.data.error}`
+        `${err.response?.data.error}`,
       );
       console.error(err);
     },

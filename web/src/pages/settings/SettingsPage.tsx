@@ -13,7 +13,7 @@ import { BrandingCard } from './BrandingCard/BrandingCard';
 import { BuiltByCard } from './BuiltByCard/BuiltByCard';
 import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
 import { ModulesCard } from './ModulesCard/ModulesCard';
-import { SmtpCard } from './SmtpCard/SmtpCard';
+import { SmtpTab } from './SmtpTab/SmtpTab';
 import { SupportCard } from './SupportCard/SupportCard';
 import { Web3Settings } from './Web3Settings/Web3Settings';
 
@@ -32,7 +32,7 @@ export const SettingsPage = () => {
       onClick: () => {
         setTab(Tabs.Basic);
       },
-      content: LL.settingsPage.tabs.basic(),
+      content: LL.settingsPage.tabs.general(),
       active: tab === Tabs.Basic,
     },
     {
@@ -77,7 +77,7 @@ export const SettingsPage = () => {
             </div>
           </>
         )}
-        {tab === Tabs.Smtp && <SmtpCard />}
+        {tab === Tabs.Smtp && <SmtpTab />}
         {tab === Tabs.Enrollment && <EnrollmentTab />}
       </Card>
     </PageContainer>

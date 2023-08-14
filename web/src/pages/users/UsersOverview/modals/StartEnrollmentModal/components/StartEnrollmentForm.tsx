@@ -1,40 +1,40 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import { useMemo, useState } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
-import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../shared/components/Form/FormInput/FormInput';
-import { FormToggle } from '../../../../../shared/components/Form/FormToggle/FormToggle';
-import {
-  ActionButton,
-  ActionButtonVariant,
-} from '../../../../../shared/components/layout/ActionButton/ActionButton';
-import { Button } from '../../../../../shared/components/layout/Button/Button';
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormToggle } from '../../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
+import { ActionButton } from '../../../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
+import { ActionButtonVariant } from '../../../../../../shared/defguard-ui/components/Layout/ActionButton/types';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../shared/components/layout/Button/types';
-import { ExpandableCard } from '../../../../../shared/components/layout/ExpandableCard/ExpandableCard';
-import { ToggleOption } from '../../../../../shared/components/layout/Toggle/Toggle';
-import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
-import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { patternValidEmail } from '../../../../../shared/patterns';
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { ExpandableCard } from '../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
+import { ToggleOption } from '../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
+import useApi from '../../../../../../shared/hooks/useApi';
+import { useClipboard } from '../../../../../../shared/hooks/useClipboard';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
+import { useEnrollmentModalStore } from '../hooks/useEnrollmentModalStore';
 
 enum EnrollmentMode {
   EMAIL = 1,
   MANUAL = 2,
 }
 
-interface Inputs {
+type FormFields = {
   mode: EnrollmentMode;
   email?: string;
-}
+};
 
 export const StartEnrollmentForm = () => {
+  const { writeToClipboard } = useClipboard();
+  const closeModal = useEnrollmentModalStore((state) => state.close);
+  const user = useEnrollmentModalStore((state) => state.user);
   const { LL } = useI18nContext();
   const [enrollmentUrl, setEnrollmentUrl] = useState<string | undefined>(undefined);
   const [enrollmentToken, setEnrollmentToken] = useState<string | undefined>(undefined);
@@ -42,31 +42,34 @@ export const StartEnrollmentForm = () => {
     user: { startEnrollment },
   } = useApi();
 
-  const formSchema = yup
-    .object({
-      mode: yup.number().required(),
-      email: yup.string().when('mode', {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
-        is: (choice: number | undefined) => choice === EnrollmentMode.EMAIL,
-        then: () =>
-          yup
-            .string()
-            .required(LL.form.error.required())
-            .matches(patternValidEmail, LL.form.error.invalid()),
-        otherwise: () => yup.string().optional(),
-      }),
-    })
-    .required();
+  const schema = useMemo(
+    () =>
+      z
+        .object({
+          mode: z.nativeEnum(EnrollmentMode),
+          email: z.string().trim().email(LL.form.error.invalid()).optional(),
+        })
+        .superRefine((obj, ctx) => {
+          if (obj.mode === EnrollmentMode.EMAIL) {
+            if (!obj.email || obj.email.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: LL.form.error.required(),
+                path: ['email'],
+              });
+            }
+          }
+        }),
+    [LL.form.error],
+  );
 
   const {
     handleSubmit,
     control,
     formState: { isValid },
-  } = useForm<Inputs>({
-    resolver: yupResolver(formSchema),
+  } = useForm<FormFields>({
+    resolver: zodResolver(schema),
     mode: 'all',
-    criteriaMode: 'all',
     defaultValues: {
       email: '',
       mode: EnrollmentMode.EMAIL,
@@ -77,26 +80,22 @@ export const StartEnrollmentForm = () => {
     field: { value: choiceValue },
   } = useController({ control, name: 'mode' });
 
-  const setModalState = useModalStore((state) => state.setStartEnrollmentModal);
-  const user = useModalStore((state) => state.startEnrollmentModal.user);
-
   const toaster = useToaster();
 
   const startEnrollmentMutation = useMutation(startEnrollment, {
     onSuccess: () => {
       toaster.success(LL.modals.startEnrollment.messages.success());
       if (choiceValue === EnrollmentMode.EMAIL) {
-        setModalState({ visible: false });
+        closeModal();
       }
     },
     onError: (err) => {
       console.error(err);
-      setModalState({ visible: false });
       toaster.error(LL.modals.startEnrollment.messages.error());
     },
   });
 
-  const onSubmit: SubmitHandler<Inputs> = async (data) => {
+  const onSubmit: SubmitHandler<FormFields> = async (data) => {
     if (user) {
       startEnrollmentMutation
         .mutateAsync({
@@ -134,19 +133,12 @@ export const StartEnrollmentForm = () => {
         key={1}
         variant={ActionButtonVariant.COPY}
         onClick={() => {
-          clipboard
-            .write(`Enrollment URL: ${enrollmentUrl}\nToken: ${enrollmentToken}`)
-            .then(() => {
-              toaster.success(LL.messages.successClipboard());
-            })
-            .catch((err) => {
-              toaster.error(LL.messages.clipboardError());
-              console.error(err);
-            });
+          const res = `Enrollment URL: ${enrollmentUrl}\nToken: ${enrollmentToken}`;
+          writeToClipboard(res);
         }}
       />,
     ],
-    [enrollmentUrl, enrollmentToken, toaster, LL.messages]
+    [enrollmentUrl, enrollmentToken, writeToClipboard],
   );
 
   return (
@@ -169,7 +161,7 @@ export const StartEnrollmentForm = () => {
             disabled={showToken}
           />
           <FormInput
-            outerLabel={LL.modals.startEnrollment.form.email.label()}
+            label={LL.modals.startEnrollment.form.email.label()}
             controller={{ control, name: 'email' }}
             disabled={choiceValue === EnrollmentMode.MANUAL || showToken}
           />
@@ -181,7 +173,7 @@ export const StartEnrollmentForm = () => {
               styleVariant={ButtonStyleVariant.STANDARD}
               text={LL.form.cancel()}
               className="cancel"
-              onClick={() => setModalState({ visible: false })}
+              onClick={() => closeModal()}
             />
             <Button
               type="submit"
