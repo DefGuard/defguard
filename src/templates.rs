@@ -1,7 +1,8 @@
-use crate::db::User;
 use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
+
+use crate::{db::User, handlers::VERSION};
 
 static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.tpl");
@@ -18,9 +19,11 @@ pub enum TemplateError {
 
 pub fn test_mail() -> Result<String, TemplateError> {
     let mut tera = Tera::default();
+    let mut context = Context::new();
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_test", MAIL_TEST)?;
-    Ok(tera.render("mail_test", &Context::new())?)
+    context.insert("version", &VERSION);
+    Ok(tera.render("mail_test", &context)?)
 }
 
 // mail with link to enrollment service
@@ -39,6 +42,7 @@ pub fn enrollment_start_mail(
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
 
     context.insert("url", &enrollment_service_url.to_string());
+    context.insert("version", &VERSION);
 
     Ok(tera.render("mail_enrollment_start", &context)?)
 }
@@ -57,6 +61,7 @@ pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
 
     let mut context = Context::new();
     context.insert("welcome_message_content", &html_output);
+    context.insert("version", &VERSION);
 
     Ok(tera.render("mail_enrollment_welcome", &context)?)
 }
@@ -75,6 +80,7 @@ pub fn enrollment_admin_notification(user: &User, admin: &User) -> Result<String
     context.insert("last_name", &user.last_name);
     context.insert("admin_first_name", &admin.first_name);
     context.insert("admin_last_name", &admin.last_name);
+    context.insert("version", &VERSION);
 
     Ok(tera.render("mail_enrollment_admin_notification", &context)?)
 }
