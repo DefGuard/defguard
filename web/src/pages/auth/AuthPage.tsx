@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
@@ -48,11 +48,21 @@ export const AuthPage = () => {
 
   const setAppStore = useAppStore((state) => state.setAppStore);
 
+  const [params] = useSearchParams();
+  const redirectUrl = params.get('r');
+
   useEffect(() => {
+    if (redirectUrl && user) {
+      console.log('Redirecting to ', redirectUrl);
+      setShowRedirect(true);
+      window.location.replace(redirectUrl);
+      return;
+    }
+
     if (user && (!mfaMethod || mfaMethod === UserMFAMethod.NONE) && !openIdParams) {
       navigate('/', { replace: true });
     }
-  }, [mfaMethod, navigate, openIdParams, user]);
+  }, [mfaMethod, navigate, openIdParams, user, redirectUrl]);
 
   useEffect(() => {
     const sub = loginSubject.subscribe(async ({ user, url, mfa }) => {
