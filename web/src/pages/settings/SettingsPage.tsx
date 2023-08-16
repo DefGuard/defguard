@@ -1,35 +1,39 @@
 import './style.scss';
 
 import { useState } from 'react';
+import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { Card } from '../../shared/components/layout/Card/Card';
-import { CardTabs } from '../../shared/components/layout/CardTabs/CardTabs';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
+import { deviceBreakpoints } from '../../shared/constants';
+import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
+import { CardTabs } from '../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
+import { BrandingCard } from './BrandingCard/BrandingCard';
+import { BuiltByCard } from './BuiltByCard/BuiltByCard';
 import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
-import { GeneralTab } from './GeneralTab/GeneralTab';
+import { ModulesCard } from './ModulesCard/ModulesCard';
 import { SmtpTab } from './SmtpTab/SmtpTab';
-import { SupportTab } from './SupportTab/SupportTab';
+import { SupportCard } from './SupportCard/SupportCard';
+import { Web3Settings } from './Web3Settings/Web3Settings';
 
 enum Tabs {
-  General,
+  Basic,
   Smtp,
   Enrollment,
-  Support,
 }
 
 export const SettingsPage = () => {
   const { LL } = useI18nContext();
-  const [tab, setTab] = useState(Tabs.General);
+  const [tab, setTab] = useState(Tabs.Basic);
   const tabs = [
     {
       key: 1,
       onClick: () => {
-        setTab(Tabs.General);
+        setTab(Tabs.Basic);
       },
       content: LL.settingsPage.tabs.general(),
-      active: tab === Tabs.General,
+      active: tab === Tabs.Basic,
     },
     {
       key: 2,
@@ -44,19 +48,12 @@ export const SettingsPage = () => {
       onClick: () => {
         setTab(Tabs.Enrollment);
       },
-      content: LL.settingsPage.tabs.enrollment(),
+      content: 'Enrollment',
       active: tab === Tabs.Enrollment,
-    },
-    {
-      key: 4,
-      onClick: () => {
-        setTab(Tabs.Support);
-      },
-      content: LL.settingsPage.tabs.support(),
-      active: tab === Tabs.Support,
     },
   ];
   const settings = useAppStore((state) => state.settings);
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
   return (
     <PageContainer id="settings-page">
       <header>
@@ -64,12 +61,24 @@ export const SettingsPage = () => {
           {settings?.instance_name} {LL.settingsPage.title()}
         </h1>
       </header>
-      <CardTabs tabs={tabs} />
+      {breakpoint === 'desktop' && <CardTabs tabs={tabs} />}
       <Card className="settings-card" hideMobile>
-        {tab === Tabs.General && <GeneralTab />}
+        {tab === Tabs.Basic && (
+          <>
+            <div className="left">
+              <BrandingCard />
+              <ModulesCard />
+              {/*<DefaultNetworkSelect /> */}
+            </div>
+            <div className="right">
+              <Web3Settings />
+              <SupportCard />
+              <BuiltByCard />
+            </div>
+          </>
+        )}
         {tab === Tabs.Smtp && <SmtpTab />}
         {tab === Tabs.Enrollment && <EnrollmentTab />}
-        {tab === Tabs.Support && <SupportTab />}
       </Card>
     </PageContainer>
   );

@@ -1,32 +1,16 @@
-import { useMemo } from 'react';
-
-import {
-  Select,
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../shared/components/layout/Select/Select';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 
 export const OverviewStatsFilterSelect = () => {
   const filterValue = useOverviewStore((state) => state.statsFilter);
   const setOverviewStore = useOverviewStore((state) => state.setState);
 
-  const getCurrentValue = useMemo(
-    () => selectOptions.find((o) => o.value === filterValue),
-    [filterValue]
-  );
-
   return (
     <Select
       options={selectOptions}
-      selected={getCurrentValue}
-      multi={false}
-      styleVariant={SelectStyleVariant.LIGHT}
-      onChange={(o) => {
-        if (o && !Array.isArray(o)) {
-          setOverviewStore({ statsFilter: o.value });
-        }
-      }}
+      selected={filterValue}
+      onChangeSingle={(res) => setOverviewStore({ statsFilter: res })}
     />
   );
 };

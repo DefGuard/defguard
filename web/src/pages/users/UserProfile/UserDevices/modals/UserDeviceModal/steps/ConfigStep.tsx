@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -7,27 +6,25 @@ import QRCode from 'react-qr-code';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import {
-  ActionButton,
-  ActionButtonVariant,
-} from '../../../../../../../shared/components/layout/ActionButton/ActionButton';
-import { Button } from '../../../../../../../shared/components/layout/Button/Button';
+import { ActionButton } from '../../../../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
+import { ActionButtonVariant } from '../../../../../../../shared/defguard-ui/components/Layout/ActionButton/types';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../../shared/components/layout/Button/types';
-import { ExpandableCard } from '../../../../../../../shared/components/layout/ExpandableCard/ExpandableCard';
-import { Input } from '../../../../../../../shared/components/layout/Input/Input';
-import { LoaderSpinner } from '../../../../../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../../shared/components/layout/MessageBox/MessageBox';
+} from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { ExpandableCard } from '../../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
+import { Input } from '../../../../../../../shared/defguard-ui/components/Layout/Input/Input';
+import { LoaderSpinner } from '../../../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { Select } from '../../../../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  Select,
   SelectOption,
   SelectSizeVariant,
-} from '../../../../../../../shared/components/layout/Select/Select';
+} from '../../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../../../../shared/hooks/useApi';
+import { useClipboard } from '../../../../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import {
@@ -39,33 +36,31 @@ import { downloadWGConfig } from '../../../../../../../shared/utils/downloadWGCo
 import { DeviceModalSetupMode, useDeviceModal } from '../../../hooks/useDeviceModal';
 
 export const ConfigStep = () => {
+  const { writeToClipboard } = useClipboard();
   const {
     device: { downloadDeviceConfig },
   } = useApi();
-  const [selectedConfig, setSelectedConfig] = useState<string | undefined>();
   const [configsData, deviceName, setupMode, device] = useDeviceModal(
     (state) => [state.configs, state.deviceName, state.setupMode, state.device],
-    shallow
+    shallow,
   );
   const nextStep = useDeviceModal((state) => state.nextStep);
   const { LL, locale } = useI18nContext();
   const toaster = useToaster();
-  const [selectedConfigOption, setSelectedConfigOption] = useState<
-    SelectOption<number> | undefined
-  >();
-
+  const [selectedNetwork, setSelectedNetwork] = useState<number | undefined>();
+  const [selectedConfig, setSelectedConfig] = useState<string | undefined>();
   // download networks and configs form API instead
   const standAloneMode = isUndefined(configsData);
 
   const queryParams = useMemo((): GetDeviceConfigRequest | undefined => {
-    if (device && selectedConfigOption && standAloneMode) {
+    if (device && selectedNetwork && standAloneMode) {
       return {
-        network_id: selectedConfigOption.value,
+        network_id: selectedNetwork,
         device_id: device.id,
       };
     }
     return undefined;
-  }, [device, selectedConfigOption, standAloneMode]);
+  }, [device, standAloneMode, selectedNetwork]);
 
   const { isLoading: loadingConfig } = useQuery(
     [QueryKeys.FETCH_DEVICE_CONFIG, queryParams],
@@ -74,47 +69,36 @@ export const ConfigStep = () => {
       enabled: !!queryParams && standAloneMode,
       onSuccess: (res) => {
         setSelectedConfig(
-          res.replace('YOUR_PRIVATE_KEY', device?.wireguard_pubkey ?? '')
+          res.replace('YOUR_PRIVATE_KEY', device?.wireguard_pubkey ?? ''),
         );
       },
-    }
+    },
   );
 
   const handleConfigDownload = useCallback(() => {
     if (standAloneMode) {
-      if (
-        device &&
-        !loadingConfig &&
-        selectedConfigOption &&
-        selectedConfigOption.value &&
-        selectedConfig
-      ) {
-        const data = device.networks.find(
-          (n) => n.network_id === selectedConfigOption.value
-        );
-        downloadWGConfig(
-          selectedConfig,
-          `${device.name.toLowerCase().replace(' ', '')}-${data?.network_name
-            .toLowerCase()
-            .replace(' ', '')}`
-        );
+      if (!loadingConfig && selectedConfig && device) {
+        const network = device.networks.find((n) => n.network_id === selectedNetwork);
+        if (network) {
+          downloadWGConfig(
+            selectedConfig,
+            `${device?.name.toLowerCase().replace(' ', '')}-${network?.network_name
+              .toLowerCase()
+              .replace(' ', '')}`,
+          );
+        }
       }
     } else {
-      if (
-        selectedConfigOption &&
-        selectedConfigOption.value &&
-        selectedConfig &&
-        configsData
-      ) {
-        const data = configsData.find(
-          (d) => d.network_id === selectedConfigOption?.value
-        );
-        downloadWGConfig(
-          selectedConfig,
-          `${deviceName?.toLowerCase().replace(' ', '')}-${data?.network_name
-            .toLowerCase()
-            .replace(' ', '')}`
-        );
+      if (selectedConfig) {
+        const data = configsData.find((c) => c.network_id === selectedNetwork);
+        if (data) {
+          downloadWGConfig(
+            selectedConfig,
+            `${deviceName?.toLowerCase().replace(' ', '')}-${data.network_name
+              .toLowerCase()
+              .replace(' ', '')}`,
+          );
+        }
       }
     }
   }, [
@@ -123,28 +107,22 @@ export const ConfigStep = () => {
     deviceName,
     loadingConfig,
     selectedConfig,
-    selectedConfigOption,
     standAloneMode,
+    selectedNetwork,
   ]);
 
   const expandableCardActions = useMemo(() => {
     return [
-      <ActionButton variant={ActionButtonVariant.QRCODE} key={1} forcedActive={true} />,
+      <ActionButton variant={ActionButtonVariant.QRCODE} key={1} active={true} />,
       <ActionButton
         variant={ActionButtonVariant.COPY}
         key={2}
         onClick={() => {
           if (selectedConfig) {
-            clipboard
-              .write(selectedConfig)
-              .then(() => {
-                toaster.success(
-                  LL.modals.addDevice.web.steps.config.messages.copyConfig()
-                );
-              })
-              .catch(() => {
-                toaster.error(LL.messages.clipboardError());
-              });
+            writeToClipboard(
+              selectedConfig,
+              LL.modals.addDevice.web.steps.config.messages.copyConfig(),
+            );
           }
         }}
         disabled={isUndefined(selectedConfig)}
@@ -159,15 +137,15 @@ export const ConfigStep = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configsData, deviceName, toaster, locale]);
 
-  const getSelectOptions = useMemo((): SelectOption<number>[] => {
-    if (configsData) {
+  const getSelectOptions = useMemo(() => {
+    if (!standAloneMode && configsData) {
       return configsData.map((c) => configToSelectOption(c));
     }
-    if (device) {
+    if (standAloneMode && device) {
       return device.networks.map((n) => networkInfoToSelectOption(n));
     }
     return [];
-  }, [configsData, device]);
+  }, [configsData, device, standAloneMode]);
 
   const getWarningMessageConent = useMemo(() => {
     if (setupMode === DeviceModalSetupMode.AUTO_CONFIG) {
@@ -179,47 +157,45 @@ export const ConfigStep = () => {
   const getExpandCardExtras = useMemo(() => {
     return (
       <Select
-        selected={selectedConfigOption}
+        selected={selectedNetwork}
         options={getSelectOptions}
-        onChange={(o) => {
-          if (!Array.isArray(o)) {
-            setSelectedConfigOption(o);
-          }
-        }}
-        multi={false}
         searchable={false}
         sizeVariant={SelectSizeVariant.STANDARD}
         loading={standAloneMode && loadingConfig}
+        onChangeSingle={(networkId) => {
+          setSelectedNetwork(networkId);
+        }}
       />
     );
-  }, [getSelectOptions, loadingConfig, selectedConfigOption, standAloneMode]);
+  }, [getSelectOptions, loadingConfig, standAloneMode, selectedNetwork]);
 
   // init select on mount
   useEffect(() => {
-    if (configsData && configsData.length && isUndefined(selectedConfigOption)) {
-      setSelectedConfigOption(configToSelectOption(configsData[0]));
+    if (!standAloneMode && configsData && configsData.length) {
+      setSelectedNetwork(configsData[0].network_id);
     }
-    if (standAloneMode && device) {
-      setSelectedConfigOption(networkInfoToSelectOption(device.networks[0]));
+
+    if (standAloneMode && device && device.networks.length) {
+      setSelectedNetwork(device.networks[0].network_id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // set correct config after selected, only setup mode, standalone uses query
   useEffect(() => {
-    if (!standAloneMode && configsData && selectedConfigOption) {
-      const config = configsData.find((c) => c.network_id === selectedConfigOption.value);
-      if (config) {
-        setSelectedConfig(config.config);
+    if (!standAloneMode && configsData && selectedNetwork) {
+      const deviceData = configsData.find((c) => c.network_id === selectedNetwork);
+      if (deviceData) {
+        setSelectedConfig(deviceData.config);
       }
     }
-  }, [configsData, selectedConfigOption, standAloneMode]);
+  }, [configsData, selectedNetwork, standAloneMode]);
 
   return (
     <>
       <MessageBox type={MessageBoxType.WARNING}>{getWarningMessageConent}</MessageBox>
       <Input
-        outerLabel={LL.modals.addDevice.web.steps.config.inputNameLabel()}
+        label={LL.modals.addDevice.web.steps.config.inputNameLabel()}
         value={deviceName || device?.name || ''}
         onChange={() => {
           return;

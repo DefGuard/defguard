@@ -1,20 +1,22 @@
 import { useMutation } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { isUndefined, omit } from 'lodash-es';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useAccount, useSignTypedData } from 'wagmi';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
-import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
+import { useWeb3Account } from '../../../../shared/web3/hooks/useWeb3Account';
+import { useWeb3Connection } from '../../../../shared/web3/hooks/useWeb3Connection';
+import { useWeb3Signer } from '../../../../shared/web3/hooks/useWeb3Signer';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
 export const MFAWeb3 = () => {
@@ -27,12 +29,15 @@ export const MFAWeb3 = () => {
   } = useApi();
   const { LL } = useI18nContext();
 
-  const { isConnected, isConnecting, address } = useAccount();
-  const setModalsState = useModalStore((state) => state.setState);
+  const { signer } = useWeb3Signer();
+  const { address } = useWeb3Account();
+  const { isConnected, connect } = useWeb3Connection();
   const toaster = useToaster();
+  const [isSigning, setIsSigning] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
     (state) => [state.totp_available, state.web3_available, state.webauthn_available],
-    shallow
+    shallow,
   );
   const loginSubject = useAuthStore((state) => state.loginSubject);
 
@@ -44,42 +49,47 @@ export const MFAWeb3 = () => {
       onError: (err) => {
         console.error(err);
         toaster.error(LL.loginPage.mfa.wallet.messages.walletErrorMfa());
-        if (isConnected) {
-        }
       },
-    }
+    },
   );
 
   const { mutate: mfaStartMutation, isLoading: startLoading } = useMutation(
     [MutationKeys.WEB3_MFA_START],
     start,
     {
-      onSuccess: (data) => {
-        if (isConnected) {
+      onSuccess: async (data) => {
+        if (isConnected && signer && address) {
           const message = JSON.parse(data.challenge);
-          const types = message.types;
+          const types = omit(message.types, ['EIP712Domain']);
           const domain = message.domain;
           const value = message.message;
-          signTypedData({ types, domain, value });
+          signer
+            .signTypedData(domain, types, value)
+            .then((signature: string) => {
+              setIsSigning(false);
+              mfaFinishMutation({
+                address,
+                signature,
+              });
+            })
+            .catch((e) => {
+              setIsSigning(false);
+              toaster.error(LL.loginPage.mfa.wallet.messages.walletError());
+              console.error(e);
+            });
         } else {
+          console.log({
+            isConnected,
+            signer,
+            address,
+          });
           toaster.error(LL.loginPage.mfa.wallet.messages.walletError());
         }
       },
-    }
+    },
   );
 
   const navigate = useNavigate();
-
-  const { signTypedData, isLoading: isSigning } = useSignTypedData({
-    onSuccess: (data) => {
-      if (address) {
-        mfaFinishMutation({
-          address,
-          signature: data,
-        });
-      }
-    },
-  });
 
   useEffect(() => {
     if (!web3Available) {
@@ -100,12 +110,21 @@ export const MFAWeb3 = () => {
         text={LL.loginPage.mfa.wallet.controls.submit()}
         styleVariant={ButtonStyleVariant.PRIMARY}
         size={ButtonSize.LARGE}
-        loading={finishLoading || startLoading || isConnecting || isSigning}
+        disabled={isUndefined(connect) || isUndefined(window.ethereum)}
+        loading={finishLoading || startLoading || isSigning || connecting}
         onClick={() => {
-          if (!isConnected) {
-            setModalsState({
-              connectWalletModal: { visible: true, onConnect: handleSigning },
-            });
+          if (!isConnected && connect) {
+            connect()
+              .then(({ address }) => {
+                setConnecting(false);
+                mfaStartMutation({
+                  address,
+                });
+              })
+              .catch((e) => {
+                setConnecting(false);
+                console.error(e);
+              });
           } else {
             handleSigning();
           }

@@ -9,7 +9,7 @@ export const validateIpOrDomain = (val: string, allowMask = false): boolean => {
 export const validateIpList = (
   val: string,
   splitWith = ',',
-  allowMasks = false
+  allowMasks = false,
 ): boolean => {
   const trimed = val.replace(' ', '');
   const split = trimed.split(splitWith);
@@ -25,7 +25,7 @@ export const validateIpList = (
 export const validateIpOrDomainList = (
   val: string,
   splitWith = ',',
-  allowMasks = false
+  allowMasks = false,
 ): boolean => {
   const trimed = val.replace(' ', '');
   const split = trimed.split(splitWith);

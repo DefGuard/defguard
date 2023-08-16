@@ -175,7 +175,7 @@ const useApi = (props?: HookProps): ApiHook => {
   }: WalletChallengeRequest) =>
     client
       .get<WalletChallenge>(
-        `/user/${username}/challenge?address=${address}&name=${name}&chain_id=${chainId}`
+        `/user/${username}/challenge?address=${address}&name=${name}&chain_id=${chainId}`,
       )
       .then((response) => response.data);
 

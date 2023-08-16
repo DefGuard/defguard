@@ -6,11 +6,11 @@ import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
-import { LoaderSpinner } from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import NoData from '../../shared/components/layout/NoData/NoData';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { GatewaysStatus } from '../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import { deviceBreakpoints } from '../../shared/constants';
+import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
@@ -57,7 +57,7 @@ export const OverviewPage = () => {
           }
         }
       },
-    }
+    },
   );
 
   const { data: networkStats } = useQuery(
@@ -71,7 +71,7 @@ export const OverviewPage = () => {
       refetchOnWindowFocus: false,
       refetchInterval: STATUS_REFETCH_TIMEOUT,
       enabled: !isUndefined(selectedNetworkId),
-    }
+    },
   );
 
   const { data: networkUsersStats, isLoading: userStatsLoading } = useQuery(
@@ -85,7 +85,7 @@ export const OverviewPage = () => {
       enabled: !isUndefined(statsFilter) && !isUndefined(selectedNetworkId),
       refetchOnWindowFocus: false,
       refetchInterval: STATUS_REFETCH_TIMEOUT,
-    }
+    },
   );
 
   const getNetworkUsers = useMemo(() => {
@@ -97,7 +97,7 @@ export const OverviewPage = () => {
           const devices = sortByDate(i.devices, (d) => d.connected_at, false);
           return devices[0].connected_at;
         },
-        false
+        false,
       );
     }
     return res;

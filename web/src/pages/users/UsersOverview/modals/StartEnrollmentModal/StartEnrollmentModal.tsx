@@ -1,31 +1,29 @@
-import React from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { ModalWithTitle } from '../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
-import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
-import { StartEnrollmentForm } from './StartEnrollmentForm';
+import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
+import { StartEnrollmentForm } from './components/StartEnrollmentForm';
+import { useEnrollmentModalStore } from './hooks/useEnrollmentModalStore';
 
-const StartEnrollmentModal: React.FC = () => {
-  const [{ visible: isOpen }, setModalState] = useModalStore(
-    (state) => [state.startEnrollmentModal, state.setStartEnrollmentModal],
-    shallow
-  );
-
-  const setIsOpen = (v: boolean) => setModalState({ visible: v });
+export const StartEnrollmentModal = () => {
   const { LL } = useI18nContext();
+  const isOpen = useEnrollmentModalStore((state) => state.isOpen);
+
+  const [close, reset] = useEnrollmentModalStore(
+    (state) => [state.close, state.reset],
+    shallow,
+  );
 
   return (
     <ModalWithTitle
+      id="start-enrollment-modal"
       backdrop
       title={LL.modals.startEnrollment.title()}
       isOpen={isOpen}
-      setIsOpen={setIsOpen}
-      id="start-enrollment-modal"
+      onClose={() => close()}
+      afterClose={() => reset()}
     >
       <StartEnrollmentForm />
     </ModalWithTitle>
   );
 };
-
-export default StartEnrollmentModal;

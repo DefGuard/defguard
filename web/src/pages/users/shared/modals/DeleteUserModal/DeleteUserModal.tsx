@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../../../shared/components/layout/ConfirmModal/ConfirmModal';
+import ConfirmModal from '../../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModalType } from '../../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -23,7 +22,7 @@ export const DeleteUserModal = () => {
 
   const [modalState, setModalState] = useModalStore(
     (state) => [state.deleteUserModal, state.setDeleteUserModal],
-    shallow
+    shallow,
   );
 
   const toaster = useToaster();
@@ -31,7 +30,7 @@ export const DeleteUserModal = () => {
   const { mutate, isLoading } = useMutation((user: User) => deleteUser(user), {
     onSuccess: (_, variables) => {
       toaster.success(
-        LL.modals.deleteUser.messages.success({ username: variables.username })
+        LL.modals.deleteUser.messages.success({ username: variables.username }),
       );
       queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
       queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);

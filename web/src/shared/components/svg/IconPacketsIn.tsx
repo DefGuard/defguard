@@ -1,42 +1,60 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgIconPacketsIn = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} {...props}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={16}
+    height={16}
+    viewBox="0 0 16 16"
+    {...props}
+  >
     <defs>
       <clipPath id="icon-packets-in_svg__a">
-        <path className="icon-packets-in_svg__a" d="M0 0h16v16H0z" />
+        <path d="M0 0h16v16H0z" className="icon-packets-in_svg__a" />
       </clipPath>
-      <style>
-        {
-          '\n      .icon-packets-in_svg__a,.icon-packets-in_svg__c{fill:#0c8ce0}.icon-packets-in_svg__b{clip-path:url(#icon-packets-in_svg__a)}.icon-packets-in_svg__d,.icon-packets-in_svg__e{stroke:none}.icon-packets-in_svg__e{fill:#0c8ce0}\n    '
-        }
-      </style>
+      <style>{'.icon-packets-in_svg__a{fill:#0c8ce0}'}</style>
     </defs>
-    <g transform="translate(.997 5)" className="icon-packets-in_svg__b">
+    <g
+      style={{
+        clipPath: 'url(#icon-packets-in_svg__a)',
+      }}
+      transform="translate(.997 5)"
+    >
       <rect
-        className="icon-packets-in_svg__a"
         width={2}
         height={2}
+        className="icon-packets-in_svg__a"
         rx={1}
         transform="translate(2 2)"
       />
       <rect
-        className="icon-packets-in_svg__a"
         width={2}
         height={2}
+        className="icon-packets-in_svg__a"
         rx={1}
         transform="translate(5 2)"
       />
-      <g className="icon-packets-in_svg__c">
-        <path className="icon-packets-in_svg__d" d="M9 4.234V1.766L11.056 3 9 4.234Z" />
+      <g
+        style={{
+          fill: '#0c8ce0',
+        }}
+      >
         <path
-          className="icon-packets-in_svg__e"
-          d="M12.056 3a.991.991 0 0 1-.485.857L9.514 5.091A1 1 0 0 1 8 4.234V1.766A1 1 0 0 1 9.514.91l2.057 1.234a.991.991 0 0 1 .485.857Z"
+          d="M4.234 4H1.766L3 1.944 4.234 4Z"
+          style={{
+            stroke: 'none',
+          }}
+          transform="rotate(90 6.5 6.5)"
+        />
+        <path
+          d="M3 .944c.332 0 .663.161.857.485l1.234 2.057A1 1 0 0 1 4.234 5H1.766A1 1 0 0 1 .91 3.486l1.234-2.057A.991.991 0 0 1 3 .944Z"
+          style={{
+            fill: '#0c8ce0',
+            stroke: 'none',
+          }}
+          transform="rotate(90 6.5 6.5)"
         />
       </g>
     </g>
   </svg>
 );
-
 export default SvgIconPacketsIn;

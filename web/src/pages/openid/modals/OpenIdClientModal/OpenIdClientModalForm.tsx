@@ -1,27 +1,25 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
-import clipboard from 'clipboardy';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FormCheckBox } from '../../../../shared/components/Form/FormCheckBox/FormCheckBox';
-import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
-import {
-  ActionButton,
-  ActionButtonVariant,
-} from '../../../../shared/components/layout/ActionButton/ActionButton';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
+import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { ActionButton } from '../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
+import { ActionButtonVariant } from '../../../../shared/defguard-ui/components/Layout/ActionButton/types';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
-import { ExpandableCard } from '../../../../shared/components/layout/ExpandableCard/ExpandableCard';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { ExpandableCard } from '../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
+import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { patternValidUrl } from '../../../../shared/patterns';
@@ -34,6 +32,7 @@ const defaultValuesEmptyForm: FormInputs = {
 };
 
 export const OpenIdClientModalForm = () => {
+  const { writeToClipboard } = useClipboard();
   const { LL } = useI18nContext();
   const {
     openid: { addOpenidClient, editOpenidClient },
@@ -60,7 +59,7 @@ export const OpenIdClientModalForm = () => {
     {
       onSuccess: () => {
         toaster.success(
-          LL.openidOverview.modals.openidClientModal.form.messages.successAdd()
+          LL.openidOverview.modals.openidClientModal.form.messages.successAdd(),
         );
         setModalState({ visible: false });
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
@@ -70,7 +69,7 @@ export const OpenIdClientModalForm = () => {
         setModalState({ visible: false });
         console.error(err);
       },
-    }
+    },
   );
   const { mutate: editMutation, isLoading: editLoading } = useMutation(
     [MutationKeys.EDIT_OPENID_CLIENT],
@@ -78,7 +77,7 @@ export const OpenIdClientModalForm = () => {
     {
       onSuccess: () => {
         toaster.success(
-          LL.openidOverview.modals.openidClientModal.form.messages.successModify()
+          LL.openidOverview.modals.openidClientModal.form.messages.successModify(),
         );
         setModalState({ visible: false });
         queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
@@ -88,7 +87,7 @@ export const OpenIdClientModalForm = () => {
         setModalState({ visible: false });
         console.error(err);
       },
-    }
+    },
   );
   const schema = yup
     .object()
@@ -105,14 +104,14 @@ export const OpenIdClientModalForm = () => {
             url: yup
               .string()
               .required(
-                LL.openidOverview.modals.openidClientModal.form.error.urlRequired()
+                LL.openidOverview.modals.openidClientModal.form.error.urlRequired(),
               )
               .matches(
                 patternValidUrl,
-                LL.openidOverview.modals.openidClientModal.form.error.validUrl()
+                LL.openidOverview.modals.openidClientModal.form.error.validUrl(),
               ),
           })
-          .required()
+          .required(),
       ),
       scope: yup.array(yup.string()),
     })
@@ -133,7 +132,7 @@ export const OpenIdClientModalForm = () => {
     if (modalState.viewMode) return;
     if (values.scope.length === 0) {
       toaster.error(
-        LL.openidOverview.modals.openidClientModal.form.error.scopeValidation()
+        LL.openidOverview.modals.openidClientModal.form.error.scopeValidation(),
       );
       return;
     }
@@ -159,14 +158,14 @@ export const OpenIdClientModalForm = () => {
       classNames('controls', {
         'view-mode': modalState.viewMode,
       }),
-    [modalState.viewMode]
+    [modalState.viewMode],
   );
 
   return (
     <form onSubmit={handleSubmit(onValidSubmit)} data-testid="openid-client-form">
       <FormInput
         controller={{ control, name: 'name' }}
-        outerLabel={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
+        label={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
         placeholder={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}
         disabled={modalState.viewMode}
         required
@@ -177,8 +176,8 @@ export const OpenIdClientModalForm = () => {
             key={field.id}
             controller={{ control, name: `redirect_uri.${index}.url` }}
             placeholder={LL.openidOverview.modals.openidClientModal.form.fields.redirectUri.placeholder()}
-            outerLabel={LL.openidOverview.modals.openidClientModal.form.fields.redirectUri.label(
-              { count: index + 1 }
+            label={LL.openidOverview.modals.openidClientModal.form.fields.redirectUri.label(
+              { count: index + 1 },
             )}
             disposable
             disposeHandler={() => remove(index)}
@@ -201,14 +200,14 @@ export const OpenIdClientModalForm = () => {
           data-testid="field-scope-openid"
           label={LL.openidOverview.modals.openidClientModal.form.fields.openid.label()}
           disabled={modalState.viewMode}
-          labelPosition="right"
+          labelPlacement="right"
           controller={{ control, name: 'scope' }}
           customValue={(context: OpenIdScope[]) =>
             !isUndefined(context.find((scope) => scope === OpenIdScope.OPENID))
           }
           customOnChange={(context: OpenIdScope[]) => {
             const exist = !isUndefined(
-              context.find((scope) => scope === OpenIdScope.OPENID)
+              context.find((scope) => scope === OpenIdScope.OPENID),
             );
             if (exist) {
               return context.filter((s) => s !== OpenIdScope.OPENID);
@@ -220,14 +219,14 @@ export const OpenIdClientModalForm = () => {
           data-testid="field-scope-profile"
           disabled={modalState.viewMode}
           label={LL.openidOverview.modals.openidClientModal.form.fields.profile.label()}
-          labelPosition="right"
+          labelPlacement="right"
           controller={{ control, name: 'scope' }}
           customValue={(context: OpenIdScope[]) =>
             !isUndefined(context.find((scope) => scope === OpenIdScope.PROFILE))
           }
           customOnChange={(context: OpenIdScope[]) => {
             const exist = !isUndefined(
-              context.find((scope) => scope === OpenIdScope.PROFILE)
+              context.find((scope) => scope === OpenIdScope.PROFILE),
             );
             if (exist) {
               return context.filter((s) => s !== OpenIdScope.PROFILE);
@@ -239,14 +238,14 @@ export const OpenIdClientModalForm = () => {
           data-testid="field-scope-email"
           disabled={modalState.viewMode}
           label={LL.openidOverview.modals.openidClientModal.form.fields.email.label()}
-          labelPosition="right"
+          labelPlacement="right"
           controller={{ control, name: 'scope' }}
           customValue={(context: OpenIdScope[]) =>
             !isUndefined(context.find((scope) => scope === OpenIdScope.EMAIL))
           }
           customOnChange={(context: OpenIdScope[]) => {
             const exist = !isUndefined(
-              context.find((scope) => scope === OpenIdScope.EMAIL)
+              context.find((scope) => scope === OpenIdScope.EMAIL),
             );
             if (exist) {
               return context.filter((s) => s !== OpenIdScope.EMAIL);
@@ -258,14 +257,14 @@ export const OpenIdClientModalForm = () => {
           data-testid="field-scope-phone"
           disabled={modalState.viewMode}
           label={LL.openidOverview.modals.openidClientModal.form.fields.phone.label()}
-          labelPosition="right"
+          labelPlacement="right"
           controller={{ control, name: 'scope' }}
           customValue={(context: OpenIdScope[]) =>
             !isUndefined(context.find((scope) => scope === OpenIdScope.PHONE))
           }
           customOnChange={(context: OpenIdScope[]) => {
             const exist = !isUndefined(
-              context.find((scope) => scope === OpenIdScope.PHONE)
+              context.find((scope) => scope === OpenIdScope.PHONE),
             );
             if (exist) {
               return context.filter((s) => s !== OpenIdScope.PHONE);
@@ -284,19 +283,14 @@ export const OpenIdClientModalForm = () => {
                 data-testid="copy-client-id"
                 key={1}
                 variant={ActionButtonVariant.COPY}
-                onClick={() =>
-                  clipboard
-                    .write(modalState.client ? modalState.client.client_id : '')
-                    .then(() => {
-                      toaster.success(
-                        LL.openidOverview.modals.openidClientModal.messages.clientIdCopy()
-                      );
-                    })
-                    .catch((err) => {
-                      toaster.error(LL.messages.clipboardError());
-                      console.error(err);
-                    })
-                }
+                onClick={() => {
+                  if (modalState.client) {
+                    writeToClipboard(
+                      modalState.client.client_id,
+                      LL.openidOverview.modals.openidClientModal.messages.clientIdCopy(),
+                    );
+                  }
+                }}
               />,
             ]}
           >
@@ -309,19 +303,15 @@ export const OpenIdClientModalForm = () => {
               <ActionButton
                 key={1}
                 variant={ActionButtonVariant.COPY}
-                onClick={() =>
-                  clipboard
-                    .write(modalState.client ? modalState.client.client_secret : '')
-                    .then(() => {
-                      toaster.success(
-                        LL.openidOverview.modals.openidClientModal.messages.clientSecretCopy()
-                      );
-                    })
-                    .catch((err) => {
-                      toaster.error(LL.messages.clipboardError());
-                      console.error(err);
-                    })
-                }
+                disabled={isUndefined(modalState.client)}
+                onClick={() => {
+                  if (modalState.client) {
+                    writeToClipboard(
+                      modalState.client.client_secret,
+                      LL.openidOverview.modals.openidClientModal.messages.clientSecretCopy(),
+                    );
+                  }
+                }}
               />,
             ]}
           >

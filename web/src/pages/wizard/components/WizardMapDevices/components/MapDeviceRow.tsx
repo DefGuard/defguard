@@ -1,15 +1,14 @@
 import { TargetAndTransition } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Control, useController } from 'react-hook-form';
 
-import { RowBox } from '../../../../../shared/components/layout/RowBox/RowBox';
+import { ColorsRGB } from '../../../../../shared/constants';
+import { RowBox } from '../../../../../shared/defguard-ui/components/Layout/RowBox/RowBox';
+import { Select } from '../../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  Select,
   SelectOption,
   SelectSizeVariant,
-  SelectStyleVariant,
-} from '../../../../../shared/components/layout/Select/Select';
-import { ColorsRGB } from '../../../../../shared/constants';
+} from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { WizardMapFormValues } from '../WizardMapDevices';
 
 type Props = {
@@ -19,8 +18,6 @@ type Props = {
 };
 
 export const MapDeviceRow = ({ options, control, index }: Props) => {
-  const [search, setSearch] = useState<string | undefined>();
-
   const nameController = useController({
     control,
     name: `devices.${index}.name`,
@@ -35,22 +32,6 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
     control,
     name: `devices.${index}.wireguard_ip`,
   });
-
-  const getOptions = useMemo(() => {
-    if (search && search.length) {
-      return options.filter(
-        (o) =>
-          o.label.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
-          (o.meta as string).includes(search.toLowerCase())
-      );
-    }
-    return options;
-  }, [options, search]);
-
-  const getSelected = useMemo(
-    () => options.find((u) => u.value === userController.field.value),
-    [options, userController.field.value]
-  );
 
   const hasErrors = useMemo(() => {
     return nameController.fieldState.invalid || userController.fieldState.invalid;
@@ -70,20 +51,23 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
     <RowBox className="device" customAnimate={getAnimate}>
       <input className="name" type="text" {...nameController.field} />
       <span className="ip">{ipController.field.value}</span>
-      <Select<number>
+      <Select
         data-testid={`user-select-${index}`}
         searchable
-        styleVariant={SelectStyleVariant.LIGHT}
         sizeVariant={SelectSizeVariant.SMALL}
-        selected={getSelected}
-        options={getOptions}
+        selected={userController.field.value}
+        options={options}
         placeholder="Choose a user"
-        onSearch={setSearch}
         searchDebounce={50}
-        onChange={(res) => {
-          if (!Array.isArray(res) && res) {
-            userController.field.onChange(res.value);
-          }
+        onChangeSingle={(res) => {
+          userController.field.onChange(res);
+        }}
+        searchFilter={(search, options) => {
+          return options.filter(
+            (o) =>
+              o.label.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
+              (o.meta as string).includes(search.toLowerCase()),
+          );
         }}
       />
     </RowBox>

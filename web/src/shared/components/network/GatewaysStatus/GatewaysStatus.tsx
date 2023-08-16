@@ -1,23 +1,23 @@
 import './style.scss';
 
-import { autoUpdate, offset, useFloating } from '@floating-ui/react-dom-interactions';
+import { autoUpdate, offset, useFloating } from '@floating-ui/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { AnimatePresence, motion, TargetAndTransition } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
 import { useMemo, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
+import { Label } from 'recharts';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { ColorsRGB } from '../../../constants';
+import { LoaderSpinner } from '../../../defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import useApi from '../../../hooks/useApi';
 import { useToaster } from '../../../hooks/useToaster';
 import { QueryKeys } from '../../../queries';
 import { GatewayStatus } from '../../../types';
-import { Label } from '../../layout/Label/Label';
-import { LoaderSpinner } from '../../layout/LoaderSpinner/LoaderSpinner';
-import { IconInfoError } from '../../svg';
 import SvgIconArrowSingle from '../../svg/IconArrowSingle';
+import IconInfoError from '../../svg/IconInfoError';
 import SvgIconInfoSuccess from '../../svg/IconInfoSuccess';
 import SvgIconX from '../../svg/IconX';
 import { GatewayStatusIcon } from './GatewayStatusIcon';
@@ -37,7 +37,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
   const { LL } = useI18nContext();
   const queryClient = useQueryClient();
   const [floatingOpen, setFloatingOpen] = useState(false);
-  const { x, y, strategy, floating, reference } = useFloating({
+  const { x, y, strategy, refs } = useFloating({
     placement: 'bottom',
     strategy: 'fixed',
     open: floatingOpen,
@@ -60,7 +60,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
         toaster.error(LL.components.gatewaysStatus.messages.error());
       },
       enabled: !isUndefined(networkId),
-    }
+    },
   );
 
   const { mutate: deleteGatewayMutation } = useMutation({
@@ -141,9 +141,9 @@ export const GatewaysStatus = ({ networkId }: Props) => {
     () =>
       classNames(
         'network-gateways-connection',
-        `status-${getStatus.valueOf().toLowerCase()}`
+        `status-${getStatus.valueOf().toLowerCase()}`,
       ),
-    [getStatus]
+    [getStatus],
   );
 
   return (
@@ -152,7 +152,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
         <Label>{LL.components.gatewaysStatus.label()}</Label>
         <div
           className="status-container"
-          ref={reference}
+          ref={refs.setReference}
           onClick={() => setFloatingOpen((state) => !state)}
         >
           <div className="status">
@@ -169,7 +169,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
           <ClickAwayListener onClickAway={() => setFloatingOpen(false)}>
             <motion.div
               className="floating-ui-gateways-status"
-              ref={floating}
+              ref={refs.setFloating}
               style={{
                 position: strategy,
                 top: y ?? 0,

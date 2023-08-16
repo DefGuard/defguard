@@ -9,7 +9,7 @@ dayjs.extend(utc);
 export const sortByDate = <T extends object>(
   items: T[],
   extraction: (item: T) => string,
-  descending = false
+  descending = false,
 ): T[] => {
   return items.sort((itemA, itemB) => {
     const dateA = dayjs.utc(extraction(itemA)).toDate().getTime();

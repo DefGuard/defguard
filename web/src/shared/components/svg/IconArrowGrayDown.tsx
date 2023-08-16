@@ -1,6 +1,4 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgIconArrowGrayDown = (props: SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -11,31 +9,37 @@ const SvgIconArrowGrayDown = (props: SVGProps<SVGSVGElement>) => (
   >
     <defs>
       <clipPath id="icon-arrow-gray-down_svg__a">
-        <path className="icon-arrow-gray-down_svg__a" d="M0 0h22v22H0z" />
+        <path
+          d="M0 0h22v22H0z"
+          style={{
+            opacity: 0,
+            fill: '#899ca8',
+          }}
+        />
       </clipPath>
-      <style>
-        {
-          '\n      .icon-arrow-gray-down_svg__a,.icon-arrow-gray-down_svg__c{fill:#899ca8}.icon-arrow-gray-down_svg__a{opacity:0}.icon-arrow-gray-down_svg__b{clip-path:url(#icon-arrow-gray-down_svg__a)}\n    '
-        }
-      </style>
+      <style>{'.icon-arrow-gray-down_svg__c{fill:#899ca8}'}</style>
     </defs>
-    <g className="icon-arrow-gray-down_svg__b" transform="rotate(-90 11 11)">
+    <g
+      style={{
+        clipPath: 'url(#icon-arrow-gray-down_svg__a)',
+      }}
+      transform="rotate(-90 11 11)"
+    >
       <rect
-        className="icon-arrow-gray-down_svg__c"
         width={8}
         height={2}
+        className="icon-arrow-gray-down_svg__c"
         rx={1}
         transform="rotate(45 -7.4 14.862)"
       />
       <rect
-        className="icon-arrow-gray-down_svg__c"
         width={8}
         height={2}
+        className="icon-arrow-gray-down_svg__c"
         rx={1}
         transform="rotate(135 5.672 6.106)"
       />
     </g>
   </svg>
 );
-
 export default SvgIconArrowGrayDown;

@@ -1,8 +1,8 @@
 import './style.scss';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { Card } from '../../shared/components/layout/Card/Card';
 import SvgIconDfgOpenidRedirect from '../../shared/components/svg/IconDfgOpenidRedirect';
+import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 
 // used in auth flow
 export const RedirectPage = () => {

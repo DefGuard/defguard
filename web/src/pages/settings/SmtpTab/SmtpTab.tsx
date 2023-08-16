@@ -9,34 +9,35 @@ import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { Card } from '../../../shared/components/layout/Card/Card';
-import { Helper } from '../../../shared/components/layout/Helper/Helper';
-import {
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../shared/components/layout/Select/Select';
-import { IconCheckmarkWhite } from '../../../shared/components/svg';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternValidEmail } from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
-import { Settings } from '../../../shared/types';
 import { validateIpOrDomain } from '../../../shared/validators';
 import { TestForm } from './TestForm';
 
-interface Inputs extends Omit<Settings, 'smtp_encryption'> {
-  smtp_encryption: SelectOption<string>;
-}
+type FormFields = {
+  smtp_server: string;
+  smtp_port: string;
+  smtp_encryption: string;
+  smtp_user: string;
+  smtp_password: string;
+  smtp_sender: string;
+};
 
 export const SmtpTab = () => {
   const { LL } = useI18nContext();
@@ -69,68 +70,63 @@ export const SmtpTab = () => {
           smtp_server: yup
             .string()
             .test(LL.form.error.endpoint(), (val: string | undefined) =>
-              !val ? true : validateIpOrDomain(val)
+              !val ? true : validateIpOrDomain(val),
             ),
           smtp_port: yup
             .number()
             .max(65535, LL.form.error.portMax())
             .typeError(LL.form.error.validPort()),
-          smtp_encryption: yup.object().required(),
+          smtp_encryption: yup.string().required(),
           smtp_user: yup.string(),
           smtp_password: yup.string(),
           smtp_sender: yup.string().matches(patternValidEmail, LL.form.error.invalid()),
         })
         .required(),
-    [LL.form.error]
+    [LL.form.error],
   );
 
-  const encryptionOptions = [
-    {
-      key: 1,
-      value: 'None',
-      label: LL.settingsPage.smtp.form.fields.encryption.none(),
-    },
-    {
-      key: 2,
-      value: 'StartTls',
-      label: 'Start TLS',
-    },
-    {
-      key: 3,
-      value: 'ImplicitTls',
-      label: 'Implicit TLS',
-    },
-  ];
+  const encryptionOptions = useMemo(
+    (): SelectOption<string>[] => [
+      {
+        key: 1,
+        value: 'None',
+        label: LL.settingsPage.smtp.form.fields.encryption.none(),
+      },
+      {
+        key: 2,
+        value: 'StartTls',
+        label: 'Start TLS',
+      },
+      {
+        key: 3,
+        value: 'ImplicitTls',
+        label: 'Implicit TLS',
+      },
+    ],
+    [LL.settingsPage.smtp.form.fields.encryption],
+  );
 
-  const defaultEncryption =
-    encryptionOptions.filter((option) => option.value === settings?.smtp_encryption)[0] ||
-    encryptionOptions[1];
-  const { control, handleSubmit } = useForm<Inputs>({
-    defaultValues: useMemo(() => {
-      return {
-        smtp_server: settings?.smtp_server,
-        smtp_port: settings?.smtp_port,
-        smtp_encryption: defaultEncryption,
-        smtp_user: settings?.smtp_user,
-        smtp_password: settings?.smtp_password,
-        smtp_sender: settings?.smtp_sender,
-      };
-    }, [
-      settings?.smtp_server,
-      settings?.smtp_port,
-      settings?.smtp_user,
-      settings?.smtp_password,
-      settings?.smtp_sender,
-      defaultEncryption,
-    ]),
+  const { control, handleSubmit } = useForm<FormFields>({
+    defaultValues: {
+      smtp_server: settings?.smtp_server ?? '',
+      smtp_port: String(settings?.smtp_port) ?? '',
+      smtp_password: settings?.smtp_password ?? '',
+      smtp_encryption: settings?.smtp_encryption ?? encryptionOptions[0].value,
+      smtp_sender: settings?.smtp_sender ?? '',
+      smtp_user: settings?.smtp_user ?? '',
+    },
     resolver: yupResolver(formSchema),
     mode: 'all',
   });
 
   if (!settings) return null;
 
-  const onSubmit: SubmitHandler<Inputs> = (data) => {
-    mutate({ ...settings, ...data, smtp_encryption: data.smtp_encryption.value });
+  const onSubmit: SubmitHandler<FormFields> = (data) => {
+    mutate({
+      ...settings,
+      ...data,
+      smtp_port: data.smtp_port.length > 0 ? parseInt(data.smtp_port) : undefined,
+    });
   };
 
   return (
@@ -160,31 +156,31 @@ export const SmtpTab = () => {
         </header>
         <form id="smtp-form" onSubmit={handleSubmit(onSubmit)}>
           <FormInput
-            outerLabel={LL.settingsPage.smtp.form.fields.server.label()}
+            label={LL.settingsPage.smtp.form.fields.server.label()}
             controller={{ control, name: 'smtp_server' }}
             placeholder={LL.settingsPage.smtp.form.fields.server.placeholder()}
             required
           />
           <FormInput
-            outerLabel={LL.settingsPage.smtp.form.fields.port.label()}
+            label={LL.settingsPage.smtp.form.fields.port.label()}
             controller={{ control, name: 'smtp_port' }}
             placeholder={LL.settingsPage.smtp.form.fields.port.placeholder()}
             required
           />
           <FormInput
-            outerLabel={LL.settingsPage.smtp.form.fields.user.label()}
+            label={LL.settingsPage.smtp.form.fields.user.label()}
             controller={{ control, name: 'smtp_user' }}
             placeholder={LL.settingsPage.smtp.form.fields.user.placeholder()}
             required
           />
           <FormInput
-            outerLabel={LL.settingsPage.smtp.form.fields.password.label()}
+            label={LL.settingsPage.smtp.form.fields.password.label()}
             controller={{ control, name: 'smtp_password' }}
             placeholder={LL.settingsPage.smtp.form.fields.password.placeholder()}
             required
           />
           <FormInput
-            outerLabel={LL.settingsPage.smtp.form.fields.sender.label()}
+            label={LL.settingsPage.smtp.form.fields.sender.label()}
             controller={{ control, name: 'smtp_sender' }}
             placeholder={LL.settingsPage.smtp.form.fields.sender.placeholder()}
             required
@@ -192,10 +188,9 @@ export const SmtpTab = () => {
           <Helper>{parse(LL.settingsPage.smtp.form.fields.sender.helper())}</Helper>
           <FormSelect
             data-testid="groups-select"
-            styleVariant={SelectStyleVariant.WHITE}
             options={encryptionOptions}
             controller={{ control, name: 'smtp_encryption' }}
-            outerLabel={LL.settingsPage.smtp.form.fields.encryption.label()}
+            label={LL.settingsPage.smtp.form.fields.encryption.label()}
           />
         </form>
         <TestForm />

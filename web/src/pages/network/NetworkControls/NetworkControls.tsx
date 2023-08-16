@@ -7,18 +7,18 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
+import SvgIconX from '../../../shared/components/svg/IconX';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../shared/components/layout/ConfirmModal/ConfirmModal';
-import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
-import { IconCheckmarkWhite } from '../../../shared/components/svg';
-import SvgIconX from '../../../shared/components/svg/IconX';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import ConfirmModal from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { useWizardStore } from '../../wizard/hooks/useWizardStore';
@@ -34,14 +34,17 @@ export const NetworkControls = () => {
   const resetWizardState = useWizardStore((state) => state.resetState);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const { LL } = useI18nContext();
+
   const [save, setNetworkState] = useNetworkPageStore(
     (state) => [state.saveSubject, state.setState],
-    shallow
+    shallow,
   );
+
   const [loading, selectedNetworkId] = useNetworkPageStore(
     (state) => [state.loading, state.selectedNetworkId],
-    shallow
+    shallow,
   );
+
   const networks = useNetworkPageStore((state) => state.networks);
 
   const getOptions = useMemo(
@@ -51,12 +54,7 @@ export const NetworkControls = () => {
         label: n.name,
         key: n.id,
       })),
-    [networks]
-  );
-
-  const selectedOption = useMemo(
-    () => getOptions.find((o) => o.value === selectedNetworkId),
-    [getOptions, selectedNetworkId]
+    [networks],
   );
 
   const selectedNetwork = networks.find((n) => n.id === selectedNetworkId);
@@ -79,15 +77,11 @@ export const NetworkControls = () => {
         {breakpoint !== 'desktop' && (
           <div className="network-select">
             <Select
-              selected={selectedOption}
+              selected={selectedNetworkId}
               options={getOptions}
               addOptionLabel={LL.networkPage.addNetwork()}
-              outerLabel={LL.networkPage.controls.networkSelect.label()}
-              onChange={(res) => {
-                if (!Array.isArray(res) && res) {
-                  setNetworkState({ selectedNetworkId: res.value });
-                }
-              }}
+              label={LL.networkPage.controls.networkSelect.label()}
+              onChangeSingle={(res) => setNetworkState({ selectedNetworkId: res })}
               onCreate={() => {
                 resetWizardState();
                 navigate('/admin/wizard', { replace: true });

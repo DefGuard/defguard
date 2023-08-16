@@ -98,11 +98,11 @@
         margin-bottom: 20px;
 
         h2 {
-          @include typography(20px, 30px, semiBold, var(--text-main), 'Poppins');
+          @include typography-legacy(20px, 30px, semiBold, var(--text-main), 'Poppins');
         }
       }
 
-      .message-box-container {
+      .message-box {
         &:not(:last-child) {
           margin-bottom: 20px;
         }
@@ -113,7 +113,7 @@
           width: 100%;
         }
 
-        & > .message-box-container {
+        & > .message-box {
           &:not(:last-child) {
             margin-bottom: 32px;
           }

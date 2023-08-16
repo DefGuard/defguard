@@ -32,7 +32,7 @@
       }
 
       p {
-        @include typography(14px, 17px, medium, var(--text-main));
+        @include typography-legacy(14px, 17px, medium, var(--text-main));
 
         max-width: 100%;
         overflow: hidden;

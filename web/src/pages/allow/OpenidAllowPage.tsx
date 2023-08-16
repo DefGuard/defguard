@@ -6,14 +6,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { Button } from '../../shared/components/layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../shared/components/layout/Button/types';
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import SvgIconCheckmarkWhite from '../../shared/components/svg/IconCheckmarkWhite';
 import SvgIconDelete from '../../shared/components/svg/IconDelete';
+import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../shared/defguard-ui/components/Layout/Button/types';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
@@ -45,7 +45,7 @@ export const OpenidAllowPage = () => {
   const paramsValid = useMemo(() => {
     const check = [scope, responseType, clientId, nonce, redirectUri, state];
     for (const item in check) {
-      if (typeof item === 'undefined' || typeof item === null) {
+      if (typeof item === 'undefined' || item === null) {
         toaster.error('OpenID Params invalid.');
         return false;
       }
@@ -62,7 +62,7 @@ export const OpenidAllowPage = () => {
         inputRef.current.click();
       }
     },
-    [params]
+    [params],
   );
 
   useEffect(() => {
