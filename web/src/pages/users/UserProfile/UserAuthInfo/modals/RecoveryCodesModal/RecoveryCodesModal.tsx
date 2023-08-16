@@ -1,25 +1,24 @@
 import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import { saveAs } from 'file-saver';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
-import { Button } from '../../../../../../shared/components/layout/Button/Button';
+import IconCopy from '../../../../../../shared/components/svg/IconCopy';
+import IconDownload from '../../../../../../shared/components/svg/IconDownload';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../shared/components/layout/Button/types';
-import MessageBox, {
-  MessageBoxType,
-} from '../../../../../../shared/components/layout/MessageBox/MessageBox';
-import { ModalWithTitle } from '../../../../../../shared/components/layout/ModalWithTitle/ModalWithTitle';
-import { IconCopy, IconDownload } from '../../../../../../shared/components/svg';
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../../shared/hooks/useToaster';
+import { useClipboard } from '../../../../../../shared/hooks/useClipboard';
 import { MutationKeys } from '../../../../../../shared/mutations';
 
 export const RecoveryCodesModal = () => {
@@ -42,6 +41,7 @@ export const RecoveryCodesModal = () => {
 };
 
 const ModalContent = () => {
+  const { writeToClipboard } = useClipboard();
   const { LL } = useI18nContext();
   const codes = useModalStore((state) => state.recoveryCodesModal.codes);
   const setModalState = useModalStore((state) => state.setRecoveryCodesModal);
@@ -57,7 +57,6 @@ const ModalContent = () => {
       logOut();
     },
   });
-  const toaster = useToaster();
 
   if (!codes) return null;
 
@@ -94,15 +93,10 @@ const ModalContent = () => {
           text={LL.form.copy()}
           onClick={() => {
             if (codes) {
-              clipboard
-                .write(codes.join('\n'))
-                .then(() => {
-                  toaster.success(LL.modals.recoveryCodes.messages.copied());
-                })
-                .catch((err) => {
-                  toaster.error(LL.messages.clipboardError());
-                  console.error(err);
-                });
+              writeToClipboard(
+                codes.join('\n'),
+                LL.modals.recoveryCodes.messages.copied(),
+              );
             }
           }}
         />

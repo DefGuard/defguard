@@ -4,7 +4,7 @@
   padding-bottom: 2.6rem;
 
   & > .content {
-    & > .message-box-container {
+    & > .message-box {
       box-sizing: border-box;
       min-height: 70px;
       margin-bottom: 2rem;
@@ -50,7 +50,7 @@
 
         & > p {
           @include text-overflow-dots;
-          @include typography(15px, 18px, medium);
+          @include typography-legacy(15px, 18px, medium);
 
           color: #444a4e;
         }

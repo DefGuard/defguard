@@ -2,9 +2,11 @@
 
 #add-user-device-modal {
   & > .step-0 {
-    & > .message-box-container {
+    & > .message-box {
       margin-bottom: 3.2rem;
       min-height: 70px;
+      width: calc(100% - 60px);
+      margin-left: 30px;
     }
 
     & > form {
@@ -36,7 +38,7 @@
   & > .step-1 {
     padding: 0 3rem 2.5rem;
 
-    & > .message-box-container {
+    & > .message-box {
       padding: 0;
       margin-bottom: 2.5rem;
 
@@ -89,7 +91,7 @@
       & > .top {
         & > .expand-button {
           & > span {
-            @include typography(12px, 1.2, medium, var(--gray-light));
+            @include typography-legacy(12px, 1.2, medium, var(--gray-light));
           }
         }
 

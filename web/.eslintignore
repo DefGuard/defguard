@@ -7,3 +7,4 @@
 *.js
 /src/i18n/formatters.ts
 /src/i18n/i18n-react.tsx
+svg/

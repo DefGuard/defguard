@@ -43,7 +43,13 @@
                 text-align: left;
 
                 @include text-overflow-dots;
-                @include typography(14px, 1.2, regular, var(--text-main), 'Roboto');
+                @include typography-legacy(
+                  14px,
+                  1.2,
+                  regular,
+                  var(--text-main),
+                  'Roboto'
+                );
               }
 
               & > .ip {

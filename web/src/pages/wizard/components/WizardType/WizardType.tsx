@@ -4,9 +4,9 @@ import { useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Card } from '../../../../shared/components/layout/Card/Card';
 import SvgImportConfig from '../../../../shared/components/svg/ImportConfig';
 import SvgManualConfig from '../../../../shared/components/svg/ManualConfig';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { useWizardStore, WizardSetupType } from '../../hooks/useWizardStore';
 import { WizardTypeOptionCard } from './components/WizardTypeOptionCard/WizardTypeOptionCard';
 
@@ -15,7 +15,7 @@ export const WizardType = () => {
   const setupType = useWizardStore((state) => state.setupType);
   const [setWizardState, nextStepSubject] = useWizardStore(
     (state) => [state.setState, state.nextStepSubject],
-    shallow
+    shallow,
   );
   const submitSubject = useWizardStore((state) => state.submitSubject);
 

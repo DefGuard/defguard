@@ -85,7 +85,10 @@
         & > .select {
           margin-left: auto;
           width: 200px;
-          height: 40px;
+
+          & > .select-container {
+            height: 40px;
+          }
         }
 
         & > .provisioners-count {
@@ -115,7 +118,7 @@
 
             span {
               display: block;
-              @include typography(12px, 18px, semiBold, var(--white), Poppins);
+              @include typography-legacy(12px, 18px, semiBold, var(--white), Poppins);
             }
           }
         }

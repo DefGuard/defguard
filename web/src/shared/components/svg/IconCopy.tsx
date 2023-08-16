@@ -1,54 +1,58 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgIconCopy = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} {...props}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={22}
+    height={22}
+    viewBox="0 0 22 22"
+    {...props}
+  >
     <defs>
       <clipPath id="icon-copy_svg__a">
-        <path data-name="Rectangle 2627" fill="#899ca8" opacity={0} d="M0 0h22v22H0z" />
+        <path fill="#899ca8" d="M0 0h22v22H0z" data-name="Rectangle 2627" opacity={0} />
       </clipPath>
     </defs>
-    <g transform="rotate(90 11 11)" clipPath="url(#icon-copy_svg__a)">
-      <g data-name="Group 4639" transform="rotate(-90 53.5 280.5)" fill="#899ca8">
+    <g clipPath="url(#icon-copy_svg__a)" transform="rotate(90 11 11)">
+      <g fill="#899ca8" data-name="Group 4639" transform="rotate(-90 53.5 280.5)">
         <rect
-          data-name="Rectangle 2621"
           width={10}
           height={2}
+          data-name="Rectangle 2621"
           rx={1}
           transform="rotate(90 41.5 276.5)"
         />
         <rect
-          data-name="Rectangle 2628"
           width={10}
           height={2}
+          data-name="Rectangle 2628"
           rx={1}
           transform="rotate(90 45.5 280.5)"
         />
         <rect
-          data-name="Rectangle 2633"
           width={8}
           height={2}
+          data-name="Rectangle 2633"
           rx={1}
           transform="rotate(90 49.5 280.5)"
         />
         <rect
-          data-name="Rectangle 2629"
           width={10}
           height={2}
+          data-name="Rectangle 2629"
           rx={1}
           transform="rotate(180 163 118.5)"
         />
         <rect
-          data-name="Rectangle 2634"
           width={8}
           height={2}
+          data-name="Rectangle 2634"
           rx={1}
           transform="rotate(180 165 116.5)"
         />
         <rect
-          data-name="Rectangle 2630"
           width={10}
           height={2}
+          data-name="Rectangle 2630"
           rx={1}
           transform="rotate(180 163 122.5)"
         />
@@ -56,5 +60,4 @@ const SvgIconCopy = (props: SVGProps<SVGSVGElement>) => (
     </g>
   </svg>
 );
-
 export default SvgIconCopy;

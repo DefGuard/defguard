@@ -1,42 +1,41 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import clipboard from 'clipboardy';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
+import IconCheckmarkGreen from '../../../shared/components/svg/IconCheckmarkGreen';
+import IconDeactivated from '../../../shared/components/svg/IconDeactivated';
+import SvgIconPlusWhite from '../../../shared/components/svg/IconPlusWhite';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import ConfirmModal, {
-  ConfirmModalType,
-} from '../../../shared/components/layout/ConfirmModal/ConfirmModal';
-import { EditButton } from '../../../shared/components/layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../shared/components/layout/EditButton/EditButtonOption';
-import { LoaderSpinner } from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import NoData from '../../../shared/components/layout/NoData/NoData';
-import { PageContainer } from '../../../shared/components/layout/PageContainer/PageContainer';
-import { Search } from '../../../shared/components/layout/Search/Search';
-import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import { EditButtonOption } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import ConfirmModal from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
+import NoData from '../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import {
   ListHeader,
   ListRowCell,
   ListSortDirection,
-  VirtualizedList,
-} from '../../../shared/components/layout/VirtualizedList/VirtualizedList';
-import { IconCheckmarkGreen, IconDeactivated } from '../../../shared/components/svg';
-import SvgIconPlusWhite from '../../../shared/components/svg/IconPlusWhite';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { VirtualizedList } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useClipboard } from '../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
@@ -44,6 +43,7 @@ import { OpenidClient } from '../../../shared/types';
 import { OpenIdClientModal } from '../modals/OpenIdClientModal/OpenIdClientModal';
 
 export const OpenidClientsListPage = () => {
+  const { writeToClipboard } = useClipboard();
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const queryClient = useQueryClient();
@@ -75,10 +75,10 @@ export const OpenidClientsListPage = () => {
         value: FilterOption.DISABLED,
       },
     ],
-    [LL]
+    [LL],
   );
 
-  const [selectedFilter, setSelectedFilter] = useState(selectOptions[0]);
+  const [selectedFilter, setSelectedFilter] = useState(FilterOption.ALL);
 
   const { mutate: deleteClientMutation, isLoading: deleteClientLoading } = useMutation(
     [MutationKeys.DELETE_OPENID_CLIENT],
@@ -94,7 +94,7 @@ export const OpenidClientsListPage = () => {
         setDeleteClientModalOpen(false);
         console.error(err);
       },
-    }
+    },
   );
 
   const { mutate: editClientStatusMutation } = useMutation(
@@ -116,7 +116,7 @@ export const OpenidClientsListPage = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const hasAccess = useMemo(() => {
@@ -126,14 +126,14 @@ export const OpenidClientsListPage = () => {
   const { data: clients, isLoading } = useQuery(
     [QueryKeys.FETCH_CLIENTS],
     getOpenidClients,
-    { enabled: hasAccess, refetchOnWindowFocus: false, refetchInterval: 15000 }
+    { enabled: hasAccess, refetchOnWindowFocus: false, refetchInterval: 15000 },
   );
 
   const filteredClients = useMemo(() => {
     if (!clients || (clients && clients.length === 0)) return [];
     let res = orderBy(clients, ['name'], ['asc']);
     res = res.filter((c) => c.name.toLowerCase().includes(searchValue.toLowerCase()));
-    switch (selectedFilter.value) {
+    switch (selectedFilter) {
       case FilterOption.ALL:
         break;
       case FilterOption.ENABLED:
@@ -144,7 +144,7 @@ export const OpenidClientsListPage = () => {
         break;
     }
     return res;
-  }, [clients, searchValue, selectedFilter.value]);
+  }, [clients, searchValue, selectedFilter]);
 
   const listHeaders = useMemo(() => {
     const res: ListHeader[] = [
@@ -213,14 +213,10 @@ export const OpenidClientsListPage = () => {
               data-testid="copy-openid-client-id"
               text={LL.openidOverview.list.editButton.copy()}
               onClick={() => {
-                clipboard
-                  .write(client.client_id)
-                  .then(() => {
-                    toaster.success(LL.openidOverview.messages.copySuccess());
-                  })
-                  .catch(() => {
-                    toaster.error(LL.messages.clipboardError());
-                  });
+                writeToClipboard(
+                  client.client_id,
+                  LL.openidOverview.messages.copySuccess(),
+                );
               }}
             />
             <EditButtonOption
@@ -237,13 +233,12 @@ export const OpenidClientsListPage = () => {
     ];
     return res;
   }, [
-    LL.messages,
+    writeToClipboard,
     LL.openidOverview.list.editButton,
     LL.openidOverview.list.status,
     LL.openidOverview.messages,
     editClientStatusMutation,
     setOpenIdClientModalState,
-    toaster,
   ]);
 
   const getListPadding = useMemo(() => {
@@ -260,10 +255,10 @@ export const OpenidClientsListPage = () => {
   }, [breakpoint]);
 
   useEffect(() => {
-    if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOption.ALL) {
-      setSelectedFilter(selectOptions[0]);
+    if (breakpoint !== 'desktop' && selectedFilter !== FilterOption.ALL) {
+      setSelectedFilter(FilterOption.ALL);
     }
-  }, [breakpoint, selectOptions, selectedFilter.value]);
+  }, [breakpoint, selectOptions, selectedFilter]);
 
   return (
     <PageContainer id="openid-clients-list">
@@ -289,11 +284,7 @@ export const OpenidClientsListPage = () => {
             <Select
               options={selectOptions}
               selected={selectedFilter}
-              onChange={(o) => {
-                if (o && !Array.isArray(o)) {
-                  setSelectedFilter(o);
-                }
-              }}
+              onChangeSingle={(res) => setSelectedFilter(res)}
             />
           )}
           <Button

@@ -1,12 +1,11 @@
 import type { SVGProps } from 'react';
-import * as React from 'react';
 const SvgIconArrowSingle2 = (props: SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 22 23"
     width={22}
     height={23}
     fill="none"
+    viewBox="0 0 22 23"
     {...props}
   >
     <mask

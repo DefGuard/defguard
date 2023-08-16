@@ -6,12 +6,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { LoaderSpinner } from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import NoData from '../../shared/components/layout/NoData/NoData';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
-import { Search } from '../../shared/components/layout/Search/Search';
-import { Select, SelectOption } from '../../shared/components/layout/Select/Select';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { deviceBreakpoints } from '../../shared/constants';
+import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
+import { Select } from '../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { ProvisionersList } from './ProvisionersList/ProvisionersList';
@@ -20,6 +21,7 @@ import { ProvisioningStationSetup } from './ProvisioningStationSetup';
 export const ProvisionersPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const { LL } = useI18nContext();
+
   const filterSelectOptions: SelectOption<FilterOptions>[] = useMemo(
     () => [
       {
@@ -38,12 +40,11 @@ export const ProvisionersPage = () => {
         value: FilterOptions.UNAVAILABLE,
       },
     ],
-    [LL.provisionersOverview.filterLabels]
+    [LL.provisionersOverview.filterLabels],
   );
 
-  const [selectedFilterOption, setSelectedFilterOption] = useState(
-    filterSelectOptions[0]
-  );
+  const [selectedFilterOption, setSelectedFilterOption] = useState(FilterOptions.ALL);
+
   const [searchValue, setSearchValue] = useState<string>('');
 
   const {
@@ -56,13 +57,13 @@ export const ProvisionersPage = () => {
     {
       refetchOnWindowFocus: false,
       refetchInterval: 5000,
-    }
+    },
   );
 
   const filteredProvisioners = useMemo(() => {
     let res = orderBy(provisioners, ['id'], ['desc']);
     res = res.filter((p) => p.id.toLowerCase().includes(searchValue.toLowerCase()));
-    switch (selectedFilterOption.value) {
+    switch (selectedFilterOption) {
       case FilterOptions.ALL:
         break;
       case FilterOptions.AVAILABLE:
@@ -73,13 +74,13 @@ export const ProvisionersPage = () => {
         break;
     }
     return res;
-  }, [provisioners, searchValue, selectedFilterOption.value]);
+  }, [provisioners, searchValue, selectedFilterOption]);
 
   useEffect(() => {
-    if (breakpoint !== 'desktop' && selectedFilterOption.value === FilterOptions.ALL) {
-      setSelectedFilterOption(filterSelectOptions[0]);
+    if (breakpoint !== 'desktop' && selectedFilterOption === FilterOptions.ALL) {
+      setSelectedFilterOption(FilterOptions.ALL);
     }
-  }, [breakpoint, filterSelectOptions, selectedFilterOption.value]);
+  }, [breakpoint, filterSelectOptions, selectedFilterOption]);
 
   return (
     <PageContainer id="provisioners-page">
@@ -104,13 +105,8 @@ export const ProvisionersPage = () => {
             <Select
               options={filterSelectOptions}
               selected={selectedFilterOption}
-              multi={false}
               searchable={false}
-              onChange={(val) => {
-                if (val && !Array.isArray(val)) {
-                  setSelectedFilterOption(val);
-                }
-              }}
+              onChangeSingle={(filter) => setSelectedFilterOption(filter)}
             />
           )}
         </div>

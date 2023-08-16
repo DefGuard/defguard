@@ -5,11 +5,11 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
@@ -33,7 +33,7 @@ export const MFAWebAuthN = () => {
   const toaster = useToaster();
   const [webauthnAvailable, web3Available, totpAvailable] = useMFAStore(
     (state) => [state.webauthn_available, state.web3_available, state.totp_available],
-    shallow
+    shallow,
   );
 
   const { mutate: mfaFinish, isLoading: mfaFinishLoading } = useMutation(
@@ -45,7 +45,7 @@ export const MFAWebAuthN = () => {
         toaster.error(LL.messages.error());
         console.error(err);
       },
-    }
+    },
   );
 
   const { mutate: mfaStart, isLoading: mfaStartLoading } = useMutation(
@@ -63,7 +63,7 @@ export const MFAWebAuthN = () => {
           })
           .finally(() => setAwaitingKey(false));
       },
-    }
+    },
   );
 
   useEffect(() => {

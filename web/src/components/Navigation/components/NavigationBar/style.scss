@@ -86,7 +86,7 @@
       background-color: transparent;
       border: 0px solid transparent;
       text-decoration: none;
-      @include typography(15px, 1.2, medium, var(--gray-light), 'Poppins');
+      @include typography-legacy(15px, 1.2, medium, var(--gray-light), 'Poppins');
       cursor: pointer;
 
       & > span {

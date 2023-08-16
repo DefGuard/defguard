@@ -24,7 +24,7 @@ export const AddComponentBox = ({
 
   const cn = useMemo(
     () => classNames('add-component', { disabled: disabled }),
-    [disabled]
+    [disabled],
   );
 
   const getAnimate = useMemo(() => {

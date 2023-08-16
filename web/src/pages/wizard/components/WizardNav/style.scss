@@ -48,7 +48,7 @@
         text-align: center;
         text-transform: uppercase;
 
-        @include typography(15px, 23px, semiBold, var(--text-main), 'Poppins');
+        @include typography-legacy(15px, 23px, semiBold, var(--text-main), 'Poppins');
 
         @include media-breakpoint-up(lg) {
           width: unset;

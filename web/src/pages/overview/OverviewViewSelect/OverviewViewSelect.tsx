@@ -2,8 +2,9 @@ import { useEffect, useMemo } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
 import { deviceBreakpoints } from '../../../shared/constants';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 
@@ -18,7 +19,7 @@ export const OverviewViewSelect = () => {
     setOverViewStore({ viewMode: defaultViewMode });
   }, [defaultViewMode, setOverViewStore]);
 
-  const getSelectOptions = useMemo(() => {
+  const getSelectOptions = useMemo((): SelectOption<OverviewLayoutType>[] => {
     if (breakpoint === 'mobile') {
       return [
         {
@@ -64,25 +65,14 @@ export const OverviewViewSelect = () => {
     ];
   }, [LL.networkOverview.filterLabels, breakpoint]);
 
-  const getSelectValue = useMemo(() => {
-    return getSelectOptions.find((o) => o.value === viewMode);
-  }, [getSelectOptions, viewMode]);
-
   return (
     <Select
       options={getSelectOptions}
-      selected={getSelectValue}
+      selected={viewMode}
       searchable={false}
       disabled={false}
-      multi={false}
       loading={false}
-      onChange={(option) => {
-        if (option) {
-          setOverViewStore({
-            viewMode: (option as SelectOption<OverviewLayoutType>).value,
-          });
-        }
-      }}
+      onChangeSingle={(mode) => setOverViewStore({ viewMode: mode })}
     />
   );
 };

@@ -1,35 +1,45 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgIconCheckmarkWhite = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} {...props}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={22}
+    height={22}
+    viewBox="0 0 22 22"
+    {...props}
+  >
     <defs>
       <clipPath id="icon-checkmark-white_svg__a">
-        <path className="icon-checkmark-white_svg__a" d="M0 0h22v22H0z" />
+        <path
+          d="M0 0h22v22H0z"
+          style={{
+            opacity: 0,
+            fill: '#fff',
+          }}
+        />
       </clipPath>
-      <style>
-        {
-          '\n      .icon-checkmark-white_svg__a,.icon-checkmark-white_svg__c{fill:#fff}.icon-checkmark-white_svg__a{opacity:0}.icon-checkmark-white_svg__b{clip-path:url(#icon-checkmark-white_svg__a)}\n    '
-        }
-      </style>
+      <style>{'.icon-checkmark-white_svg__c{fill:#fff}'}</style>
     </defs>
-    <g className="icon-checkmark-white_svg__b" transform="rotate(90 11 11)">
+    <g
+      style={{
+        clipPath: 'url(#icon-checkmark-white_svg__a)',
+      }}
+      transform="rotate(90 11 11)"
+    >
       <rect
-        className="icon-checkmark-white_svg__c"
         width={12}
         height={2}
+        className="icon-checkmark-white_svg__c"
         rx={1}
         transform="rotate(45 -.036 10.5)"
       />
       <rect
-        className="icon-checkmark-white_svg__c"
         width={8}
         height={2}
+        className="icon-checkmark-white_svg__c"
         rx={1}
         transform="rotate(-45 23.616 -2.775)"
       />
     </g>
   </svg>
 );
-
 export default SvgIconCheckmarkWhite;

@@ -91,11 +91,16 @@
       height: 40px;
       box-sizing: border-box;
 
+      .select-container {
+        height: 40px;
+      }
+
       @include media-breakpoint-down(lg) {
         flex-direction: row nowrap;
         row-gap: 1.5rem;
         padding: 0 2rem;
       }
+
       @include media-breakpoint-up(lg) {
         grid-row: 2;
         flex-direction: row;

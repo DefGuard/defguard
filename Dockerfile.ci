@@ -1,4 +1,4 @@
-FROM node:19-alpine3.15 as web
+FROM node:20.5-alpine3.17 as web
 WORKDIR /app
 COPY web/package.json .
 COPY web/pnpm-lock.yaml .

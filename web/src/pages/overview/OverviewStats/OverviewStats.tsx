@@ -6,17 +6,13 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import {
-  NetworkDirection,
-  NetworkSpeed,
-} from '../../../shared/components/layout/NetworkSpeed/NetworkSpeed';
-import {
-  Icon24HConnections,
-  IconActiveConnections,
-  IconPacketsIn,
-  IconPacketsOut,
-} from '../../../shared/components/svg';
+import Icon24HConnections from '../../../shared/components/svg/Icon24HConnections';
+import IconActiveConnections from '../../../shared/components/svg/IconActiveConnections';
+import IconPacketsIn from '../../../shared/components/svg/IconPacketsIn';
+import IconPacketsOut from '../../../shared/components/svg/IconPacketsOut';
 import { deviceBreakpoints } from '../../../shared/constants';
+import { NetworkSpeed } from '../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
+import { NetworkDirection } from '../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
 import { NetworkUserStats, WireguardNetworkStats } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { NetworkUsageChart } from '../OverviewConnectedUsers/shared/components/NetworkUsageChart/NetworkUsageChart';
@@ -157,5 +153,5 @@ export const OverviewStats = forwardRef<HTMLDivElement, Props>(
         </div>
       </div>
     );
-  }
+  },
 );

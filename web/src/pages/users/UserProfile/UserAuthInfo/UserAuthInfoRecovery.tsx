@@ -1,5 +1,5 @@
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { RowBox } from '../../../../shared/components/layout/RowBox/RowBox';
+import { RowBox } from '../../../../shared/defguard-ui/components/Layout/RowBox/RowBox';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 
 export const UserAuthInfoRecovery = () => {

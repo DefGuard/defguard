@@ -1,12 +1,12 @@
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
-import { Divider } from '../../../../shared/components/layout/Divider/Divider';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Divider } from '../../../../shared/defguard-ui/components/Layout/Divider/Divider';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { useChangeSelfPasswordModal } from './modals/ChangeSelfPasswordModal/hooks/useChangeSelfPasswordModal';
@@ -15,7 +15,7 @@ export const UserAuthInfoPassword = () => {
   const { LL } = useI18nContext();
   const [user, isMe] = useUserProfileStore(
     (store) => [store.userProfile?.user, store.isMe],
-    shallow
+    shallow,
   );
   const editMode = useUserProfileStore((store) => store.editMode);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
@@ -30,6 +30,7 @@ export const UserAuthInfoPassword = () => {
         </header>
         <div className="row">
           <Button
+            data-testid="button-change-password"
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.STANDARD}
             text={LL.userPage.userAuthInfo.password.changePassword()}

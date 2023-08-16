@@ -9,17 +9,14 @@ import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { FormInput } from '../../../shared/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../shared/components/Form/FormSelect/FormSelect';
-import MessageBox from '../../../shared/components/layout/MessageBox/MessageBox';
-import {
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../shared/components/layout/Select/Select';
+import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
-import { ModifyNetworkRequest, Network } from '../../../shared/types';
+import { Network } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import {
   validateIp,
@@ -29,11 +26,17 @@ import {
 } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
-type FormInputs = Omit<ModifyNetworkRequest['network'], 'allowed_groups'> & {
-  allowed_groups: SelectOption<string>[];
+type FormFields = {
+  address: string;
+  endpoint: string;
+  port: number;
+  allowed_ips: string;
+  allowed_groups: string[];
+  name: string;
+  dns: string;
 };
 
-const defaultValues: FormInputs = {
+const defaultValues: FormFields = {
   address: '',
   endpoint: '',
   name: '',
@@ -43,14 +46,8 @@ const defaultValues: FormInputs = {
   dns: '',
 };
 
-const groupToSelectOption = (group: string): SelectOption<string> => ({
-  value: group,
-  key: group,
-  label: titleCase(group),
-});
-
-const networkToForm = (data?: Network): FormInputs | undefined => {
-  if (!data) return undefined;
+const networkToForm = (data?: Network): FormFields => {
+  if (!data) return defaultValues;
   let omited = omitBy<Network>(data, isNull);
   omited = omit(omited, [
     'id',
@@ -60,14 +57,14 @@ const networkToForm = (data?: Network): FormInputs | undefined => {
     'allowed_groups',
     'gateways',
   ]);
+
   let allowed_ips = '';
-  let allowed_groups: FormInputs['allowed_groups'] = [];
+  const allowed_groups: string[] = [];
+
   if (Array.isArray(data.allowed_ips)) {
     allowed_ips = data.allowed_ips.join(',');
   }
-  if (Array.isArray(data.allowed_groups)) {
-    allowed_groups = data.allowed_groups.map((g) => groupToSelectOption(g));
-  }
+
   return { ...defaultValues, ...omited, allowed_groups, allowed_ips };
 };
 
@@ -84,7 +81,7 @@ export const NetworkEditForm = () => {
   const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
   const [selectedNetworkId, networks] = useNetworkPageStore(
     (state) => [state.selectedNetworkId, state.networks],
-    shallow
+    shallow,
   );
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
@@ -121,7 +118,7 @@ export const NetworkEditForm = () => {
           key: g,
           value: g,
           label: titleCase(g),
-        }))
+        })),
       );
     },
     onError: (err) => {
@@ -195,19 +192,18 @@ export const NetworkEditForm = () => {
     })
     .required();
 
-  const { control, handleSubmit, reset } = useForm<FormInputs>({
+  const { control, handleSubmit, reset } = useForm<FormFields>({
     defaultValues: defaultFormValues,
     resolver: yupResolver(schema),
     mode: 'all',
   });
 
-  const onValidSubmit: SubmitHandler<FormInputs> = async (values) => {
+  const onValidSubmit: SubmitHandler<FormFields> = async (values) => {
     setStoreState({ loading: true });
     mutate({
       id: selectedNetworkId,
       network: {
         ...values,
-        allowed_groups: values.allowed_groups.map((o) => o.value),
       },
     });
   };
@@ -233,53 +229,59 @@ export const NetworkEditForm = () => {
       <form onSubmit={handleSubmit(onValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
-          outerLabel={LL.networkConfiguration.form.fields.name.label()}
+          label={LL.networkConfiguration.form.fields.name.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.address()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'address' }}
-          outerLabel={LL.networkConfiguration.form.fields.address.label()}
+          label={LL.networkConfiguration.form.fields.address.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.gateway()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'endpoint' }}
-          outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
+          label={LL.networkConfiguration.form.fields.endpoint.label()}
         />
         <FormInput
           controller={{ control, name: 'port' }}
-          outerLabel={LL.networkConfiguration.form.fields.port.label()}
+          label={LL.networkConfiguration.form.fields.port.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedIps()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'allowed_ips' }}
-          outerLabel={LL.networkConfiguration.form.fields.allowedIps.label()}
+          label={LL.networkConfiguration.form.fields.allowedIps.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.dns()}</p>
         </MessageBox>
         <FormInput
           controller={{ control, name: 'dns' }}
-          outerLabel={LL.networkConfiguration.form.fields.dns.label()}
+          label={LL.networkConfiguration.form.fields.dns.label()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
         </MessageBox>
         <FormSelect
-          styleVariant={SelectStyleVariant.WHITE}
           controller={{ control, name: 'allowed_groups' }}
-          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          label={LL.networkConfiguration.form.fields.allowedGroups.label()}
           loading={groupsLoading}
           disabled={groupsError || (!groupsLoading && groupOptions.length === 0)}
           options={groupOptions}
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
-          multi
           searchable
+          searchFilter={(val, options) => {
+            const inf = options as SelectOption<string>[];
+            return inf.filter((o) => o.value.toLowerCase().includes(val.toLowerCase()));
+          }}
+          renderSelected={(val) => ({
+            key: val,
+            displayValue: titleCase(val),
+          })}
         />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>
