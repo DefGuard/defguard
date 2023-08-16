@@ -1,7 +1,7 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
@@ -20,6 +20,7 @@ import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
 import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { SelectSelectedValue } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -82,6 +83,18 @@ export const EnrollmentTab = () => {
       },
     ],
     [],
+  );
+
+  const renderSelectedVpn = useCallback(
+    (selected: boolean): SelectSelectedValue => {
+      const option = vpnOptionalityOptions.find((o) => o.value === selected);
+      if (!option) throw Error("Selected value doesn't exist");
+      return {
+        key: option.key,
+        displayValue: option.label,
+      };
+    },
+    [vpnOptionalityOptions],
   );
 
   const defaultValues = useMemo((): FormFields => {
@@ -148,6 +161,7 @@ export const EnrollmentTab = () => {
                 </Helper>
               </header>
               <FormSelect
+                renderSelected={renderSelectedVpn}
                 options={vpnOptionalityOptions}
                 controller={{ control, name: 'enrollment_vpn_step_optional' }}
               />

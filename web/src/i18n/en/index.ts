@@ -604,6 +604,7 @@ const en: BaseTranslation = {
       myProfile: 'My Profile',
       settings: 'Settings',
       logOut: 'Log out',
+      enrollment: 'Enrollment',
     },
     mobileTitles: {
       wizard: 'Create location',
@@ -615,6 +616,7 @@ const en: BaseTranslation = {
       openId: 'OpenId Apps',
       overview: 'Location Overview',
       networkSettings: 'Edit Location',
+      enrollment: 'Enrollment',
     },
     copyright: 'Copyright \u00A9 2023 ',
     version: {
@@ -1399,6 +1401,45 @@ Any other requests you can reach us at: support@defguard.net
   redirectPage: {
     title: 'You have been logged in',
     subtitle: 'You will be redirected in a moment...',
+  },
+  enrollmentPage: {
+    title: 'Enrollment',
+    controls: {
+      default: 'Restore default',
+      save: 'Save changes',
+    },
+    messages: {
+      edit: {
+        success: 'Settings changed',
+        error: 'Save failed',
+      },
+    },
+    messageBox:
+      'Enrollment is process by which the new employee will be able to confirm their new account, create a password and configurate VPN device. In this panel you can custom messages for it.',
+    settings: {
+      welcomeMessage: {
+        title: 'Welcome message',
+        messageBox:
+          'This information will be displayed for user in service once enrollment is completed. We advise to insert links and explain next steps briefly. You can use same message as in the e-mail.',
+      },
+      vpnOptionality: {
+        title: 'VPN set optionallity',
+        select: {
+          options: {
+            optional: 'Optional',
+            mandatory: 'Mandatory',
+          },
+        },
+      },
+      welcomeEmail: {
+        title: 'Welcome e-mail',
+        messageBox:
+          'This information will be sent to user once enrollment is completed. We advise to insert links and explain next steps briefly.',
+        controls: {
+          duplicateWelcome: 'Same as welcome message',
+        },
+      },
+    },
   },
 };
 

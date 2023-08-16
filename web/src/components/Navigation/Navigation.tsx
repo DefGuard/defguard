@@ -7,6 +7,7 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
+import SvgIconNavKey from '../../shared/components/svg/IconNavKey';
 import SvgIconNavOpenId from '../../shared/components/svg/IconNavOpenid';
 import SvgIconNavProfile from '../../shared/components/svg/IconNavProfile';
 import SvgIconNavProvisioners from '../../shared/components/svg/IconNavProvisioners';
@@ -107,6 +108,13 @@ export const Navigation = () => {
         icon: <SvgIconNavProvisioners />,
         allowedToView: ['admin'],
         enabled: settings?.worker_enabled,
+      },
+      {
+        title: LL.navigation.bar.enrollment(),
+        linkPath: '/admin/enrollment',
+        icon: <SvgIconNavKey />,
+        allowedToView: ['admin'],
+        enabled: true,
       },
       {
         title: LL.navigation.bar.myProfile(),

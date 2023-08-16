@@ -1,0 +1,45 @@
+@use '@scssutils' as *;
+
+#enrollment-page {
+  box-sizing: border-box;
+  padding: 64px 70px;
+
+  h1 {
+    @include typography(app-title);
+
+    color: var(--text-body-primary);
+    margin-bottom: 50px;
+    user-select: none;
+  }
+
+  h3 {
+    @include typography(app-body-1);
+
+    color: var(--text-body-primary);
+  }
+
+  header {
+    margin-bottom: 26px;
+    user-select: none;
+  }
+
+  & > .settings {
+    display: flex;
+    flex-flow: row wrap;
+    max-width: 100%;
+    row-gap: 26px;
+    column-gap: 50px;
+
+    & > * {
+      max-width: 730px;
+    }
+
+    & > .left,
+    & > .right {
+      width: 100%;
+      display: flex;
+      flex-flow: column;
+      row-gap: 26px;
+    }
+  }
+}

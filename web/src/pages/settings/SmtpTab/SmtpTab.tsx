@@ -3,7 +3,7 @@ import './styles.scss';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
@@ -20,7 +20,10 @@ import {
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
 import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import {
+  SelectOption,
+  SelectSelectedValue,
+} from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -106,6 +109,18 @@ export const SmtpTab = () => {
     [LL.settingsPage.smtp.form.fields.encryption],
   );
 
+  const renderSelectedEncryption = useCallback(
+    (selected: string): SelectSelectedValue => {
+      const option = encryptionOptions.find((o) => o.value === selected);
+      if (!option) throw Error("Selected value doesn't exist");
+      return {
+        key: option.key,
+        displayValue: option.label,
+      };
+    },
+    [encryptionOptions],
+  );
+
   const { control, handleSubmit } = useForm<FormFields>({
     defaultValues: {
       smtp_server: settings?.smtp_server ?? '',
@@ -188,6 +203,7 @@ export const SmtpTab = () => {
           <Helper>{parse(LL.settingsPage.smtp.form.fields.sender.helper())}</Helper>
           <FormSelect
             data-testid="groups-select"
+            renderSelected={renderSelectedEncryption}
             options={encryptionOptions}
             controller={{ control, name: 'smtp_encryption' }}
             label={LL.settingsPage.smtp.form.fields.encryption.label()}

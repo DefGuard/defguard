@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-d
 
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
+import { EnrollmentPage } from '../../pages/enrollment/EnrollmentPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
@@ -32,6 +33,14 @@ const App = () => {
             <Route path="auth/*" element={<AuthPage />} />
             <Route path="admin/*">
               <Route index element={<Navigate to="users" />} />
+              <Route
+                path="enrollment/*"
+                element={
+                  <ProtectedRoute allowedGroups={['admin']}>
+                    <EnrollmentPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="network/*"
                 element={

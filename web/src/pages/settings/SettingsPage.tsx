@@ -11,7 +11,6 @@ import { CardTabs } from '../../shared/defguard-ui/components/Layout/CardTabs/Ca
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { BrandingCard } from './BrandingCard/BrandingCard';
 import { BuiltByCard } from './BuiltByCard/BuiltByCard';
-import { EnrollmentTab } from './EnrollmentTab/EnrollmentTab';
 import { ModulesCard } from './ModulesCard/ModulesCard';
 import { SmtpTab } from './SmtpTab/SmtpTab';
 import { SupportCard } from './SupportCard/SupportCard';
@@ -20,7 +19,6 @@ import { Web3Settings } from './Web3Settings/Web3Settings';
 enum Tabs {
   Basic,
   Smtp,
-  Enrollment,
 }
 
 export const SettingsPage = () => {
@@ -42,14 +40,6 @@ export const SettingsPage = () => {
       },
       content: LL.settingsPage.tabs.smtp(),
       active: tab === Tabs.Smtp,
-    },
-    {
-      key: 3,
-      onClick: () => {
-        setTab(Tabs.Enrollment);
-      },
-      content: 'Enrollment',
-      active: tab === Tabs.Enrollment,
     },
   ];
   const settings = useAppStore((state) => state.settings);
@@ -78,7 +68,6 @@ export const SettingsPage = () => {
           </>
         )}
         {tab === Tabs.Smtp && <SmtpTab />}
-        {tab === Tabs.Enrollment && <EnrollmentTab />}
       </Card>
     </PageContainer>
   );

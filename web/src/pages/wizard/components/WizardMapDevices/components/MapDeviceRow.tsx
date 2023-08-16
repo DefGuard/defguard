@@ -1,5 +1,5 @@
 import { TargetAndTransition } from 'framer-motion';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Control, useController } from 'react-hook-form';
 
 import { ColorsRGB } from '../../../../../shared/constants';
@@ -7,6 +7,7 @@ import { RowBox } from '../../../../../shared/defguard-ui/components/Layout/RowB
 import { Select } from '../../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
   SelectOption,
+  SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { WizardMapFormValues } from '../WizardMapDevices';
@@ -47,6 +48,18 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
     return res;
   }, [hasErrors]);
 
+  const renderSelected = useCallback(
+    (selected: number): SelectSelectedValue => {
+      const option = options.find((o) => o.value === selected);
+      if (!option) throw Error("Selected value doesn't exist");
+      return {
+        key: option.key,
+        displayValue: option.label,
+      };
+    },
+    [options],
+  );
+
   return (
     <RowBox className="device" customAnimate={getAnimate}>
       <input className="name" type="text" {...nameController.field} />
@@ -55,6 +68,7 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
         data-testid={`user-select-${index}`}
         searchable
         sizeVariant={SelectSizeVariant.SMALL}
+        renderSelected={renderSelected}
         selected={userController.field.value}
         options={options}
         placeholder="Choose a user"

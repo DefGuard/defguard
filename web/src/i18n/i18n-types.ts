@@ -1364,6 +1364,10 @@ type RootTranslation = {
 			 * L​o​g​ ​o​u​t
 			 */
 			logOut: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
 		}
 		mobileTitles: {
 			/**
@@ -1402,6 +1406,10 @@ type RootTranslation = {
 			 * E​d​i​t​ ​L​o​c​a​t​i​o​n
 			 */
 			networkSettings: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
 		}
 		/**
 		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3​ 
@@ -3189,6 +3197,84 @@ type RootTranslation = {
 		 */
 		subtitle: string
 	}
+	enrollmentPage: {
+		/**
+		 * E​n​r​o​l​l​m​e​n​t
+		 */
+		title: string
+		controls: {
+			/**
+			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
+			 */
+			'default': string
+			/**
+			 * S​a​v​e​ ​c​h​a​n​g​e​s
+			 */
+			save: string
+		}
+		messages: {
+			edit: {
+				/**
+				 * S​e​t​t​i​n​g​s​ ​c​h​a​n​g​e​d
+				 */
+				success: string
+				/**
+				 * S​a​v​e​ ​f​a​i​l​e​d
+				 */
+				error: string
+			}
+		}
+		/**
+		 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​t​h​e​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​c​o​n​f​i​r​m​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​a​t​e​ ​V​P​N​ ​d​e​v​i​c​e​.​ ​I​n​ ​t​h​i​s​ ​p​a​n​e​l​ ​y​o​u​ ​c​a​n​ ​c​u​s​t​o​m​ ​m​e​s​s​a​g​e​s​ ​f​o​r​ ​i​t​.
+		 */
+		messageBox: string
+		settings: {
+			welcomeMessage: {
+				/**
+				 * W​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+				 */
+				title: string
+				/**
+				 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​u​s​e​r​ ​i​n​ ​s​e​r​v​i​c​e​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​t​o​ ​i​n​s​e​r​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​s​a​m​e​ ​m​e​s​s​a​g​e​ ​a​s​ ​i​n​ ​t​h​e​ ​e​-​m​a​i​l​.
+				 */
+				messageBox: string
+			}
+			vpnOptionality: {
+				/**
+				 * V​P​N​ ​s​e​t​ ​o​p​t​i​o​n​a​l​l​i​t​y
+				 */
+				title: string
+				select: {
+					options: {
+						/**
+						 * O​p​t​i​o​n​a​l
+						 */
+						optional: string
+						/**
+						 * M​a​n​d​a​t​o​r​y
+						 */
+						mandatory: string
+					}
+				}
+			}
+			welcomeEmail: {
+				/**
+				 * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
+				 */
+				title: string
+				/**
+				 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​t​o​ ​i​n​s​e​r​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
+				 */
+				messageBox: string
+				controls: {
+					/**
+					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+					 */
+					duplicateWelcome: string
+				}
+			}
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -4534,6 +4620,10 @@ export type TranslationFunctions = {
 			 * Log out
 			 */
 			logOut: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
 		}
 		mobileTitles: {
 			/**
@@ -4572,6 +4662,10 @@ export type TranslationFunctions = {
 			 * Edit Location
 			 */
 			networkSettings: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
 		}
 		/**
 		 * Copyright © 2023 
@@ -6343,6 +6437,84 @@ export type TranslationFunctions = {
 		 * You will be redirected in a moment...
 		 */
 		subtitle: () => LocalizedString
+	}
+	enrollmentPage: {
+		/**
+		 * Enrollment
+		 */
+		title: () => LocalizedString
+		controls: {
+			/**
+			 * Restore default
+			 */
+			'default': () => LocalizedString
+			/**
+			 * Save changes
+			 */
+			save: () => LocalizedString
+		}
+		messages: {
+			edit: {
+				/**
+				 * Settings changed
+				 */
+				success: () => LocalizedString
+				/**
+				 * Save failed
+				 */
+				error: () => LocalizedString
+			}
+		}
+		/**
+		 * Enrollment is process by which the new employee will be able to confirm their new account, create a password and configurate VPN device. In this panel you can custom messages for it.
+		 */
+		messageBox: () => LocalizedString
+		settings: {
+			welcomeMessage: {
+				/**
+				 * Welcome message
+				 */
+				title: () => LocalizedString
+				/**
+				 * This information will be displayed for user in service once enrollment is completed. We advise to insert links and explain next steps briefly. You can use same message as in the e-mail.
+				 */
+				messageBox: () => LocalizedString
+			}
+			vpnOptionality: {
+				/**
+				 * VPN set optionallity
+				 */
+				title: () => LocalizedString
+				select: {
+					options: {
+						/**
+						 * Optional
+						 */
+						optional: () => LocalizedString
+						/**
+						 * Mandatory
+						 */
+						mandatory: () => LocalizedString
+					}
+				}
+			}
+			welcomeEmail: {
+				/**
+				 * Welcome e-mail
+				 */
+				title: () => LocalizedString
+				/**
+				 * This information will be sent to user once enrollment is completed. We advise to insert links and explain next steps briefly.
+				 */
+				messageBox: () => LocalizedString
+				controls: {
+					/**
+					 * Same as welcome message
+					 */
+					duplicateWelcome: () => LocalizedString
+				}
+			}
+		}
 	}
 }
 
