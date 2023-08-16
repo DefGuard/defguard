@@ -16,6 +16,7 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 pub(crate) mod app_info;
 pub(crate) mod auth;
+pub mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod license;
 pub(crate) mod mail;

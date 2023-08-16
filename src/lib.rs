@@ -46,6 +46,7 @@ use handlers::{
         totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
         webauthn_init, webauthn_start,
     },
+    forward_auth::forward_auth,
     group::{add_group_member, get_group, list_groups, remove_group_member},
     license::get_license,
     settings::{get_settings, set_default_branding, update_settings},
@@ -158,6 +159,7 @@ pub async fn build_webapp(
             routes![
                 health_check,
                 authenticate,
+                forward_auth,
                 logout,
                 username_available,
                 list_users,
