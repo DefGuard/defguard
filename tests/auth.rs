@@ -1,15 +1,15 @@
-use defguard::db::UserDetails;
-use defguard::handlers::WalletChallenge;
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
-    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, Wallet},
-    handlers::AuthResponse,
-    handlers::{Auth, AuthCode, AuthTotp},
+    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, UserDetails, Wallet},
+    handlers::{Auth, AuthCode, AuthResponse, AuthTotp, WalletChallenge},
 };
 use ethers::core::types::transaction::eip712::{Eip712, TypedData};
 use otpauth::TOTP;
-use rocket::http::Cookie;
-use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
+use rocket::{
+    http::{Cookie, Status},
+    local::asynchronous::Client,
+    serde::json::serde_json::json,
+};
 use secp256k1::{rand::rngs::OsRng, All, Message, Secp256k1, SecretKey};
 use serde::Deserialize;
 use sqlx::query;

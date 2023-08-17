@@ -6,7 +6,7 @@ use defguard::{
     db::{init_db, AppEvent, DbPool, GatewayEvent, User},
     grpc::{GatewayMap, WorkerState},
 };
-use defguard::{db::UserDetails, mail::Mail};
+use defguard::{db::UserDetails, mail::Mail, SERVER_CONFIG};
 use rocket::http::Status;
 use rocket::local::asynchronous::Client;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
@@ -17,6 +17,7 @@ use tokio::sync::mpsc::unbounded_channel;
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     let config = DefGuardConfig::new_test_config();
+    let _ = SERVER_CONFIG.set(config.clone());
     let opts = PgConnectOptions::new()
         .host(&config.database_host)
         .port(config.database_port)

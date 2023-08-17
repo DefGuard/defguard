@@ -42,6 +42,8 @@ pub enum OriWebError {
     BadRequest(String),
     #[error(transparent)]
     TemplateError(#[from] TemplateError),
+    #[error("Server config missing")]
+    ServerConfigMissing,
 }
 
 impl From<tonic::Status> for OriWebError {

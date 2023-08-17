@@ -11,6 +11,7 @@ use crate::{
     error::OriWebError,
     ldap::utils::user_from_ldap,
     license::Features,
+    SERVER_CONFIG,
 };
 use rocket::serde::json::serde_json;
 use rocket::time::Duration;
@@ -94,9 +95,18 @@ pub async fn authenticate(
         None => Duration::days(7),
     };
 
+    let server_config = SERVER_CONFIG
+        .get()
+        .ok_or(OriWebError::ServerConfigMissing)?;
     let auth_cookie = Cookie::build("defguard_session", session.id)
+        .domain(
+            server_config
+                .cookie_domain
+                .clone()
+                .expect("Cookie domain not found"),
+        )
         .http_only(true)
-        .secure(true)
+        .secure(!server_config.cookie_insecure)
         .same_site(SameSite::Lax)
         .max_age(max_age)
         .finish();
