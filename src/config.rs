@@ -207,6 +207,7 @@ impl DefGuardConfig {
     pub fn new_test_config() -> Self {
         let mut config = Self::parse_from::<[_; 0], String>([]);
         config.validate_rp_id();
+        config.validate_cookie_domain();
         config
     }
 
