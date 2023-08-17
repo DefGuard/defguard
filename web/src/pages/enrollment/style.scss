@@ -1,10 +1,13 @@
 @use '@scssutils' as *;
 
 #enrollment-page {
-  box-sizing: border-box;
-  padding: 64px 70px;
-
   h1 {
+    display: none;
+
+    @include media-breakpoint-up(lg) {
+      display: block;
+    }
+
     @include typography(app-title);
 
     color: var(--text-body-primary);
@@ -23,23 +26,62 @@
     user-select: none;
   }
 
-  & > .settings {
-    display: flex;
-    flex-flow: row wrap;
-    max-width: 100%;
-    row-gap: 26px;
-    column-gap: 50px;
+  .page-content {
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 20px;
 
-    & > * {
-      max-width: 730px;
+    @include media-breakpoint-down(lg) {
+      background-color: var(--surface-default-modal);
     }
 
-    & > .left,
-    & > .right {
-      width: 100%;
+    @include media-breakpoint-up(lg) {
+      padding: 64px 75px;
+    }
+
+    & > .message-box {
+      margin-bottom: 26px;
+      justify-items: center;
+      @include media-breakpoint-up(lg) {
+        margin-bottom: 50px;
+      }
+      p {
+        text-align: center;
+      }
+    }
+
+    & > .settings {
       display: flex;
-      flex-flow: column;
+      flex-flow: row wrap;
+      justify-content: center;
+      max-width: 100%;
       row-gap: 26px;
+      column-gap: 50px;
+
+      @include media-breakpoint-up(xxl) {
+        flex-flow: row nowrap;
+      }
+
+      & > .left,
+      & > .right {
+        width: 100%;
+        display: flex;
+        flex-flow: column;
+        row-gap: 26px;
+
+        @include media-breakpoint-up(xl) {
+          max-width: 750px;
+        }
+
+        @include media-breakpoint-up(xxl) {
+          max-width: 1000px;
+        }
+
+        & > * {
+          width: 100%;
+        }
+      }
     }
   }
 }

@@ -90,11 +90,13 @@ export const EnrollmentEmail = () => {
             disabled={isUndefined(settings)}
           />
         </div>
-        <textarea
-          value={email}
-          onChange={(ev) => setEmail(ev.target.value)}
-          disabled={isLoading || isUndefined(settings)}
-        />
+        <div className="text-wrapper">
+          <textarea
+            value={email}
+            onChange={(ev) => setEmail(ev.target.value)}
+            disabled={isLoading || isUndefined(settings)}
+          />
+        </div>
       </Card>
     </div>
   );

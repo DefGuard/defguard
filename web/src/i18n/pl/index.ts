@@ -605,6 +605,7 @@ const pl: Translation = {
       myProfile: 'Mój profil',
       settings: 'Ustawienia',
       logOut: 'Wyloguj się',
+      enrollment: 'Rejestracja',
     },
     mobileTitles: {
       wizard: 'Konfiguracja VPN',
@@ -616,6 +617,7 @@ const pl: Translation = {
       openId: 'Aplikacje OpenID',
       overview: 'Przegląd lokalizacji',
       networkSettings: 'Edycja lokalizacji',
+      enrollment: 'Rejestracja',
     },
     copyright: 'Copyright \u00A9 2023',
     version: {
@@ -1400,6 +1402,43 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
   redirectPage: {
     title: 'Zostałeś zalogowany',
     subtitle: 'Wkrótce zostaniesz przekierowany...',
+  },
+  enrollmentPage: {
+    title: 'Rejestracja',
+    controls: {
+      default: 'Domyślne',
+      save: 'Zapisz zmiany',
+    },
+    messages: {
+      edit: {
+        error: 'Zapis nieudany',
+        success: 'Zapisano zmiany',
+      },
+    },
+    settings: {
+      welcomeMessage: {
+        title: 'Powitalna wiadomość',
+        messageBox: 'Ta informacja będzie wyświetlona w końcowym kroku rejestracj',
+      },
+      welcomeEmail: {
+        title: 'Powitalny E-mail',
+        messageBox: 'Ta informacja będzie wysłana gdy użytkownik zakończy rejestrację.',
+        controls: {
+          duplicateWelcome: 'Identyczna jak wiadomość powitalna',
+        },
+      },
+      vpnOptionality: {
+        title: 'Opcjonalność kroku VPN',
+        select: {
+          options: {
+            optional: 'Opcjnalny',
+            mandatory: 'Obowiązkowy',
+          },
+        },
+      },
+    },
+    messageBox:
+      'Proces rejestracji pozwala użytkownikowi na potwierdzenie swoich informacji, ustawienie hasła oraz skonfigurowanie VPN na swoim urządzeniu. Tutaj możesz skonfigurować ten proces.',
   },
 };
 

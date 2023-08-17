@@ -6,7 +6,10 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Select } from '../../../../shared/defguard-ui/components/Layout/Select/Select';
-import { SelectSelectedValue } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import {
+  SelectSelectedValue,
+  SelectSizeVariant,
+} from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
@@ -90,6 +93,7 @@ export const EnrollmentVPN = () => {
         <h3>{componentLL.title()}</h3>
       </header>
       <Select
+        sizeVariant={SelectSizeVariant.SMALL}
         selected={settings?.enrollment_vpn_step_optional}
         options={vpnOptionalityOptions}
         renderSelected={renderSelectedVpn}

@@ -55,7 +55,7 @@ export const EnrollmentWelcomeMessage = () => {
         <h3>{componentLL.title()}</h3>
       </header>
       <MessageBox type={MessageBoxType.INFO} message={componentLL.messageBox()} />
-      <Card>
+      <Card shaded hideMobile>
         <div className="controls">
           <Button
             size={ButtonSize.SMALL}
@@ -70,11 +70,13 @@ export const EnrollmentWelcomeMessage = () => {
             }}
           />
         </div>
-        <textarea
-          value={message}
-          onChange={(ev) => setMessage(ev.target.value)}
-          disabled={isUndefined(settings) || isLoading}
-        />
+        <div className="text-wrapper">
+          <textarea
+            value={message}
+            onChange={(ev) => setMessage(ev.target.value)}
+            disabled={isUndefined(settings) || isLoading}
+          />
+        </div>
       </Card>
     </div>
   );
