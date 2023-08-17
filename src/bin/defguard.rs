@@ -24,6 +24,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let config = DefGuardConfig::new();
     logging::init(&config.log_level, &config.log_file)?;
     SERVER_CONFIG.set(config.clone())?;
+
+    log::info!("Starting defguard server with config: {config:?}");
+
     match config.openid_signing_key {
         Some(_) => log::info!("Using RSA OpenID signing key"),
         None => log::info!("Using HMAC OpenID signing key"),
