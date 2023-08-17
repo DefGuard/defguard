@@ -159,6 +159,12 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub enrollment_session_timeout: Duration,
 
+    #[arg(long, env = "DEFGUARD_COOKIE_DOMAIN")]
+    pub cookie_domain: Option<String>,
+
+    #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
+    pub cookie_insecure: bool,
+
     #[command(subcommand)]
     #[serde(skip_serializing)]
     pub cmd: Option<Command>,
@@ -193,6 +199,7 @@ impl DefGuardConfig {
     pub fn new() -> Self {
         let mut config = Self::parse();
         config.validate_rp_id();
+        config.validate_cookie_domain();
         config
     }
 
@@ -208,6 +215,19 @@ impl DefGuardConfig {
     fn validate_rp_id(&mut self) {
         if self.webauthn_rp_id.is_none() {
             self.webauthn_rp_id = Some(
+                self.url
+                    .domain()
+                    .expect("Unable to get domain for server URL.")
+                    .to_string(),
+            )
+        }
+    }
+
+    // Check if cookie domain value was provided.
+    // If not generate it based on URL.
+    fn validate_cookie_domain(&mut self) {
+        if self.cookie_domain.is_none() {
+            self.cookie_domain = Some(
                 self.url
                     .domain()
                     .expect("Unable to get domain for server URL.")
@@ -286,5 +306,27 @@ mod tests {
         let config = DefGuardConfig::new();
 
         assert_eq!(config.webauthn_rp_id, Some("example.com".to_string()));
+    }
+
+    #[test]
+    fn test_generate_cookie_domain() {
+        // unset variables
+        env::remove_var("DEFGUARD_URL");
+        env::remove_var("DEFGUARD_COOKIE_DOMAIN");
+
+        env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+
+        let config = DefGuardConfig::new();
+
+        assert_eq!(
+            config.cookie_domain,
+            Some("defguard.example.com".to_string())
+        );
+
+        env::set_var("DEFGUARD_COOKIE_DOMAIN", "example.com");
+
+        let config = DefGuardConfig::new();
+
+        assert_eq!(config.cookie_domain, Some("example.com".to_string()));
     }
 }
