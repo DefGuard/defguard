@@ -1,9 +1,9 @@
-use crate::{appstate::AppState, db::Session, error::OriWebError};
+use crate::{appstate::AppState, db::Session, error::OriWebError, SERVER_CONFIG};
 use reqwest::Url;
 use rocket::{
     http::{CookieJar, Status},
     request::{FromRequest, Outcome, Request},
-    response::Redirect,
+    response::{self, Redirect, Responder},
     State,
 };
 
@@ -11,6 +11,20 @@ use rocket::{
 static FORWARDED_HOST: &str = "X-Forwarded-Host";
 static FORWARDED_PROTO: &str = "X-Forwarded-Proto";
 static FORWARDED_URI: &str = "X-Forwarded-Uri";
+
+pub enum ForwardAuthResponse {
+    Accept,
+    Redirect(String),
+}
+
+impl<'r> Responder<'r, 'static> for ForwardAuthResponse {
+    fn respond_to(self, request: &'r Request) -> response::Result<'static> {
+        match self {
+            Self::Accept => ().respond_to(request),
+            Self::Redirect(location) => Redirect::temporary(location).respond_to(request),
+        }
+    }
+}
 
 pub struct ForwardAuthHeaders {
     pub forwarded_host: Option<String>,
@@ -41,8 +55,7 @@ pub async fn forward_auth(
     appstate: &State<AppState>,
     cookies: &CookieJar<'_>,
     headers: ForwardAuthHeaders,
-) -> Result<Redirect, OriWebError> {
-    println!("{cookies:?}");
+) -> Result<ForwardAuthResponse, OriWebError> {
     // check if session cookie is present
     if let Some(session_cookie) = cookies.get("defguard_session") {
         // check if session is found in DB
@@ -57,19 +70,27 @@ pub async fn forward_auth(
                 let _result = session.delete(&appstate.pool).await;
             } else {
                 // If session is verified return 200 response
-                unimplemented!()
+                return Ok(ForwardAuthResponse::Accept);
             }
         }
     }
     // If no session cookie provided redirect to login
     info!("Valid session not found, redirecting to login page");
+    login_redirect(headers).await
+}
+
+async fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, OriWebError> {
+    let server_url = &SERVER_CONFIG
+        .get()
+        .ok_or(OriWebError::ServerConfigMissing)?
+        .url;
     // prepare redirect URL for login page
-    let mut location = appstate.config.url.join("/auth/login").map_err(|err| {
+    let mut location = server_url.join("/auth/login").map_err(|err| {
         error!("Failed to prepare redirect URL: {err}");
         OriWebError::Http(Status::InternalServerError)
     })?;
     if let Some(host) = headers.forwarded_host {
-        if host != appstate.config.url.to_string() {
+        if host != server_url.to_string() {
             let mut referral_url =
                 Url::parse(format!("http://{}", host).as_str()).map_err(|_| {
                     error!("Failed to parse forwarded host as URL: {host}");
@@ -86,30 +107,6 @@ pub async fn forward_auth(
             location.set_query(Some(format!("r={}", referral_url).as_str()));
         }
     }
-    Ok(Redirect::temporary(location.to_string()))
-}
-
-async fn login_redirect(
-    appstate: &State<AppState>,
-    cookies: &CookieJar<'_>,
-) -> Result<Redirect, OriWebError> {
-    // let base_url = appstate.config.url.join("api/v1/oauth/authorize").unwrap();
-    // let expires = OffsetDateTime::now_utc()
-    //     .checked_add(TimeDuration::minutes(10))
-    //     .ok_or(OriWebError::Http(Status::InternalServerError))?;
-    // let cookie = Cookie::build(
-    //     "known_sign_in",
-    //     format!(
-    //         "{}?{}",
-    //         base_url,
-    //         serde_urlencoded::to_string(data).unwrap()
-    //     ),
-    // )
-    // .secure(true)
-    // .same_site(SameSite::Strict)
-    // .http_only(true)
-    // .expires(expires)
-    // .finish();
-    // cookies.add_private(cookie);
-    Ok(Redirect::found("/login".to_string()))
+    debug!("Redirecting to login page at {location}");
+    Ok(ForwardAuthResponse::Redirect(location.to_string()))
 }
