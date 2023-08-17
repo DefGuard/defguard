@@ -52,21 +52,22 @@ export const AuthPage = () => {
   const redirectUrl = params.get('r');
 
   useEffect(() => {
-    if (redirectUrl && user) {
-      console.log('Redirecting to ', redirectUrl);
-      setShowRedirect(true);
-      window.location.replace(redirectUrl);
-      return;
-    }
-
     if (user && (!mfaMethod || mfaMethod === UserMFAMethod.NONE) && !openIdParams) {
       navigate('/', { replace: true });
     }
-  }, [mfaMethod, navigate, openIdParams, user, redirectUrl]);
+  }, [mfaMethod, navigate, openIdParams, user]);
 
   useEffect(() => {
     const sub = loginSubject.subscribe(async ({ user, url, mfa }) => {
-      // handle openid scenarios first
+      // handle forward auth redirect
+      if (redirectUrl && user) {
+        setShowRedirect(true);
+        resetMFAStore();
+        window.location.replace(redirectUrl);
+        return;
+      }
+
+      // handle openid scenarios
 
       // user authenticated but app needs consent
       if (openIdParams && user && !mfa) {
@@ -130,7 +131,7 @@ export const AuthPage = () => {
     });
     return () => sub?.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loginSubject, openIdParams]);
+  }, [loginSubject, openIdParams, redirectUrl]);
 
   if (showRedirect) return <RedirectPage />;
 
