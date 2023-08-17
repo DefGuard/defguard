@@ -95,17 +95,18 @@ pub async fn authenticate(
         None => Duration::days(7),
     };
 
+    let server_config = SERVER_CONFIG
+        .get()
+        .ok_or(OriWebError::ServerConfigMissing)?;
     let auth_cookie = Cookie::build("defguard_session", session.id)
         .domain(
-            SERVER_CONFIG
-                .get()
-                .expect("Server config not found")
-                .url
-                .domain()
-                .expect("Domain not found"),
+            server_config
+                .cookie_domain
+                .clone()
+                .expect("Cookie domain not found"),
         )
         .http_only(true)
-        .secure(true)
+        .secure(!server_config.cookie_insecure)
         .same_site(SameSite::Lax)
         .max_age(max_age)
         .finish();
