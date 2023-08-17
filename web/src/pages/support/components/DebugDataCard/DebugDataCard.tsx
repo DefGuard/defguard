@@ -1,3 +1,5 @@
+import './style.scss';
+
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { saveAs } from 'file-saver';
 import { useEffect } from 'react';
@@ -11,7 +13,7 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
-import { ContentCard } from '../../../shared/defguard-ui/components/Layout/ContentCard/ContentCard';
+import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -87,39 +89,41 @@ export const DebugDataCard = () => {
   };
 
   return (
-    <>
-      <ContentCard
-        header={<h3>{LL.settingsPage.debugDataCard.title()}</h3>}
-        className="support"
-      >
-        <ReactMarkdown>{LL.settingsPage.debugDataCard.body()}</ReactMarkdown>
-      </ContentCard>
-      <Button
-        className="support-data-button"
-        onClick={() => fetchConfig()}
-        size={ButtonSize.SMALL}
-        styleVariant={ButtonStyleVariant.PRIMARY}
-        icon={<SvgIconDownload />}
-        text={LL.settingsPage.debugDataCard.downloadSupportData()}
-      />
-      <Button
-        className="support-data-button"
-        onClick={() => fetchLogs()}
-        size={ButtonSize.SMALL}
-        styleVariant={ButtonStyleVariant.PRIMARY}
-        icon={<SvgIconDownload />}
-        text={LL.settingsPage.debugDataCard.downloadLogs()}
-      />
-      <Button
-        className="support-data-button"
-        onClick={() => onSendMail()}
-        size={ButtonSize.SMALL}
-        styleVariant={ButtonStyleVariant.PRIMARY}
-        icon={<SvgIconArrowGrayUp />}
-        text={LL.settingsPage.debugDataCard.sendMail()}
-        loading={mailLoading}
-        disabled={!smtp_configured}
-      />
-    </>
+    <section id="debug-data">
+      <Card>
+        <div className="controls">
+          <h4>{LL.settingsPage.debugDataCard.title()}</h4>
+          <Button
+            className="support-data-button"
+            onClick={() => fetchConfig()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            icon={<SvgIconDownload />}
+            text={LL.settingsPage.debugDataCard.downloadSupportData()}
+          />
+          <Button
+            className="support-data-button"
+            onClick={() => fetchLogs()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            icon={<SvgIconDownload />}
+            text={LL.settingsPage.debugDataCard.downloadLogs()}
+          />
+          <Button
+            className="support-data-button"
+            onClick={() => onSendMail()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            icon={<SvgIconArrowGrayUp />}
+            text={LL.settingsPage.debugDataCard.sendMail()}
+            loading={mailLoading}
+            disabled={!smtp_configured}
+          />
+        </div>
+        <div className="content">
+          <ReactMarkdown>{LL.settingsPage.debugDataCard.body()}</ReactMarkdown>
+        </div>
+      </Card>
+    </section>
   );
 };

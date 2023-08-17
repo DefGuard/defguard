@@ -8,24 +8,24 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
-import { useI18nContext } from '../../../i18n/i18n-react';
-import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
-import { deviceBreakpoints } from '../../../shared/constants';
-import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';
+import { deviceBreakpoints } from '../../../../../../shared/constants';
+import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/defguard-ui/components/Layout/Button/types';
-import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
-import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
-import { useAppStore } from '../../../shared/hooks/store/useAppStore';
-import useApi from '../../../shared/hooks/useApi';
-import { useToaster } from '../../../shared/hooks/useToaster';
-import { externalLink } from '../../../shared/links';
-import { MutationKeys } from '../../../shared/mutations';
-import { QueryKeys } from '../../../shared/queries';
-import { Settings } from '../../../shared/types';
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
+import useApi from '../../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
+import { externalLink } from '../../../../../../shared/links';
+import { MutationKeys } from '../../../../../../shared/mutations';
+import { QueryKeys } from '../../../../../../shared/queries';
+import { Settings } from '../../../../../../shared/types';
 
 type FormFields = {
   instance_name: string;
@@ -39,7 +39,7 @@ const defaultSettings: FormFields = {
   nav_logo_url: '/svg/defguard-nav-logo.svg',
 };
 
-export const BrandingCard = () => {
+export const BrandingSettings = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
@@ -135,23 +135,8 @@ export const BrandingCard = () => {
     }
   };
 
-  const disableRestoreDefault = () => {
-    if (settings) {
-      if (
-        settings.instance_name === defaultSettings.instance_name &&
-        settings.nav_logo_url === defaultSettings.nav_logo_url &&
-        settings.main_logo_url === defaultSettings.main_logo_url
-      ) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-    return true;
-  };
-
   return (
-    <section className="branding">
+    <section id="branding-settings">
       <header>
         <h2>{LL.settingsPage.instanceBranding.header()}</h2>
         <Helper>
@@ -162,38 +147,35 @@ export const BrandingCard = () => {
           )}
         </Helper>
       </header>
-      <Card>
-        <header>
+      <Card shaded bordered hideMobile>
+        <div className="controls">
           <h3>{LL.settingsPage.instanceBranding.form.title()}</h3>
-          <div className="controls">
-            <Button
-              text={
-                breakpoint !== 'mobile'
-                  ? LL.settingsPage.instanceBranding.form.controls.restoreDefault()
-                  : undefined
-              }
-              size={ButtonSize.SMALL}
-              icon={<IconCheckmarkWhite />}
-              styleVariant={ButtonStyleVariant.PRIMARY}
-              loading={isLoading}
-              disabled={disableRestoreDefault()}
-              onClick={() => setDefaultBrandingMutation('1')}
-            />
-            <Button
-              form="branding-form"
-              text={
-                breakpoint !== 'mobile'
-                  ? LL.settingsPage.instanceBranding.form.controls.submit()
-                  : undefined
-              }
-              icon={<IconCheckmarkWhite />}
-              size={ButtonSize.SMALL}
-              styleVariant={ButtonStyleVariant.SAVE}
-              loading={isLoading}
-              type="submit"
-            />
-          </div>
-        </header>
+          <Button
+            text={
+              breakpoint !== 'mobile'
+                ? LL.settingsPage.instanceBranding.form.controls.restoreDefault()
+                : undefined
+            }
+            size={ButtonSize.SMALL}
+            icon={<IconCheckmarkWhite />}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            loading={isLoading}
+            onClick={() => setDefaultBrandingMutation('1')}
+          />
+          <Button
+            form="branding-form"
+            text={
+              breakpoint !== 'mobile'
+                ? LL.settingsPage.instanceBranding.form.controls.submit()
+                : undefined
+            }
+            icon={<IconCheckmarkWhite />}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.SAVE}
+            loading={isLoading}
+            type="submit"
+          />
+        </div>
         <form id="branding-form" onSubmit={handleSubmit(onSubmit)}>
           <FormInput
             label={LL.settingsPage.instanceBranding.form.fields.instanceName.label()}
@@ -201,21 +183,23 @@ export const BrandingCard = () => {
             placeholder={LL.settingsPage.instanceBranding.form.fields.instanceName.placeholder()}
             required
           />
-          <Helper>
-            {parse(LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.helper())}
-          </Helper>
           <FormInput
+            labelExtras={
+              <Helper>
+                {parse(LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.helper())}
+              </Helper>
+            }
             label={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.label()}
             controller={{ control, name: 'main_logo_url' }}
             placeholder={LL.settingsPage.instanceBranding.form.fields.mainLogoUrl.placeholder()}
             required
           />
-          <Helper>
-            <p>
-              {parse(LL.settingsPage.instanceBranding.form.fields.navLogoUrl.helper())}
-            </p>
-          </Helper>
           <FormInput
+            labelExtras={
+              <Helper>
+                {parse(LL.settingsPage.instanceBranding.form.fields.navLogoUrl.helper())}
+              </Helper>
+            }
             label={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.label()}
             controller={{ control, name: 'nav_logo_url' }}
             placeholder={LL.settingsPage.instanceBranding.form.fields.navLogoUrl.placeholder()}

@@ -1,0 +1,23 @@
+@use '@scssutils' as *;
+
+#smtp-settings {
+  & > .card {
+    @include media-breakpoint-up(lg) {
+      padding: 16px 15px;
+    }
+
+    .controls {
+      margin-bottom: 20px;
+    }
+  }
+  form {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    row-gap: 5px;
+
+    & > * {
+      width: 100%;
+    }
+  }
+}

@@ -4,17 +4,17 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { cloneDeep } from 'lodash-es';
 
-import { useI18nContext } from '../../../i18n/i18n-react';
-import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
-import { CheckBox } from '../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
-import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
-import { useAppStore } from '../../../shared/hooks/store/useAppStore';
-import useApi from '../../../shared/hooks/useApi';
-import { useToaster } from '../../../shared/hooks/useToaster';
-import { externalLink } from '../../../shared/links';
-import { MutationKeys } from '../../../shared/mutations';
-import { QueryKeys } from '../../../shared/queries';
-import { Settings } from '../../../shared/types';
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { LabeledCheckbox } from '../../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
+import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
+import useApi from '../../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
+import { externalLink } from '../../../../../../shared/links';
+import { MutationKeys } from '../../../../../../shared/mutations';
+import { QueryKeys } from '../../../../../../shared/queries';
+import { Settings } from '../../../../../../shared/types';
 
 type ModulesSettings =
   | 'openid_enabled'
@@ -23,7 +23,7 @@ type ModulesSettings =
   | 'webhooks_enabled'
   | 'worker_enabled';
 
-export const ModulesCard = () => {
+export const ModulesSettings = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
@@ -55,7 +55,7 @@ export const ModulesCard = () => {
   if (!settings) return null;
 
   return (
-    <section className="modules">
+    <section id="modules-settings">
       <header>
         <h2>{LL.settingsPage.modulesVisibility.header()}</h2>
         <Helper>
@@ -66,26 +66,26 @@ export const ModulesCard = () => {
           )}
         </Helper>
       </header>
-      <Card>
-        <CheckBox
+      <Card shaded bordered hideMobile>
+        <LabeledCheckbox
           disabled={isLoading}
           label={LL.settingsPage.modulesVisibility.fields.openid_enabled.label()}
           value={settings.openid_enabled}
           onChange={() => handleChange('openid_enabled')}
         />
-        <CheckBox
+        <LabeledCheckbox
           label={LL.settingsPage.modulesVisibility.fields.wireguard_enabled.label()}
           value={settings.wireguard_enabled}
           disabled={isLoading}
           onChange={() => handleChange('wireguard_enabled')}
         />
-        <CheckBox
+        <LabeledCheckbox
           label={LL.settingsPage.modulesVisibility.fields.worker_enabled.label()}
           value={settings.worker_enabled}
           disabled={isLoading}
           onChange={() => handleChange('worker_enabled')}
         />
-        <CheckBox
+        <LabeledCheckbox
           label={LL.settingsPage.modulesVisibility.fields.webhooks_enabled.label()}
           value={settings.webhooks_enabled}
           disabled={isLoading}

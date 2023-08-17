@@ -1,35 +1,34 @@
+import './style.scss';
+
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useBreakpoint } from 'use-breakpoint';
 import * as yup from 'yup';
 
-import { useI18nContext } from '../../../i18n/i18n-react';
-import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
-import { deviceBreakpoints } from '../../../shared/constants';
-import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import IconCheckmark from '../../../../../../shared/components/svg/IconCheckmark';
+import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/defguard-ui/components/Layout/Button/types';
-import useApi from '../../../shared/hooks/useApi';
-import { useToaster } from '../../../shared/hooks/useToaster';
-import { patternValidEmail } from '../../../shared/patterns';
-import { TestMail } from '../../../shared/types';
+} from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import useApi from '../../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
+import { patternValidEmail } from '../../../../../../shared/patterns';
+import { TestMail } from '../../../../../../shared/types';
 
 type SMTPError = AxiosError<{ error: string }>;
 
-export const TestForm = () => {
+export const SmtpTest = () => {
+  const submitRef = useRef<HTMLInputElement | null>(null);
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     mail: { sendTestMail },
   } = useApi();
-
-  const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
   const { mutate, isLoading } = useMutation([], sendTestMail, {
     onSuccess: () => {
@@ -67,9 +66,22 @@ export const TestForm = () => {
   };
 
   return (
-    <>
+    <section id="smtp-test-mail">
       <header>
-        <h3>{LL.settingsPage.smtp.testForm.title()}</h3>
+        <h2>{LL.settingsPage.smtp.testForm.title()}</h2>
+        <Button
+          text={LL.settingsPage.smtp.testForm.controls.submit()}
+          icon={<IconCheckmark />}
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.SAVE}
+          loading={isLoading}
+          type="submit"
+          onClick={() => {
+            if (!isLoading && submitRef.current) {
+              submitRef?.current?.click();
+            }
+          }}
+        />
       </header>
       <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
         <FormInput
@@ -78,21 +90,8 @@ export const TestForm = () => {
           placeholder={LL.settingsPage.smtp.testForm.fields.to.placeholder()}
           required
         />
-        <div className="controls">
-          <Button
-            text={
-              breakpoint !== 'mobile'
-                ? LL.settingsPage.smtp.testForm.controls.submit()
-                : undefined
-            }
-            icon={<IconCheckmarkWhite />}
-            size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.SAVE}
-            loading={isLoading}
-            type="submit"
-          />
-        </div>
+        <input type="submit" className="hidden" ref={submitRef} />
       </form>
-    </>
+    </section>
   );
 };

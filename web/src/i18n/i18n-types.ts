@@ -1606,22 +1606,18 @@ type RootTranslation = {
 	}
 	settingsPage: {
 		/**
-		 * G​l​o​b​a​l​ ​S​e​t​t​i​n​g​s
+		 * S​e​t​t​i​n​g​s
 		 */
 		title: string
 		tabs: {
-			/**
-			 * G​e​n​e​r​a​l
-			 */
-			general: string
 			/**
 			 * S​M​T​P
 			 */
 			smtp: string
 			/**
-			 * E​n​r​o​l​l​m​e​n​t
+			 * G​l​o​b​a​l​ ​s​e​t​t​i​n​g​s
 			 */
-			enrollment: string
+			global: string
 			/**
 			 * S​u​p​p​o​r​t
 			 */
@@ -1799,13 +1795,9 @@ type RootTranslation = {
 			helper: RequiredParams<'documentationLink'>
 		}
 		smtp: {
-			/**
-			 * S​M​T​P​ ​S​e​t​t​i​n​g​s
-			 */
-			header: string
 			form: {
 				/**
-				 * S​e​t​t​i​n​g​s
+				 * S​M​T​P​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				title: string
 				fields: {
@@ -1917,6 +1909,12 @@ type RootTranslation = {
 					 */
 					error: string
 				}
+			}
+			encryption: {
+				/**
+				 * P​r​o​t​o​c​o​l
+				 */
+				title: string
 			}
 			/**
 			 * 
@@ -4860,22 +4858,18 @@ export type TranslationFunctions = {
 	}
 	settingsPage: {
 		/**
-		 * Global Settings
+		 * Settings
 		 */
 		title: () => LocalizedString
 		tabs: {
-			/**
-			 * General
-			 */
-			general: () => LocalizedString
 			/**
 			 * SMTP
 			 */
 			smtp: () => LocalizedString
 			/**
-			 * Enrollment
+			 * Global settings
 			 */
-			enrollment: () => LocalizedString
+			global: () => LocalizedString
 			/**
 			 * Support
 			 */
@@ -5050,13 +5044,9 @@ export type TranslationFunctions = {
 			helper: (arg: { documentationLink: string }) => LocalizedString
 		}
 		smtp: {
-			/**
-			 * SMTP Settings
-			 */
-			header: () => LocalizedString
 			form: {
 				/**
-				 * Settings
+				 * SMTP configuration
 				 */
 				title: () => LocalizedString
 				fields: {
@@ -5168,6 +5158,12 @@ export type TranslationFunctions = {
 					 */
 					error: () => LocalizedString
 				}
+			}
+			encryption: {
+				/**
+				 * Protocol
+				 */
+				title: () => LocalizedString
 			}
 			/**
 			 * 

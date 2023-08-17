@@ -1,0 +1,48 @@
+@use '@scssutils' as *;
+
+#web3-settings {
+  & > .card {
+    @include media-breakpoint-up(lg) {
+      padding: 16px 15px;
+    }
+
+    & > .controls {
+      margin-bottom: 16px;
+    }
+
+    & > .text-wrap {
+      border-radius: 15px;
+      height: 300px;
+      max-height: 300px;
+      box-sizing: border-box;
+      padding: 20px 10px 20px 20px;
+      overflow: hidden;
+      background-color: var(--surface-frame-bg);
+      border: 1px solid var(--border-primary);
+
+      & > .scroll-wrapper {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
+
+      textarea {
+        width: 100%;
+        resize: none;
+        overflow: auto;
+        background-color: transparent;
+        border: 0 solid transparent;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+
+        @include typography(app-body-2);
+
+        color: var(--text-body-primary);
+      }
+    }
+  }
+}

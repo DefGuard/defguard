@@ -1,0 +1,16 @@
+@use '@scssutils' as *;
+
+#smtp-test-mail {
+  header {
+    .btn {
+      min-width: 100px;
+      margin-left: auto;
+    }
+  }
+  form {
+    width: 100%;
+    & > * {
+      width: 100%;
+    }
+  }
+}

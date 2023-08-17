@@ -684,11 +684,10 @@ const en: BaseTranslation = {
     },
   },
   settingsPage: {
-    title: 'Global Settings',
+    title: 'Settings',
     tabs: {
-      general: 'General',
       smtp: 'SMTP',
-      enrollment: 'Enrollment',
+      global: 'Global settings',
       support: 'Support',
     },
     messages: {
@@ -777,9 +776,8 @@ const en: BaseTranslation = {
 			`,
     },
     smtp: {
-      header: 'SMTP Settings',
       form: {
-        title: 'Settings',
+        title: 'SMTP configuration',
         fields: {
           server: {
             label: 'Server address',
@@ -829,6 +827,9 @@ const en: BaseTranslation = {
           success: 'Test email sent',
           error: 'Error sending email',
         },
+      },
+      encryption: {
+        title: 'Protocol',
       },
       helper: `
         <p>
