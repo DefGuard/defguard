@@ -25,7 +25,7 @@ async fn main() -> Result<(), anyhow::Error> {
     logging::init(&config.log_level, &config.log_file)?;
     SERVER_CONFIG.set(config.clone())?;
 
-    log::info!("Starting defguard server with config: {config:?}");
+    log::debug!("Starting defguard server with config: {config:?}");
 
     match config.openid_signing_key {
         Some(_) => log::info!("Using RSA OpenID signing key"),
