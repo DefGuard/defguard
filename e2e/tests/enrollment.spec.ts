@@ -1,7 +1,7 @@
 import { BrowserContext, Page, expect, test } from '@playwright/test';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { setPassword, setToken, createUserEnrollment, password } from '../utils/controllers/enrollment';
+import { setPassword, setToken, createUserEnrollment, validateData, password } from '../utils/controllers/enrollment';
 import { getPageClipboard } from '../utils/getPageClipboard';
 import { waitForPromise } from '../utils/waitForPromise';
 import { User } from '../types';
@@ -41,11 +41,17 @@ test.describe('Create user with enrollment enabled', () => {
     expect(token).toBeDefined();
     await page.goto('http://localhost:8080/');
     await waitForPromise(2000);
-    await setToken(token, page);
+    await setToken(page, token);
+    // Welcome page
     await page.getByTestId('enrollment-next').click();
+    // Data validation
+    await validateData(page, user);
     await page.getByTestId('enrollment-next').click();
+    // Set password
     await setPassword(page);
+    // VPN 
     await page.getByTestId('enrollment-next').click();
+    // Finish message
     await page.getByTestId('enrollment-next').click();
     loginBasic(page, { username: 'testauth01', password });
     await waitForPromise(2000);

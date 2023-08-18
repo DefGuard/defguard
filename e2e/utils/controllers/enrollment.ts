@@ -1,5 +1,5 @@
 import { BrowserContext } from 'playwright';
-import { Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
@@ -45,28 +45,30 @@ export const createUserEnrollment = async (
     .click();
   await modalElement.locator('.content').locator('.actions').getByTestId('button-close-enrollment').click();
   await modalElement.waitFor({ state: 'hidden' });
-  const response = await getPageClipboard(page);
   await logout(page);
-  return response;
+  return user;
 };
 
 export const setToken = async (
-  token: string,
   page: Page,
+  token: string,
 ) => {
   const formElement = page.getByTestId('enrollment-token-form');
   await formElement.getByTestId('field-token').type(token);
   await formElement.locator('button[type="submit"]').click();
 };
 
-//export const validateData = async (
-  //user: string,
-  //page: Page,
-//) => {
-  //const formElement = page.getByTestId('enrollment-token-form');
-  //await formElement.getByTestId('field-token').type(token);
-  //await formElement.locator('button[type="submit"]').click();
-//};
+export const validateData = async (
+  page: Page,
+  user: User,
+) => {
+  const formElement = page.getByTestId('enrollment-data-verification');
+  expect(formElement.locator('.row').getByTestId('enrollment-first-name').textContent()).toBe(user.firstName);
+  expect(formElement.getByTestId('enrollment-last-name')).toBe(user.lastName);
+  expect(formElement.getByTestId('enrollment-email')).toBe(user.mail);
+  expect(formElement.getByTestId('enrollment-phone')).toBe(user.phone);
+  await formElement.locator('button[type="submit"]').click();
+};
 
 
 export const setPassword = async (
