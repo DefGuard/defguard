@@ -2,9 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
+import { useBreakpoint } from 'use-breakpoint';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { deviceBreakpoints } from '../../../../../../shared/constants';
 import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormToggle } from '../../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
 import { ActionButton } from '../../../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
@@ -34,6 +36,7 @@ type FormFields = {
 export const StartEnrollmentForm = () => {
   const { writeToClipboard } = useClipboard();
   const closeModal = useEnrollmentModalStore((state) => state.close);
+  const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const user = useEnrollmentModalStore((state) => state.user);
   const { LL } = useI18nContext();
   const [enrollmentUrl, setEnrollmentUrl] = useState<string | undefined>(undefined);
@@ -47,7 +50,7 @@ export const StartEnrollmentForm = () => {
       z
         .object({
           mode: z.nativeEnum(EnrollmentMode),
-          email: z.string().trim().email(LL.form.error.invalid()).optional(),
+          email: z.string().email().optional().or(z.literal('')),
         })
         .superRefine((obj, ctx) => {
           if (obj.mode === EnrollmentMode.EMAIL) {
@@ -132,6 +135,7 @@ export const StartEnrollmentForm = () => {
         type="button"
         key={1}
         variant={ActionButtonVariant.COPY}
+        data-testid="copy-enrollment-token"
         onClick={() => {
           const res = `Enrollment URL: ${enrollmentUrl}\nToken: ${enrollmentToken}`;
           writeToClipboard(res);
@@ -144,15 +148,30 @@ export const StartEnrollmentForm = () => {
   return (
     <>
       {showToken ? (
-        <ExpandableCard
-          title={LL.modals.startEnrollment.tokenCard.title()}
-          disableExpand={true}
-          expanded={true}
-          actions={getActions}
-        >
-          <p>Enrollment URL: {enrollmentUrl}</p>
-          <p>Token: {enrollmentToken}</p>
-        </ExpandableCard>
+        <>
+          <ExpandableCard
+            title={LL.modals.startEnrollment.tokenCard.title()}
+            disableExpand={true}
+            expanded={true}
+            actions={getActions}
+          >
+            <p>Enrollment URL: {enrollmentUrl}</p>
+            <p>Token: {enrollmentToken}</p>
+          </ExpandableCard>
+          {breakpoint === 'desktop' && (
+            <div className="actions">
+              <Button
+                data-testid="button-close-enrollment"
+                type="button"
+                size={ButtonSize.LARGE}
+                styleVariant={ButtonStyleVariant.STANDARD}
+                text={LL.form.close()}
+                className="close"
+                onClick={() => closeModal()}
+              />
+            </div>
+          )}
+        </>
       ) : (
         <form data-testid="start-enrollment-form" onSubmit={handleSubmit(onSubmit)}>
           <FormToggle
