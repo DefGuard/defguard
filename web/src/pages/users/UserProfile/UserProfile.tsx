@@ -8,18 +8,17 @@ import { useParams } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import IconCheckmarkWhite from '../../../shared/components/svg/IconCheckmarkWhite';
+import IconEdit from '../../../shared/components/svg/IconEdit';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { EditButton } from '../../../shared/components/layout/EditButton/EditButton';
-import {
-  EditButtonOption,
-  EditButtonOptionStyleVariant,
-} from '../../../shared/components/layout/EditButton/EditButtonOption';
-import { IconCheckmarkWhite, IconEdit } from '../../../shared/components/svg';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import { EditButtonOption } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';

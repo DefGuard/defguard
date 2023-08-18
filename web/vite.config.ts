@@ -1,8 +1,7 @@
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';
 import autoprefixer from 'autoprefixer';
 import * as path from 'path';
 import { defineConfig } from 'vite';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 let buildTarget = 'modules';
 
@@ -12,12 +11,7 @@ if (process.env.TAURI_PLATFORM) {
 
 export default defineConfig({
   clearScreen: false,
-  plugins: [
-    react(),
-    nodePolyfills({
-      protocolImports: true,
-    }),
-  ],
+  plugins: [react()],
   server: {
     strictPort: true,
     port: 3000,
@@ -57,6 +51,12 @@ export default defineConfig({
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+    rollupOptions: {
+      logLevel: 'silent',
+      onwarn: (warning, warn) => {
+        return;
+      },
+    },
   },
   css: {
     postcss: {

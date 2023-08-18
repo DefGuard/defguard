@@ -8,6 +8,7 @@ use crate::{
     },
 };
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
+use enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer};
 #[cfg(feature = "wireguard")]
 use gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -19,7 +20,9 @@ use tokio::sync::mpsc::UnboundedSender;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 use crate::auth::failed_login::FailedLoginMap;
+use crate::config::DefGuardConfig;
 use crate::db::AppEvent;
+use crate::mail::Mail;
 use chrono::{NaiveDateTime, Utc};
 use serde::Serialize;
 use std::time::Duration;
@@ -29,6 +32,7 @@ use tokio::sync::broadcast::Sender;
 use uuid::Uuid;
 
 mod auth;
+pub mod enrollment;
 #[cfg(feature = "wireguard")]
 pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -226,17 +230,24 @@ impl GatewayState {
 
 /// Runs gRPC server with core services.
 pub async fn run_grpc_server(
-    grpc_port: u16,
+    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: DbPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
+    let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(
+        pool.clone(),
+        wireguard_tx.clone(),
+        mail_tx,
+        config.clone(),
+    ));
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
@@ -248,7 +259,7 @@ pub async fn run_grpc_server(
         JwtInterceptor::new(ClaimsType::Gateway),
     );
     // Run gRPC server
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), grpc_port);
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.grpc_port);
     info!("Started gRPC services");
     let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
         let identity = Identity::from_pem(cert, key);
@@ -259,6 +270,7 @@ pub async fn run_grpc_server(
     let builder = builder.http2_keepalive_interval(Some(Duration::from_secs(10)));
     let mut builder = builder.tcp_keepalive(Some(Duration::from_secs(10)));
     let router = builder.add_service(auth_service);
+    let router = router.add_service(enrollment_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]

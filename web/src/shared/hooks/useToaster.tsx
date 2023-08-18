@@ -1,5 +1,5 @@
-import { ToastType } from '../components/layout/ToastManager/Toast/Toast';
-import { useToastsStore } from './store/useToastStore';
+import { ToastType } from '../defguard-ui/components/Layout/ToastManager/Toast/types';
+import { useToastsStore } from '../defguard-ui/hooks/toasts/useToastStore';
 
 export const useToaster = () => {
   const addToast = useToastsStore((store) => store.addToast);

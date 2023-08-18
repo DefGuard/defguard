@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
-import { Button } from '../../../../../../../shared/components/layout/Button/Button';
-import { ButtonStyleVariant } from '../../../../../../../shared/components/layout/Button/types';
-import { RowBox } from '../../../../../../../shared/components/layout/RowBox/RowBox';
 import SvgIconKey from '../../../../../../../shared/components/svg/IconKey';
 import { ColorsRGB } from '../../../../../../../shared/constants';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import { ButtonStyleVariant } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { RowBox } from '../../../../../../../shared/defguard-ui/components/Layout/RowBox/RowBox';
 import { SecurityKey } from '../../../../../../../shared/types';
 
 interface KeyRowProps {

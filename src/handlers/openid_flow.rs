@@ -333,14 +333,14 @@ pub async fn authorization(
                     error = CoreAuthErrorResponseType::LoginRequired;
                 }
                 _ => {
-                    if let Some(session_cookie) = cookies.get("defguard_session") {
+                    return if let Some(session_cookie) = cookies.get("defguard_session") {
                         match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
                             Ok(Some(session)) => {
                                 // If session expired return login
                                 if session.expired() {
                                     info!("Session {} for user id {} has expired, redirecting to login", session.id, session.user_id);
                                     let _result = session.delete(&appstate.pool).await;
-                                    return login_redirect(appstate, &data, cookies).await;
+                                    login_redirect(appstate, &data, cookies).await
                                 } else {
                                     // If session is present check if app is in user authorized apps.
                                     // If yes return auth code and state else redirect to consent form.
@@ -360,15 +360,15 @@ pub async fn authorization(
                                                 Some(session.user_id),
                                             )
                                             .await?;
-                                            return Ok(Redirect::found(location));
+                                            Ok(Redirect::found(location))
                                         }
                                         // If authorized app not found redirect to consent form
                                         None => {
                                             info!("OAuth client id {} not yet authorized by user id {}, redirecting to consent form", oauth2client.id.unwrap(), session.user_id);
-                                            return Ok(Redirect::found(format!(
+                                            Ok(Redirect::found(format!(
                                                 "/consent?{}",
                                                 serde_urlencoded::to_string(data).unwrap()
-                                            )));
+                                            )))
                                         }
                                     }
                                 }
@@ -379,15 +379,15 @@ pub async fn authorization(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
                                 );
-                                return login_redirect(appstate, &data, cookies).await;
+                                login_redirect(appstate, &data, cookies).await
                             }
                         }
 
                     // If no session cookie provided redirect to login
                     } else {
                         info!("Session cookie not provided, redirecting to login page");
-                        return login_redirect(appstate, &data, cookies).await;
-                    }
+                        login_redirect(appstate, &data, cookies).await
+                    };
                 }
             },
             Err(err) => {

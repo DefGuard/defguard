@@ -72,7 +72,7 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
           column-gap: 0.6rem;
 
           & > span {
-            @include mix.typography(12px, 14px, medium, v.$gray-light);
+            @include mix.typography-legacy(12px, 14px, medium, v.$gray-light);
           }
 
           &.active {

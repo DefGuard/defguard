@@ -1,4 +1,7 @@
-use defguard::{db::models::settings::Settings, handlers::Auth};
+use defguard::{
+    db::models::settings::{Settings, SmtpEncryption},
+    handlers::Auth,
+};
 use rocket::{http::Status, local::asynchronous::Client};
 
 mod common;
@@ -39,6 +42,17 @@ async fn test_settings() {
                 This request will not trigger a blockchain transaction or cost any gas fees."
                 .trim_start()
                 .into(),
+            smtp_server: None,
+            smtp_port: None,
+            smtp_encryption: SmtpEncryption::StartTls,
+            smtp_user: None,
+            smtp_password: None,
+            smtp_sender: None,
+            enrollment_vpn_step_optional: true,
+            enrollment_welcome_message: None,
+            enrollment_welcome_email: None,
+            enrollment_welcome_email_subject: None,
+            enrollment_use_welcome_message_as_email: true,
         }
     );
 

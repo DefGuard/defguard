@@ -24,10 +24,6 @@ type RootTranslation = {
 		 */
 		success: string
 		/**
-		 * C​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
-		 */
-		successClipboard: string
-		/**
 		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
 		 */
 		errorVersion: string
@@ -36,9 +32,19 @@ type RootTranslation = {
 		 */
 		errorLicense: string
 		/**
-		 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
+		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
-		clipboardError: string
+		insecureContext: string
+		clipboard: {
+			/**
+			 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
+			 */
+			error: string
+			/**
+			 * C​o​n​t​e​n​t​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d​.
+			 */
+			success: string
+		}
 	}
 	modals: {
 		changePasswordSelf: {
@@ -81,6 +87,52 @@ type RootTranslation = {
 				 * C​a​n​c​e​l
 				 */
 				cancel: string
+			}
+		}
+		startEnrollment: {
+			/**
+			 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
+			 */
+			title: string
+			messages: {
+				/**
+				 * U​s​e​r​ ​e​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​u​s​e​r​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				error: string
+			}
+			form: {
+				email: {
+					/**
+					 * E​m​a​i​l
+					 */
+					label: string
+				}
+				mode: {
+					options: {
+						/**
+						 * S​e​n​d​ ​t​o​k​e​n​ ​b​y​ ​e​m​a​i​l
+						 */
+						email: string
+						/**
+						 * D​e​l​i​v​e​r​ ​t​o​k​e​n​ ​y​o​u​r​s​e​l​f
+						 */
+						manual: string
+					}
+				}
+				/**
+				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				submit: string
+			}
+			tokenCard: {
+				/**
+				 * C​o​p​y​ ​e​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n
+				 */
+				title: string
 			}
 		}
 		deleteNetwork: {
@@ -668,6 +720,12 @@ type RootTranslation = {
 						placeholder: string
 						/**
 						 * P​h​o​n​e
+						 */
+						label: string
+					}
+					enableEnrollment: {
+						/**
+						 * U​s​e​ ​r​e​m​o​t​e​ ​e​n​r​o​l​l​m​e​n​t
 						 */
 						label: string
 					}
@@ -1265,6 +1323,10 @@ type RootTranslation = {
 				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
 				 */
 				'delete': string
+				/**
+				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				startEnrollment: string
 			}
 		}
 	}
@@ -1539,6 +1601,24 @@ type RootTranslation = {
 		 * G​l​o​b​a​l​ ​S​e​t​t​i​n​g​s
 		 */
 		title: string
+		tabs: {
+			/**
+			 * G​e​n​e​r​a​l
+			 */
+			general: string
+			/**
+			 * S​M​T​P
+			 */
+			smtp: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			support: string
+		}
 		messages: {
 			/**
 			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
@@ -1709,6 +1789,259 @@ type RootTranslation = {
 			 * @param {string} documentationLink
 			 */
 			helper: RequiredParams<'documentationLink'>
+		}
+		smtp: {
+			/**
+			 * S​M​T​P​ ​S​e​t​t​i​n​g​s
+			 */
+			header: string
+			form: {
+				/**
+				 * S​e​t​t​i​n​g​s
+				 */
+				title: string
+				fields: {
+					server: {
+						/**
+						 * S​e​r​v​e​r​ ​a​d​d​r​e​s​s
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+					}
+					port: {
+						/**
+						 * S​e​r​v​e​r​ ​p​o​r​t
+						 */
+						label: string
+						/**
+						 * P​o​r​t
+						 */
+						placeholder: string
+					}
+					encryption: {
+						/**
+						 * E​n​c​r​y​p​t​i​o​n
+						 */
+						label: string
+						/**
+						 * N​o​n​e
+						 */
+						none: string
+					}
+					user: {
+						/**
+						 * S​e​r​v​e​r​ ​u​s​e​r​n​a​m​e
+						 */
+						label: string
+						/**
+						 * U​s​e​r​n​a​m​e
+						 */
+						placeholder: string
+					}
+					password: {
+						/**
+						 * S​e​r​v​e​r​ ​p​a​s​s​w​o​r​d
+						 */
+						label: string
+						/**
+						 * P​a​s​s​w​o​r​d
+						 */
+						placeholder: string
+					}
+					sender: {
+						/**
+						 * S​e​n​d​e​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+						/**
+						 * 
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​f​r​o​m​ ​t​h​i​s​ ​a​d​d​r​e​s​s​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​E​.​g​.​ ​n​o​-​r​e​p​l​y​@​m​y​-​c​o​m​p​a​n​y​.​c​o​m​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+						 */
+						helper: string
+					}
+				}
+				controls: {
+					/**
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
+					 */
+					submit: string
+				}
+			}
+			testForm: {
+				/**
+				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
+				 */
+				title: string
+				fields: {
+					to: {
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+					}
+				}
+				controls: {
+					/**
+					 * S​e​n​d
+					 */
+					submit: string
+					/**
+					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t
+					 */
+					success: string
+					/**
+					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
+					 */
+					error: string
+				}
+			}
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​r​v​e​r​ ​u​s​e​d​ ​t​o​ ​s​e​n​d​ ​s​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​t​o​ ​t​h​e​ ​u​s​e​r​s​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​	​	​
+			 */
+			helper: string
+		}
+		enrollment: {
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.
+			 */
+			helper: string
+			vpnOptionality: {
+				/**
+				 * V​P​N​ ​s​t​e​p​ ​o​p​t​i​o​n​a​l​i​t​y
+				 */
+				header: string
+				/**
+				 * Y​o​u​ ​c​a​n​ ​c​h​o​o​s​e​ ​w​h​e​t​h​e​r​ ​c​r​e​a​t​i​n​g​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​ ​i​s​ ​o​p​t​i​o​n​a​l​ ​o​r​ ​m​a​n​d​a​t​o​r​y​ ​d​u​r​i​n​g​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				helper: string
+			}
+			welcomeMessage: {
+				/**
+				 * W​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+				 */
+				header: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				helper: string
+			}
+			welcomeEmail: {
+				/**
+				 * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
+				 */
+				header: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				helper: string
+			}
+			form: {
+				controls: {
+					/**
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
+					 */
+					submit: string
+				}
+				welcomeMessage: {
+					/**
+					 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
+					 */
+					helper: string
+					/**
+					 * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+					 */
+					placeholder: string
+				}
+				welcomeEmail: {
+					/**
+					 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.​ ​Y​o​u​ ​c​a​n​ ​r​e​u​s​e​ ​t​h​e​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e​ ​h​e​r​e​.
+					 */
+					helper: string
+					/**
+					 * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​e​m​a​i​l
+					 */
+					placeholder: string
+				}
+				welcomeEmailSubject: {
+					/**
+					 * S​u​b​j​e​c​t
+					 */
+					label: string
+				}
+				useMessageAsEmail: {
+					/**
+					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+					 */
+					label: string
+				}
+			}
+		}
+		debugDataCard: {
+			/**
+			 * S​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			title: string
+			/**
+			 * 
+		​I​f​ ​y​o​u​ ​n​e​e​d​ ​a​s​s​i​s​t​a​n​c​e​ ​o​r​ ​y​o​u​ ​w​e​r​e​ ​a​s​k​e​d​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​s​u​p​p​o​r​t​ ​d​a​t​a​ ​b​y​ ​o​u​r​ ​t​e​a​m​ ​(​f​o​r​ ​e​x​a​m​p​l​e​ ​o​n​ ​o​u​r​ ​M​a​t​r​i​x​ ​s​u​p​p​o​r​t​ ​c​h​a​n​n​e​l​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​,​ ​y​o​u​ ​h​a​v​e​ ​t​w​o​ ​o​p​t​i​o​n​s​:​
+		​*​ ​E​i​t​h​e​r​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​c​l​i​c​k​ ​"​S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​
+		​*​ ​O​r​ ​c​l​i​c​k​ ​"​D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​b​u​g​ ​r​e​p​o​r​t​ ​i​n​ ​o​u​r​ ​G​i​t​H​u​b​ ​a​t​t​a​c​h​i​n​g​ ​t​h​i​s​ ​f​i​l​e​.​
+	
+			 */
+			body: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			downloadSupportData: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​l​o​g​s
+			 */
+			downloadLogs: string
+			/**
+			 * S​e​n​d​ ​e​m​a​i​l
+			 */
+			sendMail: string
+			/**
+			 * E​m​a​i​l​ ​s​e​n​t
+			 */
+			mailSent: string
+			/**
+			 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
+			 */
+			mailError: string
 		}
 		licenseCard: {
 			/**
@@ -2869,10 +3202,6 @@ export type TranslationFunctions = {
 		 */
 		success: () => LocalizedString
 		/**
-		 * Copied to clipboard
-		 */
-		successClipboard: () => LocalizedString
-		/**
 		 * Failed to get application version.
 		 */
 		errorVersion: () => LocalizedString
@@ -2881,9 +3210,19 @@ export type TranslationFunctions = {
 		 */
 		errorLicense: () => LocalizedString
 		/**
-		 * Clipboard is not accessible.
+		 * Context is not secure.
 		 */
-		clipboardError: () => LocalizedString
+		insecureContext: () => LocalizedString
+		clipboard: {
+			/**
+			 * Clipboard is not accessible.
+			 */
+			error: () => LocalizedString
+			/**
+			 * Content copied to clipboard.
+			 */
+			success: () => LocalizedString
+		}
 	}
 	modals: {
 		changePasswordSelf: {
@@ -2926,6 +3265,52 @@ export type TranslationFunctions = {
 				 * Cancel
 				 */
 				cancel: () => LocalizedString
+			}
+		}
+		startEnrollment: {
+			/**
+			 * Start enrollment
+			 */
+			title: () => LocalizedString
+			messages: {
+				/**
+				 * User enrollment started
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to start user enrollment
+				 */
+				error: () => LocalizedString
+			}
+			form: {
+				email: {
+					/**
+					 * Email
+					 */
+					label: () => LocalizedString
+				}
+				mode: {
+					options: {
+						/**
+						 * Send token by email
+						 */
+						email: () => LocalizedString
+						/**
+						 * Deliver token yourself
+						 */
+						manual: () => LocalizedString
+					}
+				}
+				/**
+				 * Start enrollment
+				 */
+				submit: () => LocalizedString
+			}
+			tokenCard: {
+				/**
+				 * Copy enrollment token
+				 */
+				title: () => LocalizedString
 			}
 		}
 		deleteNetwork: {
@@ -3506,6 +3891,12 @@ export type TranslationFunctions = {
 						placeholder: () => LocalizedString
 						/**
 						 * Phone
+						 */
+						label: () => LocalizedString
+					}
+					enableEnrollment: {
+						/**
+						 * Use remote enrollment
 						 */
 						label: () => LocalizedString
 					}
@@ -4102,6 +4493,10 @@ export type TranslationFunctions = {
 				 * Delete account
 				 */
 				'delete': () => LocalizedString
+				/**
+				 * Start enrollment
+				 */
+				startEnrollment: () => LocalizedString
 			}
 		}
 	}
@@ -4374,6 +4769,24 @@ export type TranslationFunctions = {
 		 * Global Settings
 		 */
 		title: () => LocalizedString
+		tabs: {
+			/**
+			 * General
+			 */
+			general: () => LocalizedString
+			/**
+			 * SMTP
+			 */
+			smtp: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
+			/**
+			 * Support
+			 */
+			support: () => LocalizedString
+		}
 		messages: {
 			/**
 			 * Settings updated
@@ -4541,6 +4954,259 @@ export type TranslationFunctions = {
 				
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
+		}
+		smtp: {
+			/**
+			 * SMTP Settings
+			 */
+			header: () => LocalizedString
+			form: {
+				/**
+				 * Settings
+				 */
+				title: () => LocalizedString
+				fields: {
+					server: {
+						/**
+						 * Server address
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+					}
+					port: {
+						/**
+						 * Server port
+						 */
+						label: () => LocalizedString
+						/**
+						 * Port
+						 */
+						placeholder: () => LocalizedString
+					}
+					encryption: {
+						/**
+						 * Encryption
+						 */
+						label: () => LocalizedString
+						/**
+						 * None
+						 */
+						none: () => LocalizedString
+					}
+					user: {
+						/**
+						 * Server username
+						 */
+						label: () => LocalizedString
+						/**
+						 * Username
+						 */
+						placeholder: () => LocalizedString
+					}
+					password: {
+						/**
+						 * Server password
+						 */
+						label: () => LocalizedString
+						/**
+						 * Password
+						 */
+						placeholder: () => LocalizedString
+					}
+					sender: {
+						/**
+						 * Sender email address
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * 
+					              <p>
+					                System messages will be sent from this address.
+					                E.g. no-reply@my-company.com.
+					              </p>
+					            
+						 */
+						helper: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Save changes
+					 */
+					submit: () => LocalizedString
+				}
+			}
+			testForm: {
+				/**
+				 * Send test email
+				 */
+				title: () => LocalizedString
+				fields: {
+					to: {
+						/**
+						 * Address
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Send
+					 */
+					submit: () => LocalizedString
+					/**
+					 * Test email sent
+					 */
+					success: () => LocalizedString
+					/**
+					 * Error sending email
+					 */
+					error: () => LocalizedString
+				}
+			}
+			/**
+			 * 
+		        <p>
+		          Here you can configure SMTP server used to send system messages to the users.
+		        </p>
+				
+			 */
+			helper: () => LocalizedString
+		}
+		enrollment: {
+			/**
+			 * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device.
+			 */
+			helper: () => LocalizedString
+			vpnOptionality: {
+				/**
+				 * VPN step optionality
+				 */
+				header: () => LocalizedString
+				/**
+				 * You can choose whether creating a VPN device is optional or mandatory during enrollment
+				 */
+				helper: () => LocalizedString
+			}
+			welcomeMessage: {
+				/**
+				 * Welcome message
+				 */
+				header: () => LocalizedString
+				/**
+				 * 
+			        <p>In this text input you can use Markdown:</p>
+			        <ul>
+			          <li>Headings start with a hash #</li>
+			          <li>Use asterisks for <i>*italics*</i></li>
+			          <li>Use two asterisks for <b>**bold**</b></li>
+			        </ul>
+			        
+				 */
+				helper: () => LocalizedString
+			}
+			welcomeEmail: {
+				/**
+				 * Welcome e-mail
+				 */
+				header: () => LocalizedString
+				/**
+				 * 
+			        <p>In this text input you can use Markdown:</p>
+			        <ul>
+			          <li>Headings start with a hash #</li>
+			          <li>Use asterisks for <i>*italics*</i></li>
+			          <li>Use two asterisks for <b>**bold**</b></li>
+			        </ul>
+			        
+				 */
+				helper: () => LocalizedString
+			}
+			form: {
+				controls: {
+					/**
+					 * Save changes
+					 */
+					submit: () => LocalizedString
+				}
+				welcomeMessage: {
+					/**
+					 * This information will be displayed for the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly.
+					 */
+					helper: () => LocalizedString
+					/**
+					 * Please input welcome message
+					 */
+					placeholder: () => LocalizedString
+				}
+				welcomeEmail: {
+					/**
+					 * This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.
+					 */
+					helper: () => LocalizedString
+					/**
+					 * Please input welcome email
+					 */
+					placeholder: () => LocalizedString
+				}
+				welcomeEmailSubject: {
+					/**
+					 * Subject
+					 */
+					label: () => LocalizedString
+				}
+				useMessageAsEmail: {
+					/**
+					 * Same as welcome message
+					 */
+					label: () => LocalizedString
+				}
+			}
+		}
+		debugDataCard: {
+			/**
+			 * Support data
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+		* Either you can configure SMTP settings and click "Send support data"
+		* Or click "Download support data" and create a bug report in our GitHub attaching this file.
+	
+			 */
+			body: () => LocalizedString
+			/**
+			 * Download support data
+			 */
+			downloadSupportData: () => LocalizedString
+			/**
+			 * Download logs
+			 */
+			downloadLogs: () => LocalizedString
+			/**
+			 * Send email
+			 */
+			sendMail: () => LocalizedString
+			/**
+			 * Email sent
+			 */
+			mailSent: () => LocalizedString
+			/**
+			 * Error sending email
+			 */
+			mailError: () => LocalizedString
 		}
 		licenseCard: {
 			/**

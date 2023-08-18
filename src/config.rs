@@ -4,11 +4,14 @@ use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
 
-#[derive(Clone, Parser)]
+#[derive(Clone, Parser, Serialize, Debug)]
 #[command(version)]
 pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,
+
+    #[arg(long, env = "DEFGUARD_LOG_FILE")]
+    pub log_file: Option<String>,
 
     #[arg(long, env = "DEFGUARD_AUTH_SESSION_LIFETIME")]
     pub session_auth_lifetime: Option<i64>,
@@ -54,6 +57,7 @@ pub struct DefGuardConfig {
     pub default_admin_password: String,
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
+    #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
 
     // relying party id and relying party origin for WebAuthn
@@ -133,16 +137,40 @@ pub struct DefGuardConfig {
     pub disable_stats_purge: bool,
 
     #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY", default_value = "24h")]
+    #[serde(skip_serializing)]
     pub stats_purge_frequency: Duration,
 
     #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD", default_value = "30d")]
+    #[serde(skip_serializing)]
     pub stats_purge_threshold: Duration,
 
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
+    pub enrollment_url: Url,
+
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT", default_value = "24h")]
+    #[serde(skip_serializing)]
+    pub enrollment_token_timeout: Duration,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_ENROLLMENT_SESSION_TIMEOUT",
+        default_value = "10m"
+    )]
+    #[serde(skip_serializing)]
+    pub enrollment_session_timeout: Duration,
+
+    #[arg(long, env = "DEFGUARD_COOKIE_DOMAIN")]
+    pub cookie_domain: Option<String>,
+
+    #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
+    pub cookie_insecure: bool,
+
     #[command(subcommand)]
+    #[serde(skip_serializing)]
     pub cmd: Option<Command>,
 }
 
-#[derive(Clone, Parser)]
+#[derive(Clone, Debug, Parser)]
 pub enum Command {
     #[command(
         about = "Initialize development environment. Inserts test network and device into database."
@@ -171,6 +199,7 @@ impl DefGuardConfig {
     pub fn new() -> Self {
         let mut config = Self::parse();
         config.validate_rp_id();
+        config.validate_cookie_domain();
         config
     }
 
@@ -178,6 +207,7 @@ impl DefGuardConfig {
     pub fn new_test_config() -> Self {
         let mut config = Self::parse_from::<[_; 0], String>([]);
         config.validate_rp_id();
+        config.validate_cookie_domain();
         config
     }
 
@@ -186,6 +216,19 @@ impl DefGuardConfig {
     fn validate_rp_id(&mut self) {
         if self.webauthn_rp_id.is_none() {
             self.webauthn_rp_id = Some(
+                self.url
+                    .domain()
+                    .expect("Unable to get domain for server URL.")
+                    .to_string(),
+            )
+        }
+    }
+
+    // Check if cookie domain value was provided.
+    // If not generate it based on URL.
+    fn validate_cookie_domain(&mut self) {
+        if self.cookie_domain.is_none() {
+            self.cookie_domain = Some(
                 self.url
                     .domain()
                     .expect("Unable to get domain for server URL.")
@@ -264,5 +307,27 @@ mod tests {
         let config = DefGuardConfig::new();
 
         assert_eq!(config.webauthn_rp_id, Some("example.com".to_string()));
+    }
+
+    #[test]
+    fn test_generate_cookie_domain() {
+        // unset variables
+        env::remove_var("DEFGUARD_URL");
+        env::remove_var("DEFGUARD_COOKIE_DOMAIN");
+
+        env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+
+        let config = DefGuardConfig::new();
+
+        assert_eq!(
+            config.cookie_domain,
+            Some("defguard.example.com".to_string())
+        );
+
+        env::set_var("DEFGUARD_COOKIE_DOMAIN", "example.com");
+
+        let config = DefGuardConfig::new();
+
+        assert_eq!(config.cookie_domain, Some("example.com".to_string()));
     }
 }

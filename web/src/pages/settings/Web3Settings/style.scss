@@ -2,10 +2,9 @@
 
 #settings-page {
   .web3-settings {
-
     & > .card {
       box-sizing: border-box;
-      padding: 2.5rem 2rem 2.5rem 1.5rem;
+      padding: 25px 20px 25px 15px;
 
       & > header {
         display: flex;
@@ -14,7 +13,7 @@
         align-items: flex-start;
         justify-content: flex-start;
         width: 100%;
-        margin-bottom: 1.5rem;
+        margin-bottom: 15px;
 
         & > h3 {
           @include small-header;
@@ -33,11 +32,11 @@
         height: 147px;
         margin: 0;
         box-sizing: border-box;
-        padding: 2rem 1.5rem;
+        padding: 20px 15px;
         border-radius: 10px;
         border: 1px solid var(--gray-lighter);
 
-        @include typography(15px, 23px, regular, var(--text-main), 'Poppins');
+        @include typography-legacy(15px, 23px, regular, var(--text-main), 'Poppins');
       }
     }
   }

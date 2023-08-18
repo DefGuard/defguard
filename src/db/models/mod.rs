@@ -1,6 +1,7 @@
 #[cfg(feature = "openid")]
 pub mod auth_code;
 pub mod device;
+pub mod enrollment;
 pub mod error;
 pub mod group;
 #[cfg(feature = "openid")]
@@ -39,7 +40,7 @@ pub struct WalletInfo {
     pub use_for_mfa: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OAuth2AuthorizedAppInfo {
     pub oauth2client_id: i64,
     pub user_id: i64,
@@ -54,7 +55,7 @@ pub struct SecurityKey {
 }
 
 // Basic user info used in user list, etc.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct UserInfo {
     pub id: Option<i64>,
     pub username: String,
@@ -70,6 +71,7 @@ pub struct UserInfo {
     pub groups: Vec<String>,
     pub mfa_method: MFAMethod,
     pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
+    pub is_active: bool,
 }
 
 impl UserInfo {
@@ -92,6 +94,7 @@ impl UserInfo {
             groups,
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
+            is_active: user.has_password(),
         })
     }
 
@@ -248,7 +251,7 @@ mod test {
     async fn test_user_info(pool: DbPool) {
         let mut user = User::new(
             "hpotter".into(),
-            "pass123",
+            Some("pass123"),
             "Potter".into(),
             "Harry".into(),
             "h.potter@hogwart.edu.uk".into(),

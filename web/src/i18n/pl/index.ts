@@ -1,13 +1,17 @@
+/* eslint-disable max-len */
 import type { Translation } from '../i18n-types';
 
 const pl: Translation = {
   messages: {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
-    successClipboard: 'Skopiowano do schowka',
     errorVersion: 'Nie udało się uzyskać wersji aplikacji.',
     errorLicense: 'Nie udało się uzyskać licencji.',
-    clipboardError: 'Schowek nie jest dostępny.',
+    clipboard: {
+      success: 'Skopiowano do schowka',
+      error: 'Schowek nie jest dostępny',
+    },
+    insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
     changePasswordSelf: {
@@ -26,6 +30,28 @@ const pl: Translation = {
       controls: {
         cancel: 'Wróć',
         submit: 'Zmień hasło',
+      },
+    },
+    startEnrollment: {
+      title: 'Rozpocznij rejestrację',
+      messages: {
+        success: 'Rejestracja użytkownika rozpoczęta',
+        error: 'Błąd rejestracji użytkownika',
+      },
+      form: {
+        email: {
+          label: 'Email',
+        },
+        mode: {
+          options: {
+            email: 'Wyślij token przez email',
+            manual: 'Przekaż token ręcznie',
+          },
+        },
+        submit: 'Rozpocznij rejestrację',
+      },
+      tokenCard: {
+        title: 'Skopiuj token',
       },
     },
     deleteNetwork: {
@@ -276,7 +302,7 @@ const pl: Translation = {
     provisionKeys: {
       title: 'Provisionowanie YubiKeya:',
       infoBox: `Wybrany provisioner musi mieć podłączony <b>pusty</b> YubiKey.
-                Aby zresetować YubiKey uruchom
+                Aby zresetować YubiKey uruchom
                 <b>gpg --card-edit</b> przed generowaniem kluczy.`,
       selectionLabel:
         'Wybierz jeden z następujących provisionerów, aby wygenrować klucze na YubiKey:',
@@ -319,6 +345,9 @@ const pl: Translation = {
           phone: {
             placeholder: 'Telefon',
             label: 'Telefon',
+          },
+          enableEnrollment: {
+            label: 'Użyj zdalnej rejestracji',
           },
         },
       },
@@ -562,6 +591,7 @@ const pl: Translation = {
         edit: 'Edytuj konto',
         provision: 'Stwórz klucze na YubiKey',
         delete: 'Usuń konto',
+        startEnrollment: 'Rozpocznij rejestrację',
       },
     },
   },
@@ -653,7 +683,13 @@ const pl: Translation = {
     },
   },
   settingsPage: {
-    title: 'Ustawienia globalne',
+    title: 'Ustawienia Globalne',
+    tabs: {
+      general: 'Podstawowe',
+      smtp: 'SMTP',
+      enrollment: 'Rejestracja',
+      support: 'Support',
+    },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
       challengeSuccess: 'Zmieniono wiadomość do podpisu.',
@@ -681,7 +717,6 @@ const pl: Translation = {
         },
       },
     },
-
     defaultNetworkSelect: {
       header: 'Domyślny widok sieci',
       helper: `<p>Tutaj możesz zmienić domyślny widok sieci.</p>
@@ -738,6 +773,130 @@ const pl: Translation = {
 					Przeczytaj więcej w dokumentacji.
           </a>
 			`,
+    },
+    smtp: {
+      header: 'Ustawienia SMTP',
+      form: {
+        title: 'Ustawienia',
+        fields: {
+          server: {
+            label: 'Adres serwera',
+            placeholder: 'Adres',
+          },
+          port: {
+            label: 'Port',
+            placeholder: 'Port',
+          },
+          encryption: {
+            label: 'Szyfrowanie',
+            none: 'Brak',
+          },
+          user: {
+            label: 'Użytkownik',
+            placeholder: 'Użytkownik',
+          },
+          password: {
+            label: 'Hasło',
+            placeholder: 'Hasło',
+          },
+          sender: {
+            label: 'Adres wysyłającego',
+            placeholder: 'Adres',
+            helper: `
+              <p>
+                Systemowe wiadomości będą nadawane z tego adresu. Np. no-reply@my-company.com.
+              </p>
+            `,
+          },
+        },
+        controls: {
+          submit: 'Save changes',
+        },
+      },
+      testForm: {
+        title: 'Wyślij emaila testowego',
+        fields: {
+          to: {
+            label: 'Adres',
+            placeholder: 'Adres',
+          },
+        },
+        controls: {
+          submit: 'Wyślij',
+          success: 'Email wysłany pomyślnie',
+          error: 'Błąd wysyłania emaila',
+        },
+      },
+      helper: `
+        <p>
+          Skonfiguruj serwer SMTP do wysyłania wiadomości systemowych do użytkowników.
+        </p>
+			`,
+    },
+    enrollment: {
+      helper:
+        'Rejestracja to proces, w ramach którego nowy użytkownik może samodzielnie aktywować swoje konto, ustawić hasło i skonfigurować urządzenie VPN.',
+      vpnOptionality: {
+        header: 'Opcjonalność kroku VPN',
+        helper:
+          'Możesz zdecydować czy dodawanie urządzenia VPN jest obowiązkowym czy opcjonalnym krokiem rejestracji',
+      },
+      welcomeMessage: {
+        header: 'Wiadomość powitalna',
+        helper: `
+        <p>W tym polu możesz używać Markdown:</p>
+        <ul>
+          <li>Nagłówki zaczynają się od #</li>
+          <li>Użyj asterysków aby uzyskać <i>*kursywę*</i></li>
+          <li>Użyj dwóch asterysków aby uzyskać <b>**pogrubienie**</b></li>
+        </ul>
+        `,
+      },
+      welcomeEmail: {
+        header: 'E-mail powitalny',
+        helper: `
+        <p>W tym polu możesz używać Markdown:</p>
+        <ul>
+          <li>Nagłówki zaczynają się od #</li>
+          <li>Użyj asterysków aby uzyskać <i>*kursywę*</i></li>
+          <li>Użyj dwóch asterysków aby uzyskać <b>**pogrubienie**</b></li>
+        </ul>
+        `,
+      },
+      form: {
+        controls: {
+          submit: 'Zapisz zmiany',
+        },
+        welcomeMessage: {
+          helper:
+            'Ta wiadomość będzie pokazywana użytkownikom po zakończeniu rejestracji. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków.',
+          placeholder: 'Wpisz wiadomość powitalną',
+        },
+        welcomeEmail: {
+          helper:
+            'Ta wiadomość zostanie wysłana do użytkowników po zakończeniu rejestracji. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków. Możesz użyć tej samej treści co w wiadomości powitalnej.',
+          placeholder: 'Wpisz email powitalny',
+        },
+        welcomeEmailSubject: {
+          label: 'Temat',
+        },
+        useMessageAsEmail: {
+          label: 'Taki sam jak wiadomość powitalna',
+        },
+      },
+    },
+    debugDataCard: {
+      title: 'Dane wsparcia technicznego',
+      body: `
+Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygenerowanie danych wsparcia technicznego (np. na naszym kanale Matrix: **#defguard-support:teonite.com**), masz dwie opcje:
+* Możesz skonfigurować ustawienia SMTP i kliknąć: "Wyślij dane wsparcia technicznego".
+* Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie w naszym repozytorium GitHub załączając te pliki.
+`,
+      downloadSupportData: 'Pobierz dane wsparcia technicznego',
+      downloadLogs: 'Pobierz logi',
+      sendMail: 'Wyślij email',
+      mailSent: 'Email wysłany',
+      mailError: 'Error sending email',
     },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',

@@ -1,6 +1,6 @@
 [package]
 name = "defguard"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 
 [workspace]
@@ -46,6 +46,7 @@ sqlx = { version = "0.6", features = [
 tiny-keccak = { version = "2.0", features = ["keccak"] }
 tokio = { version = "1", features = [
     "macros",
+    "parking_lot",
     "rt",
     "rt-multi-thread",
     "sync",
@@ -68,7 +69,11 @@ regex = "1.8"
 lazy_static = "1.4"
 thiserror = "1.0"
 dotenvy = "0.15"
+lettre = { version = "0.10.4", features = ["tokio1", "tokio1-native-tls"] }
+serde_json = "1.0.104"
 humantime = "2.1"
+tera = "1.19"
+pulldown-cmark = "0.9"
 
 [dev-dependencies]
 matches = "0.1"

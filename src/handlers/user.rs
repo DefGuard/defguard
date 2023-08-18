@@ -2,6 +2,7 @@ use super::{
     user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange, RecoveryCodes,
     Username, WalletChallenge, WalletChange, WalletSignature,
 };
+use crate::handlers::StartEnrollmentRequest;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -25,7 +26,7 @@ use rocket::{
 /// Verify the given username
 fn check_username(username: &str) -> Result<(), OriWebError> {
     let length = username.len();
-    if !(4..64).contains(&length) {
+    if !(3..64).contains(&length) {
         return Err(OriWebError::Serialization(format!(
             "Username ({}) has incorrect length",
             username
@@ -51,7 +52,7 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
     Ok(())
 }
 
-fn check_password_strength(password: &str) -> Result<(), OriWebError> {
+pub fn check_password_strength(password: &str) -> Result<(), OriWebError> {
     let password_length = password.len();
     let special_chars_expression = Regex::new(r#"[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?~]"#).unwrap();
     let numbers_expression = Regex::new(r"[0-9]").unwrap();
@@ -120,13 +121,8 @@ pub async fn add_user(
     let username = data.username.clone();
     debug!("User {} adding user {}", session.user.username, username);
     let user_data = data.into_inner();
-    if let Err(err) = check_password_strength(&user_data.password) {
-        debug!("Pasword not strong enough: {}", err);
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: Status::BadRequest,
-        });
-    }
+
+    // check username
     if let Err(err) = check_username(&username) {
         debug!("{}", err);
         return Ok(ApiResponse {
@@ -134,23 +130,97 @@ pub async fn add_user(
             status: Status::BadRequest,
         });
     }
+    let password = match &user_data.password {
+        Some(password) => {
+            // check password strength
+            if let Err(err) = check_password_strength(password) {
+                debug!("Password not strong enough: {}", err);
+                return Ok(ApiResponse {
+                    json: json!({}),
+                    status: Status::BadRequest,
+                });
+            }
+            Some(password.as_str())
+        }
+        None => None,
+    };
+
+    // create new user
     let mut user = User::new(
         user_data.username,
-        &user_data.password,
+        password,
         user_data.last_name,
         user_data.first_name,
         user_data.email,
         user_data.phone,
     );
     user.save(&appstate.pool).await?;
+
+    // add LDAP user
     if appstate.license.validate(&Features::Ldap) {
-        let _result = ldap_add_user(&appstate.config, &user, &user_data.password).await;
+        if let Some(password) = user_data.password {
+            let _result = ldap_add_user(&appstate.config, &user, &password).await;
+        }
     };
+
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-    appstate.trigger_action(AppEvent::UserCreated(user_info));
-    info!("User {} added user {}", session.user.username, username);
+    appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
+    info!("User {} added user {username}", session.user.username);
+    if !user.has_password() {
+        warn!("User {username} is not active yet. Please proceed with enrollment.")
+    };
     Ok(ApiResponse {
-        json: json!({}),
+        json: json!(&user_info),
+        status: Status::Created,
+    })
+}
+
+// Trigger enrollment process manually
+#[post("/user/<username>/start_enrollment", format = "json", data = "<data>")]
+pub async fn start_enrollment(
+    _admin: AdminRole,
+    session: SessionInfo,
+    appstate: &State<AppState>,
+    username: &str,
+    data: Json<StartEnrollmentRequest>,
+) -> ApiResult {
+    debug!(
+        "User {} starting enrollment for user {username}",
+        session.user.username
+    );
+
+    // validate request
+    if data.send_enrollment_notification && data.email.is_none() {
+        return Err(OriWebError::BadRequest(
+            "Email notification is enabled, but email was not provided".into(),
+        ));
+    }
+
+    let user = match User::find_by_username(&appstate.pool, username).await? {
+        Some(user) => Ok(user),
+        None => Err(OriWebError::ObjectNotFound(format!(
+            "user {username} not found"
+        ))),
+    }?;
+
+    let mut transaction = appstate.pool.begin().await?;
+
+    let enrollment_token = user
+        .start_enrollment(
+            &mut transaction,
+            &session.user,
+            data.email.clone(),
+            appstate.config.enrollment_token_timeout.as_secs(),
+            appstate.config.enrollment_url.clone(),
+            data.send_enrollment_notification,
+            appstate.mail_tx.clone(),
+        )
+        .await?;
+
+    transaction.commit().await?;
+
+    Ok(ApiResponse {
+        json: json!({ "enrollment_token": enrollment_token, "enrollment_url":  appstate.config.enrollment_url.to_string()}),
         status: Status::Created,
     })
 }

@@ -1,5 +1,5 @@
-import './App.scss';
 import 'react-loading-skeleton/dist/skeleton.css';
+import './App.scss';
 
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 
@@ -15,9 +15,9 @@ import { UsersPage } from '../../pages/users/UsersPage';
 import { UsersSharedModals } from '../../pages/users/UsersSharedModals';
 import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 import { WizardPage } from '../../pages/wizard/WizardPage';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
-import { ToastManager } from '../../shared/components/layout/ToastManager/ToastManager';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
+import { ToastManager } from '../../shared/defguard-ui/components/Layout/ToastManager/ToastManager';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { Navigation } from '../Navigation/Navigation';
 

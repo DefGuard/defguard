@@ -5,11 +5,11 @@ import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
-import { ButtonStyleVariant } from '../../../shared/components/layout/Button/types';
 import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import IconEditNetwork from '../../../shared/components/svg/IconEditNetwork';
 import { deviceBreakpoints } from '../../../shared/constants';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import { ButtonStyleVariant } from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { useNetworkPageStore } from '../../network/hooks/useNetworkPageStore';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { OverviewStatsFilterSelect } from '../OverviewStatsFilterSelect/OverviewStatsFilterSelect';
@@ -25,13 +25,13 @@ export const OverviewHeader = ({ loading = false }: Props) => {
   const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
   const [selectedNetworkId, networks] = useOverviewStore(
     (state) => [state.selectedNetworkId, state.networks],
-    shallow
+    shallow,
   );
   const navigate = useNavigate();
 
   const selectedNetwork = useMemo(
     () => networks?.find((n) => n.id === selectedNetworkId),
-    [networks, selectedNetworkId]
+    [networks, selectedNetworkId],
   );
 
   const handleNetworkAction = () => {

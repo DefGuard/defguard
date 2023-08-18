@@ -1,35 +1,21 @@
-import * as React from 'react';
-import { SVGProps } from 'react';
-
+import type { SVGProps } from 'react';
 const SvgIconCancel = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} {...props}>
-    <defs>
-      <clipPath id="icon-cancel_svg__a">
-        <path className="icon-cancel_svg__a" d="M0 0h22v22H0z" />
-      </clipPath>
-      <style>
-        {
-          '\n      .icon-cancel_svg__a,.icon-cancel_svg__c{fill:#899ca8}.icon-cancel_svg__a{opacity:0}.icon-cancel_svg__b{clip-path:url(#icon-cancel_svg__a)}\n    '
-        }
-      </style>
-    </defs>
-    <g className="icon-cancel_svg__b" transform="rotate(90 11 11)">
-      <rect
-        className="icon-cancel_svg__c"
-        width={16}
-        height={2}
-        rx={1}
-        transform="rotate(45 -2.571 9.621)"
-      />
-      <rect
-        className="icon-cancel_svg__c"
-        width={16}
-        height={2}
-        rx={1}
-        transform="rotate(135 7.429 6.621)"
-      />
-    </g>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={12}
+    height={12}
+    fill="none"
+    viewBox="0 0 12 12"
+    {...props}
+  >
+    <path
+      fill="#C4C4C4"
+      d="m10.628 9.471-8.1-8.1A.818.818 0 1 0 1.371 2.53l8.1 8.1a.818.818 0 0 0 1.157-1.158Z"
+    />
+    <path
+      fill="#C4C4C4"
+      d="m2.529 10.628 8.1-8.1A.818.818 0 0 0 9.47 1.373l-8.1 8.1a.818.818 0 1 0 1.158 1.156Z"
+    />
   </svg>
 );
-
 export default SvgIconCancel;

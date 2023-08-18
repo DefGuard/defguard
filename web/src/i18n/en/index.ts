@@ -1,13 +1,17 @@
+/* eslint-disable max-len */
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
   messages: {
     error: 'Error has occurred.',
     success: 'Operation succeeded',
-    successClipboard: 'Copied to clipboard',
     errorVersion: 'Failed to get application version.',
     errorLicense: 'Failed to get license.',
-    clipboardError: 'Clipboard is not accessible.',
+    insecureContext: 'Context is not secure.',
+    clipboard: {
+      error: 'Clipboard is not accessible.',
+      success: 'Content copied to clipboard.',
+    },
   },
   modals: {
     changePasswordSelf: {
@@ -26,6 +30,28 @@ const en: BaseTranslation = {
       controls: {
         submit: 'Change password',
         cancel: 'Cancel',
+      },
+    },
+    startEnrollment: {
+      title: 'Start enrollment',
+      messages: {
+        success: 'User enrollment started',
+        error: 'Failed to start user enrollment',
+      },
+      form: {
+        email: {
+          label: 'Email',
+        },
+        mode: {
+          options: {
+            email: 'Send token by email',
+            manual: 'Deliver token yourself',
+          },
+        },
+        submit: 'Start enrollment',
+      },
+      tokenCard: {
+        title: 'Copy enrollment token',
       },
     },
     deleteNetwork: {
@@ -319,6 +345,9 @@ const en: BaseTranslation = {
             placeholder: 'Phone',
             label: 'Phone',
           },
+          enableEnrollment: {
+            label: 'Use remote enrollment',
+          },
         },
       },
     },
@@ -561,6 +590,7 @@ const en: BaseTranslation = {
         edit: 'Edit account',
         provision: 'Provision YubiKey',
         delete: 'Delete account',
+        startEnrollment: 'Start enrollment',
       },
     },
   },
@@ -653,6 +683,12 @@ const en: BaseTranslation = {
   },
   settingsPage: {
     title: 'Global Settings',
+    tabs: {
+      general: 'General',
+      smtp: 'SMTP',
+      enrollment: 'Enrollment',
+      support: 'Support',
+    },
     messages: {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
@@ -737,6 +773,131 @@ const en: BaseTranslation = {
             Read more in documentation.
           </a>
 			`,
+    },
+    smtp: {
+      header: 'SMTP Settings',
+      form: {
+        title: 'Settings',
+        fields: {
+          server: {
+            label: 'Server address',
+            placeholder: 'Address',
+          },
+          port: {
+            label: 'Server port',
+            placeholder: 'Port',
+          },
+          encryption: {
+            label: 'Encryption',
+            none: 'None',
+          },
+          user: {
+            label: 'Server username',
+            placeholder: 'Username',
+          },
+          password: {
+            label: 'Server password',
+            placeholder: 'Password',
+          },
+          sender: {
+            label: 'Sender email address',
+            placeholder: 'Address',
+            helper: `
+              <p>
+                System messages will be sent from this address.
+                E.g. no-reply@my-company.com.
+              </p>
+            `,
+          },
+        },
+        controls: {
+          submit: 'Save changes',
+        },
+      },
+      testForm: {
+        title: 'Send test email',
+        fields: {
+          to: {
+            label: 'Address',
+            placeholder: 'Address',
+          },
+        },
+        controls: {
+          submit: 'Send',
+          success: 'Test email sent',
+          error: 'Error sending email',
+        },
+      },
+      helper: `
+        <p>
+          Here you can configure SMTP server used to send system messages to the users.
+        </p>
+			`,
+    },
+    enrollment: {
+      helper:
+        'Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device.',
+      vpnOptionality: {
+        header: 'VPN step optionality',
+        helper:
+          'You can choose whether creating a VPN device is optional or mandatory during enrollment',
+      },
+      welcomeMessage: {
+        header: 'Welcome message',
+        helper: `
+        <p>In this text input you can use Markdown:</p>
+        <ul>
+          <li>Headings start with a hash #</li>
+          <li>Use asterisks for <i>*italics*</i></li>
+          <li>Use two asterisks for <b>**bold**</b></li>
+        </ul>
+        `,
+      },
+      welcomeEmail: {
+        header: 'Welcome e-mail',
+        helper: `
+        <p>In this text input you can use Markdown:</p>
+        <ul>
+          <li>Headings start with a hash #</li>
+          <li>Use asterisks for <i>*italics*</i></li>
+          <li>Use two asterisks for <b>**bold**</b></li>
+        </ul>
+        `,
+      },
+      form: {
+        controls: {
+          submit: 'Save changes',
+        },
+        welcomeMessage: {
+          helper:
+            'This information will be displayed for the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly.',
+          placeholder: 'Please input welcome message',
+        },
+        welcomeEmail: {
+          helper:
+            'This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.',
+          placeholder: 'Please input welcome email',
+        },
+        welcomeEmailSubject: {
+          label: 'Subject',
+        },
+        useMessageAsEmail: {
+          label: 'Same as welcome message',
+        },
+      },
+    },
+    debugDataCard: {
+      title: 'Support data',
+      body: `
+If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+* Either you can configure SMTP settings and click "Send support data"
+* Or click "Download support data" and create a bug report in our GitHub attaching this file.
+`,
+      downloadSupportData: 'Download support data',
+      downloadLogs: 'Download logs',
+      sendMail: 'Send email',
+      mailSent: 'Email sent',
+      mailError: 'Error sending email',
     },
     licenseCard: {
       header: 'License & Support Information',

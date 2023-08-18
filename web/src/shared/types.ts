@@ -4,7 +4,7 @@ import {
   PublicKeyCredentialWithAssertionJSON,
   PublicKeyCredentialWithAttestationJSON,
 } from '@github/webauthn-json';
-import { AxiosPromise } from 'axios';
+import { AxiosError, AxiosPromise } from 'axios';
 
 import { Locales } from '../i18n/i18n-types';
 
@@ -36,6 +36,7 @@ export type User = {
   ssh_key?: string;
   groups: string[];
   authorized_apps?: OAuth2AuthorizedApps[];
+  is_active: boolean;
 };
 
 export type UserProfile = {
@@ -210,13 +211,23 @@ export interface AddWalletRequest {
 
 export interface AddUserRequest {
   username: string;
-  password: string;
+  password?: string;
   email: string;
   last_name: string;
   first_name: string;
   phone?: string;
 }
 
+export interface StartEnrollmentRequest {
+  username: string;
+  send_enrollment_notification: boolean;
+  email?: string;
+}
+
+export interface StartEnrollmentResponse {
+  enrollment_url: string;
+  enrollment_token: string;
+}
 export interface GroupsResponse {
   groups: string[];
 }
@@ -337,7 +348,8 @@ export interface ApiHook {
   };
   user: {
     getMe: () => Promise<User>;
-    addUser: (data: AddUserRequest) => EmptyApiResponse;
+    addUser: (data: AddUserRequest) => Promise<User>;
+    startEnrollment: (data: StartEnrollmentRequest) => Promise<StartEnrollmentResponse>;
     getUser: (username: string) => Promise<UserProfile>;
     getUsers: () => Promise<User[]>;
     editUser: (data: UserEditRequest) => Promise<User>;
@@ -387,7 +399,7 @@ export interface ApiHook {
         };
         start: () => Promise<CredentialRequestOptionsJSON>;
         finish: (
-          data: PublicKeyCredentialWithAssertionJSON
+          data: PublicKeyCredentialWithAssertionJSON,
         ) => Promise<MFAFinishResponse>;
         deleteKey: (data: DeleteWebAuthNKeyRequest) => EmptyApiResponse;
       };
@@ -436,6 +448,14 @@ export interface ApiHook {
     getSettings: () => Promise<Settings>;
     editSettings: (data: Settings) => EmptyApiResponse;
     setDefaultBranding: (id: string) => Promise<Settings>;
+  };
+  support: {
+    downloadSupportData: () => Promise<unknown>;
+    downloadLogs: () => Promise<string>;
+  };
+  mail: {
+    sendTestMail: (data: TestMail) => EmptyApiResponse;
+    sendSupportMail: () => EmptyApiResponse;
   };
 }
 
@@ -627,6 +647,17 @@ export interface Settings {
   main_logo_url: string;
   nav_logo_url: string;
   instance_name: string;
+  smtp_server?: string;
+  smtp_port?: number;
+  smtp_encryption: string;
+  smtp_user?: string;
+  smtp_password?: string;
+  smtp_sender?: string;
+  enrollment_vpn_step_optional: boolean;
+  enrollment_welcome_message: string;
+  enrollment_welcome_email: string;
+  enrollment_welcome_email_subject: string;
+  enrollment_use_welcome_message_as_email: boolean;
 }
 
 export interface Webhook {
@@ -769,11 +800,19 @@ export interface Web3StartRequest {
 export interface TOTPRequest {
   code: number;
 }
+
 export interface WebAuthnRegistrationRequest {
   name: string;
   rpkc: PublicKeyCredentialWithAttestationJSON;
 }
+
 export interface RemoveUserClientRequest {
   username: string;
   client_id: string;
 }
+
+export interface TestMail {
+  to: string;
+}
+
+export type SMTPError = AxiosError<{ error: string }>;

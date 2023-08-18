@@ -5,9 +5,9 @@ import parse from 'html-react-parser';
 import { cloneDeep } from 'lodash-es';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Card } from '../../../shared/components/layout/Card/Card';
-import { CheckBox } from '../../../shared/components/layout/Checkbox/CheckBox';
-import { Helper } from '../../../shared/components/layout/Helper/Helper';
+import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
+import { CheckBox } from '../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
+import { Helper } from '../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -15,6 +15,13 @@ import { externalLink } from '../../../shared/links';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
 import { Settings } from '../../../shared/types';
+
+type ModulesSettings =
+  | 'openid_enabled'
+  | 'ldap_enabled'
+  | 'wireguard_enabled'
+  | 'webhooks_enabled'
+  | 'worker_enabled';
 
 export const ModulesCard = () => {
   const { LL } = useI18nContext();
@@ -37,12 +44,7 @@ export const ModulesCard = () => {
     },
   });
 
-  const handleChange = (
-    key: keyof Omit<
-      Settings,
-      'id' | 'challenge_template' | 'main_logo_url' | 'instance_name' | 'nav_logo_url'
-    >
-  ) => {
+  const handleChange = (key: ModulesSettings) => {
     if (settings && !isLoading) {
       const cloned = cloneDeep(settings) as Settings;
       cloned[key] = !cloned[key];
@@ -60,7 +62,7 @@ export const ModulesCard = () => {
           {parse(
             LL.settingsPage.modulesVisibility.helper({
               documentationLink: externalLink.gitbook.base,
-            })
+            }),
           )}
         </Helper>
       </header>

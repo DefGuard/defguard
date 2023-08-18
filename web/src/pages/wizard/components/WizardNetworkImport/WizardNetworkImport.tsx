@@ -10,19 +10,16 @@ import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FormInput } from '../../../../shared/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../../shared/components/Form/FormSelect/FormSelect';
-import { Button } from '../../../../shared/components/layout/Button/Button';
+import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../shared/components/layout/Button/types';
-import { Card } from '../../../../shared/components/layout/Card/Card';
-import MessageBox from '../../../../shared/components/layout/MessageBox/MessageBox';
-import {
-  SelectOption,
-  SelectStyleVariant,
-} from '../../../../shared/components/layout/Select/Select';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
@@ -34,7 +31,7 @@ import { useWizardStore } from '../../hooks/useWizardStore';
 
 interface FormInputs extends Omit<ImportNetworkRequest, 'allowed_groups'> {
   fileName: string;
-  allowed_groups: SelectOption<string>[];
+  allowed_groups: string[];
 }
 const defaultValues: FormInputs = {
   name: '',
@@ -60,7 +57,7 @@ export const WizardNetworkImport = () => {
       state.submitSubject,
       state.resetState,
     ],
-    shallow
+    shallow,
   );
   const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
 
@@ -77,7 +74,7 @@ export const WizardNetworkImport = () => {
           config: yup.string().required(),
         })
         .required(),
-    [LL]
+    [LL],
   );
 
   const { control, handleSubmit, setValue, setError, resetField } = useForm<FormInputs>({
@@ -123,13 +120,10 @@ export const WizardNetworkImport = () => {
     (data) => {
       if (!isLoading) {
         setWizardState({ loading: true });
-        importNetworkMutation({
-          ...data,
-          allowed_groups: data.allowed_groups.map((o) => o.value),
-        });
+        importNetworkMutation(data);
       }
     },
-    [importNetworkMutation, isLoading, setWizardState]
+    [importNetworkMutation, isLoading, setWizardState],
   );
 
   const handleConfigUpload = () => {
@@ -175,7 +169,7 @@ export const WizardNetworkImport = () => {
           key: g,
           value: g,
           label: titleCase(g),
-        }))
+        })),
       );
     },
     onError: (err) => {
@@ -189,7 +183,7 @@ export const WizardNetworkImport = () => {
       <form onSubmit={handleSubmit(onValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
-          outerLabel={LL.networkConfiguration.form.fields.name.label()}
+          label={LL.networkConfiguration.form.fields.name.label()}
           disabled={!isUndefined(data)}
         />
         <MessageBox>
@@ -197,26 +191,28 @@ export const WizardNetworkImport = () => {
         </MessageBox>
         <FormInput
           controller={{ control, name: 'endpoint' }}
-          outerLabel={LL.networkConfiguration.form.fields.endpoint.label()}
+          label={LL.networkConfiguration.form.fields.endpoint.label()}
           disabled={!isUndefined(data)}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
         </MessageBox>
         <FormSelect
-          styleVariant={SelectStyleVariant.WHITE}
           controller={{ control, name: 'allowed_groups' }}
-          outerLabel={LL.networkConfiguration.form.fields.allowedGroups.label()}
+          label={LL.networkConfiguration.form.fields.allowedGroups.label()}
           loading={groupsLoading}
           disabled={!isUndefined(data)}
           options={groupOptions}
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
-          multi
-          searchable
+          renderSelected={(group) => ({
+            key: group,
+            displayValue: titleCase(group),
+          })}
+          onRemove={(group, selected) => selected.filter((g) => g !== group)}
         />
         <FormInput
           controller={{ control, name: 'fileName' }}
-          outerLabel={LL.wizard.locations.form.fileName()}
+          label={LL.wizard.locations.form.fileName()}
           disabled
         />
         <Button

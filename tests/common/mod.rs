@@ -1,4 +1,3 @@
-use defguard::db::UserDetails;
 #[cfg(test)]
 use defguard::{
     auth::failed_login::FailedLoginMap,
@@ -7,6 +6,7 @@ use defguard::{
     db::{init_db, AppEvent, DbPool, GatewayEvent, User},
     grpc::{GatewayMap, WorkerState},
 };
+use defguard::{db::UserDetails, mail::Mail, SERVER_CONFIG};
 use rocket::http::Status;
 use rocket::local::asynchronous::Client;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
@@ -17,6 +17,7 @@ use tokio::sync::mpsc::unbounded_channel;
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     let config = DefGuardConfig::new_test_config();
+    let _ = SERVER_CONFIG.set(config.clone());
     let opts = PgConnectOptions::new()
         .host(&config.database_host)
         .port(config.database_port)
@@ -52,7 +53,7 @@ async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
 
     let mut test_user = User::new(
         "hpotter".into(),
-        "pass123",
+        Some("pass123"),
         "Potter".into(),
         "Harry".into(),
         "h.potter@hogwart.edu.uk".into(),
@@ -94,6 +95,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
+    let (mail_tx, _) = unbounded_channel::<Mail>();
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     let failed_logins = FailedLoginMap::new();
@@ -116,6 +118,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
         tx,
         rx,
         wg_tx,
+        mail_tx,
         worker_state,
         gateway_state,
         pool,

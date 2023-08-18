@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { Card } from '../../shared/components/layout/Card/Card';
-import { PageContainer } from '../../shared/components/layout/PageContainer/PageContainer';
+import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { deviceBreakpoints } from '../../shared/constants';
+import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { useNetworkPageStore } from './hooks/useNetworkPageStore';

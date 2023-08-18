@@ -4,6 +4,7 @@ use crate::{
     auth::SessionInfo,
     db::{DbPool, User, UserInfo},
     error::OriWebError,
+    VERSION,
 };
 use rocket::{
     http::{ContentType, Status},
@@ -11,18 +12,20 @@ use rocket::{
     response::{Responder, Response},
     serde::json::{serde_json::json, Value},
 };
-use std::env;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 pub(crate) mod app_info;
 pub(crate) mod auth;
+pub mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod license;
+pub(crate) mod mail;
 #[cfg(feature = "openid")]
 pub mod openid_clients;
 #[cfg(feature = "openid")]
 pub mod openid_flow;
 pub(crate) mod settings;
+pub(crate) mod support;
 pub(crate) mod user;
 pub(crate) mod webhooks;
 #[cfg(feature = "wireguard")]
@@ -36,17 +39,7 @@ pub struct ApiResponse {
     pub status: Status,
 }
 
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-
 pub type ApiResult = Result<ApiResponse, OriWebError>;
-
-fn internal_server_error(msg: &str) -> (Value, Status) {
-    error!("{}", msg);
-    (
-        json!({"msg": "Internal server error"}),
-        Status::InternalServerError,
-    )
-}
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
     fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, Status> {
@@ -60,19 +53,18 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
                 error!("{}", msg);
                 (json!({ "msg": msg }), Status::Forbidden)
             }
-            OriWebError::DbError(msg) => internal_server_error(&msg),
-            OriWebError::Grpc(msg) => internal_server_error(&msg),
-            OriWebError::Ldap(msg) => internal_server_error(&msg),
-            OriWebError::WebauthnRegistration(msg) => internal_server_error(&msg),
-            OriWebError::IncorrectUsername(msg) => {
-                error!("{}", msg);
-                (json!({ "msg": msg }), Status::BadRequest)
-            }
-            OriWebError::Serialization(msg) => internal_server_error(&msg),
-            OriWebError::ModelError(msg) => internal_server_error(&msg),
-            OriWebError::PubkeyValidation(msg) => {
-                error!("{}", msg);
-                (json!({ "msg": msg }), Status::BadRequest)
+            OriWebError::DbError(_)
+            | OriWebError::Grpc(_)
+            | OriWebError::Ldap(_)
+            | OriWebError::WebauthnRegistration(_)
+            | OriWebError::Serialization(_)
+            | OriWebError::ModelError(_)
+            | OriWebError::ServerConfigMissing => {
+                error!("{self}");
+                (
+                    json!({"msg": "Internal server error"}),
+                    Status::InternalServerError,
+                )
             }
             OriWebError::Http(status) => {
                 error!("{}", status);
@@ -82,9 +74,18 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
                 json!({ "msg": "Too many login attempts" }),
                 Status::TooManyRequests,
             ),
-            OriWebError::BadRequest(msg) => {
+            OriWebError::IncorrectUsername(msg)
+            | OriWebError::PubkeyValidation(msg)
+            | OriWebError::BadRequest(msg) => {
                 error!("{}", msg);
                 (json!({ "msg": msg }), Status::BadRequest)
+            }
+            OriWebError::TemplateError(err) => {
+                error!("Template error: {err}");
+                (
+                    json!({"msg": "Internal server error"}),
+                    Status::InternalServerError,
+                )
             }
         };
         Response::build_from(json.respond_to(request)?)
@@ -154,7 +155,14 @@ pub struct AddUserData {
     pub first_name: String,
     pub email: String,
     pub phone: Option<String>,
-    pub password: String,
+    pub password: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct StartEnrollmentRequest {
+    #[serde(default)]
+    pub send_enrollment_notification: bool,
+    pub email: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]

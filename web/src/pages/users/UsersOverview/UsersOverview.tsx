@@ -7,22 +7,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/components/layout/Button/Button';
+import SvgIconUserAddNew from '../../../shared/components/svg/IconUserAddNew';
+import { deviceBreakpoints } from '../../../shared/constants';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/components/layout/Button/types';
-import { LoaderSpinner } from '../../../shared/components/layout/LoaderSpinner/LoaderSpinner';
-import { Search } from '../../../shared/components/layout/Search/Search';
-import { Select, SelectOption } from '../../../shared/components/layout/Select/Select';
-import SvgIconUserAddNew from '../../../shared/components/svg/IconUserAddNew';
-import { deviceBreakpoints } from '../../../shared/constants';
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
+import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
+import {
+  SelectOption,
+  SelectSizeVariant,
+} from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import { User } from '../../../shared/types';
 import { UsersList } from './components/UsersList/UsersList';
 import AddUserModal from './modals/AddUserModal/AddUserModal';
+import { StartEnrollmentModal } from './modals/StartEnrollmentModal/StartEnrollmentModal';
 
 enum FilterOptions {
   ALL = 'all',
@@ -56,7 +61,7 @@ export const UsersOverview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
 
-  const [selectedFilter, setSelectedFilter] = useState(filterSelectOptions[0]);
+  const [selectedFilter, setSelectedFilter] = useState(FilterOptions.ALL);
 
   const {
     user: { getUsers },
@@ -83,13 +88,13 @@ export const UsersOverview = () => {
             .includes(usersSearchValue.toLocaleLowerCase()) ||
           user.last_name
             ?.toLocaleLowerCase()
-            .includes(usersSearchValue.toLocaleLowerCase())
+            .includes(usersSearchValue.toLocaleLowerCase()),
       );
     }
     if (searched.length) {
       searched = orderBy(searched, ['username'], ['asc']);
     }
-    switch (selectedFilter.value) {
+    switch (selectedFilter) {
       case FilterOptions.ALL:
         break;
       case FilterOptions.ADMIN:
@@ -100,11 +105,11 @@ export const UsersOverview = () => {
         break;
     }
     return searched;
-  }, [selectedFilter.value, users, usersSearchValue]);
+  }, [selectedFilter, users, usersSearchValue]);
 
   useEffect(() => {
-    if (breakpoint !== 'desktop' && selectedFilter.value !== FilterOptions.ALL) {
-      setSelectedFilter(filterSelectOptions[0]);
+    if (breakpoint !== 'desktop' && selectedFilter !== FilterOptions.ALL) {
+      setSelectedFilter(FilterOptions.ALL);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [breakpoint]);
@@ -133,15 +138,11 @@ export const UsersOverview = () => {
         <div className="controls">
           {breakpoint === 'desktop' && (
             <Select
-              multi={false}
+              sizeVariant={SelectSizeVariant.SMALL}
               searchable={false}
               selected={selectedFilter}
               options={filterSelectOptions}
-              onChange={(option) => {
-                if (option && !Array.isArray(option)) {
-                  setSelectedFilter(option);
-                }
-              }}
+              onChangeSingle={(filter) => setSelectedFilter(filter)}
             />
           )}
           <Button
@@ -173,6 +174,7 @@ export const UsersOverview = () => {
         </div>
       )}
       <AddUserModal />
+      <StartEnrollmentModal />
     </section>
   );
 };

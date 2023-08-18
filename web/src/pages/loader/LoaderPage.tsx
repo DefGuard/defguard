@@ -1,8 +1,8 @@
 import './style.scss';
 
-import { LoaderSpinner } from '../../shared/components/layout/LoaderSpinner/LoaderSpinner';
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
 import { ColorsRGB } from '../../shared/constants';
+import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 
 export const LoaderPage = () => {
   return (

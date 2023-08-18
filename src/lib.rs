@@ -3,12 +3,19 @@
 #![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::db::User;
-use crate::handlers::user::change_self_password;
+use crate::{
+    db::User,
+    handlers::{
+        mail::send_support_data,
+        support::{configuration, logs},
+    },
+};
+
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
 };
+use crate::handlers::{mail::test_mail, user::change_self_password};
 #[cfg(feature = "openid")]
 use crate::handlers::{
     openid_clients::{
@@ -39,13 +46,14 @@ use handlers::{
         totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
         webauthn_init, webauthn_start,
     },
+    forward_auth::forward_auth,
     group::{add_group_member, get_group, list_groups, remove_group_member},
     license::get_license,
     settings::{get_settings, set_default_branding, update_settings},
     user::{
         add_user, change_password, delete_authorized_app, delete_security_key, delete_user,
-        delete_wallet, get_user, list_users, me, modify_user, set_wallet, update_wallet,
-        username_available, wallet_challenge,
+        delete_wallet, get_user, list_users, me, modify_user, set_wallet, start_enrollment,
+        update_wallet, username_available, wallet_challenge,
     },
     webhooks::{
         add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
@@ -57,6 +65,7 @@ use handlers::{
         remove_gateway, user_stats,
     },
 };
+use mail::Mail;
 use rocket::{
     config::{Config, SecretKey},
     error::Error as RocketError,
@@ -71,6 +80,7 @@ use std::{
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
+    OnceCell,
 };
 
 pub mod appstate;
@@ -83,7 +93,11 @@ pub mod handlers;
 pub mod hex;
 pub mod ldap;
 pub mod license;
+pub mod logging;
+pub mod mail;
 pub(crate) mod random;
+pub mod support;
+pub mod templates;
 pub mod wg_config;
 pub mod wireguard_stats_purge;
 
@@ -92,6 +106,10 @@ extern crate rocket;
 
 #[macro_use]
 extern crate serde;
+
+pub static VERSION: &str = env!("CARGO_PKG_VERSION");
+// TODO: use in more contexts instead of cloning/passing config around
+pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
 /// Catch missing files and serve "index.html".
 #[get("/<path..>", rank = 4)]
@@ -114,6 +132,7 @@ pub async fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     pool: DbPool,
@@ -140,11 +159,13 @@ pub async fn build_webapp(
             routes![
                 health_check,
                 authenticate,
+                forward_auth,
                 logout,
                 username_available,
                 list_users,
                 get_user,
                 add_user,
+                start_enrollment,
                 modify_user,
                 delete_user,
                 delete_security_key,
@@ -159,9 +180,6 @@ pub async fn build_webapp(
                 add_group_member,
                 remove_group_member,
                 get_license,
-                get_settings,
-                update_settings,
-                set_default_branding,
                 mfa_enable,
                 mfa_disable,
                 totp_secret,
@@ -177,9 +195,14 @@ pub async fn build_webapp(
                 delete_authorized_app,
                 recovery_code,
                 get_app_info,
-                change_self_password
+                change_self_password,
             ],
         )
+        .mount(
+            "/api/v1/settings",
+            routes![get_settings, update_settings, set_default_branding],
+        )
+        .mount("/api/v1/support", routes![configuration, logs])
         .mount(
             "/api/v1/webhook",
             routes![
@@ -190,7 +213,8 @@ pub async fn build_webapp(
                 change_webhook,
                 change_enabled
             ],
-        );
+        )
+        .mount("/api/v1/mail", routes![test_mail, send_support_data]);
 
     #[cfg(feature = "wireguard")]
     let webapp = webapp.manage(gateway_state).mount(
@@ -273,6 +297,7 @@ pub async fn build_webapp(
             webhook_tx,
             webhook_rx,
             wireguard_tx,
+            mail_tx,
             license_decoded,
             failed_logins,
         )
@@ -282,12 +307,13 @@ pub async fn build_webapp(
 
 /// Runs core web server exposing REST API.
 pub async fn run_web_server(
-    config: DefGuardConfig,
+    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
     pool: DbPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<Rocket<Ignite>, RocketError> {
@@ -296,6 +322,7 @@ pub async fn run_web_server(
         webhook_tx,
         webhook_rx,
         wireguard_tx,
+        mail_tx,
         worker_state,
         gateway_state,
         pool,

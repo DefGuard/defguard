@@ -31,7 +31,7 @@
       justify-content: flex-start;
 
       & > span {
-        @include typography(10px, 1.2, medium, var(--gray-light), 'Roboto');
+        @include typography-legacy(10px, 1.2, medium, var(--gray-light), 'Roboto');
         user-select: none;
       }
 
@@ -80,7 +80,7 @@
     }
 
     & > .info-container {
-      @include typography(12px, 1.2, medium, unset);
+      @include typography-legacy(12px, 1.2, medium, unset);
 
       .location {
         color: var(--gray-dark);
