@@ -1368,6 +1368,10 @@ type RootTranslation = {
 			 * E​n​r​o​l​l​m​e​n​t
 			 */
 			enrollment: string
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			support: string
 		}
 		mobileTitles: {
 			/**
@@ -1379,7 +1383,7 @@ type RootTranslation = {
 			 */
 			users: string
 			/**
-			 * D​e​f​g​u​a​r​d​ ​G​l​o​b​a​l​ ​S​e​t​t​i​n​g​s
+			 * S​e​t​t​i​n​g​s
 			 */
 			settings: string
 			/**
@@ -1410,6 +1414,10 @@ type RootTranslation = {
 			 * E​n​r​o​l​l​m​e​n​t
 			 */
 			enrollment: string
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			support: string
 		}
 		/**
 		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3​ 
@@ -2015,40 +2023,6 @@ type RootTranslation = {
 				}
 			}
 		}
-		debugDataCard: {
-			/**
-			 * S​u​p​p​o​r​t​ ​d​a​t​a
-			 */
-			title: string
-			/**
-			 * 
-		​I​f​ ​y​o​u​ ​n​e​e​d​ ​a​s​s​i​s​t​a​n​c​e​ ​o​r​ ​y​o​u​ ​w​e​r​e​ ​a​s​k​e​d​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​s​u​p​p​o​r​t​ ​d​a​t​a​ ​b​y​ ​o​u​r​ ​t​e​a​m​ ​(​f​o​r​ ​e​x​a​m​p​l​e​ ​o​n​ ​o​u​r​ ​M​a​t​r​i​x​ ​s​u​p​p​o​r​t​ ​c​h​a​n​n​e​l​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​,​ ​y​o​u​ ​h​a​v​e​ ​t​w​o​ ​o​p​t​i​o​n​s​:​
-		​*​ ​E​i​t​h​e​r​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​c​l​i​c​k​ ​"​S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​
-		​*​ ​O​r​ ​c​l​i​c​k​ ​"​D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​b​u​g​ ​r​e​p​o​r​t​ ​i​n​ ​o​u​r​ ​G​i​t​H​u​b​ ​a​t​t​a​c​h​i​n​g​ ​t​h​i​s​ ​f​i​l​e​.​
-	
-			 */
-			body: string
-			/**
-			 * D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
-			 */
-			downloadSupportData: string
-			/**
-			 * D​o​w​n​l​o​a​d​ ​l​o​g​s
-			 */
-			downloadLogs: string
-			/**
-			 * S​e​n​d​ ​e​m​a​i​l
-			 */
-			sendMail: string
-			/**
-			 * E​m​a​i​l​ ​s​e​n​t
-			 */
-			mailSent: string
-			/**
-			 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
-			 */
-			mailError: string
-		}
 		licenseCard: {
 			/**
 			 * L​i​c​e​n​s​e​ ​&​ ​S​u​p​p​o​r​t​ ​I​n​f​o​r​m​a​t​i​o​n
@@ -2115,24 +2089,6 @@ type RootTranslation = {
 				 */
 				expiration: RequiredParams<'expiration'>
 			}
-		}
-		supportCard: {
-			/**
-			 * S​u​p​p​o​r​t
-			 */
-			title: string
-			/**
-			 * 
-		​B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​]​(​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​)​
-		​
-		​T​o​ ​s​u​b​m​i​t​:​
-		​*​ ​B​u​g​s​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​b​u​g​&​t​e​m​p​l​a​t​e​=​b​u​g​_​r​e​p​o​r​t​.​m​d​&​t​i​t​l​e​=​)​
-		​*​ ​F​e​a​t​u​r​e​ ​r​e​q​u​e​s​t​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​f​e​a​t​u​r​e​&​t​e​m​p​l​a​t​e​=​f​e​a​t​u​r​e​_​r​e​q​u​e​s​t​.​m​d​&​t​i​t​l​e​=​)​
-		​
-		​A​n​y​ ​o​t​h​e​r​ ​r​e​q​u​e​s​t​s​ ​y​o​u​ ​c​a​n​ ​r​e​a​c​h​ ​u​s​ ​a​t​:​ ​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​
-	
-			 */
-			body: string
 		}
 	}
 	openidOverview: {
@@ -3271,6 +3227,64 @@ type RootTranslation = {
 					duplicateWelcome: string
 				}
 			}
+		}
+	}
+	supportPage: {
+		/**
+		 * S​u​p​p​o​r​t
+		 */
+		title: string
+		debugDataCard: {
+			/**
+			 * S​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			title: string
+			/**
+			 * 
+		​I​f​ ​y​o​u​ ​n​e​e​d​ ​a​s​s​i​s​t​a​n​c​e​ ​o​r​ ​y​o​u​ ​w​e​r​e​ ​a​s​k​e​d​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​s​u​p​p​o​r​t​ ​d​a​t​a​ ​b​y​ ​o​u​r​ ​t​e​a​m​ ​(​f​o​r​ ​e​x​a​m​p​l​e​ ​o​n​ ​o​u​r​ ​M​a​t​r​i​x​ ​s​u​p​p​o​r​t​ ​c​h​a​n​n​e​l​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​,​ ​y​o​u​ ​h​a​v​e​ ​t​w​o​ ​o​p​t​i​o​n​s​:​
+		​*​ ​E​i​t​h​e​r​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​c​l​i​c​k​ ​"​S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​
+		​*​ ​O​r​ ​c​l​i​c​k​ ​"​D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​b​u​g​ ​r​e​p​o​r​t​ ​i​n​ ​o​u​r​ ​G​i​t​H​u​b​ ​a​t​t​a​c​h​i​n​g​ ​t​h​i​s​ ​f​i​l​e​.​
+	
+			 */
+			body: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			downloadSupportData: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​l​o​g​s
+			 */
+			downloadLogs: string
+			/**
+			 * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			sendMail: string
+			/**
+			 * E​m​a​i​l​ ​s​e​n​t
+			 */
+			mailSent: string
+			/**
+			 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
+			 */
+			mailError: string
+		}
+		supportCard: {
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			title: string
+			/**
+			 * 
+		​B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​]​(​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​)​
+		​
+		​T​o​ ​s​u​b​m​i​t​:​
+		​*​ ​B​u​g​s​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​b​u​g​&​t​e​m​p​l​a​t​e​=​b​u​g​_​r​e​p​o​r​t​.​m​d​&​t​i​t​l​e​=​)​
+		​*​ ​F​e​a​t​u​r​e​ ​r​e​q​u​e​s​t​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​f​e​a​t​u​r​e​&​t​e​m​p​l​a​t​e​=​f​e​a​t​u​r​e​_​r​e​q​u​e​s​t​.​m​d​&​t​i​t​l​e​=​)​
+		​
+		​A​n​y​ ​o​t​h​e​r​ ​r​e​q​u​e​s​t​s​ ​y​o​u​ ​c​a​n​ ​r​e​a​c​h​ ​u​s​ ​a​t​:​ ​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​
+	
+			 */
+			body: string
 		}
 	}
 }
@@ -4622,6 +4636,10 @@ export type TranslationFunctions = {
 			 * Enrollment
 			 */
 			enrollment: () => LocalizedString
+			/**
+			 * Support
+			 */
+			support: () => LocalizedString
 		}
 		mobileTitles: {
 			/**
@@ -4633,7 +4651,7 @@ export type TranslationFunctions = {
 			 */
 			users: () => LocalizedString
 			/**
-			 * Defguard Global Settings
+			 * Settings
 			 */
 			settings: () => LocalizedString
 			/**
@@ -4664,6 +4682,10 @@ export type TranslationFunctions = {
 			 * Enrollment
 			 */
 			enrollment: () => LocalizedString
+			/**
+			 * Support
+			 */
+			support: () => LocalizedString
 		}
 		/**
 		 * Copyright © 2023 
@@ -5264,40 +5286,6 @@ export type TranslationFunctions = {
 				}
 			}
 		}
-		debugDataCard: {
-			/**
-			 * Support data
-			 */
-			title: () => LocalizedString
-			/**
-			 * 
-		If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
-		* Either you can configure SMTP settings and click "Send support data"
-		* Or click "Download support data" and create a bug report in our GitHub attaching this file.
-	
-			 */
-			body: () => LocalizedString
-			/**
-			 * Download support data
-			 */
-			downloadSupportData: () => LocalizedString
-			/**
-			 * Download logs
-			 */
-			downloadLogs: () => LocalizedString
-			/**
-			 * Send email
-			 */
-			sendMail: () => LocalizedString
-			/**
-			 * Email sent
-			 */
-			mailSent: () => LocalizedString
-			/**
-			 * Error sending email
-			 */
-			mailError: () => LocalizedString
-		}
 		licenseCard: {
 			/**
 			 * License & Support Information
@@ -5362,24 +5350,6 @@ export type TranslationFunctions = {
 				 */
 				expiration: (arg: { expiration: string }) => LocalizedString
 			}
-		}
-		supportCard: {
-			/**
-			 * Support
-			 */
-			title: () => LocalizedString
-			/**
-			 * 
-		Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
-	
-		To submit:
-		* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
-		* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
-	
-		Any other requests you can reach us at: support@defguard.net
-	
-			 */
-			body: () => LocalizedString
 		}
 	}
 	openidOverview: {
@@ -6510,6 +6480,64 @@ export type TranslationFunctions = {
 					duplicateWelcome: () => LocalizedString
 				}
 			}
+		}
+	}
+	supportPage: {
+		/**
+		 * Support
+		 */
+		title: () => LocalizedString
+		debugDataCard: {
+			/**
+			 * Support data
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+		* Either you can configure SMTP settings and click "Send support data"
+		* Or click "Download support data" and create a bug report in our GitHub attaching this file.
+	
+			 */
+			body: () => LocalizedString
+			/**
+			 * Download support data
+			 */
+			downloadSupportData: () => LocalizedString
+			/**
+			 * Download logs
+			 */
+			downloadLogs: () => LocalizedString
+			/**
+			 * Send support data
+			 */
+			sendMail: () => LocalizedString
+			/**
+			 * Email sent
+			 */
+			mailSent: () => LocalizedString
+			/**
+			 * Error sending email
+			 */
+			mailError: () => LocalizedString
+		}
+		supportCard: {
+			/**
+			 * Support
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
+	
+		To submit:
+		* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+		* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
+	
+		Any other requests you can reach us at: support@defguard.net
+	
+			 */
+			body: () => LocalizedString
 		}
 	}
 }

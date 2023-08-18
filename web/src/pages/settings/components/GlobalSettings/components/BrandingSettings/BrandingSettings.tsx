@@ -147,7 +147,7 @@ export const BrandingSettings = () => {
           )}
         </Helper>
       </header>
-      <Card shaded bordered hideMobile>
+      <Card shaded bordered>
         <div className="controls">
           <h3>{LL.settingsPage.instanceBranding.form.title()}</h3>
           <Button

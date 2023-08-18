@@ -116,7 +116,7 @@ export const SmtpSettingsForm = () => {
         <h2>{LL.settingsPage.smtp.form.title()}</h2>
         <Helper>{parse(LL.settingsPage.smtp.helper())}</Helper>
       </header>
-      <Card shaded bordered hideMobile>
+      <Card shaded bordered>
         <div className="controls">
           <Button
             form="smtp-form"

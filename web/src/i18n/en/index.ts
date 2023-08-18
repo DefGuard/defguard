@@ -605,11 +605,12 @@ const en: BaseTranslation = {
       settings: 'Settings',
       logOut: 'Log out',
       enrollment: 'Enrollment',
+      support: 'Support',
     },
     mobileTitles: {
       wizard: 'Create location',
       users: 'Users',
-      settings: 'Defguard Global Settings',
+      settings: 'Settings',
       user: 'User Profile',
       provisioners: 'Yubikey',
       webhooks: 'Webhooks',
@@ -617,6 +618,7 @@ const en: BaseTranslation = {
       overview: 'Location Overview',
       networkSettings: 'Edit Location',
       enrollment: 'Enrollment',
+      support: 'Support',
     },
     copyright: 'Copyright \u00A9 2023 ',
     version: {
@@ -889,19 +891,6 @@ const en: BaseTranslation = {
         },
       },
     },
-    debugDataCard: {
-      title: 'Support data',
-      body: `
-If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
-* Either you can configure SMTP settings and click "Send support data"
-* Or click "Download support data" and create a bug report in our GitHub attaching this file.
-`,
-      downloadSupportData: 'Download support data',
-      downloadLogs: 'Download logs',
-      sendMail: 'Send email',
-      mailSent: 'Email sent',
-      mailError: 'Error sending email',
-    },
     licenseCard: {
       header: 'License & Support Information',
       licenseCardTitles: {
@@ -936,18 +925,6 @@ If you need assistance or you were asked to generate support data by our team (f
         company: 'licensed to: {company: string}',
         expiration: 'expiration date: {expiration: string}',
       },
-    },
-    supportCard: {
-      title: 'Support',
-      body: `
-Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
-
-To submit:
-* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
-* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
-
-Any other requests you can reach us at: support@defguard.net
-`,
     },
   },
   openidOverview: {
@@ -1440,6 +1417,34 @@ Any other requests you can reach us at: support@defguard.net
           duplicateWelcome: 'Same as welcome message',
         },
       },
+    },
+  },
+  supportPage: {
+    title: 'Support',
+    debugDataCard: {
+      title: 'Support data',
+      body: `
+If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+* Either you can configure SMTP settings and click "Send support data"
+* Or click "Download support data" and create a bug report in our GitHub attaching this file.
+`,
+      downloadSupportData: 'Download support data',
+      downloadLogs: 'Download logs',
+      sendMail: 'Send support data',
+      mailSent: 'Email sent',
+      mailError: 'Error sending email',
+    },
+    supportCard: {
+      title: 'Support',
+      body: `
+Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
+
+To submit:
+* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
+
+Any other requests you can reach us at: support@defguard.net
+`,
     },
   },
 };

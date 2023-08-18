@@ -606,6 +606,7 @@ const pl: Translation = {
       settings: 'Ustawienia',
       logOut: 'Wyloguj się',
       enrollment: 'Rejestracja',
+      support: 'Wsparcie',
     },
     mobileTitles: {
       wizard: 'Konfiguracja VPN',
@@ -618,6 +619,7 @@ const pl: Translation = {
       overview: 'Przegląd lokalizacji',
       networkSettings: 'Edycja lokalizacji',
       enrollment: 'Rejestracja',
+      support: 'Wsparcie',
     },
     copyright: 'Copyright \u00A9 2023',
     version: {
@@ -685,12 +687,11 @@ const pl: Translation = {
     },
   },
   settingsPage: {
-    title: 'Ustawienia Globalne',
+    title: 'Ustawienia',
     tabs: {
-      general: 'Podstawowe',
       smtp: 'SMTP',
-      enrollment: 'Rejestracja',
-      support: 'Support',
+      global: 'Globalne',
+      support: 'Wsparcie',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
@@ -777,7 +778,9 @@ const pl: Translation = {
 			`,
     },
     smtp: {
-      header: 'Ustawienia SMTP',
+      encryption: {
+        title: 'Szyfrowanie',
+      },
       form: {
         title: 'Ustawienia',
         fields: {
@@ -887,19 +890,6 @@ const pl: Translation = {
         },
       },
     },
-    debugDataCard: {
-      title: 'Dane wsparcia technicznego',
-      body: `
-Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygenerowanie danych wsparcia technicznego (np. na naszym kanale Matrix: **#defguard-support:teonite.com**), masz dwie opcje:
-* Możesz skonfigurować ustawienia SMTP i kliknąć: "Wyślij dane wsparcia technicznego".
-* Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie w naszym repozytorium GitHub załączając te pliki.
-`,
-      downloadSupportData: 'Pobierz dane wsparcia technicznego',
-      downloadLogs: 'Pobierz logi',
-      sendMail: 'Wyślij email',
-      mailSent: 'Email wysłany',
-      mailError: 'Error sending email',
-    },
     licenseCard: {
       header: 'Informacje o licencji i wsparciu technicznym',
       licenseCardTitles: {
@@ -933,18 +923,6 @@ Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygen
         company: 'licencjonowany dla: {company}',
         expiration: 'data ważności: {expiration}',
       },
-    },
-    supportCard: {
-      title: 'Wsparcie',
-      body: `
-Przed zgłoszeniem problemów na Github należy zapoznać z dokumentacją dostępną na [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
-
-Aby zgłosić:
-* Problem - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
-* Prośbę o nową funkcjonalność - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
-
-W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
-`,
     },
   },
   openidOverview: {
@@ -1439,6 +1417,36 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
     },
     messageBox:
       'Proces rejestracji pozwala użytkownikowi na potwierdzenie swoich informacji, ustawienie hasła oraz skonfigurowanie VPN na swoim urządzeniu. Tutaj możesz skonfigurować ten proces.',
+  },
+  supportPage: {
+    title: 'Wsparcie',
+
+    debugDataCard: {
+      title: 'Dane wsparcia technicznego',
+      body: `
+Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygenerowanie danych wsparcia technicznego (np. na naszym kanale Matrix: **#defguard-support:teonite.com**), masz dwie opcje:
+* Możesz skonfigurować ustawienia SMTP i kliknąć: "Wyślij dane wsparcia technicznego".
+* Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie w naszym repozytorium GitHub załączając te pliki.
+`,
+      downloadSupportData: 'Pobierz dane wsparcia technicznego',
+      downloadLogs: 'Pobierz logi',
+      sendMail: 'Wyślij email',
+      mailSent: 'Email wysłany',
+      mailError: 'Error sending email',
+    },
+
+    supportCard: {
+      title: 'Wsparcie',
+      body: `
+Przed zgłoszeniem problemów na Github należy zapoznać z dokumentacją dostępną na [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
+
+Aby zgłosić:
+* Problem - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+* Prośbę o nową funkcjonalność - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
+
+W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
+`,
+    },
   },
 };
 

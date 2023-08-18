@@ -1,0 +1,26 @@
+@use '@scssutils' as *;
+
+.navigation-link {
+  &.support {
+    svg {
+      path {
+        fill: var(--surface-icon-primary);
+      }
+      circle {
+        stroke: var(--surface-icon-primary);
+      }
+    }
+
+    &:hover,
+    &.active {
+      svg {
+        path {
+          fill: var(--surface-main-primary);
+        }
+        circle {
+          stroke: var(--surface-main-primary);
+        }
+      }
+    }
+  }
+}

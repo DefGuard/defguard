@@ -12,6 +12,7 @@ import SvgIconNavOpenId from '../../shared/components/svg/IconNavOpenid';
 import SvgIconNavProfile from '../../shared/components/svg/IconNavProfile';
 import SvgIconNavProvisioners from '../../shared/components/svg/IconNavProvisioners';
 import SvgIconNavSettings from '../../shared/components/svg/IconNavSettings';
+import SvgIconNavSupport from '../../shared/components/svg/IconNavSupport';
 import SvgIconNavUsers from '../../shared/components/svg/IconNavUsers';
 import SvgIconNavVpn from '../../shared/components/svg/IconNavVpn';
 import SvgIconNavWebhooks from '../../shared/components/svg/IconNavWebhooks';
@@ -71,6 +72,14 @@ export const Navigation = () => {
         icon: <SvgIconNavSettings />,
         allowedToView: ['admin'],
         enabled: true,
+      },
+      {
+        title: LL.navigation.bar.support(),
+        icon: <SvgIconNavSupport />,
+        linkPath: '/support',
+        allowedToView: [],
+        enabled: true,
+        className: 'support',
       },
     ];
     let middle: NavigationItem[] = [

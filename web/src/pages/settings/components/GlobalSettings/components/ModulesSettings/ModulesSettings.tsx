@@ -66,7 +66,7 @@ export const ModulesSettings = () => {
           )}
         </Helper>
       </header>
-      <Card shaded bordered hideMobile>
+      <Card shaded bordered>
         <LabeledCheckbox
           disabled={isLoading}
           label={LL.settingsPage.modulesVisibility.fields.openid_enabled.label()}

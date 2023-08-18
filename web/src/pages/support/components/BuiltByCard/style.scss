@@ -1,15 +1,25 @@
-#settings-page {
-  .built-by {
-    display: flex;
-    flex-flow: row;
-    justify-content: center;
-    align-items: center;
-    align-content: center;
-    height: 175px;
+@use '@scssutils' as *;
+
+#built-by-card {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 10px;
+  height: 150px;
+
+  @include media-breakpoint-up(lg) {
+    padding: 30px 26px;
+    height: 180px;
+  }
+
+  a {
+    height: 32px;
 
     img {
-      width: 218px;
-      height: 32px;
+      height: inherit;
     }
   }
 }

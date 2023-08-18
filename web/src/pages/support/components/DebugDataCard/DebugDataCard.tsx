@@ -1,24 +1,22 @@
 import './style.scss';
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { saveAs } from 'file-saver';
-import { useEffect } from 'react';
 import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
 
-import { useI18nContext } from '../../../i18n/i18n-react';
-import SvgIconArrowGrayUp from '../../../shared/components/svg/IconArrowGrayUp';
-import SvgIconDownload from '../../../shared/components/svg/IconDownload';
-import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import { useI18nContext } from '../../../../i18n/i18n-react';
+import SvgIconDownload from '../../../../shared/components/svg/IconDownload';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../shared/defguard-ui/components/Layout/Button/types';
-import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
-import { useAppStore } from '../../../shared/hooks/store/useAppStore';
-import useApi from '../../../shared/hooks/useApi';
-import { useToaster } from '../../../shared/hooks/useToaster';
-import { QueryKeys } from '../../../shared/queries';
-import { SMTPError } from '../../../shared/types';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Divider } from '../../../../shared/defguard-ui/components/Layout/Divider/Divider';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
+import { SMTPError } from '../../../../shared/types';
 
 export const DebugDataCard = () => {
   const { LL } = useI18nContext();
@@ -30,100 +28,90 @@ export const DebugDataCard = () => {
     settings?.smtp_user &&
     settings?.smtp_password &&
     settings?.smtp_sender;
+
   const {
     support: { downloadSupportData, downloadLogs },
     mail: { sendSupportMail },
   } = useApi();
-  const {
-    data: supportData,
-    isLoading: configLoading,
-    refetch: fetchConfig,
-  } = useQuery({
-    queryKey: [QueryKeys.FETCH_SUPPORT_DATA],
-    queryFn: downloadSupportData,
-    enabled: false,
+
+  const { isLoading: logsLoading, mutate: logsMutate } = useMutation({
+    mutationFn: downloadLogs,
+    onSuccess: (res) => {
+      const content = new Blob([res], { type: 'text/plain;charset=utf-8' });
+      const timestamp = new Date().toISOString().replaceAll(':', '');
+      saveAs(content, `defguard-logs-${timestamp}.json`);
+    },
   });
-  const {
-    data: logs,
-    isLoading: logsLoading,
-    refetch: fetchLogs,
-  } = useQuery({
-    queryKey: [QueryKeys.FETCH_LOGS],
-    queryFn: downloadLogs,
-    enabled: false,
+
+  const { isLoading: configLoading, mutate: configMutate } = useMutation({
+    mutationFn: downloadSupportData,
+    onSuccess: (res) => {
+      const content = new Blob([JSON.stringify(res, null, 2)], {
+        type: 'text/plain;charset=utf-8',
+      });
+      const timestamp = new Date().toISOString().replaceAll(':', '');
+      saveAs(content, `defguard-support-data-${timestamp}.json`);
+    },
   });
+
   const { mutate: sendMail, isLoading: mailLoading } = useMutation([], sendSupportMail, {
     onSuccess: () => {
-      toaster.success(LL.settingsPage.debugDataCard.mailSent());
+      toaster.success(LL.supportPage.debugDataCard.mailSent());
     },
     onError: (err: SMTPError) => {
       toaster.error(
-        `${LL.settingsPage.debugDataCard.mailError()}`,
+        `${LL.supportPage.debugDataCard.mailError()}`,
         `${err.response?.data.error}`,
       );
       console.error(err);
     },
   });
-  useEffect(() => {
-    if (!supportData || configLoading) {
-      return;
-    }
-    const content = new Blob([JSON.stringify(supportData, null, 2)], {
-      type: 'text/plain;charset=utf-8',
-    });
-    const timestamp = new Date().toISOString().replaceAll(':', '');
-    saveAs(content, `defguard-support-data-${timestamp}.json`);
-  }, [supportData, configLoading]);
-
-  useEffect(() => {
-    if (!logs || logsLoading) {
-      return;
-    }
-    const content = new Blob([logs], { type: 'text/plain;charset=utf-8' });
-    const timestamp = new Date().toISOString().replaceAll(':', '');
-    saveAs(content, `defguard-logs-${timestamp}.json`);
-  }, [logs, logsLoading]);
-
-  const onSendMail = async () => {
-    sendMail();
-  };
 
   return (
-    <section id="debug-data">
-      <Card>
-        <div className="controls">
-          <h4>{LL.settingsPage.debugDataCard.title()}</h4>
-          <Button
-            className="support-data-button"
-            onClick={() => fetchConfig()}
-            size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.PRIMARY}
-            icon={<SvgIconDownload />}
-            text={LL.settingsPage.debugDataCard.downloadSupportData()}
-          />
-          <Button
-            className="support-data-button"
-            onClick={() => fetchLogs()}
-            size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.PRIMARY}
-            icon={<SvgIconDownload />}
-            text={LL.settingsPage.debugDataCard.downloadLogs()}
-          />
-          <Button
-            className="support-data-button"
-            onClick={() => onSendMail()}
-            size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.PRIMARY}
-            icon={<SvgIconArrowGrayUp />}
-            text={LL.settingsPage.debugDataCard.sendMail()}
-            loading={mailLoading}
-            disabled={!smtp_configured}
-          />
-        </div>
-        <div className="content">
-          <ReactMarkdown>{LL.settingsPage.debugDataCard.body()}</ReactMarkdown>
-        </div>
-      </Card>
-    </section>
+    <Card id="support-debug-card" shaded bordered>
+      <div className="controls">
+        <p className="title">{LL.supportPage.debugDataCard.title()}</p>
+        <Button
+          onClick={() => {
+            if (!configLoading) {
+              configMutate();
+            }
+          }}
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          icon={<SvgIconDownload />}
+          text={LL.supportPage.debugDataCard.downloadSupportData()}
+          loading={configLoading}
+        />
+        <Button
+          onClick={() => {
+            if (!logsLoading) {
+              logsMutate();
+            }
+          }}
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          icon={<SvgIconDownload />}
+          text={LL.supportPage.debugDataCard.downloadLogs()}
+          loading={logsLoading}
+        />
+        <Button
+          onClick={() => {
+            if (!mailLoading) {
+              sendMail();
+            }
+          }}
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          text={LL.supportPage.debugDataCard.sendMail()}
+          loading={mailLoading}
+          disabled={!smtp_configured}
+        />
+      </div>
+      <Divider />
+      <div className="content">
+        <ReactMarkdown>{LL.supportPage.debugDataCard.body()}</ReactMarkdown>
+      </div>
+    </Card>
   );
 };

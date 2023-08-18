@@ -56,7 +56,7 @@ export const Web3Settings = () => {
       <header>
         <h2>{LL.settingsPage.web3Settings.header()}</h2>
       </header>
-      <Card shaded bordered hideMobile>
+      <Card shaded bordered>
         <div className="controls">
           <h3>{LL.settingsPage.web3Settings.fields.signMessage.label()}:</h3>
           <Button
