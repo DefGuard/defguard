@@ -5,6 +5,7 @@ export interface NavigationItem {
   allowedToView?: string[];
   enabled: boolean | undefined;
   onClick?: () => void;
+  className?: string;
 }
 
 export type NavigationTitleMapItem = {

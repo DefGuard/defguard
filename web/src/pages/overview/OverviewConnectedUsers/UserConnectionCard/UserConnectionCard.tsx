@@ -5,8 +5,9 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { motion } from 'framer-motion';
 import { floor } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
+import { timer } from 'rxjs';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import SvgIconClip from '../../../../shared/components/svg/IconClip';
@@ -73,10 +74,12 @@ const MainCardContent = ({ data }: MainCardContentProps) => {
     });
     return rankMap[0];
   }, [data]);
+
   const getSummarizedStats = useMemo(
     () => summarizeDeviceStats(data.devices),
     [data.devices],
   );
+
   const getUserSummarizedStats = useMemo(
     () => summarizeUsersNetworkStats([data]),
     [data],
@@ -153,7 +156,10 @@ interface ConnectionTimeProps {
 
 const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
   const { LL } = useI18nContext();
-  const getConnectionTime = useMemo(() => {
+
+  const [displayedTime, setDisplayedTime] = useState<string | undefined>();
+
+  const updateConnectionTime = useCallback(() => {
     const minutes = dayjs().diff(dayjs.utc(connectedAt), 'm');
     if (minutes > 60) {
       const hours = floor(minutes / 60);
@@ -161,17 +167,29 @@ const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
       if (minutes % 60 > 0) {
         res.push(`${minutes % 60}m`);
       }
-      return res.join(' ');
+      setDisplayedTime(res.join(' '));
+    } else {
+      setDisplayedTime(`${minutes}m`);
     }
-    return `${minutes}m`;
   }, [connectedAt]);
+
+  useEffect(() => {
+    const interval = 60 * 1000;
+    const sub = timer(0, interval).subscribe(() => {
+      updateConnectionTime();
+    });
+
+    return () => {
+      sub.unsubscribe();
+    };
+  }, [updateConnectionTime, connectedAt]);
 
   return (
     <div className="connection-time lower-box">
       <span className="label">{LL.connectedUsersOverview.userList.connected()}</span>
       <div className="time">
         <SvgIconConnected />
-        <span data-testid="connection-time-value">{getConnectionTime}</span>
+        <span data-testid="connection-time-value">{displayedTime}</span>
       </div>
     </div>
   );

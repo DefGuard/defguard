@@ -1,0 +1,56 @@
+@use '@scssutils' as *;
+
+#support-card {
+  & > header {
+    box-sizing: border-box;
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+
+    & > .title {
+      @include typography(modal-title);
+
+      color: var(--text-body-primary);
+      text-align: center;
+    }
+  }
+
+  & > .content {
+    box-sizing: border-box;
+    padding: 25px 10px;
+    display: flex;
+    flex-flow: column;
+    row-gap: 15px;
+
+    p,
+    span,
+    a,
+    strong,
+    li {
+      @include typography(app-body-2);
+
+      color: var(--text-body-primary);
+    }
+
+    strong {
+      font-weight: 600;
+    }
+
+    p,
+    ul,
+    li {
+      text-align: center;
+    }
+
+    ul,
+    ol {
+      list-style: none;
+    }
+
+    @include media-breakpoint-up(lg) {
+      padding: 25px 60px;
+    }
+  }
+}

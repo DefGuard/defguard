@@ -119,8 +119,7 @@ impl Mail {
                 .header(ContentType::TEXT_HTML)
                 .body(self.content.clone())?),
             attachments => {
-                let mut multipart =
-                    MultiPart::mixed().singlepart(SinglePart::html(self.content.clone()));
+                let mut multipart = MultiPart::mixed().singlepart(SinglePart::html(self.content));
                 for attachment in attachments {
                     multipart = multipart.singlepart(attachment.into());
                 }

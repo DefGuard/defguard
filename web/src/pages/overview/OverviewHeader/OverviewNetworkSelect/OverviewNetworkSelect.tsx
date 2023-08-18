@@ -1,10 +1,13 @@
 import { isUndefined } from 'lodash-es';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Select } from '../../../../shared/defguard-ui/components/Layout/Select/Select';
-import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import {
+  SelectOption,
+  SelectSelectedValue,
+} from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import { useOverviewStore } from '../../hooks/store/useOverviewStore';
 
 export const OverViewNetworkSelect = () => {
@@ -26,8 +29,21 @@ export const OverViewNetworkSelect = () => {
     return [];
   }, [networks]);
 
+  const renderSelected = useCallback(
+    (selected: number): SelectSelectedValue => {
+      const option = options.find((o) => o.value === selected);
+      if (!option) throw Error("Selected value doesn't exist");
+      return {
+        key: selected,
+        displayValue: option.label,
+      };
+    },
+    [options],
+  );
+
   return (
     <Select
+      renderSelected={renderSelected}
       placeholder={LL.networkOverview.controls.selectNetwork.placeholder()}
       loading={isUndefined(networks) || networks.length === 0}
       selected={selectedNetworkId}

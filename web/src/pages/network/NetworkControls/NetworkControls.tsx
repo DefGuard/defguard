@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
@@ -18,7 +18,10 @@ import {
 import ConfirmModal from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import {
+  SelectOption,
+  SelectSelectedValue,
+} from '../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { useWizardStore } from '../../wizard/hooks/useWizardStore';
@@ -71,12 +74,32 @@ export const NetworkControls = () => {
     },
   });
 
+  const renderSelected = useCallback(
+    (networkId: number): SelectSelectedValue => {
+      const selectedOption = getOptions.find((o) => o.value === networkId);
+
+      if (selectedOption) {
+        return {
+          key: networkId,
+          displayValue: selectedOption.label,
+        };
+      }
+
+      return {
+        key: 'none',
+        displayValue: 'Error',
+      };
+    },
+    [getOptions],
+  );
+
   return (
     <>
       <div className="network-controls">
         {breakpoint !== 'desktop' && (
           <div className="network-select">
             <Select
+              renderSelected={renderSelected}
               selected={selectedNetworkId}
               options={getOptions}
               addOptionLabel={LL.networkPage.addNetwork()}

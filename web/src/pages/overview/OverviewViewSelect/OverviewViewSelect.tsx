@@ -1,10 +1,13 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import {
+  SelectOption,
+  SelectSelectedValue,
+} from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { OverviewLayoutType } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 
@@ -65,8 +68,21 @@ export const OverviewViewSelect = () => {
     ];
   }, [LL.networkOverview.filterLabels, breakpoint]);
 
+  const renderSelected = useCallback(
+    (selected: OverviewLayoutType): SelectSelectedValue => {
+      const option = getSelectOptions.find((o) => o.value === selected);
+      if (!option) throw Error("Selected option doesn't exists");
+      return {
+        key: selected,
+        displayValue: option.label,
+      };
+    },
+    [getSelectOptions],
+  );
+
   return (
     <Select
+      renderSelected={renderSelected}
       options={getSelectOptions}
       selected={viewMode}
       searchable={false}

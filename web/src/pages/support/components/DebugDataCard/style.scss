@@ -1,0 +1,82 @@
+@use '@scssutils' as *;
+
+#support-debug-card {
+  box-sizing: border-box;
+
+  .title {
+    width: 100%;
+
+    @include typography(app-side-bar);
+
+    color: var(--text-body-primary);
+    padding: 0;
+    margin: 0;
+
+    @include media-breakpoint-up(md) {
+      width: unset;
+    }
+  }
+
+  & > .controls {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    padding: 20px 10px;
+
+    @include media-breakpoint-up(lg) {
+      padding: 16px 15px;
+    }
+
+    & > .btn {
+      &:first-of-type {
+        margin-left: auto;
+      }
+
+      svg {
+        path {
+          fill: var(--surface-icon-secondary);
+        }
+      }
+    }
+  }
+
+  & > .content {
+    box-sizing: border-box;
+    padding: 25px 10px;
+    display: flex;
+    flex-flow: column;
+    row-gap: 15px;
+
+    p,
+    span,
+    a,
+    strong,
+    li {
+      @include typography(app-body-2);
+
+      color: var(--text-body-primary);
+    }
+
+    strong {
+      font-weight: 600;
+    }
+
+    p,
+    ul,
+    li {
+      text-align: center;
+    }
+
+    ul,
+    ol {
+      list-style: none;
+    }
+
+    @include media-breakpoint-up(lg) {
+      padding: 25px 60px;
+    }
+  }
+}

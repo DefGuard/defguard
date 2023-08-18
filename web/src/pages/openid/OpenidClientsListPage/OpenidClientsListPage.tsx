@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined, orderBy } from 'lodash-es';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
@@ -25,7 +25,10 @@ import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/
 import NoData from '../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import {
+  SelectOption,
+  SelectSelectedValue,
+} from '../../../shared/defguard-ui/components/Layout/Select/types';
 import {
   ListHeader,
   ListRowCell,
@@ -254,6 +257,18 @@ export const OpenidClientsListPage = () => {
     };
   }, [breakpoint]);
 
+  const renderSelectedFilter = useCallback(
+    (selected: FilterOption): SelectSelectedValue => {
+      const option = selectOptions.find((o) => o.value === selected);
+      if (!option) throw Error("Selected value doesn't exists");
+      return {
+        key: selected,
+        displayValue: option.label,
+      };
+    },
+    [selectOptions],
+  );
+
   useEffect(() => {
     if (breakpoint !== 'desktop' && selectedFilter !== FilterOption.ALL) {
       setSelectedFilter(FilterOption.ALL);
@@ -282,6 +297,7 @@ export const OpenidClientsListPage = () => {
         <div className="controls">
           {breakpoint === 'desktop' && (
             <Select
+              renderSelected={renderSelectedFilter}
               options={selectOptions}
               selected={selectedFilter}
               onChangeSingle={(res) => setSelectedFilter(res)}
