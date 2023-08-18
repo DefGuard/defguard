@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
@@ -48,6 +48,9 @@ export const AuthPage = () => {
 
   const setAppStore = useAppStore((state) => state.setAppStore);
 
+  const [params] = useSearchParams();
+  const redirectUrl = params.get('r');
+
   useEffect(() => {
     if (user && (!mfaMethod || mfaMethod === UserMFAMethod.NONE) && !openIdParams) {
       navigate('/', { replace: true });
@@ -56,7 +59,15 @@ export const AuthPage = () => {
 
   useEffect(() => {
     const sub = loginSubject.subscribe(async ({ user, url, mfa }) => {
-      // handle openid scenarios first
+      // handle forward auth redirect
+      if (redirectUrl && user) {
+        setShowRedirect(true);
+        resetMFAStore();
+        window.location.replace(redirectUrl);
+        return;
+      }
+
+      // handle openid scenarios
 
       // user authenticated but app needs consent
       if (openIdParams && user && !mfa) {
@@ -120,7 +131,7 @@ export const AuthPage = () => {
     });
     return () => sub?.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loginSubject, openIdParams]);
+  }, [loginSubject, openIdParams, redirectUrl]);
 
   if (showRedirect) return <RedirectPage />;
 

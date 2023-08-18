@@ -16,6 +16,7 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 pub(crate) mod app_info;
 pub(crate) mod auth;
+pub mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod license;
 pub(crate) mod mail;
@@ -52,13 +53,14 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
                 error!("{}", msg);
                 (json!({ "msg": msg }), Status::Forbidden)
             }
-            OriWebError::DbError(msg)
-            | OriWebError::Grpc(msg)
-            | OriWebError::Ldap(msg)
-            | OriWebError::WebauthnRegistration(msg)
-            | OriWebError::Serialization(msg)
-            | OriWebError::ModelError(msg) => {
-                error!("{}", msg);
+            OriWebError::DbError(_)
+            | OriWebError::Grpc(_)
+            | OriWebError::Ldap(_)
+            | OriWebError::WebauthnRegistration(_)
+            | OriWebError::Serialization(_)
+            | OriWebError::ModelError(_)
+            | OriWebError::ServerConfigMissing => {
+                error!("{self}");
                 (
                     json!({"msg": "Internal server error"}),
                     Status::InternalServerError,

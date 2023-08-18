@@ -30,6 +30,7 @@ export const UserAuthInfoPassword = () => {
         </header>
         <div className="row">
           <Button
+            data-testid="button-change-password"
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.STANDARD}
             text={LL.userPage.userAuthInfo.password.changePassword()}
