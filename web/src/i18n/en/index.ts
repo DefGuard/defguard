@@ -604,17 +604,21 @@ const en: BaseTranslation = {
       myProfile: 'My Profile',
       settings: 'Settings',
       logOut: 'Log out',
+      enrollment: 'Enrollment',
+      support: 'Support',
     },
     mobileTitles: {
       wizard: 'Create location',
       users: 'Users',
-      settings: 'Defguard Global Settings',
+      settings: 'Settings',
       user: 'User Profile',
       provisioners: 'Yubikey',
       webhooks: 'Webhooks',
       openId: 'OpenId Apps',
       overview: 'Location Overview',
       networkSettings: 'Edit Location',
+      enrollment: 'Enrollment',
+      support: 'Support',
     },
     copyright: 'Copyright \u00A9 2023 ',
     version: {
@@ -682,11 +686,10 @@ const en: BaseTranslation = {
     },
   },
   settingsPage: {
-    title: 'Global Settings',
+    title: 'Settings',
     tabs: {
-      general: 'General',
       smtp: 'SMTP',
-      enrollment: 'Enrollment',
+      global: 'Global settings',
       support: 'Support',
     },
     messages: {
@@ -775,9 +778,8 @@ const en: BaseTranslation = {
 			`,
     },
     smtp: {
-      header: 'SMTP Settings',
       form: {
-        title: 'Settings',
+        title: 'SMTP configuration',
         fields: {
           server: {
             label: 'Server address',
@@ -827,6 +829,9 @@ const en: BaseTranslation = {
           success: 'Test email sent',
           error: 'Error sending email',
         },
+      },
+      encryption: {
+        title: 'Protocol',
       },
       helper: `
         <p>
@@ -886,19 +891,6 @@ const en: BaseTranslation = {
         },
       },
     },
-    debugDataCard: {
-      title: 'Support data',
-      body: `
-If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
-* Either you can configure SMTP settings and click "Send support data"
-* Or click "Download support data" and create a bug report in our GitHub attaching this file.
-`,
-      downloadSupportData: 'Download support data',
-      downloadLogs: 'Download logs',
-      sendMail: 'Send email',
-      mailSent: 'Email sent',
-      mailError: 'Error sending email',
-    },
     licenseCard: {
       header: 'License & Support Information',
       licenseCardTitles: {
@@ -933,18 +925,6 @@ If you need assistance or you were asked to generate support data by our team (f
         company: 'licensed to: {company: string}',
         expiration: 'expiration date: {expiration: string}',
       },
-    },
-    supportCard: {
-      title: 'Support',
-      body: `
-Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
-
-To submit:
-* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
-* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
-
-Any other requests you can reach us at: support@defguard.net
-`,
     },
   },
   openidOverview: {
@@ -1399,6 +1379,73 @@ Any other requests you can reach us at: support@defguard.net
   redirectPage: {
     title: 'You have been logged in',
     subtitle: 'You will be redirected in a moment...',
+  },
+  enrollmentPage: {
+    title: 'Enrollment',
+    controls: {
+      default: 'Restore default',
+      save: 'Save changes',
+    },
+    messages: {
+      edit: {
+        success: 'Settings changed',
+        error: 'Save failed',
+      },
+    },
+    messageBox:
+      'Enrollment is process by which the new employee will be able to confirm their new account, create a password and configurate VPN device. In this panel you can custom messages for it.',
+    settings: {
+      welcomeMessage: {
+        title: 'Welcome message',
+        messageBox:
+          'This information will be displayed for user in service once enrollment is completed. We advise to insert links and explain next steps briefly. You can use same message as in the e-mail.',
+      },
+      vpnOptionality: {
+        title: 'VPN set optionallity',
+        select: {
+          options: {
+            optional: 'Optional',
+            mandatory: 'Mandatory',
+          },
+        },
+      },
+      welcomeEmail: {
+        title: 'Welcome e-mail',
+        messageBox:
+          'This information will be sent to user once enrollment is completed. We advise to insert links and explain next steps briefly.',
+        controls: {
+          duplicateWelcome: 'Same as welcome message',
+        },
+      },
+    },
+  },
+  supportPage: {
+    title: 'Support',
+    debugDataCard: {
+      title: 'Support data',
+      body: `
+If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+* Either you can configure SMTP settings and click "Send support data"
+* Or click "Download support data" and create a bug report in our GitHub attaching this file.
+`,
+      downloadSupportData: 'Download support data',
+      downloadLogs: 'Download logs',
+      sendMail: 'Send support data',
+      mailSent: 'Email sent',
+      mailError: 'Error sending email',
+    },
+    supportCard: {
+      title: 'Support',
+      body: `
+Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
+
+To submit:
+* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
+
+Any other requests you can reach us at: support@defguard.net
+`,
+    },
   },
 };
 

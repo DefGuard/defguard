@@ -1,106 +1,103 @@
-@use '../../shared/scss/helpers' as *;
+@use '@scssutils' as *;
 
 #settings-page {
-  & > .page-content {
-    overflow-y: auto;
-    border-radius: 0 15px 15px 15px;
+  .page-content {
     box-sizing: border-box;
-    & > .settings-card {
-      display: grid;
-      grid-template-columns: 1fr;
-      grid-template-rows: auto auto;
-      grid-template-areas:
-        'left'
-        'right';
-      position: relative;
-      padding: 30px 15px;
-      row-gap: 30px;
+    padding: 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    @include media-breakpoint-up(lg) {
+      padding: 64px 70px;
+    }
+
+    h1 {
+      display: none;
+      margin-bottom: 50px;
+
+      @include typography(app-title);
+
+      color: var(--text-body-primary);
 
       @include media-breakpoint-up(lg) {
-        padding: 40px 60px;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: repeat(2, auto);
-        grid-template-areas:
-          'header header'
-          'left right';
-        column-gap: 60px;
-        row-gap: 50px;
+        display: block;
+      }
+    }
+
+    h2 {
+      @include typography(app-body-1);
+
+      color: var(--text-body-primary);
+    }
+
+    h3 {
+      @include typography(modal-title);
+
+      color: var(--text-body-primary);
+    }
+
+    section {
+      & > header {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        margin-bottom: 26px;
+      }
+    }
+
+    .card {
+      & > .controls {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: center;
+        justify-content: flex-start;
+
+        column-gap: 10px;
+
+        & > .btn {
+          &:first-of-type {
+            margin-left: auto;
+          }
+        }
+      }
+    }
+
+    & > .settings-card {
+      padding: 0;
+
+      @include media-breakpoint-up(lg) {
+        padding: 50px 20px;
+        border-top-left-radius: 0;
       }
 
       @include media-breakpoint-up(xxl) {
-        padding: 40px 80px 80px 60px;
-      }
-
-      & > header {
-        display: none;
-
-        @include media-breakpoint-up(lg) {
-          display: flex;
-          grid-area: header;
-        }
+        display: grid;
+        grid-template-rows: auto;
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+        justify-items: center;
+        row-gap: 48px;
+        column-gap: 56px;
       }
 
       & > .left {
-        grid-area: left;
+        grid-column: 1;
       }
 
       & > .right {
-        grid-area: right;
-      }
-
-      h1,
-      h2,
-      h3 {
-        user-select: none;
-      }
-
-      h2 {
-        @include card-header;
-      }
-
-      h1 {
-        @include page-header;
-      }
-
-      & > .left {
-        display: flex;
-        flex-flow: column;
-        width: 100%;
-
-        @include media-breakpoint-down(lg) {
-          row-gap: 30px;
-        }
-      }
-
-      & > .right {
-        display: flex;
-        flex-flow: column;
-        row-gap: 30px;
-
-        @include media-breakpoint-up(lg) {
-          row-gap: 20px;
-        }
+        grid-column: 2;
       }
 
       & > .left,
       & > .right {
-        & > * {
-          &:not(.card) {
-            & > header {
-              display: flex;
-              flex-flow: row nowrap;
-              column-gap: 10px;
-              align-items: center;
-              align-content: center;
-              justify-content: flex-start;
-              margin-bottom: 15px;
-
-              @include media-breakpoint-up(lg) {
-                margin-bottom: 25px;
-              }
-            }
-          }
-        }
+        grid-row: 1;
+        width: 100%;
+        max-width: 750px;
+        display: flex;
+        flex-flow: column;
+        row-gap: 48px;
       }
     }
   }

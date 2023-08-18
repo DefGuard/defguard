@@ -5,11 +5,13 @@ import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-d
 
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
+import { EnrollmentPage } from '../../pages/enrollment/EnrollmentPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import { ProvisionersPage } from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
+import { SupportPage } from '../../pages/support/SupportPage';
 import { UserProfile } from '../../pages/users/UserProfile/UserProfile';
 import { UsersPage } from '../../pages/users/UsersPage';
 import { UsersSharedModals } from '../../pages/users/UsersSharedModals';
@@ -29,9 +31,18 @@ const App = () => {
       <div id="app">
         <Router>
           <Routes>
+            <Route path="support/*" element={<SupportPage />} />
             <Route path="auth/*" element={<AuthPage />} />
             <Route path="admin/*">
               <Route index element={<Navigate to="users" />} />
+              <Route
+                path="enrollment/*"
+                element={
+                  <ProtectedRoute allowedGroups={['admin']}>
+                    <EnrollmentPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="network/*"
                 element={

@@ -3,7 +3,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { orderBy } from 'lodash-es';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
@@ -19,6 +19,7 @@ import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Sea
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
   SelectOption,
+  SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
@@ -60,6 +61,18 @@ export const UsersOverview = () => {
     return res;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
+
+  const renderSelectedFilter = useCallback(
+    (selected: FilterOptions): SelectSelectedValue => {
+      const option = filterSelectOptions.find((o) => o.value === selected);
+      if (!option) throw Error("Selected value doesn't exist");
+      return {
+        key: option.key,
+        displayValue: option.label,
+      };
+    },
+    [filterSelectOptions],
+  );
 
   const [selectedFilter, setSelectedFilter] = useState(FilterOptions.ALL);
 
@@ -140,6 +153,7 @@ export const UsersOverview = () => {
             <Select
               sizeVariant={SelectSizeVariant.SMALL}
               searchable={false}
+              renderSelected={renderSelectedFilter}
               selected={selectedFilter}
               options={filterSelectOptions}
               onChangeSingle={(filter) => setSelectedFilter(filter)}

@@ -1,18 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="22" height="22" viewBox="0 0 22 22">
-  <defs>
-    <clipPath id="clip-path">
-      <rect id="Rectangle_2609" data-name="Rectangle 2609" width="22" height="22" fill="#899ca8" opacity="0"/>
-    </clipPath>
-  </defs>
-  <g id="icon-download" transform="translate(22) rotate(90)" clip-path="url(#clip-path)">
-    <path id="Path_5560" data-name="Path 5560" d="M0,0" transform="translate(11 12)" fill="#899ca8"/>
-    <g id="Group_4637" data-name="Group 4637" transform="translate(-227 334) rotate(-90)">
-      <rect id="Rectangle_2606" data-name="Rectangle 2606" width="6" height="2" rx="1" transform="translate(318 239) rotate(90)" fill="#899ca8"/>
-      <rect id="Rectangle_2611" data-name="Rectangle 2611" width="6" height="2" rx="1" transform="translate(330 239) rotate(90)" fill="#899ca8"/>
-      <rect id="Rectangle_2612" data-name="Rectangle 2612" width="6" height="2" rx="1" transform="translate(320.164 234) rotate(45)" fill="#899ca8"/>
-      <rect id="Rectangle_2610" data-name="Rectangle 2610" width="14" height="2" rx="1" transform="translate(316 243)" fill="#899ca8"/>
-      <rect id="Rectangle_2607" data-name="Rectangle 2607" width="8" height="2" rx="1" transform="translate(324 231) rotate(90)" fill="#899ca8"/>
-      <rect id="Rectangle_2613" data-name="Rectangle 2613" width="6" height="2" rx="1" transform="translate(327.408 235.415) rotate(135)" fill="#899ca8"/>
-    </g>
-  </g>
+<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M18 13V17C18 17.5523 17.5523 18 17 18H5C4.44772 18 4 17.5523 4 17V13C4 12.4477 4.44772 12 5 12C5.55229 12 6 12.4477 6 13V16H16V13C16 12.4477 16.4477 12 17 12C17.5523 12 18 12.4477 18 13Z" fill="#899CA8"/>
+  <path d="M8.87117 7.70711C8.48065 7.31658 7.84748 7.31658 7.45696 7.70711C7.06643 8.09763 7.06643 8.7308 7.45696 9.12132L10.2854 11.9497C10.5015 12.1659 10.792 12.2624 11.0745 12.2393C11.3598 12.2652 11.654 12.1689 11.8724 11.9505L14.7009 9.12208C15.0914 8.73156 15.0914 8.0984 14.7009 7.70787C14.3103 7.31735 13.6772 7.31735 13.2866 7.70787L12 8.99451V5C12 4.44772 11.5523 4 11 4C10.4477 4 10 4.44772 10 5V8.83594L8.87117 7.70711Z" fill="#899CA8"/>
 </svg>

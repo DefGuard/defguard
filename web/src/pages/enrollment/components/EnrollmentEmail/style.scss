@@ -1,0 +1,72 @@
+@use '@scssutils' as *;
+
+#enrollment-email {
+  & > .message-box {
+    margin-bottom: 26px;
+    background-color: var(--surface-tag-modal);
+  }
+
+  & > .card {
+    @include media-breakpoint-up(lg) {
+      padding: 17px 15px;
+    }
+
+    & > .controls {
+      width: 100%;
+      display: flex;
+      flex-flow: row wrap;
+      column-gap: 10px;
+      margin-bottom: 16px;
+
+      & > .checkbox-wrap {
+        display: flex;
+        flex-flow: row nowrap;
+        column-gap: 5px;
+        align-items: center;
+        justify-content: flex-start;
+
+        & > span {
+          @include typography(app-modal-1);
+
+          color: var(--text-body-secondary);
+          user-select: none;
+          cursor: pointer;
+        }
+      }
+
+      & > .btn {
+        min-width: 140px;
+
+        &:nth-child(2) {
+          margin-left: auto;
+        }
+      }
+    }
+
+    & > .text-wrapper {
+      border-radius: 15px;
+      box-sizing: border-box;
+      padding: 20px;
+      border: 1px solid var(--border-primary);
+      width: 100%;
+      min-height: 700px;
+      resize: vertical;
+      overflow: hidden;
+      & > textarea {
+        min-height: 660px;
+        width: 100%;
+        height: inherit;
+        border: none;
+        padding: 0;
+        margin: 0;
+        resize: none;
+        overflow-y: auto;
+        background-color: transparent;
+
+        @include typography(app-welcome-2);
+
+        color: var(--text-body-primary);
+      }
+    }
+  }
+}

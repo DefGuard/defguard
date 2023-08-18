@@ -21,6 +21,7 @@ import { MessageBoxType } from '../../../../../../../shared/defguard-ui/componen
 import { Select } from '../../../../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
   SelectOption,
+  SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../../../../shared/hooks/useApi';
@@ -147,6 +148,18 @@ export const ConfigStep = () => {
     return [];
   }, [configsData, device, standAloneMode]);
 
+  const renderSelected = useCallback(
+    (selected: number): SelectSelectedValue => {
+      const option = getSelectOptions.find((o) => o.value === selected);
+      if (!option) throw Error("Selected value doesn't exist");
+      return {
+        key: option.key,
+        displayValue: option.label,
+      };
+    },
+    [getSelectOptions],
+  );
+
   const getWarningMessageConent = useMemo(() => {
     if (setupMode === DeviceModalSetupMode.AUTO_CONFIG) {
       return parse(LL.modals.addDevice.web.steps.config.helpers.warningAutoMode());
@@ -157,6 +170,7 @@ export const ConfigStep = () => {
   const getExpandCardExtras = useMemo(() => {
     return (
       <Select
+        renderSelected={renderSelected}
         selected={selectedNetwork}
         options={getSelectOptions}
         searchable={false}
@@ -167,7 +181,7 @@ export const ConfigStep = () => {
         }}
       />
     );
-  }, [getSelectOptions, loadingConfig, standAloneMode, selectedNetwork]);
+  }, [getSelectOptions, loadingConfig, standAloneMode, selectedNetwork, renderSelected]);
 
   // init select on mount
   useEffect(() => {

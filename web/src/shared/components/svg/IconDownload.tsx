@@ -4,60 +4,18 @@ const SvgIconDownload = (props: SVGProps<SVGSVGElement>) => (
     xmlns="http://www.w3.org/2000/svg"
     width={22}
     height={22}
+    fill="none"
     viewBox="0 0 22 22"
     {...props}
   >
-    <defs>
-      <clipPath id="icon-download_svg__a">
-        <path fill="#899ca8" d="M0 0h22v22H0z" data-name="Rectangle 2609" opacity={0} />
-      </clipPath>
-    </defs>
-    <g clipPath="url(#icon-download_svg__a)" transform="rotate(90 11 11)">
-      <g fill="#899ca8" data-name="Group 4637" transform="rotate(-90 53.5 280.5)">
-        <rect
-          width={6}
-          height={2}
-          data-name="Rectangle 2606"
-          rx={1}
-          transform="rotate(90 39.5 278.5)"
-        />
-        <rect
-          width={6}
-          height={2}
-          data-name="Rectangle 2611"
-          rx={1}
-          transform="rotate(90 45.5 284.5)"
-        />
-        <rect
-          width={6}
-          height={2}
-          data-name="Rectangle 2612"
-          rx={1}
-          transform="rotate(45 -122.381 503.472)"
-        />
-        <rect
-          width={14}
-          height={2}
-          data-name="Rectangle 2610"
-          rx={1}
-          transform="translate(316 243)"
-        />
-        <rect
-          width={8}
-          height={2}
-          data-name="Rectangle 2607"
-          rx={1}
-          transform="rotate(90 46.5 277.5)"
-        />
-        <rect
-          width={6}
-          height={2}
-          data-name="Rectangle 2613"
-          rx={1}
-          transform="rotate(135 114.948 185.516)"
-        />
-      </g>
-    </g>
+    <path
+      fill="#899CA8"
+      d="M18 13v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4a1 1 0 1 1 2 0v3h10v-3a1 1 0 1 1 2 0Z"
+    />
+    <path
+      fill="#899CA8"
+      d="M8.871 7.707a1 1 0 1 0-1.414 1.414l2.828 2.829a.998.998 0 0 0 .79.29c.285.025.579-.071.797-.29l2.829-2.828a1 1 0 0 0-1.414-1.414L12 8.995V5a1 1 0 1 0-2 0v3.836L8.871 7.707Z"
+    />
   </svg>
 );
 export default SvgIconDownload;

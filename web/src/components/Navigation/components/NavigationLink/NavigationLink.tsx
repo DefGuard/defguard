@@ -1,3 +1,6 @@
+import './style.scss';
+
+import classNames from 'classnames';
 import { useMatch } from 'react-router';
 import { Link } from 'react-router-dom';
 
@@ -10,11 +13,20 @@ interface NavigationLinkProps {
 
 export const NavigationLink = ({ item, callback }: NavigationLinkProps) => {
   const match = useMatch(item.linkPath);
+
+  const cn = classNames(
+    'navigation-link',
+    {
+      active: match,
+    },
+    item.className,
+  );
+
   return (
     <Link
       replace
       to={item.linkPath}
-      className={match ? 'active' : undefined}
+      className={cn}
       onClick={() => {
         if (callback) {
           callback();

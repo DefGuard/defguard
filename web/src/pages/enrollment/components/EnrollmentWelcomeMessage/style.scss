@@ -1,0 +1,55 @@
+@use '@scssutils' as *;
+
+#enrollment-welcome-message {
+  & > .message-box {
+    margin-bottom: 26px;
+    background-color: var(--surface-tag-modal);
+  }
+
+  & > .card {
+    @include media-breakpoint-up(lg) {
+      padding: 17px 15px;
+    }
+
+    & > .controls {
+      width: 100%;
+      display: flex;
+      flex-flow: row wrap;
+      margin-bottom: 16px;
+      column-gap: 10px;
+
+      & > .btn {
+        min-width: 140px;
+
+        &:first-of-type {
+          margin-left: auto;
+        }
+      }
+    }
+    & > .text-wrapper {
+      border-radius: 15px;
+      box-sizing: border-box;
+      padding: 20px;
+      border: 1px solid var(--border-primary);
+      width: 100%;
+      min-height: 700px;
+      resize: vertical;
+      overflow: hidden;
+      & > textarea {
+        min-height: 660px;
+        width: 100%;
+        height: inherit;
+        border: none;
+        padding: 0;
+        margin: 0;
+        resize: none;
+        overflow-y: auto;
+        background-color: transparent;
+
+        @include typography(app-welcome-2);
+
+        color: var(--text-body-primary);
+      }
+    }
+  }
+}

@@ -1,13 +1,26 @@
+import { useCallback } from 'react';
+
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import {
+  SelectOption,
+  SelectSelectedValue,
+} from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 
 export const OverviewStatsFilterSelect = () => {
   const filterValue = useOverviewStore((state) => state.statsFilter);
   const setOverviewStore = useOverviewStore((state) => state.setState);
 
+  const renderSelected = useCallback((selected: number): SelectSelectedValue => {
+    return {
+      key: selected,
+      displayValue: `${selected}H`,
+    };
+  }, []);
+
   return (
     <Select
+      renderSelected={renderSelected}
       options={selectOptions}
       selected={filterValue}
       onChangeSingle={(res) => setOverviewStore({ statsFilter: res })}

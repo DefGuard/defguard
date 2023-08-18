@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import { orderBy } from 'lodash-es';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
@@ -12,7 +12,10 @@ import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/Loader
 import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../shared/defguard-ui/components/Layout/Select/Select';
-import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
+import {
+  SelectOption,
+  SelectSelectedValue,
+} from '../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { ProvisionersList } from './ProvisionersList/ProvisionersList';
@@ -41,6 +44,18 @@ export const ProvisionersPage = () => {
       },
     ],
     [LL.provisionersOverview.filterLabels],
+  );
+
+  const renderSelected = useCallback(
+    (selected: FilterOptions): SelectSelectedValue => {
+      const option = filterSelectOptions.find((o) => o.value === selected);
+      if (!option) throw Error("Selected value doesn't exist");
+      return {
+        key: selected,
+        displayValue: option.label,
+      };
+    },
+    [filterSelectOptions],
   );
 
   const [selectedFilterOption, setSelectedFilterOption] = useState(FilterOptions.ALL);
@@ -103,6 +118,7 @@ export const ProvisionersPage = () => {
           </div>
           {breakpoint === 'desktop' && (
             <Select
+              renderSelected={renderSelected}
               options={filterSelectOptions}
               selected={selectedFilterOption}
               searchable={false}

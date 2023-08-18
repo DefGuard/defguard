@@ -1,0 +1,70 @@
+@use '@scssutils' as *;
+
+#support-page {
+  & > .page-content {
+    box-sizing: border-box;
+    padding: 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    @include media-breakpoint-down(lg) {
+      background-color: var(--surface-default-modal);
+    }
+
+    @include media-breakpoint-up(lg) {
+      padding: 64px 70px;
+    }
+
+    h1 {
+      display: none;
+      margin-bottom: 50px;
+
+      @include typography(app-title);
+
+      color: var(--text-body-primary);
+
+      @include media-breakpoint-up(lg) {
+        display: block;
+      }
+    }
+
+    & > .content {
+      display: flex;
+      flex-flow: row wrap;
+      align-items: center;
+      justify-content: flex-start;
+      row-gap: 40px;
+
+      & > .left,
+      & > .right {
+        display: flex;
+        flex-flow: column;
+        row-gap: 48px;
+        width: 100%;
+      }
+
+      @include media-breakpoint-up(xxl) {
+        display: grid;
+        grid-template-rows: 1fr;
+        grid-template-columns: minmax(auto, 1000px) minmax(auto, 1000px);
+        column-gap: 50px;
+        align-items: start;
+        justify-content: center;
+
+        & > .left {
+          grid-column: 1;
+        }
+
+        & > .right {
+          grid-column: 2;
+        }
+
+        & > .left,
+        & > .right {
+          grid-row: 1;
+          width: 100%;
+        }
+      }
+    }
+  }
+}

@@ -637,7 +637,6 @@ export interface UseOpenIDStore {
 }
 
 export interface Settings {
-  id: string;
   challenge_template: string;
   openid_enabled: boolean;
   ldap_enabled: boolean;
