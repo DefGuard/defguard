@@ -1,31 +1,34 @@
 import { BrowserContext, Page, expect, test } from '@playwright/test';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { createUserEnrollment } from '../utils/controllers/createUserEnrollment';
-import { setEnrollmentPassword } from '../utils/controllers/setEnrollmentPassword';
+import { setPassword, setToken, createUserEnrollment, password } from '../utils/controllers/enrollment';
 import { getPageClipboard } from '../utils/getPageClipboard';
 import { waitForPromise } from '../utils/waitForPromise';
-import { logout } from '../utils/controllers/logout';
+import { User } from '../types';
+import { loginBasic } from '../utils/controllers/login';
 
-//test.describe.configure({
-  //mode: 'serial',
-//});
+test.afterEach(async () => {
+  dockerRestart();
+});
+
+test.describe.configure({
+  mode: 'serial',
+});
 
 test.describe('Create user with enrollment enabled', () => {
   let token: string;
-  let url: string;
   let page: Page;
   let context: BrowserContext;
+  let user: User;
 
   // Setup client and user for tests
   test.beforeAll(async ({ browser }) => {
     context = await browser.newContext();
     page = await context.newPage();
     await waitForBase(page);
-    await createUserEnrollment(context, 'testauth01');
+    user = await createUserEnrollment(context, 'testauth01');
     const response = (await getPageClipboard(page)).split('\n');
     // Extract token and url
-    url = response[0].split(' ')[2];
     const tokenResponse = response[1].split(' ')[1];
     token = tokenResponse;
   });
@@ -36,9 +39,15 @@ test.describe('Create user with enrollment enabled', () => {
 
   test('Go to enrollment', async () => {
     expect(token).toBeDefined();
-    expect(url).toBeDefined();
-    await page.waitForURL(url);
+    await page.goto('http://localhost:8080/');
     await waitForPromise(2000);
-    await setEnrollmentPassword(token, page);
+    await setToken(token, page);
+    await page.getByTestId('enrollment-next').click();
+    await page.getByTestId('enrollment-next').click();
+    await setPassword(page);
+    await page.getByTestId('enrollment-next').click();
+    await page.getByTestId('enrollment-next').click();
+    loginBasic(page, { username: 'testauth01', password });
+    await waitForPromise(2000);
   });
 });
