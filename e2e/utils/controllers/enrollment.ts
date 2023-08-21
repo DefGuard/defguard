@@ -5,9 +5,8 @@ import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
 import { loginBasic } from './login';
 import { logout } from './logout';
-import { getPageClipboard } from '../getPageClipboard';
 
-export const password = 'TestEnrollment1234!!'
+export const password = 'TestEnrollment1234!!';
 
 export const createUserEnrollment = async (
   context: BrowserContext,
@@ -43,40 +42,45 @@ export const createUserEnrollment = async (
     .locator('.actions')
     .getByTestId('copy-enrollment-token')
     .click();
-  await modalElement.locator('.content').locator('.actions').getByTestId('button-close-enrollment').click();
+  await modalElement
+    .locator('.content')
+    .locator('.actions')
+    .getByTestId('button-close-enrollment')
+    .click();
   await modalElement.waitFor({ state: 'hidden' });
   await logout(page);
   return user;
 };
 
-export const setToken = async (
-  page: Page,
-  token: string,
-) => {
+export const setToken = async (token: string, page: Page) => {
   const formElement = page.getByTestId('enrollment-token-form');
   await formElement.getByTestId('field-token').type(token);
   await formElement.locator('button[type="submit"]').click();
 };
 
-export const validateData = async (
-  page: Page,
-  user: User,
-) => {
-  const formElement = page.getByTestId('enrollment-data-verification');
-  expect(formElement.locator('.row').getByTestId('enrollment-first-name').textContent()).toBe(user.firstName);
-  expect(formElement.getByTestId('enrollment-last-name')).toBe(user.lastName);
-  expect(formElement.getByTestId('enrollment-email')).toBe(user.mail);
-  expect(formElement.getByTestId('enrollment-phone')).toBe(user.phone);
-  await formElement.locator('button[type="submit"]').click();
+export const validateData = async (user: User, page: Page) => {
+  const formElement = page
+    .locator('#enrollment-data-verification-card')
+    .getByTestId('enrollment-data-verification')
+    .locator('.row');
+  const firstName = await formElement.locator('p').nth(0).textContent();
+  const lastName = await formElement.locator('p').nth(1).textContent();
+  const mail = await formElement.locator('p').nth(2).textContent();
+  const phone = await formElement.getByTestId('field-phone').inputValue();
+  expect(firstName).toBe(user.firstName);
+  expect(lastName).toBe(user.lastName);
+  expect(mail).toBe(user.mail);
+  expect(phone).toBe(user.phone);
 };
 
-
-export const setPassword = async (
-  page: Page,
-) => {
+export const setPassword = async (page: Page) => {
   const formElement = page.getByTestId('enrollment-password-form');
   await formElement.getByTestId('field-password').type(password);
   await formElement.getByTestId('field-repeat').type(password);
+};
 
-}
-
+export const createDevice = async (page: Page) => {
+  const formElement = page.getByTestId('enrollment-device-form');
+  await formElement.getByTestId('field-name').type('test');
+  await formElement.locator('button[type="submit"]').click();
+};
