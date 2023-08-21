@@ -52,3 +52,11 @@ services:
     ports:
       - "9898:5432"
 
+
+  #device:
+    #build:
+      #dockerfile: Dockerfile.device
+    #depends_on:
+      #- gateway
+    #cap_add:
+      #- NET_ADMIN
