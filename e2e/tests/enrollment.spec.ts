@@ -1,5 +1,6 @@
 import { BrowserContext, expect, Page, test } from '@playwright/test';
 
+import { testsConfig } from '../config';
 import { NetworkForm, User } from '../types';
 import { apiGetUserProfile } from '../utils/api/users';
 import {
@@ -17,7 +18,6 @@ import { dockerRestart } from '../utils/docker';
 import { getPageClipboard } from '../utils/getPageClipboard';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
-import { testsConfig } from '../config';
 
 test.describe.configure({
   mode: 'serial',
