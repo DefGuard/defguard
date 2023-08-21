@@ -17,10 +17,7 @@ import { dockerRestart } from '../utils/docker';
 import { getPageClipboard } from '../utils/getPageClipboard';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
-
-test.afterEach(async () => {
-  dockerRestart();
-});
+import { testsConfig } from '../config';
 
 test.describe.configure({
   mode: 'serial',
@@ -53,13 +50,17 @@ test.describe('Create user with enrollment enabled', () => {
     token = tokenResponse;
   });
 
+  test.afterEach(async () => {
+    dockerRestart();
+  });
+
   test.afterAll(() => {
     dockerRestart();
   });
 
   test('Go to enrollment', async () => {
     expect(token).toBeDefined();
-    await page.goto('http://localhost:8080/');
+    await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);
     await setToken(token, page);
     // Welcome page

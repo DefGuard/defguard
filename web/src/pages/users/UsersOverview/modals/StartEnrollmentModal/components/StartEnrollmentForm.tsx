@@ -133,9 +133,9 @@ export const StartEnrollmentForm = () => {
     () => [
       <ActionButton
         type="button"
+        data-testid="copy-enrollment-token"
         key={1}
         variant={ActionButtonVariant.COPY}
-        data-testid="copy-enrollment-token"
         onClick={() => {
           const res = `Enrollment URL: ${enrollmentUrl}\nToken: ${enrollmentToken}`;
           writeToClipboard(res);
@@ -159,7 +159,7 @@ export const StartEnrollmentForm = () => {
             <p>Token: {enrollmentToken}</p>
           </ExpandableCard>
           {breakpoint === 'desktop' && (
-            <div className="actions">
+            <div className="controls">
               <Button
                 data-testid="button-close-enrollment"
                 type="button"
