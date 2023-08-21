@@ -10,7 +10,6 @@ export const createUser = async (
   context: BrowserContext,
   username: string,
   groups?: string[],
-  enrollment?: boolean
 ): Promise<User> => {
   const user: User = { ...testUserTemplate, username };
   const page = await context.newPage();
@@ -27,9 +26,6 @@ export const createUser = async (
   await formElement.getByTestId('field-last_name').type(user.lastName);
   await formElement.getByTestId('field-email').type(user.mail);
   await formElement.getByTestId('field-phone').type(user.phone);
-  if (enrollment) {
-    await formElement.getByTestId('field-enable_enrollment').click(user.phone);
-  }
   await formElement.locator('button[type="submit"]').click();
   await formElement.waitFor({ state: 'hidden', timeout: 2000 });
   if (groups) {
