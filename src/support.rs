@@ -19,6 +19,19 @@ fn unwrap_json(result: Result<impl Serialize, impl Display>) -> Value {
     }
 }
 
+fn mask_fields(mut data: Value, fields_to_mask: &[&str]) -> Value {
+    let objects = data.as_array_mut().unwrap();
+    for obj in objects {
+        for field in fields_to_mask {
+            if let Some(field_value) = obj.get_mut(*field) {
+                *field_value = json!("*");
+            }
+        }
+    }
+
+    data
+}
+
 /// Dumps all data that could be used for debugging.
 pub async fn dump_config(db: &Pool<Postgres>,  config: &DefGuardConfig) -> Value {
     // App settings DB records
@@ -45,8 +58,9 @@ pub async fn dump_config(db: &Pool<Postgres>,  config: &DefGuardConfig) -> Value
         }
         Err(err) => (json!({"error": err.to_string()}), Value::Null),
     };
-    let users = unwrap_json(User::all(db).await);
-    mask!(config, secret_key, database_password, ldap_bind_password, default_admin_password);
+    let users = unwrap_json(User::all_without_sensitive_data(db).await);
+    let settings = mask_fields(settings, &["smtp_password"]);
+    let config = mask!(config, secret_key, database_password, ldap_bind_password, default_admin_password);
 
     json!({
         "settings": settings,

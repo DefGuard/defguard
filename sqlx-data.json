@@ -287,26 +287,6 @@
     },
     "query": "INSERT INTO \"wallet\" (\"user_id\", \"address\", \"name\", \"chain_id\", \"challenge_message\", \"challenge_signature\", \"creation_timestamp\", \"validation_timestamp\", \"use_for_mfa\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
   },
-  "0ad599ef120ecc02b030bd1276172929d6a612846acf4a5489c36a04cb57de59": {
-    "describe": {
-      "columns": [
-        {
-          "name": "recovery_codes",
-          "ordinal": 0,
-          "type_info": "TextArray"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT recovery_codes FROM \"user\" WHERE id = $1"
-  },
   "0b53e81d6f1ce3c3a68c871e7a4b9e41db58b112d12281516e10421d46fbbd94": {
     "describe": {
       "columns": [
@@ -2134,6 +2114,120 @@
       }
     },
     "query": "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') ON CONFLICT DO NOTHING RETURNING id"
+  },
+  "70bd32dd667bbc7e0c6f7cdbb6234f22498c310685f84a2ea43659519adf86a5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "last_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "email",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "phone",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "ssh_key",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "pgp_key",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "pgp_cert_id",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "mfa_enabled",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "totp_enabled",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "mfa_method: _",
+          "ordinal": 11,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          }
+        },
+        {
+          "name": "recovery_codes!",
+          "ordinal": 12,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 13,
+          "type_info": "Text"
+        },
+        {
+          "name": "totp_secret",
+          "ordinal": 14,
+          "type_info": "Bytea"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", username, last_name, first_name, email, phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, mfa_method \"mfa_method: _\", ARRAY[]::TEXT[] AS \"recovery_codes!\", '*' AS password_hash, CAST(NULL AS BYTEA) totp_secret FROM \"user\""
   },
   "71465915aa72eed5d35fb82149a1bd32df7c4f5af1457dfa5406b3c82fb77231": {
     "describe": {
