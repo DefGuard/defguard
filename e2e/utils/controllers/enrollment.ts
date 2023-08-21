@@ -1,5 +1,6 @@
+import { expect, Page } from '@playwright/test';
 import { BrowserContext } from 'playwright';
-import { Page, expect } from '@playwright/test';
+
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
@@ -10,7 +11,7 @@ export const password = 'TestEnrollment1234!!';
 
 export const createUserEnrollment = async (
   context: BrowserContext,
-  username: string,
+  username: string
 ): Promise<User> => {
   const user: User = { ...testUserTemplate, username };
   const page = await context.newPage();

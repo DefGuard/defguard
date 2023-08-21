@@ -9,7 +9,7 @@ import { logout } from './logout';
 export const createUser = async (
   context: BrowserContext,
   username: string,
-  groups?: string[],
+  groups?: string[]
 ): Promise<User> => {
   const user: User = { ...testUserTemplate, username };
   const page = await context.newPage();

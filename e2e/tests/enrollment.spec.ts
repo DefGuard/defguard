@@ -1,21 +1,22 @@
-import { BrowserContext, Page, expect, test } from '@playwright/test';
-import { dockerRestart } from '../utils/docker';
-import { waitForBase } from '../utils/waitForBase';
+import { BrowserContext, expect, Page, test } from '@playwright/test';
+
+import { NetworkForm, User } from '../types';
+import { apiGetUserProfile } from '../utils/api/users';
 import {
+  createDevice,
+  createUserEnrollment,
+  password,
   setPassword,
   setToken,
-  createUserEnrollment,
   validateData,
-  password,
-  createDevice,
 } from '../utils/controllers/enrollment';
-import { getPageClipboard } from '../utils/getPageClipboard';
-import { waitForPromise } from '../utils/waitForPromise';
-import { NetworkForm, User } from '../types';
 import { loginBasic } from '../utils/controllers/login';
-import { apiGetUserProfile } from '../utils/api/users';
-import { createNetwork } from '../utils/controllers/vpn/createNetwork';
 import { logout } from '../utils/controllers/logout';
+import { createNetwork } from '../utils/controllers/vpn/createNetwork';
+import { dockerRestart } from '../utils/docker';
+import { getPageClipboard } from '../utils/getPageClipboard';
+import { waitForBase } from '../utils/waitForBase';
+import { waitForPromise } from '../utils/waitForPromise';
 
 test.afterEach(async () => {
   dockerRestart();
