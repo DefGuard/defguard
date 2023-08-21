@@ -2,7 +2,6 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
-import { Label } from 'recharts';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -15,6 +14,7 @@ import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/C
 import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../shared/hooks/useApi';

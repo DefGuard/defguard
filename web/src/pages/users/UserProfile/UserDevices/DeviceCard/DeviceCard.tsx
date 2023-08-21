@@ -6,7 +6,6 @@ import utc from 'dayjs/plugin/utc';
 import { TargetAndTransition } from 'framer-motion';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
-import { Label } from 'recharts';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconClip from '../../../../../shared/components/svg/IconClip';
@@ -20,6 +19,7 @@ import { DeviceAvatar } from '../../../../../shared/defguard-ui/components/Layou
 import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import NoData from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';

@@ -7,10 +7,10 @@ import { AnimatePresence, motion, TargetAndTransition } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
 import { useMemo, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
-import { Label } from 'recharts';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { ColorsRGB } from '../../../constants';
+import { Label } from '../../../defguard-ui/components/Layout/Label/Label';
 import { LoaderSpinner } from '../../../defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import useApi from '../../../hooks/useApi';
 import { useToaster } from '../../../hooks/useToaster';
