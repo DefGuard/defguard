@@ -8,7 +8,7 @@ import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { User } from '../../../../../shared/types';
-import { useEnrollmentModalStore } from '../../modals/StartEnrollmentModal/hooks/useEnrollmentModalStore';
+import { useAddUserModal } from '../../modals/AddUserModal/hooks/useAddUserModal';
 
 type Props = {
   user: User;
@@ -20,8 +20,8 @@ export const UserEditButton = ({ user }: Props) => {
   const setProvisionKeyModal = useModalStore((state) => state.setProvisionKeyModal);
   const setDeleteUserModal = useModalStore((state) => state.setDeleteUserModal);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
-  const openEnrollmentModal = useEnrollmentModalStore((state) => state.open);
   const setUserProfile = useUserProfileStore((state) => state.setState);
+  const setAddUserModal = useAddUserModal((state) => state.setState);
   const currentUser = useAuthStore((state) => state.user);
   return (
     <EditButton>
@@ -29,7 +29,13 @@ export const UserEditButton = ({ user }: Props) => {
         <EditButtonOption
           key="start-enrollment"
           text={LL.usersOverview.list.editButton.startEnrollment()}
-          onClick={() => openEnrollmentModal(user)}
+          onClick={() =>
+            setAddUserModal({
+              visible: true,
+              step: 1,
+              user: user,
+            })
+          }
         />
       )}
       <EditButtonOption

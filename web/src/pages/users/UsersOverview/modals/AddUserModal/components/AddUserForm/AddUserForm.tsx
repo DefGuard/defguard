@@ -1,40 +1,43 @@
+import './style.scss';
+
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { omit } from 'lodash-es';
 import { useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import * as yup from 'yup';
+import { shallow } from 'zustand/shallow';
 
-import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
-import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import { useI18nContext } from '../../../../../../../i18n/i18n-react';
+import { FormCheckBox } from '../../../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
+import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../shared/defguard-ui/components/Layout/Button/types';
-import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
-import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
+} from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import useApi from '../../../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import {
   patternDigitOrLowercase,
   patternNoSpecialChars,
   patternStartsWithDigit,
   patternValidEmail,
   patternValidPhoneNumber,
-} from '../../../../../shared/patterns';
-import { QueryKeys } from '../../../../../shared/queries';
-import { passwordValidator } from '../../../../../shared/validators/password';
-import { useEnrollmentModalStore } from '../StartEnrollmentModal/hooks/useEnrollmentModalStore';
+} from '../../../../../../../shared/patterns';
+import { QueryKeys } from '../../../../../../../shared/queries';
+import { passwordValidator } from '../../../../../../../shared/validators/password';
+import { useAddUserModal } from '../../hooks/useAddUserModal';
 
 interface Inputs {
   username: string;
-  password?: string;
   email: string;
   last_name: string;
   first_name: string;
-  phone?: string;
-  // had to add field for conditional form validation to work
   enable_enrollment: boolean;
+  // disabled when enableEnrollment is true
+  password?: string;
+  phone?: string;
 }
 
 export const AddUserForm = () => {
@@ -120,24 +123,30 @@ export const AddUserForm = () => {
 
   const queryClient = useQueryClient();
 
-  const setModalState = useModalStore((state) => state.setAddUserModal);
-  const openEnrollmentModal = useEnrollmentModalStore((state) => state.open);
-
   const toaster = useToaster();
+
+  const [setModalState, nextStep, close] = useAddUserModal(
+    (state) => [state.setState, state.nextStep, state.close],
+    shallow,
+  );
 
   const addUserMutation = useMutation(addUser, {
     onSuccess: (user) => {
       queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
-      toaster.success('User added.');
       if (enableEnrollment) {
-        openEnrollmentModal(user);
+        toaster.success(LL.modals.addUser.messages.userAdded());
+        setModalState({
+          user: user,
+        });
+        nextStep();
+      } else {
+        close();
       }
-      setModalState({ visible: false });
     },
     onError: (err) => {
+      close();
+      toaster.error(LL.messages.error());
       console.error(err);
-      setModalState({ visible: false });
-      toaster.error('Error occurred.');
     },
   });
 
@@ -148,14 +157,16 @@ export const AddUserForm = () => {
       usernameAvailable(data.username)
         .then(() => {
           setCheckingUsername(false);
-          let userData = data;
-          if (enableEnrollment) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { password, ...rest } = data;
-            userData = rest;
+          if (data.enable_enrollment) {
+            const userData = omit(data, ['password', 'enable_enrollment']);
+            addUserMutation.mutate(userData);
+          } else {
+            if (data.password) {
+              addUserMutation.mutate(omit(data, ['enable_enrollment']));
+            } else {
+              trigger('password', { shouldFocus: true });
+            }
           }
-          // TODO: add notification toggle to form
-          addUserMutation.mutate(userData);
         })
         .catch(() => {
           setCheckingUsername(false);
@@ -166,7 +177,16 @@ export const AddUserForm = () => {
   };
 
   return (
-    <form data-testid="add-user-form" onSubmit={handleSubmit(onSubmit)}>
+    <form
+      id="add-user-form"
+      data-testid="add-user-form"
+      onSubmit={handleSubmit(onSubmit)}
+    >
+      <FormCheckBox
+        labelPlacement="right"
+        label={LL.modals.addUser.form.fields.enableEnrollment.label()}
+        controller={{ control, name: 'enable_enrollment' }}
+      />
       <div className="row">
         <div className="item">
           <FormInput
@@ -187,10 +207,6 @@ export const AddUserForm = () => {
             autoComplete="password"
             required={!enableEnrollment}
             disabled={enableEnrollment}
-          />
-          <FormCheckBox
-            label={LL.modals.addUser.form.fields.enableEnrollment.label()}
-            controller={{ control, name: 'enable_enrollment' }}
           />
           <FormInput
             label={LL.modals.addUser.form.fields.email.label()}

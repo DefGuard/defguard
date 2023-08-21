@@ -592,7 +592,6 @@ export interface UseModalStore {
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
   deleteUserModal: DeleteUserModal;
-  addUserModal: StandardModalState;
   licenseModal: StandardModalState;
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
@@ -609,7 +608,6 @@ export interface UseModalStore {
   setState: (data: Partial<UseModalStore>) => void;
   setWebhookModal: ModalSetter<WebhookModal>;
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
-  setAddUserModal: ModalSetter<StandardModalState>;
   setKeyDetailModal: ModalSetter<KeyDetailModal>;
   setKeyDeleteModal: ModalSetter<KeyDeleteModal>;
   setDeleteUserModal: ModalSetter<DeleteUserModal>;

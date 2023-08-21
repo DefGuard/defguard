@@ -52,9 +52,6 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
     keyDeleteModal: {
       visible: false,
     },
-    addUserModal: {
-      visible: false,
-    },
     webhookModal: {
       visible: false,
       webhook: undefined,
@@ -90,8 +87,6 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
       set((oldState) => ({
         recoveryCodesModal: { ...oldState.recoveryCodesModal, ...newState },
       })),
-    setAddUserModal: (v) =>
-      set((state) => ({ addUserModal: { ...state.addUserModal, ...v } })),
     setKeyDeleteModal: (v) =>
       set((state) => ({ keyDeleteModal: { ...state.keyDeleteModal, ...v } })),
     setKeyDetailModal: (v) =>
