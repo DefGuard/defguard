@@ -216,7 +216,6 @@ export const WizardNetworkConfiguration = () => {
             key: group,
             displayValue: titleCase(group),
           })}
-          onRemove={(group, selected) => selected.filter((g) => g !== group)}
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>
