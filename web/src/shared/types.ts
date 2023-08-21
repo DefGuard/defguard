@@ -588,7 +588,6 @@ export interface OpenIdClientModal extends StandardModalState {
 export interface UseModalStore {
   openIdClientModal: OpenIdClientModal;
   setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
-  addDeviceDesktopModal: StandardModalState;
   addWalletModal: StandardModalState;
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;

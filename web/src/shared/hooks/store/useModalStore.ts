@@ -16,9 +16,6 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
       set((oldState) => ({
         openIdClientModal: { ...oldState.openIdClientModal, ...newState },
       })),
-    addDeviceDesktopModal: {
-      visible: false,
-    },
     addWalletModal: {
       visible: false,
     },

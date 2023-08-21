@@ -258,7 +258,6 @@ export const ProfileDetailsForm = () => {
               key: val,
               displayValue: titleCase(val),
             })}
-            onRemove={(removed, selected) => selected.filter((v) => v !== removed)}
           />
         </div>
       </div>

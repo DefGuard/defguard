@@ -208,7 +208,6 @@ export const WizardNetworkImport = () => {
             key: group,
             displayValue: titleCase(group),
           })}
-          onRemove={(group, selected) => selected.filter((g) => g !== group)}
         />
         <FormInput
           controller={{ control, name: 'fileName' }}
