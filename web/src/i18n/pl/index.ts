@@ -318,6 +318,9 @@ const pl: Translation = {
       },
     },
     addUser: {
+      messages: {
+        userAdded: 'Stworzono użytkownika',
+      },
       title: 'Dodaj nowego użytkownika',
       form: {
         submit: 'Dodaj użytkownika',

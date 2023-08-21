@@ -1,39 +1,15 @@
-@use '@scss/helpers' as *;
+@use '@scssutils' as *;
 
 #add-user-modal {
-  @include media-breakpoint-up(lg) {
-    width: 1150px;
-  }
+  overflow-x: hidden;
 
-  & > .content {
-    & > form {
-      & > .row {
-        display: flex;
-        flex-flow: column;
-        width: 100%;
-        @include media-breakpoint-up(lg) {
-          display: inline-grid;
-          grid-template-columns: 1fr 1fr;
-          grid-template-rows: auto;
-          column-gap: 4rem;
-        }
+  &.step-0 {
+    @media (max-width: 635px) {
+      width: 100%;
+    }
 
-        & > .item {
-          display: flex;
-          flex-flow: column;
-        }
-      }
-
-      @include media-breakpoint-up(lg) {
-        & > .controls {
-          width: 100%;
-          justify-content: center;
-
-          & > .btn {
-            max-width: 275px;
-          }
-        }
-      }
+    @media (min-width: 635px) {
+      width: auto;
     }
   }
 }

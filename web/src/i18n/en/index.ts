@@ -318,6 +318,9 @@ const en: BaseTranslation = {
     },
     addUser: {
       title: 'Add new user',
+      messages: {
+        userAdded: 'User added',
+      },
       form: {
         submit: 'Add user',
         fields: {
@@ -346,7 +349,7 @@ const en: BaseTranslation = {
             label: 'Phone',
           },
           enableEnrollment: {
-            label: 'Use remote enrollment',
+            label: 'Use enrollment process',
           },
         },
       },

@@ -1,0 +1,44 @@
+@use '@scssutils' as *;
+
+#add-user-form {
+  width: 100%;
+
+  @media (min-width: 635px) {
+    min-width: 635px;
+  }
+
+  @include media-breakpoint-up(lg) {
+    width: 1100px;
+  }
+
+  & > .form-checkbox {
+    margin-bottom: 25px;
+  }
+  & > .row {
+    display: flex;
+    flex-flow: column;
+    width: 100%;
+    @include media-breakpoint-up(lg) {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto;
+      column-gap: 4rem;
+    }
+
+    & > .item {
+      display: flex;
+      flex-flow: column;
+    }
+  }
+
+  @include media-breakpoint-up(lg) {
+    & > .controls {
+      width: 100%;
+      justify-content: center;
+
+      & > .btn {
+        max-width: 275px;
+      }
+    }
+  }
+}

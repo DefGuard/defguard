@@ -657,6 +657,12 @@ type RootTranslation = {
 			 * A​d​d​ ​n​e​w​ ​u​s​e​r
 			 */
 			title: string
+			messages: {
+				/**
+				 * U​s​e​r​ ​a​d​d​e​d
+				 */
+				userAdded: string
+			}
 			form: {
 				/**
 				 * A​d​d​ ​u​s​e​r
@@ -725,7 +731,7 @@ type RootTranslation = {
 					}
 					enableEnrollment: {
 						/**
-						 * U​s​e​ ​r​e​m​o​t​e​ ​e​n​r​o​l​l​m​e​n​t
+						 * U​s​e​ ​e​n​r​o​l​l​m​e​n​t​ ​p​r​o​c​e​s​s
 						 */
 						label: string
 					}
@@ -3926,6 +3932,12 @@ export type TranslationFunctions = {
 			 * Add new user
 			 */
 			title: () => LocalizedString
+			messages: {
+				/**
+				 * User added
+				 */
+				userAdded: () => LocalizedString
+			}
 			form: {
 				/**
 				 * Add user
@@ -3994,7 +4006,7 @@ export type TranslationFunctions = {
 					}
 					enableEnrollment: {
 						/**
-						 * Use remote enrollment
+						 * Use enrollment process
 						 */
 						label: () => LocalizedString
 					}

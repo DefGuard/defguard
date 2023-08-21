@@ -1,0 +1,33 @@
+@use '@scssutils' as *;
+
+#enrollment-token-step {
+  box-sizing: border-box;
+
+  @include media-breakpoint-up(lg) {
+    padding: 0 40px;
+  }
+
+  .expanded-content {
+    p,
+    span,
+    strong,
+    a {
+      @include typography(app-body-2);
+
+      color: var(--text-body-secondary);
+    }
+  }
+
+  & > .controls {
+    margin-top: 40px;
+    display: none;
+
+    & > .btn {
+      width: 100%;
+    }
+
+    @include media-breakpoint-up(lg) {
+      display: block;
+    }
+  }
+}

@@ -1,0 +1,10 @@
+@use '@scssutils' as *;
+
+#enrollment-start-form {
+  width: 100%;
+
+  & > .toggle {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+}
