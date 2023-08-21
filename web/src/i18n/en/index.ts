@@ -318,6 +318,9 @@ const en: BaseTranslation = {
     },
     addUser: {
       title: 'Add new user',
+      messages: {
+        userAdded: 'User added',
+      },
       form: {
         submit: 'Add user',
         fields: {
@@ -346,7 +349,7 @@ const en: BaseTranslation = {
             label: 'Phone',
           },
           enableEnrollment: {
-            label: 'Use remote enrollment',
+            label: 'Use enrollment process',
           },
         },
       },
@@ -1411,6 +1414,9 @@ const en: BaseTranslation = {
       },
       welcomeEmail: {
         title: 'Welcome e-mail',
+        subject: {
+          label: 'E-mail subject',
+        },
         messageBox:
           'This information will be sent to user once enrollment is completed. We advise to insert links and explain next steps briefly.',
         controls: {

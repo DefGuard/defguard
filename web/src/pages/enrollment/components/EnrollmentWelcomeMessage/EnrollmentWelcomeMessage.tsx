@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import SvgIconCheckmark from '../../../../shared/components/svg/IconCheckmark';
@@ -14,6 +14,7 @@ import {
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { Textarea } from '../../../../shared/defguard-ui/components/Layout/Textarea/Textarea';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
@@ -71,9 +72,11 @@ export const EnrollmentWelcomeMessage = () => {
           />
         </div>
         <div className="text-wrapper">
-          <textarea
+          <Textarea
             value={message}
-            onChange={(ev) => setMessage(ev.target.value)}
+            onChange={(ev: ChangeEvent<HTMLTextAreaElement>) =>
+              setMessage(ev.target.value)
+            }
             disabled={isUndefined(settings) || isLoading}
           />
         </div>

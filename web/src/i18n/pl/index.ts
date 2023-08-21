@@ -318,6 +318,9 @@ const pl: Translation = {
       },
     },
     addUser: {
+      messages: {
+        userAdded: 'Stworzono użytkownika',
+      },
       title: 'Dodaj nowego użytkownika',
       form: {
         submit: 'Dodaj użytkownika',
@@ -1399,6 +1402,9 @@ const pl: Translation = {
         messageBox: 'Ta informacja będzie wyświetlona w końcowym kroku rejestracj',
       },
       welcomeEmail: {
+        subject: {
+          label: 'Temat wiadomości',
+        },
         title: 'Powitalny E-mail',
         messageBox: 'Ta informacja będzie wysłana gdy użytkownik zakończy rejestrację.',
         controls: {

@@ -657,6 +657,12 @@ type RootTranslation = {
 			 * A​d​d​ ​n​e​w​ ​u​s​e​r
 			 */
 			title: string
+			messages: {
+				/**
+				 * U​s​e​r​ ​a​d​d​e​d
+				 */
+				userAdded: string
+			}
 			form: {
 				/**
 				 * A​d​d​ ​u​s​e​r
@@ -725,7 +731,7 @@ type RootTranslation = {
 					}
 					enableEnrollment: {
 						/**
-						 * U​s​e​ ​r​e​m​o​t​e​ ​e​n​r​o​l​l​m​e​n​t
+						 * U​s​e​ ​e​n​r​o​l​l​m​e​n​t​ ​p​r​o​c​e​s​s
 						 */
 						label: string
 					}
@@ -3216,6 +3222,12 @@ type RootTranslation = {
 				 * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
 				 */
 				title: string
+				subject: {
+					/**
+					 * E​-​m​a​i​l​ ​s​u​b​j​e​c​t
+					 */
+					label: string
+				}
 				/**
 				 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​t​o​ ​i​n​s​e​r​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
 				 */
@@ -3926,6 +3938,12 @@ export type TranslationFunctions = {
 			 * Add new user
 			 */
 			title: () => LocalizedString
+			messages: {
+				/**
+				 * User added
+				 */
+				userAdded: () => LocalizedString
+			}
 			form: {
 				/**
 				 * Add user
@@ -3994,7 +4012,7 @@ export type TranslationFunctions = {
 					}
 					enableEnrollment: {
 						/**
-						 * Use remote enrollment
+						 * Use enrollment process
 						 */
 						label: () => LocalizedString
 					}
@@ -6469,6 +6487,12 @@ export type TranslationFunctions = {
 				 * Welcome e-mail
 				 */
 				title: () => LocalizedString
+				subject: {
+					/**
+					 * E-mail subject
+					 */
+					label: () => LocalizedString
+				}
 				/**
 				 * This information will be sent to user once enrollment is completed. We advise to insert links and explain next steps briefly.
 				 */
