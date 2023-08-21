@@ -1414,6 +1414,9 @@ const en: BaseTranslation = {
       },
       welcomeEmail: {
         title: 'Welcome e-mail',
+        subject: {
+          label: 'E-mail subject',
+        },
         messageBox:
           'This information will be sent to user once enrollment is completed. We advise to insert links and explain next steps briefly.',
         controls: {
