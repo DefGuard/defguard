@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import SvgIconCheckmark from '../../../../shared/components/svg/IconCheckmark';
@@ -13,8 +13,10 @@ import {
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { CheckBox } from '../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
+import { Input } from '../../../../shared/defguard-ui/components/Layout/Input/Input';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { Textarea } from '../../../../shared/defguard-ui/components/Layout/Textarea/Textarea';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
@@ -28,6 +30,7 @@ export const EnrollmentEmail = () => {
   const { LL } = useI18nContext();
   const [duplicateMessage, setDuplicateMessage] = useState(false);
   const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
   const componentLL = LL.enrollmentPage.settings.welcomeEmail;
   const settings = useEnrollmentStore((state) => state.settings);
   const toaster = useToaster();
@@ -50,6 +53,7 @@ export const EnrollmentEmail = () => {
         ...settings,
         enrollment_use_welcome_message_as_email: duplicateMessage,
         enrollment_welcome_email: email,
+        enrollment_welcome_email_subject: subject,
       });
     }
   };
@@ -58,6 +62,7 @@ export const EnrollmentEmail = () => {
     if (settings) {
       setDuplicateMessage(settings.enrollment_use_welcome_message_as_email);
       setEmail(settings.enrollment_welcome_email);
+      setSubject(settings.enrollment_welcome_email_subject);
     }
     //eslint-disable-next-line
   }, []);
@@ -90,10 +95,16 @@ export const EnrollmentEmail = () => {
             disabled={isUndefined(settings)}
           />
         </div>
+        <Input
+          label={componentLL.subject.label()}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          disabled={isLoading || isUndefined(settings)}
+        />
         <div className="text-wrapper">
-          <textarea
+          <Textarea
             value={email}
-            onChange={(ev) => setEmail(ev.target.value)}
+            onChange={(ev: ChangeEvent<HTMLTextAreaElement>) => setEmail(ev.target.value)}
             disabled={isLoading || isUndefined(settings)}
           />
         </div>
