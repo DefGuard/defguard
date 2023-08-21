@@ -11,7 +11,7 @@ pub enum SmtpEncryption {
     ImplicitTls,
 }
 
-#[derive(Model, Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Model, Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct Settings {
     #[serde(skip)]
     pub id: Option<i64>,
