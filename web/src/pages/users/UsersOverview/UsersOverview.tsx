@@ -22,13 +22,12 @@ import {
   SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../shared/defguard-ui/components/Layout/Select/types';
-import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import { User } from '../../../shared/types';
 import { UsersList } from './components/UsersList/UsersList';
-import AddUserModal from './modals/AddUserModal/AddUserModal';
-import { StartEnrollmentModal } from './modals/StartEnrollmentModal/StartEnrollmentModal';
+import { AddUserModal } from './modals/AddUserModal/AddUserModal';
+import { useAddUserModal } from './modals/AddUserModal/hooks/useAddUserModal';
 
 enum FilterOptions {
   ALL = 'all',
@@ -83,7 +82,7 @@ export const UsersOverview = () => {
 
   const [usersSearchValue, setUsersSearchValue] = useState('');
 
-  const setUserAddModalState = useModalStore((state) => state.setAddUserModal);
+  const openAddUserModal = useAddUserModal((state) => state.open);
 
   const filteredUsers = useMemo(() => {
     if (!users || (users && !users.length)) {
@@ -161,7 +160,7 @@ export const UsersOverview = () => {
           )}
           <Button
             className="add-item"
-            onClick={() => setUserAddModalState({ visible: true })}
+            onClick={openAddUserModal}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconUserAddNew />}
@@ -188,7 +187,6 @@ export const UsersOverview = () => {
         </div>
       )}
       <AddUserModal />
-      <StartEnrollmentModal />
     </section>
   );
 };

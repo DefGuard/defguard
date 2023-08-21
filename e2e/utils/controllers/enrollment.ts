@@ -4,6 +4,7 @@ import { BrowserContext } from 'playwright';
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
+import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
 import { logout } from './logout';
 
@@ -29,25 +30,26 @@ export const createUserEnrollment = async (
   await formElement.getByTestId('field-phone').type(user.phone);
   await formElement.getByTestId('field-enable_enrollment').click();
   await formElement.locator('button[type="submit"]').click();
-  await formElement.waitFor({ state: 'hidden', timeout: 2000 });
-  const modalElement = page.locator('#start-enrollment-modal');
-  await modalElement.waitFor({ state: 'visible' });
-  const modalForm = modalElement.locator('form');
-  await modalForm.getByTestId('field-email').type('Test@test.pl');
-  await modalForm.locator('.toggle-option').nth(1).click();
-  await modalForm.locator('button[type="submit"]').click();
+  waitForPromise(2000);
+  const modalElement = page.locator('#add-user-modal');
+  const enrollmentForm = modalElement.getByTestId('start-enrollment-form');
+  await enrollmentForm.locator('.toggle-option').nth(1).click();
+  await enrollmentForm.locator('button[type="submit"]').click();
   // Copy to clipboard
   await modalElement
-    .locator('.content')
+    .locator('.step-content')
+    .locator('#enrollment-token-step')
     .locator('.expandable-card')
     .locator('.top')
     .locator('.actions')
-    .getByTestId('copy-enrollment-token')
+    .locator('button')
     .click();
+
   await modalElement
-    .locator('.content')
+    .locator('.step-content')
+    .locator('#enrollment-token-step')
     .locator('.controls')
-    .getByTestId('button-close-enrollment')
+    .locator('button')
     .click();
   await modalElement.waitFor({ state: 'hidden' });
   await logout(page);
