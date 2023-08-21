@@ -111,14 +111,14 @@ pub static VERSION: &str = env!("CARGO_PKG_VERSION");
 // TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
-/// Masks object's field with "***" string.
+/// Masks object's fields with "*" string.
 /// Used to log sensitive/secret objects.
 #[macro_export]
 macro_rules! mask {
     ($object:expr, $($field:ident),+) => {{
         let mut object = $object.clone();
         $(
-            object.$field = String::from("***");
+            object.$field = String::from("*");
         )+
         object
     }};
