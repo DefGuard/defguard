@@ -49,3 +49,10 @@ services:
       - core
     cap_add:
       - NET_ADMIN
+
+  proxy:
+    image: ghcr.io/defguard/defguard-proxy:latest
+    ports:
+      - "8080:8080"
+    environment:
+      DEFGUARD_PROXY_UPSTREAM_GRPC_URL: "http://core:50055/"

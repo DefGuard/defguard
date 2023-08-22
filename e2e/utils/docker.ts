@@ -7,7 +7,7 @@ const dockerFilePath = path.resolve(defguardPath, 'docker-compose.e2e.yaml');
 
 // Startups defguard stack with docker compose
 export const dockerUp = () => {
-  const command = `docker compose -f ${dockerFilePath.toString()} up -d core db gateway`;
+  const command = `docker compose -f ${dockerFilePath.toString()} up -d core db gateway proxy`;
   execSync(command);
 };
 
