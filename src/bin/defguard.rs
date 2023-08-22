@@ -10,12 +10,12 @@ use defguard::{
     wireguard_stats_purge::run_periodic_stats_purge,
     SERVER_CONFIG,
 };
+use secrecy::ExposeSecret;
 use std::{
     fs::read_to_string,
     sync::{Arc, Mutex},
 };
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
-use secrecy::ExposeSecret;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {

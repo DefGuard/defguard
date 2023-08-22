@@ -5,8 +5,6 @@ use reqwest::Url;
 use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
 use secrecy::Secret;
 
-use crate::expose_secret_string;
-
 #[derive(Clone, Parser, Serialize, Debug)]
 #[command(version)]
 pub struct DefGuardConfig {

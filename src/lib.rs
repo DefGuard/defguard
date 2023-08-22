@@ -97,11 +97,11 @@ pub mod license;
 pub mod logging;
 pub mod mail;
 pub(crate) mod random;
+pub mod secret;
 pub mod support;
 pub mod templates;
 pub mod wg_config;
 pub mod wireguard_stats_purge;
-pub mod secret;
 
 #[macro_use]
 extern crate rocket;
@@ -133,12 +133,15 @@ where
     ser.serialize_str(data.expose_secret())
 }
 
-pub fn expose_secret_option_string<S>(data: &Option<Secret<String>>, ser: S) -> Result<S::Ok, S::Error>
+pub fn expose_secret_option_string<S>(
+    data: &Option<Secret<String>>,
+    ser: S,
+) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
     if let Some(data) = data {
-        ser.serialize_str(&data.expose_secret())
+        ser.serialize_str(data.expose_secret())
     } else {
         ser.serialize_none()
     }
