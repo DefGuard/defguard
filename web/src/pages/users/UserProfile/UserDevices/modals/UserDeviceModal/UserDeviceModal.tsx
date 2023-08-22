@@ -33,10 +33,10 @@ export const UserDeviceModal = () => {
 
   return (
     <ModalWithTitle
+      id="add-user-device-modal"
       title={title()}
       isOpen={visible}
       setIsOpen={() => setDeviceModal({ visible: false })}
-      id="add-user-device-modal"
       steps={modalSteps}
       currentStep={currentStep}
       backdrop
