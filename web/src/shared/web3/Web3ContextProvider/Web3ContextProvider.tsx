@@ -80,38 +80,32 @@ export const Web3ContextProvider = ({ children }: Props) => {
     }
   }, []);
 
-  // check persmissions on mount
+  // detect connected MM on mount
   useEffect(() => {
     const detectPermissions = async () => {
       const detected = await detectEthereumProvider({
         mustBeMetaMask: true,
         silent: true,
       });
-      if (detected && window.ethereum) {
+      if (detected && window.ethereum && window.ethereum.selectedAddress) {
         window.ethereum
-          .request({ method: 'wallet_getPermissions' })
-          .then((permissions: unknown[]) => {
-            if (permissions.length > 0) {
-              window.ethereum
-                ?.request({ method: 'eth_requestAccounts' })
-                .then(async (accounts: string[]) => {
-                  if (accounts.length) {
-                    setAddress(accounts[0]);
-                    setConnected(true);
-                    if (window.ethereum) {
-                      const cId = await window.ethereum.request({
-                        method: 'eth_chainId',
-                      });
-                      const id = parseInt(cId, 16);
-                      setChainId(id);
-                      setIsConnecting(false);
-                      const p = new BrowserProvider(window.ethereum);
-                      const s = await p.getSigner();
-                      setProvider(p);
-                      setSigner(s);
-                    }
-                  }
+          ?.request({ method: 'eth_requestAccounts' })
+          .then(async (accounts: string[]) => {
+            if (accounts.length) {
+              setAddress(accounts[0]);
+              setConnected(true);
+              if (window.ethereum) {
+                const cId = await window.ethereum.request({
+                  method: 'eth_chainId',
                 });
+                const id = parseInt(cId, 16);
+                setChainId(id);
+                setIsConnecting(false);
+                const p = new BrowserProvider(window.ethereum);
+                const s = await p.getSigner();
+                setProvider(p);
+                setSigner(s);
+              }
             }
           });
       }
