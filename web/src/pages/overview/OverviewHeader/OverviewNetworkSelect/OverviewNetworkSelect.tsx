@@ -1,5 +1,5 @@
 import { isUndefined } from 'lodash-es';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -40,8 +40,6 @@ export const OverViewNetworkSelect = () => {
     },
     [options],
   );
-
-  useEffect(() => console.log(selectedNetworkId, options), [selectedNetworkId, options]);
 
   return (
     <Select
