@@ -10,6 +10,7 @@ use crate::{
         support::{configuration, logs},
     },
 };
+use secrecy::{ExposeSecret, Secret};
 
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
@@ -100,6 +101,7 @@ pub mod support;
 pub mod templates;
 pub mod wg_config;
 pub mod wireguard_stats_purge;
+pub mod secret;
 
 #[macro_use]
 extern crate rocket;
@@ -122,6 +124,24 @@ macro_rules! mask {
         )+
         object
     }};
+}
+
+pub fn expose_secret_string<S>(data: &Secret<String>, ser: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    ser.serialize_str(data.expose_secret())
+}
+
+pub fn expose_secret_option_string<S>(data: &Option<Secret<String>>, ser: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    if let Some(data) = data {
+        ser.serialize_str(&data.expose_secret())
+    } else {
+        ser.serialize_none()
+    }
 }
 
 /// Catch missing files and serve "index.html".
@@ -155,7 +175,7 @@ pub async fn build_webapp(
     let cfg = Config {
         address: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
         port: config.http_port,
-        secret_key: SecretKey::from(config.secret_key.as_bytes()),
+        secret_key: SecretKey::from(config.secret_key.expose_secret().as_bytes()),
         ..Config::default()
     };
     let license_decoded = License::decode(&config.license);
@@ -360,12 +380,12 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         config.database_port,
         &config.database_name,
         &config.database_user,
-        &config.database_password,
+        config.database_password.expose_secret(),
     )
     .await;
 
     // initialize admin user
-    User::init_admin_user(&pool, &config.default_admin_password)
+    User::init_admin_user(&pool, config.default_admin_password.expose_secret())
         .await
         .expect("Failed to create admin user");
 

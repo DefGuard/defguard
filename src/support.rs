@@ -5,7 +5,6 @@ use serde_json::{json, value::to_value, Value};
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    mask,
     config::DefGuardConfig, 
     db::{models::device::WireguardNetworkDevice, Settings, User, WireguardNetwork},
     VERSION,
@@ -23,8 +22,7 @@ fn unwrap_json(result: Result<impl Serialize, impl Display>) -> Value {
 pub async fn dump_config(db: &Pool<Postgres>,  config: &DefGuardConfig) -> Value {
     // App settings DB records
     let settings  = match Settings::find_by_id(db, 1).await {
-        Ok(Some(mut settings)) => {
-            settings.smtp_password = Some("*".into());
+        Ok(Some(settings)) => {
             json!(settings)
         },
         Ok(None) => json!({"error": "Settings not found"}),
@@ -53,7 +51,7 @@ pub async fn dump_config(db: &Pool<Postgres>,  config: &DefGuardConfig) -> Value
         Err(err) => (json!({"error": err.to_string()}), Value::Null),
     };
     let users = unwrap_json(User::all_without_sensitive_data(db).await);
-    let config = mask!(config, secret_key, database_password, ldap_bind_password, default_admin_password);
+    //let config = mask!(config, secret_key, database_password, ldap_bind_password, default_admin_password);
 
     json!({
         "settings": settings,

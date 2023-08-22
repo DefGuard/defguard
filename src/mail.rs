@@ -70,7 +70,7 @@ impl SmtpSettings {
                 port,
                 encryption,
                 user,
-                password,
+                password: password.expose_secret().to_string(),
                 sender,
             })
         } else {
