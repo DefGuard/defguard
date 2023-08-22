@@ -1,32 +1,28 @@
 @use '@scss/helpers' as *;
 
 #add-user-device-modal {
-  & > .step-0 {
-    & > .message-box {
-      margin-bottom: 3.2rem;
-      min-height: 70px;
-      width: calc(100% - 60px);
-      margin-left: 30px;
-    }
-
-    & > form {
-      & > .toggle {
-        width: 100%;
-        margin-top: calc(3.2rem - 2.5rem);
-        margin-bottom: 2rem;
+  &.step-0 {
+    .step-content {
+      & > .message-box {
+        margin-bottom: 3.2rem;
+        min-height: 70px;
+        width: calc(100% - 60px);
+        margin-left: 30px;
       }
 
-      & > .controls {
-        margin-top: calc(3.2rem - 2.5rem);
-        & > button {
-          & > .content {
-            & > .icon-container {
-              transform: scale(1.5);
-              svg {
-                g,
-                path {
-                  fill: var(--white);
-                }
+      & > form {
+        & > .toggle {
+          width: 100%;
+          margin-top: calc(3.2rem - 2.5rem);
+          margin-bottom: 2rem;
+        }
+
+        & > .controls {
+          margin-top: calc(3.2rem - 2.5rem);
+          .btn {
+            svg {
+              path {
+                fill: var(--surface-icon-secondary);
               }
             }
           }
@@ -35,96 +31,97 @@
     }
   }
 
-  & > .step-1 {
-    padding: 0 3rem 2.5rem;
+  &.step-1 {
+    .step-content {
+      padding: 0 3rem 2.5rem;
 
-    & > .message-box {
-      padding: 0;
-      margin-bottom: 2.5rem;
+      & > .message-box {
+        margin-bottom: 2.5rem;
 
-      .message-box {
-        p {
-          max-width: 100%;
-        }
-      }
-    }
-
-    & > .input-container {
-      margin: 0;
-    }
-
-    & > .info {
-      display: flex;
-      flex-direction: row nowrap;
-      align-items: center;
-      align-content: center;
-      justify-content: center;
-      margin: 14px 0;
-
-      p {
-        text-align: center;
-        max-width: 414px;
-
-        @include regular-text;
-
-        color: var(--gray-dark);
-      }
-    }
-
-    & > .card-label {
-      display: flex;
-      flex-flow: row nowrap;
-      column-gap: 5px;
-      align-content: center;
-      align-items: center;
-      justify-content: flex-start;
-      margin-bottom: 1.2rem;
-    }
-
-    .input-container {
-      width: 100%;
-    }
-
-    & > .expandable-card {
-      margin-bottom: 2.7rem;
-
-      & > .top {
-        & > .expand-button {
-          & > span {
-            @include typography-legacy(12px, 1.2, medium, var(--gray-light));
-          }
-        }
-
-        & > .extras {
-          .select {
-            width: 120px;
-            height: 40px;
+        .message-box {
+          p {
+            max-width: 100%;
           }
         }
       }
 
-      & > .expanded-content {
+      & > .input-container {
+        margin: 0;
+      }
+
+      & > .info {
         display: flex;
         flex-direction: row nowrap;
         align-items: center;
-        justify-content: center;
         align-content: center;
+        justify-content: center;
+        margin: 14px 0;
+
+        p {
+          text-align: center;
+          max-width: 414px;
+
+          @include regular-text;
+
+          color: var(--gray-dark);
+        }
       }
-    }
 
-    & > .controls {
-      width: 100%;
-      display: flex;
-      flex-flow: row nowrap;
-      align-content: center;
-      align-items: center;
-      justify-content: center;
+      & > .card-label {
+        display: flex;
+        flex-flow: row nowrap;
+        column-gap: 5px;
+        align-content: center;
+        align-items: center;
+        justify-content: flex-start;
+        margin-bottom: 1.2rem;
+      }
 
-      .btn {
+      .input-container {
         width: 100%;
+      }
 
-        @include media-breakpoint-up(lg) {
-          max-width: 278px;
+      & > .expandable-card {
+        margin-bottom: 2.7rem;
+
+        & > .top {
+          & > .expand-button {
+            & > span {
+              @include typography-legacy(12px, 1.2, medium, var(--gray-light));
+            }
+          }
+
+          & > .extras {
+            .select {
+              width: 120px;
+              height: 40px;
+            }
+          }
+        }
+
+        & > .expanded-content {
+          display: flex;
+          flex-direction: row nowrap;
+          align-items: center;
+          justify-content: center;
+          align-content: center;
+        }
+      }
+
+      & > .controls {
+        width: 100%;
+        display: flex;
+        flex-flow: row nowrap;
+        align-content: center;
+        align-items: center;
+        justify-content: center;
+
+        .btn {
+          width: 100%;
+
+          @include media-breakpoint-up(lg) {
+            max-width: 278px;
+          }
         }
       }
     }
