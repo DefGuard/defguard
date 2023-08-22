@@ -287,6 +287,26 @@
     },
     "query": "INSERT INTO \"wallet\" (\"user_id\", \"address\", \"name\", \"chain_id\", \"challenge_message\", \"challenge_signature\", \"creation_timestamp\", \"validation_timestamp\", \"use_for_mfa\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
   },
+  "0ad599ef120ecc02b030bd1276172929d6a612846acf4a5489c36a04cb57de59": {
+    "describe": {
+      "columns": [
+        {
+          "name": "recovery_codes",
+          "ordinal": 0,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT recovery_codes FROM \"user\" WHERE id = $1"
+  },
   "0b53e81d6f1ce3c3a68c871e7a4b9e41db58b112d12281516e10421d46fbbd94": {
     "describe": {
       "columns": [
@@ -930,155 +950,6 @@
     },
     "query": "SELECT address \"address!\", name, chain_id, use_for_mfa FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL"
   },
-  "300153d8a6682c975c6401b4836b5be286138524e12c74d1dcaf50cbd8335f26": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "openid_enabled",
-          "ordinal": 1,
-          "type_info": "Bool"
-        },
-        {
-          "name": "ldap_enabled",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "wireguard_enabled",
-          "ordinal": 3,
-          "type_info": "Bool"
-        },
-        {
-          "name": "webhooks_enabled",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "worker_enabled",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "challenge_template",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "instance_name",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "main_logo_url",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "nav_logo_url",
-          "ordinal": 9,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_server",
-          "ordinal": 10,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_port",
-          "ordinal": 11,
-          "type_info": "Int4"
-        },
-        {
-          "name": "smtp_encryption: _",
-          "ordinal": 12,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "starttls",
-                  "implicittls"
-                ]
-              },
-              "name": "smtp_encryption"
-            }
-          }
-        },
-        {
-          "name": "smtp_user",
-          "ordinal": 13,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_password",
-          "ordinal": 14,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_sender",
-          "ordinal": 15,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_vpn_step_optional",
-          "ordinal": 16,
-          "type_info": "Bool"
-        },
-        {
-          "name": "enrollment_welcome_message",
-          "ordinal": 17,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_welcome_email",
-          "ordinal": 18,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_welcome_email_subject",
-          "ordinal": 19,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_use_welcome_message_as_email",
-          "ordinal": 20,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        false,
-        true,
-        true,
-        true,
-        false,
-        true,
-        true,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\" \"smtp_encryption: _\", \"smtp_user\", \"smtp_password\", \"smtp_sender\", \"enrollment_vpn_step_optional\", \"enrollment_welcome_message\", \"enrollment_welcome_email\", \"enrollment_welcome_email_subject\", \"enrollment_use_welcome_message_as_email\" FROM \"settings\""
-  },
   "300bf0d77c93e2e0d731f22278d7747ae93b8534e99f7a8c56e46d3e4d1fc34e": {
     "describe": {
       "columns": [
@@ -1348,6 +1219,155 @@
       }
     },
     "query": "SELECT id \"id?\", url, description, token, enabled, on_user_created, on_user_deleted, on_user_modified, on_hwkey_provision FROM webhook WHERE url = $1"
+  },
+  "33f00d48b5135881db010112f1729cc57f658705dfb507bff9166de96f05af93": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "openid_enabled",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "ldap_enabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "wireguard_enabled",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "webhooks_enabled",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "worker_enabled",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "challenge_template",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "instance_name",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "main_logo_url",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "nav_logo_url",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_server",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_port",
+          "ordinal": 11,
+          "type_info": "Int4"
+        },
+        {
+          "name": "smtp_encryption: _",
+          "ordinal": 12,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "starttls",
+                  "implicittls"
+                ]
+              },
+              "name": "smtp_encryption"
+            }
+          }
+        },
+        {
+          "name": "smtp_user",
+          "ordinal": 13,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_password?: SecretString",
+          "ordinal": 14,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_sender",
+          "ordinal": 15,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_vpn_step_optional",
+          "ordinal": 16,
+          "type_info": "Bool"
+        },
+        {
+          "name": "enrollment_welcome_message",
+          "ordinal": 17,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_welcome_email",
+          "ordinal": 18,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_welcome_email_subject",
+          "ordinal": 19,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_use_welcome_message_as_email",
+          "ordinal": 20,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\" \"smtp_encryption: _\", \"smtp_user\", smtp_password \"smtp_password?: SecretString\", \"smtp_sender\", \"enrollment_vpn_step_optional\", \"enrollment_welcome_message\", \"enrollment_welcome_email\", \"enrollment_welcome_email_subject\", \"enrollment_use_welcome_message_as_email\" FROM \"settings\""
   },
   "3714ad390be3981e31d57a901d8b3e2d723641cb256915319af5ae45da951b3f": {
     "describe": {
@@ -3438,157 +3458,6 @@
     },
     "query": "SELECT id \"id?\", user_id, address, name, chain_id, challenge_message, challenge_signature, creation_timestamp, validation_timestamp, use_for_mfa FROM wallet WHERE user_id = $1 AND address = $2"
   },
-  "a1e72437e2ed21293301bd8605f3949b7ac0b99a821d3e8427c1ea50219bf4d3": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "openid_enabled",
-          "ordinal": 1,
-          "type_info": "Bool"
-        },
-        {
-          "name": "ldap_enabled",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "wireguard_enabled",
-          "ordinal": 3,
-          "type_info": "Bool"
-        },
-        {
-          "name": "webhooks_enabled",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "worker_enabled",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "challenge_template",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "instance_name",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "main_logo_url",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "nav_logo_url",
-          "ordinal": 9,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_server",
-          "ordinal": 10,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_port",
-          "ordinal": 11,
-          "type_info": "Int4"
-        },
-        {
-          "name": "smtp_encryption: _",
-          "ordinal": 12,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "starttls",
-                  "implicittls"
-                ]
-              },
-              "name": "smtp_encryption"
-            }
-          }
-        },
-        {
-          "name": "smtp_user",
-          "ordinal": 13,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_password",
-          "ordinal": 14,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_sender",
-          "ordinal": 15,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_vpn_step_optional",
-          "ordinal": 16,
-          "type_info": "Bool"
-        },
-        {
-          "name": "enrollment_welcome_message",
-          "ordinal": 17,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_welcome_email",
-          "ordinal": 18,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_welcome_email_subject",
-          "ordinal": 19,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_use_welcome_message_as_email",
-          "ordinal": 20,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        false,
-        true,
-        true,
-        true,
-        false,
-        true,
-        true,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\" \"smtp_encryption: _\", \"smtp_user\", \"smtp_password\", \"smtp_sender\", \"enrollment_vpn_step_optional\", \"enrollment_welcome_message\", \"enrollment_welcome_email\", \"enrollment_welcome_email_subject\", \"enrollment_use_welcome_message_as_email\" FROM \"settings\" WHERE id = $1"
-  },
   "a28203258ea19229b180817c5419c516dd15457db05f436c96ef5287f94daf11": {
     "describe": {
       "columns": [],
@@ -3795,6 +3664,157 @@
       }
     },
     "query": "UPDATE session SET state = $1 WHERE id = $2"
+  },
+  "b802ced32a6d9a739c762407c6c414569c37b5fb61141bd30b3509fa10ea7909": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "openid_enabled",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "ldap_enabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "wireguard_enabled",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "webhooks_enabled",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "worker_enabled",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "challenge_template",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "instance_name",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "main_logo_url",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "nav_logo_url",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_server",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_port",
+          "ordinal": 11,
+          "type_info": "Int4"
+        },
+        {
+          "name": "smtp_encryption: _",
+          "ordinal": 12,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "starttls",
+                  "implicittls"
+                ]
+              },
+              "name": "smtp_encryption"
+            }
+          }
+        },
+        {
+          "name": "smtp_user",
+          "ordinal": 13,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_password?: SecretString",
+          "ordinal": 14,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_sender",
+          "ordinal": 15,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_vpn_step_optional",
+          "ordinal": 16,
+          "type_info": "Bool"
+        },
+        {
+          "name": "enrollment_welcome_message",
+          "ordinal": 17,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_welcome_email",
+          "ordinal": 18,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_welcome_email_subject",
+          "ordinal": 19,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_use_welcome_message_as_email",
+          "ordinal": 20,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\" \"smtp_encryption: _\", \"smtp_user\", smtp_password \"smtp_password?: SecretString\", \"smtp_sender\", \"enrollment_vpn_step_optional\", \"enrollment_welcome_message\", \"enrollment_welcome_email\", \"enrollment_welcome_email_subject\", \"enrollment_use_welcome_message_as_email\" FROM \"settings\" WHERE id = $1"
   },
   "b8656ec4ee5b1980223294cad758ea2da20b6cfc25f51a25023d69a4595a4fb9": {
     "describe": {
