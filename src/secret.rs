@@ -67,3 +67,9 @@ where
         <String as ::sqlx::Type<DB>>::compatible(ty)
     }
 }
+
+impl PartialEq for SecretString {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.expose_secret() == other.0.expose_secret()
+    }
+}

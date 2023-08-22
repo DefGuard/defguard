@@ -1,5 +1,4 @@
 use crate::{db::DbPool, secret::SecretString};
-// use model_derive::Model;
 use sqlx::{query, Type};
 use std::collections::HashMap;
 
@@ -11,7 +10,7 @@ pub enum SmtpEncryption {
     ImplicitTls,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Settings {
     #[serde(skip)]
     pub id: Option<i64>,
@@ -26,7 +25,6 @@ pub struct Settings {
     pub nav_logo_url: String,
     pub smtp_server: Option<String>,
     pub smtp_port: Option<i32>,
-    // #[model(enum)]
     pub smtp_encryption: SmtpEncryption,
     pub smtp_user: Option<String>,
     pub smtp_password: Option<SecretString>,

@@ -3,7 +3,7 @@ use humantime::Duration;
 use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
-use secrecy::Secret;
+use secrecy::{ExposeSecret, Secret};
 
 #[derive(Clone, Parser, Serialize, Debug)]
 #[command(version)]
@@ -17,7 +17,7 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_AUTH_SESSION_LIFETIME")]
     pub session_auth_lifetime: Option<i64>,
 
-    #[arg(long, env = "DEFGUARD_SECRET_KEY", value_parser = validate_secret_key)]
+    #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     #[serde(skip_serializing)]
     pub secret_key: Secret<String>,
 
@@ -183,28 +183,12 @@ pub enum Command {
     InitDevEnv,
 }
 
-fn validate_secret_key(secret_key: &str) -> Result<String, String> {
-    if secret_key.trim().len() != secret_key.len() {
-        return Err(String::from(
-            "SECRET_KEY cannot have leading and trailing space",
-        ));
-    }
-
-    if secret_key.len() < 64 {
-        return Err(format!(
-            "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
-            secret_key.len()
-        ));
-    }
-
-    Ok(secret_key.into())
-}
-
 impl DefGuardConfig {
     pub fn new() -> Self {
         let mut config = Self::parse();
         config.validate_rp_id();
         config.validate_cookie_domain();
+        config.validate_secret_key();
         config
     }
 
@@ -239,6 +223,20 @@ impl DefGuardConfig {
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
             )
+        }
+    }
+
+    fn validate_secret_key(&self) {
+        let secret_key = self.secret_key.expose_secret();
+        if secret_key.trim().len() != secret_key.len() {
+            panic!("SECRET_KEY cannot have leading and trailing space",);
+        }
+
+        if secret_key.len() < 64 {
+            panic!(
+                "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
+                secret_key.len()
+            );
         }
     }
 
