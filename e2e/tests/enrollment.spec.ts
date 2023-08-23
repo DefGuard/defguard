@@ -42,17 +42,14 @@ test.describe('Create user with enrollment enabled', () => {
     page = await context.newPage();
     await waitForBase(page);
     user = await createUserEnrollment(context, 'testauth01');
-    await createNetwork(context, testNetwork);
-    logout(page);
     const response = (await getPageClipboard(page)).split('\n');
+    await createNetwork(context, testNetwork);
+    await page.waitForLoadState('networkidle');
     // Extract token and url
     const tokenResponse = response[1].split(' ')[1];
     token = tokenResponse;
   });
 
-  test.afterEach(async () => {
-    dockerRestart();
-  });
 
   test.afterAll(() => {
     dockerRestart();
