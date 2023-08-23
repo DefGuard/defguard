@@ -1,4 +1,4 @@
-import { BrowserContext, expect, Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { testsConfig } from '../config';
 import { NetworkForm, User } from '../types';
@@ -12,7 +12,6 @@ import {
   validateData,
 } from '../utils/controllers/enrollment';
 import { loginBasic } from '../utils/controllers/login';
-import { logout } from '../utils/controllers/logout';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { getPageClipboard } from '../utils/getPageClipboard';
@@ -32,31 +31,29 @@ const testNetwork: NetworkForm = {
 
 test.describe('Create user with enrollment enabled', () => {
   let token: string;
-  let page: Page;
-  let context: BrowserContext;
   let user: User;
 
   // Setup client and user for tests
   test.beforeAll(async ({ browser }) => {
-    context = await browser.newContext();
-    page = await context.newPage();
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await waitForBase(page);
     user = await createUserEnrollment(context, 'testauth01');
     const response = (await getPageClipboard(page)).split('\n');
-    await createNetwork(context, testNetwork);
-    await page.waitForLoadState('networkidle');
-    // Extract token and url
+    // Extract token
     const tokenResponse = response[1].split(' ')[1];
     token = tokenResponse;
+    await createNetwork(context, testNetwork);
   });
-
 
   test.afterAll(() => {
     dockerRestart();
   });
 
-  test('Go to enrollment', async () => {
+  test('Go to enrollment', async ({ browser }) => {
     expect(token).toBeDefined();
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);
     await setToken(token, page);
