@@ -78,11 +78,6 @@ export const MFAWeb3 = () => {
               console.error(e);
             });
         } else {
-          console.log({
-            isConnected,
-            signer,
-            address,
-          });
           toaster.error(LL.loginPage.mfa.wallet.messages.walletError());
         }
       },

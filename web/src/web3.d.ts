@@ -6,6 +6,7 @@ declare global {
       BrowserProvider & {
         isMetaMask?: boolean;
         isConnected?: () => boolean;
+        selectedAddress?: string;
       };
   }
 }

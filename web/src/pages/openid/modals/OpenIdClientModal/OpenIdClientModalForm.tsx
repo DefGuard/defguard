@@ -7,7 +7,6 @@ import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { ActionButton } from '../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
 import { ActionButtonVariant } from '../../../../shared/defguard-ui/components/Layout/ActionButton/types';
@@ -24,8 +23,10 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
+import { OpenIdClientModalFormScopes } from './components/OpenIdClientModalFormScopes';
+import { OpenIdClientFormFields, OpenIdClientScope } from './types';
 
-const defaultValuesEmptyForm: FormInputs = {
+const defaultValuesEmptyForm: OpenIdClientFormFields = {
   name: '',
   redirect_uri: [{ url: '' }],
   scope: [],
@@ -47,7 +48,7 @@ export const OpenIdClientModalForm = () => {
       return {
         name: modalState.client.name,
         redirect_uri: urls,
-        scope: modalState.client.scope,
+        scope: modalState.client.scope as OpenIdClientScope[],
       };
     }
     return defaultValuesEmptyForm;
@@ -117,7 +118,7 @@ export const OpenIdClientModalForm = () => {
     })
     .required();
 
-  const { handleSubmit, control } = useForm<FormInputs>({
+  const { handleSubmit, control } = useForm<OpenIdClientFormFields>({
     defaultValues: defaultFormValues,
     mode: 'all',
     resolver: yupResolver(schema),
@@ -128,7 +129,7 @@ export const OpenIdClientModalForm = () => {
     name: 'redirect_uri',
   });
 
-  const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
+  const onValidSubmit: SubmitHandler<OpenIdClientFormFields> = (values) => {
     if (modalState.viewMode) return;
     if (values.scope.length === 0) {
       toaster.error(
@@ -195,84 +196,7 @@ export const OpenIdClientModalForm = () => {
         )}
       </div>
       <h3>{LL.openidOverview.modals.openidClientModal.scopes()}</h3>
-      <div className="scopes">
-        <FormCheckBox
-          data-testid="field-scope-openid"
-          label={LL.openidOverview.modals.openidClientModal.form.fields.openid.label()}
-          disabled={modalState.viewMode}
-          labelPlacement="right"
-          controller={{ control, name: 'scope' }}
-          customValue={(context: OpenIdScope[]) =>
-            !isUndefined(context.find((scope) => scope === OpenIdScope.OPENID))
-          }
-          customOnChange={(context: OpenIdScope[]) => {
-            const exist = !isUndefined(
-              context.find((scope) => scope === OpenIdScope.OPENID),
-            );
-            if (exist) {
-              return context.filter((s) => s !== OpenIdScope.OPENID);
-            }
-            return [...context, OpenIdScope.OPENID];
-          }}
-        />
-        <FormCheckBox
-          data-testid="field-scope-profile"
-          disabled={modalState.viewMode}
-          label={LL.openidOverview.modals.openidClientModal.form.fields.profile.label()}
-          labelPlacement="right"
-          controller={{ control, name: 'scope' }}
-          customValue={(context: OpenIdScope[]) =>
-            !isUndefined(context.find((scope) => scope === OpenIdScope.PROFILE))
-          }
-          customOnChange={(context: OpenIdScope[]) => {
-            const exist = !isUndefined(
-              context.find((scope) => scope === OpenIdScope.PROFILE),
-            );
-            if (exist) {
-              return context.filter((s) => s !== OpenIdScope.PROFILE);
-            }
-            return [...context, OpenIdScope.PROFILE];
-          }}
-        />
-        <FormCheckBox
-          data-testid="field-scope-email"
-          disabled={modalState.viewMode}
-          label={LL.openidOverview.modals.openidClientModal.form.fields.email.label()}
-          labelPlacement="right"
-          controller={{ control, name: 'scope' }}
-          customValue={(context: OpenIdScope[]) =>
-            !isUndefined(context.find((scope) => scope === OpenIdScope.EMAIL))
-          }
-          customOnChange={(context: OpenIdScope[]) => {
-            const exist = !isUndefined(
-              context.find((scope) => scope === OpenIdScope.EMAIL),
-            );
-            if (exist) {
-              return context.filter((s) => s !== OpenIdScope.EMAIL);
-            }
-            return [...context, OpenIdScope.EMAIL];
-          }}
-        />
-        <FormCheckBox
-          data-testid="field-scope-phone"
-          disabled={modalState.viewMode}
-          label={LL.openidOverview.modals.openidClientModal.form.fields.phone.label()}
-          labelPlacement="right"
-          controller={{ control, name: 'scope' }}
-          customValue={(context: OpenIdScope[]) =>
-            !isUndefined(context.find((scope) => scope === OpenIdScope.PHONE))
-          }
-          customOnChange={(context: OpenIdScope[]) => {
-            const exist = !isUndefined(
-              context.find((scope) => scope === OpenIdScope.PHONE),
-            );
-            if (exist) {
-              return context.filter((s) => s !== OpenIdScope.PHONE);
-            }
-            return [...context, OpenIdScope.PHONE];
-          }}
-        />
-      </div>
+      <OpenIdClientModalFormScopes control={control} disabled={modalState.viewMode} />
       {modalState.viewMode && !isUndefined(modalState.client) && (
         <div className="client-info">
           <ExpandableCard
@@ -346,19 +270,4 @@ export const OpenIdClientModalForm = () => {
       </div>
     </form>
   );
-};
-
-enum OpenIdScope {
-  OPENID = 'openid',
-  PROFILE = 'profile',
-  EMAIL = 'email',
-  PHONE = 'phone',
-}
-
-type FormInputs = {
-  name: string;
-  redirect_uri: {
-    url: string;
-  }[];
-  scope: string[];
 };

@@ -174,7 +174,7 @@ export const ConfigStep = () => {
         selected={selectedNetwork}
         options={getSelectOptions}
         searchable={false}
-        sizeVariant={SelectSizeVariant.STANDARD}
+        sizeVariant={SelectSizeVariant.SMALL}
         loading={standAloneMode && loadingConfig}
         onChangeSingle={(networkId) => {
           setSelectedNetwork(networkId);

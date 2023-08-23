@@ -3,16 +3,19 @@ import { mergeObjects } from './utils/utils';
 type TestsConfig = {
   BASE_URL: string;
   CORE_BASE_URL: string;
+  ENROLLMENT_URL: string;
 };
 
 const defaultConfig: TestsConfig = {
   BASE_URL: 'http://localhost:8000',
   CORE_BASE_URL: 'http://localhost:8000/api/v1',
+  ENROLLMENT_URL: 'http://localhost:8080'
 };
 
 const envConfig: Partial<TestsConfig> = {
   BASE_URL: process.env.BASE_URL,
   CORE_BASE_URL: process.env.CORE_BASE_URL,
+  ENROLLMENT_URL: process.env.ENROLLMENT_URL
 };
 
 export const testsConfig: TestsConfig = mergeObjects(envConfig, defaultConfig);
