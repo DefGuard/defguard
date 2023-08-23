@@ -14,7 +14,7 @@ import SvgIconClip from '../../../../shared/components/svg/IconClip';
 import SvgIconCollapse from '../../../../shared/components/svg/IconCollapse';
 import SvgIconConnected from '../../../../shared/components/svg/IconConnected';
 import SvgIconExpand from '../../../../shared/components/svg/IconExpand';
-import Badge from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import { Badge } from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
 import { BadgeStyleVariant } from '../../../../shared/defguard-ui/components/Layout/Badge/types';
 import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
 import { DeviceAvatarVariants } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/types';

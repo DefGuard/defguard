@@ -13,7 +13,7 @@ import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
 import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
 import { ColorsRGB } from '../../../../../shared/constants';
 import { AvatarBox } from '../../../../../shared/defguard-ui/components/Layout/AvatarBox/AvatarBox';
-import Badge from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import { Badge } from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
 import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { DeviceAvatar } from '../../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
 import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';

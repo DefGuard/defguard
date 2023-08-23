@@ -11,7 +11,7 @@ import IconPacketsOut from '../../../../shared/components/svg/IconPacketsOut';
 import SvgIconUserList from '../../../../shared/components/svg/IconUserList';
 import SvgIconUserListElement from '../../../../shared/components/svg/IconUserListElement';
 import SvgIconUserListExpanded from '../../../../shared/components/svg/IconUserListExpanded';
-import Badge from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
+import { Badge } from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
 import { BadgeStyleVariant } from '../../../../shared/defguard-ui/components/Layout/Badge/types';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import { ButtonStyleVariant } from '../../../../shared/defguard-ui/components/Layout/Button/types';
