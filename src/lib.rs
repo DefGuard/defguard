@@ -10,7 +10,7 @@ use crate::{
         support::{configuration, logs},
     },
 };
-use secrecy::{ExposeSecret, Secret};
+use secrecy::ExposeSecret;
 
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
@@ -124,27 +124,6 @@ macro_rules! mask {
         )+
         object
     }};
-}
-
-pub fn expose_secret_string<S>(data: &Secret<String>, ser: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    ser.serialize_str(data.expose_secret())
-}
-
-pub fn expose_secret_option_string<S>(
-    data: &Option<Secret<String>>,
-    ser: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    if let Some(data) = data {
-        ser.serialize_str(data.expose_secret())
-    } else {
-        ser.serialize_none()
-    }
 }
 
 /// Catch missing files and serve "index.html".
