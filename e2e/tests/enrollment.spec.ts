@@ -50,10 +50,6 @@ test.describe('Create user with enrollment enabled', () => {
     dockerRestart();
   });
 
-  test.afterEach(() => {
-    dockerRestart();
-  });
-
   test('Go to enrollment', async ({ browser }) => {
     expect(token).toBeDefined();
     const context = await browser.newContext();
@@ -72,8 +68,10 @@ test.describe('Create user with enrollment enabled', () => {
     await page.getByTestId('enrollment-next').click();
     await createDevice(page);
     // Finish message
-    await page.getByTestId('enrollment-next').click();
-    waitForPromise(4000);
+    await page.getByTestId('enrollment-next').click({ timeout: 2000 });
+    await page.locator('#enrollment-finish-card').waitFor({ state: 'visible' });
+    await page.waitForLoadState('networkidle');
+    waitForPromise(2000);
     loginBasic(page, { username: user.username, password });
     await waitForPromise(2000);
     const testUserProfile = await apiGetUserProfile(page, user.username);
