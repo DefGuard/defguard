@@ -3,6 +3,7 @@ use humantime::Duration;
 use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
+use secrecy::{ExposeSecret, Secret};
 
 #[derive(Clone, Parser, Serialize, Debug)]
 #[command(version)]
@@ -16,8 +17,9 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_AUTH_SESSION_LIFETIME")]
     pub session_auth_lifetime: Option<i64>,
 
-    #[arg(long, env = "DEFGUARD_SECRET_KEY", value_parser = validate_secret_key)]
-    pub secret_key: String,
+    #[arg(long, env = "DEFGUARD_SECRET_KEY")]
+    #[serde(skip_serializing)]
+    pub secret_key: Secret<String>,
 
     #[arg(long, env = "DEFGUARD_DB_HOST", default_value = "localhost")]
     pub database_host: String,
@@ -32,7 +34,8 @@ pub struct DefGuardConfig {
     pub database_user: String,
 
     #[arg(long, env = "DEFGUARD_DB_PASSWORD", default_value = "")]
-    pub database_password: String,
+    #[serde(skip_serializing)]
+    pub database_password: Secret<String>,
 
     #[arg(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
     pub http_port: u16,
@@ -54,7 +57,8 @@ pub struct DefGuardConfig {
         env = "DEFGUARD_DEFAULT_ADMIN_PASSWORD",
         default_value = "pass123"
     )]
-    pub default_admin_password: String,
+    #[serde(skip_serializing)]
+    pub default_admin_password: Secret<String>,
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     #[serde(skip_serializing)]
@@ -84,7 +88,8 @@ pub struct DefGuardConfig {
     pub ldap_bind_username: String,
 
     #[arg(long, env = "DEFGUARD_LDAP_BIND_PASSWORD", default_value = "")]
-    pub ldap_bind_password: String,
+    #[serde(skip_serializing)]
+    pub ldap_bind_password: Secret<String>,
 
     #[arg(
         long,
@@ -178,28 +183,12 @@ pub enum Command {
     InitDevEnv,
 }
 
-fn validate_secret_key(secret_key: &str) -> Result<String, String> {
-    if secret_key.trim().len() != secret_key.len() {
-        return Err(String::from(
-            "SECRET_KEY cannot have leading and trailing space",
-        ));
-    }
-
-    if secret_key.len() < 64 {
-        return Err(format!(
-            "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
-            secret_key.len()
-        ));
-    }
-
-    Ok(secret_key.into())
-}
-
 impl DefGuardConfig {
     pub fn new() -> Self {
         let mut config = Self::parse();
         config.validate_rp_id();
         config.validate_cookie_domain();
+        config.validate_secret_key();
         config
     }
 
@@ -234,6 +223,20 @@ impl DefGuardConfig {
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
             )
+        }
+    }
+
+    fn validate_secret_key(&self) {
+        let secret_key = self.secret_key.expose_secret();
+        if secret_key.trim().len() != secret_key.len() {
+            panic!("SECRET_KEY cannot have leading and trailing space",);
+        }
+
+        if secret_key.len() < 64 {
+            panic!(
+                "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
+                secret_key.len()
+            );
         }
     }
 
@@ -278,8 +281,9 @@ impl Default for DefGuardConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::env;
+
+    use super::*;
 
     #[test]
     fn verify_cli() {
