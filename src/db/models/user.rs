@@ -337,6 +337,7 @@ impl User {
         Ok(())
     }
     /// Select all users without sensitive data.
+    // FIXME: Remove it when Model macro will suport SecretString
     pub async fn all_without_sensitive_data(pool: &DbPool) -> Result<Vec<Self>, SqlxError> {
         let users = query_as!(
             Self,
