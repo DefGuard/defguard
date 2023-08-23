@@ -32,7 +32,11 @@ export const OverViewNetworkSelect = () => {
   const renderSelected = useCallback(
     (selected: number): SelectSelectedValue => {
       const option = options.find((o) => o.value === selected);
-      if (!option) throw Error("Selected value doesn't exist");
+      if (!option)
+        return {
+          key: 'none',
+          displayValue: '',
+        };
       return {
         key: selected,
         displayValue: option.label,
