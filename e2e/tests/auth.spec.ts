@@ -69,7 +69,7 @@ test('Recovery code login', async ({ page, context }) => {
 
 test('Add user to admin group', async ({ page, context }) => {
   await waitForBase(page);
-  const testUser = await createUser(context, faker.person.lastName().toLowerCase(), [
+  const testUser = await createUser(context, faker.person.firstName().toLowerCase(), [
     'Admin',
   ]);
   await loginBasic(page, testUser);
