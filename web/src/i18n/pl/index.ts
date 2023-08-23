@@ -781,9 +781,6 @@ const pl: Translation = {
 			`,
     },
     smtp: {
-      encryption: {
-        title: 'Szyfrowanie',
-      },
       form: {
         title: 'Ustawienia',
         fields: {
@@ -797,7 +794,6 @@ const pl: Translation = {
           },
           encryption: {
             label: 'Szyfrowanie',
-            none: 'Brak',
           },
           user: {
             label: 'Użytkownik',

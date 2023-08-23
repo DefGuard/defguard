@@ -1815,6 +1815,12 @@ type RootTranslation = {
 				 */
 				title: string
 				fields: {
+					encryption: {
+						/**
+						 * E​n​c​r​y​p​t​i​o​n
+						 */
+						label: string
+					}
 					server: {
 						/**
 						 * S​e​r​v​e​r​ ​a​d​d​r​e​s​s
@@ -1834,16 +1840,6 @@ type RootTranslation = {
 						 * P​o​r​t
 						 */
 						placeholder: string
-					}
-					encryption: {
-						/**
-						 * E​n​c​r​y​p​t​i​o​n
-						 */
-						label: string
-						/**
-						 * N​o​n​e
-						 */
-						none: string
 					}
 					user: {
 						/**
@@ -1923,12 +1919,6 @@ type RootTranslation = {
 					 */
 					error: string
 				}
-			}
-			encryption: {
-				/**
-				 * P​r​o​t​o​c​o​l
-				 */
-				title: string
 			}
 			/**
 			 * 
@@ -5090,6 +5080,12 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				fields: {
+					encryption: {
+						/**
+						 * Encryption
+						 */
+						label: () => LocalizedString
+					}
 					server: {
 						/**
 						 * Server address
@@ -5109,16 +5105,6 @@ export type TranslationFunctions = {
 						 * Port
 						 */
 						placeholder: () => LocalizedString
-					}
-					encryption: {
-						/**
-						 * Encryption
-						 */
-						label: () => LocalizedString
-						/**
-						 * None
-						 */
-						none: () => LocalizedString
 					}
 					user: {
 						/**
@@ -5198,12 +5184,6 @@ export type TranslationFunctions = {
 					 */
 					error: () => LocalizedString
 				}
-			}
-			encryption: {
-				/**
-				 * Protocol
-				 */
-				title: () => LocalizedString
 			}
 			/**
 			 * 
