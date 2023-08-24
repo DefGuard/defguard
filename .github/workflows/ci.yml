@@ -22,7 +22,7 @@ env:
 jobs:
   test:
     runs-on: self-hosted
-    container: rust:latest
+    container: rust:1.71
 
     services:
       postgres:
