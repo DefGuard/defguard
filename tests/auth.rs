@@ -3,7 +3,7 @@ use defguard::{
     db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, UserDetails, Wallet},
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, WalletChallenge},
 };
-use ethers::core::types::transaction::eip712::{Eip712, TypedData};
+use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use otpauth::TOTP;
 use rocket::{
     http::{Cookie, Status},
