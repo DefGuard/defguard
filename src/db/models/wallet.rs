@@ -1,6 +1,6 @@
 use crate::{hex::hex_decode, DbPool};
 use chrono::{NaiveDateTime, Utc};
-use ethers::core::types::transaction::eip712::{Eip712, TypedData};
+use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use model_derive::Model;
 use openidconnect::Nonce;
 use rocket::serde::json::serde_json;

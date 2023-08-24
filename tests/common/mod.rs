@@ -23,7 +23,7 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
         .host(&config.database_host)
         .port(config.database_port)
         .username(&config.database_user)
-        .password(&config.database_password.expose_secret())
+        .password(config.database_password.expose_secret())
         .database(&config.database_name);
     let pool = DbPool::connect_with(opts)
         .await
@@ -38,7 +38,7 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
         config.database_port,
         &db_name,
         &config.database_user,
-        &config.database_password.expose_secret(),
+        config.database_password.expose_secret(),
     )
     .await;
 
@@ -48,7 +48,7 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
 }
 
 async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
-    User::init_admin_user(pool, &config.default_admin_password.expose_secret())
+    User::init_admin_user(pool, config.default_admin_password.expose_secret())
         .await
         .unwrap();
 

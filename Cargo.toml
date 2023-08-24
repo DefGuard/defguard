@@ -18,7 +18,7 @@ chrono = { version = "0.4", default-features = false, features = [
 ] }
 clap = { version = "4.0", features = ["derive", "env"] }
 dotenvy = "0.15"
-ethers = { version = "2.0", features = ["eip712"] }
+ethers-core = { version = "2.0", features = ["eip712"] }
 ethabi = "18.0"
 fern = { version = "0.6", features = ["colored"] }
 humantime = "2.1"

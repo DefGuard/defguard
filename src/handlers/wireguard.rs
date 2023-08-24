@@ -17,7 +17,6 @@ use crate::{
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
-use ethers::utils::__serde_json::Value;
 use ipnetwork::IpNetwork;
 use rocket::{
     http::Status,
@@ -27,6 +26,7 @@ use rocket::{
     },
     State,
 };
+use serde_json::Value;
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};

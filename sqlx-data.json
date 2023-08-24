@@ -1,32 +1,5 @@
 {
   "db": "PostgreSQL",
-  "0341a2debb445319fe7b1905aaad7f797b61940a342e08c58b6d2205d9c2eb87": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Timestamp",
-          "Int8",
-          "Text",
-          "Int8",
-          "Int8",
-          "Timestamp",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"wireguard_peer_stats\" (\"device_id\", \"collected_at\", \"network\", \"endpoint\", \"upload\", \"download\", \"latest_handshake\", \"allowed_ips\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
-  },
   "0377049270e6dcc4f0ec3571bd998dcdbab8366524ff1f20f48a208b9f7dd9c6": {
     "describe": {
       "columns": [
@@ -142,48 +115,47 @@
     },
     "query": "SELECT id \"id?\", \"name\" FROM \"group\""
   },
-  "070b68a1ba5f0b96a5b8ea3f42135711fb133c5e69ee0d01aae64e9f2cb1d71a": {
+  "06f847d99d452dafd10f4a6bec309c330d76eb5d0a34012bd75395b13e3ff659": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "wireguard_pubkey",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
       "parameters": {
-        "Left": [
-          "Int8",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Int4",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "starttls",
-                  "implicittls"
-                ]
-              },
-              "name": "smtp_encryption"
-            }
-          },
-          "Text",
-          "Text",
-          "Text",
-          "Bool",
-          "Text",
-          "Text",
-          "Text",
-          "Bool"
-        ]
+        "Left": []
       }
     },
-    "query": "UPDATE \"settings\" SET \"openid_enabled\" = $2, \"ldap_enabled\" = $3, \"wireguard_enabled\" = $4, \"webhooks_enabled\" = $5, \"worker_enabled\" = $6, \"challenge_template\" = $7, \"instance_name\" = $8, \"main_logo_url\" = $9, \"nav_logo_url\" = $10, \"smtp_server\" = $11, \"smtp_port\" = $12, \"smtp_encryption\" = $13, \"smtp_user\" = $14, \"smtp_password\" = $15, \"smtp_sender\" = $16, \"enrollment_vpn_step_optional\" = $17, \"enrollment_welcome_message\" = $18, \"enrollment_welcome_email\" = $19, \"enrollment_welcome_email_subject\" = $20, \"enrollment_use_welcome_message_as_email\" = $21 WHERE id = $1"
+    "query": "SELECT id \"id?\", \"name\",\"wireguard_pubkey\",\"user_id\",\"created\" FROM \"device\""
   },
   "0739dda752a2a5b4bb6483d8fdc87b7065d01d6d5990c7d344be2d0068cac835": {
     "describe": {
@@ -258,34 +230,6 @@
       }
     },
     "query": "SELECT MAX(started_at) FROM wireguard_stats_purge"
-  },
-  "09290c24060f6fd858e779b334029900f0b04785b1012d5e6bd2897ef8440585": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Text",
-          "Int8",
-          "Text",
-          "Text",
-          "Timestamp",
-          "Timestamp",
-          "Bool"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"wallet\" (\"user_id\", \"address\", \"name\", \"chain_id\", \"challenge_message\", \"challenge_signature\", \"creation_timestamp\", \"validation_timestamp\", \"use_for_mfa\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
   },
   "0ad599ef120ecc02b030bd1276172929d6a612846acf4a5489c36a04cb57de59": {
     "describe": {
@@ -375,215 +319,7 @@
     },
     "query": "DELETE FROM \"authorization_code\" WHERE id = $1"
   },
-  "0bdf1873f50350d16aad6ec9aed420dcd172a411e14b858a798b24a4b02bdf16": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Text",
-          "Text",
-          "Int8",
-          "Text",
-          "Text",
-          "Timestamp",
-          "Timestamp",
-          "Bool"
-        ]
-      }
-    },
-    "query": "UPDATE \"wallet\" SET \"user_id\" = $2, \"address\" = $3, \"name\" = $4, \"chain_id\" = $5, \"challenge_message\" = $6, \"challenge_signature\" = $7, \"creation_timestamp\" = $8, \"validation_timestamp\" = $9, \"use_for_mfa\" = $10 WHERE id = $1"
-  },
-  "0d94c4f8df85d5d219dee2e4e124d5bc3a6992088b8bedfef2fa035d5596d8c7": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Bytea"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"webauthn\" (\"user_id\", \"name\", \"passkey\") VALUES ($1, $2, $3) RETURNING id"
-  },
-  "12547180eb7b5c0f64bdf5366800aa08f321896adebeef58a47a8e5f456359d7": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Text",
-          "Text",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool"
-        ]
-      }
-    },
-    "query": "UPDATE \"webhook\" SET \"url\" = $2, \"description\" = $3, \"token\" = $4, \"enabled\" = $5, \"on_user_created\" = $6, \"on_user_deleted\" = $7, \"on_user_modified\" = $8, \"on_hwkey_provision\" = $9 WHERE id = $1"
-  },
-  "125d37ad8e24d8fd71b3d695ec4ec2787e4f0de98005b0003c63b9bdedad9aa1": {
-    "describe": {
-      "columns": [
-        {
-          "name": "oauth2client_id!",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "oauth2client_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\", oauth2authorizedapp.user_id \"user_id\" FROM oauth2authorizedapp JOIN oauth2client ON oauth2client.id = oauth2authorizedapp.oauth2client_id WHERE oauth2authorizedapp.user_id = $1"
-  },
-  "145967223368f74651e1af44c75be761b1940d18ed83c4be2fff171c16a412a3": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Int8",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"authorization_code\" (\"user_id\", \"client_id\", \"code\", \"redirect_uri\", \"scope\", \"auth_time\", \"nonce\", \"code_challenge\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
-  },
-  "16311b1318c57344286ec65fd32405460028be3466ece9eb0dbb8d738df5e39b": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "address",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "chain_id",
-          "ordinal": 4,
-          "type_info": "Int8"
-        },
-        {
-          "name": "challenge_message",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "challenge_signature",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "creation_timestamp",
-          "ordinal": 7,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "validation_timestamp",
-          "ordinal": 8,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "use_for_mfa",
-          "ordinal": 9,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"user_id\", \"address\", \"name\", \"chain_id\", \"challenge_message\", \"challenge_signature\", \"creation_timestamp\", \"validation_timestamp\", \"use_for_mfa\" FROM \"wallet\" WHERE id = $1"
-  },
-  "169a39acbf7e6b74fd9f538047b0af650fe1bfa21d844a216e80965011290412": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "DELETE FROM \"wallet\" WHERE id = $1"
-  },
-  "16be3197b7d4df94ca7b1805c6d9237b1725ee99c475dcc424f3ffad4a36e94a": {
+  "10dacbf1e23b51d0ae069dd0a06c0b135662c6c1564ba0605fee42cf69c93bc1": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -619,7 +355,197 @@
         ]
       }
     },
-    "query": "UPDATE \"user\" SET \"username\" = $2, \"password_hash\" = $3, \"last_name\" = $4, \"first_name\" = $5, \"email\" = $6, \"phone\" = $7, \"ssh_key\" = $8, \"pgp_key\" = $9, \"pgp_cert_id\" = $10, \"mfa_enabled\" = $11, \"totp_enabled\" = $12, \"totp_secret\" = $13, \"mfa_method\" = $14, \"recovery_codes\" = $15 WHERE id = $1"
+    "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"ssh_key\" = $8,\"pgp_key\" = $9,\"pgp_cert_id\" = $10,\"mfa_enabled\" = $11,\"totp_enabled\" = $12,\"totp_secret\" = $13,\"mfa_method\" = $14,\"recovery_codes\" = $15 WHERE id = $1"
+  },
+  "125d37ad8e24d8fd71b3d695ec4ec2787e4f0de98005b0003c63b9bdedad9aa1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "oauth2client_id!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "oauth2client_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\", oauth2authorizedapp.user_id \"user_id\" FROM oauth2authorizedapp JOIN oauth2client ON oauth2client.id = oauth2authorizedapp.oauth2client_id WHERE oauth2authorizedapp.user_id = $1"
+  },
+  "1559d43b6ed3d6c2e62011acc1dfb827793d43053e5ed1c87aac818a47e38934": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "last_name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "email",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "phone",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "ssh_key",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "pgp_key",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "pgp_cert_id",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "mfa_enabled",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "totp_enabled",
+          "ordinal": 11,
+          "type_info": "Bool"
+        },
+        {
+          "name": "totp_secret",
+          "ordinal": 12,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "mfa_method: _",
+          "ordinal": 13,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          }
+        },
+        {
+          "name": "recovery_codes: _",
+          "ordinal": 14,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"ssh_key\",\"pgp_key\",\"pgp_cert_id\",\"mfa_enabled\",\"totp_enabled\",\"totp_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1"
+  },
+  "15d8aae5b2f7cbc1c415f8e589b12c762f8f7f386beea4543f96f471814a6929": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "oauth2client_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"user_id\",\"oauth2client_id\" FROM \"oauth2authorizedapp\""
+  },
+  "169a39acbf7e6b74fd9f538047b0af650fe1bfa21d844a216e80965011290412": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM \"wallet\" WHERE id = $1"
   },
   "18bffe90d894f5a122df97ef37c4afb69f97c74acf36ee7596476ab7fee850b3": {
     "describe": {
@@ -703,112 +629,6 @@
     },
     "query": "DELETE FROM \"oauth2client\" WHERE id = $1"
   },
-  "1a35276ae14279ad3e229ccb2f1f7c9096abf9484b7aaea551815715d6cad598": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "oauth2client_id",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"user_id\", \"oauth2client_id\" FROM \"oauth2authorizedapp\" WHERE id = $1"
-  },
-  "1b79c9433e20ab471bb1dc4e82224f3063d142b93f6c5fdb4203261b272a8144": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "address: _",
-          "ordinal": 2,
-          "type_info": "Inet"
-        },
-        {
-          "name": "port",
-          "ordinal": 3,
-          "type_info": "Int4"
-        },
-        {
-          "name": "pubkey",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "prvkey",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "endpoint",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "dns",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "allowed_ips: _",
-          "ordinal": 8,
-          "type_info": "InetArray"
-        },
-        {
-          "name": "connected_at",
-          "ordinal": 9,
-          "type_info": "Timestamp"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"name\", \"address\" \"address: _\", \"port\", \"pubkey\", \"prvkey\", \"endpoint\", \"dns\", \"allowed_ips\" \"allowed_ips: _\", \"connected_at\" FROM \"wireguard_network\" WHERE id = $1"
-  },
   "1cb8e98cf71355633ee9f09594c210349dceeeabc7212dc49ac484ba949ec9e5": {
     "describe": {
       "columns": [],
@@ -846,71 +666,53 @@
     },
     "query": "DELETE FROM \"settings\" WHERE id = $1"
   },
-  "2d036d432942cf218f6a1dc815443fbf3675a14f71968554296e2e88fa768240": {
+  "248067b0803eaf09f88746459986ac8cccb04723772c5b3ec745dbbdf47efe30": {
     "describe": {
       "columns": [
         {
-          "name": "id?",
+          "name": "id",
           "ordinal": 0,
           "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "client_id",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "code",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "redirect_uri",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "scope",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "auth_time",
-          "ordinal": 6,
-          "type_info": "Int8"
-        },
-        {
-          "name": "nonce",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "code_challenge",
-          "ordinal": 8,
-          "type_info": "Text"
         }
       ],
       "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true
+        false
       ],
       "parameters": {
-        "Left": []
+        "Left": [
+          "Int8",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int8",
+          "Text",
+          "Text"
+        ]
       }
     },
-    "query": "SELECT id \"id?\", \"user_id\", \"client_id\", \"code\", \"redirect_uri\", \"scope\", \"auth_time\", \"nonce\", \"code_challenge\" FROM \"authorization_code\""
+    "query": "INSERT INTO \"authorization_code\" (\"user_id\",\"client_id\",\"code\",\"redirect_uri\",\"scope\",\"auth_time\",\"nonce\",\"code_challenge\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id"
+  },
+  "28faeea866a4b6bd7c816b9d375e38fc174e88b2c111b10dda6bce475737154e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"oauth2authorizedapp\" (\"user_id\",\"oauth2client_id\") VALUES ($1,$2) RETURNING id"
   },
   "2e73d767e5c98702de3d5340e9f0818f346d9d25547aedd4dc388347b7620cfd": {
     "describe": {
@@ -1095,6 +897,78 @@
     },
     "query": "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in FROM oauth2token WHERE refresh_token = $1"
   },
+  "336532632eb24ed923842cdc8976e26a7f9b8d28ef1d7011407f388d3e983e62": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "address",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "chain_id",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "challenge_message",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "challenge_signature",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "creation_timestamp",
+          "ordinal": 7,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "validation_timestamp",
+          "ordinal": 8,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "use_for_mfa",
+          "ordinal": 9,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"user_id\",\"address\",\"name\",\"chain_id\",\"challenge_message\",\"challenge_signature\",\"creation_timestamp\",\"validation_timestamp\",\"use_for_mfa\" FROM \"wallet\""
+  },
   "33813a92407a52297f68cff8c6c3dcd8ae0d54ac743398e9ab3cf9e6a28c3660": {
     "describe": {
       "columns": [],
@@ -1220,7 +1094,392 @@
     },
     "query": "SELECT id \"id?\", url, description, token, enabled, on_user_created, on_user_deleted, on_user_modified, on_hwkey_provision FROM webhook WHERE url = $1"
   },
-  "33f00d48b5135881db010112f1729cc57f658705dfb507bff9166de96f05af93": {
+  "381a91411dae9517c285d2f57cf81ac75d3bf0812c190ef118d6dce1b564b37d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Bool",
+          "Bool",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET mfa_enabled = $2, totp_enabled = $3 AND totp_secret = $4 WHERE id = $1"
+  },
+  "3874e3ddc2d3b4b455fddca611702b86a1f2d02b1878f6f262211f97e0d661b2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1"
+  },
+  "3a0fc5bc3005b4b6b5d6ccf2cf71b7915cda2c440eb8f3194480bbaf2969228e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "mfa_method: _",
+          "ordinal": 0,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          }
+        },
+        {
+          "name": "totp_available",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "web3_available!",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "webauthn_available!",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" FROM \"user\" WHERE \"user\".id = $1"
+  },
+  "3be325a5e6b8ef591fde2e339eee96d6fba101fc81565cffbc26dfb9f8a4fd8d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM \"webhook\" WHERE id = $1"
+  },
+  "3d7def96ee88ac4f1c46ff6ef93b06b8acc1f4bc9e34ff1cca6d64d6d281c039": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "device_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "collected_at",
+          "ordinal": 2,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "network",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "endpoint",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "upload",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "download",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "latest_handshake",
+          "ordinal": 7,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "allowed_ips",
+          "ordinal": 8,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"device_id\",\"collected_at\",\"network\",\"endpoint\",\"upload\",\"download\",\"latest_handshake\",\"allowed_ips\" FROM \"wireguard_peer_stats\""
+  },
+  "3daa0bbce8f2f5d0d30b104db8fd043e7a4938d94962844c66a2be3d242c00ce": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Timestamp",
+          "Int8",
+          "Text",
+          "Int8",
+          "Int8",
+          "Timestamp",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE \"wireguard_peer_stats\" SET \"device_id\" = $2,\"collected_at\" = $3,\"network\" = $4,\"endpoint\" = $5,\"upload\" = $6,\"download\" = $7,\"latest_handshake\" = $8,\"allowed_ips\" = $9 WHERE id = $1"
+  },
+  "3fc4cbb5242fb2e3e3b5de7bcf4c1975f2838d58ffc37b68b57e7ec5acd21bde": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Text",
+          "Text",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool"
+        ]
+      }
+    },
+    "query": "UPDATE \"webhook\" SET \"url\" = $2,\"description\" = $3,\"token\" = $4,\"enabled\" = $5,\"on_user_created\" = $6,\"on_user_deleted\" = $7,\"on_user_modified\" = $8,\"on_hwkey_provision\" = $9 WHERE id = $1"
+  },
+  "4183b4f169126bcc511ff76c7554622fc71857d0d459588b4f3934307611aee7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "active_users!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "active_devices!",
+          "ordinal": 1,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT\n                COALESCE(COUNT(DISTINCT(u.id)), 0) as \"active_users!\",\n                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as \"active_devices!\"\n            FROM \"user\" u\n                JOIN device d ON d.user_id = u.id\n                JOIN wireguard_peer_stats s ON s.device_id = d.id\n                WHERE latest_handshake >= $1 AND s.network = $2\n            "
+  },
+  "435e3f1969c8809b466228cbaa1811f62a4823257b0513a82a0c098218ea2062": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"webhook\" (\"url\",\"description\",\"token\",\"enabled\",\"on_user_created\",\"on_user_deleted\",\"on_user_modified\",\"on_hwkey_provision\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id"
+  },
+  "439bef62ccc846cccca2c6979e5698a7aaba2beb19645b720eefa73e4dcac942": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "wireguard_pubkey",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE device.id = $1 AND \"user\".username = $2"
+  },
+  "443177d880a607fc5c545cad75db89ab8ca59b3b1bc9f5ed6847afd7fea9d68c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "client_secret",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri: _",
+          "ordinal": 3,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "scope: _",
+          "ordinal": 4,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "name",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 6,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"client_id\",\"client_secret\",\"redirect_uri\" \"redirect_uri: _\",\"scope\" \"scope: _\",\"name\",\"enabled\" FROM \"oauth2client\" WHERE id = $1"
+  },
+  "454f2edaee1d6c60e75f20ef4344e5ceba35c07316b4317b9b0a6e78b41de0bf": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Bool"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1"
+  },
+  "45545d3190c14bb3e9528ab3d3a8522209f36956f65bf5a126682d5477db425e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Inet"
+        ]
+      }
+    },
+    "query": "\n        UPDATE wireguard_network_device\n        SET wireguard_ip = $3\n        WHERE device_id = $1 AND wireguard_network_id = $2\n        "
+  },
+  "473aaa871ecb2e8485c770bf10c6245d2b8b2affb4e151dea34801fe00fff84a": {
     "describe": {
       "columns": [
         {
@@ -1367,147 +1626,9 @@
         "Left": []
       }
     },
-    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\" \"smtp_encryption: _\", \"smtp_user\", smtp_password \"smtp_password?: SecretString\", \"smtp_sender\", \"enrollment_vpn_step_optional\", \"enrollment_welcome_message\", \"enrollment_welcome_email\", \"enrollment_welcome_email_subject\", \"enrollment_use_welcome_message_as_email\" FROM \"settings\""
+    "query": "SELECT id \"id?\", \"openid_enabled\",\"ldap_enabled\",\"wireguard_enabled\",\"webhooks_enabled\",\"worker_enabled\",\"challenge_template\",\"instance_name\",\"main_logo_url\",\"nav_logo_url\",\"smtp_server\",\"smtp_port\",\"smtp_encryption\" \"smtp_encryption: _\",\"smtp_user\",\"smtp_password\" \"smtp_password?: SecretString\",\"smtp_sender\",\"enrollment_vpn_step_optional\",\"enrollment_welcome_message\",\"enrollment_welcome_email\",\"enrollment_welcome_email_subject\",\"enrollment_use_welcome_message_as_email\" FROM \"settings\""
   },
-  "3714ad390be3981e31d57a901d8b3e2d723641cb256915319af5ae45da951b3f": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Int8",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE \"authorization_code\" SET \"user_id\" = $2, \"client_id\" = $3, \"code\" = $4, \"redirect_uri\" = $5, \"scope\" = $6, \"auth_time\" = $7, \"nonce\" = $8, \"code_challenge\" = $9 WHERE id = $1"
-  },
-  "381a91411dae9517c285d2f57cf81ac75d3bf0812c190ef118d6dce1b564b37d": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Bool",
-          "Bool",
-          "Bytea"
-        ]
-      }
-    },
-    "query": "UPDATE \"user\" SET mfa_enabled = $2, totp_enabled = $3 AND totp_secret = $4 WHERE id = $1"
-  },
-  "3874e3ddc2d3b4b455fddca611702b86a1f2d02b1878f6f262211f97e0d661b2": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count!",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1"
-  },
-  "3a0fc5bc3005b4b6b5d6ccf2cf71b7915cda2c440eb8f3194480bbaf2969228e": {
-    "describe": {
-      "columns": [
-        {
-          "name": "mfa_method: _",
-          "ordinal": 0,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "one_time_password",
-                  "webauthn",
-                  "web3"
-                ]
-              },
-              "name": "mfa_method"
-            }
-          }
-        },
-        {
-          "name": "totp_available",
-          "ordinal": 1,
-          "type_info": "Bool"
-        },
-        {
-          "name": "web3_available!",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "webauthn_available!",
-          "ordinal": 3,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" FROM \"user\" WHERE \"user\".id = $1"
-  },
-  "3abcf090a9adea823eb2288d1379916fce5f172e9f92243c3706f3fac48464ab": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Inet",
-          "Int4",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "InetArray",
-          "Timestamp"
-        ]
-      }
-    },
-    "query": "UPDATE \"wireguard_network\" SET \"name\" = $2, \"address\" = $3, \"port\" = $4, \"pubkey\" = $5, \"prvkey\" = $6, \"endpoint\" = $7, \"dns\" = $8, \"allowed_ips\" = $9, \"connected_at\" = $10 WHERE id = $1"
-  },
-  "3be325a5e6b8ef591fde2e339eee96d6fba101fc81565cffbc26dfb9f8a4fd8d": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "DELETE FROM \"webhook\" WHERE id = $1"
-  },
-  "3fe95f7f36317af0d3b95e0b460536fd8e597e01cdc54936d3270b0a5937d708": {
+  "48ecfa6318149ac712807ca8fa0ec1fcb972f917729ffb9b7849830113d04bd8": {
     "describe": {
       "columns": [
         {
@@ -1516,28 +1637,22 @@
           "type_info": "Int8"
         },
         {
-          "name": "name",
+          "name": "user_id",
           "ordinal": 1,
-          "type_info": "Text"
+          "type_info": "Int8"
         },
         {
-          "name": "wireguard_pubkey",
+          "name": "name",
           "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "name": "user_id",
+          "name": "passkey",
           "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "created",
-          "ordinal": 4,
-          "type_info": "Timestamp"
+          "type_info": "Bytea"
         }
       ],
       "nullable": [
-        false,
         false,
         false,
         false,
@@ -1549,106 +1664,7 @@
         ]
       }
     },
-    "query": "SELECT id \"id?\", \"name\", \"wireguard_pubkey\", \"user_id\", \"created\" FROM \"device\" WHERE id = $1"
-  },
-  "4183b4f169126bcc511ff76c7554622fc71857d0d459588b4f3934307611aee7": {
-    "describe": {
-      "columns": [
-        {
-          "name": "active_users!",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "active_devices!",
-          "ordinal": 1,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Timestamp",
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n            SELECT\n                COALESCE(COUNT(DISTINCT(u.id)), 0) as \"active_users!\",\n                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as \"active_devices!\"\n            FROM \"user\" u\n                JOIN device d ON d.user_id = u.id\n                JOIN wireguard_peer_stats s ON s.device_id = d.id\n                WHERE latest_handshake >= $1 AND s.network = $2\n            "
-  },
-  "439bef62ccc846cccca2c6979e5698a7aaba2beb19645b720eefa73e4dcac942": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "wireguard_pubkey",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "created",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE device.id = $1 AND \"user\".username = $2"
-  },
-  "454f2edaee1d6c60e75f20ef4344e5ceba35c07316b4317b9b0a6e78b41de0bf": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Bool"
-        ]
-      }
-    },
-    "query": "UPDATE \"user\" SET mfa_enabled = $2 WHERE id = $1"
-  },
-  "45545d3190c14bb3e9528ab3d3a8522209f36956f65bf5a126682d5477db425e": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Inet"
-        ]
-      }
-    },
-    "query": "\n        UPDATE wireguard_network_device\n        SET wireguard_ip = $3\n        WHERE device_id = $1 AND wireguard_network_id = $2\n        "
+    "query": "SELECT id \"id?\", \"user_id\",\"name\",\"passkey\" FROM \"webauthn\" WHERE id = $1"
   },
   "49749227cacd46dd9a392d58233a511ee03c0df12cb28ce247d574923fee31a9": {
     "describe": {
@@ -1703,26 +1719,6 @@
       }
     },
     "query": "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at FROM enrollment"
-  },
-  "4e1d29f6440594e4303d9ff7da541b4bca33b44e931126ba8c6b31304a9206b3": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Timestamp",
-          "Int8",
-          "Text",
-          "Int8",
-          "Int8",
-          "Timestamp",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE \"wireguard_peer_stats\" SET \"device_id\" = $2, \"collected_at\" = $3, \"network\" = $4, \"endpoint\" = $5, \"upload\" = $6, \"download\" = $7, \"latest_handshake\" = $8, \"allowed_ips\" = $9 WHERE id = $1"
   },
   "4f318cd5100bf4d155a555b927cc7421cb5324f70e427bd7e6f7312be4a20946": {
     "describe": {
@@ -1819,6 +1815,93 @@
     },
     "query": "DELETE FROM oauth2authorizedapp WHERE user_id = $1 AND oauth2client_id = ANY($2)"
   },
+  "52b93ff07493589383745923dbe340b5adde936a4e4474d530b70002eb92063e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "url",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "token",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "on_user_created",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "on_user_deleted",
+          "ordinal": 6,
+          "type_info": "Bool"
+        },
+        {
+          "name": "on_user_modified",
+          "ordinal": 7,
+          "type_info": "Bool"
+        },
+        {
+          "name": "on_hwkey_provision",
+          "ordinal": 8,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"url\",\"description\",\"token\",\"enabled\",\"on_user_created\",\"on_user_deleted\",\"on_user_modified\",\"on_hwkey_provision\" FROM \"webhook\""
+  },
+  "560de8bc16c1bcc80d31c99dc4b788bf5eeef60689d104448989726a5999eb42": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Text",
+          "Text",
+          "Int8",
+          "Text",
+          "Text",
+          "Timestamp",
+          "Timestamp",
+          "Bool"
+        ]
+      }
+    },
+    "query": "UPDATE \"wallet\" SET \"user_id\" = $2,\"address\" = $3,\"name\" = $4,\"chain_id\" = $5,\"challenge_message\" = $6,\"challenge_signature\" = $7,\"creation_timestamp\" = $8,\"validation_timestamp\" = $9,\"use_for_mfa\" = $10 WHERE id = $1"
+  },
   "57f9cef4b6b89be730168450c5dfe5bac9d102aecdb8c82f940b4f34e2b9ccd2": {
     "describe": {
       "columns": [
@@ -1839,7 +1922,40 @@
     },
     "query": "SELECT \"group\".name FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id WHERE group_user.user_id = $1"
   },
-  "59490af08c0b430d7add9c41144af6cce3f9599633a11f28bdde07cb38e99b8b": {
+  "66d2e2f3156ce802a0018bea5aa0718b2ce599d44de6382e854174053a639f5a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "device_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "wireguard_network_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "wireguard_ip: IpAddr",
+          "ordinal": 2,
+          "type_info": "Inet"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM\n            wireguard_network_device\n            WHERE device_id = $1 AND wireguard_network_id = $2"
+  },
+  "6b07d6ea56bcded73038dfd59cff3d7d15049caf771aec6b0fcd42bea7169998": {
     "describe": {
       "columns": [
         {
@@ -1909,24 +2025,9 @@
         "Left": []
       }
     },
-    "query": "SELECT id \"id?\", \"name\", \"address\" \"address: _\", \"port\", \"pubkey\", \"prvkey\", \"endpoint\", \"dns\", \"allowed_ips\" \"allowed_ips: _\", \"connected_at\" FROM \"wireguard_network\""
+    "query": "SELECT id \"id?\", \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\" FROM \"wireguard_network\""
   },
-  "59c1b85f37143a9573d61d440485bda5dd3b550011fa2486c7003a7f00743255": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Text",
-          "Bytea"
-        ]
-      }
-    },
-    "query": "UPDATE \"webauthn\" SET \"user_id\" = $2, \"name\" = $3, \"passkey\" = $4 WHERE id = $1"
-  },
-  "5a692c1c321149cbffd9e8726e74770d1299994ccd27ce3270d0fb7970a4da7c": {
+  "6b659b309306098a1f8b5b5592facba9cd54f93f5239fbc62a858bb91f502472": {
     "describe": {
       "columns": [
         {
@@ -1935,27 +2036,39 @@
           "type_info": "Int8"
         },
         {
-          "name": "name",
+          "name": "client_id",
           "ordinal": 1,
           "type_info": "Text"
         },
         {
-          "name": "wireguard_pubkey",
+          "name": "client_secret",
           "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "name": "user_id",
+          "name": "redirect_uri: _",
           "ordinal": 3,
-          "type_info": "Int8"
+          "type_info": "TextArray"
         },
         {
-          "name": "created",
+          "name": "scope: _",
           "ordinal": 4,
-          "type_info": "Timestamp"
+          "type_info": "TextArray"
+        },
+        {
+          "name": "name",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 6,
+          "type_info": "Bool"
         }
       ],
       "nullable": [
+        false,
+        false,
         false,
         false,
         false,
@@ -1966,22 +2079,15 @@
         "Left": []
       }
     },
-    "query": "SELECT id \"id?\", \"name\", \"wireguard_pubkey\", \"user_id\", \"created\" FROM \"device\""
+    "query": "SELECT id \"id?\", \"client_id\",\"client_secret\",\"redirect_uri\" \"redirect_uri: _\",\"scope\" \"scope: _\",\"name\",\"enabled\" FROM \"oauth2client\""
   },
-  "5cc93c3d18adf2dc9cb02e79d38a41bd0b2d6a8e4d33efcd12a54a7760c75c71": {
+  "6dfb9442da967755230ab2b7c5baf8eec06d64af5886e840bea1b32d2be10ca0": {
     "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
+          "Int8",
           "Text",
           "Text",
           "Int8",
@@ -1989,131 +2095,7 @@
         ]
       }
     },
-    "query": "INSERT INTO \"device\" (\"name\", \"wireguard_pubkey\", \"user_id\", \"created\") VALUES ($1, $2, $3, $4) RETURNING id"
-  },
-  "5ecfb41255d2aa4cb98b509fc17122c4032c7b81db6645853c6dcdbcc596c0b6": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "device_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "collected_at",
-          "ordinal": 2,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "network",
-          "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "endpoint",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "upload",
-          "ordinal": 5,
-          "type_info": "Int8"
-        },
-        {
-          "name": "download",
-          "ordinal": 6,
-          "type_info": "Int8"
-        },
-        {
-          "name": "latest_handshake",
-          "ordinal": 7,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "allowed_ips",
-          "ordinal": 8,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"device_id\", \"collected_at\", \"network\", \"endpoint\", \"upload\", \"download\", \"latest_handshake\", \"allowed_ips\" FROM \"wireguard_peer_stats\""
-  },
-  "66d2e2f3156ce802a0018bea5aa0718b2ce599d44de6382e854174053a639f5a": {
-    "describe": {
-      "columns": [
-        {
-          "name": "device_id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "wireguard_network_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "wireguard_ip: IpAddr",
-          "ordinal": 2,
-          "type_info": "Inet"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM\n            wireguard_network_device\n            WHERE device_id = $1 AND wireguard_network_id = $2"
-  },
-  "6baad9180990dceb250efa8de80ee675dbcff58ce1e134b6fe1d8d8958bc3dea": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "TextArray",
-          "TextArray",
-          "Text",
-          "Bool"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"oauth2client\" (\"client_id\", \"client_secret\", \"redirect_uri\", \"scope\", \"name\", \"enabled\") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+    "query": "UPDATE \"device\" SET \"name\" = $2,\"wireguard_pubkey\" = $3,\"user_id\" = $4,\"created\" = $5 WHERE id = $1"
   },
   "6e1a03b05c4522a63ffa580d23489b4e6339580d2d28d228cd002e8590b359a3": {
     "describe": {
@@ -2317,6 +2299,74 @@
     },
     "query": "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at FROM enrollment WHERE id = $1"
   },
+  "7244c9c8e437770235fa6cdb48e66719abf054cae9a35f833b8418d974aa45e1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "code",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "auth_time",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nonce",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "code_challenge",
+          "ordinal": 8,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"user_id\",\"client_id\",\"code\",\"redirect_uri\",\"scope\",\"auth_time\",\"nonce\",\"code_challenge\" FROM \"authorization_code\" WHERE id = $1"
+  },
   "727ed093b693f0f48e83779f9ee58de725cbec807ae286ae5900f426f2492f9d": {
     "describe": {
       "columns": [],
@@ -2330,87 +2380,26 @@
     },
     "query": "UPDATE enrollment SET used_at = $1 WHERE id = $2"
   },
-  "72d23351a50aab914232b485b109ffaaf3abe58e73f8180f9dc0211dd4aa5f53": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "device_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "collected_at",
-          "ordinal": 2,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "network",
-          "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "endpoint",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "upload",
-          "ordinal": 5,
-          "type_info": "Int8"
-        },
-        {
-          "name": "download",
-          "ordinal": 6,
-          "type_info": "Int8"
-        },
-        {
-          "name": "latest_handshake",
-          "ordinal": 7,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "allowed_ips",
-          "ordinal": 8,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"device_id\", \"collected_at\", \"network\", \"endpoint\", \"upload\", \"download\", \"latest_handshake\", \"allowed_ips\" FROM \"wireguard_peer_stats\" WHERE id = $1"
-  },
-  "74f1bd8d71c4421b291d4d4cbecf88788fb2563ac2c7088518bb3c4ada62be43": {
+  "73ab0d514bbce0a69e1b22d9f5a2a58be7427882b368eef4d45529e9e85d885c": {
     "describe": {
       "columns": [],
       "nullable": [],
       "parameters": {
         "Left": [
           "Int8",
-          "Int8",
-          "Int8"
+          "Text",
+          "Inet",
+          "Int4",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "InetArray",
+          "Timestamp"
         ]
       }
     },
-    "query": "UPDATE \"oauth2authorizedapp\" SET \"user_id\" = $2, \"oauth2client_id\" = $3 WHERE id = $1"
+    "query": "UPDATE \"wireguard_network\" SET \"name\" = $2,\"address\" = $3,\"port\" = $4,\"pubkey\" = $5,\"prvkey\" = $6,\"endpoint\" = $7,\"dns\" = $8,\"allowed_ips\" = $9,\"connected_at\" = $10 WHERE id = $1"
   },
   "77532f50fc8765ac97323cd3df60df8ae443769670c459426d738ac8d4fab6f4": {
     "describe": {
@@ -2437,6 +2426,117 @@
       }
     },
     "query": "SELECT id \"id!\", name FROM webauthn WHERE user_id = $1"
+  },
+  "77ca1d65a66cc81ad4855fed73539cdee5e50626f35bfef02fbd1378537c7f35": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Bool",
+          "Bool",
+          "Bytea",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "one_time_password",
+                  "webauthn",
+                  "web3"
+                ]
+              },
+              "name": "mfa_method"
+            }
+          },
+          "TextArray"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"user\" (\"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"ssh_key\",\"pgp_key\",\"pgp_cert_id\",\"mfa_enabled\",\"totp_enabled\",\"totp_secret\",\"mfa_method\",\"recovery_codes\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id"
+  },
+  "78766325753732e8873adc2b04bf73a3770887ba3b28c8568e71a7e4b83ab7a4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "client_id",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "code",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "redirect_uri",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "auth_time",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nonce",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "code_challenge",
+          "ordinal": 8,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"user_id\",\"client_id\",\"code\",\"redirect_uri\",\"scope\",\"auth_time\",\"nonce\",\"code_challenge\" FROM \"authorization_code\""
   },
   "7acf1bf5bd1597e01908c3a9e4d5540db061f77d69de853abe8e5f09149dfdf8": {
     "describe": {
@@ -2471,36 +2571,6 @@
     },
     "query": "SELECT id \"id?\", user_id, oauth2client_id FROM oauth2authorizedapp WHERE user_id = $1 AND oauth2client_id = $2"
   },
-  "7aefa4adef3748edf046f7dc37e1f311f4a91ba5b342d2904a36f0f3424fd4e7": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "oauth2client_id",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"user_id\", \"oauth2client_id\" FROM \"oauth2authorizedapp\""
-  },
   "7b7092bd5fe377c8b28862721b05b3ca39aab9fb176fe970b9309d6371072e95": {
     "describe": {
       "columns": [],
@@ -2513,119 +2583,33 @@
     },
     "query": "DELETE FROM wireguard_peer_stats\n            WHERE collected_at < $1\n            AND (device_id, network, collected_at) NOT IN (\n                SELECT device_id, network, MAX(collected_at)\n                FROM wireguard_peer_stats\n                GROUP BY device_id, network\n            )"
   },
-  "7d502cb019e69adc755d828bc581fa56c24c48245689fd21799ec96b1dac10ad": {
+  "7d202e1f66e134a78fbd808e578e295afcdc4daf5f3be7cca0be247e47133794": {
     "describe": {
       "columns": [
         {
-          "name": "id?",
+          "name": "id",
           "ordinal": 0,
           "type_info": "Int8"
-        },
-        {
-          "name": "username",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "password_hash",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "last_name",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "first_name",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "email",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "phone",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "ssh_key",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "pgp_key",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "pgp_cert_id",
-          "ordinal": 9,
-          "type_info": "Text"
-        },
-        {
-          "name": "mfa_enabled",
-          "ordinal": 10,
-          "type_info": "Bool"
-        },
-        {
-          "name": "totp_enabled",
-          "ordinal": 11,
-          "type_info": "Bool"
-        },
-        {
-          "name": "totp_secret",
-          "ordinal": 12,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "mfa_method: _",
-          "ordinal": 13,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "one_time_password",
-                  "webauthn",
-                  "web3"
-                ]
-              },
-              "name": "mfa_method"
-            }
-          }
-        },
-        {
-          "name": "recovery_codes: _",
-          "ordinal": 14,
-          "type_info": "TextArray"
         }
       ],
       "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        true,
-        true,
-        true,
-        false,
-        false,
-        true,
-        false,
         false
       ],
       "parameters": {
-        "Left": []
+        "Left": [
+          "Int8",
+          "Text",
+          "Text",
+          "Int8",
+          "Text",
+          "Text",
+          "Timestamp",
+          "Timestamp",
+          "Bool"
+        ]
       }
     },
-    "query": "SELECT id \"id?\", \"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"mfa_enabled\", \"totp_enabled\", \"totp_secret\", \"mfa_method\" \"mfa_method: _\", \"recovery_codes\" \"recovery_codes: _\" FROM \"user\""
+    "query": "INSERT INTO \"wallet\" (\"user_id\",\"address\",\"name\",\"chain_id\",\"challenge_message\",\"challenge_signature\",\"creation_timestamp\",\"validation_timestamp\",\"use_for_mfa\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id"
   },
   "7dd9cb419f9488ab2f1da11febdbac08a3a37eb93864104bd667f95615c87c41": {
     "describe": {
@@ -2652,6 +2636,74 @@
     },
     "query": "UPDATE session SET web3_challenge = $1 WHERE id = $2"
   },
+  "7fa302170061ee58a46152f581f13dbae26b7dd6ba59169cb5a18d443d039c14": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "url",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "token",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "enabled",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "on_user_created",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "on_user_deleted",
+          "ordinal": 6,
+          "type_info": "Bool"
+        },
+        {
+          "name": "on_user_modified",
+          "ordinal": 7,
+          "type_info": "Bool"
+        },
+        {
+          "name": "on_hwkey_provision",
+          "ordinal": 8,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"url\",\"description\",\"token\",\"enabled\",\"on_user_created\",\"on_user_deleted\",\"on_user_modified\",\"on_hwkey_provision\" FROM \"webhook\" WHERE id = $1"
+  },
   "80c48375b2eea6f83038d443c0d2d180b1bb35cf84c19eb8ad6b6f8ed8b994e1": {
     "describe": {
       "columns": [],
@@ -2663,24 +2715,6 @@
       }
     },
     "query": "DELETE FROM \"wireguard_network\" WHERE id = $1"
-  },
-  "84360b6300a90dab64e2346f44ae6d04d8fd65f0d7a01174113b299741e14744": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Text",
-          "TextArray",
-          "TextArray",
-          "Text",
-          "Bool"
-        ]
-      }
-    },
-    "query": "UPDATE \"oauth2client\" SET \"client_id\" = $2, \"client_secret\" = $3, \"redirect_uri\" = $4, \"scope\" = $5, \"name\" = $6, \"enabled\" = $7 WHERE id = $1"
   },
   "84782f5c98572a6689dda1a98d71b749bf6beb025c1e493c1c4183f09aead891": {
     "describe": {
@@ -2760,56 +2794,6 @@
     },
     "query": "\n            WITH s AS (\n                SELECT DISTINCT ON (device_id) *\n                FROM wireguard_peer_stats\n                ORDER BY device_id, latest_handshake DESC\n            )\n            SELECT\n                d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created\n            FROM device d\n            JOIN s ON d.id = s.device_id\n            WHERE s.latest_handshake >= $1 AND s.network = $2\n            "
   },
-  "868bb4fab3b9ae40bd6a918df4a560c0ba6ba1082831da685c31d291fa225a79": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Int4",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "starttls",
-                  "implicittls"
-                ]
-              },
-              "name": "smtp_encryption"
-            }
-          },
-          "Text",
-          "Text",
-          "Text",
-          "Bool",
-          "Text",
-          "Text",
-          "Text",
-          "Bool"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"settings\" (\"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\", \"smtp_user\", \"smtp_password\", \"smtp_sender\", \"enrollment_vpn_step_optional\", \"enrollment_welcome_message\", \"enrollment_welcome_email\", \"enrollment_welcome_email_subject\", \"enrollment_use_welcome_message_as_email\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING id"
-  },
   "872e70c5006c45dc3502642444a4d00e5f8a5c23062392e1a60613936acfa07b": {
     "describe": {
       "columns": [],
@@ -2854,78 +2838,6 @@
     },
     "query": "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\"\n            FROM wireguard_network_device WHERE device_id = $1"
   },
-  "893d23db987b1d1c3a0a14759327b2945cc8409866177bafbe167279c59a1f22": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "address",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "chain_id",
-          "ordinal": 4,
-          "type_info": "Int8"
-        },
-        {
-          "name": "challenge_message",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "challenge_signature",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "creation_timestamp",
-          "ordinal": 7,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "validation_timestamp",
-          "ordinal": 8,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "use_for_mfa",
-          "ordinal": 9,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"user_id\", \"address\", \"name\", \"chain_id\", \"challenge_message\", \"challenge_signature\", \"creation_timestamp\", \"validation_timestamp\", \"use_for_mfa\" FROM \"wallet\""
-  },
   "89ecf876c5ba576acc57f53e273f1e1799ad9cf619a1d31e79de116308f85c30": {
     "describe": {
       "columns": [],
@@ -2938,6 +2850,20 @@
       }
     },
     "query": "DELETE FROM oauth2token WHERE access_token = $1 AND refresh_token = $2"
+  },
+  "8ef0599222964d57b9d35e56a3d2d78e6ddb644d9de8ffe8445e7497a1f71477": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE \"oauth2authorizedapp\" SET \"user_id\" = $2,\"oauth2client_id\" = $3 WHERE id = $1"
   },
   "904ae3993de08b02a547db8d656a23d4a8e7e2d4bd556b1e2f60088b9f6fc679": {
     "describe": {
@@ -3008,6 +2934,61 @@
       }
     },
     "query": "INSERT INTO group_user (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
+  },
+  "90eb99cdd712a78d180babe984f73364b510a1a46236ad4b5f80f4d2666b1567": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "oauth2client_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"user_id\",\"oauth2client_id\" FROM \"oauth2authorizedapp\" WHERE id = $1"
+  },
+  "9213729a9a1ce371ef77898f5792d914a67400cb4cce9a8bf86227ffe7d42eda": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Int8",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"device\" (\"name\",\"wireguard_pubkey\",\"user_id\",\"created\") VALUES ($1,$2,$3,$4) RETURNING id"
   },
   "929535564469ee1701f83a1489301d0d652d5452369a2dce933f032cdb7092e2": {
     "describe": {
@@ -3112,73 +3093,7 @@
     },
     "query": "\n            INSERT INTO wireguard_network_allowed_group (network_id, group_id)\n            SELECT $1, g.id\n            FROM \"group\" g\n            WHERE g.name = $2\n            "
   },
-  "984544838a95d7e90fdd8f2d8108558118167abd49d43e0fb7372df65b427115": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "url",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "token",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "enabled",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "on_user_created",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "on_user_deleted",
-          "ordinal": 6,
-          "type_info": "Bool"
-        },
-        {
-          "name": "on_user_modified",
-          "ordinal": 7,
-          "type_info": "Bool"
-        },
-        {
-          "name": "on_hwkey_provision",
-          "ordinal": 8,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"url\", \"description\", \"token\", \"enabled\", \"on_user_created\", \"on_user_deleted\", \"on_user_modified\", \"on_hwkey_provision\" FROM \"webhook\""
-  },
-  "9a1cfdf1f96c45d912bb7ad8874d690deb3daf05a93d8d83297872dad08fb8dc": {
+  "9b443a223ba94d9a696a0d8ebe188e50e49f404f8b0057a3015c067c5f57c1bf": {
     "describe": {
       "columns": [
         {
@@ -3192,39 +3107,44 @@
           "type_info": "Int8"
         },
         {
-          "name": "client_id",
+          "name": "address",
           "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "name": "code",
+          "name": "name",
           "ordinal": 3,
           "type_info": "Text"
         },
         {
-          "name": "redirect_uri",
+          "name": "chain_id",
           "ordinal": 4,
-          "type_info": "Text"
+          "type_info": "Int8"
         },
         {
-          "name": "scope",
+          "name": "challenge_message",
           "ordinal": 5,
           "type_info": "Text"
         },
         {
-          "name": "auth_time",
+          "name": "challenge_signature",
           "ordinal": 6,
-          "type_info": "Int8"
+          "type_info": "Text"
         },
         {
-          "name": "nonce",
+          "name": "creation_timestamp",
           "ordinal": 7,
-          "type_info": "Text"
+          "type_info": "Timestamp"
         },
         {
-          "name": "code_challenge",
+          "name": "validation_timestamp",
           "ordinal": 8,
-          "type_info": "Text"
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "use_for_mfa",
+          "ordinal": 9,
+          "type_info": "Bool"
         }
       ],
       "nullable": [
@@ -3234,9 +3154,10 @@
         false,
         false,
         false,
+        true,
         false,
         true,
-        true
+        false
       ],
       "parameters": {
         "Left": [
@@ -3244,7 +3165,7 @@
         ]
       }
     },
-    "query": "SELECT id \"id?\", \"user_id\", \"client_id\", \"code\", \"redirect_uri\", \"scope\", \"auth_time\", \"nonce\", \"code_challenge\" FROM \"authorization_code\" WHERE id = $1"
+    "query": "SELECT id \"id?\", \"user_id\",\"address\",\"name\",\"chain_id\",\"challenge_message\",\"challenge_signature\",\"creation_timestamp\",\"validation_timestamp\",\"use_for_mfa\" FROM \"wallet\" WHERE id = $1"
   },
   "9bb9a07281e19a57b10ddfeba1d1eec91021f371d0cf40d6dbdb82e38f28aa04": {
     "describe": {
@@ -3257,74 +3178,6 @@
       }
     },
     "query": "DELETE FROM \"webauthn\" WHERE id = $1"
-  },
-  "9d3f8b67d74981dd83f3f2be9614c6200c0fa4de84ae1acbe37d9864005282da": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "url",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "token",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "enabled",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "on_user_created",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "on_user_deleted",
-          "ordinal": 6,
-          "type_info": "Bool"
-        },
-        {
-          "name": "on_user_modified",
-          "ordinal": 7,
-          "type_info": "Bool"
-        },
-        {
-          "name": "on_hwkey_provision",
-          "ordinal": 8,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"url\", \"description\", \"token\", \"enabled\", \"on_user_created\", \"on_user_deleted\", \"on_user_modified\", \"on_hwkey_provision\" FROM \"webhook\" WHERE id = $1"
   },
   "9e3c1c1f52bc1a576012c57c7472f9f7601e1128b15fc0ecc7676cd5aa01c88c": {
     "describe": {
@@ -3458,6 +3311,28 @@
     },
     "query": "SELECT id \"id?\", user_id, address, name, chain_id, challenge_message, challenge_signature, creation_timestamp, validation_timestamp, use_for_mfa FROM wallet WHERE user_id = $1 AND address = $2"
   },
+  "a170af41279bef8b8333d2e313c4ea300bb7fef7d5f742e362e75abbf4350f06": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"webauthn\" (\"user_id\",\"name\",\"passkey\") VALUES ($1,$2,$3) RETURNING id"
+  },
   "a28203258ea19229b180817c5419c516dd15457db05f436c96ef5287f94daf11": {
     "describe": {
       "columns": [],
@@ -3472,6 +3347,83 @@
       }
     },
     "query": "UPDATE oauth2token SET access_token = $2, refresh_token = $3, expires_in = $4 WHERE access_token = $1"
+  },
+  "a33889f665b0e9f3ef23f86af0bbbc1f7231be9e4b934e0f2aab9d5f5fad3c75": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "starttls",
+                  "implicittls"
+                ]
+              },
+              "name": "smtp_encryption"
+            }
+          },
+          "Text",
+          "Text",
+          "Text",
+          "Bool",
+          "Text",
+          "Text",
+          "Text",
+          "Bool"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"settings\" (\"openid_enabled\",\"ldap_enabled\",\"wireguard_enabled\",\"webhooks_enabled\",\"worker_enabled\",\"challenge_template\",\"instance_name\",\"main_logo_url\",\"nav_logo_url\",\"smtp_server\",\"smtp_port\",\"smtp_encryption\",\"smtp_user\",\"smtp_password\",\"smtp_sender\",\"enrollment_vpn_step_optional\",\"enrollment_welcome_message\",\"enrollment_welcome_email\",\"enrollment_welcome_email_subject\",\"enrollment_use_welcome_message_as_email\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING id"
+  },
+  "a4941d4bcf5483036924c13b2293034b9ebc57993c63a2dedb347648c0dfc6a9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Timestamp",
+          "Int8",
+          "Text",
+          "Int8",
+          "Int8",
+          "Timestamp",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"wireguard_peer_stats\" (\"device_id\",\"collected_at\",\"network\",\"endpoint\",\"upload\",\"download\",\"latest_handshake\",\"allowed_ips\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id"
   },
   "a8f720a41ab4509570490d444180ae58f20596491a3ac2be3ab00a8a19c78c58": {
     "describe": {
@@ -3491,6 +3443,26 @@
     },
     "query": "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, web3_challenge) VALUES ($1, $2, $3, $4, $5, $6, $7)"
   },
+  "aa73869e5e09831dbaf55cd737cb44dc7826a63b0c053338cdaabd346c321585": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int8",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE \"authorization_code\" SET \"user_id\" = $2,\"client_id\" = $3,\"code\" = $4,\"redirect_uri\" = $5,\"scope\" = $6,\"auth_time\" = $7,\"nonce\" = $8,\"code_challenge\" = $9 WHERE id = $1"
+  },
   "aa8bbafc145ad47aaac28e9863c19b1db6a855e917cdaf619a9461ad89b96917": {
     "describe": {
       "columns": [],
@@ -3503,33 +3475,6 @@
       }
     },
     "query": "\n        DELETE FROM wireguard_network_device\n        WHERE device_id = $1 AND wireguard_network_id = $2\n        "
-  },
-  "aae8d76f39d8a5149050df73b145963cc83bb2bcef4f137bb032e1f46704984d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool",
-          "Bool"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"webhook\" (\"url\", \"description\", \"token\", \"enabled\", \"on_user_created\", \"on_user_deleted\", \"on_user_modified\", \"on_hwkey_provision\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
   },
   "ad0934b3563f5ab5ca351d0db6a2677301edffa66042632d02c9b77dd11a1e83": {
     "describe": {
@@ -3551,26 +3496,20 @@
     },
     "query": "\n            SELECT name\n            FROM wireguard_network_allowed_group wag\n            JOIN \"group\" g ON wag.group_id = g.id\n            WHERE wag.network_id = $1\n            "
   },
-  "b21335d4485d9b5a5b27dc54673a8595cb92a695c80838ad5a39230843af9b42": {
+  "b10e43d2235e858fb0982fcd320c9d0548cde5e7a49e8971f21c31083f0d006c": {
     "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Int8",
-          "Int8"
+          "Int8",
+          "Text",
+          "Bytea"
         ]
       }
     },
-    "query": "INSERT INTO \"oauth2authorizedapp\" (\"user_id\", \"oauth2client_id\") VALUES ($1, $2) RETURNING id"
+    "query": "UPDATE \"webauthn\" SET \"user_id\" = $2,\"name\" = $3,\"passkey\" = $4 WHERE id = $1"
   },
   "b2410cc60e0e1dcacd03050d2a3ac417ca5822beebe08be3f23cc0e217e27740": {
     "describe": {
@@ -3598,34 +3537,6 @@
     },
     "query": "SELECT id \"id?\", \"name\" FROM \"group\" WHERE id = $1"
   },
-  "b2d78282574e9c4fa14d49c6c15c1f1e4cc588b372c7877329a8f6322b23ba24": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Inet",
-          "Int4",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "InetArray",
-          "Timestamp"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"wireguard_network\" (\"name\", \"address\", \"port\", \"pubkey\", \"prvkey\", \"endpoint\", \"dns\", \"allowed_ips\", \"connected_at\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
-  },
   "b33fa60772e858280c021b3774d01273453d13af4321cae2d244748ca4254b29": {
     "describe": {
       "columns": [
@@ -3652,6 +3563,80 @@
     },
     "query": "SELECT id \"id?\", name FROM \"group\" WHERE name = $1"
   },
+  "b362d79ac6b116c97f7489cbfc5801c7f94ba91677af351ef235755bf804e1f7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "address: _",
+          "ordinal": 2,
+          "type_info": "Inet"
+        },
+        {
+          "name": "port",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "pubkey",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "prvkey",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "endpoint",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "dns",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "allowed_ips: _",
+          "ordinal": 8,
+          "type_info": "InetArray"
+        },
+        {
+          "name": "connected_at",
+          "ordinal": 9,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\" FROM \"wireguard_network\" WHERE id = $1"
+  },
   "b57f8562cff6e1d13d6ffa0e7a382fda523559100424c771e25757994a1fca13": {
     "describe": {
       "columns": [],
@@ -3664,157 +3649,6 @@
       }
     },
     "query": "UPDATE session SET state = $1 WHERE id = $2"
-  },
-  "b802ced32a6d9a739c762407c6c414569c37b5fb61141bd30b3509fa10ea7909": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "openid_enabled",
-          "ordinal": 1,
-          "type_info": "Bool"
-        },
-        {
-          "name": "ldap_enabled",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "wireguard_enabled",
-          "ordinal": 3,
-          "type_info": "Bool"
-        },
-        {
-          "name": "webhooks_enabled",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "worker_enabled",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "challenge_template",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "instance_name",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "main_logo_url",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "nav_logo_url",
-          "ordinal": 9,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_server",
-          "ordinal": 10,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_port",
-          "ordinal": 11,
-          "type_info": "Int4"
-        },
-        {
-          "name": "smtp_encryption: _",
-          "ordinal": 12,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "starttls",
-                  "implicittls"
-                ]
-              },
-              "name": "smtp_encryption"
-            }
-          }
-        },
-        {
-          "name": "smtp_user",
-          "ordinal": 13,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_password?: SecretString",
-          "ordinal": 14,
-          "type_info": "Text"
-        },
-        {
-          "name": "smtp_sender",
-          "ordinal": 15,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_vpn_step_optional",
-          "ordinal": 16,
-          "type_info": "Bool"
-        },
-        {
-          "name": "enrollment_welcome_message",
-          "ordinal": 17,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_welcome_email",
-          "ordinal": 18,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_welcome_email_subject",
-          "ordinal": 19,
-          "type_info": "Text"
-        },
-        {
-          "name": "enrollment_use_welcome_message_as_email",
-          "ordinal": 20,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        false,
-        true,
-        true,
-        true,
-        false,
-        true,
-        true,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT id \"id?\", \"openid_enabled\", \"ldap_enabled\", \"wireguard_enabled\", \"webhooks_enabled\", \"worker_enabled\", \"challenge_template\", \"instance_name\", \"main_logo_url\", \"nav_logo_url\", \"smtp_server\", \"smtp_port\", \"smtp_encryption\" \"smtp_encryption: _\", \"smtp_user\", smtp_password \"smtp_password?: SecretString\", \"smtp_sender\", \"enrollment_vpn_step_optional\", \"enrollment_welcome_message\", \"enrollment_welcome_email\", \"enrollment_welcome_email_subject\", \"enrollment_use_welcome_message_as_email\" FROM \"settings\" WHERE id = $1"
   },
   "b8656ec4ee5b1980223294cad758ea2da20b6cfc25f51a25023d69a4595a4fb9": {
     "describe": {
@@ -3829,43 +3663,23 @@
     },
     "query": "UPDATE \"user\" SET totp_secret = $1 WHERE id = $2"
   },
-  "bd814a4cae35fce9b8a8967e800c889cdfb836834beb17974e0ee115bb7654b7": {
+  "b9673d880db788cd95cbcdfd44ffad014cde4eec69233e7ae79ab35e620a5302": {
     "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "passkey",
-          "ordinal": 3,
-          "type_info": "Bytea"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
-          "Int8"
+          "Int8",
+          "Text",
+          "Text",
+          "TextArray",
+          "TextArray",
+          "Text",
+          "Bool"
         ]
       }
     },
-    "query": "SELECT id \"id?\", \"user_id\", \"name\", \"passkey\" FROM \"webauthn\" WHERE id = $1"
+    "query": "UPDATE \"oauth2client\" SET \"client_id\" = $2,\"client_secret\" = $3,\"redirect_uri\" = $4,\"scope\" = $5,\"name\" = $6,\"enabled\" = $7 WHERE id = $1"
   },
   "bd9520722a8392da2bd841e5071400e1658e8d26a73542fac8d8a214009888b7": {
     "describe": {
@@ -4054,7 +3868,7 @@
     },
     "query": "\n                WITH stats AS (\n                    SELECT DISTINCT ON (network) network, endpoint, latest_handshake\n                    FROM wireguard_peer_stats\n                    WHERE device_id = $2\n                    ORDER BY network, collected_at DESC\n                )\n                SELECT\n                    n.id as network_id, n.name as network_name, n.endpoint as gateway_endpoint,\n                    wnd.wireguard_ip as \"device_wireguard_ip: IpAddr\", stats.endpoint as device_endpoint,\n                    stats.latest_handshake as \"latest_handshake?\",\n                    COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as \"is_active!\"\n                FROM wireguard_network_device wnd\n                JOIN wireguard_network n ON n.id = wnd.wireguard_network_id\n                LEFT JOIN stats on n.id = stats.network\n                WHERE wnd.device_id = $2\n                "
   },
-  "c851b4b167e29f757fbae6b1bc731aa733776496d05658cd8f1164554bd7539c": {
+  "c4f0393fc5b1bb1603f1da3a6f2cb7e6253a0cb8fffd710e5a4d03cf9a4eef16": {
     "describe": {
       "columns": [
         {
@@ -4063,39 +3877,63 @@
           "type_info": "Int8"
         },
         {
-          "name": "client_id",
+          "name": "user_id",
           "ordinal": 1,
-          "type_info": "Text"
+          "type_info": "Int8"
         },
         {
-          "name": "client_secret",
+          "name": "name",
           "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "name": "redirect_uri: _",
+          "name": "passkey",
           "ordinal": 3,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "scope: _",
-          "ordinal": 4,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "name",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "enabled",
-          "ordinal": 6,
-          "type_info": "Bool"
+          "type_info": "Bytea"
         }
       ],
       "nullable": [
         false,
         false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"user_id\",\"name\",\"passkey\" FROM \"webauthn\""
+  },
+  "c64f247f81e332689e35c224656847b246deb6f92a5790a4fdd0d5733defbb57": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "wireguard_pubkey",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
         false,
         false,
         false,
@@ -4108,7 +3946,7 @@
         ]
       }
     },
-    "query": "SELECT id \"id?\", \"client_id\", \"client_secret\", \"redirect_uri\" \"redirect_uri: _\", \"scope\" \"scope: _\", \"name\", \"enabled\" FROM \"oauth2client\" WHERE id = $1"
+    "query": "SELECT id \"id?\", \"name\",\"wireguard_pubkey\",\"user_id\",\"created\" FROM \"device\" WHERE id = $1"
   },
   "c863944a13f1b8c3eb0d5a62bff40f453da7ac74551c2e62275931a1e8a7ec9e": {
     "describe": {
@@ -4226,76 +4064,6 @@
     },
     "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, mfa_method \"mfa_method: _\", recovery_codes FROM \"user\" WHERE username = $1"
   },
-  "cb43f45d5bf2d218fe219f44e3135d05f0a0113a1590fb501780593a26c840d9": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text",
-          "Text",
-          "Int8",
-          "Timestamp"
-        ]
-      }
-    },
-    "query": "UPDATE \"device\" SET \"name\" = $2, \"wireguard_pubkey\" = $3, \"user_id\" = $4, \"created\" = $5 WHERE id = $1"
-  },
-  "cc4916bf8d6978021e9d9531c0f34fb71f41bb4a674d7080b983023316b5496f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "client_id",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "client_secret",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "redirect_uri: _",
-          "ordinal": 3,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "scope: _",
-          "ordinal": 4,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "name",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "enabled",
-          "ordinal": 6,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"client_id\", \"client_secret\", \"redirect_uri\" \"redirect_uri: _\", \"scope\" \"scope: _\", \"name\", \"enabled\" FROM \"oauth2client\""
-  },
   "cdda0d8e9b34aef0728fc390bf77a3211b708f23ecdb3df5cada3d628280a025": {
     "describe": {
       "columns": [
@@ -4321,6 +4089,31 @@
       }
     },
     "query": "\n            SELECT d.wireguard_pubkey as pubkey, array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd\n            JOIN device d\n            ON wnd.device_id = d.id\n            WHERE wireguard_network_id = $1\n            ORDER BY d.id ASC\n        "
+  },
+  "cf0ea5510b1017309b0f9c1a2875f393c5012b4ba1a7eac22475b60024b57d06": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "TextArray",
+          "TextArray",
+          "Text",
+          "Bool"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"oauth2client\" (\"client_id\",\"client_secret\",\"redirect_uri\",\"scope\",\"name\",\"enabled\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
   },
   "d3b425017872becff45f39513c9e09b3d3ba8fc86e97c7f1ff21597a884af06d": {
     "describe": {
@@ -4348,40 +4141,7 @@
     },
     "query": "\n            SELECT wireguard_network_id as network_id, wireguard_ip as \"device_wireguard_ip: IpAddr\"\n            FROM wireguard_network_device\n            WHERE device_id = $1\n        "
   },
-  "d98e365929bb0fbf3915b517db93168f76f9a0c4832cd2efd13d74268cc435b8": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "TextArray"
-        ]
-      }
-    },
-    "query": "UPDATE \"user\" SET recovery_codes = $2 WHERE id = $1"
-  },
-  "dab9a6b3dc5d3f57c0f49f1f111db88c8c5658ea7d1492e1922820bbebc51209": {
-    "describe": {
-      "columns": [
-        {
-          "name": "passkey",
-          "ordinal": 0,
-          "type_info": "Bytea"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT passkey FROM webauthn WHERE user_id = $1"
-  },
-  "dea8e678aa8f367d359afb80663c56b9429176e3dba0c2db7c224efa430c5fc4": {
+  "d4822c2e2aea609a3807a9f26ad8b9441548a7d17293b87c877a5e8cdcc95b32": {
     "describe": {
       "columns": [
         {
@@ -4490,12 +4250,111 @@
         false
       ],
       "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"ssh_key\",\"pgp_key\",\"pgp_cert_id\",\"mfa_enabled\",\"totp_enabled\",\"totp_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\""
+  },
+  "d98e365929bb0fbf3915b517db93168f76f9a0c4832cd2efd13d74268cc435b8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "TextArray"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\" SET recovery_codes = $2 WHERE id = $1"
+  },
+  "dab9a6b3dc5d3f57c0f49f1f111db88c8c5658ea7d1492e1922820bbebc51209": {
+    "describe": {
+      "columns": [
+        {
+          "name": "passkey",
+          "ordinal": 0,
+          "type_info": "Bytea"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
         "Left": [
           "Int8"
         ]
       }
     },
-    "query": "SELECT id \"id?\", \"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"mfa_enabled\", \"totp_enabled\", \"totp_secret\", \"mfa_method\" \"mfa_method: _\", \"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1"
+    "query": "SELECT passkey FROM webauthn WHERE user_id = $1"
+  },
+  "dc21ad55a35e5ea826e64030b4d71a0df499cc1b22f1d8fcffa135307b09c187": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "device_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "collected_at",
+          "ordinal": 2,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "network",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "endpoint",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "upload",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "download",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "latest_handshake",
+          "ordinal": 7,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "allowed_ips",
+          "ordinal": 8,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"device_id\",\"collected_at\",\"network\",\"endpoint\",\"upload\",\"download\",\"latest_handshake\",\"allowed_ips\" FROM \"wireguard_peer_stats\" WHERE id = $1"
   },
   "e0d59d4aa01a863eca5f00470c70112fd9a78c4565fd8e44185dc31c9b894b9e": {
     "describe": {
@@ -4564,6 +4423,185 @@
       }
     },
     "query": "SELECT id \"id?\", user_id, client_id, code, redirect_uri, scope, auth_time, nonce, code_challenge FROM authorization_code WHERE code = $1"
+  },
+  "e19b29d2e52ad2a2a5c20ce205d5c949d02219fd252d78f7fffa202cc804b4c2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Inet",
+          "Int4",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "InetArray",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"wireguard_network\" (\"name\",\"address\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\",\"connected_at\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id"
+  },
+  "e1c693d11abacbffbeb48c1bb215d8fe08c229a8e7c5befa18406e1be89d69ea": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id?",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "openid_enabled",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "ldap_enabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "wireguard_enabled",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "webhooks_enabled",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "worker_enabled",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "challenge_template",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "instance_name",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "main_logo_url",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "nav_logo_url",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_server",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_port",
+          "ordinal": 11,
+          "type_info": "Int4"
+        },
+        {
+          "name": "smtp_encryption: _",
+          "ordinal": 12,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "starttls",
+                  "implicittls"
+                ]
+              },
+              "name": "smtp_encryption"
+            }
+          }
+        },
+        {
+          "name": "smtp_user",
+          "ordinal": 13,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_password?: SecretString",
+          "ordinal": 14,
+          "type_info": "Text"
+        },
+        {
+          "name": "smtp_sender",
+          "ordinal": 15,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_vpn_step_optional",
+          "ordinal": 16,
+          "type_info": "Bool"
+        },
+        {
+          "name": "enrollment_welcome_message",
+          "ordinal": 17,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_welcome_email",
+          "ordinal": 18,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_welcome_email_subject",
+          "ordinal": 19,
+          "type_info": "Text"
+        },
+        {
+          "name": "enrollment_use_welcome_message_as_email",
+          "ordinal": 20,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id \"id?\", \"openid_enabled\",\"ldap_enabled\",\"wireguard_enabled\",\"webhooks_enabled\",\"worker_enabled\",\"challenge_template\",\"instance_name\",\"main_logo_url\",\"nav_logo_url\",\"smtp_server\",\"smtp_port\",\"smtp_encryption\" \"smtp_encryption: _\",\"smtp_user\",\"smtp_password\" \"smtp_password?: SecretString\",\"smtp_sender\",\"enrollment_vpn_step_optional\",\"enrollment_welcome_message\",\"enrollment_welcome_email\",\"enrollment_welcome_email_subject\",\"enrollment_use_welcome_message_as_email\" FROM \"settings\" WHERE id = $1"
   },
   "e34c2a7ac137329f1a9813db3f1ebbc837971d9c64ee2a6d7d902c1a0f8d6c05": {
     "describe": {
@@ -4642,51 +4680,6 @@
     },
     "query": "INSERT INTO \"group\" (\"name\") VALUES ($1) RETURNING id"
   },
-  "eb00cea26638259fe12354abc085bbf893f10e62afb409fb0f198d33aadf1497": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Text",
-          "Bool",
-          "Bool",
-          "Bytea",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "none",
-                  "one_time_password",
-                  "webauthn",
-                  "web3"
-                ]
-              },
-              "name": "mfa_method"
-            }
-          },
-          "TextArray"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"user\" (\"username\", \"password_hash\", \"last_name\", \"first_name\", \"email\", \"phone\", \"ssh_key\", \"pgp_key\", \"pgp_cert_id\", \"mfa_enabled\", \"totp_enabled\", \"totp_secret\", \"mfa_method\", \"recovery_codes\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id"
-  },
   "eb6dee5462657ac5ce0ecf31d1477ce7cc874d9ad8b3119977168f601b3e8072": {
     "describe": {
       "columns": [
@@ -4730,6 +4723,49 @@
       }
     },
     "query": "SELECT id \"id?\", name, wireguard_pubkey, user_id, created FROM device WHERE wireguard_pubkey = $1"
+  },
+  "ed38aaf593faf8d597a30003e7334681dc354535c96fdd33d3f364bde6293575": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "none",
+                  "starttls",
+                  "implicittls"
+                ]
+              },
+              "name": "smtp_encryption"
+            }
+          },
+          "Text",
+          "Text",
+          "Text",
+          "Bool",
+          "Text",
+          "Text",
+          "Text",
+          "Bool"
+        ]
+      }
+    },
+    "query": "UPDATE \"settings\" SET \"openid_enabled\" = $2,\"ldap_enabled\" = $3,\"wireguard_enabled\" = $4,\"webhooks_enabled\" = $5,\"worker_enabled\" = $6,\"challenge_template\" = $7,\"instance_name\" = $8,\"main_logo_url\" = $9,\"nav_logo_url\" = $10,\"smtp_server\" = $11,\"smtp_port\" = $12,\"smtp_encryption\" = $13,\"smtp_user\" = $14,\"smtp_password\" = $15,\"smtp_sender\" = $16,\"enrollment_vpn_step_optional\" = $17,\"enrollment_welcome_message\" = $18,\"enrollment_welcome_email\" = $19,\"enrollment_welcome_email_subject\" = $20,\"enrollment_use_welcome_message_as_email\" = $21 WHERE id = $1"
   },
   "ee6ed3df25517a6fedf6981166e58601de53af70dd28f69b84caca6e36cb8956": {
     "describe": {
@@ -4925,41 +4961,5 @@
       }
     },
     "query": "SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created\n            FROM device d\n            JOIN wireguard_network_device wnd\n            ON d.id = wnd.device_id\n            WHERE wnd.wireguard_ip = $1 AND wnd.wireguard_network_id = $2"
-  },
-  "fdbd4d1e1b8634719de4ea543e51943e5d1d1c1ec63c62e22356d57ffa20ed02": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id?",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "user_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "passkey",
-          "ordinal": 3,
-          "type_info": "Bytea"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id \"id?\", \"user_id\", \"name\", \"passkey\" FROM \"webauthn\""
   }
 }

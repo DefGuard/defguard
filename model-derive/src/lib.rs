@@ -1,31 +1,39 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    parse::{Parse, ParseStream},
-    parse_macro_input, Data, DataStruct, DeriveInput, Field, Fields, FieldsNamed, Ident, Path,
-    Type, TypePath,
+    meta::parser, parse::Parser, parse_macro_input, Data, DataStruct, DeriveInput, Field, Fields,
+    FieldsNamed, Ident, Path, Type, TypePath,
 };
 
-struct Attrs(Ident);
-
-impl Parse for Attrs {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        syn::parenthesized!(content in input);
-        Ok(Self(content.parse()?))
-    }
-}
-
+/// Try to find the value of `model` attribute, e.g. `#[model(model_type)]`.
 fn model_attr(f: &Field) -> Option<String> {
-    for attr in &f.attrs {
-        if let Some(path_seg) = attr.path.segments.first() {
-            if path_seg.ident == "model" {
-                // FIXME: this is a short-cut that returns tokens with parentheses, e.g. "(enum)".
-                return Some(attr.tokens.to_string());
+    // default
+    let mut model_type = None;
+
+    // Closure here, because `model_parser` must be dropped before `model_type` is returned.
+    {
+        let model_parser = parser(|meta| {
+            if let Some(ident) = meta.path.get_ident() {
+                model_type = Some(ident.to_string());
+                Ok(())
+            } else {
+                Err(meta.error("unsupported model property"))
+            }
+        });
+
+        for attr in &f.attrs {
+            if attr.path().is_ident("model") {
+                if let Ok(inner) = attr.meta.require_list() {
+                    // `proc_macro2::TokenStream` to `proc_macro::TokenStream`
+                    let tokens: TokenStream = inner.tokens.clone().into();
+                    Parser::parse(model_parser, tokens).unwrap();
+                    break;
+                }
             }
         }
     }
-    None
+
+    model_type
 }
 
 fn field_type(ty: &Type) -> Option<&Ident> {
@@ -45,20 +53,29 @@ fn field_type(ty: &Type) -> Option<&Ident> {
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let name = &ast.ident;
-    // Find the "table" attribute
-    let attribute = ast
-        .attrs
-        .iter()
-        .find(|a| a.path.segments.len() == 1 && a.path.segments[0].ident == "table");
+
+    // Find the "table" attribute, e.g. `#[table(mytable)]`
+    let attribute = ast.attrs.iter().find(|a| a.path().is_ident("table"));
+
+    // Default table name
+    let mut table_name = name.to_string().to_ascii_lowercase();
+
     // Parse table name if attribute is present
-    let table_name = match attribute {
-        Some(attribute) => {
-            let attributes: Attrs =
-                syn::parse2(attribute.tokens.clone()).expect("Invalid table attribute");
-            attributes.0.to_string()
+    if let Some(attr) = attribute {
+        let table_name_parser = parser(|meta| {
+            if let Some(ident) = meta.path.get_ident() {
+                table_name = ident.to_string();
+                Ok(())
+            } else {
+                Err(meta.error("unsupported table property"))
+            }
+        });
+        if let Ok(inner) = attr.meta.require_list() {
+            // `proc_macro2::TokenStream` to `proc_macro::TokenStream`
+            let tokens: TokenStream = inner.tokens.clone().into();
+            parse_macro_input!(tokens with table_name_parser);
         }
-        _ => name.to_string().to_ascii_lowercase(),
-    };
+    }
 
     let fields = if let Data::Struct(DataStruct {
         fields: Fields::Named(FieldsNamed { named, .. }),
@@ -86,10 +103,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
         if let Some(name) = &field.ident {
             if name != "id" {
                 if add_comma {
-                    cs_fields.push_str(", ");
-                    cs_aliased_fields.push_str(", ");
-                    cs_values.push_str(", ");
-                    cs_setters.push_str(", ");
+                    cs_fields.push(',');
+                    cs_aliased_fields.push(',');
+                    cs_values.push(',');
+                    cs_setters.push(',');
                 } else {
                     add_comma = true;
                 }
@@ -102,10 +119,15 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 cs_aliased_fields.push('"');
                 cs_aliased_fields.push_str(&name_string);
                 cs_aliased_fields.push('"');
-                if model_attr(field).is_some() {
+                if let Some(field_type) = model_attr(field) {
                     cs_aliased_fields.push_str(" \"");
                     cs_aliased_fields.push_str(&name_string);
-                    cs_aliased_fields.push_str(": _\"");
+                    if field_type == "secret" {
+                        // FIXME: don't hard-code struct name
+                        cs_aliased_fields.push_str("?: SecretString\"");
+                    } else {
+                        cs_aliased_fields.push_str(": _\"");
+                    }
                 }
                 cs_values.push('$');
                 cs_values.push_str(&value_number.to_string());
@@ -126,10 +148,13 @@ pub fn derive(input: TokenStream) -> TokenStream {
         if let Some(name) = &field.ident {
             if name != "id" {
                 if let Some(tokens) = model_attr(field) {
-                    if tokens == "(enum)" {
+                    if tokens == "enum" {
                         if let Some(field_type) = field_type(&field.ty) {
                             return Some(quote! { &self.#name as &#field_type });
                         }
+                    } else if tokens == "secret" {
+                        // FIXME: hard-coded struct name
+                        return Some(quote! { &self.#name as &Option<SecretString> });
                     } else {
                         return Some(quote! { &self.#name });
                     }
