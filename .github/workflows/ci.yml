@@ -4,12 +4,14 @@ on:
   push:
     branches:
       - main
+      - dev
     paths-ignore:
       - '*.md'
       - 'LICENSE'
   pull_request:
     branches:
       - main
+      - dev
     paths-ignore:
       - '*.md'
       - 'LICENSE'
@@ -43,15 +45,7 @@ jobs:
         with:
           submodules: recursive
       - name: Cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        uses: Swatinem/rust-cache@v2
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
       - name: Check format
