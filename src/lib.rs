@@ -10,6 +10,7 @@ use crate::{
         support::{configuration, logs},
     },
 };
+use secrecy::ExposeSecret;
 
 #[cfg(feature = "worker")]
 use crate::handlers::worker::{
@@ -96,6 +97,7 @@ pub mod license;
 pub mod logging;
 pub mod mail;
 pub(crate) mod random;
+pub mod secret;
 pub mod support;
 pub mod templates;
 pub mod wg_config;
@@ -142,7 +144,7 @@ pub async fn build_webapp(
     let cfg = Config {
         address: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
         port: config.http_port,
-        secret_key: SecretKey::from(config.secret_key.as_bytes()),
+        secret_key: SecretKey::from(config.secret_key.expose_secret().as_bytes()),
         ..Config::default()
     };
     let license_decoded = License::decode(&config.license);
@@ -347,12 +349,12 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         config.database_port,
         &config.database_name,
         &config.database_user,
-        &config.database_password,
+        config.database_password.expose_secret(),
     )
     .await;
 
     // initialize admin user
-    User::init_admin_user(&pool, &config.default_admin_password)
+    User::init_admin_user(&pool, config.default_admin_password.expose_secret())
         .await
         .expect("Failed to create admin user");
 

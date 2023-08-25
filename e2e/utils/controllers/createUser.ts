@@ -3,6 +3,7 @@ import { BrowserContext } from 'playwright';
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
+import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
 import { logout } from './logout';
 
@@ -34,11 +35,14 @@ export const createUser = async (
     });
     await page.getByTestId('edit-user').click();
     await page.waitForLoadState('networkidle');
-    await page.getByTestId('groups-select').click();
+    await waitForPromise(2000);
+    await page.getByTestId('groups-select').locator('.select-container').click();
+    await waitForPromise(2000);
     for (const group of groups) {
       await page
         .locator('.select-floating-ui')
-        .getByRole('button', { name: group })
+        .locator('.options-container')
+        .locator(`button >> span:has-text("${group}")`)
         .click();
     }
     await page.getByTestId('user-edit-save').click();

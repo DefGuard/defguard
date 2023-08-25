@@ -1,4 +1,4 @@
-FROM rust:latest as chef
+FROM rust:1.71 as chef
 
 WORKDIR /build
 

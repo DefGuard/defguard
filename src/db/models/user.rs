@@ -336,6 +336,20 @@ impl User {
         }
         Ok(())
     }
+    /// Select all users without sensitive data.
+    // FIXME: Remove it when Model macro will suport SecretString
+    pub async fn all_without_sensitive_data(pool: &DbPool) -> Result<Vec<Self>, SqlxError> {
+        let users = query_as!(
+            Self,
+            "SELECT id \"id?\", username, last_name, first_name, email, \
+            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, \
+            mfa_method \"mfa_method: _\", ARRAY[]::TEXT[] AS \"recovery_codes!\", '*' AS password_hash, \
+            CAST(NULL AS BYTEA) totp_secret FROM \"user\"",
+        )
+        .fetch_all(pool)
+        .await?;
+        Ok(users)
+    }
 
     /// Check if TOTP `code` is valid.
     #[must_use]

@@ -3,6 +3,7 @@ import { BrowserContext } from 'playwright';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
 import { User } from '../../types';
+import { getPageClipboard } from '../getPageClipboard';
 import { waitForBase } from '../waitForBase';
 import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
@@ -10,10 +11,15 @@ import { logout } from './logout';
 
 export const password = 'TestEnrollment1234!!';
 
+type EnrollmentResponse = {
+  user: User;
+  token: string;
+};
+
 export const createUserEnrollment = async (
   context: BrowserContext,
   username: string
-): Promise<User> => {
+): Promise<EnrollmentResponse> => {
   const user: User = { ...testUserTemplate, username };
   const page = await context.newPage();
   await waitForBase(page);
@@ -52,8 +58,10 @@ export const createUserEnrollment = async (
     .locator('button')
     .click();
   await modalElement.waitFor({ state: 'hidden' });
+  const response = (await getPageClipboard(page)).split('\n');
+  const token = response[1].split(' ')[1];
   await logout(page);
-  return user;
+  return { user, token };
 };
 
 export const setToken = async (token: string, page: Page) => {

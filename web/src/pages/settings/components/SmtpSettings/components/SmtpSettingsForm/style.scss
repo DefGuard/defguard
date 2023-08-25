@@ -1,13 +1,9 @@
 @use '@scssutils' as *;
 
 #smtp-settings {
-  & > .card {
-    @include media-breakpoint-up(lg) {
-      padding: 16px 15px;
-    }
-
-    .controls {
-      margin-bottom: 20px;
+  & > header {
+    & > .btn {
+      margin-left: auto;
     }
   }
   form {

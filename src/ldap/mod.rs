@@ -2,6 +2,7 @@ use crate::{config::DefGuardConfig, db::User};
 use error::OriLDAPError;
 use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
 use model::Group;
+use secrecy::ExposeSecret;
 use std::collections::HashSet;
 
 pub mod error;
@@ -32,9 +33,12 @@ impl<'a> LDAPConnection<'a> {
         let (conn, mut ldap) = LdapConnAsync::new(&config.ldap_url).await?;
         drive!(conn);
         info!("Connected to LDAP: {}", &config.ldap_url);
-        ldap.simple_bind(&config.ldap_bind_username, &config.ldap_bind_password)
-            .await?
-            .success()?;
+        ldap.simple_bind(
+            &config.ldap_bind_username,
+            config.ldap_bind_password.expose_secret(),
+        )
+        .await?
+        .success()?;
         Ok(Self { config, ldap })
     }
 

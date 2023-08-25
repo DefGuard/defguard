@@ -10,6 +10,7 @@ use defguard::{
     wireguard_stats_purge::run_periodic_stats_purge,
     SERVER_CONFIG,
 };
+use secrecy::ExposeSecret;
 use std::{
     fs::read_to_string,
     sync::{Arc, Mutex},
@@ -47,12 +48,12 @@ async fn main() -> Result<(), anyhow::Error> {
         config.database_port,
         &config.database_name,
         &config.database_user,
-        &config.database_password,
+        config.database_password.expose_secret(),
     )
     .await;
 
     // initialize admin user
-    User::init_admin_user(&pool, &config.default_admin_password).await?;
+    User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;
 
     // initialize default settings
     Settings::init_defaults(&pool).await?;

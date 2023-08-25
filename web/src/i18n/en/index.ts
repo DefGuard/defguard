@@ -784,6 +784,9 @@ const en: BaseTranslation = {
       form: {
         title: 'SMTP configuration',
         fields: {
+          encryption: {
+            label: 'Encryption',
+          },
           server: {
             label: 'Server address',
             placeholder: 'Address',
@@ -791,10 +794,6 @@ const en: BaseTranslation = {
           port: {
             label: 'Server port',
             placeholder: 'Port',
-          },
-          encryption: {
-            label: 'Encryption',
-            none: 'None',
           },
           user: {
             label: 'Server username',
@@ -832,9 +831,6 @@ const en: BaseTranslation = {
           success: 'Test email sent',
           error: 'Error sending email',
         },
-      },
-      encryption: {
-        title: 'Protocol',
       },
       helper: `
         <p>

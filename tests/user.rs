@@ -6,7 +6,7 @@ use defguard::{
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username, WalletChallenge},
     hex::to_lower_hex,
 };
-use ethers::core::types::transaction::eip712::{Eip712, TypedData};
+use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};

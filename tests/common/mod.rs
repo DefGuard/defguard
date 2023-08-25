@@ -9,6 +9,7 @@ use defguard::{
 use defguard::{db::UserDetails, mail::Mail, SERVER_CONFIG};
 use rocket::http::Status;
 use rocket::local::asynchronous::Client;
+use secrecy::ExposeSecret;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
 use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
@@ -22,7 +23,7 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
         .host(&config.database_host)
         .port(config.database_port)
         .username(&config.database_user)
-        .password(&config.database_password)
+        .password(config.database_password.expose_secret())
         .database(&config.database_name);
     let pool = DbPool::connect_with(opts)
         .await
@@ -37,7 +38,7 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
         config.database_port,
         &db_name,
         &config.database_user,
-        &config.database_password,
+        config.database_password.expose_secret(),
     )
     .await;
 
@@ -47,7 +48,7 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
 }
 
 async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
-    User::init_admin_user(pool, &config.default_admin_password)
+    User::init_admin_user(pool, config.default_admin_password.expose_secret())
         .await
         .unwrap();
 
