@@ -16,11 +16,9 @@ import { BadgeStyleVariant } from '../../../../shared/defguard-ui/components/Lay
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import { ButtonStyleVariant } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
-import { DeviceAvatarVariants } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/types';
 import { NetworkSpeed } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
 import { NetworkDirection } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
-import { UserInitialsType } from '../../../../shared/defguard-ui/components/Layout/UserInitials/types';
-import UserInitials from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
+import { UserInitials } from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { summarizeDeviceStats } from '../../helpers/stats';
@@ -82,11 +80,7 @@ const UserRow = ({ data }: UserRowProps) => {
   return (
     <div className="user-row">
       <div className="user-name">
-        <UserInitials
-          first_name={data.user.first_name}
-          last_name={data.user.last_name}
-          type={UserInitialsType.BIG}
-        />
+        <UserInitials first_name={data.user.first_name} last_name={data.user.last_name} />
         <span className="full-name">{getUserFullName(data.user)}</span>
       </div>
       <ActiveDevices data={data.devices} />
@@ -142,11 +136,7 @@ const DeviceRow = ({ data }: DeviceRowProps) => {
     <div className="device-row">
       <div className="device-name">
         <SvgIconUserListElement />
-        <DeviceAvatar
-          styleVariant={DeviceAvatarVariants.GRAY_BOX}
-          deviceId={data.id}
-          active={true}
-        />
+        <DeviceAvatar deviceId={data.id} active={true} />
         <span className="name">{data.name}</span>
       </div>
       <div className="col-fill"></div>
@@ -194,11 +184,7 @@ const ActiveDevices = ({ data }: ActiveDevicesProps) => {
   return (
     <div className="active-devices">
       {data.slice(0, getSliceEnd).map((device) => (
-        <DeviceAvatar
-          styleVariant={DeviceAvatarVariants.GRAY_BOX}
-          active={true}
-          key={device.id}
-        />
+        <DeviceAvatar active={true} key={device.id} />
       ))}
       {showCount && (
         <div className="count-box">

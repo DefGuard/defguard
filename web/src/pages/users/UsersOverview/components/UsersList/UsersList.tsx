@@ -6,7 +6,7 @@ import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { deviceBreakpoints } from '../../../../../shared/constants';
-import UserInitials from '../../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
+import { UserInitials } from '../../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import {
   ListHeader,
   ListRowCell,

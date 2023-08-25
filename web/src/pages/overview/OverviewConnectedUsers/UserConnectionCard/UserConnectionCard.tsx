@@ -17,11 +17,9 @@ import SvgIconExpand from '../../../../shared/components/svg/IconExpand';
 import { Badge } from '../../../../shared/defguard-ui/components/Layout/Badge/Badge';
 import { BadgeStyleVariant } from '../../../../shared/defguard-ui/components/Layout/Badge/types';
 import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
-import { DeviceAvatarVariants } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/types';
 import { NetworkSpeed } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
 import { NetworkDirection } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
-import { UserInitialsType } from '../../../../shared/defguard-ui/components/Layout/UserInitials/types';
-import UserInitials from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
+import { UserInitials } from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
@@ -91,7 +89,6 @@ const MainCardContent = ({ data }: MainCardContentProps) => {
         <UserInitials
           first_name={data.user?.first_name}
           last_name={data.user?.last_name}
-          type={UserInitialsType.BIG}
         />
         <NameBox
           name={getUserFullName(data.user)}
@@ -220,12 +217,7 @@ const ActiveDevices = ({ data }: ActiveDevicesProps) => {
       <span className="label">{LL.connectedUsersOverview.userList.device()}</span>
       <div className="content-wrapper">
         {data.slice(0, getSliceEnd).map((device) => (
-          <DeviceAvatar
-            styleVariant={DeviceAvatarVariants.GRAY_BOX}
-            active={true}
-            deviceId={device.id}
-            key={device.id}
-          />
+          <DeviceAvatar active={true} deviceId={device.id} key={device.id} />
         ))}
         {showCount && (
           <div className="count-box">

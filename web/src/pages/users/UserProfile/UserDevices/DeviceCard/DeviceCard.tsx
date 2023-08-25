@@ -20,7 +20,7 @@ import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
-import NoData from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
