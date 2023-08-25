@@ -1,6 +1,6 @@
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
-import NoData from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Tag } from '../../../../../shared/defguard-ui/components/Layout/Tag/Tag';
 import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 

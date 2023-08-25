@@ -76,9 +76,6 @@ const RenderUserList = ({ data }: RenderUserListProps) => {
         <div className="header">
           <span>{LL.connectedUsersOverview.userList.deviceLocation()}</span>
         </div>
-        {/* <div className="header">
-          <span>Connections</span>
-        </div> */}
         <div className="header">
           <span>{LL.connectedUsersOverview.userList.networkUsage()}</span>
         </div>

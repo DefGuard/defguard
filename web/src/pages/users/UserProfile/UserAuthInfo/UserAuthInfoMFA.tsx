@@ -169,13 +169,14 @@ export const UserAuthInfoMFA = () => {
         <span className="status">
           <ActivityStatus
             connectionStatus={
-              userProfile?.user.mfa_enabled ? ActivityType.CONNECTED : ActivityType.ALERT
+              userProfile?.user.mfa_enabled ? ActivityType.SUCCESS : ActivityType.ERROR
             }
-            customMessage={
+            message={
               userProfile?.user.mfa_enabled
                 ? LL.userPage.userAuthInfo.mfa.enabled()
                 : LL.userPage.userAuthInfo.mfa.disabled()
             }
+            reversed
           />
         </span>
       </header>
