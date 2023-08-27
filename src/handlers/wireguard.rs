@@ -465,8 +465,7 @@ pub async fn add_user_devices(
             })
         }
         None => Err(OriWebError::ObjectNotFound(format!(
-            "Network {} not found",
-            network_id
+            "Network {network_id} not found"
         ))),
     }
 }

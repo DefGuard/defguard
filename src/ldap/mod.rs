@@ -132,7 +132,7 @@ impl<'a> LDAPConnection<'a> {
     /// Retrieves user with given username from LDAP.
     /// TODO: Password must agree with the password stored in LDAP.
     pub async fn get_user(&mut self, username: &str, password: &str) -> Result<User, OriLDAPError> {
-        debug!("Performing LDAP user search: {}", username);
+        debug!("Performing LDAP user search: {username}");
         let mut entries = self
             .search_users(&format!(
                 "(&({}={})(objectClass={}))",
@@ -140,12 +140,11 @@ impl<'a> LDAPConnection<'a> {
             ))
             .await?;
         if let Some(entry) = entries.pop() {
-            info!("Performed LDAP user search: {}", username);
+            info!("Performed LDAP user search: {username}");
             Ok(User::from_searchentry(&entry, username, password))
         } else {
             Err(OriLDAPError::ObjectNotFound(format!(
-                "User {} not found",
-                username
+                "User {username} not found",
             )))
         }
     }
@@ -164,21 +163,21 @@ impl<'a> LDAPConnection<'a> {
 
     /// Modifies LDAP user.
     pub async fn modify_user(&mut self, username: &str, user: &User) -> Result<(), OriLDAPError> {
-        debug!("Modifying user {}", username);
+        debug!("Modifying user {username}");
         let old_dn = self.config.user_dn(username);
         let new_dn = self.config.user_dn(&user.username);
         self.modify(&old_dn, &new_dn, user.as_ldap_mod(self.config))
             .await?;
-        info!("Modified user {}", username);
+        info!("Modified user {username}");
         Ok(())
     }
 
     /// Deletes user from LDAP.
     pub async fn delete_user(&mut self, username: &str) -> Result<(), OriLDAPError> {
-        debug!("Deleting user {}", username);
+        debug!("Deleting user {username}");
         let dn = self.config.user_dn(username);
         self.delete(&dn).await?;
-        info!("Deleted user {}", username);
+        info!("Deleted user {username}");
         Ok(())
     }
 
@@ -188,7 +187,7 @@ impl<'a> LDAPConnection<'a> {
         username: &str,
         password: &str,
     ) -> Result<(), OriLDAPError> {
-        debug!("Setting password for user {}", username);
+        debug!("Setting password for user {username}");
         let user_dn = self.config.user_dn(username);
         let ssha_password = hash::salted_sha1_hash(password);
         let nt_password = hash::nthash(password);
@@ -201,13 +200,13 @@ impl<'a> LDAPConnection<'a> {
             ],
         )
         .await?;
-        info!("Password set for user {}", username);
+        info!("Password set for user {username}");
         Ok(())
     }
 
     /// Retrieves group with given groupname from LDAP.
     pub async fn get_group(&mut self, groupname: &str) -> Result<Group, OriLDAPError> {
-        debug!("Performing LDAP group search: {}", groupname);
+        debug!("Performing LDAP group search: {groupname}");
         let mut enties = self
             .search_groups(&format!(
                 "(&({}={})(objectClass={}))",
@@ -215,12 +214,11 @@ impl<'a> LDAPConnection<'a> {
             ))
             .await?;
         if let Some(entry) = enties.pop() {
-            info!("Performed LDAP user search: {}", groupname);
+            info!("Performed LDAP user search: {groupname}");
             Ok(Group::from_searchentry(&entry, self.config))
         } else {
             Err(OriLDAPError::ObjectNotFound(format!(
-                "Group {} not found",
-                groupname
+                "Group {groupname} not found"
             )))
         }
     }

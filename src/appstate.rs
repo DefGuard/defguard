@@ -89,7 +89,7 @@ impl AppState {
     }
 
     /// Create application state
-    pub async fn new(
+    pub fn new(
         config: DefGuardConfig,
         pool: DbPool,
         tx: UnboundedSender<AppEvent>,

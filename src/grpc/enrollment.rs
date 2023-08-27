@@ -195,7 +195,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // send success notification to admin
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
-        enrollment.send_admin_notification(&self.mail_tx, &admin, &user)?;
+        Enrollment::send_admin_notification(&self.mail_tx, &admin, &user)?;
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
@@ -338,7 +338,6 @@ impl Enrollment {
 
     // Notify admin that a user has completed enrollment
     fn send_admin_notification(
-        &self,
         mail_tx: &UnboundedSender<Mail>,
         admin: &User,
         user: &User,

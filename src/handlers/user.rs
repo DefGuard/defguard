@@ -28,8 +28,7 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
     let length = username.len();
     if !(3..64).contains(&length) {
         return Err(OriWebError::Serialization(format!(
-            "Username ({}) has incorrect length",
-            username
+            "Username ({username}) has incorrect length"
         )));
     }
 

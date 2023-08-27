@@ -292,19 +292,16 @@ pub async fn build_webapp(
         webapp
     };
 
-    webapp.manage(
-        AppState::new(
-            config,
-            pool,
-            webhook_tx,
-            webhook_rx,
-            wireguard_tx,
-            mail_tx,
-            license_decoded,
-            failed_logins,
-        )
-        .await,
-    )
+    webapp.manage(AppState::new(
+        config,
+        pool,
+        webhook_tx,
+        webhook_rx,
+        wireguard_tx,
+        mail_tx,
+        license_decoded,
+        failed_logins,
+    ))
 }
 
 /// Runs core web server exposing REST API.

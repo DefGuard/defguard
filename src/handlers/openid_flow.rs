@@ -621,7 +621,6 @@ impl<'r> TokenRequest<'r> {
     }
 
     fn refresh_token_flow(
-        &self,
         token: &OAuth2Token,
     ) -> StandardTokenResponse<EmptyExtraTokenFields, CoreTokenType> {
         // assume self.grant_type == "refresh_token"
@@ -761,7 +760,7 @@ pub async fn token(
                     OAuth2Token::find_refresh_token(&appstate.pool, refresh_token).await
                 {
                     token.refresh_and_save(&appstate.pool).await?;
-                    let response = form.refresh_token_flow(&token);
+                    let response = TokenRequest::refresh_token_flow(&token);
                     token.save(&appstate.pool).await?;
                     return Ok(ApiResponse {
                         json: json!(response),
