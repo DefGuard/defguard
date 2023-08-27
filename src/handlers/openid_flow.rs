@@ -436,28 +436,26 @@ pub async fn secure_authorization(
         {
             match data.validate_for_client(&oauth2client) {
                 Ok(()) => {
-                    match OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+                    if OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                         &appstate.pool,
                         session_info.user.id.unwrap(),
                         oauth2client.id.unwrap(),
                     )
                     .await?
+                    .is_none()
                     {
-                        Some(_) => {}
-                        None => {
-                            let mut app = OAuth2AuthorizedApp::new(
-                                session_info.user.id.unwrap(),
-                                oauth2client.id.unwrap(),
-                            );
-                            app.save(&appstate.pool).await?;
-                        }
+                        let mut app = OAuth2AuthorizedApp::new(
+                            session_info.user.id.unwrap(),
+                            oauth2client.id.unwrap(),
+                        );
+                        app.save(&appstate.pool).await?;
                     }
                     info!(
                         "User {} allowed login with client {}",
                         session_info.user.username, oauth2client.name
                     );
                     if let Some(cookie) = cookies.get_private("known_sign_in") {
-                        cookies.remove(cookie.to_owned());
+                        cookies.remove(cookie.clone());
                     };
                     let location =
                         generate_auth_code_redirect(appstate, &data, session_info.user.id).await?;

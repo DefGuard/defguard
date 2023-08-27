@@ -29,7 +29,7 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
         .await
         .expect("Failed to connect to Postgres");
     let db_name = Uuid::new_v4().to_string();
-    query(&format!("CREATE DATABASE \"{}\"", db_name))
+    query(&format!("CREATE DATABASE \"{db_name}\""))
         .execute(&pool)
         .await
         .expect("Failed to create test database");
@@ -150,7 +150,7 @@ pub async fn make_enterprise_test_client() -> (Client, ClientState) {
 #[allow(dead_code)]
 pub async fn fetch_user_details(client: &Client, username: &str) -> UserDetails {
     let response = client
-        .get(format!("/api/v1/user/{}", username))
+        .get(format!("/api/v1/user/{username}"))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);

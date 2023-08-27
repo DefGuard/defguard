@@ -291,7 +291,7 @@ mod tests {
     #[test]
     fn verify_cli() {
         use clap::CommandFactory;
-        DefGuardConfig::command().debug_assert()
+        DefGuardConfig::command().debug_assert();
     }
 
     #[test]

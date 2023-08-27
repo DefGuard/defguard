@@ -159,6 +159,7 @@ impl GatewayMap {
     }
 
     // return `true` if at least one gateway in a given network is connected
+    #[must_use]
     pub fn connected(&self, network_id: i64) -> bool {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => network_gateway_map

@@ -79,7 +79,7 @@ pub fn parse_wireguard_config(
         pubkey.clone(),
         network_address,
         port,
-        "".to_string(),
+        String::new(),
         dns,
         vec![allowed_ips],
     )?;
@@ -113,8 +113,7 @@ pub fn parse_wireguard_config(
         // check if device pubkey collides with network pubkey
         if pubkey == network.pubkey {
             return Err(WireguardConfigParseError::InvalidKey(format!(
-                "Device pubkey is the same as network pubkey {}",
-                pubkey
+                "Device pubkey is the same as network pubkey {pubkey}"
             )));
         }
 

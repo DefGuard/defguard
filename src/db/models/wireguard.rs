@@ -1039,8 +1039,8 @@ mod test {
             .change_address(&mut transaction, "10.2.2.2/24".parse().unwrap())
             .await
             .unwrap();
-        let keys = vec!["key0", "key1", "key2"];
-        let ips = vec!["10.2.2.1", "10.2.2.3", "10.2.2.4"];
+        let keys = ["key0", "key1", "key2"];
+        let ips = ["10.2.2.1", "10.2.2.3", "10.2.2.4"];
         transaction.commit().await.unwrap();
 
         for (index, pub_key) in keys.iter().enumerate() {
@@ -1056,7 +1056,7 @@ mod test {
             assert_eq!(
                 wireguard_network_device.wireguard_ip.to_string(),
                 ips[index]
-            )
+            );
         }
     }
 

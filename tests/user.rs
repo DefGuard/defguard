@@ -479,10 +479,10 @@ async fn test_check_password_strength() {
     let mut stream = stream::iter(weak_passwords.iter().enumerate());
     while let Some((index, password)) = stream.next().await {
         let weak_password_user = AddUserData {
-            username: format!("weakpass{}", index),
+            username: format!("weakpass{index}"),
             first_name: "testpassfn".into(),
             last_name: "testpassln".into(),
-            email: format!("testpass{}@test.test", index),
+            email: format!("testpass{index}@test.test"),
             password: Some(password.to_owned().into()),
             phone: None,
         };

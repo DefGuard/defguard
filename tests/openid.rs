@@ -342,13 +342,13 @@ async fn http_client(
     let client = make_client_v2(pool, config).await;
 
     let uri = request.url.path();
-    eprintln!("HTTP client request path: {}", uri);
+    eprintln!("HTTP client request path: {uri}");
     if let Some(query) = request.url.query() {
-        eprintln!("HTTP client request query: {}", query);
+        eprintln!("HTTP client request query: {query}");
     }
     eprintln!("HTTP client request headers: {:#?}", request.headers);
     if let Ok(text) = String::from_utf8(request.body.clone()) {
-        eprintln!("HTTP client body: {}", text);
+        eprintln!("HTTP client body: {text}");
     }
     let mut rocket_request = match request.method {
         Method::GET => client.get(uri),
@@ -357,7 +357,7 @@ async fn http_client(
         Method::DELETE => client.delete(uri),
         _ => unimplemented!(),
     };
-    for (key, value) in request.headers.iter() {
+    for (key, value) in &request.headers {
         let header = Header::new(key.as_str().to_owned(), value.to_str().unwrap().to_owned());
         rocket_request = rocket_request.header(header);
     }
@@ -584,7 +584,7 @@ async fn test_openid_authorization_code_with_pkce() {
 
     // userinfo
     let _userinfo_claims: UserInfoClaims<EmptyAdditionalClaims, CoreGenderClaim> = core_client
-        .user_info(token_response.access_token().to_owned(), None)
+        .user_info(token_response.access_token().clone(), None)
         .expect("Missing info endpoint")
         .request_async(move |r| http_client(r, pool, config))
         .await

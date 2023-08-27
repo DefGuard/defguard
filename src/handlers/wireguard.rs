@@ -152,7 +152,7 @@ pub async fn create_network(
 async fn find_network(id: i64, pool: &DbPool) -> Result<WireguardNetwork, OriWebError> {
     WireguardNetwork::find_by_id(pool, id)
         .await?
-        .ok_or_else(|| OriWebError::ObjectNotFound(format!("Network {} not found", id)))
+        .ok_or_else(|| OriWebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
 #[put("/<id>", format = "json", data = "<data>")]
@@ -504,11 +504,8 @@ pub async fn add_device(
 
     // save device
     let add_device = data.into_inner();
-    let user_id = match user.id {
-        Some(id) => id,
-        None => {
-            return Err(OriWebError::ModelError("User has no id".to_string()));
-        }
+    let Some(user_id) = user.id else {
+        return Err(OriWebError::ModelError("User has no id".to_string()));
     };
     let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, user_id);
 
