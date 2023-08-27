@@ -26,7 +26,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:14-alpine
         env:
           POSTGRES_DB: defguard
           POSTGRES_USER: defguard
@@ -61,4 +61,5 @@ jobs:
           DEFGUARD_DB_USER: defguard
           DEFGUARD_DB_PASSWORD: defguard
           DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
+          SQLX_OFFLINE: true
         run: cargo test --locked --no-fail-fast
