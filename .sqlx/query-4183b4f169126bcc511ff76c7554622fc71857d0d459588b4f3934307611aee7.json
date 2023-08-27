@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                COALESCE(COUNT(DISTINCT(u.id)), 0) as \"active_users!\",\n                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as \"active_devices!\"\n            FROM \"user\" u\n                JOIN device d ON d.user_id = u.id\n                JOIN wireguard_peer_stats s ON s.device_id = d.id\n                WHERE latest_handshake >= $1 AND s.network = $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "active_users!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "active_devices!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamp",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "4183b4f169126bcc511ff76c7554622fc71857d0d459588b4f3934307611aee7"
+}

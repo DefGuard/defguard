@@ -36,13 +36,13 @@ pub enum WireguardConfigParseError {
 
 impl From<TryFromSliceError> for WireguardConfigParseError {
     fn from(e: TryFromSliceError) -> Self {
-        WireguardConfigParseError::InvalidKey(format!("{}", e))
+        WireguardConfigParseError::InvalidKey(format!("{e}"))
     }
 }
 
 impl From<DecodeError> for WireguardConfigParseError {
     fn from(e: DecodeError) -> Self {
-        WireguardConfigParseError::InvalidKey(format!("{}", e))
+        WireguardConfigParseError::InvalidKey(format!("{e}"))
     }
 }
 
@@ -72,7 +72,7 @@ pub fn parse_wireguard_config(
     let port = port
         .parse()
         .map_err(|_| WireguardConfigParseError::InvalidPort(port.to_string()))?;
-    let dns = interface_section.get("DNS").map(|s| s.to_string());
+    let dns = interface_section.get("DNS").map(ToString::to_string);
     let network_address: IpNetwork = address.parse()?;
     let allowed_ips = IpNetwork::new(network_address.network(), network_address.prefix())?;
     let mut network = WireguardNetwork::new(

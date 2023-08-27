@@ -43,6 +43,7 @@ impl Display for Web3Error {
 }
 
 /// Compute the Keccak-256 hash of input bytes.
+#[must_use]
 pub fn keccak256(bytes: &[u8]) -> [u8; 32] {
     let mut output = [0u8; 32];
     let mut hasher = Keccak::v256();
@@ -146,6 +147,7 @@ impl Wallet {
     }
 
     /// Prepare challenge message using EIP-712 format
+    #[must_use]
     pub fn format_challenge(address: &str, challenge_message: &str) -> String {
         let nonce = Nonce::new_random();
 

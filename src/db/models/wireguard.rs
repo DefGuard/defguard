@@ -1,18 +1,19 @@
 use super::{
-    device::{Device, WireguardNetworkDevice},
+    device::{Device, DeviceError, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
     error::ModelError,
     DbPool, User, UserInfo,
 };
-use crate::db::models::device::{DeviceError, DeviceInfo, DeviceNetworkInfo};
-use crate::grpc::{gateway::Peer, GatewayState};
-use crate::handlers::wireguard::MappedDevice;
-use crate::wg_config::ImportedDevice;
+use crate::{
+    grpc::{gateway::Peer, GatewayState},
+    handlers::wireguard::MappedDevice,
+    wg_config::ImportedDevice,
+};
 use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
-use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, Transaction};
+use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter},
@@ -159,7 +160,7 @@ impl WireguardNetwork {
     /// Return number of devices that use this network.
     async fn device_count(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
     ) -> Result<i64, WireguardNetworkError> {
         let count = query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
             .fetch_one(transaction)
@@ -211,7 +212,7 @@ impl WireguardNetwork {
     /// Try to change network address, changing device addresses if necessary.
     pub async fn change_address(
         &mut self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         new_address: IpNetwork,
     ) -> Result<(), WireguardNetworkError> {
         info!(
@@ -249,17 +250,14 @@ impl WireguardNetwork {
             let net_broadcast = new_address.broadcast();
             let mut devices_iter = devices.iter_mut();
 
-            for ip in new_address.iter() {
+            for ip in &new_address {
                 if ip == net_ip || ip == net_network || ip == net_broadcast {
                     continue;
                 }
                 match devices_iter.next() {
                     Some(device) => {
-                        let device_id = match device.id {
-                            Some(id) => id,
-                            None => {
-                                return Err(WireguardNetworkError::from(ModelError::CannotModify));
-                            }
+                        let Some(device_id) = device.id else {
+                            return Err(WireguardNetworkError::from(ModelError::CannotModify));
                         };
                         let wireguard_network_device =
                             WireguardNetworkDevice::new(network_id, device_id, ip);
@@ -278,7 +276,7 @@ impl WireguardNetwork {
     /// Admin users should always be allowed to access a network.
     async fn get_allowed_devices(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         admin_group_name: &String,
     ) -> Result<Vec<Device>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
@@ -316,7 +314,7 @@ impl WireguardNetwork {
     /// If `allowed_groups` is set, devices should be filtered accordingly
     pub async fn add_all_allowed_devices(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         admin_group_name: &String,
     ) -> Result<(), ModelError> {
         info!(
@@ -337,12 +335,12 @@ impl WireguardNetwork {
     /// Generate network IPs for a device if it's allowed in network
     pub async fn add_device_to_network(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         device: &Device,
         admin_group_name: &String,
         reserved_ips: Option<&Vec<IpAddr>>,
     ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
-        info!("Assigning IP in network {} for {}", self, device);
+        info!("Assigning IP in network {self} for {device}");
         let allowed_devices = self
             .get_allowed_devices(&mut *transaction, admin_group_name)
             .await?;
@@ -367,7 +365,7 @@ impl WireguardNetwork {
     /// If the network address has changed readdress existing devices
     pub async fn sync_allowed_devices(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         admin_group_name: &String,
         reserved_ips: Option<&Vec<IpAddr>>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
@@ -399,51 +397,42 @@ impl WireguardNetwork {
         let network_id = self.get_id()?;
         let mut events = Vec::new();
         for device_network_config in assigned_ips {
-            match allowed_devices.remove(&device_network_config.device_id) {
-                // device is allowed and an IP was already assigned
-                Some(device) => {
-                    // network address changed and IP needs to be updated
-                    if !self.address.contains(device_network_config.wireguard_ip) {
-                        let wireguard_network_device = device
-                            .assign_network_ip(&mut *transaction, self, reserved_ips)
-                            .await?;
-                        events.push(GatewayEvent::DeviceModified(DeviceInfo {
-                            device,
-                            network_info: vec![DeviceNetworkInfo {
-                                network_id,
-                                device_wireguard_ip: wireguard_network_device.wireguard_ip,
-                            }],
-                        }));
-                    }
+            // device is allowed and an IP was already assigned
+            if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
+                // network address changed and IP needs to be updated
+                if !self.address.contains(device_network_config.wireguard_ip) {
+                    let wireguard_network_device = device
+                        .assign_network_ip(&mut *transaction, self, reserved_ips)
+                        .await?;
+                    events.push(GatewayEvent::DeviceModified(DeviceInfo {
+                        device,
+                        network_info: vec![DeviceNetworkInfo {
+                            network_id,
+                            device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                        }],
+                    }));
                 }
-                // device is no longer allowed
-                None => {
-                    debug!(
-                        "Device {} no longer allowed, removing network config for {}",
-                        device_network_config.device_id, self
-                    );
-                    device_network_config.delete(&mut *transaction).await?;
-                    match Device::find_by_id(&mut *transaction, device_network_config.device_id)
-                        .await?
-                    {
-                        Some(device) => {
-                            events.push(GatewayEvent::DeviceDeleted(DeviceInfo {
-                                device,
-                                network_info: vec![DeviceNetworkInfo {
-                                    network_id,
-                                    device_wireguard_ip: device_network_config.wireguard_ip,
-                                }],
-                            }));
-                        }
-                        None => {
-                            let msg = format!(
-                                "Device {} does not exist",
-                                device_network_config.device_id
-                            );
-                            error!("{}", msg);
-                            return Err(WireguardNetworkError::Unexpected(msg));
-                        }
-                    }
+            // device is no longer allowed
+            } else {
+                debug!(
+                    "Device {} no longer allowed, removing network config for {self}",
+                    device_network_config.device_id
+                );
+                device_network_config.delete(&mut *transaction).await?;
+                if let Some(device) =
+                    Device::find_by_id(&mut *transaction, device_network_config.device_id).await?
+                {
+                    events.push(GatewayEvent::DeviceDeleted(DeviceInfo {
+                        device,
+                        network_info: vec![DeviceNetworkInfo {
+                            network_id,
+                            device_wireguard_ip: device_network_config.wireguard_ip,
+                        }],
+                    }));
+                } else {
+                    let msg = format!("Device {} does not exist", device_network_config.device_id);
+                    error!("{msg}");
+                    return Err(WireguardNetworkError::Unexpected(msg));
                 }
             }
         }
@@ -471,7 +460,7 @@ impl WireguardNetwork {
     /// and a list of wireguard events to be sent out.
     pub async fn handle_imported_devices(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
         admin_group_name: &String,
     ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
@@ -536,7 +525,7 @@ impl WireguardNetwork {
     /// Handle device -> user mapping in second step of network import wizard
     pub async fn handle_mapped_devices(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         mapped_devices: Vec<MappedDevice>,
         admin_group_name: &String,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
@@ -725,13 +714,12 @@ impl WireguardNetwork {
                 cast(sum(download) as bigint) as download,
                 cast(sum(upload) as bigint) as upload
             FROM wireguard_peer_stats_view
-            WHERE device_id IN ({})
+            WHERE device_id IN ({device_ids})
             AND collected_at >= $2
             AND network = $3
             GROUP BY 1, 2
             ORDER BY 1, 2
-            "#,
-            device_ids
+            "#
         );
         let stats: Vec<WireguardDeviceTransferRow> = query_as(&query)
             .bind(aggregation.fstring())
@@ -755,7 +743,7 @@ impl WireguardNetwork {
                     .filter(|s| Some(s.device_id) == device.id)
                     .cloned()
                     .collect(),
-            })
+            });
         }
         Ok(result)
     }

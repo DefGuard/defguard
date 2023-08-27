@@ -287,10 +287,9 @@ impl GatewayUpdatesHandler {
             .await
         {
             let msg = format!(
-                "Failed to send network update, network {}, update type: {}, error: {}",
-                network, update_type, err,
+                "Failed to send network update, network {network}, update type: {update_type}, error: {err}",
             );
-            error!("{}", msg);
+            error!("{msg}");
             return Err(Status::new(tonic::Code::Internal, msg));
         }
         Ok(())
@@ -450,27 +449,27 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 }
                 Err(err) => {
                     error!(
-                        "Failed to retrieve device with public key {}: {}",
-                        &public_key, err
+                        "Failed to retrieve device with public key {}: {err}",
+                        &public_key
                     );
                     return Err(Status::new(
                         tonic::Code::Internal,
                         format!(
-                            "Failed to retrieve device with public key {}: {}",
-                            &public_key, err
+                            "Failed to retrieve device with public key {}: {err}",
+                            &public_key
                         ),
                     ));
                 }
             };
             // Save stats to db
             if let Err(err) = stats.save(&self.pool).await {
-                error!("Saving WireGuard peer stats to db failed: {}", err);
+                error!("Saving WireGuard peer stats to db failed: {err}");
                 return Err(Status::new(
                     tonic::Code::Internal,
-                    format!("Saving WireGuard peer stats to db failed: {}", err),
+                    format!("Saving WireGuard peer stats to db failed: {err}"),
                 ));
             }
-            info!("Saved WireGuard peer stats to db: {:?}", stats);
+            info!("Saved WireGuard peer stats to db: {stats:?}");
         }
         Ok(Response::new(()))
     }
@@ -490,15 +489,12 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 error!("Network {} not found", network_id);
                 Status::new(
                     tonic::Code::Internal,
-                    format!("Failed to retrieve network: {}", e),
+                    format!("Failed to retrieve network: {e}"),
                 )
             })?
             .ok_or_else(|| Status::new(tonic::Code::Internal, "Network not found"))?;
 
-        info!(
-            "Sending configuration to gateway client, network {}.",
-            network
-        );
+        info!("Sending configuration to gateway client, network {network}.");
 
         {
             let mut state = self.state.lock().unwrap();
@@ -507,17 +503,14 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         network.connected_at = Some(Utc::now().naive_utc());
         if let Err(err) = network.save(&pool).await {
-            error!("Failed to update network {} status: {}", network_id, err);
+            error!("Failed to update network {network_id} status: {err}");
         }
 
         let peers = network.get_peers(&pool).await.map_err(|error| {
-            error!(
-                "Failed to fetch peers for network {}: {}",
-                network_id, error
-            );
+            error!("Failed to fetch peers for network {network_id}: {error}",);
             Status::new(
                 tonic::Code::Internal,
-                format!("Failed to retrieve peers for network: {}", network_id),
+                format!("Failed to retrieve peers for network: {network_id}"),
             )
         })?;
 
@@ -528,23 +521,20 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let gateway_network_id = Self::get_network_id(request.metadata())?;
         let hostname = Self::get_gateway_hostname(request.metadata())?;
 
-        let network = match WireguardNetwork::find_by_id(&self.pool, gateway_network_id)
+        let Some(network) = WireguardNetwork::find_by_id(&self.pool, gateway_network_id)
             .await
             .map_err(|_| {
-                error!("Failed to fetch network {}", gateway_network_id);
+                error!("Failed to fetch network {gateway_network_id}");
                 Status::new(
                     tonic::Code::Internal,
-                    format!("Failed to retrieve network {}", gateway_network_id),
+                    format!("Failed to retrieve network {gateway_network_id}"),
                 )
-            })? {
-            Some(network) => network,
-            None => return Err(Status::new(Code::Internal, "Network not found")),
+            })?
+        else {
+            return Err(Status::new(Code::Internal, "Network not found"));
         };
 
-        info!(
-            "New client connected to updates stream: {}, network {}",
-            hostname, network
-        );
+        info!("New client connected to updates stream: {hostname}, network {network}",);
 
         let (tx, rx) = mpsc::channel(4);
         let events_rx = self.wireguard_tx.subscribe();
@@ -552,7 +542,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         state
             .connect_gateway(gateway_network_id, &hostname)
             .map_err(|err| {
-                error!("Failed to connect gateway: {}", err);
+                error!("Failed to connect gateway: {err}");
                 Status::new(tonic::Code::Internal, "Failed to connect gateway ")
             })?;
 
@@ -566,7 +556,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 events_rx,
                 tx,
             );
-            update_handler.run().await
+            update_handler.run().await;
         });
 
         Ok(Response::new(GatewayUpdatesStream::new(

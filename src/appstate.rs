@@ -84,7 +84,7 @@ impl AppState {
     pub fn send_multiple_wireguard_events(&self, events: Vec<GatewayEvent>) {
         debug!("Sending {} wireguard events", events.len());
         for event in events {
-            self.send_wireguard_event(event)
+            self.send_wireguard_event(event);
         }
     }
 

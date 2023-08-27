@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"authorization_code\" SET \"user_id\" = $2,\"client_id\" = $3,\"code\" = $4,\"redirect_uri\" = $5,\"scope\" = $6,\"auth_time\" = $7,\"nonce\" = $8,\"code_challenge\" = $9 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aa73869e5e09831dbaf55cd737cb44dc7826a63b0c053338cdaabd346c321585"
+}

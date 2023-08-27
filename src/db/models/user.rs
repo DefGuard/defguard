@@ -113,10 +113,12 @@ impl User {
         }
     }
 
+    #[must_use]
     pub fn has_password(&self) -> bool {
         self.password_hash.is_some()
     }
 
+    #[must_use]
     pub fn name(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }

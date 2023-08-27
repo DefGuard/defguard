@@ -57,9 +57,9 @@ async fn test_config_import() {
         "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=".into(),
         1,
     );
-    device_1.save(&mut transaction).await.unwrap();
+    device_1.save(&mut *transaction).await.unwrap();
     device_1
-        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
+        .add_to_all_networks(&mut *transaction, &client_state.config.admin_groupname)
         .await
         .unwrap();
 
@@ -68,9 +68,9 @@ async fn test_config_import() {
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
         1,
     );
-    device_2.save(&mut transaction).await.unwrap();
+    device_2.save(&mut *transaction).await.unwrap();
     device_2
-        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
+        .add_to_all_networks(&mut *transaction, &client_state.config.admin_groupname)
         .await
         .unwrap();
 

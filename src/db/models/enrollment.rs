@@ -7,7 +7,7 @@ use crate::{
 };
 use chrono::{Duration, NaiveDateTime, Utc};
 use reqwest::Url;
-use sqlx::{query, query_as, Error as SqlxError, Transaction};
+use sqlx::{query, query_as, Error as SqlxError, PgConnection};
 use tera::{Context, Tera};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
@@ -80,6 +80,7 @@ pub struct Enrollment {
 }
 
 impl Enrollment {
+    #[must_use]
     pub fn new(
         user_id: i64,
         admin_id: i64,
@@ -98,10 +99,7 @@ impl Enrollment {
         }
     }
 
-    pub async fn save(
-        &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
-    ) -> Result<(), EnrollmentError> {
+    pub async fn save(&self, transaction: &mut PgConnection) -> Result<(), EnrollmentError> {
         query!(
             "INSERT INTO enrollment (id, user_id, admin_id, email, created_at, expires_at, used_at) \
             VALUES ($1, $2, $3, $4, $5, $6, $7)",
@@ -119,17 +117,20 @@ impl Enrollment {
     }
 
     // check if token has already expired
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         self.expires_at < Utc::now().naive_utc()
     }
 
     // check if token has already been used
+    #[must_use]
     pub fn is_used(&self) -> bool {
         self.used_at.is_some()
     }
 
     // check if enrollment session is still valid
     // after using the token user has 10 minutes to complete enrollment
+    #[must_use]
     pub fn is_session_valid(&self, session_timeout_seconds: u64) -> bool {
         if let Some(used_at) = self.used_at {
             let now = Utc::now();
@@ -143,7 +144,7 @@ impl Enrollment {
     // returns session deadline
     pub async fn start_session(
         &mut self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         session_timeout_seconds: u64,
     ) -> Result<NaiveDateTime, EnrollmentError> {
         // check if token can be used
@@ -198,10 +199,9 @@ impl Enrollment {
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
         debug!("Fetching user for enrollment");
-        let Some(user) = User::find_by_id(executor, self.user_id)
-            .await? else {
+        let Some(user) = User::find_by_id(executor, self.user_id).await? else {
             error!("User not found for enrollment token {}", self.id);
-            return Err(EnrollmentError::UserNotFound)
+            return Err(EnrollmentError::UserNotFound);
         };
         Ok(user)
     }
@@ -211,16 +211,15 @@ impl Enrollment {
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
         debug!("Fetching admin for enrollment");
-        let Some(user) = User::find_by_id(executor, self.admin_id)
-            .await? else {
+        let Some(user) = User::find_by_id(executor, self.admin_id).await? else {
             error!("Admin not found for enrollment token {}", self.id);
-            return Err(EnrollmentError::AdminNotFound)
+            return Err(EnrollmentError::AdminNotFound);
         };
         Ok(user)
     }
 
     pub async fn delete_unused_user_tokens(
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         user_id: i64,
     ) -> Result<(), EnrollmentError> {
         debug!("Deleting unused enrollment tokens for user {user_id}");
@@ -253,7 +252,7 @@ impl Enrollment {
     /// - admin_phone
     pub async fn get_welcome_message_context(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
     ) -> Result<Context, EnrollmentError> {
         debug!(
             "Preparing welcome message context for enrollment token {}",
@@ -281,7 +280,7 @@ impl Enrollment {
     // to be displayed on final enrollment page
     pub async fn get_welcome_page_content(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
     ) -> Result<String, EnrollmentError> {
         let settings = Settings::get_settings(&mut *transaction).await?;
 
@@ -297,7 +296,7 @@ impl Enrollment {
     // Render welcome email content
     pub async fn get_welcome_email_content(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
     ) -> Result<String, EnrollmentError> {
         let settings = Settings::get_settings(&mut *transaction).await?;
 
@@ -318,7 +317,7 @@ impl User {
     /// and optionally sends enrollment email notification to user
     pub async fn start_enrollment(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         admin: &User,
         email: Option<String>,
         token_timeout_seconds: u64,
@@ -384,7 +383,7 @@ impl User {
     // Remove unused tokens when triggering user enrollment
     async fn clear_unused_enrollment_tokens(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
     ) -> Result<(), EnrollmentError> {
         info!(
             "Removing unused enrollment tokens for user {}",

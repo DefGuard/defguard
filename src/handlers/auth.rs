@@ -269,7 +269,7 @@ pub async fn webauthn_finish(
             .webauthn
             .get_allowed_origins()
             .iter()
-            .map(|url| url.to_string())
+            .map(ToString::to_string)
             .collect::<Vec<String>>()
     );
 
@@ -574,15 +574,15 @@ pub async fn recovery_code(
                     }),
                     status: Status::Ok,
                 });
-            } else {
-                return Ok(ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: None,
-                    }),
-                    status: Status::Ok,
-                });
             }
+
+            return Ok(ApiResponse {
+                json: json!(AuthResponse {
+                    user: user_info,
+                    url: None,
+                }),
+                status: Status::Ok,
+            });
         }
     }
     Err(OriWebError::Http(Status::Unauthorized))

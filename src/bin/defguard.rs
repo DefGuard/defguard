@@ -28,9 +28,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     log::debug!("Starting defguard server with config: {config:?}");
 
-    match config.openid_signing_key {
-        Some(_) => log::info!("Using RSA OpenID signing key"),
-        None => log::info!("Using HMAC OpenID signing key"),
+    if config.openid_signing_key.is_some() {
+        log::info!("Using RSA OpenID signing key");
+    } else {
+        log::info!("Using HMAC OpenID signing key");
     }
 
     if let Some(Command::InitDevEnv) = config.cmd {

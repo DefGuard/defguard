@@ -91,11 +91,10 @@ async fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthRespon
     })?;
     if let Some(host) = headers.forwarded_host {
         if host != server_url.to_string() {
-            let mut referral_url =
-                Url::parse(format!("http://{}", host).as_str()).map_err(|_| {
-                    error!("Failed to parse forwarded host as URL: {host}");
-                    OriWebError::Http(Status::InternalServerError)
-                })?;
+            let mut referral_url = Url::parse(format!("http://{host}").as_str()).map_err(|_| {
+                error!("Failed to parse forwarded host as URL: {host}");
+                OriWebError::Http(Status::InternalServerError)
+            })?;
             if let Some(proto) = headers.forwarded_proto {
                 if let Err(_e) = referral_url.set_scheme(&proto) {
                     warn!("Failed setting protocol for referral url to {proto}");
@@ -104,7 +103,7 @@ async fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthRespon
             if let Some(uri) = headers.forwarded_uri {
                 referral_url.set_path(&uri);
             }
-            location.set_query(Some(format!("r={}", referral_url).as_str()));
+            location.set_query(Some(format!("r={referral_url}").as_str()));
         }
     }
     debug!("Redirecting to login page at {location}");

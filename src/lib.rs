@@ -363,70 +363,66 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .await
         .expect("Failed to initialize transaction");
 
-    let network = match WireguardNetwork::find_by_name(&mut transaction, "TestNet")
-        .await
-        .expect("Failed to search for test network")
+    let network = if let Some(networks) =
+        WireguardNetwork::find_by_name(&mut *transaction, "TestNet")
+            .await
+            .expect("Failed to search for test network")
     {
-        Some(networks) => {
-            info!("Test network exists already, skipping creation...");
-            networks.into_iter().next().unwrap()
-        }
-        None => {
-            info!("Creating test network ");
-            let mut network = WireguardNetwork::new(
-                "TestNet".to_string(),
-                "10.1.1.1/24".parse().unwrap(),
-                50051,
-                "0.0.0.0".to_string(),
-                None,
-                vec!["10.1.1.0/24".parse().unwrap()],
-            )
-            .expect("Could not create network");
-            network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
-            network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
-            network
-                .save(&mut transaction)
-                .await
-                .expect("Could not save network");
-            network
-        }
+        info!("Test network exists already, skipping creation...");
+        networks.into_iter().next().unwrap()
+    } else {
+        info!("Creating test network ");
+        let mut network = WireguardNetwork::new(
+            "TestNet".to_string(),
+            "10.1.1.1/24".parse().unwrap(),
+            50051,
+            "0.0.0.0".to_string(),
+            None,
+            vec!["10.1.1.0/24".parse().unwrap()],
+        )
+        .expect("Could not create network");
+        network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
+        network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
+        network
+            .save(&mut *transaction)
+            .await
+            .expect("Could not save network");
+        network
     };
 
-    match Device::find_by_pubkey(
-        &mut transaction,
+    if Device::find_by_pubkey(
+        &mut *transaction,
         "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=",
     )
     .await
     .expect("Failed to search for test device")
+    .is_some()
     {
-        Some(_) => {
-            info!("Test device exists already, skipping creation...");
-        }
-        None => {
-            info!("Creating test device");
-            let mut device = Device::new(
-                "TestDevice".to_string(),
-                "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
-                1,
-            );
-            device
-                .save(&mut transaction)
-                .await
-                .expect("Could not save device");
-            device
-                .assign_network_ip(&mut transaction, &network, None)
-                .await
-                .expect("Could not assign IP to device");
-        }
+        info!("Test device exists already, skipping creation...");
+    } else {
+        info!("Creating test device");
+        let mut device = Device::new(
+            "TestDevice".to_string(),
+            "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
+            1,
+        );
+        device
+            .save(&mut *transaction)
+            .await
+            .expect("Could not save device");
+        device
+            .assign_network_ip(&mut transaction, &network, None)
+            .await
+            .expect("Could not assign IP to device");
     }
 
     for app_id in 1..=3 {
         let mut app = OAuth2Client::new(
-            vec![format!("https://app-{}.com", app_id)],
+            vec![format!("https://app-{app_id}.com")],
             vec!["openid".into(), "profile".into(), "email".into()],
-            format!("app-{}", app_id),
+            format!("app-{app_id}"),
         );
-        app.save(&mut transaction)
+        app.save(&mut *transaction)
             .await
             .expect("Could not save oauth2client");
     }

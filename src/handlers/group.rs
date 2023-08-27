@@ -55,23 +55,19 @@ pub async fn list_groups(_session: SessionInfo, appstate: &State<AppState>) -> A
 
 #[get("/group/<name>", format = "json")]
 pub async fn get_group(_session: SessionInfo, appstate: &State<AppState>, name: &str) -> ApiResult {
-    debug!("Retrieving group {}", name);
-    match Group::find_by_name(&appstate.pool, name).await? {
-        Some(group) => {
-            let members = group.member_usernames(&appstate.pool).await?;
-            info!("Retrieved group {}", name);
-            Ok(ApiResponse {
-                json: json!(GroupInfo::new(name.into(), members)),
-                status: Status::Ok,
-            })
-        }
-        None => {
-            error!("Group {} not found", name);
-            Err(OriWebError::ObjectNotFound(format!(
-                "Group {} not found",
-                name
-            )))
-        }
+    debug!("Retrieving group {name}");
+    if let Some(group) = Group::find_by_name(&appstate.pool, name).await? {
+        let members = group.member_usernames(&appstate.pool).await?;
+        info!("Retrieved group {name}");
+        Ok(ApiResponse {
+            json: json!(GroupInfo::new(name.into(), members)),
+            status: Status::Ok,
+        })
+    } else {
+        error!("Group {name} not found");
+        Err(OriWebError::ObjectNotFound(format!(
+            "Group {name} not found",
+        )))
     }
 }
 
@@ -82,31 +78,26 @@ pub async fn add_group_member(
     name: &str,
     data: Json<Username>,
 ) -> ApiResult {
-    match Group::find_by_name(&appstate.pool, name).await? {
-        Some(group) => match User::find_by_username(&appstate.pool, &data.username).await? {
-            Some(user) => {
-                debug!("Adding user: {} to group: {}", user.username, group.name);
-                user.add_to_group(&appstate.pool, &group).await?;
-                let _result =
-                    ldap_add_user_to_group(&appstate.config, &user.username, &group.name).await;
-                info!("Added user: {} to group: {}", user.username, group.name);
-                Ok(ApiResponse::default())
-            }
-            None => {
-                error!("User not found {}", data.username);
-                Err(OriWebError::ObjectNotFound(format!(
-                    "User {} not found",
-                    data.username
-                )))
-            }
-        },
-        None => {
-            error!("Group {} not found", name);
+    if let Some(group) = Group::find_by_name(&appstate.pool, name).await? {
+        if let Some(user) = User::find_by_username(&appstate.pool, &data.username).await? {
+            debug!("Adding user: {} to group: {}", user.username, group.name);
+            user.add_to_group(&appstate.pool, &group).await?;
+            let _result =
+                ldap_add_user_to_group(&appstate.config, &user.username, &group.name).await;
+            info!("Added user: {} to group: {}", user.username, group.name);
+            Ok(ApiResponse::default())
+        } else {
+            error!("User not found {}", data.username);
             Err(OriWebError::ObjectNotFound(format!(
-                "Group {} not found",
-                name
+                "User {} not found",
+                data.username
             )))
         }
+    } else {
+        error!("Group {name} not found");
+        Err(OriWebError::ObjectNotFound(format!(
+            "Group {name} not found"
+        )))
     }
 }
 
@@ -117,37 +108,30 @@ pub async fn remove_group_member(
     name: &str,
     username: &str,
 ) -> ApiResult {
-    match Group::find_by_name(&appstate.pool, name).await? {
-        Some(group) => match User::find_by_username(&appstate.pool, username).await? {
-            Some(user) => {
-                debug!(
-                    "Removing user: {} from group: {}",
-                    user.username, group.name
-                );
-                user.remove_from_group(&appstate.pool, &group).await?;
-                let _result =
-                    ldap_remove_user_from_group(&appstate.config, &user.username, &group.name)
-                        .await;
-                info!("Removed user: {} from group: {}", user.username, group.name);
-                Ok(ApiResponse {
-                    json: json!({}),
-                    status: Status::Ok,
-                })
-            }
-            None => {
-                error!("User not found {}", username);
-                Err(OriWebError::ObjectNotFound(format!(
-                    "User {} not found",
-                    username
-                )))
-            }
-        },
-        None => {
-            error!("Group {} not found", name);
+    if let Some(group) = Group::find_by_name(&appstate.pool, name).await? {
+        if let Some(user) = User::find_by_username(&appstate.pool, username).await? {
+            debug!(
+                "Removing user: {} from group: {}",
+                user.username, group.name
+            );
+            user.remove_from_group(&appstate.pool, &group).await?;
+            let _result =
+                ldap_remove_user_from_group(&appstate.config, &user.username, &group.name).await;
+            info!("Removed user: {} from group: {}", user.username, group.name);
+            Ok(ApiResponse {
+                json: json!({}),
+                status: Status::Ok,
+            })
+        } else {
+            error!("User not found {}", username);
             Err(OriWebError::ObjectNotFound(format!(
-                "Group {} not found",
-                name
+                "User {username} not found"
             )))
         }
+    } else {
+        error!("Group {name} not found");
+        Err(OriWebError::ObjectNotFound(format!(
+            "Group {name} not found",
+        )))
     }
 }

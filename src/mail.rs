@@ -157,7 +157,7 @@ impl MailHandler {
             if tx.send(result).is_ok() {
                 debug!("SMTP result sent back to caller");
             } else {
-                error!("Error sending SMTP result back to caller")
+                error!("Error sending SMTP result back to caller");
             }
         }
     }
@@ -206,7 +206,7 @@ impl MailHandler {
                 }
                 Err(err) => {
                     error!("Error building mailer: {err}");
-                    Self::send_result(result_tx, Err(err)).await
+                    Self::send_result(result_tx, Err(err)).await;
                 }
             }
         }

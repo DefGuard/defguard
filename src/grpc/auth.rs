@@ -43,28 +43,24 @@ impl auth_service_server::AuthService for AuthServer {
         check_username(&self.failed_logins, &request.username)
             .map_err(|_| Status::resource_exhausted("too many login requests"))?;
 
-        match User::find_by_username(&self.pool, &request.username).await {
-            Ok(Some(user)) => match user.verify_password(&request.password) {
-                Ok(_) => {
-                    info!("Authentication successful for user {}", &request.username);
-                    Ok(Response::new(AuthenticateResponse {
-                        token: Self::create_jwt(&request.username).map_err(|_| {
-                            log_failed_login_attempt(&self.failed_logins, &request.username);
-                            Status::unauthenticated("error creating JWT token")
-                        })?,
-                    }))
-                }
-                Err(_) => {
-                    warn!("Invalid login credentials for user {}", &request.username);
-                    log_failed_login_attempt(&self.failed_logins, &request.username);
-                    Err(Status::unauthenticated("invalid credentials"))
-                }
-            },
-            _ => {
-                warn!("User {} not found", &request.username);
+        if let Ok(Some(user)) = User::find_by_username(&self.pool, &request.username).await {
+            if user.verify_password(&request.password).is_ok() {
+                info!("Authentication successful for user {}", &request.username);
+                Ok(Response::new(AuthenticateResponse {
+                    token: Self::create_jwt(&request.username).map_err(|_| {
+                        log_failed_login_attempt(&self.failed_logins, &request.username);
+                        Status::unauthenticated("error creating JWT token")
+                    })?,
+                }))
+            } else {
+                warn!("Invalid login credentials for user {}", &request.username);
                 log_failed_login_attempt(&self.failed_logins, &request.username);
                 Err(Status::unauthenticated("invalid credentials"))
             }
+        } else {
+            warn!("User {} not found", &request.username);
+            log_failed_login_attempt(&self.failed_logins, &request.username);
+            Err(Status::unauthenticated("invalid credentials"))
         }
     }
 }

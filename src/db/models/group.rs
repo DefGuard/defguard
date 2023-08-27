@@ -3,7 +3,7 @@ use crate::db::WireguardNetwork;
 use crate::DbPool;
 use model_derive::Model;
 use rocket::form::validate::Contains;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, Transaction};
+use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection};
 
 #[derive(Model)]
 pub struct Group {
@@ -74,7 +74,7 @@ impl WireguardNetwork {
     /// access to networks based on allowed groups.
     pub async fn get_allowed_groups(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         admin_group_name: &String,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {}", self);
@@ -97,7 +97,7 @@ impl WireguardNetwork {
     /// Set allowed groups, removing or adding groups as necessary.
     pub async fn set_allowed_groups(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         allowed_groups: Vec<String>,
     ) -> Result<(), ModelError> {
         info!("Setting allowed groups for network {}", self);
@@ -111,7 +111,7 @@ impl WireguardNetwork {
         // add to group if not already a member
         for group in &allowed_groups {
             if !current_groups.contains(group) {
-                self.add_to_group(transaction, group).await?
+                self.add_to_group(transaction, group).await?;
             }
         }
 
@@ -126,7 +126,7 @@ impl WireguardNetwork {
 
     pub async fn add_to_group(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         group: &str,
     ) -> Result<(), ModelError> {
         info!("Adding allowed group {} for network {}", group, self);
@@ -147,7 +147,7 @@ impl WireguardNetwork {
 
     pub async fn remove_from_groups(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        transaction: &mut PgConnection,
         groups: Vec<String>,
     ) -> Result<(), ModelError> {
         info!("Removing allowed groups {:?} for network {}", groups, self);
@@ -174,10 +174,7 @@ impl WireguardNetwork {
     }
 
     /// Remove all allowed groups for a given network
-    async fn clear_allowed_groups(
-        &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
-    ) -> Result<(), ModelError> {
+    async fn clear_allowed_groups(&self, transaction: &mut PgConnection) -> Result<(), ModelError> {
         info!("Removing all allowed groups for network {}", self);
         let result = query!(
             "DELETE FROM wireguard_network_allowed_group WHERE network_id=$1",

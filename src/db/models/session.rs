@@ -39,6 +39,7 @@ impl Session {
         }
     }
 
+    #[must_use]
     pub fn expired(&self) -> bool {
         self.expires < Utc::now().naive_utc()
     }
