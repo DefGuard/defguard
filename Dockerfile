@@ -21,13 +21,13 @@ RUN cargo chef cook --release --recipe-path recipe.json
 
 # build project
 RUN apt-get update && apt-get -y install protobuf-compiler libprotobuf-dev
-COPY Cargo.toml Cargo.lock build.rs sqlx-data.json ./
+COPY Cargo.toml Cargo.lock build.rs ./
+COPY .sqlx .sqlx
 COPY src src
 COPY templates templates
 COPY model-derive model-derive
 COPY proto proto
 COPY migrations migrations
-ENV SQLX_OFFLINE true
 RUN cargo install --locked --path . --root /build
 
 FROM node:20.5-alpine3.17 as web
