@@ -1,10 +1,13 @@
-use crate::auth::failed_login::FailedLoginError;
-use crate::db::models::device::DeviceError;
-use crate::db::models::enrollment::EnrollmentError;
-use crate::db::models::wireguard::WireguardNetworkError;
-use crate::grpc::GatewayMapError;
-use crate::templates::TemplateError;
-use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
+use crate::{
+    auth::failed_login::FailedLoginError,
+    db::models::{
+        device::DeviceError, enrollment::EnrollmentError, error::ModelError,
+        wireguard::WireguardNetworkError,
+    },
+    grpc::GatewayMapError,
+    ldap::error::OriLDAPError,
+    templates::TemplateError,
+};
 use rocket::http::Status;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;

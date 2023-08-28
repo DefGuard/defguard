@@ -18,10 +18,12 @@ pub mod webauthn;
 pub mod webhook;
 pub mod wireguard;
 
+use self::{
+    device::UserDevice,
+    user::{MFAMethod, User},
+};
 use super::{DbPool, Group};
-use crate::db::models::device::UserDevice;
 use sqlx::{query_as, Error as SqlxError};
-use user::{MFAMethod, User};
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]

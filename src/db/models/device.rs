@@ -10,8 +10,10 @@ use lazy_static::lazy_static;
 use model_derive::Model;
 use regex::Regex;
 use sqlx::{query, query_as, Error as SqlxError, FromRow, PgConnection};
-use std::fmt::{Display, Formatter};
-use std::net::IpAddr;
+use std::{
+    fmt::{Display, Formatter},
+    net::IpAddr,
+};
 use thiserror::Error;
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]

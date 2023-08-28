@@ -17,7 +17,7 @@ use rocket::{
 use std::borrow::Cow;
 
 mod common;
-use crate::common::make_enterprise_test_client;
+use self::common::make_enterprise_test_client;
 
 async fn make_client() -> (Client, DbPool) {
     let (client, client_state) = make_enterprise_test_client().await;

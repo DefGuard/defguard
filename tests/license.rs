@@ -2,7 +2,7 @@ use defguard::handlers::Auth;
 use rocket::{http::Status, local::asynchronous::Client};
 
 mod common;
-use common::{
+use self::common::{
     make_license_test_client, LICENSE_ENTERPRISE, LICENSE_EXPIRED, LICENSE_WITHOUT_OPENID,
 };
 

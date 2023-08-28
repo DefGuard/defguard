@@ -1,10 +1,9 @@
-use super::Username;
+use super::{ApiResponse, ApiResult, Username};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{Group, User},
     error::OriWebError,
-    handlers::{ApiResponse, ApiResult},
     ldap::utils::{ldap_add_user_to_group, ldap_remove_user_from_group},
 };
 use rocket::{

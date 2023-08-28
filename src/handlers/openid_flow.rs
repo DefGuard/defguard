@@ -1,13 +1,13 @@
+use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
-    auth::{SessionInfo, SESSION_TIMEOUT},
+    auth::{AccessUserInfo, SessionInfo, SESSION_TIMEOUT},
     db::{
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
         OAuth2AuthorizedApp, OAuth2Token,
     },
     db::{DbPool, Session, User},
     error::OriWebError,
-    handlers::{ApiResponse, ApiResult},
 };
 use base64::Engine;
 use chrono::{Duration, Utc};
@@ -35,8 +35,6 @@ use rocket::{
     time::{Duration as TimeDuration, OffsetDateTime},
     State,
 };
-
-use crate::auth::AccessUserInfo;
 use std::ops::{Deref, DerefMut};
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims

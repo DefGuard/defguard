@@ -8,11 +8,11 @@ use defguard::{
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
-
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
-mod common;
-use crate::common::{fetch_user_details, make_test_client};
 use tokio_stream::{self as stream, StreamExt};
+
+mod common;
+use self::common::{fetch_user_details, make_test_client};
 
 async fn make_client() -> Client {
     let (client, _) = make_test_client().await;

@@ -1,12 +1,11 @@
-use crate::auth::AdminRole;
+use super::{webhooks::ChangeStateData, ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
-    auth::SessionInfo,
+    auth::{AdminRole, SessionInfo},
     db::models::{
         oauth2client::{OAuth2Client, OAuth2ClientSafe},
         NewOpenIDClient,
     },
-    handlers::{webhooks::ChangeStateData, ApiResponse, ApiResult},
 };
 use rocket::{
     http::Status,

@@ -1,5 +1,5 @@
+use super::{settings::Settings, DbPool, User};
 use crate::{
-    db::{DbPool, Settings, User},
     mail::Mail,
     random::gen_alphanumeric,
     templates::{self, TemplateError},

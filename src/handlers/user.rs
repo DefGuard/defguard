@@ -1,8 +1,8 @@
 use super::{
-    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange, RecoveryCodes,
-    Username, WalletChallenge, WalletChange, WalletSignature,
+    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange,
+    PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
+    WalletChange, WalletSignature,
 };
-use crate::handlers::StartEnrollmentRequest;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -11,7 +11,6 @@ use crate::{
         WebAuthn,
     },
     error::OriWebError,
-    handlers::PasswordChangeSelf,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     license::Features,
 };

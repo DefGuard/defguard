@@ -6,10 +6,10 @@ use defguard::{
     },
     handlers::Auth,
 };
-
-use openidconnect::core::CoreTokenResponse;
 use openidconnect::{
-    core::{CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType},
+    core::{
+        CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType, CoreTokenResponse,
+    },
     http::{
         header::{HeaderName, HeaderValue},
         HeaderMap, Method, StatusCode,
@@ -27,8 +27,9 @@ use serde::Deserialize;
 use std::str::FromStr;
 
 mod common;
-use crate::common::{make_base_client, make_enterprise_test_client};
-use common::{init_test_db, LICENSE_ENTERPRISE};
+use self::common::{
+    init_test_db, make_base_client, make_enterprise_test_client, LICENSE_ENTERPRISE,
+};
 
 async fn make_client() -> Client {
     let (client, _) = make_enterprise_test_client().await;

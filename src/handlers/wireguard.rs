@@ -1,19 +1,17 @@
 use super::{
     device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, OriWebError,
 };
-use crate::db::models::device::{DeviceInfo, DeviceNetworkInfo};
-use crate::db::models::wireguard::WireguardNetworkInfo;
-use crate::grpc::GatewayMap;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::{
         models::{
-            device::{ModifyDevice, WireguardNetworkDevice},
-            wireguard::DateTimeAggregation,
+            device::{DeviceInfo, DeviceNetworkInfo, ModifyDevice, WireguardNetworkDevice},
+            wireguard::{DateTimeAggregation, WireguardNetworkInfo},
         },
         AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
     },
+    grpc::GatewayMap,
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
@@ -27,9 +25,11 @@ use rocket::{
     State,
 };
 use serde_json::Value;
-use std::net::IpAddr;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::{
+    net::IpAddr,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 use uuid::Uuid;
 
 #[derive(Deserialize, Serialize)]

@@ -1,6 +1,8 @@
-use crate::auth::failed_login::{check_username, log_failed_login_attempt, FailedLoginMap};
 use crate::{
-    auth::{Claims, ClaimsType, SESSION_TIMEOUT},
+    auth::{
+        failed_login::{check_username, log_failed_login_attempt, FailedLoginMap},
+        Claims, ClaimsType, SESSION_TIMEOUT,
+    },
     db::{DbPool, User},
 };
 use jsonwebtoken::errors::Error as JWTError;

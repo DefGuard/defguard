@@ -9,11 +9,11 @@ use rocket::{
 };
 use tokio::sync::mpsc::unbounded_channel;
 
+use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    handlers::{ApiResponse, ApiResult},
     mail::{Attachment, Mail},
     support::dump_config,
     templates::{self, support_data_mail},

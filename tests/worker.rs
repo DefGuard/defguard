@@ -5,11 +5,11 @@ use defguard::{
         Auth,
     },
 };
-use rocket::http::Status;
-use rocket::local::asynchronous::Client;
+use rocket::{http::Status, local::asynchronous::Client};
 use std::sync::{Arc, Mutex};
+
 mod common;
-use crate::common::make_test_client;
+use self::common::make_test_client;
 
 async fn make_client() -> (Client, Arc<Mutex<WorkerState>>) {
     let (client, client_status) = make_test_client().await;

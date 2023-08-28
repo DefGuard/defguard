@@ -6,8 +6,9 @@
 use crate::{
     db::User,
     handlers::{
-        mail::send_support_data,
+        mail::{send_support_data, test_mail},
         support::{configuration, logs},
+        user::change_self_password,
     },
 };
 use secrecy::ExposeSecret;
@@ -16,7 +17,6 @@ use secrecy::ExposeSecret;
 use crate::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
 };
-use crate::handlers::{mail::test_mail, user::change_self_password};
 #[cfg(feature = "openid")]
 use crate::handlers::{
     openid_clients::{
@@ -31,10 +31,11 @@ use crate::handlers::{
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
-    grpc::GatewayMap,
-    grpc::WorkerState,
-    handlers::app_info::get_app_info,
-    handlers::wireguard::{add_user_devices, import_network},
+    grpc::{GatewayMap, WorkerState},
+    handlers::{
+        app_info::get_app_info,
+        wireguard::{add_user_devices, import_network},
+    },
     license::{Features, License},
 };
 use appstate::AppState;

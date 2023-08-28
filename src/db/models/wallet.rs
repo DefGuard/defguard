@@ -1,4 +1,5 @@
-use crate::{hex::hex_decode, DbPool};
+use super::DbPool;
+use crate::hex::hex_decode;
 use chrono::{NaiveDateTime, Utc};
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use model_derive::Model;

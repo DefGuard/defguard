@@ -1,4 +1,4 @@
-use crate::db::DbPool;
+use super::DbPool;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};
 

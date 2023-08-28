@@ -1,34 +1,31 @@
+use self::{
+    interceptor::JwtInterceptor,
+    worker::{worker_service_server::WorkerServiceServer, WorkerServer},
+};
+use crate::{auth::failed_login::FailedLoginMap, config::DefGuardConfig, db::AppEvent, mail::Mail};
 #[cfg(feature = "worker")]
 use crate::{
     auth::ClaimsType,
     db::{DbPool, GatewayEvent},
-    grpc::{
-        interceptor::JwtInterceptor,
-        worker::{worker_service_server::WorkerServiceServer, WorkerServer},
-    },
 };
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
+use chrono::{NaiveDateTime, Utc};
 use enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer};
 #[cfg(feature = "wireguard")]
 use gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
+use serde::Serialize;
+use std::{
+    collections::hash_map::HashMap,
+    time::{Duration, Instant},
+};
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::UnboundedSender;
-use tonic::transport::{Identity, Server, ServerTlsConfig};
-
-use crate::auth::failed_login::FailedLoginMap;
-use crate::config::DefGuardConfig;
-use crate::db::AppEvent;
-use crate::mail::Mail;
-use chrono::{NaiveDateTime, Utc};
-use serde::Serialize;
-use std::time::Duration;
-use std::{collections::hash_map::HashMap, time::Instant};
 use thiserror::Error;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tonic::transport::{Identity, Server, ServerTlsConfig};
 use uuid::Uuid;
 
 mod auth;

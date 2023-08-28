@@ -1,13 +1,13 @@
 use claims::assert_err;
-use defguard::db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork};
-use defguard::handlers::wireguard::ImportedNetworkData;
-use defguard::handlers::Auth;
+use defguard::{
+    db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork},
+    handlers::{wireguard::ImportedNetworkData, Auth},
+};
 use matches::assert_matches;
-use rocket::http::Status;
-use rocket::serde::json::json;
+use rocket::{http::Status, serde::json::json};
 
 mod common;
-use crate::common::make_test_client;
+use self::common::make_test_client;
 
 // setup user groups, test users and devices
 async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {

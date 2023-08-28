@@ -1,8 +1,7 @@
 use crate::db::{models::wireguard::WireguardNetworkError, Device, WireguardNetwork};
 use base64::{DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
-use std::array::TryFromSliceError;
-use std::net::IpAddr;
+use std::{array::TryFromSliceError, net::IpAddr};
 use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
 

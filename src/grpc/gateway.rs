@@ -1,9 +1,7 @@
-use crate::{
-    db::{
-        models::wireguard::{WireguardNetwork, WireguardPeerStats},
-        DbPool, Device, GatewayEvent,
-    },
-    grpc::GatewayMap,
+use super::GatewayMap;
+use crate::db::{
+    models::wireguard::{WireguardNetwork, WireguardPeerStats},
+    DbPool, Device, GatewayEvent,
 };
 use chrono::{NaiveDateTime, Utc};
 use sqlx::{query_as, Error as SqlxError};

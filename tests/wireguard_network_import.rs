@@ -1,6 +1,5 @@
-use defguard::db::models::device::UserDevice;
 use defguard::{
-    db::{Device, GatewayEvent, WireguardNetwork},
+    db::{models::device::UserDevice, Device, GatewayEvent, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
@@ -8,7 +7,7 @@ use rocket::{http::Status, serde::json::serde_json::json};
 use tokio::sync::broadcast::error::TryRecvError;
 
 mod common;
-use crate::common::{fetch_user_details, make_test_client};
+use self::common::{fetch_user_details, make_test_client};
 
 #[rocket::async_test]
 async fn test_config_import() {

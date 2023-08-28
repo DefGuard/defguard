@@ -1,7 +1,6 @@
+use self::{error::OriLDAPError, model::Group};
 use crate::{config::DefGuardConfig, db::User};
-use error::OriLDAPError;
 use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
-use model::Group;
 use secrecy::ExposeSecret;
 use std::collections::HashSet;
 

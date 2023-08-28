@@ -1,6 +1,7 @@
-use crate::db::models::error::ModelError;
-use crate::db::WireguardNetwork;
-use crate::DbPool;
+use crate::{
+    db::{models::error::ModelError, WireguardNetwork},
+    DbPool,
+};
 use model_derive::Model;
 use rocket::form::validate::Contains;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection};
