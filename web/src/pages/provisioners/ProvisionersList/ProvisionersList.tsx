@@ -12,7 +12,7 @@ import { deviceBreakpoints } from '../../../shared/constants';
 import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../shared/defguard-ui/components/Layout/EditButton/types';
-import ConfirmModal from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModal } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import {
   ListHeader,
