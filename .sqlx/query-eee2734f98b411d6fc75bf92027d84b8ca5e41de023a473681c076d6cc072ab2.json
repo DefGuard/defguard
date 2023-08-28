@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM session WHERE expires < now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "eee2734f98b411d6fc75bf92027d84b8ca5e41de023a473681c076d6cc072ab2"
+}

@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id \"id?\", \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\" FROM \"wireguard_network\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "address: _",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 3,
+        "name": "port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "prvkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "endpoint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "dns",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "allowed_ips: _",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "connected_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "6b07d6ea56bcded73038dfd59cff3d7d15049caf771aec6b0fcd42bea7169998"
+}

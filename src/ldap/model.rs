@@ -3,6 +3,7 @@ use ldap3::{Mod, SearchEntry};
 use std::collections::HashSet;
 
 impl User {
+    #[must_use]
     pub fn from_searchentry(entry: &SearchEntry, username: &str, password: &str) -> Self {
         Self::new(
             username.into(),
@@ -14,6 +15,7 @@ impl User {
         )
     }
 
+    #[must_use]
     pub fn as_ldap_mod(&self, config: &DefGuardConfig) -> Vec<Mod<&str>> {
         let mut changes = vec![
             Mod::Replace("sn", hashset![self.last_name.as_str()]),
@@ -33,6 +35,7 @@ impl User {
         changes
     }
 
+    #[must_use]
     pub fn as_ldap_attrs<'a>(
         &'a self,
         ssha_password: &'a str,
@@ -68,6 +71,7 @@ pub struct Group {
 }
 
 impl Group {
+    #[must_use]
     pub fn from_searchentry(entry: &SearchEntry, config: &DefGuardConfig) -> Self {
         Self {
             name: get_value_or_default(entry, &config.ldap_groupname_attr),
@@ -97,9 +101,10 @@ fn get_value(entry: &SearchEntry, key: &str) -> Option<String> {
 }
 
 /// Get first value from distinguished name, for example: cn=<value>,...
+#[must_use]
 pub fn extract_dn_value(dn: &str) -> Option<String> {
     if let (Some(eq_index), Some(comma_index)) = (dn.find('='), dn.find(',')) {
-        dn.get((eq_index + 1)..comma_index).map(|s| s.to_string())
+        dn.get((eq_index + 1)..comma_index).map(ToString::to_string)
     } else {
         None
     }

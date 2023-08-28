@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE wallet SET use_for_mfa = FALSE WHERE user_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1feeccc3729029c40d9cbecd21919fc184af94f52cb135c4c8bd2830c92a47db"
+}

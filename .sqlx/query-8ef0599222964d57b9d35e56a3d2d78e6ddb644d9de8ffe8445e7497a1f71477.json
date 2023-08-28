@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"oauth2authorizedapp\" SET \"user_id\" = $2,\"oauth2client_id\" = $3 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8ef0599222964d57b9d35e56a3d2d78e6ddb644d9de8ffe8445e7497a1f71477"
+}

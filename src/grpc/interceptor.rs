@@ -23,7 +23,7 @@ impl Interceptor for JwtInterceptor {
                 .map_err(|_| Status::unauthenticated("Invalid token"))?,
             None => return Err(Status::unauthenticated("Missing authorization header")),
         };
-        if let Ok(claims) = Claims::from_jwt(self.claims_type.clone(), token) {
+        if let Ok(claims) = Claims::from_jwt(self.claims_type, token) {
             let request_metadata = req.metadata_mut();
 
             if let ClaimsType::Gateway = self.claims_type {

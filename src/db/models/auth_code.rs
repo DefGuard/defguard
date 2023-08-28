@@ -1,4 +1,5 @@
-use crate::{db::DbPool, random::gen_alphanumeric};
+use super::DbPool;
+use crate::random::gen_alphanumeric;
 use chrono::Utc;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};

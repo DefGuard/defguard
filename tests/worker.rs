@@ -5,11 +5,11 @@ use defguard::{
         Auth,
     },
 };
-use rocket::http::Status;
-use rocket::local::asynchronous::Client;
+use rocket::{http::Status, local::asynchronous::Client};
 use std::sync::{Arc, Mutex};
+
 mod common;
-use crate::common::make_test_client;
+use self::common::make_test_client;
 
 async fn make_client() -> (Client, Arc<Mutex<WorkerState>>) {
     let (client, client_status) = make_test_client().await;
@@ -91,10 +91,10 @@ async fn test_scheduling_worker_jobs() {
                 id: "YubiBridge".to_string(),
                 job_id: user_job_id_1,
                 success: true,
-                public_key: "".to_string(),
-                ssh_key: "".to_string(),
-                fingerprint: "".to_string(),
-                error: "".to_string(),
+                public_key: String::new(),
+                ssh_key: String::new(),
+                fingerprint: String::new(),
+                error: String::new(),
             },
             "hpotter".into(),
         );
@@ -103,10 +103,10 @@ async fn test_scheduling_worker_jobs() {
                 id: "YubiBridge".to_string(),
                 job_id: admin_job_id_1,
                 success: true,
-                public_key: "".to_string(),
-                ssh_key: "".to_string(),
-                fingerprint: "".to_string(),
-                error: "".to_string(),
+                public_key: String::new(),
+                ssh_key: String::new(),
+                fingerprint: String::new(),
+                error: String::new(),
             },
             "hpotter".into(),
         );
@@ -115,10 +115,10 @@ async fn test_scheduling_worker_jobs() {
                 id: "YubiBridge".to_string(),
                 job_id: admin_job_id_2,
                 success: true,
-                public_key: "".to_string(),
-                ssh_key: "".to_string(),
-                fingerprint: "".to_string(),
-                error: "".to_string(),
+                public_key: String::new(),
+                ssh_key: String::new(),
+                fingerprint: String::new(),
+                error: String::new(),
             },
             "admin".into(),
         );
@@ -126,19 +126,19 @@ async fn test_scheduling_worker_jobs() {
 
     // admin can fetch status for all jobs
     let response = client
-        .get(format!("/api/v1/worker/{}", user_job_id_1))
+        .get(format!("/api/v1/worker/{user_job_id_1}"))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
 
     let response = client
-        .get(format!("/api/v1/worker/{}", admin_job_id_1))
+        .get(format!("/api/v1/worker/{admin_job_id_1}"))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
 
     let response = client
-        .get(format!("/api/v1/worker/{}", admin_job_id_2))
+        .get(format!("/api/v1/worker/{admin_job_id_2}"))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
@@ -149,19 +149,19 @@ async fn test_scheduling_worker_jobs() {
     assert_eq!(response.status(), Status::Ok);
 
     let response = client
-        .get(format!("/api/v1/worker/{}", admin_job_id_1))
+        .get(format!("/api/v1/worker/{admin_job_id_1}"))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
 
     let response = client
-        .get(format!("/api/v1/worker/{}", admin_job_id_2))
+        .get(format!("/api/v1/worker/{admin_job_id_2}"))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Forbidden);
 
     let response = client
-        .get(format!("/api/v1/worker/{}", user_job_id_1))
+        .get(format!("/api/v1/worker/{user_job_id_1}"))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);

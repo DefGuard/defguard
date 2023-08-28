@@ -22,8 +22,8 @@ ethers-core = { version = "2.0", features = ["eip712"] }
 ethabi = "18.0"
 fern = { version = "0.6", features = ["colored"] }
 humantime = "2.1"
-# match ipnetwork version from sqlx-core
-ipnetwork = { version = "0.19", features = ["serde"] }
+# match ipnetwork version from sqlx
+ipnetwork = { version = "0.20", features = ["serde"] }
 jsonwebtoken = "8.1"
 lazy_static = "1.4"
 ldap3 = "0.11"
@@ -55,10 +55,9 @@ serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
 serde_json = "1.0.104"
 serde_urlencoded = "0.7"
 sha-1 = "0.10"
-sqlx = { version = "0.6", features = [
+sqlx = { version = "0.7", features = [
     "chrono",
     "ipnetwork",
-    "offline",
     "runtime-tokio-native-tls",
     "postgres",
     "uuid",

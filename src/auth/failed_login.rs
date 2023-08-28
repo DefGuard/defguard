@@ -48,7 +48,7 @@ impl FailedLogin {
 
     fn increment(&mut self) {
         self.attempt_count += 1;
-        self.last_attempt = Local::now()
+        self.last_attempt = Local::now();
     }
 
     fn reset(&mut self) {
@@ -99,9 +99,9 @@ impl FailedLoginMap {
             }
             Some(failed_login) => {
                 if failed_login.should_reset_counter() {
-                    failed_login.reset()
+                    failed_login.reset();
                 } else {
-                    failed_login.increment()
+                    failed_login.increment();
                 }
             }
         };

@@ -184,6 +184,7 @@ pub enum Command {
 }
 
 impl DefGuardConfig {
+    #[must_use]
     pub fn new() -> Self {
         let mut config = Self::parse();
         config.validate_rp_id();
@@ -193,6 +194,7 @@ impl DefGuardConfig {
     }
 
     // this is an ugly workaround to avoid `cargo test` args being captured by `clap`
+    #[must_use]
     pub fn new_test_config() -> Self {
         let mut config = Self::parse_from::<[_; 0], String>([]);
         config.validate_rp_id();
@@ -209,7 +211,7 @@ impl DefGuardConfig {
                     .domain()
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
-            )
+            );
         }
     }
 
@@ -222,7 +224,7 @@ impl DefGuardConfig {
                     .domain()
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
-            )
+            );
         }
     }
 
@@ -262,6 +264,7 @@ impl DefGuardConfig {
         RsaPrivateKey::read_pkcs8_pem_file(path)
     }
 
+    #[must_use]
     pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
         let key = self.openid_signing_key.as_ref()?;
         if let Ok(pem) = key.to_pkcs1_pem(rsa::pkcs8::LineEnding::default()) {
@@ -288,7 +291,7 @@ mod tests {
     #[test]
     fn verify_cli() {
         use clap::CommandFactory;
-        DefGuardConfig::command().debug_assert()
+        DefGuardConfig::command().debug_assert();
     }
 
     #[test]

@@ -10,8 +10,8 @@ pub enum OriLDAPError {
 impl fmt::Display for OriLDAPError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            OriLDAPError::Ldap(msg) => write!(f, "LDAP error: {}", msg),
-            OriLDAPError::ObjectNotFound(msg) => write!(f, "Object not found: {}", msg),
+            OriLDAPError::Ldap(msg) => write!(f, "LDAP error: {msg}"),
+            OriLDAPError::ObjectNotFound(msg) => write!(f, "Object not found: {msg}"),
         }
     }
 }

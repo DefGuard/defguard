@@ -585,7 +585,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert_eq!(data.challenge, message);
 
     // Sign message
-    let signature = sign_message(data.challenge, secp, secret_key);
+    let signature = sign_message(&data.challenge, secp, secret_key);
 
     // Check if invalid signature results into 401
     let invalid_request_response = client
@@ -612,7 +612,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert_eq!(response.status(), Status::Ok);
 }
 
-fn sign_message(message: String, secp: &Secp256k1<All>, secret_key: SecretKey) -> String {
+fn sign_message(message: &str, secp: &Secp256k1<All>, secret_key: SecretKey) -> String {
     let typed_data: TypedData = rocket::serde::json::serde_json::from_str(&message).unwrap();
     let hash_msg = typed_data.encode_eip712().unwrap();
     let message = Message::from_slice(&hash_msg).unwrap();
@@ -708,7 +708,7 @@ async fn test_re_adding_wallet() {
         .dispatch()
         .await;
     let challenge: WalletChallenge = response.into_json().await.unwrap();
-    let signature = sign_message(challenge.message, &secp, secret_key);
+    let signature = sign_message(&challenge.message, &secp, secret_key);
     let response = client
         .put("/api/v1/user/hpotter/wallet")
         .json(&json!({
@@ -770,7 +770,7 @@ async fn test_re_adding_wallet() {
         .dispatch()
         .await;
     let challenge: WalletChallenge = response.into_json().await.unwrap();
-    let signature = sign_message(challenge.message, &secp, secret_key);
+    let signature = sign_message(&challenge.message, &secp, secret_key);
     let response = client
         .put("/api/v1/user/hpotter/wallet")
         .json(&json!({

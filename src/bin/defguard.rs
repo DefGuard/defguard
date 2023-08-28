@@ -1,8 +1,7 @@
-use defguard::db::Settings;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
-    db::{init_db, AppEvent, GatewayEvent, User},
+    db::{init_db, AppEvent, GatewayEvent, Settings, User},
     grpc::{run_grpc_server, GatewayMap, WorkerState},
     init_dev_env, logging,
     mail::{run_mail_handler, Mail},
@@ -28,9 +27,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     log::debug!("Starting defguard server with config: {config:?}");
 
-    match config.openid_signing_key {
-        Some(_) => log::info!("Using RSA OpenID signing key"),
-        None => log::info!("Using HMAC OpenID signing key"),
+    if config.openid_signing_key.is_some() {
+        log::info!("Using RSA OpenID signing key");
+    } else {
+        log::info!("Using HMAC OpenID signing key");
     }
 
     if let Some(Command::InitDevEnv) = config.cmd {

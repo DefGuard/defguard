@@ -1,13 +1,13 @@
+use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
-    auth::{SessionInfo, SESSION_TIMEOUT},
+    auth::{AccessUserInfo, SessionInfo, SESSION_TIMEOUT},
     db::{
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
         OAuth2AuthorizedApp, OAuth2Token,
     },
     db::{DbPool, Session, User},
     error::OriWebError,
-    handlers::{ApiResponse, ApiResult},
 };
 use base64::Engine;
 use chrono::{Duration, Utc};
@@ -35,8 +35,6 @@ use rocket::{
     time::{Duration as TimeDuration, OffsetDateTime},
     State,
 };
-
-use crate::auth::AccessUserInfo;
 use std::ops::{Deref, DerefMut};
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
@@ -315,27 +313,31 @@ pub async fn authorization(
     cookies: &CookieJar<'_>,
 ) -> Result<Redirect, OriWebError> {
     let error;
-    match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
-        Some(oauth2client) => match data.validate_for_client(&oauth2client) {
-            Ok(()) => match data.prompt {
-                Some("consent") => {
-                    info!(
-                        "Redirecting user to consent form - client id {}",
-                        data.client_id
-                    );
-                    return Ok(Redirect::found(format!(
-                        "/consent?{}",
-                        serde_urlencoded::to_string(data).unwrap()
-                    )));
-                }
-                Some("none") => {
-                    error!("'none' prompt in client id {} request", data.client_id);
-                    error = CoreAuthErrorResponseType::LoginRequired;
-                }
-                _ => {
-                    return if let Some(session_cookie) = cookies.get("defguard_session") {
-                        match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
-                            Ok(Some(session)) => {
+    if let Some(oauth2client) =
+        OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await?
+    {
+        match data.validate_for_client(&oauth2client) {
+            Ok(()) => {
+                match data.prompt {
+                    Some("consent") => {
+                        info!(
+                            "Redirecting user to consent form - client id {}",
+                            data.client_id
+                        );
+                        return Ok(Redirect::found(format!(
+                            "/consent?{}",
+                            serde_urlencoded::to_string(data).unwrap()
+                        )));
+                    }
+                    Some("none") => {
+                        error!("'none' prompt in client id {} request", data.client_id);
+                        error = CoreAuthErrorResponseType::LoginRequired;
+                    }
+                    _ => {
+                        return if let Some(session_cookie) = cookies.get("defguard_session") {
+                            if let Ok(Some(session)) =
+                                Session::find_by_id(&appstate.pool, session_cookie.value()).await
+                            {
                                 // If session expired return login
                                 if session.expired() {
                                     info!("Session {} for user id {} has expired, redirecting to login", session.id, session.user_id);
@@ -344,52 +346,49 @@ pub async fn authorization(
                                 } else {
                                     // If session is present check if app is in user authorized apps.
                                     // If yes return auth code and state else redirect to consent form.
-                                    match OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
-                                        &appstate.pool,
-                                        session.user_id,
-                                        oauth2client.id.unwrap(),
-                                    )
-                                    .await?
+                                    if let Some(app) =
+                                        OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+                                            &appstate.pool,
+                                            session.user_id,
+                                            oauth2client.id.unwrap(),
+                                        )
+                                        .await?
                                     {
-                                        Some(app) => {
-                                            info!("OAuth client id {} authorized by user id {}, returning auth code", app.oauth2client_id, session.user_id);
-                                            cookies.remove_private(Cookie::named("known_sign_in"));
-                                            let location = generate_auth_code_redirect(
-                                                appstate,
-                                                &data,
-                                                Some(session.user_id),
-                                            )
-                                            .await?;
-                                            Ok(Redirect::found(location))
-                                        }
+                                        info!("OAuth client id {} authorized by user id {}, returning auth code", app.oauth2client_id, session.user_id);
+                                        cookies.remove_private(Cookie::named("known_sign_in"));
+                                        let location = generate_auth_code_redirect(
+                                            appstate,
+                                            &data,
+                                            Some(session.user_id),
+                                        )
+                                        .await?;
+                                        Ok(Redirect::found(location))
+                                    } else {
                                         // If authorized app not found redirect to consent form
-                                        None => {
-                                            info!("OAuth client id {} not yet authorized by user id {}, redirecting to consent form", oauth2client.id.unwrap(), session.user_id);
-                                            Ok(Redirect::found(format!(
-                                                "/consent?{}",
-                                                serde_urlencoded::to_string(data).unwrap()
-                                            )))
-                                        }
+                                        info!("OAuth client id {} not yet authorized by user id {}, redirecting to consent form", oauth2client.id.unwrap(), session.user_id);
+                                        Ok(Redirect::found(format!(
+                                            "/consent?{}",
+                                            serde_urlencoded::to_string(data).unwrap()
+                                        )))
                                     }
                                 }
-                            }
-                            // If session not present in db redirect to login
-                            _ => {
+                            } else {
+                                // If session is not present in db redirect to login
                                 info!(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
                                 );
                                 login_redirect(appstate, &data, cookies).await
                             }
-                        }
 
-                    // If no session cookie provided redirect to login
-                    } else {
-                        info!("Session cookie not provided, redirecting to login page");
-                        login_redirect(appstate, &data, cookies).await
-                    };
+                        // If no session cookie provided redirect to login
+                        } else {
+                            info!("Session cookie not provided, redirecting to login page");
+                            login_redirect(appstate, &data, cookies).await
+                        };
+                    }
                 }
-            },
+            }
             Err(err) => {
                 error!(
                     "OIDC login validation failed for client {}: {:?}",
@@ -397,11 +396,10 @@ pub async fn authorization(
                 );
                 error = err;
             }
-        },
-        None => {
-            error!("OIDC client id {} not found", data.client_id);
-            error = CoreAuthErrorResponseType::UnauthorizedClient;
         }
+    } else {
+        error!("OIDC client id {} not found", data.client_id);
+        error = CoreAuthErrorResponseType::UnauthorizedClient;
     }
 
     let mut url =
@@ -431,37 +429,37 @@ pub async fn secure_authorization(
         Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
     let error;
     if allow {
-        match OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await? {
-            Some(oauth2client) => match data.validate_for_client(&oauth2client) {
+        if let Some(oauth2client) =
+            OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await?
+        {
+            match data.validate_for_client(&oauth2client) {
                 Ok(()) => {
-                    match OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+                    if OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                         &appstate.pool,
                         session_info.user.id.unwrap(),
                         oauth2client.id.unwrap(),
                     )
                     .await?
+                    .is_none()
                     {
-                        Some(_) => {}
-                        None => {
-                            let mut app = OAuth2AuthorizedApp::new(
-                                session_info.user.id.unwrap(),
-                                oauth2client.id.unwrap(),
-                            );
-                            app.save(&appstate.pool).await?;
-                        }
+                        let mut app = OAuth2AuthorizedApp::new(
+                            session_info.user.id.unwrap(),
+                            oauth2client.id.unwrap(),
+                        );
+                        app.save(&appstate.pool).await?;
                     }
                     info!(
                         "User {} allowed login with client {}",
                         session_info.user.username, oauth2client.name
                     );
                     if let Some(cookie) = cookies.get_private("known_sign_in") {
-                        cookies.remove(cookie.to_owned());
+                        cookies.remove(cookie.clone());
                     };
                     let location =
                         generate_auth_code_redirect(appstate, &data, session_info.user.id).await?;
                     info!(
-                        "Redirecting user {} to {}",
-                        session_info.user.username, location
+                        "Redirecting user {} to {location}",
+                        session_info.user.username
                     );
                     return Ok(Redirect::found(location));
                 }
@@ -472,14 +470,13 @@ pub async fn secure_authorization(
                     );
                     error = err;
                 }
-            },
-            None => {
-                error!(
-                    "User {} tried to log in with non-existent OIDC client id {}",
-                    session_info.user.username, data.client_id
-                );
-                error = CoreAuthErrorResponseType::UnauthorizedClient;
             }
+        } else {
+            error!(
+                "User {} tried to log in with non-existent OIDC client id {}",
+                session_info.user.username, data.client_id
+            );
+            error = CoreAuthErrorResponseType::UnauthorizedClient;
         }
     } else {
         info!(
@@ -622,10 +619,8 @@ impl<'r> TokenRequest<'r> {
     }
 
     fn refresh_token_flow(
-        &self,
         token: &OAuth2Token,
-    ) -> Result<StandardTokenResponse<EmptyExtraTokenFields, CoreTokenType>, CoreErrorResponseType>
-    {
+    ) -> StandardTokenResponse<EmptyExtraTokenFields, CoreTokenType> {
         // assume self.grant_type == "refresh_token"
         let access_token = AccessToken::new(token.access_token.clone());
         let refresh_token = RefreshToken::new(token.refresh_token.clone());
@@ -635,7 +630,7 @@ impl<'r> TokenRequest<'r> {
             EmptyExtraTokenFields {},
         );
         token_response.set_refresh_token(Some(refresh_token));
-        Ok(token_response)
+        token_response
     }
 
     async fn oauth2client(&self, pool: &DbPool) -> Option<OAuth2Client> {
@@ -738,9 +733,8 @@ pub async fn token(
                                         });
                                     }
                                 }
-                            } else {
-                                error!("Can't issue token - authorized app not found for user {}, client {}", user.username, client.name);
                             }
+                            error!("Can't issue token - authorized app not found for user {}, client {}", user.username, client.name);
                         } else {
                             error!("User id {} not found", auth_code.user_id);
                         }
@@ -764,24 +758,12 @@ pub async fn token(
                     OAuth2Token::find_refresh_token(&appstate.pool, refresh_token).await
                 {
                     token.refresh_and_save(&appstate.pool).await?;
-                    match form.refresh_token_flow(&token) {
-                        Ok(response) => {
-                            token.save(&appstate.pool).await?;
-                            return Ok(ApiResponse {
-                                json: json!(response),
-                                status: Status::Ok,
-                            });
-                        }
-                        Err(err) => {
-                            let response = StandardErrorResponse::<CoreErrorResponseType>::new(
-                                err, None, None,
-                            );
-                            return Ok(ApiResponse {
-                                json: json!(response),
-                                status: Status::BadRequest,
-                            });
-                        }
-                    }
+                    let response = TokenRequest::refresh_token_flow(&token);
+                    token.save(&appstate.pool).await?;
+                    return Ok(ApiResponse {
+                        json: json!(response),
+                        status: Status::Ok,
+                    });
                 }
             }
         }

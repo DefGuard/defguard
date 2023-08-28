@@ -17,7 +17,7 @@ use rocket::{
 use std::borrow::Cow;
 
 mod common;
-use crate::common::make_enterprise_test_client;
+use self::common::make_enterprise_test_client;
 
 async fn make_client() -> (Client, DbPool) {
     let (client, client_state) = make_enterprise_test_client().await;
@@ -128,7 +128,6 @@ async fn test_authorize() {
         .await;
     assert_eq!(response.status(), Status::Found);
     let redirect_url = Url::parse(response.headers().get_one("Location").unwrap()).unwrap();
-    println!("{}", redirect_url);
     assert_eq!(redirect_url.domain().unwrap(), "test.server.tnt");
     let mut pairs = redirect_url.query_pairs();
     assert_eq!(pairs.count(), 2);

@@ -1,8 +1,8 @@
 use super::{
-    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange, RecoveryCodes,
-    Username, WalletChallenge, WalletChange, WalletSignature,
+    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange,
+    PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
+    WalletChange, WalletSignature,
 };
-use crate::handlers::StartEnrollmentRequest;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -11,7 +11,6 @@ use crate::{
         WebAuthn,
     },
     error::OriWebError,
-    handlers::PasswordChangeSelf,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     license::Features,
 };
@@ -28,8 +27,7 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
     let length = username.len();
     if !(3..64).contains(&length) {
         return Err(OriWebError::Serialization(format!(
-            "Username ({}) has incorrect length",
-            username
+            "Username ({username}) has incorrect length"
         )));
     }
 
@@ -167,7 +165,7 @@ pub async fn add_user(
     appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
     info!("User {} added user {username}", session.user.username);
     if !user.has_password() {
-        warn!("User {username} is not active yet. Please proceed with enrollment.")
+        warn!("User {username} is not active yet. Please proceed with enrollment.");
     };
     Ok(ApiResponse {
         json: json!(&user_info),
@@ -255,7 +253,7 @@ pub async fn modify_user(
     username: &str,
     data: Json<UserInfo>,
 ) -> ApiResult {
-    debug!("User {} updating user {}", session.user.username, username);
+    debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
     let user_info = data.into_inner();
     if let Err(err) = check_username(&user_info.username) {
@@ -295,7 +293,7 @@ pub async fn modify_user(
     };
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));
-    info!("User {} updated user {}", session.user.username, username);
+    info!("User {} updated user {username}", session.user.username);
     Ok(ApiResponse::default())
 }
 
@@ -306,31 +304,27 @@ pub async fn delete_user(
     username: &str,
     session: SessionInfo,
 ) -> ApiResult {
-    debug!("User {} deleting user {}", session.user.username, username);
+    debug!("User {} deleting user {username}", session.user.username);
     if session.user.username == username {
-        debug!("User {} attempted to delete himself", username);
+        debug!("User {username} attempted to delete himself");
         return Ok(ApiResponse {
             json: json!({}),
             status: Status::BadRequest,
         });
     }
-    match User::find_by_username(&appstate.pool, username).await? {
-        Some(user) => {
-            user.delete(&appstate.pool).await?;
-            if appstate.license.validate(&Features::Ldap) {
-                let _result = ldap_delete_user(&appstate.config, username).await;
-            };
-            appstate.trigger_action(AppEvent::UserDeleted(username.into()));
-            info!("User {} deleted user {}", session.user.username, username);
-            Ok(ApiResponse::default())
-        }
-        None => {
-            error!("User {} not found", username);
-            Err(OriWebError::ObjectNotFound(format!(
-                "User {} not found",
-                username
-            )))
-        }
+    if let Some(user) = User::find_by_username(&appstate.pool, username).await? {
+        user.delete(&appstate.pool).await?;
+        if appstate.license.validate(&Features::Ldap) {
+            let _result = ldap_delete_user(&appstate.config, username).await;
+        };
+        appstate.trigger_action(AppEvent::UserDeleted(username.into()));
+        info!("User {} deleted user {}", session.user.username, username);
+        Ok(ApiResponse::default())
+    } else {
+        error!("User {username} not found");
+        Err(OriWebError::ObjectNotFound(format!(
+            "User {username} not found"
+        )))
     }
 }
 
@@ -409,27 +403,24 @@ pub async fn change_password(
 
     let user = User::find_by_username(&appstate.pool, username).await?;
 
-    match user {
-        Some(mut user) => {
-            user.set_password(&data.new_password);
-            user.save(&appstate.pool).await?;
-            if appstate.license.validate(&Features::Ldap) {
-                let _result =
-                    ldap_change_password(&appstate.config, username, &data.new_password).await;
-            }
-            info!(
-                "Admin {} changed password for user {}",
-                session.user.username, username
-            );
-            Ok(ApiResponse::default())
+    if let Some(mut user) = user {
+        user.set_password(&data.new_password);
+        user.save(&appstate.pool).await?;
+        if appstate.license.validate(&Features::Ldap) {
+            let _result =
+                ldap_change_password(&appstate.config, username, &data.new_password).await;
         }
-        None => {
-            debug!("User not found");
-            Ok(ApiResponse {
-                json: json!({}),
-                status: Status::NotFound,
-            })
-        }
+        info!(
+            "Admin {} changed password for user {username}",
+            session.user.username
+        );
+        Ok(ApiResponse::default())
+    } else {
+        debug!("User not found");
+        Ok(ApiResponse {
+            json: json!({}),
+            status: Status::NotFound,
+        })
     }
 }
 
@@ -449,35 +440,34 @@ pub async fn wallet_challenge(
     let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
 
     // check if address already exists
-    let wallet = match Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address)
-        .await?
+    let wallet = if let Some(wallet) =
+        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await?
     {
-        Some(wallet) => {
-            if wallet.validation_timestamp.is_some() {
-                return Err(OriWebError::ObjectNotFound("wrong address".into()));
-            }
-            wallet
+        if wallet.validation_timestamp.is_some() {
+            return Err(OriWebError::ObjectNotFound("wrong address".into()));
         }
-        None => {
-            let challenge_message = match Settings::find_by_id(&appstate.pool, 1).await? {
-                Some(settings) => Wallet::format_challenge(address, &settings.challenge_template),
-                None => return Err(OriWebError::DbError("cannot retrieve settings".into())),
+        wallet
+    } else {
+        let challenge_message =
+            if let Some(settings) = Settings::find_by_id(&appstate.pool, 1).await? {
+                Wallet::format_challenge(address, &settings.challenge_template)
+            } else {
+                return Err(OriWebError::DbError("cannot retrieve settings".into()));
             };
-            let mut wallet = Wallet::new_for_user(
-                user.id.unwrap(),
-                address.into(),
-                name.into(),
-                chain_id,
-                challenge_message,
-            );
-            wallet.save(&appstate.pool).await?;
-            wallet
-        }
+        let mut wallet = Wallet::new_for_user(
+            user.id.unwrap(),
+            address.into(),
+            name.into(),
+            chain_id,
+            challenge_message,
+        );
+        wallet.save(&appstate.pool).await?;
+        wallet
     };
 
     info!(
-        "User {} generated wallet challenge for user {}",
-        session.user.username, username
+        "User {} generated wallet challenge for user {username}",
+        session.user.username
     );
     Ok(ApiResponse {
         json: json!(WalletChallenge {

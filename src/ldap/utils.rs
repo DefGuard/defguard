@@ -1,7 +1,7 @@
+use super::{error::OriLDAPError, LDAPConnection};
 use crate::{
     config::DefGuardConfig,
     db::{DbPool, User},
-    ldap::{error::OriLDAPError, LDAPConnection},
 };
 
 pub async fn user_from_ldap(

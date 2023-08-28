@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"wireguard_peer_stats\" (\"device_id\",\"collected_at\",\"network\",\"endpoint\",\"upload\",\"download\",\"latest_handshake\",\"allowed_ips\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamp",
+        "Int8",
+        "Text",
+        "Int8",
+        "Int8",
+        "Timestamp",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a4941d4bcf5483036924c13b2293034b9ebc57993c63a2dedb347648c0dfc6a9"
+}
