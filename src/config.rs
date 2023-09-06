@@ -1,5 +1,6 @@
-use clap::Parser;
+use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
+use ipnetwork::IpNetwork;
 use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
@@ -175,12 +176,32 @@ pub struct DefGuardConfig {
     pub cmd: Option<Command>,
 }
 
-#[derive(Clone, Debug, Parser)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum Command {
     #[command(
         about = "Initialize development environment. Inserts test network and device into database."
     )]
     InitDevEnv,
+    #[command(
+        about = "Add a new VPN location and return a gateway token. Used for automated setup."
+    )]
+    InitVpnLocation(InitVpnLocationArgs),
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct InitVpnLocationArgs {
+    #[arg(long)]
+    pub name: String,
+    #[arg(long)]
+    pub address: IpNetwork,
+    #[arg(long)]
+    pub endpoint: String,
+    #[arg(long)]
+    pub port: i32,
+    #[arg(long)]
+    pub dns: Option<String>,
+    #[arg(long)]
+    pub allowed_ips: Vec<IpNetwork>,
 }
 
 impl DefGuardConfig {
