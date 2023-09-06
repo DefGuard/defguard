@@ -40,6 +40,7 @@ use crate::{
     },
     license::{Features, License},
 };
+use anyhow::anyhow;
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
@@ -441,6 +442,14 @@ pub async fn init_vpn_location(
     pool: &DbPool,
     args: &InitVpnLocationArgs,
 ) -> Result<String, anyhow::Error> {
+    // check if a VPN location exists already
+    let networks = WireguardNetwork::all(pool).await?;
+    if !networks.is_empty() {
+        return Err(anyhow!(
+            "Failed to initialize first VPN location. A location already exists."
+        ));
+    };
+
     // create a new network
     let mut network = WireguardNetwork::new(
         args.name.clone(),
