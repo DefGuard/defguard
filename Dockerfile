@@ -43,7 +43,7 @@ RUN pnpm run generate-translation-types
 RUN pnpm build
 
 # run
-FROM debian:bullseye-slim as runtime
+FROM debian:bookworm-slim as runtime
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
