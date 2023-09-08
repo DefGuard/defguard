@@ -16,32 +16,31 @@ chrono = { version = "0.4", default-features = false, features = [
     "serde",
     "std",
 ] }
-clap = { version = "4.0", features = ["derive", "env"] }
+clap = { version = "4.4", features = ["derive", "env"] }
 dotenvy = "0.15"
-ethers-core = { version = "2.0", features = ["eip712"] }
-ethabi = "18.0"
+ethers-core = "2.0"
 fern = { version = "0.6", features = ["colored"] }
 humantime = "2.1"
 # match ipnetwork version from sqlx
 ipnetwork = { version = "0.20", features = ["serde"] }
-jsonwebtoken = "8.1"
+jsonwebtoken = "8.3"
 lazy_static = "1.4"
 ldap3 = "0.11"
 lettre = { version = "0.10", features = ["tokio1", "tokio1-native-tls"] }
 log = "0.4"
 md4 = "0.10"
 otpauth = "0.4"
-openidconnect = { version = "3.0", default-features = false, optional = true }
+openidconnect = { version = "3.3", default-features = false, optional = true }
 pulldown-cmark = "0.9"
 prost = "0.11"
 rand = "0.8"
 rand_core = { version = "0.6", default-features = false, features = [
     "getrandom",
 ] }
-regex = "1.8"
+regex = "1.9"
 reqwest = { version = "0.11", features = ["json"] }
 rocket = { version = "0.5.0-rc.3", features = ["json", "secrets"] }
-rsa = { version = "0.8", features = ["pem"] }
+rsa = { version = "0.9", features = ["pem"] }
 rust-ini = "0.19"
 secp256k1 = { version = "0.27", features = [
     "recovery",
@@ -75,14 +74,13 @@ tokio = { version = "1", features = [
 ] }
 tokio-stream = "0.1"
 tonic = { version = "0.9", features = ["gzip", "tls", "tls-roots"] }
-uuid = { version = "1.1", features = ["v4"] }
+uuid = { version = "1.4", features = ["v4"] }
 webauthn-authenticator-rs = { version = "0.4" }
 webauthn-rs = { version = "0.4", features = [
     "danger-allow-state-serialisation",
 ] }
-webauthn-rs-proto = "0.4.9"
-# Use pre to match zeroize version used by ethers
-x25519-dalek = { version = "2.0.0-rc.2", features = ["static_secrets"] }
+webauthn-rs-proto = "0.4"
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 
 [dev-dependencies]
 claims = "0.7"

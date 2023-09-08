@@ -3,7 +3,9 @@ use humantime::Duration;
 use ipnetwork::IpNetwork;
 use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
-use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
+use rsa::{
+    pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, traits::PublicKeyParts, RsaPrivateKey,
+};
 use secrecy::{ExposeSecret, Secret};
 
 #[derive(Clone, Parser, Serialize, Debug)]
