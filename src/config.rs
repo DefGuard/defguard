@@ -4,7 +4,10 @@ use ipnetwork::IpNetwork;
 use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{
-    pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, traits::PublicKeyParts, RsaPrivateKey,
+    pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
+    pkcs8::{DecodePrivateKey, LineEnding},
+    traits::PublicKeyParts,
+    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, Secret};
 
@@ -283,14 +286,19 @@ impl DefGuardConfig {
         )
     }
 
+    /// Try PKCS#1 and PKCS#8 PEM formats.
     fn parse_openid_key(path: &str) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
-        RsaPrivateKey::read_pkcs8_pem_file(path)
+        if let Ok(key) = RsaPrivateKey::read_pkcs1_pem_file(path) {
+            Ok(key)
+        } else {
+            RsaPrivateKey::read_pkcs8_pem_file(path)
+        }
     }
 
     #[must_use]
     pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
         let key = self.openid_signing_key.as_ref()?;
-        if let Ok(pem) = key.to_pkcs1_pem(rsa::pkcs8::LineEnding::default()) {
+        if let Ok(pem) = key.to_pkcs1_pem(LineEnding::default()) {
             let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
             CoreRsaPrivateSigningKey::from_pem(pem.as_ref(), Some(key_id)).ok()
         } else {
