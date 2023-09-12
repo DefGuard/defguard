@@ -6,9 +6,9 @@ In a nutshell, from a functionality point defguard is an **OpenID Identity Provi
 
 On a broader aspect, it's a **security platform for building secure and privacy-aware organizations** (with its secure architecture).
 
-By design _defguard core is meant to be deployed in your secure network segments_ (available only from an internal network or by VPN) and operations that require _public access_ (like user onboarding, enrollment, password reset, etc.) are done using a _secure proxy_.
+By design **defguard core is meant to be deployed in your secure network segments** (available only from an internal network or by VPN) and operations that require **public access** (like user onboarding, enrollment, password reset, etc.) are done using a **secure proxy**.
 
-Read more about this in our [documentation]([https://defguard.gitbook.io](https://defguard.gitbook.io/defguard/#what-is-defguard)).
+Read more about this in [our documentation](https://defguard.gitbook.io/defguard/#what-is-defguard).
 
 **Implemented & production tested features:**
 
