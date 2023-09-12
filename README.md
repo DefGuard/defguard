@@ -2,9 +2,13 @@
     <img src="docs/header.png" alt="defguard">
  </p>
 
-In a nutshell, from a **functionality** point defguard is an **OpenID Identity Provider** (SSO for your apps) and **Wireguard VPN  Service** for building secure private networks (roadwarrior, mesh/peer-to-peer, site-to-site).
+In a nutshell, from a functionality point defguard is an **OpenID Identity Provider (SSO for your apps with some unique features) and **Wireguard VPN Service Provider** for building secure private networks (roadwarrior, mesh/peer-to-peer, site-to-site).
 
-On a broader aspect, it's a **security platform for building secure organizations**, addressing the most critical pain points and requirements to construct a privacy-aware, secure fundament for your users and systems. Read more about this in our [documentation](https://defguard.gitbook.io).
+On a broader aspect, it's a **security platform for building secure and privacy-aware organizations** (with its secure architecture).
+
+By design _defguard core is meant to be deployed in your secure network segments_ (available only from an internal network or by VPN) and operations that require _public access_ (like user onboarding, enrollment, password reset, etc.) are done using a _secure proxy_.
+
+Read more about this in our [documentation]([https://defguard.gitbook.io](https://defguard.gitbook.io/defguard/#what-is-defguard)).
 
 **Implemented & production tested features:**
 
