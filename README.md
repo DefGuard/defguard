@@ -28,10 +28,12 @@ On a broader aspect, it's a **security platform for building secure organization
   - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
   - Web3 - authentication with crypto software and hardware wallets using Metamask, Ledger Extension
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
+* [Email/SMTP support](https://defguard.gitbook.io/defguard/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
+* Easy support with [sending debug/support information](https://defguard.gitbook.io/defguard/help/sending-support-info)
 * Webhooks & REST API
 * Web3 wallet validation
 * Build with [Rust](https://www.rust-lang.org/) for portability, security, and speed
-* Fronted in TypeScript with:
+* [UI Library](https://github.com/defguard/ui) - our beautiful React/TypeScript UI is a collection of React components:
   - a set of custom and beautiful components for the layout
   - Responsive Web Design (supporting mobile phones, tablets, etc..)
   - [iOS Web App](https://www.macrumors.com/how-to/use-web-apps-iphone-ipad/)
