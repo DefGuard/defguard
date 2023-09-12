@@ -8,18 +8,19 @@ On a broader aspect, it's a **security platform for building secure organization
 
 **Implemented & production tested features:**
 
-* [OpenID Connect provider](https://openid.net/developers/how-connect-works/)
+* [OpenID Connect provider](https://openid.net/developers/how-connect-works/) - with **unique features**:
+  - Secure remote (over the internet) [user enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment)
+  - User [onboarding after enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment/user-onboarding-after-enrollment)
   - LDAP (tested on [OpenLDAP](https://www.openldap.org/)) synchronization
   - nice UI to manage users
-  - users can revoke access to granted apps
-  - OAuth2 of course...
+  - Users **self-service** (besides typical data management, users can revoke access to granted apps, MFA, Wireguard, etc.)
 * [Wireguard:tm:](https://www.wireguard.com/) VPN management with:
   - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
   - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
-  - import your current WireGuard server configuration (with a wizard!)
-  - *easy* device setup by users themselves (self-service)
-  -  automatic IP allocation
-  -  kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard support
+  - **import your current WireGuard server configuration (with a wizard!)**
+  - *in-development*: [Desktop Clients!](https://github.com/defguard/client)
+  - automatic IP allocation
+  - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard support with [our Rust library](https://github.com/defguard/wireguard-rs)
   - dashboard and statistics overview of connected users/devices for admins
   - *defguard is not an official WireGuard project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
 * [Multi-Factor/2FA](https://en.wikipedia.org/wiki/Multi-factor_authentication) Authentication:
