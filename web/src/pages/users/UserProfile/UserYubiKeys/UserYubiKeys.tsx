@@ -7,8 +7,7 @@ import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
-import KeyBox from '../../shared/components/KeyBox/KeyBox';
-import { KeyDetailsModal } from './modals/KeyDetailsModal/KeyDetailsModal';
+import { KeyBox } from '../../shared/components/KeyBox/KeyBox';
 
 export const UserYubiKeys = () => {
   const { LL } = useI18nContext();
@@ -56,7 +55,6 @@ export const UserYubiKeys = () => {
           text={LL.userPage.yubiKey.provision()}
         />
       )}
-      <KeyDetailsModal />
     </section>
   );
 };

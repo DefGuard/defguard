@@ -1,58 +1,38 @@
-@use '@shared/scss/base/variables' as v;
-@use '@shared/scss/helpers/mixins' as mix;
-@use '@shared/scss/helpers/bootstrap' as bs;
+@use '@scssutils' as *;
 
 #login-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  align-content: center;
-  justify-content: center;
-  flex-grow: 1;
+  min-height: 100vh;
   width: 100%;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 20px 0;
 
-  & > p {
-    color: v.$gray-light;
-    font-size: 1.2rem;
-    line-height: 1.4;
-    margin: 2rem 0;
+  @include media-breakpoint-up(lg) {
+    padding: 40px 0;
   }
 
-  & > h1 {
-    margin-bottom: 1.2rem;
-    font-size: 2.8rem;
-    line-height: 3.9rem;
-    @include mix.text-weight(semiBold);
+  h1 {
+    @include typography(app-welcome-1);
+
+    color: var(--text-body-primary);
+    text-align: center;
+    width: 100%;
   }
 
-  & > form {
-    display: flex;
-    flex-direction: column;
-    width: 284px;
-    height: auto;
+  form {
+    width: 100%;
+    max-width: 300px;
+    box-sizing: border-box;
 
-    .input-container {
-      width: 284px;
+    @include media-breakpoint-down(lg) {
+      padding: 10px;
     }
 
-    button {
-      width: 284px;
+    & > .input {
+      margin-bottom: 5px;
     }
-
-    input-container {
-      width: 284px;
-    }
-  }
-
-  & > button {
-    width: 284px;
-    margin-bottom: 2rem;
-
-    &:last-of-type {
-      margin: 0;
-    }
-  }
-  @include bs.media-breakpoint-up(lg) {
-    width: 50%;
   }
 }

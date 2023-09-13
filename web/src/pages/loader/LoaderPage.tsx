@@ -6,7 +6,7 @@ import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/Loader
 
 export const LoaderPage = () => {
   return (
-    <div className="loader-page">
+    <div id="loader-page">
       <div className="logo-container">
         <SvgDefguardLogoLogin />
       </div>

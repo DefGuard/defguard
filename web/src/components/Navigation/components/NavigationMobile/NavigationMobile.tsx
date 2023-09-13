@@ -62,6 +62,10 @@ export const NavigationMobile = ({ navItems, onLogout }: Props) => {
         path: '/admin/enrollment',
         title: LL.navigation.mobileTitles.enrollment(),
       },
+      {
+        path: '/admin/openid',
+        title: LL.navigation.mobileTitles.openId(),
+      },
     ],
     [LL.navigation.mobileTitles],
   );

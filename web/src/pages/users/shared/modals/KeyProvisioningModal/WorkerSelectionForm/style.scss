@@ -81,14 +81,21 @@
                   align-content: center;
                   justify-content: center;
 
-                  svg {
-                    path {
-                      fill: var(--white);
-                    }
+                  & > .avatar-icon {
+                    background-color: transparent;
 
-                    g {
-                      rect {
-                        fill: var(--white);
+                    svg {
+                      width: 30px;
+                      height: 30px;
+                    }
+                  }
+
+                  &.checkmark {
+                    svg {
+                      width: 20px;
+                      height: 20px;
+                      path {
+                        fill: var(--surface-default-modal);
                       }
                     }
                   }

@@ -316,7 +316,7 @@ export const OpenidClientsListPage = () => {
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconPlusWhite />}
-            text={LL.openidOverview.addNewApp()}
+            text={breakpoint === 'desktop' ? LL.openidOverview.addNewApp() : undefined}
             disabled={!hasAccess}
           />
         </div>

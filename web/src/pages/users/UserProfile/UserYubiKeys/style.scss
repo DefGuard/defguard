@@ -42,8 +42,9 @@
 
   & > .keys {
     display: flex;
-    flex-flow: column nowrap;
-    row-gap: 1.5rem;
+    flex-flow: column;
+    row-gap: 15px;
+    margin-bottom: 20px;
   }
 
   & > .add-component {
