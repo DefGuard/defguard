@@ -10,30 +10,23 @@ use crate::{
         AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
         WebAuthn,
     },
-    error::OriWebError,
+    error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
-    license::Features,
 };
-use log::debug;
 use regex::Regex;
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Json},
-    State,
-};
 
 /// Verify the given username
-fn check_username(username: &str) -> Result<(), OriWebError> {
+fn check_username(username: &str) -> Result<(), WebError> {
     let length = username.len();
     if !(3..64).contains(&length) {
-        return Err(OriWebError::Serialization(format!(
+        return Err(WebError::Serialization(format!(
             "Username ({username}) has incorrect length"
         )));
     }
 
     if let Some(first_char) = username.chars().next() {
         if first_char.is_ascii_digit() {
-            return Err(OriWebError::Serialization(
+            return Err(WebError::Serialization(
                 "Username first char cannot be a number".into(),
             ));
         }
@@ -43,46 +36,46 @@ fn check_username(username: &str) -> Result<(), OriWebError> {
         .chars()
         .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
     {
-        return Err(OriWebError::Serialization(
+        return Err(WebError::Serialization(
             "Username is not in lowercase".into(),
         ));
     }
     Ok(())
 }
 
-pub fn check_password_strength(password: &str) -> Result<(), OriWebError> {
+pub fn check_password_strength(password: &str) -> Result<(), WebError> {
     let password_length = password.len();
     let special_chars_expression = Regex::new(r#"[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?~]"#).unwrap();
     let numbers_expression = Regex::new(r"[0-9]").unwrap();
     let lowercase_expression = Regex::new(r"[a-z]").unwrap();
     let uppercase_expression = Regex::new(r"[A-Z]").unwrap();
     if !(8..=128).contains(&password_length) {
-        return Err(OriWebError::Serialization(
+        return Err(WebError::Serialization(
             "Incorrect password length".into(),
         ));
     }
     if !special_chars_expression.is_match(password) {
-        return Err(OriWebError::Serialization(
+        return Err(WebError::Serialization(
             "No special characters in password".into(),
         ));
     }
     if !numbers_expression.is_match(password) {
-        return Err(OriWebError::Serialization("No numbers in password".into()));
+        return Err(WebError::Serialization("No numbers in password".into()));
     }
     if !lowercase_expression.is_match(password) {
-        return Err(OriWebError::Serialization(
+        return Err(WebError::Serialization(
             "No lowercase characters in password".into(),
         ));
     }
     if !uppercase_expression.is_match(password) {
-        return Err(OriWebError::Serialization(
+        return Err(WebError::Serialization(
             "No uppercase characters in password".into(),
         ));
     }
     Ok(())
 }
 
-#[get("/user", format = "json")]
+// #[get("/user", format = "json")]
 pub async fn list_users(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
@@ -91,11 +84,11 @@ pub async fn list_users(_admin: AdminRole, appstate: &State<AppState>) -> ApiRes
     }
     Ok(ApiResponse {
         json: json!(users),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
-#[get("/user/<username>", format = "json")]
+// #[get("/user/<username>", format = "json")]
 pub async fn get_user(
     session: SessionInfo,
     appstate: &State<AppState>,
@@ -105,11 +98,11 @@ pub async fn get_user(
     let user_details = UserDetails::from_user(&appstate.pool, &user).await?;
     Ok(ApiResponse {
         json: json!(user_details),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
-#[post("/user", format = "json", data = "<data>")]
+// #[post("/user", format = "json", data = "<data>")]
 pub async fn add_user(
     _admin: AdminRole,
     appstate: &State<AppState>,
@@ -125,7 +118,7 @@ pub async fn add_user(
         debug!("{}", err);
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
     let password = match &user_data.password {
@@ -135,7 +128,7 @@ pub async fn add_user(
                 debug!("Password not strong enough: {}", err);
                 return Ok(ApiResponse {
                     json: json!({}),
-                    status: Status::BadRequest,
+                    status: StatusCode::BAD_REQUEST,
                 });
             }
             Some(password.as_str())
@@ -189,14 +182,14 @@ pub async fn start_enrollment(
 
     // validate request
     if data.send_enrollment_notification && data.email.is_none() {
-        return Err(OriWebError::BadRequest(
+        return Err(WebError::BadRequest(
             "Email notification is enabled, but email was not provided".into(),
         ));
     }
 
     let user = match User::find_by_username(&appstate.pool, username).await? {
         Some(user) => Ok(user),
-        None => Err(OriWebError::ObjectNotFound(format!(
+        None => Err(WebError::ObjectNotFound(format!(
             "user {username} not found"
         ))),
     }?;
@@ -233,12 +226,12 @@ pub async fn username_available(
         debug!("{}", err);
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     };
     let status = match User::find_by_username(&appstate.pool, &data.username).await? {
-        Some(_) => Status::BadRequest,
-        None => Status::Ok,
+        Some(_) => StatusCode::BAD_REQUEST,
+        None => StatusCode::OK,
     };
     Ok(ApiResponse {
         json: json!({}),
@@ -260,7 +253,7 @@ pub async fn modify_user(
         debug!("{}", err);
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
     // remove authorized apps if needed
@@ -309,7 +302,7 @@ pub async fn delete_user(
         debug!("User {username} attempted to delete himself");
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
     if let Some(user) = User::find_by_username(&appstate.pool, username).await? {
@@ -322,7 +315,7 @@ pub async fn delete_user(
         Ok(ApiResponse::default())
     } else {
         error!("User {username} not found");
-        Err(OriWebError::ObjectNotFound(format!(
+        Err(WebError::ObjectNotFound(format!(
             "User {username} not found"
         )))
     }
@@ -338,14 +331,14 @@ pub async fn change_self_password(
     if user.verify_password(&data.old_password).is_err() {
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
 
     if check_password_strength(&data.new_password).is_err() {
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
 
@@ -361,7 +354,7 @@ pub async fn change_self_password(
 
     Ok(ApiResponse {
         json: json!({}),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -382,7 +375,7 @@ pub async fn change_password(
         debug!("Cannot change own password with this endpoint.");
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
 
@@ -390,14 +383,14 @@ pub async fn change_password(
         debug!("Pasword not strong enough: {}", err);
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
     if let Err(err) = check_username(username) {
         debug!("Invalid Username: {}", err);
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
 
@@ -419,7 +412,7 @@ pub async fn change_password(
         debug!("User not found");
         Ok(ApiResponse {
             json: json!({}),
-            status: Status::NotFound,
+            status: StatusCode::NOT_FOUND,
         })
     }
 }
@@ -444,7 +437,7 @@ pub async fn wallet_challenge(
         Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await?
     {
         if wallet.validation_timestamp.is_some() {
-            return Err(OriWebError::ObjectNotFound("wrong address".into()));
+            return Err(WebError::ObjectNotFound("wrong address".into()));
         }
         wallet
     } else {
@@ -452,7 +445,7 @@ pub async fn wallet_challenge(
             if let Some(settings) = Settings::find_by_id(&appstate.pool, 1).await? {
                 Wallet::format_challenge(address, &settings.challenge_template)
             } else {
-                return Err(OriWebError::DbError("cannot retrieve settings".into()));
+                return Err(WebError::DbError("cannot retrieve settings".into()));
             };
         let mut wallet = Wallet::new_for_user(
             user.id.unwrap(),
@@ -474,7 +467,7 @@ pub async fn wallet_challenge(
             id: wallet.id.unwrap(),
             message: wallet.challenge_message
         }),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -505,10 +498,10 @@ pub async fn set_wallet(
             );
             Ok(ApiResponse::default())
         } else {
-            Err(OriWebError::ObjectNotFound("wrong address".into()))
+            Err(WebError::ObjectNotFound("wrong address".into()))
         }
     } else {
-        Err(OriWebError::ObjectNotFound("wallet not found".into()))
+        Err(WebError::ObjectNotFound("wallet not found".into()))
     }
 }
 
@@ -547,7 +540,7 @@ pub async fn update_wallet(
                         );
                         return Ok(ApiResponse {
                             json: json!(RecoveryCodes::new(recovery_codes)),
-                            status: Status::Ok,
+                            status: StatusCode::OK,
                         });
                     }
                 } else {
@@ -561,10 +554,10 @@ pub async fn update_wallet(
             );
             Ok(ApiResponse::default())
         } else {
-            Err(OriWebError::ObjectNotFound("wrong wallet".into()))
+            Err(WebError::ObjectNotFound("wrong wallet".into()))
         }
     } else {
-        Err(OriWebError::ObjectNotFound("wallet not found".into()))
+        Err(WebError::ObjectNotFound("wallet not found".into()))
     }
 }
 
@@ -593,10 +586,10 @@ pub async fn delete_wallet(
             );
             Ok(ApiResponse::default())
         } else {
-            Err(OriWebError::ObjectNotFound("wrong wallet".into()))
+            Err(WebError::ObjectNotFound("wrong wallet".into()))
         }
     } else {
-        Err(OriWebError::ObjectNotFound("wallet not found".into()))
+        Err(WebError::ObjectNotFound("wallet not found".into()))
     }
 }
 
@@ -622,10 +615,10 @@ pub async fn delete_security_key(
             );
             Ok(ApiResponse::default())
         } else {
-            Err(OriWebError::ObjectNotFound("wrong security key".into()))
+            Err(WebError::ObjectNotFound("wrong security key".into()))
         }
     } else {
-        Err(OriWebError::ObjectNotFound("security key not found".into()))
+        Err(WebError::ObjectNotFound("security key not found".into()))
     }
 }
 
@@ -634,7 +627,7 @@ pub async fn me(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
     let user_info = UserInfo::from_user(&appstate.pool, &session.user).await?;
     Ok(ApiResponse {
         json: json!(user_info),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -666,10 +659,10 @@ pub async fn delete_authorized_app(
             );
             Ok(ApiResponse::default())
         } else {
-            Err(OriWebError::ObjectNotFound("Wrong app".into()))
+            Err(WebError::ObjectNotFound("Wrong app".into()))
         }
     } else {
-        Err(OriWebError::ObjectNotFound(
+        Err(WebError::ObjectNotFound(
             "Authorized app not found".into(),
         ))
     }

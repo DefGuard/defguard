@@ -2,7 +2,7 @@ use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
     db::Settings,
-    error::OriWebError,
+    error::WebError,
     AppState,
 };
 use rocket::{
@@ -18,7 +18,7 @@ pub async fn get_settings(appstate: &State<AppState>) -> ApiResult {
     info!("Retrieved settings");
     Ok(ApiResponse {
         json: json!(settings),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -60,9 +60,9 @@ pub async fn set_default_branding(
             );
             Ok(ApiResponse {
                 json: json!(settings),
-                status: Status::Ok,
+                status: StatusCode::OK,
             })
         }
-        None => Err(OriWebError::DbError("Cannot restore settings".into())),
+        None => Err(WebError::DbError("Cannot restore settings".into())),
     }
 }

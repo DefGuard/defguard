@@ -8,13 +8,13 @@ use crate::{
     ldap::error::OriLDAPError,
     templates::TemplateError,
 };
-use rocket::http::Status;
+use axum::http::StatusCode;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 
 /// Represents kinds of error that occurred
 #[derive(Debug, Error)]
-pub enum OriWebError {
+pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),
     #[error("LDAP error: {0}")]
@@ -38,7 +38,7 @@ pub enum OriWebError {
     #[error("Public key invalid {0}")]
     PubkeyValidation(String),
     #[error("HTTP error: {0}")]
-    Http(Status),
+    Http(StatusCode),
     #[error(transparent)]
     TooManyLoginAttempts(#[from] FailedLoginError),
     #[error("Bad request: {0}")]
@@ -49,19 +49,19 @@ pub enum OriWebError {
     ServerConfigMissing,
 }
 
-impl From<tonic::Status> for OriWebError {
+impl From<tonic::Status> for WebError {
     fn from(status: tonic::Status) -> Self {
         Self::Grpc(status.message().into())
     }
 }
 
-impl From<Status> for OriWebError {
-    fn from(status: Status) -> Self {
+impl From<StatusCode> for WebError {
+    fn from(status: StatusCode) -> Self {
         Self::Http(status)
     }
 }
 
-impl From<OriLDAPError> for OriWebError {
+impl From<OriLDAPError> for WebError {
     fn from(error: OriLDAPError) -> Self {
         match error {
             OriLDAPError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
@@ -70,30 +70,30 @@ impl From<OriLDAPError> for OriWebError {
     }
 }
 
-impl From<SqlxError> for OriWebError {
+impl From<SqlxError> for WebError {
     fn from(error: SqlxError) -> Self {
         Self::DbError(error.to_string())
     }
 }
 
-impl From<ModelError> for OriWebError {
+impl From<ModelError> for WebError {
     fn from(error: ModelError) -> Self {
         Self::ModelError(error.to_string())
     }
 }
 
-impl From<DeviceError> for OriWebError {
+impl From<DeviceError> for WebError {
     fn from(error: DeviceError) -> Self {
         match error {
             DeviceError::PubkeyConflict(..) => Self::PubkeyValidation(error.to_string()),
             DeviceError::DatabaseError(_) => Self::DbError(error.to_string()),
             DeviceError::ModelError(_) => Self::ModelError(error.to_string()),
-            DeviceError::Unexpected(_) => Self::Http(Status::InternalServerError),
+            DeviceError::Unexpected(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }
 
-impl From<GatewayMapError> for OriWebError {
+impl From<GatewayMapError> for WebError {
     fn from(error: GatewayMapError) -> Self {
         match error {
             GatewayMapError::NotFound(_, _)
@@ -104,7 +104,7 @@ impl From<GatewayMapError> for OriWebError {
     }
 }
 
-impl From<WireguardNetworkError> for OriWebError {
+impl From<WireguardNetworkError> for WebError {
     fn from(error: WireguardNetworkError) -> Self {
         match error {
             WireguardNetworkError::NetworkTooSmall
@@ -114,29 +114,31 @@ impl From<WireguardNetworkError> for OriWebError {
             | WireguardNetworkError::ModelError(_)
             | WireguardNetworkError::Unexpected(_)
             | WireguardNetworkError::DeviceError(_)
-            | WireguardNetworkError::DeviceNotAllowed(_) => Self::Http(Status::InternalServerError),
+            | WireguardNetworkError::DeviceNotAllowed(_) => {
+                Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
+            }
         }
     }
 }
 
-impl From<EnrollmentError> for OriWebError {
+impl From<EnrollmentError> for WebError {
     fn from(err: EnrollmentError) -> Self {
         error!("{}", err);
         match err {
-            EnrollmentError::DbError(msg) => OriWebError::DbError(msg.to_string()),
+            EnrollmentError::DbError(msg) => WebError::DbError(msg.to_string()),
             EnrollmentError::NotFound
             | EnrollmentError::UserNotFound
-            | EnrollmentError::AdminNotFound => OriWebError::ObjectNotFound(err.to_string()),
+            | EnrollmentError::AdminNotFound => WebError::ObjectNotFound(err.to_string()),
             EnrollmentError::TokenExpired
             | EnrollmentError::SessionExpired
-            | EnrollmentError::TokenUsed => OriWebError::Authorization(err.to_string()),
-            EnrollmentError::AlreadyActive => OriWebError::BadRequest(err.to_string()),
+            | EnrollmentError::TokenUsed => WebError::Authorization(err.to_string()),
+            EnrollmentError::AlreadyActive => WebError::BadRequest(err.to_string()),
             EnrollmentError::NotificationError(_)
             | EnrollmentError::WelcomeMsgNotConfigured
             | EnrollmentError::WelcomeEmailNotConfigured
             | EnrollmentError::TemplateError(_)
             | EnrollmentError::TemplateErrorInternal(_) => {
-                OriWebError::Http(Status::InternalServerError)
+                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
     }

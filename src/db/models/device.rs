@@ -3,7 +3,15 @@ use super::{
     wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE_MINUTES},
     DbPool,
 };
-use crate::handlers::wireguard::DeviceConfig;
+// use crate::handlers::wireguard::DeviceConfig;
+
+#[derive(Serialize)]
+pub struct DeviceConfig {
+    pub(crate) network_id: i64,
+    pub(crate) network_name: String,
+    pub(crate) config: String,
+}
+
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use lazy_static::lazy_static;

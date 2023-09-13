@@ -1,7 +1,7 @@
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
-    error::OriWebError,
+    error::WebError,
     support::dump_config,
     AppState,
 };
@@ -18,7 +18,7 @@ pub async fn configuration(
     info!("User {} dumped app configuration", session.user.username);
     Ok(ApiResponse {
         json: config,
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -27,7 +27,7 @@ pub async fn logs(
     _admin: AdminRole,
     appstate: &State<AppState>,
     session: SessionInfo,
-) -> Result<String, OriWebError> {
+) -> Result<String, WebError> {
     debug!("User {} dumping app logs", session.user.username);
     if let Some(ref log_file) = appstate.config.log_file {
         match tokio::fs::read_to_string(log_file).await {

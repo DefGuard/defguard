@@ -3,7 +3,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::User,
-    error::OriWebError,
+    error::WebError,
     grpc::WorkerState,
 };
 use rocket::{
@@ -46,7 +46,7 @@ pub async fn create_job(
         Some(user) => {
             // only admins should be able to create jobs for other users
             if user != session.user && !session.is_admin {
-                return Err(OriWebError::Forbidden(
+                return Err(WebError::Forbidden(
                     "Cannot schedule jobs for other users.".into(),
                 ));
             };
@@ -69,7 +69,7 @@ pub async fn create_job(
                 status: Status::Created,
             })
         }
-        None => Err(OriWebError::ObjectNotFound(format!(
+        None => Err(WebError::ObjectNotFound(format!(
             "user {} not found",
             job_data.username
         ))),
@@ -86,7 +86,7 @@ pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> Api
         u32::MAX.into(),
     )
     .to_jwt()
-    .map_err(|_| OriWebError::Authorization("Failed to create bridge token".into()))?;
+    .map_err(|_| WebError::Authorization("Failed to create bridge token".into()))?;
     Ok(ApiResponse {
         json: json!({ "token": token }),
         status: Status::Created,
@@ -99,7 +99,7 @@ pub fn list_workers(_admin: AdminRole, worker_state: &State<Arc<Mutex<WorkerStat
     let workers = state.list_workers();
     Ok(ApiResponse {
         json: json!(workers),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -123,7 +123,7 @@ pub async fn remove_worker(
         Ok(ApiResponse::default())
     } else {
         error!("Worker {} not found", worker_id);
-        Err(OriWebError::ObjectNotFound(format!(
+        Err(WebError::ObjectNotFound(format!(
             "worker_id {} not found",
             worker_id
         )))
@@ -141,27 +141,27 @@ pub async fn job_status(
     if let Some(response) = job_response {
         // prevent non-admin users from accessing other users' jobs status
         if !session.is_admin && response.username != session.user.username {
-            return Err(OriWebError::Forbidden(
+            return Err(WebError::Forbidden(
                 "Cannot fetch job status for other users' jobs.".into(),
             ));
         }
         if response.success {
             Ok(ApiResponse {
                 json: json!(job_response),
-                status: Status::Ok,
+                status: StatusCode::OK,
             })
         } else {
             Ok(ApiResponse {
                 json: json!(JobResponseError {
                     message: response.error.clone()
                 }),
-                status: Status::NotFound,
+                status: StatusCode::NOT_FOUND,
             })
         }
     } else {
         Ok(ApiResponse {
             json: json!(job_response),
-            status: Status::Ok,
+            status: StatusCode::OK,
         })
     }
 }

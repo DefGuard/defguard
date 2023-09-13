@@ -22,7 +22,7 @@ pub async fn add_webhook(
     let mut webhook = data.into_inner();
     let status = match webhook.save(&appstate.pool).await {
         Ok(_) => Status::Created,
-        Err(_) => Status::BadRequest,
+        Err(_) => StatusCode::BAD_REQUEST,
     };
     info!("User {} added webhook {}", session.user.username, url);
     Ok(ApiResponse {
@@ -37,7 +37,7 @@ pub async fn list_webhooks(_admin: AdminRole, appstate: &State<AppState>) -> Api
     let webhooks = WebHook::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(webhooks),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -46,11 +46,11 @@ pub async fn get_webhook(_admin: AdminRole, appstate: &State<AppState>, id: i64)
     match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(webhook) => Ok(ApiResponse {
             json: json!(webhook),
-            status: Status::Ok,
+            status: StatusCode::OK,
         }),
         None => Ok(ApiResponse {
             json: json!({}),
-            status: Status::NotFound,
+            status: StatusCode::NOT_FOUND,
         }),
     }
 }
@@ -88,9 +88,9 @@ pub async fn change_webhook(
             webhook.on_user_modified = data.on_user_modified;
             webhook.on_hwkey_provision = data.on_hwkey_provision;
             webhook.save(&appstate.pool).await?;
-            Status::Ok
+            StatusCode::OK
         }
-        None => Status::NotFound,
+        None => StatusCode::NOT_FOUND,
     };
     info!("User {} updated webhook {}", session.user.username, id);
     Ok(ApiResponse {
@@ -110,9 +110,9 @@ pub async fn delete_webhook(
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(webhook) => {
             webhook.delete(&appstate.pool).await?;
-            Status::Ok
+            StatusCode::OK
         }
-        None => Status::NotFound,
+        None => StatusCode::NOT_FOUND,
     };
     info!("User {} deleted webhook {}", session.user.username, id);
     Ok(ApiResponse {
@@ -142,9 +142,9 @@ pub async fn change_enabled(
         Some(mut webhook) => {
             webhook.enabled = data.enabled;
             webhook.save(&appstate.pool).await?;
-            Status::Ok
+            StatusCode::OK
         }
-        None => Status::NotFound,
+        None => StatusCode::NOT_FOUND,
     };
     info!(
         "User {} changed webhook {} enabled state to {}",

@@ -6,7 +6,7 @@ use crate::{
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
         DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, User,
     },
-    error::OriWebError,
+    error::WebError,
 };
 use base64::Engine;
 use chrono::{Duration, Utc};
@@ -24,15 +24,6 @@ use openidconnect::{
     JsonWebKeySetUrl, LocalizedClaim, Nonce, PkceCodeChallenge, PkceCodeVerifier,
     PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims, StandardErrorResponse,
     StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
-};
-use rocket::{
-    form::{self, Form, FromFormField, ValueField},
-    http::{Cookie, CookieJar, SameSite, Status},
-    request::{FromRequest, Outcome, Request},
-    response::Redirect,
-    serde::json::serde_json::json,
-    time::{Duration as TimeDuration, OffsetDateTime},
-    State,
 };
 use std::ops::{Deref, DerefMut};
 
@@ -61,7 +52,7 @@ impl From<&User> for StandardClaims<CoreGenderClaim> {
     }
 }
 
-#[get("/discovery/keys")]
+// #[get("/discovery/keys")]
 pub async fn discovery_keys(appstate: &State<AppState>) -> ApiResult {
     let mut keys = Vec::new();
     if let Some(openid_key) = appstate.config.openid_key() {
@@ -70,14 +61,14 @@ pub async fn discovery_keys(appstate: &State<AppState>) -> ApiResult {
 
     Ok(ApiResponse {
         json: json!(CoreJsonWebKeySet::new(keys)),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
 /// Provide `OAuth2Client` when Basic Authorization header contains `client_id` and `client_secret`.
-#[rocket::async_trait]
+// #[rocket::async_trait]
 impl<'r> FromRequest<'r> for OAuth2Client {
-    type Error = OriWebError;
+    type Error = WebError;
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let state = request
@@ -108,7 +99,7 @@ impl<'r> FromRequest<'r> for OAuth2Client {
             }
             Outcome::Failure((
                 Status::Unauthorized,
-                OriWebError::Authorization("Invalid credentials".into()),
+                WebError::Authorization("Invalid credentials".into()),
             ))
         } else {
             Outcome::Forward(())
@@ -140,7 +131,7 @@ impl serde::ser::Serialize for FieldResponseTypes {
     }
 }
 
-#[rocket::async_trait]
+// #[rocket::async_trait]
 impl<'r> FromFormField<'r> for FieldResponseTypes {
     fn from_value(field: ValueField<'r>) -> form::Result<'r, Self> {
         let mut response_types = FieldResponseTypes(Vec::new());
@@ -251,9 +242,9 @@ async fn generate_auth_code_redirect(
     appstate: &State<AppState>,
     data: &AuthenticationRequest<'_>,
     user_id: Option<i64>,
-) -> Result<String, OriWebError> {
+) -> Result<String, WebError> {
     let mut url =
-        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
+        Url::parse(data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
     let mut auth_code = AuthCode::new(
         user_id.unwrap(),
         data.client_id.into(),
@@ -281,11 +272,11 @@ async fn login_redirect(
     appstate: &State<AppState>,
     data: &AuthenticationRequest<'_>,
     cookies: &CookieJar<'_>,
-) -> Result<Redirect, OriWebError> {
+) -> Result<Redirect, WebError> {
     let base_url = appstate.config.url.join("api/v1/oauth/authorize").unwrap();
     let expires = OffsetDateTime::now_utc()
         .checked_add(TimeDuration::minutes(10))
-        .ok_or(OriWebError::Http(Status::InternalServerError))?;
+        .ok_or(WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?;
     let cookie = Cookie::build(
         "known_sign_in",
         format!(
@@ -305,12 +296,12 @@ async fn login_redirect(
 
 /// Authorization Endpoint
 /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
-#[get("/authorize?<data..>")]
+// #[get("/authorize?<data..>")]
 pub async fn authorization(
     appstate: &State<AppState>,
     data: AuthenticationRequest<'_>,
     cookies: &CookieJar<'_>,
-) -> Result<Redirect, OriWebError> {
+) -> Result<Redirect, WebError> {
     let error;
     if let Some(oauth2client) =
         OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await?
@@ -402,7 +393,7 @@ pub async fn authorization(
     }
 
     let mut url =
-        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
+        Url::parse(data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
 
     {
         let mut query_pairs = url.query_pairs_mut();
@@ -416,16 +407,16 @@ pub async fn authorization(
 }
 
 /// Login Authorization Endpoint redirect with authorization code
-#[post("/authorize?<allow>&<data..>")]
+// #[post("/authorize?<allow>&<data..>")]
 pub async fn secure_authorization(
     session_info: SessionInfo,
     appstate: &State<AppState>,
     allow: bool,
     data: AuthenticationRequest<'_>,
     cookies: &CookieJar<'_>,
-) -> Result<Redirect, OriWebError> {
+) -> Result<Redirect, WebError> {
     let mut url =
-        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
+        Url::parse(data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
     let error;
     if allow {
         if let Some(oauth2client) =
@@ -647,7 +638,7 @@ impl<'r> TokenRequest<'r> {
 /// Token Endpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
-#[post("/token", format = "form", data = "<form>")]
+// #[post("/token", format = "form", data = "<form>")]
 pub async fn token(
     form: Form<TokenRequest<'_>>,
     appstate: &State<AppState>,
@@ -714,7 +705,7 @@ pub async fn token(
                                         );
                                         return Ok(ApiResponse {
                                             json: json!(response),
-                                            status: Status::Ok,
+                                            status: StatusCode::OK,
                                         });
                                     }
                                     Err(err) => {
@@ -728,7 +719,7 @@ pub async fn token(
                                             );
                                         return Ok(ApiResponse {
                                             json: json!(response),
-                                            status: Status::BadRequest,
+                                            status: StatusCode::BAD_REQUEST,
                                         });
                                     }
                                 }
@@ -761,7 +752,7 @@ pub async fn token(
                     token.save(&appstate.pool).await?;
                     return Ok(ApiResponse {
                         json: json!(response),
-                        status: Status::Ok,
+                        status: StatusCode::OK,
                     });
                 }
             }
@@ -772,22 +763,22 @@ pub async fn token(
     let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
     Ok(ApiResponse {
         json: json!(response),
-        status: Status::BadRequest,
+        status: StatusCode::BAD_REQUEST,
     })
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
-#[get("/userinfo", format = "json")]
+// #[get("/userinfo", format = "json")]
 pub fn userinfo(user_info: AccessUserInfo) -> ApiResult {
     let userclaims = StandardClaims::<CoreGenderClaim>::from(&user_info.0);
     Ok(ApiResponse {
         json: json!(userclaims),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
 // Must be served under /.well-known/openid-configuration
-#[get("/openid-configuration", format = "json")]
+// #[get("/openid-configuration", format = "json")]
 pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
     let provider_metadata = CoreProviderMetadata::new(
         IssuerUrl::from_url(appstate.config.url.clone()),
@@ -838,6 +829,6 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
 
     Ok(ApiResponse {
         json: json!(provider_metadata),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }

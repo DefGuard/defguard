@@ -7,7 +7,6 @@ use defguard::{
     mail::Mail,
     SERVER_CONFIG,
 };
-use rocket::{http::Status, local::asynchronous::Client};
 use secrecy::ExposeSecret;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
 use std::sync::{Arc, Mutex};

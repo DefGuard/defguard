@@ -1,8 +1,8 @@
-use rocket::{http::Status, serde::json::json, State};
-
+use super::{ApiResult, VERSION};
 use crate::{appstate::AppState, auth::SessionInfo, db::WireguardNetwork};
 
-use super::{ApiResult, VERSION};
+use axum::{extract::State, http::StatusCode};
+use serde_json::json;
 
 // Additional information about core state
 #[derive(Debug, Serialize, Deserialize)]
@@ -11,8 +11,8 @@ pub struct AppInfo {
     network_present: bool,
 }
 
-#[get("/info", format = "json")]
-pub async fn get_app_info(appstate: &State<AppState>, _session: SessionInfo) -> ApiResult {
+// #[get("/info", format = "json")]
+pub async fn get_app_info(State(appstate): &State<AppState>, _session: SessionInfo) -> ApiResult {
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     let res = AppInfo {
         network_present: !networks.is_empty(),
@@ -21,6 +21,6 @@ pub async fn get_app_info(appstate: &State<AppState>, _session: SessionInfo) -> 
 
     Ok(super::ApiResponse {
         json: json!(res),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }

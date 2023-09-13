@@ -1,110 +1,106 @@
+use axum::http::StatusCode;
+use serde_json::{json, Value};
+use webauthn_rs::prelude::RegisterPublicKeyCredential;
+
 #[cfg(feature = "wireguard")]
 use crate::db::Device;
 use crate::{
     auth::SessionInfo,
     db::{DbPool, User, UserInfo},
-    error::OriWebError,
+    error::WebError,
     VERSION,
 };
-use rocket::{
-    http::{ContentType, Status},
-    request::Request,
-    response::{Responder, Response},
-    serde::json::{serde_json::json, Value},
-};
-use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 pub(crate) mod app_info;
-pub(crate) mod auth;
-pub mod forward_auth;
-pub(crate) mod group;
-pub(crate) mod license;
-pub(crate) mod mail;
-#[cfg(feature = "openid")]
-pub mod openid_clients;
-#[cfg(feature = "openid")]
-pub mod openid_flow;
-pub(crate) mod settings;
-pub(crate) mod support;
-pub(crate) mod user;
-pub(crate) mod webhooks;
-#[cfg(feature = "wireguard")]
-pub mod wireguard;
-#[cfg(feature = "worker")]
-pub mod worker;
+// pub(crate) mod auth;
+// pub mod forward_auth;
+// pub(crate) mod group;
+// pub(crate) mod mail;
+// #[cfg(feature = "openid")]
+// pub mod openid_clients;
+// #[cfg(feature = "openid")]
+// pub mod openid_flow;
+// pub(crate) mod settings;
+// pub(crate) mod support;
+// pub(crate) mod user;
+// pub(crate) mod webhooks;
+// #[cfg(feature = "wireguard")]
+// pub mod wireguard;
+// #[cfg(feature = "worker")]
+// pub mod worker;
 
 #[derive(Default)]
 pub struct ApiResponse {
     pub json: Value,
-    pub status: Status,
+    pub status: StatusCode,
 }
 
-pub type ApiResult = Result<ApiResponse, OriWebError>;
+pub type ApiResult = Result<ApiResponse, WebError>;
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
-    fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, Status> {
-        let (json, status) = match self {
-            OriWebError::ObjectNotFound(msg) => (json!({ "msg": msg }), Status::NotFound),
-            OriWebError::Authorization(msg) => {
-                error!("{}", msg);
-                (json!({ "msg": msg }), Status::Unauthorized)
-            }
-            OriWebError::Forbidden(msg) => {
-                error!("{}", msg);
-                (json!({ "msg": msg }), Status::Forbidden)
-            }
-            OriWebError::DbError(_)
-            | OriWebError::Grpc(_)
-            | OriWebError::Ldap(_)
-            | OriWebError::WebauthnRegistration(_)
-            | OriWebError::Serialization(_)
-            | OriWebError::ModelError(_)
-            | OriWebError::ServerConfigMissing => {
-                error!("{self}");
-                (
-                    json!({"msg": "Internal server error"}),
-                    Status::InternalServerError,
-                )
-            }
-            OriWebError::Http(status) => {
-                error!("{}", status);
-                (json!({ "msg": status.reason_lossy() }), status)
-            }
-            OriWebError::TooManyLoginAttempts(_) => (
-                json!({ "msg": "Too many login attempts" }),
-                Status::TooManyRequests,
-            ),
-            OriWebError::IncorrectUsername(msg)
-            | OriWebError::PubkeyValidation(msg)
-            | OriWebError::BadRequest(msg) => {
-                error!("{}", msg);
-                (json!({ "msg": msg }), Status::BadRequest)
-            }
-            OriWebError::TemplateError(err) => {
-                error!("Template error: {err}");
-                (
-                    json!({"msg": "Internal server error"}),
-                    Status::InternalServerError,
-                )
-            }
-        };
-        Response::build_from(json.respond_to(request)?)
-            .status(status)
-            .header(ContentType::JSON)
-            .raw_header("X-Defguard-Version", VERSION)
-            .ok()
-    }
-}
+// impl<'r, 'o: 'r> Responder<'r, 'o> for WebError {
+//     fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, StatusCode> {
+//         let (json, status) = match self {
+//             WebError::ObjectNotFound(msg) => (json!({ "msg": msg }), StatusCode::NOT_FOUND),
+//             WebError::Authorization(msg) => {
+//                 error!("{}", msg);
+//                 (json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
+//             }
+//             WebError::Forbidden(msg) => {
+//                 error!("{}", msg);
+//                 (json!({ "msg": msg }), StatusCode::FORBIDDEN)
+//             }
+//             WebError::DbError(_)
+//             | WebError::Grpc(_)
+//             | WebError::Ldap(_)
+//             | WebError::WebauthnRegistration(_)
+//             | WebError::Serialization(_)
+//             | WebError::ModelError(_)
+//             | WebError::ServerConfigMissing => {
+//                 error!("{self}");
+//                 (
+//                     json!({"msg": "Internal server error"}),
+//                     StatusCode::INTERNAL_SERVER_ERROR,
+//                 )
+//             }
+//             WebError::Http(status) => {
+//                 error!("{}", status);
+//                 (json!({ "msg": status.reason_lossy() }), status)
+//             }
+//             WebError::TooManyLoginAttempts(_) => (
+//                 json!({ "msg": "Too many login attempts" }),
+//                 StatusCode::TOO_MANY_REQUESTS,
+//             ),
+//             WebError::IncorrectUsername(msg)
+//             | WebError::PubkeyValidation(msg)
+//             | WebError::BadRequest(msg) => {
+//                 error!("{}", msg);
+//                 (json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+//             }
+//             WebError::TemplateError(err) => {
+//                 error!("Template error: {err}");
+//                 (
+//                     json!({"msg": "Internal server error"}),
+//                     StatusCode::INTERNAL_SERVER_ERROR,
+//                 )
+//             }
+//         };
+//         Response::build_from(json.respond_to(request)?)
+//             .status(status)
+//             .header(ContentType::JSON)
+//             .raw_header("X-Defguard-Version", VERSION)
+//             .ok()
+//     }
+// }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for ApiResponse {
-    fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, Status> {
-        Response::build_from(self.json.respond_to(request)?)
-            .status(self.status)
-            .header(ContentType::JSON)
-            .raw_header("X-Defguard-Version", VERSION)
-            .ok()
-    }
-}
+// impl<'r, 'o: 'r> Responder<'r, 'o> for ApiResponse {
+//     fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, StatusCode> {
+//         Response::build_from(self.json.respond_to(request)?)
+//             .status(self.status)
+//             .header(ContentType::JSON)
+//             .raw_header("X-Defguard-Version", VERSION)
+//             .ok()
+//     }
+// }
 
 #[derive(Deserialize, Serialize)]
 pub struct Auth {
@@ -235,16 +231,16 @@ pub async fn user_for_admin_or_self(
     pool: &DbPool,
     session: &SessionInfo,
     username: &str,
-) -> Result<User, OriWebError> {
+) -> Result<User, WebError> {
     if session.user.username == username || session.is_admin {
         match User::find_by_username(pool, username).await? {
             Some(user) => Ok(user),
-            None => Err(OriWebError::ObjectNotFound(format!(
+            None => Err(WebError::ObjectNotFound(format!(
                 "user {username} not found"
             ))),
         }
     } else {
-        Err(OriWebError::Forbidden("requires privileged access".into()))
+        Err(WebError::Forbidden("requires privileged access".into()))
     }
 }
 
@@ -255,7 +251,7 @@ pub async fn device_for_admin_or_self(
     pool: &DbPool,
     session: &SessionInfo,
     id: i64,
-) -> Result<Device, OriWebError> {
+) -> Result<Device, WebError> {
     let fetch = if session.is_admin {
         Device::find_by_id(pool, id).await
     } else {
@@ -264,7 +260,7 @@ pub async fn device_for_admin_or_self(
 
     match fetch {
         Some(device) => Ok(device),
-        None => Err(OriWebError::ObjectNotFound(format!(
+        None => Err(WebError::ObjectNotFound(format!(
             "device id {id} not found"
         ))),
     }

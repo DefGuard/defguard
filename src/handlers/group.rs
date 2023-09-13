@@ -3,13 +3,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{Group, User},
-    error::OriWebError,
+    error::WebError,
     ldap::utils::{ldap_add_user_to_group, ldap_remove_user_from_group},
-};
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Json},
-    State,
 };
 
 #[derive(Serialize)]
@@ -48,7 +43,7 @@ pub async fn list_groups(_session: SessionInfo, appstate: &State<AppState>) -> A
     info!("Listed groups");
     Ok(ApiResponse {
         json: json!(Groups::new(groups)),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -60,11 +55,11 @@ pub async fn get_group(_session: SessionInfo, appstate: &State<AppState>, name: 
         info!("Retrieved group {name}");
         Ok(ApiResponse {
             json: json!(GroupInfo::new(name.into(), members)),
-            status: Status::Ok,
+            status: StatusCode::OK,
         })
     } else {
         error!("Group {name} not found");
-        Err(OriWebError::ObjectNotFound(format!(
+        Err(WebError::ObjectNotFound(format!(
             "Group {name} not found",
         )))
     }
@@ -87,14 +82,14 @@ pub async fn add_group_member(
             Ok(ApiResponse::default())
         } else {
             error!("User not found {}", data.username);
-            Err(OriWebError::ObjectNotFound(format!(
+            Err(WebError::ObjectNotFound(format!(
                 "User {} not found",
                 data.username
             )))
         }
     } else {
         error!("Group {name} not found");
-        Err(OriWebError::ObjectNotFound(format!(
+        Err(WebError::ObjectNotFound(format!(
             "Group {name} not found"
         )))
     }
@@ -119,17 +114,17 @@ pub async fn remove_group_member(
             info!("Removed user: {} from group: {}", user.username, group.name);
             Ok(ApiResponse {
                 json: json!({}),
-                status: Status::Ok,
+                status: StatusCode::OK,
             })
         } else {
             error!("User not found {}", username);
-            Err(OriWebError::ObjectNotFound(format!(
+            Err(WebError::ObjectNotFound(format!(
                 "User {username} not found"
             )))
         }
     } else {
         error!("Group {name} not found");
-        Err(OriWebError::ObjectNotFound(format!(
+        Err(WebError::ObjectNotFound(format!(
             "Group {name} not found",
         )))
     }

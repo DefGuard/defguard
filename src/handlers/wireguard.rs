@@ -1,5 +1,5 @@
 use super::{
-    device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, OriWebError,
+    device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError,
 };
 use crate::{
     appstate::AppState,
@@ -109,7 +109,7 @@ pub async fn create_network(
         data.dns,
         allowed_ips,
     )
-    .map_err(|_| OriWebError::Serialization("Invalid network address".into()))?;
+    .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
     let mut transaction = appstate.pool.begin().await?;
     network.save(&mut *transaction).await?;
@@ -132,7 +132,7 @@ pub async fn create_network(
             error!("Network {} ID was not created during network creation, gateway event was not send!", &network.name);
             return Ok(ApiResponse {
                 json: json!({}),
-                status: Status::InternalServerError,
+                status: StatusCode::INTERNAL_SERVER_ERROR,
             });
         }
     }
@@ -149,10 +149,10 @@ pub async fn create_network(
     })
 }
 
-async fn find_network(id: i64, pool: &DbPool) -> Result<WireguardNetwork, OriWebError> {
+async fn find_network(id: i64, pool: &DbPool) -> Result<WireguardNetwork, WebError> {
     WireguardNetwork::find_by_id(pool, id)
         .await?
-        .ok_or_else(|| OriWebError::ObjectNotFound(format!("Network {id} not found")))
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
 #[put("/<id>", format = "json", data = "<data>")]
@@ -213,7 +213,7 @@ pub async fn modify_network(
     );
     Ok(ApiResponse {
         json: json!(network),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -268,7 +268,7 @@ pub async fn list_networks(
 
     Ok(ApiResponse {
         json: json!(network_info),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -295,12 +295,12 @@ pub async fn network_details(
             };
             ApiResponse {
                 json: json!(network_info),
-                status: Status::Ok,
+                status: StatusCode::OK,
             }
         }
         None => ApiResponse {
             json: Value::Null,
-            status: Status::NotFound,
+            status: StatusCode::NOT_FOUND,
         },
     };
     debug!("Displayed network details for network {}", network_id);
@@ -321,7 +321,7 @@ pub async fn gateway_status(
 
     Ok(ApiResponse {
         json: json!(gateway_state.get_network_gateway_status(network_id)),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -339,12 +339,12 @@ pub async fn remove_gateway(
 
     gateway_state.remove_gateway(
         network_id,
-        Uuid::from_str(&gateway_id).map_err(|_| OriWebError::Http(Status::InternalServerError))?,
+        Uuid::from_str(&gateway_id).map_err(|_| WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?,
     )?;
 
     Ok(ApiResponse {
         json: Value::Null,
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -359,7 +359,7 @@ pub async fn import_network(
     let (mut network, imported_devices) =
         parse_wireguard_config(&data.config).map_err(|error| {
             error!("{}", error);
-            OriWebError::Http(Status::UnprocessableEntity)
+            WebError::Http(Status::UnprocessableEntity)
         })?;
     network.name = data.name;
     network.endpoint = data.endpoint;
@@ -464,7 +464,7 @@ pub async fn add_user_devices(
                 status: Status::Created,
             })
         }
-        None => Err(OriWebError::ObjectNotFound(format!(
+        None => Err(WebError::ObjectNotFound(format!(
             "Network {network_id} not found"
         ))),
     }
@@ -495,16 +495,16 @@ pub async fn add_device(
         error!("No network found, can't add device");
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
 
-    Device::validate_pubkey(&data.wireguard_pubkey).map_err(OriWebError::PubkeyValidation)?;
+    Device::validate_pubkey(&data.wireguard_pubkey).map_err(WebError::PubkeyValidation)?;
 
     // save device
     let add_device = data.into_inner();
     let Some(user_id) = user.id else {
-        return Err(OriWebError::ModelError("User has no id".to_string()));
+        return Err(WebError::ModelError("User has no id".to_string()));
     };
     let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, user_id);
 
@@ -560,7 +560,7 @@ pub async fn modify_device(
         error!("No network found can't modify device");
         return Ok(ApiResponse {
             json: json!({}),
-            status: Status::BadRequest,
+            status: StatusCode::BAD_REQUEST,
         });
     }
 
@@ -569,7 +569,7 @@ pub async fn modify_device(
         if network.pubkey == data.wireguard_pubkey {
             return Ok(ApiResponse {
                 json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
-                status: Status::BadRequest,
+                status: StatusCode::BAD_REQUEST,
             });
         }
     }
@@ -606,7 +606,7 @@ pub async fn modify_device(
     );
     Ok(ApiResponse {
         json: json!(device),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -620,7 +620,7 @@ pub async fn get_device(
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     Ok(ApiResponse {
         json: json!(device),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -654,7 +654,7 @@ pub async fn list_devices(_admin: AdminRole, appstate: &State<AppState>) -> ApiR
 
     Ok(ApiResponse {
         json: json!(devices),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -666,14 +666,14 @@ pub async fn list_user_devices(
 ) -> ApiResult {
     // only allow for admin or user themselves
     if !session.is_admin && session.user.username != username {
-        return Err(OriWebError::Forbidden("Admin access required".into()));
+        return Err(WebError::Forbidden("Admin access required".into()));
     };
     debug!("Listing devices for user: {username}");
     let devices = Device::all_for_username(&appstate.pool, username).await?;
 
     Ok(ApiResponse {
         json: json!(devices),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -683,7 +683,7 @@ pub async fn download_config(
     appstate: &State<AppState>,
     network_id: i64,
     device_id: i64,
-) -> Result<String, OriWebError> {
+) -> Result<String, WebError> {
     let network = find_network(network_id, &appstate.pool).await?;
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     let wireguard_network_device =
@@ -696,7 +696,7 @@ pub async fn download_config(
         } else {
             String::new()
         };
-        Err(OriWebError::ObjectNotFound(format!(
+        Err(WebError::ObjectNotFound(format!(
             "No ip found for device: {}({device_id})",
             device.name
         )))
@@ -719,14 +719,14 @@ pub async fn create_network_token(
     )
     .to_jwt()
     .map_err(|_| {
-        OriWebError::Authorization(format!(
+        WebError::Authorization(format!(
             "Failed to create token for gateway {}",
             network.name
         ))
     })?;
     Ok(ApiResponse {
         json: json!({ "token": token, "grpc_url": appstate.config.grpc_url.to_string() }),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -737,7 +737,7 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, Status> {
     // Use hourly aggregation for longer periods
     let aggregation = match Utc::now().naive_utc() - from {
         duration if duration >= Duration::hours(6) => Ok(DateTimeAggregation::Hour),
-        duration if duration < Duration::zero() => Err(Status::BadRequest),
+        duration if duration < Duration::zero() => Err(StatusCode::BAD_REQUEST),
         _ => Ok(DateTimeAggregation::Minute),
     }?;
     Ok(aggregation)
@@ -746,7 +746,7 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, Status> {
 /// If `datetime` is Some, parses the date string, otherwise returns `DateTime` one hour ago.
 fn parse_timestamp(datetime: Option<String>) -> Result<DateTime<Utc>, Status> {
     Ok(match datetime {
-        Some(from) => DateTime::<Utc>::from_str(&from).map_err(|_| Status::BadRequest)?,
+        Some(from) => DateTime::<Utc>::from_str(&from).map_err(|_| StatusCode::BAD_REQUEST)?,
         None => Utc::now() - Duration::hours(1),
     })
 }
@@ -760,7 +760,7 @@ pub async fn user_stats(
 ) -> ApiResult {
     debug!("Displaying wireguard user stats");
     let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? else {
-        return Err(OriWebError::ObjectNotFound(format!(
+        return Err(WebError::ObjectNotFound(format!(
             "Requested network ({network_id}) not found",
         )));
     };
@@ -773,7 +773,7 @@ pub async fn user_stats(
 
     Ok(ApiResponse {
         json: json!(stats),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
@@ -786,7 +786,7 @@ pub async fn network_stats(
 ) -> ApiResult {
     debug!("Displaying wireguard network stats");
     let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? else {
-        return Err(OriWebError::ObjectNotFound(format!(
+        return Err(WebError::ObjectNotFound(format!(
             "Requested network ({network_id}) not found"
         )));
     };
@@ -799,6 +799,6 @@ pub async fn network_stats(
 
     Ok(ApiResponse {
         json: json!(stats),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }

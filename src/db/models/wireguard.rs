@@ -5,9 +5,19 @@ use super::{
 };
 use crate::{
     grpc::{gateway::Peer, GatewayState},
-    handlers::wireguard::MappedDevice,
+    // handlers::wireguard::MappedDevice,
     wg_config::ImportedDevice,
 };
+
+// Used in process of importing network from wireguard config
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MappedDevice {
+    pub user_id: i64,
+    pub name: String,
+    pub wireguard_pubkey: String,
+    pub wireguard_ip: IpAddr,
+}
+
 use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};

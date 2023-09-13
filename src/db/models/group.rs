@@ -3,7 +3,6 @@ use crate::{
     DbPool,
 };
 use model_derive::Model;
-use rocket::form::validate::Contains;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection};
 
 #[derive(Model)]

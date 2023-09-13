@@ -1,3 +1,5 @@
+use axum::http::StatusCode;
+
 use super::{webhooks::ChangeStateData, ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
@@ -7,13 +9,8 @@ use crate::{
         NewOpenIDClient,
     },
 };
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Json},
-    State,
-};
 
-#[post("/", format = "json", data = "<data>")]
+// #[post("/", format = "json", data = "<data>")]
 pub async fn add_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
@@ -32,20 +29,20 @@ pub async fn add_openid_client(
     );
     Ok(ApiResponse {
         json: json!(client),
-        status: Status::Created,
+        status: StatusCode::CREATED,
     })
 }
 
-#[get("/", format = "json")]
+// #[get("/", format = "json")]
 pub async fn list_openid_clients(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
     let openid_clients = OAuth2Client::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(openid_clients),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
-#[get("/<client_id>", format = "json")]
+// #[get("/<client_id>", format = "json")]
 pub async fn get_openid_client(
     appstate: &State<AppState>,
     client_id: &str,
@@ -56,23 +53,23 @@ pub async fn get_openid_client(
             if session.is_admin {
                 Ok(ApiResponse {
                     json: json!(openid_client),
-                    status: Status::Ok,
+                    status: StatusCode::OK,
                 })
             } else {
                 Ok(ApiResponse {
                     json: json!(OAuth2ClientSafe::from(openid_client)),
-                    status: Status::Ok,
+                    status: StatusCode::OK,
                 })
             }
         }
         None => Ok(ApiResponse {
             json: json!({}),
-            status: Status::NotFound,
+            status: StatusCode::NOT_FOUND,
         }),
     }
 }
 
-#[put("/<client_id>", format = "json", data = "<data>")]
+// #[put("/<client_id>", format = "json", data = "<data>")]
 pub async fn change_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
@@ -96,9 +93,9 @@ pub async fn change_openid_client(
                 "User {} updated OpenID client {} ({})",
                 session.user.username, client_id, openid_client.name
             );
-            Status::Ok
+            StatusCode::OK
         }
-        None => Status::NotFound,
+        None => StatusCode::NOT_FOUND,
     };
     Ok(ApiResponse {
         json: json!({}),
@@ -106,7 +103,7 @@ pub async fn change_openid_client(
     })
 }
 
-#[post("/<client_id>", format = "json", data = "<data>")]
+// #[post("/<client_id>", format = "json", data = "<data>")]
 pub async fn change_openid_client_state(
     _admin: AdminRole,
     session: SessionInfo,
@@ -126,9 +123,9 @@ pub async fn change_openid_client_state(
                 "User {} updated OpenID client {} ({}) enabled state to {}",
                 session.user.username, client_id, openid_client.name, openid_client.enabled,
             );
-            Status::Ok
+            StatusCode::OK
         }
-        None => Status::NotFound,
+        None => StatusCode::NOT_FOUND,
     };
     Ok(ApiResponse {
         json: json!({}),
@@ -136,7 +133,7 @@ pub async fn change_openid_client_state(
     })
 }
 
-#[delete("/<client_id>")]
+// #[delete("/<client_id>")]
 pub async fn delete_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
@@ -154,9 +151,9 @@ pub async fn delete_openid_client(
                 "User {} deleted OpenID client {}",
                 session.user.username, client_id
             );
-            Status::Ok
+            StatusCode::OK
         }
-        None => Status::NotFound,
+        None => StatusCode::NOT_FOUND,
     };
     Ok(ApiResponse {
         json: json!({}),

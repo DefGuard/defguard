@@ -10,7 +10,7 @@ use crate::{
 };
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
 use chrono::{NaiveDateTime, Utc};
-use enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer};
+// use enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer};
 #[cfg(feature = "wireguard")]
 use gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
 use serde::Serialize;
@@ -29,7 +29,7 @@ use tonic::transport::{Identity, Server, ServerTlsConfig};
 use uuid::Uuid;
 
 mod auth;
-pub mod enrollment;
+// pub mod enrollment;
 #[cfg(feature = "wireguard")]
 pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -222,12 +222,12 @@ pub async fn run_grpc_server(
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
-    let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(
-        pool.clone(),
-        wireguard_tx.clone(),
-        mail_tx,
-        config.clone(),
-    ));
+    // let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(
+    //     pool.clone(),
+    //     wireguard_tx.clone(),
+    //     mail_tx,
+    //     config.clone(),
+    // ));
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
@@ -250,7 +250,7 @@ pub async fn run_grpc_server(
     let builder = builder.http2_keepalive_interval(Some(Duration::from_secs(10)));
     let mut builder = builder.tcp_keepalive(Some(Duration::from_secs(10)));
     let router = builder.add_service(auth_service);
-    let router = router.add_service(enrollment_service);
+    // let router = router.add_service(enrollment_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]

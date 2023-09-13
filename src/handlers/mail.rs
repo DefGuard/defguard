@@ -2,11 +2,6 @@ use std::fmt::Display;
 
 use chrono::Utc;
 use lettre::message::header::ContentType;
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Json},
-    State,
-};
 use tokio::sync::mpsc::unbounded_channel;
 
 use super::{ApiResponse, ApiResult};
@@ -35,7 +30,7 @@ fn internal_error(to: &str, subject: &str, error: &impl Display) -> ApiResponse 
         json: json!({
             "error": error.to_string(),
         }),
-        status: Status::InternalServerError,
+        status: StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
 
@@ -69,7 +64,7 @@ pub async fn test_mail(
                 );
                 Ok(ApiResponse {
                     json: json!({}),
-                    status: Status::Ok,
+                    status: StatusCode::OK,
                 })
             }
             Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
@@ -139,7 +134,7 @@ pub async fn send_support_data(
                 );
                 Ok(ApiResponse {
                     json: json!({}),
-                    status: Status::Ok,
+                    status: StatusCode::OK,
                 })
             }
             Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),

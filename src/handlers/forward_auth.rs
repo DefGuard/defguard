@@ -1,13 +1,7 @@
-use crate::{appstate::AppState, db::Session, error::OriWebError, SERVER_CONFIG};
+use crate::{appstate::AppState, db::Session, error::WebError, SERVER_CONFIG};
 use reqwest::Url;
-use rocket::{
-    http::{CookieJar, Status},
-    request::{FromRequest, Outcome, Request},
-    response::{self, Redirect, Responder},
-    State,
-};
 
-/* Header Names */
+// Header names
 static FORWARDED_HOST: &str = "X-Forwarded-Host";
 static FORWARDED_PROTO: &str = "X-Forwarded-Proto";
 static FORWARDED_URI: &str = "X-Forwarded-Uri";
@@ -32,9 +26,9 @@ pub struct ForwardAuthHeaders {
     pub forwarded_uri: Option<String>,
 }
 
-#[rocket::async_trait]
+// #[rocket::async_trait]
 impl<'r> FromRequest<'r> for ForwardAuthHeaders {
-    type Error = OriWebError;
+    type Error = WebError;
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let headers = request.headers();
@@ -50,12 +44,12 @@ impl<'r> FromRequest<'r> for ForwardAuthHeaders {
     }
 }
 
-#[get("/forward_auth")]
+// #[get("/forward_auth")]
 pub async fn forward_auth(
     appstate: &State<AppState>,
     cookies: &CookieJar<'_>,
     headers: ForwardAuthHeaders,
-) -> Result<ForwardAuthResponse, OriWebError> {
+) -> Result<ForwardAuthResponse, WebError> {
     // check if session cookie is present
     if let Some(session_cookie) = cookies.get("defguard_session") {
         // check if session is found in DB
@@ -79,21 +73,21 @@ pub async fn forward_auth(
     login_redirect(headers).await
 }
 
-async fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, OriWebError> {
+async fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, WebError> {
     let server_url = &SERVER_CONFIG
         .get()
-        .ok_or(OriWebError::ServerConfigMissing)?
+        .ok_or(WebError::ServerConfigMissing)?
         .url;
     // prepare redirect URL for login page
     let mut location = server_url.join("/auth/login").map_err(|err| {
         error!("Failed to prepare redirect URL: {err}");
-        OriWebError::Http(Status::InternalServerError)
+        WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
     if let Some(host) = headers.forwarded_host {
         if host != server_url.to_string() {
             let mut referral_url = Url::parse(format!("http://{host}").as_str()).map_err(|_| {
                 error!("Failed to parse forwarded host as URL: {host}");
-                OriWebError::Http(Status::InternalServerError)
+                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
             })?;
             if let Some(proto) = headers.forwarded_proto {
                 if let Err(_e) = referral_url.set_scheme(&proto) {

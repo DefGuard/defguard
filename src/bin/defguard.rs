@@ -3,7 +3,7 @@ use defguard::{
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
     grpc::{run_grpc_server, GatewayMap, WorkerState},
-    init_dev_env, init_vpn_location, logging,
+    init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
     run_web_server,
     wireguard_stats_purge::run_periodic_stats_purge,
@@ -15,6 +15,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+#[macro_use]
+extern crate tracing;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -22,7 +26,14 @@ async fn main() -> Result<(), anyhow::Error> {
         dotenvy::dotenv().ok();
     }
     let config = DefGuardConfig::new();
-    logging::init(&config.log_level, &config.log_file)?;
+    // initialize tracing
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "defguard=info,tower_http=info,axum::rejection=trace".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
     SERVER_CONFIG.set(config.clone())?;
 
     let pool = init_db(
@@ -50,12 +61,12 @@ async fn main() -> Result<(), anyhow::Error> {
         return Ok(());
     }
 
-    log::debug!("Starting defguard server with config: {config:?}");
+    debug!("Starting Defguard server with config: {config:?}");
 
     if config.openid_signing_key.is_some() {
-        log::info!("Using RSA OpenID signing key");
+        info!("Using RSA OpenID signing key");
     } else {
-        log::info!("Using HMAC OpenID signing key");
+        info!("Using HMAC OpenID signing key");
     }
 
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
