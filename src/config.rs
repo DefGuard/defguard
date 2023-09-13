@@ -1,8 +1,14 @@
-use clap::Parser;
+use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
+use ipnetwork::IpNetwork;
 use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
-use rsa::{pkcs1::EncodeRsaPrivateKey, pkcs8::DecodePrivateKey, PublicKeyParts, RsaPrivateKey};
+use rsa::{
+    pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
+    pkcs8::{DecodePrivateKey, LineEnding},
+    traits::PublicKeyParts,
+    RsaPrivateKey,
+};
 use secrecy::{ExposeSecret, Secret};
 
 #[derive(Clone, Parser, Serialize, Debug)]
@@ -175,12 +181,32 @@ pub struct DefGuardConfig {
     pub cmd: Option<Command>,
 }
 
-#[derive(Clone, Debug, Parser)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum Command {
     #[command(
         about = "Initialize development environment. Inserts test network and device into database."
     )]
     InitDevEnv,
+    #[command(
+        about = "Add a new VPN location and return a gateway token. Used for automated setup."
+    )]
+    InitVpnLocation(InitVpnLocationArgs),
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct InitVpnLocationArgs {
+    #[arg(long)]
+    pub name: String,
+    #[arg(long)]
+    pub address: IpNetwork,
+    #[arg(long)]
+    pub endpoint: String,
+    #[arg(long)]
+    pub port: i32,
+    #[arg(long)]
+    pub dns: Option<String>,
+    #[arg(long)]
+    pub allowed_ips: Vec<IpNetwork>,
 }
 
 impl DefGuardConfig {
@@ -260,14 +286,19 @@ impl DefGuardConfig {
         )
     }
 
+    /// Try PKCS#1 and PKCS#8 PEM formats.
     fn parse_openid_key(path: &str) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
-        RsaPrivateKey::read_pkcs8_pem_file(path)
+        if let Ok(key) = RsaPrivateKey::read_pkcs1_pem_file(path) {
+            Ok(key)
+        } else {
+            RsaPrivateKey::read_pkcs8_pem_file(path)
+        }
     }
 
     #[must_use]
     pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
         let key = self.openid_signing_key.as_ref()?;
-        if let Ok(pem) = key.to_pkcs1_pem(rsa::pkcs8::LineEnding::default()) {
+        if let Ok(pem) = key.to_pkcs1_pem(LineEnding::default()) {
             let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
             CoreRsaPrivateSigningKey::from_pem(pem.as_ref(), Some(key_id)).ok()
         } else {

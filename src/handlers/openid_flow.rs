@@ -4,9 +4,8 @@ use crate::{
     auth::{AccessUserInfo, SessionInfo, SESSION_TIMEOUT},
     db::{
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
-        OAuth2AuthorizedApp, OAuth2Token,
+        DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, User,
     },
-    db::{DbPool, Session, User},
     error::OriWebError,
 };
 use base64::Engine;

@@ -43,9 +43,9 @@ RUN pnpm run generate-translation-types
 RUN pnpm build
 
 # run
-FROM debian:bullseye-slim as runtime
+FROM debian:bookworm-slim as runtime
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y ca-certificates && \
+    apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .

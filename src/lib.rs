@@ -4,6 +4,8 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::{
+    auth::{Claims, ClaimsType},
+    config::InitVpnLocationArgs,
     db::User,
     handlers::{
         mail::{send_support_data, test_mail},
@@ -38,6 +40,7 @@ use crate::{
     },
     license::{Features, License},
 };
+use anyhow::anyhow;
 use appstate::AppState;
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
@@ -430,4 +433,43 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .expect("Failed to commit transaction");
 
     info!("Dev environment initialized - TestNet, TestDevice, AuthorizedApps added");
+}
+
+/// Create a new VPN location.
+/// Meant to be used to automate setting up a new defguard instance.
+/// Does not handle assigning device IPs, since no device should exist at this point.
+pub async fn init_vpn_location(
+    pool: &DbPool,
+    args: &InitVpnLocationArgs,
+) -> Result<String, anyhow::Error> {
+    // check if a VPN location exists already
+    let networks = WireguardNetwork::all(pool).await?;
+    if !networks.is_empty() {
+        return Err(anyhow!(
+            "Failed to initialize first VPN location. A location already exists."
+        ));
+    };
+
+    // create a new network
+    let mut network = WireguardNetwork::new(
+        args.name.clone(),
+        args.address,
+        args.port,
+        args.endpoint.clone(),
+        args.dns.clone(),
+        args.allowed_ips.clone(),
+    )?;
+    network.save(pool).await?;
+    let network_id = network.get_id()?;
+
+    // generate gateway token
+    let token = Claims::new(
+        ClaimsType::Gateway,
+        format!("DEFGUARD-NETWORK-{network_id}"),
+        network_id.to_string(),
+        u32::MAX.into(),
+    )
+    .to_jwt()?;
+
+    Ok(token)
 }
