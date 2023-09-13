@@ -304,7 +304,9 @@ export const WebhooksListPage = () => {
             onClick={() => setWebhookModalState({ visible: true, webhook: undefined })}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
-            text={LL.webhooksOverview.addNewWebhook()}
+            text={
+              breakpoint === 'desktop' ? LL.webhooksOverview.addNewWebhook() : undefined
+            }
             icon={<SvgIconPlusWhite />}
           />
         </div>

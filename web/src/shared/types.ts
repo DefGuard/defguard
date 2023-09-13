@@ -485,6 +485,7 @@ export interface WorkerJobStatus {
   pgp_key?: string;
   ssh_key?: string;
   success?: boolean;
+  errorMessage?: string;
 }
 
 export interface WorkerJobStatusError {

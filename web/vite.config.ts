@@ -28,11 +28,9 @@ export default defineConfig({
     },
   },
   envPrefix: ['VITE_'],
-  assetsInclude: ['./src/shared/fonts/**/*', './src/shared/assets/**/*'],
+  assetsInclude: ['./src/shared/assets/**/*'],
   resolve: {
     alias: {
-      '@fonts': path.resolve(__dirname, '/src/shared/fonts'),
-      '@shared': path.resolve(__dirname, '/src/shared'),
       '@scss': path.resolve(__dirname, '/src/shared/scss'),
       '@scssutils': path.resolve(__dirname, '/src/shared/scss/helpers'),
     },

@@ -14,7 +14,7 @@ import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layo
 import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { useModalStore } from '../../../../../../shared/hooks/store/useModalStore';
 import { WorkerJobStatus } from '../../../../../../shared/types';
-import KeyBox from '../../../components/KeyBox/KeyBox';
+import { KeyBox } from '../../../components/KeyBox/KeyBox';
 
 interface Props {
   setIsOpen: (v: boolean) => void;
