@@ -1,17 +1,25 @@
 pub mod failed_login;
 
-use crate::{
-    // appstate::AppState,
-    db::{OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
-    error::WebError,
+use std::{
+    env,
+    time::{Duration, SystemTime},
+};
+
+use axum::{
+    async_trait,
+    extract::{FromRef, FromRequest},
+    http::Request,
 };
 use jsonwebtoken::{
     decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    env,
-    time::{Duration, SystemTime},
+use tower_cookies::{Cookie, CookieManagerLayer, Cookies};
+
+use crate::{
+    appstate::AppState,
+    db::{OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
+    error::WebError,
 };
 
 pub static JWT_ISSUER: &str = "DefGuard";
@@ -104,43 +112,53 @@ impl Claims {
     }
 }
 
-// #[rocket::async_trait]
-// impl<'r> FromRequest<'r> for Session {
-//     type Error = WebError;
+#[async_trait]
+impl<S, B> FromRequest<S, B> for Session
+where
+    S: Send + Sync,
+    B: Send + 'static,
+    AppState: FromRef<S>,
+{
+    type Rejection = WebError;
 
-//     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-//         if let Some(state) = request.rocket().state::<AppState>() {
-//             let cookies = request.cookies();
-//             if let Some(session_cookie) = cookies.get("defguard_session") {
-//                 return {
-//                     match Session::find_by_id(&state.pool, session_cookie.value()).await {
-//                         Ok(Some(session)) => {
-//                             if session.expired() {
-//                                 let _result = session.delete(&state.pool).await;
-//                                 cookies.remove(Cookie::named("defguard_session"));
-//                                 Outcome::Failure((
-//                                     Status::Unauthorized,
-//                                     WebError::Authorization("Session expired".into()),
-//                                 ))
-//                             } else {
-//                                 Outcome::Success(session)
-//                             }
-//                         }
-//                         Ok(None) => Outcome::Failure((
-//                             Status::Unauthorized,
-//                             WebError::Authorization("Session not found".into()),
-//                         )),
-//                         Err(err) => Outcome::Failure((StatusCode::INTERNAL_SERVER_ERROR, err.into())),
-//                     }
-//                 };
-//             }
-//         }
-//         Outcome::Failure((
-//             Status::Unauthorized,
-//             WebError::Authorization("Session is required".into()),
-//         ))
-//     }
-// }
+    async fn from_request(request: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+        let app_state = AppState::from_ref(state);
+        // let cookies =
+
+        //         if let Some(state) = request.rocket().state::<AppState>() {
+        //             let cookies = request.cookies();
+        //             if let Some(session_cookie) = cookies.get("defguard_session") {
+        //                 return {
+        //                     match Session::find_by_id(&state.pool, session_cookie.value()).await {
+        //                         Ok(Some(session)) => {
+        //                             if session.expired() {
+        //                                 let _result = session.delete(&state.pool).await;
+        //                                 cookies.remove(Cookie::named("defguard_session"));
+        //                                 Outcome::Failure((
+        //                                     Status::Unauthorized,
+        //                                     WebError::Authorization("Session expired".into()),
+        //                                 ))
+        //                             } else {
+        //                                 Outcome::Success(session)
+        //                             }
+        //                         }
+        //                         Ok(None) => Outcome::Failure((
+        //                             Status::Unauthorized,
+        //                             WebError::Authorization("Session not found".into()),
+        //                         )),
+        //                         Err(err) => Outcome::Failure((StatusCode::INTERNAL_SERVER_ERROR, err.into())),
+        //                     }
+        //                 };
+        //             }
+        //         }
+        //         Outcome::Failure((
+        //             Status::Unauthorized,
+        //             WebError::Authorization("Session is required".into()),
+        //         ))
+        // FIXME: dummy error
+        Err(WebError::Authorization("MFA not verified".into()))
+    }
+}
 
 // Extension of base user session including user data fetched from DB
 // This represents a session for a user who completed the login process (including MFA if enabled)
@@ -161,44 +179,52 @@ impl SessionInfo {
     }
 }
 
-// #[rocket::async_trait]
-// impl<'r> FromRequest<'r> for SessionInfo {
-//     type Error = WebError;
+#[async_trait]
+impl<S, B> FromRequest<S, B> for SessionInfo
+where
+    S: Send + Sync,
+    B: Send + 'static,
+    AppState: FromRef<S>,
+{
+    type Rejection = WebError;
 
-//     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-//         if let Some(state) = request.rocket().state::<AppState>() {
-//             let session = try_outcome!(request.guard::<Session>().await);
-//             let user = User::find_by_id(&state.pool, session.user_id).await;
-//             if let Ok(Some(user)) = &user {
-//                 if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
-//                     return Outcome::Failure((
-//                         Status::Unauthorized,
-//                         WebError::Authorization("MFA not verified".into()),
-//                     ));
-//                 }
-//             }
+    async fn from_request(request: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+        let app_state = AppState::from_ref(state);
+        //     let session = try_outcome!(request.guard::<Session>().await);
+        //     let user = User::find_by_id(&state.pool, session.user_id).await;
+        //     if let Ok(Some(user)) = &user {
+        //         if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
+        //             return Outcome::Failure((
+        //                 Status::Unauthorized,
+        //                 WebError::Authorization("MFA not verified".into()),
+        //             ));
+        //         }
+        //     }
 
-//             return match user {
-//                 Ok(Some(user)) => {
-//                     let is_admin = match user.member_of(&state.pool).await {
-//                         Ok(groups) => groups.contains(&state.config.admin_groupname),
-//                         _ => false,
-//                     };
-//                     Outcome::Success(SessionInfo::new(session, user, is_admin))
-//                 }
-//                 _ => Outcome::Failure((
-//                     Status::Unauthorized,
-//                     WebError::Authorization("User not found".into()),
-//                 )),
-//             };
-//         }
+        //     return match user {
+        //         Ok(Some(user)) => {
+        //             let is_admin = match user.member_of(&state.pool).await {
+        //                 Ok(groups) => groups.contains(&state.config.admin_groupname),
+        //                 _ => false,
+        //             };
+        //             Outcome::Success(SessionInfo::new(session, user, is_admin))
+        //         }
+        //         _ => Outcome::Failure((
+        //             Status::Unauthorized,
+        //             WebError::Authorization("User not found".into()),
+        //         )),
+        //     };
+        // }
 
-//         Outcome::Failure((
-//             Status::Unauthorized,
-//             WebError::Authorization("Invalid session".into()),
-//         ))
-//     }
-// }
+        // Outcome::Failure((
+        //     Status::Unauthorized,
+        //     WebError::Authorization("Invalid session".into()),
+        // ))
+
+        // FIXME: dummy error
+        Err(WebError::Authorization("MFA not verified".into()))
+    }
+}
 
 pub struct AdminRole;
 

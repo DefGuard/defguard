@@ -1,3 +1,7 @@
+use axum::http::StatusCode;
+use sqlx::error::Error as SqlxError;
+use thiserror::Error;
+
 use crate::{
     auth::failed_login::FailedLoginError,
     db::models::{
@@ -8,9 +12,6 @@ use crate::{
     ldap::error::OriLDAPError,
     templates::TemplateError,
 };
-use axum::http::StatusCode;
-use sqlx::error::Error as SqlxError;
-use thiserror::Error;
 
 /// Represents kinds of error that occurred
 #[derive(Debug, Error)]

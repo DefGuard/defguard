@@ -8,7 +8,6 @@ use crate::{
     //     user::change_self_password,
     // },
 };
-use secrecy::ExposeSecret;
 
 // #[cfg(feature = "worker")]
 // use crate::handlers::worker::{
@@ -29,14 +28,12 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
     grpc::{GatewayMap, WorkerState},
-    // handlers::{
-    //     app_info::get_app_info,
-    //     wireguard::{add_user_devices, import_network},
-    // },
+    handlers::app_info::get_app_info,
 };
 use anyhow::anyhow;
 use appstate::AppState;
 use axum::{
+    error_handling::HandleError,
     handler::HandlerWithoutStateExt,
     http::{Request, StatusCode},
     response::IntoResponse,
@@ -52,6 +49,7 @@ use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
 //     webauthn_init, webauthn_start,
 // };
 use mail::Mail;
+use secrecy::ExposeSecret;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
@@ -129,7 +127,10 @@ pub async fn build_webapp(
     let webapp = Router::new()
         .nest(
             "/api/v1",
-            Router::new().route("/health", get(health_check)), // .route("/auth", post(authenticate)),
+            Router::new()
+                .route("/health", get(health_check))
+                .route("/info", get(get_app_info)),
+            // .route("/auth", post(authenticate)),
         )
         .nest_service("/svg", serve_images)
         .fallback_service(serve_web_dir)

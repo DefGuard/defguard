@@ -148,11 +148,11 @@ async fn test_totp() {
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // new TOTP secret
     let response = client.post("/api/v1/auth/totp/init").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let auth_totp: AuthTotp = response.into_json().await.unwrap();
 
     // enable TOTP

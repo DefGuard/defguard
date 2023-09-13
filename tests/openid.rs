@@ -18,10 +18,6 @@ use openidconnect::{
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
     PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
 };
-use rocket::{
-    http::{ContentType, Header, Status},
-    local::asynchronous::Client,
-};
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use std::str::FromStr;

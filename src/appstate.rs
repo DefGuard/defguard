@@ -23,7 +23,7 @@ pub struct AppState {
     tx: UnboundedSender<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
     pub mail_tx: UnboundedSender<Mail>,
-    pub webauthn: Webauthn,
+    pub webauthn: Arc<Webauthn>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
 }
 
@@ -107,9 +107,11 @@ impl AppState {
             &config.url,
         )
         .expect("Invalid WebAuthn configuration");
-        let webauthn = webauthn_builder
-            .build()
-            .expect("Invalid WebAuthn configuration");
+        let webauthn = Arc::new(
+            webauthn_builder
+                .build()
+                .expect("Invalid WebAuthn configuration"),
+        );
 
         Self {
             config,

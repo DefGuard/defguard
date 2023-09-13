@@ -1,4 +1,9 @@
-use axum::http::StatusCode;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
+use hyper::http::{HeaderName, HeaderValue};
 use serde_json::{json, Value};
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
@@ -35,70 +40,95 @@ pub struct ApiResponse {
     pub status: StatusCode,
 }
 
+impl ApiResponse {
+    #[must_use]
+    pub fn new(json: Value, status: StatusCode) -> Self {
+        Self { json, status }
+    }
+}
+
+impl From<WebError> for ApiResponse {
+    fn from(web_error: WebError) -> ApiResponse {
+        match web_error {
+            WebError::ObjectNotFound(msg) => {
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
+            }
+            WebError::Authorization(msg) => {
+                error!("{msg}");
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
+            }
+            WebError::Forbidden(msg) => {
+                error!("{msg}");
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::FORBIDDEN)
+            }
+            WebError::DbError(_)
+            | WebError::Grpc(_)
+            | WebError::Ldap(_)
+            | WebError::WebauthnRegistration(_)
+            | WebError::Serialization(_)
+            | WebError::ModelError(_)
+            | WebError::ServerConfigMissing => {
+                error!("{web_error}");
+                ApiResponse::new(
+                    json!({"msg": "Internal server error"}),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )
+            }
+            WebError::Http(status) => {
+                error!("{status}");
+                ApiResponse::new(
+                    json!({ "msg": status.canonical_reason().unwrap_or_default() }),
+                    status,
+                )
+            }
+            WebError::TooManyLoginAttempts(_) => ApiResponse::new(
+                json!({ "msg": "Too many login attempts" }),
+                StatusCode::TOO_MANY_REQUESTS,
+            ),
+            WebError::IncorrectUsername(msg)
+            | WebError::PubkeyValidation(msg)
+            | WebError::BadRequest(msg) => {
+                error!("{msg}");
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+            }
+            WebError::TemplateError(err) => {
+                error!("Template error: {err}");
+                ApiResponse::new(
+                    json!({"msg": "Internal server error"}),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )
+            }
+        }
+    }
+}
+
+impl IntoResponse for WebError {
+    fn into_response(self) -> Response {
+        let api_response = ApiResponse::from(self);
+        api_response.into_response()
+    }
+}
+
+impl IntoResponse for ApiResponse {
+    fn into_response(self) -> Response {
+        let mut response = Json(self.json).into_response();
+        response.headers_mut().insert(
+            HeaderName::from_static("X-Defguard-Version"),
+            HeaderValue::from_static(VERSION),
+        );
+        *response.status_mut() = self.status;
+        response
+    }
+}
+
 pub type ApiResult = Result<ApiResponse, WebError>;
 
-// impl<'r, 'o: 'r> Responder<'r, 'o> for WebError {
-//     fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, StatusCode> {
-//         let (json, status) = match self {
-//             WebError::ObjectNotFound(msg) => (json!({ "msg": msg }), StatusCode::NOT_FOUND),
-//             WebError::Authorization(msg) => {
-//                 error!("{}", msg);
-//                 (json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
-//             }
-//             WebError::Forbidden(msg) => {
-//                 error!("{}", msg);
-//                 (json!({ "msg": msg }), StatusCode::FORBIDDEN)
-//             }
-//             WebError::DbError(_)
-//             | WebError::Grpc(_)
-//             | WebError::Ldap(_)
-//             | WebError::WebauthnRegistration(_)
-//             | WebError::Serialization(_)
-//             | WebError::ModelError(_)
-//             | WebError::ServerConfigMissing => {
-//                 error!("{self}");
-//                 (
-//                     json!({"msg": "Internal server error"}),
-//                     StatusCode::INTERNAL_SERVER_ERROR,
-//                 )
-//             }
-//             WebError::Http(status) => {
-//                 error!("{}", status);
-//                 (json!({ "msg": status.reason_lossy() }), status)
-//             }
-//             WebError::TooManyLoginAttempts(_) => (
-//                 json!({ "msg": "Too many login attempts" }),
-//                 StatusCode::TOO_MANY_REQUESTS,
-//             ),
-//             WebError::IncorrectUsername(msg)
-//             | WebError::PubkeyValidation(msg)
-//             | WebError::BadRequest(msg) => {
-//                 error!("{}", msg);
-//                 (json!({ "msg": msg }), StatusCode::BAD_REQUEST)
-//             }
-//             WebError::TemplateError(err) => {
-//                 error!("Template error: {err}");
-//                 (
-//                     json!({"msg": "Internal server error"}),
-//                     StatusCode::INTERNAL_SERVER_ERROR,
-//                 )
-//             }
-//         };
-//         Response::build_from(json.respond_to(request)?)
-//             .status(status)
-//             .header(ContentType::JSON)
-//             .raw_header("X-Defguard-Version", VERSION)
-//             .ok()
-//     }
-// }
-
-// impl<'r, 'o: 'r> Responder<'r, 'o> for ApiResponse {
-//     fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, StatusCode> {
-//         Response::build_from(self.json.respond_to(request)?)
-//             .status(self.status)
-//             .header(ContentType::JSON)
-//             .raw_header("X-Defguard-Version", VERSION)
-//             .ok()
+// impl IntoResponse for ApiResult {
+//     fn into_response(self) -> Response {
+//         match self {
+//             Ok(api_response) => api_response.into_response(),
+//             Err(web_error) => web_error.into_response(),
+//         }
 //     }
 // }
 
