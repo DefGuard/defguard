@@ -31,6 +31,7 @@ log = "0.4"
 md4 = "0.10"
 otpauth = "0.4"
 openidconnect = { version = "3.3", default-features = false, optional = true }
+openssl = { version = "0.10", features = ["vendored"] }
 pulldown-cmark = "0.9"
 prost = "0.11"
 rand = "0.8"
