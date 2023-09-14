@@ -68,7 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build: [ linux, linux-arm, linux-arm64, freebsd ]
+        build: [ linux, linux-arm, linux-arm64 ]
         include:
           - build: linux
             os: self-hosted
