@@ -1,3 +1,14 @@
+use std::{
+    net::IpAddr,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
+
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use ipnetwork::IpNetwork;
+use serde_json::Value;
+use uuid::Uuid;
+
 use super::{
     device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError,
 };
@@ -14,23 +25,6 @@ use crate::{
     grpc::GatewayMap,
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
-use chrono::{DateTime, Duration, NaiveDateTime, Utc};
-use ipnetwork::IpNetwork;
-use rocket::{
-    http::Status,
-    serde::{
-        json::{json, Json},
-        Deserialize,
-    },
-    State,
-};
-use serde_json::Value;
-use std::{
-    net::IpAddr,
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
-use uuid::Uuid;
 
 #[derive(Deserialize, Serialize)]
 pub struct WireguardNetworkData {

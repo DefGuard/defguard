@@ -1,15 +1,15 @@
+mod common;
+
 use defguard::{
     db::{models::device::UserDevice, Device, GatewayEvent, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
-use rocket::{http::Status, serde::json::serde_json::json};
 use tokio::sync::broadcast::error::TryRecvError;
 
-mod common;
 use self::common::{fetch_user_details, make_test_client};
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_config_import() {
     let wg_config = "
         [Interface]
@@ -206,7 +206,7 @@ async fn test_config_import() {
     );
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_config_import_missing_interface() {
     let wg_config = "
         PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
@@ -239,7 +239,7 @@ async fn test_config_import_missing_interface() {
     assert_eq!(response.status(), Status::UnprocessableEntity);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_config_import_invalid_key() {
     let wg_config = "
         [Interface]
@@ -298,7 +298,7 @@ async fn test_config_import_invalid_key() {
     assert_eq!(response.status(), Status::UnprocessableEntity);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_config_import_invalid_ip() {
     let wg_config = "
         [Interface]
@@ -332,7 +332,7 @@ async fn test_config_import_invalid_ip() {
     assert_eq!(response.status(), Status::UnprocessableEntity);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_config_import_nonadmin() {
     let wg_config = "
         [Interface]

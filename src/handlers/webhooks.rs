@@ -4,13 +4,8 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     db::WebHook,
 };
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Json},
-    State,
-};
 
-#[post("/", format = "json", data = "<data>")]
+// #[post("/", format = "json", data = "<data>")]
 pub async fn add_webhook(
     _admin: AdminRole,
     appstate: &State<AppState>,
@@ -31,7 +26,7 @@ pub async fn add_webhook(
     })
 }
 
-#[get("/", format = "json")]
+// #[get("/", format = "json")]
 // TODO: paginate
 pub async fn list_webhooks(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
     let webhooks = WebHook::all(&appstate.pool).await?;

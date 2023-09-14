@@ -1,3 +1,7 @@
+mod common;
+
+use std::borrow::Cow;
+
 use defguard::{
     db::{
         models::{
@@ -9,14 +13,7 @@ use defguard::{
     handlers::Auth,
 };
 use reqwest::Url;
-use rocket::{
-    http::{ContentType, Status},
-    local::asynchronous::Client,
-    serde::json::json,
-};
-use std::borrow::Cow;
 
-mod common;
 use self::common::make_enterprise_test_client;
 
 async fn make_client() -> (Client, DbPool) {
@@ -24,7 +21,7 @@ async fn make_client() -> (Client, DbPool) {
     (client, client_state.pool)
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_authorize() {
     let (client, pool) = make_client().await;
 
@@ -138,7 +135,7 @@ async fn test_authorize() {
     );
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_openid_app_management_access() {
     let (client, _) = make_client().await;
 
@@ -303,7 +300,7 @@ async fn test_openid_app_management_access() {
     assert_eq!(response.status(), Status::Forbidden);
 }
 
-// #[rocket::async_test]
+// #[tokio::test]
 // async fn test_authorize_consent() {
 //     let client = make_client().await;
 
@@ -365,7 +362,7 @@ async fn test_openid_app_management_access() {
 //     assert_eq!(response.status(), Status::Ok);
 // }
 
-// #[rocket::async_test]
+// #[tokio::test]
 // async fn test_authorize_consent_wrong_client() {
 //     let client = make_client().await;
 
@@ -384,7 +381,7 @@ async fn test_openid_app_management_access() {
 //     assert_eq!(response.status(), Status::BadRequest);
 // }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_token_client_credentials() {
     let (client, _) = make_client().await;
 

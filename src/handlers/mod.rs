@@ -1,9 +1,8 @@
 use axum::{
-    http::StatusCode,
+    http::{HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
-use hyper::http::{HeaderName, HeaderValue};
 use serde_json::{json, Value};
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
@@ -27,7 +26,7 @@ pub(crate) mod auth;
 // pub mod openid_flow;
 // pub(crate) mod settings;
 // pub(crate) mod support;
-// pub(crate) mod user;
+pub(crate) mod user;
 // pub(crate) mod webhooks;
 // #[cfg(feature = "wireguard")]
 // pub mod wireguard;
@@ -113,7 +112,7 @@ impl IntoResponse for ApiResponse {
     fn into_response(self) -> Response {
         let mut response = Json(self.json).into_response();
         response.headers_mut().insert(
-            HeaderName::from_static("X-Defguard-Version"),
+            HeaderName::from_static("x-defguard-version"),
             HeaderValue::from_static(VERSION),
         );
         *response.status_mut() = self.status;

@@ -23,9 +23,7 @@ use serde::Deserialize;
 use std::str::FromStr;
 
 mod common;
-use self::common::{
-    init_test_db, make_base_client, make_enterprise_test_client, LICENSE_ENTERPRISE,
-};
+use self::common::{init_test_db, make_base_client, make_enterprise_test_client};
 
 async fn make_client() -> Client {
     let (client, _) = make_enterprise_test_client().await;
@@ -43,7 +41,7 @@ pub struct AuthenticationResponse<'r> {
     pub state: &'r str,
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_openid_client() {
     let client = make_client().await;
 
@@ -102,7 +100,7 @@ async fn test_openid_client() {
     assert!(openid_clients.is_empty());
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_openid_flow() {
     let client = make_client().await;
     let auth = Auth::new("admin".into(), "pass123".into());
@@ -377,7 +375,7 @@ async fn http_client(
     })
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_openid_authorization_code() {
     let (pool, mut config) = init_test_db().await;
     config.license = LICENSE_ENTERPRISE.into();
@@ -476,7 +474,7 @@ async fn test_openid_authorization_code() {
     assert!(refresh_response.refresh_token().is_some());
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_openid_authorization_code_with_pkce() {
     let (pool, mut config) = init_test_db().await;
     config.license = LICENSE_ENTERPRISE.into();

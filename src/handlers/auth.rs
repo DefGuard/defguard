@@ -28,65 +28,57 @@ use crate::{
     SERVER_CONFIG,
 };
 
+static SESSION_COOKIE_NAME: &'static str = "defguard_session";
+
 /// For successful login, return:
 /// * 200 with MFA disabled
 /// * 201 with MFA enabled when additional authentication factor is required
-// #[post("/auth", format = "json", data = "<data>")]
 pub async fn authenticate(
-    State(appstate): State<AppState>,
-    mut data: Json<Auth>,
     cookies: Cookies,
+    State(appstate): State<AppState>,
+    Json(data): Json<Auth>,
 ) -> ApiResult {
-    debug!("Authenticating user {}", data.username);
+    let lowercase_username = data.username.to_lowercase();
+    debug!("Authenticating user {lowercase_username}");
     // check if user can proceed with login
-    check_username(&appstate.failed_logins, &data.username)?;
+    check_username(&appstate.failed_logins, &lowercase_username)?;
 
-    data.username = data.username.to_lowercase();
-    let user = match User::find_by_username(&appstate.pool, &data.username).await {
+    let user = match User::find_by_username(&appstate.pool, &lowercase_username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
             Ok(_) => user,
             Err(err) => {
-                info!("Failed to authenticate user {}: {}", data.username, err);
-                log_failed_login_attempt(&appstate.failed_logins, &data.username);
+                info!("Failed to authenticate user {lowercase_username}: {err}");
+                log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);
                 return Err(WebError::Authorization(err.to_string()));
             }
         },
         Ok(None) => {
             // create user from LDAP
-            debug!(
-                "User not found in DB, authenticating user {} with LDAP",
-                data.username
-            );
+            debug!("User not found in DB, authenticating user {lowercase_username} with LDAP");
             // FIXME: assume LDAP is enabled; use other means to enable/disable LDAP.
             if true {
                 if let Ok(user) = user_from_ldap(
                     &appstate.pool,
                     &appstate.config,
-                    &data.username,
+                    &lowercase_username,
                     &data.password,
                 )
                 .await
                 {
                     user
                 } else {
-                    info!("Failed to authenticate user {} with LDAP", data.username);
-                    log_failed_login_attempt(&appstate.failed_logins, &data.username);
+                    info!("Failed to authenticate user {lowercase_username} with LDAP");
+                    log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);
                     return Err(WebError::Authorization("user not found".into()));
                 }
             } else {
-                info!(
-                    "User {} not found in DB and LDAP is disabled",
-                    data.username
-                );
-                log_failed_login_attempt(&appstate.failed_logins, &data.username);
+                info!("User {lowercase_username} not found in DB and LDAP is disabled");
+                log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);
                 return Err(WebError::Authorization("LDAP feature disabled".into()));
             }
         }
         Err(err) => {
-            error!(
-                "DB error when authenticating user {}: {}",
-                data.username, err
-            );
+            error!("DB error when authenticating user {lowercase_username}: {err}");
             return Err(WebError::DbError(err.to_string()));
         }
     };
@@ -101,7 +93,7 @@ pub async fn authenticate(
     };
 
     let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
-    let auth_cookie = Cookie::build("defguard_session", session.id)
+    let auth_cookie = Cookie::build(SESSION_COOKIE_NAME, session.id)
         .domain(
             server_config
                 .cookie_domain
@@ -115,7 +107,7 @@ pub async fn authenticate(
         .finish();
     cookies.add(auth_cookie);
 
-    info!("Authenticated user {}", data.username);
+    info!("Authenticated user {lowercase_username}");
     if user.mfa_enabled {
         if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
             Ok(ApiResponse {
@@ -151,14 +143,13 @@ pub async fn authenticate(
 }
 
 /// Logout - forget the session cookie.
-// #[post("/auth/logout")]
 pub async fn logout(
     cookies: Cookies,
     session: Session,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     // remove auth cookie
-    cookies.remove(Cookie::named("defguard_session"));
+    cookies.remove(Cookie::named(SESSION_COOKIE_NAME));
     // remove stored session
     session.delete(&appstate.pool).await?;
     Ok(ApiResponse::default())
@@ -167,10 +158,10 @@ pub async fn logout(
 /// Enable MFA
 // #[put("/auth/mfa")]
 pub async fn mfa_enable(
+    cookies: Cookies,
     session: Session,
     session_info: SessionInfo,
     State(appstate): State<AppState>,
-    cookies: Cookies,
 ) -> ApiResult {
     let mut user = session_info.user;
     debug!("Enabling MFA for user {}", user.username);
@@ -191,7 +182,6 @@ pub async fn mfa_enable(
 }
 
 /// Disable MFA
-// #[delete("/auth/mfa")]
 pub async fn mfa_disable(session_info: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let mut user = session_info.user;
     debug!("Disabling MFA for user {}", user.username);
@@ -201,7 +191,6 @@ pub async fn mfa_disable(session_info: SessionInfo, State(appstate): State<AppSt
 }
 
 /// Initialize WebAuthn registration
-// #[post("/auth/webauthn/init")]
 pub async fn webauthn_init(
     mut session_info: SessionInfo,
     State(appstate): State<AppState>,
@@ -239,7 +228,6 @@ pub async fn webauthn_init(
 }
 
 /// Finish WebAuthn registration
-// #[post("/auth/webauthn/finish", format = "json", data = "<data>")]
 pub async fn webauthn_finish(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -300,7 +288,6 @@ pub async fn webauthn_finish(
 }
 
 /// Start WebAuthn authentication
-// #[post("/auth/webauthn/start")]
 pub async fn webauthn_start(mut session: Session, State(appstate): State<AppState>) -> ApiResult {
     let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
 
@@ -319,12 +306,11 @@ pub async fn webauthn_start(mut session: Session, State(appstate): State<AppStat
 }
 
 /// Finish WebAuthn authentication
-// #[post("/auth/webauthn", format = "json", data = "<pubkey>")]
 pub async fn webauthn_end(
+    cookies: Cookies,
     mut session: Session,
     State(appstate): State<AppState>,
-    pubkey: Json<PublicKeyCredential>,
-    cookies: Cookies,
+    Json(pubkey): Json<PublicKeyCredential>,
 ) -> ApiResult {
     if let Some(passkey_auth) = session.get_passkey_authentication() {
         if let Ok(auth_result) = appstate
@@ -347,7 +333,7 @@ pub async fn webauthn_end(
                 let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
                 let private_cookies = cookies.private(&key);
                 if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
-                    debug!("Found openid session cookie.");
+                    debug!("Found OpenID session cookie.");
                     Ok(ApiResponse {
                         json: json!(AuthResponse {
                             user: user_info,
@@ -373,7 +359,6 @@ pub async fn webauthn_end(
 }
 
 /// Generate new TOTP secret
-// #[post("/auth/totp/init")]
 pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let mut user = session.user;
     debug!("Generating new TOTP secret for user {}", user.username);
@@ -387,11 +372,10 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
 }
 
 /// Enable TOTP
-// #[post("/auth/totp", format = "json", data = "<data>")]
 pub async fn totp_enable(
     session: SessionInfo,
     State(appstate): State<AppState>,
-    data: Json<AuthCode>,
+    Json(data): Json<AuthCode>,
 ) -> ApiResult {
     let mut user = session.user;
     debug!("Enabling TOTP for user {}", user.username);
@@ -413,7 +397,6 @@ pub async fn totp_enable(
 }
 
 /// Disable TOTP
-// #[delete("/auth/totp")]
 pub async fn totp_disable(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let mut user = session.user;
     debug!("Disabling TOTP for user {}", user.username);
@@ -424,12 +407,11 @@ pub async fn totp_disable(session: SessionInfo, State(appstate): State<AppState>
 }
 
 /// Validate one-time passcode
-// #[post("/auth/totp/verify", format = "json", data = "<data>")]
 pub async fn totp_code(
+    cookies: Cookies,
     mut session: Session,
     State(appstate): State<AppState>,
-    data: Json<AuthCode>,
-    cookies: Cookies,
+    Json(data): Json<AuthCode>,
 ) -> ApiResult {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
@@ -467,12 +449,12 @@ pub async fn totp_code(
         Err(WebError::ObjectNotFound("Invalid user".into()))
     }
 }
+
 /// Start Web3 authentication
-// #[post("/auth/web3/start", format = "json", data = "<data>")]
 pub async fn web3auth_start(
     mut session: Session,
     State(appstate): State<AppState>,
-    data: Json<WalletAddress>,
+    Json(data): Json<WalletAddress>,
 ) -> ApiResult {
     debug!("Starting web3 authentication for wallet {}", data.address);
     match Settings::find_by_id(&appstate.pool, 1).await? {
@@ -492,12 +474,11 @@ pub async fn web3auth_start(
 }
 
 /// Finish Web3 authentication
-// #[post("/auth/web3", format = "json", data = "<signature>")]
 pub async fn web3auth_end(
+    cookies: Cookies,
     mut session: Session,
     State(appstate): State<AppState>,
-    signature: Json<WalletSignature>,
-    cookies: Cookies,
+    Json(signature): Json<WalletSignature>,
 ) -> ApiResult {
     debug!(
         "Finishing web3 authentication for wallet {}",
@@ -557,12 +538,11 @@ pub async fn web3auth_end(
 }
 
 /// Authenticate with a recovery code.
-// #[post("/auth/recovery", format = "json", data = "<recovery_code>")]
 pub async fn recovery_code(
+    cookies: Cookies,
     mut session: Session,
     State(appstate): State<AppState>,
-    recovery_code: Json<RecoveryCode>,
-    cookies: Cookies,
+    Json(recovery_code): Json<RecoveryCode>,
 ) -> ApiResult {
     if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();

@@ -5,7 +5,6 @@ use crate::{
     support::dump_config,
     AppState,
 };
-use rocket::{http::Status, State};
 
 #[get("/configuration", format = "json")]
 pub async fn configuration(

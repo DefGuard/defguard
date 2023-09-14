@@ -1,11 +1,11 @@
+mod common;
+
 use defguard::{
     db::{models::enrollment::Enrollment, DbPool},
     handlers::{AddUserData, Auth},
 };
-use rocket::{http::Status, local::asynchronous::Client, serde::Deserialize};
 use serde_json::json;
 
-mod common;
 use self::common::make_test_client;
 
 async fn make_client() -> (Client, DbPool) {
@@ -13,7 +13,7 @@ async fn make_client() -> (Client, DbPool) {
     (client, client_state.pool)
 }
 
-#[rocket::async_test]
+#[async_test]
 async fn test_initialize_enrollment() {
     let (client, pool) = make_client().await;
 

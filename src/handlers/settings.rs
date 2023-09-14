@@ -5,13 +5,8 @@ use crate::{
     error::WebError,
     AppState,
 };
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Json},
-    State,
-};
 
-#[get("/", format = "json")]
+// #[get("/", format = "json")]
 pub async fn get_settings(appstate: &State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
     let settings = Settings::find_by_id(&appstate.pool, 1).await?;
@@ -22,7 +17,7 @@ pub async fn get_settings(appstate: &State<AppState>) -> ApiResult {
     })
 }
 
-#[put("/", format = "json", data = "<data>")]
+// #[put("/", format = "json", data = "<data>")]
 pub async fn update_settings(
     _admin: AdminRole,
     appstate: &State<AppState>,
@@ -36,7 +31,7 @@ pub async fn update_settings(
     Ok(ApiResponse::default())
 }
 
-#[get("/<id>", format = "json")]
+// #[get("/<id>", format = "json")]
 pub async fn set_default_branding(
     _admin: AdminRole,
     appstate: &State<AppState>,

@@ -1,10 +1,8 @@
-use defguard::handlers::Auth;
-use rocket::{http::Status, local::asynchronous::Client};
-
 mod common;
-use self::common::{
-    make_license_test_client, LICENSE_ENTERPRISE, LICENSE_EXPIRED, LICENSE_WITHOUT_OPENID,
-};
+
+use defguard::handlers::Auth;
+
+use self::common::make_license_test_client;
 
 async fn make_client(license: &str) -> Client {
     let (client, _) = make_license_test_client(license).await;
@@ -18,7 +16,7 @@ async fn make_client(license: &str) -> Client {
 }
 
 #[cfg(feature = "openid")]
-#[rocket::async_test]
+#[tokio::test]
 async fn test_license_ok() {
     let client = make_client(LICENSE_ENTERPRISE).await;
 
@@ -38,7 +36,7 @@ async fn test_license_ok() {
 }
 
 #[ignore]
-#[rocket::async_test]
+#[tokio::test]
 async fn test_license_expired() {
     // test expired license
     let client = make_client(LICENSE_EXPIRED).await;
@@ -58,7 +56,7 @@ async fn test_license_expired() {
 
 #[ignore]
 #[cfg(feature = "openid")]
-#[rocket::async_test]
+#[tokio::test]
 async fn test_license_openid_disabled() {
     // test license without OpenID
     let client = make_client(LICENSE_WITHOUT_OPENID).await;

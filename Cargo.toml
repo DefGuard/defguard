@@ -90,6 +90,7 @@ x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 claims = "0.7"
 matches = "0.1"
 serde_qs = "0.12"
+tower = "0.4"
 
 [build-dependencies]
 tonic-build = "0.9"

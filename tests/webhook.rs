@@ -1,7 +1,7 @@
-use defguard::{db::WebHook, handlers::Auth};
-use rocket::{http::Status, local::asynchronous::Client};
-
 mod common;
+
+use defguard::{db::WebHook, handlers::Auth};
+
 use self::common::make_test_client;
 
 async fn make_client() -> Client {
@@ -9,7 +9,7 @@ async fn make_client() -> Client {
     client
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_webhooks() {
     let client = make_client().await;
 

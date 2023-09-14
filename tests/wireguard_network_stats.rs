@@ -1,3 +1,5 @@
+mod common;
+
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
@@ -8,12 +10,7 @@ use defguard::{
     },
     handlers::Auth,
 };
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Value},
-};
 
-mod common;
 use self::common::make_test_client;
 
 fn make_network() -> Value {
@@ -28,7 +25,7 @@ fn make_network() -> Value {
     })
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_stats() {
     let (client, client_state) = make_test_client().await;
     let pool = client_state.pool;

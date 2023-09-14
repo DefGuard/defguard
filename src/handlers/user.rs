@@ -1,3 +1,10 @@
+use axum::{
+    extract::{Json, Path, State},
+    http::StatusCode,
+};
+use regex::Regex;
+use serde_json::json;
+
 use super::{
     user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange,
     PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
@@ -14,8 +21,6 @@ use crate::{
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
 };
 
-use regex::Regex;
-
 /// Verify the given username
 fn check_username(username: &str) -> Result<(), WebError> {
     let length = username.len();
@@ -28,7 +33,7 @@ fn check_username(username: &str) -> Result<(), WebError> {
     if let Some(first_char) = username.chars().next() {
         if first_char.is_ascii_digit() {
             return Err(WebError::Serialization(
-                "Username first char cannot be a number".into(),
+                "Username must not start with a digit".into(),
             ));
         }
     }
@@ -44,7 +49,7 @@ fn check_username(username: &str) -> Result<(), WebError> {
     Ok(())
 }
 
-pub fn check_password_strength(password: &str) -> Result<(), WebError> {
+pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
     let password_length = password.len();
     let special_chars_expression = Regex::new(r#"[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?~]"#).unwrap();
     let numbers_expression = Regex::new(r"[0-9]").unwrap();
@@ -74,8 +79,7 @@ pub fn check_password_strength(password: &str) -> Result<(), WebError> {
     Ok(())
 }
 
-// #[get("/user", format = "json")]
-pub async fn list_users(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
+pub async fn list_users(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
     for user in all_users {
@@ -87,13 +91,12 @@ pub async fn list_users(_admin: AdminRole, appstate: &State<AppState>) -> ApiRes
     })
 }
 
-// #[get("/user/<username>", format = "json")]
 pub async fn get_user(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
 ) -> ApiResult {
-    let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let user_details = UserDetails::from_user(&appstate.pool, &user).await?;
     Ok(ApiResponse {
         json: json!(user_details),
@@ -101,16 +104,14 @@ pub async fn get_user(
     })
 }
 
-// #[post("/user", format = "json", data = "<data>")]
 pub async fn add_user(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    data: Json<AddUserData>,
     session: SessionInfo,
+    State(appstate): State<AppState>,
+    Json(user_data): Json<AddUserData>,
 ) -> ApiResult {
-    let username = data.username.clone();
-    debug!("User {} adding user {}", session.user.username, username);
-    let user_data = data.into_inner();
+    let username = user_data.username.clone();
+    debug!("User {} adding user {username}", session.user.username);
 
     // check username
     if let Err(err) = check_username(&username) {
@@ -124,7 +125,7 @@ pub async fn add_user(
         Some(password) => {
             // check password strength
             if let Err(err) = check_password_strength(password) {
-                debug!("Password not strong enough: {}", err);
+                debug!("Password not strong enough: {err}");
                 return Ok(ApiResponse {
                     json: json!({}),
                     status: StatusCode::BAD_REQUEST,
@@ -147,7 +148,8 @@ pub async fn add_user(
     user.save(&appstate.pool).await?;
 
     // add LDAP user
-    if appstate.license.validate(&Features::Ldap) {
+    // FIXME: check for LDAP being enabled
+    if true {
         if let Some(password) = user_data.password {
             let _result = ldap_add_user(&appstate.config, &user, &password).await;
         }
@@ -161,18 +163,17 @@ pub async fn add_user(
     };
     Ok(ApiResponse {
         json: json!(&user_info),
-        status: Status::Created,
+        status: StatusCode::CREATED,
     })
 }
 
 // Trigger enrollment process manually
-// #[post("/user/<username>/start_enrollment", format = "json", data = "<data>")]
 pub async fn start_enrollment(
     _admin: AdminRole,
     session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
-    data: Json<StartEnrollmentRequest>,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+    Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
         "User {} starting enrollment for user {username}",
@@ -186,7 +187,7 @@ pub async fn start_enrollment(
         ));
     }
 
-    let user = match User::find_by_username(&appstate.pool, username).await? {
+    let user = match User::find_by_username(&appstate.pool, &username).await? {
         Some(user) => Ok(user),
         None => Err(WebError::ObjectNotFound(format!(
             "user {username} not found"
@@ -210,16 +211,15 @@ pub async fn start_enrollment(
     transaction.commit().await?;
 
     Ok(ApiResponse {
-        json: json!({ "enrollment_token": enrollment_token, "enrollment_url":  appstate.config.enrollment_url.to_string()}),
-        status: Status::Created,
+        json: json!({"enrollment_token": enrollment_token, "enrollment_url":  appstate.config.enrollment_url.to_string()}),
+        status: StatusCode::CREATED,
     })
 }
 
-// #[post("/user/available", format = "json", data = "<data>")]
 pub async fn username_available(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    data: Json<Username>,
+    State(appstate): State<AppState>,
+    Json(data): Json<Username>,
 ) -> ApiResult {
     if let Err(err) = check_username(&data.username) {
         debug!("{}", err);
@@ -238,16 +238,14 @@ pub async fn username_available(
     })
 }
 
-// #[put("/user/<username>", format = "json", data = "<data>")]
 pub async fn modify_user(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
-    data: Json<UserInfo>,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+    Json(user_info): Json<UserInfo>,
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
-    let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
-    let user_info = data.into_inner();
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Err(err) = check_username(&user_info.username) {
         debug!("{}", err);
         return Ok(ApiResponse {
@@ -280,20 +278,20 @@ pub async fn modify_user(
     }
     user.save(&appstate.pool).await?;
 
-    if appstate.license.validate(&Features::Ldap) {
-        let _result = ldap_modify_user(&appstate.config, username, &user).await;
-    };
+    // FIXME: check for LDAP being enabled
+    if true {
+        let _result = ldap_modify_user(&appstate.config, &username, &user).await;
+    }
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));
     info!("User {} updated user {username}", session.user.username);
     Ok(ApiResponse::default())
 }
 
-// #[delete("/user/<username>")]
 pub async fn delete_user(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    username: &str,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} deleting user {username}", session.user.username);
@@ -304,13 +302,14 @@ pub async fn delete_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
-    if let Some(user) = User::find_by_username(&appstate.pool, username).await? {
+    if let Some(user) = User::find_by_username(&appstate.pool, &username).await? {
         user.delete(&appstate.pool).await?;
-        if appstate.license.validate(&Features::Ldap) {
-            let _result = ldap_delete_user(&appstate.config, username).await;
-        };
-        appstate.trigger_action(AppEvent::UserDeleted(username.into()));
-        info!("User {} deleted user {}", session.user.username, username);
+        // FIXME: check for LDAP being enabled
+        if true {
+            let _result = ldap_delete_user(&appstate.config, &username).await;
+        }
+        appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
+        info!("User {} deleted user {}", session.user.username, &username);
         Ok(ApiResponse::default())
     } else {
         error!("User {username} not found");
@@ -320,11 +319,10 @@ pub async fn delete_user(
     }
 }
 
-#[put("/user/change_password", format = "json", data = "<data>")]
 pub async fn change_self_password(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    data: Json<PasswordChangeSelf>,
+    State(appstate): State<AppState>,
+    Json(data): Json<PasswordChangeSelf>,
 ) -> ApiResult {
     let mut user = session.user;
     if user.verify_password(&data.old_password).is_err() {
@@ -344,7 +342,8 @@ pub async fn change_self_password(
     user.set_password(&data.new_password);
     user.save(&appstate.pool).await?;
 
-    if appstate.license.validate(&Features::Ldap) {
+    // FIXME: check for LDAP being enabled
+    if true {
         let _result =
             ldap_change_password(&appstate.config, &user.username, &data.new_password).await;
     }
@@ -357,17 +356,16 @@ pub async fn change_self_password(
     })
 }
 
-#[put("/user/<username>/password", format = "json", data = "<data>")]
 pub async fn change_password(
-    session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
-    data: Json<PasswordChange>,
     _admin: AdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+    Json(data): Json<PasswordChange>,
 ) -> ApiResult {
     debug!(
-        "Admin {} changing password for user {}",
-        session.user.username, username
+        "Admin {} changing password for user {username}",
+        session.user.username,
     );
 
     if session.user.username == username {
@@ -379,28 +377,29 @@ pub async fn change_password(
     }
 
     if let Err(err) = check_password_strength(&data.new_password) {
-        debug!("Pasword not strong enough: {}", err);
+        debug!("Pasword not strong enough: {err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
         });
     }
-    if let Err(err) = check_username(username) {
-        debug!("Invalid Username: {}", err);
+    if let Err(err) = check_username(&username) {
+        debug!("Invalid Username: {err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
         });
     }
 
-    let user = User::find_by_username(&appstate.pool, username).await?;
+    let user = User::find_by_username(&appstate.pool, &username).await?;
 
     if let Some(mut user) = user {
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
-        if appstate.license.validate(&Features::Ldap) {
+        // FIXME: check for LDAP being enabled
+        if true {
             let _result =
-                ldap_change_password(&appstate.config, username, &data.new_password).await;
+                ldap_change_password(&appstate.config, &username, &data.new_password).await;
         }
         info!(
             "Admin {} changed password for user {username}",
@@ -416,20 +415,20 @@ pub async fn change_password(
     }
 }
 
-#[get("/user/<username>/challenge?<address>&<name>&<chain_id>")]
+// #[get("/user/<username>/challenge?<address>&<name>&<chain_id>")]
 pub async fn wallet_challenge(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
     address: &str,
     name: &str,
     chain_id: i64,
 ) -> ApiResult {
     debug!(
-        "User {} generating wallet challenge for user {}",
-        session.user.username, username
+        "User {} generating wallet challenge for user {username}",
+        session.user.username,
     );
-    let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
 
     // check if address already exists
     let wallet = if let Some(wallet) =
@@ -470,19 +469,18 @@ pub async fn wallet_challenge(
     })
 }
 
-#[put("/user/<username>/wallet", format = "json", data = "<data>")]
+// #[put("/user/<username>/wallet", format = "json", data = "<data>")]
 pub async fn set_wallet(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
-    data: Json<WalletSignature>,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+    Json(wallet_info): Json<WalletSignature>,
 ) -> ApiResult {
     debug!(
-        "User {} setting wallet signature for user {}",
-        session.user.username, username
+        "User {} setting wallet signature for user {username}",
+        session.user.username
     );
-    let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
-    let wallet_info = data.into_inner();
+    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(mut wallet) =
         Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), &wallet_info.address)
             .await?
@@ -492,8 +490,8 @@ pub async fn set_wallet(
                 .set_signature(&appstate.pool, &wallet_info.signature)
                 .await?;
             info!(
-                "User {} set wallet signature for user {}",
-                session.user.username, username
+                "User {} set wallet signature for user {username}",
+                session.user.username,
             );
             Ok(ApiResponse::default())
         } else {
@@ -506,21 +504,21 @@ pub async fn set_wallet(
 
 /// Change wallet.
 /// Currenly only `use_for_mfa` flag can be set or unset.
-#[put("/user/<username>/wallet/<address>", format = "json", data = "<data>")]
+// #[put("/user/<username>/wallet/<address>", format = "json", data = "<data>")]
 pub async fn update_wallet(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
-    address: &str,
-    data: Json<WalletChange>,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+    Path(address): Path<String>,
+    Json(data): Json<WalletChange>,
 ) -> ApiResult {
     debug!(
-        "User {} updating wallet {} for user {}",
-        session.user.username, address, username
+        "User {} updating wallet {address} for user {username}",
+        session.user.username,
     );
-    let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(mut wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await?
+        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), &address).await?
     {
         if Some(wallet.user_id) == user.id {
             let mfa_change = wallet.use_for_mfa != data.use_for_mfa;
@@ -534,8 +532,8 @@ pub async fn update_wallet(
                         let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;
                         info!("User {} MFA enabled", username);
                         info!(
-                            "User {} updated wallet {} for user {}",
-                            session.user.username, address, username
+                            "User {} updated wallet {address} for user {username}",
+                            session.user.username,
                         );
                         return Ok(ApiResponse {
                             json: json!(RecoveryCodes::new(recovery_codes)),
@@ -548,8 +546,8 @@ pub async fn update_wallet(
                 }
             }
             info!(
-                "User {} updated wallet {} for user {}",
-                session.user.username, address, username
+                "User {} updated wallet {address} for user {username}",
+                session.user.username,
             );
             Ok(ApiResponse::default())
         } else {
@@ -561,18 +559,18 @@ pub async fn update_wallet(
 }
 
 /// Delete wallet.
-#[delete("/user/<username>/wallet/<address>")]
+// #[delete("/user/<username>/wallet/<address>")]
 pub async fn delete_wallet(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
     address: &str,
 ) -> ApiResult {
     debug!(
-        "User {} deleting wallet {} for user {}",
-        session.user.username, address, username
+        "User {} deleting wallet {address} for user {username}",
+        session.user.username,
     );
-    let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(wallet) =
         Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await?
     {
@@ -580,8 +578,8 @@ pub async fn delete_wallet(
             wallet.delete(&appstate.pool).await?;
             user.verify_mfa_state(&appstate.pool).await?;
             info!(
-                "User {} deleted wallet {} for user {}",
-                session.user.username, address, username
+                "User {} deleted wallet {address} for user {username}",
+                session.user.username,
             );
             Ok(ApiResponse::default())
         } else {
@@ -592,25 +590,25 @@ pub async fn delete_wallet(
     }
 }
 
-#[delete("/user/<username>/security_key/<id>")]
+// #[delete("/user/<username>/security_key/<id>")]
 pub async fn delete_security_key(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
     id: i64,
 ) -> ApiResult {
     debug!(
-        "User {} deleting security key {} for user {}",
-        session.user.username, id, username
+        "User {} deleting security key {id} for user {username}",
+        session.user.username,
     );
-    let mut user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(webauthn) = WebAuthn::find_by_id(&appstate.pool, id).await? {
         if Some(webauthn.user_id) == user.id {
             webauthn.delete(&appstate.pool).await?;
             user.verify_mfa_state(&appstate.pool).await?;
             info!(
-                "User {} deleted security key {} for user {}",
-                session.user.username, id, username
+                "User {} deleted security key {id} for user {username}",
+                session.user.username,
             );
             Ok(ApiResponse::default())
         } else {
@@ -621,8 +619,8 @@ pub async fn delete_security_key(
     }
 }
 
-#[get("/me", format = "json")]
-pub async fn me(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+// #[get("/me", format = "json")]
+pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let user_info = UserInfo::from_user(&appstate.pool, &session.user).await?;
     Ok(ApiResponse {
         json: json!(user_info),
@@ -631,18 +629,18 @@ pub async fn me(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
 }
 
 /// Delete Oauth token.
-#[delete("/user/<username>/oauth_app/<oauth2client_id>")]
+// #[delete("/user/<username>/oauth_app/<oauth2client_id>")]
 pub async fn delete_authorized_app(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    username: &str,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
     oauth2client_id: i64,
 ) -> ApiResult {
     debug!(
-        "User {} deleting OAuth2 client {} for user {}",
-        session.user.username, oauth2client_id, username
+        "User {} deleting OAuth2 client {oauth2client_id} for user {username}",
+        session.user.username,
     );
-    let user = user_for_admin_or_self(&appstate.pool, &session, username).await?;
+    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(app) = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
         &appstate.pool,
         user.id.unwrap(),

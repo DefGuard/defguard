@@ -1,12 +1,12 @@
+mod common;
+
 use claims::assert_err;
 use defguard::{
     db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
-use rocket::{http::Status, serde::json::json};
 
-mod common;
 use self::common::make_test_client;
 
 // setup user groups, test users and devices
@@ -94,7 +94,7 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
     (users, devices)
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_create_new_network() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
@@ -133,7 +133,7 @@ async fn test_create_new_network() {
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_modify_network() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
@@ -267,7 +267,7 @@ async fn test_modify_network() {
 }
 
 /// Test that devices that already exist are handled correctly during config import
-#[rocket::async_test]
+#[tokio::test]
 async fn test_import_network_existing_devices() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
@@ -355,7 +355,7 @@ async fn test_import_network_existing_devices() {
     assert_err!(wg_rx.try_recv());
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_import_mapping_devices() {
     let (client, client_state) = make_test_client().await;
     let (users, devices) = setup_test_users(&client_state.pool).await;

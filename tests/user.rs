@@ -1,3 +1,5 @@
+mod common;
+
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
@@ -7,11 +9,9 @@ use defguard::{
     hex::to_lower_hex,
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
-use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use tokio_stream::{self as stream, StreamExt};
 
-mod common;
 use self::common::{fetch_user_details, make_test_client};
 
 async fn make_client() -> Client {
@@ -19,7 +19,7 @@ async fn make_client() -> Client {
     client
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_authenticate() {
     let client = make_client().await;
 
@@ -36,7 +36,7 @@ async fn test_authenticate() {
     assert_eq!(response.status(), Status::Unauthorized);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_me() {
     let client = make_client().await;
 
@@ -51,7 +51,7 @@ async fn test_me() {
     assert_eq!(user_info.last_name, "Potter");
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_change_self_password() {
     let client = make_client().await;
 
@@ -110,7 +110,7 @@ async fn test_change_self_password() {
     assert_eq!(response.status(), Status::Ok);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_change_password() {
     let client = make_client().await;
 
@@ -157,7 +157,7 @@ async fn test_change_password() {
     assert_eq!(response.status(), Status::Forbidden);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_list_users() {
     let client = make_client().await;
 
@@ -181,7 +181,7 @@ async fn test_list_users() {
     assert_eq!(response.status(), Status::Ok);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_get_user() {
     let client = make_client().await;
 
@@ -197,7 +197,7 @@ async fn test_get_user() {
     assert_eq!(user_info.user.last_name, "Potter");
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_username_available() {
     let client = make_client().await;
 
@@ -252,7 +252,7 @@ async fn test_username_available() {
     assert_eq!(response.status(), Status::BadRequest);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_crud_user() {
     let client = make_client().await;
 
@@ -290,7 +290,7 @@ async fn test_crud_user() {
     assert_eq!(response.status(), Status::Ok);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_admin_group() {
     let client = make_client().await;
 
@@ -307,7 +307,7 @@ async fn test_admin_group() {
     // TODO: check group membership
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_wallet() {
     let client = make_client().await;
 
@@ -333,8 +333,7 @@ async fn test_wallet() {
     assert_eq!(response.status(), Status::Ok);
     let challenge: WalletChallenge = response.into_json().await.unwrap();
 
-    let parsed_data: TypedData =
-        rocket::serde::json::serde_json::from_str(&challenge.message).unwrap();
+    let parsed_data: TypedData = serde_json::from_str(&challenge.message).unwrap();
     let parsed_message = parsed_data.message;
 
     // see migrations for the default message
@@ -422,7 +421,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert!(user_info.wallets.is_empty());
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_check_username() {
     let client = make_client().await;
 
@@ -460,7 +459,7 @@ async fn test_check_username() {
     }
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_check_password_strength() {
     let client = make_client().await;
 
@@ -509,7 +508,7 @@ async fn test_check_password_strength() {
     assert_eq!(response.status(), Status::Created);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_user_unregister_authorized_app() {
     let client = make_client().await;
     let auth = Auth::new("admin".into(), "pass123".into());

@@ -1,10 +1,7 @@
-use defguard::{db::Wallet, handlers::Auth, SERVER_CONFIG};
-use rocket::{
-    http::{Cookie, Header, Status},
-    local::asynchronous::Client,
-};
-
 mod common;
+
+use defguard::{db::Wallet, handlers::Auth, SERVER_CONFIG};
+
 use self::common::make_test_client;
 
 async fn make_client() -> Client {
@@ -22,7 +19,7 @@ async fn make_client() -> Client {
     client
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_forward_auth() {
     let client = make_client().await;
 

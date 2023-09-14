@@ -1,14 +1,11 @@
+mod common;
+
 use defguard::{
     db::{models::device::WireguardNetworkDevice, Device, GatewayEvent, WireguardNetwork},
     handlers::{wireguard::WireguardNetworkData, Auth},
 };
 use matches::assert_matches;
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Value},
-};
 
-mod common;
 use self::common::make_test_client;
 
 fn make_network() -> Value {
@@ -23,7 +20,7 @@ fn make_network() -> Value {
     })
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_network() {
     let (client, client_state) = make_test_client().await;
 
@@ -91,7 +88,7 @@ async fn test_network() {
     assert_matches!(event, GatewayEvent::NetworkDeleted(..));
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_device() {
     let (client, client_state) = make_test_client().await;
 
@@ -258,7 +255,7 @@ async fn test_device() {
     assert!(devices.is_empty());
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_device_permissions() {
     let (client, _) = make_test_client().await;
 
@@ -401,7 +398,7 @@ async fn test_device_permissions() {
     assert_eq!(user_devices.len(), 3);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_device_pubkey() {
     let (client, client_state) = make_test_client().await;
 

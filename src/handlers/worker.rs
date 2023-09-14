@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
@@ -6,12 +8,6 @@ use crate::{
     error::WebError,
     grpc::WorkerState,
 };
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Json},
-    State,
-};
-use std::sync::{Arc, Mutex};
 
 #[derive(Deserialize, Serialize)]
 pub struct JobData {

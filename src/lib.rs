@@ -2,11 +2,9 @@ use crate::{
     auth::{Claims, ClaimsType},
     config::InitVpnLocationArgs,
     db::User,
-    // handlers::{
-    //     mail::{send_support_data, test_mail},
-    //     support::{configuration, logs},
-    //     user::change_self_password,
-    // },
+    handlers::user::{
+        add_user, change_self_password, get_user, list_users, start_enrollment, username_available,
+    },
 };
 
 // #[cfg(feature = "worker")]
@@ -37,17 +35,18 @@ use axum::{
     handler::HandlerWithoutStateExt,
     http::{Request, StatusCode},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Router, Server,
 };
 use config::DefGuardConfig;
 use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
-// #[cfg(feature = "wireguard")]
-// use handlers::auth::{
-//     authenticate, logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable,
-//     totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
-//     webauthn_init, webauthn_start,
-// };
+#[cfg(feature = "wireguard")]
+use handlers::auth::{
+    authenticate, logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable,
+    totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
+    webauthn_init, webauthn_start,
+};
+use handlers::user::{change_password, delete_user, modify_user};
 use mail::Mail;
 use secrecy::ExposeSecret;
 use std::{
@@ -59,6 +58,7 @@ use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     OnceCell,
 };
+use tower_cookies::CookieManagerLayer;
 use tower_http::{
     services::{ServeDir, ServeFile},
     trace::{DefaultOnResponse, TraceLayer},
@@ -102,7 +102,7 @@ async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
 }
 
-pub async fn build_webapp(
+pub fn build_webapp(
     config: DefGuardConfig,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
@@ -113,14 +113,6 @@ pub async fn build_webapp(
     pool: DbPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Router {
-    // let cfg = Config {
-    //     address: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-    //     port: config.http_port,
-    //     secret_key: SecretKey::from(config.secret_key.expose_secret().as_bytes()),
-    //     ..Config::default()
-    // };
-    // let license_decoded = License::decode(&config.license);
-    // info!("Using license: {:?}", license_decoded);
     let serve_web_dir = ServeDir::new("web/dist").fallback(ServeFile::new("web/dist/index.html"));
     let serve_images =
         ServeDir::new("web/src/shared/images/svg").not_found_service(handle_404.into_service());
@@ -129,11 +121,37 @@ pub async fn build_webapp(
             "/api/v1",
             Router::new()
                 .route("/health", get(health_check))
-                .route("/info", get(get_app_info)),
-            // .route("/auth", post(authenticate)),
+                .route("/info", get(get_app_info))
+                // /auth
+                .route("/auth", post(authenticate))
+                .route("/auth/logout", post(logout))
+                .route("/auth/mfa", put(mfa_enable))
+                .route("/auth/mfa", delete(mfa_disable))
+                .route("/auth/webauthn/init", post(webauthn_init))
+                .route("/auth/webauthn/finish", post(webauthn_finish))
+                .route("/auth/webauthn/start", post(webauthn_start))
+                .route("/auth/webauthn", post(webauthn_end))
+                .route("/auth/totp/init", post(totp_secret))
+                .route("/auth/totp", post(totp_enable))
+                .route("/auth/totp", delete(totp_disable))
+                .route("/auth/totp/verify", post(totp_code))
+                .route("/auth/web3/start", post(web3auth_start))
+                .route("/auth/web3", post(web3auth_end))
+                .route("/auth/recovery", post(recovery_code))
+                // /user
+                .route("/user", get(list_users))
+                .route("/user/:username", get(get_user))
+                .route("/user", post(add_user))
+                .route("/user/:username/start_enrollment", post(start_enrollment))
+                .route("/user/available", post(username_available))
+                .route("/user/:username", put(modify_user))
+                .route("/user/:username", delete(delete_user))
+                // FIXME: username `change_password` is invalid
+                .route("/user/change_password", put(change_self_password))
+                .route("/user/:username/password", put(change_password)),
         )
         .nest_service("/svg", serve_images)
-        .fallback_service(serve_web_dir)
+        .nest_service("/", serve_web_dir)
         .with_state(AppState::new(
             config,
             pool,
@@ -143,6 +161,7 @@ pub async fn build_webapp(
             mail_tx,
             failed_logins,
         ))
+        .layer(CookieManagerLayer::new())
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
@@ -157,8 +176,6 @@ pub async fn build_webapp(
 
     webapp
 
-    // let webapp = rocket::custom(cfg)
-    //     .mount("/", routes![smart_index])
     //     .mount("/", FileServer::new("./web/dist", Options::Missing).rank(3))
     //     .mount(
     //         "/svg",
@@ -167,18 +184,8 @@ pub async fn build_webapp(
     //     .mount(
     //         "/api/v1",
     //         routes![
-    //             authenticate,
     //             forward_auth,
-    //             logout,
-    //             username_available,
-    //             list_users,
-    //             get_user,
-    //             add_user,
-    //             start_enrollment,
-    //             modify_user,
-    //             delete_user,
     //             delete_security_key,
-    //             change_password,
     //             wallet_challenge,
     //             set_wallet,
     //             update_wallet,
@@ -188,22 +195,7 @@ pub async fn build_webapp(
     //             me,
     //             add_group_member,
     //             remove_group_member,
-    //             get_license,
-    //             mfa_enable,
-    //             mfa_disable,
-    //             totp_secret,
-    //             totp_disable,
-    //             totp_enable,
-    //             totp_code,
-    //             webauthn_init,
-    //             webauthn_finish,
-    //             webauthn_start,
-    //             webauthn_end,
-    //             web3auth_start,
-    //             web3auth_end,
     //             delete_authorized_app,
-    //             recovery_code,
-    //             change_self_password,
     //         ],
     //     )
     //     .mount(
@@ -332,10 +324,10 @@ pub async fn run_web_server(
         gateway_state,
         pool,
         failed_logins,
-    )
-    .await;
+    );
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
+    // TODO: map_err() and remove `hyper` as depenency from Cargo.toml
     Server::bind(&addr).serve(webapp.into_make_service()).await
 }
 

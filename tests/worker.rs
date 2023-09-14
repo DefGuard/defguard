@@ -1,3 +1,7 @@
+mod common;
+
+use std::sync::{Arc, Mutex};
+
 use defguard::{
     grpc::{worker::JobStatus, WorkerDetail, WorkerState},
     handlers::{
@@ -5,10 +9,7 @@ use defguard::{
         Auth,
     },
 };
-use rocket::{http::Status, local::asynchronous::Client};
-use std::sync::{Arc, Mutex};
 
-mod common;
 use self::common::make_test_client;
 
 async fn make_client() -> (Client, Arc<Mutex<WorkerState>>) {
@@ -16,7 +17,7 @@ async fn make_client() -> (Client, Arc<Mutex<WorkerState>>) {
     (client, client_status.worker_state)
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_scheduling_worker_jobs() {
     let (client, worker_state) = make_client().await;
 
@@ -167,7 +168,7 @@ async fn test_scheduling_worker_jobs() {
     assert_eq!(response.status(), Status::Ok);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_worker_management_permissions() {
     let (client, worker_state) = make_client().await;
 
