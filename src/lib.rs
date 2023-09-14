@@ -167,7 +167,6 @@ pub async fn build_webapp(
     //     .mount(
     //         "/api/v1",
     //         routes![
-    //             health_check,
     //             authenticate,
     //             forward_auth,
     //             logout,
@@ -204,7 +203,6 @@ pub async fn build_webapp(
     //             web3auth_end,
     //             delete_authorized_app,
     //             recovery_code,
-    //             get_app_info,
     //             change_self_password,
     //         ],
     //     )

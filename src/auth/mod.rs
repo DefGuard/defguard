@@ -7,14 +7,15 @@ use std::{
 
 use axum::{
     async_trait,
-    extract::{FromRef, FromRequest},
+    extract::{FromRef, FromRequest, FromRequestParts},
     http::Request,
 };
+use hyper::http::request::Parts;
 use jsonwebtoken::{
     decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
 };
 use serde::{Deserialize, Serialize};
-use tower_cookies::{Cookie, CookieManagerLayer, Cookies};
+use tower_cookies::{Cookie, Cookies};
 
 use crate::{
     appstate::AppState,
@@ -113,50 +114,35 @@ impl Claims {
 }
 
 #[async_trait]
-impl<S, B> FromRequest<S, B> for Session
+impl<S> FromRequestParts<S> for Session
 where
     S: Send + Sync,
-    B: Send + 'static,
     AppState: FromRef<S>,
 {
     type Rejection = WebError;
 
-    async fn from_request(request: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let app_state = AppState::from_ref(state);
-        // let cookies =
-
-        //         if let Some(state) = request.rocket().state::<AppState>() {
-        //             let cookies = request.cookies();
-        //             if let Some(session_cookie) = cookies.get("defguard_session") {
-        //                 return {
-        //                     match Session::find_by_id(&state.pool, session_cookie.value()).await {
-        //                         Ok(Some(session)) => {
-        //                             if session.expired() {
-        //                                 let _result = session.delete(&state.pool).await;
-        //                                 cookies.remove(Cookie::named("defguard_session"));
-        //                                 Outcome::Failure((
-        //                                     Status::Unauthorized,
-        //                                     WebError::Authorization("Session expired".into()),
-        //                                 ))
-        //                             } else {
-        //                                 Outcome::Success(session)
-        //                             }
-        //                         }
-        //                         Ok(None) => Outcome::Failure((
-        //                             Status::Unauthorized,
-        //                             WebError::Authorization("Session not found".into()),
-        //                         )),
-        //                         Err(err) => Outcome::Failure((StatusCode::INTERNAL_SERVER_ERROR, err.into())),
-        //                     }
-        //                 };
-        //             }
-        //         }
-        //         Outcome::Failure((
-        //             Status::Unauthorized,
-        //             WebError::Authorization("Session is required".into()),
-        //         ))
-        // FIXME: dummy error
-        Err(WebError::Authorization("MFA not verified".into()))
+        if let Ok(cookies) = Cookies::from_request_parts(parts, state).await {
+            if let Some(session_cookie) = cookies.get("defguard_session") {
+                return {
+                    match Session::find_by_id(&app_state.pool, session_cookie.value()).await {
+                        Ok(Some(session)) => {
+                            if session.expired() {
+                                let _result = session.delete(&app_state.pool).await;
+                                cookies.remove(Cookie::named("defguard_session"));
+                                Err(WebError::Authorization("Session expired".into()))
+                            } else {
+                                Ok(session)
+                            }
+                        }
+                        Ok(None) => Err(WebError::Authorization("Session not found".into())),
+                        Err(err) => Err(err.into()),
+                    }
+                };
+            }
+        }
+        Err(WebError::Authorization("Session is required".into()))
     }
 }
 

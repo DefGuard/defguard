@@ -1,8 +1,14 @@
-use std::time::Duration;
-
-use axum::{extract::{Json, State}, http::StatusCode};
+use axum::{
+    extract::{Json, State},
+    http::StatusCode,
+};
+use secrecy::ExposeSecret;
 use serde_json::json;
 use sqlx::types::Uuid;
+use tower_cookies::{
+    cookie::{time::Duration, SameSite},
+    Cookie, Cookies, Key,
+};
 use webauthn_rs::prelude::PublicKeyCredential;
 use webauthn_rs_proto::options::CollectedClientData;
 
@@ -27,9 +33,9 @@ use crate::{
 /// * 201 with MFA enabled when additional authentication factor is required
 // #[post("/auth", format = "json", data = "<data>")]
 pub async fn authenticate(
-    State(appstate): &State<AppState>,
+    State(appstate): State<AppState>,
     mut data: Json<Auth>,
-    cookies: &CookieJar<'_>,
+    cookies: Cookies,
 ) -> ApiResult {
     debug!("Authenticating user {}", data.username);
     // check if user can proceed with login
@@ -94,9 +100,7 @@ pub async fn authenticate(
         None => Duration::days(7),
     };
 
-    let server_config = SERVER_CONFIG
-        .get()
-        .ok_or(WebError::ServerConfigMissing)?;
+    let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
     let auth_cookie = Cookie::build("defguard_session", session.id)
         .domain(
             server_config
@@ -123,7 +127,9 @@ pub async fn authenticate(
         }
     } else {
         let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-        if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
+        let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+        let private_cookies = cookies.private(&key);
+        if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
             debug!("Found openid session cookie.");
             Ok(ApiResponse {
                 json: json!(AuthResponse {
@@ -147,9 +153,9 @@ pub async fn authenticate(
 /// Logout - forget the session cookie.
 // #[post("/auth/logout")]
 pub async fn logout(
-    cookies: &CookieJar<'_>,
+    cookies: Cookies,
     session: Session,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
 ) -> ApiResult {
     // remove auth cookie
     cookies.remove(Cookie::named("defguard_session"));
@@ -163,8 +169,8 @@ pub async fn logout(
 pub async fn mfa_enable(
     session: Session,
     session_info: SessionInfo,
-    appstate: &State<AppState>,
-    cookies: &CookieJar<'_>,
+    State(appstate): State<AppState>,
+    cookies: Cookies,
 ) -> ApiResult {
     let mut user = session_info.user;
     debug!("Enabling MFA for user {}", user.username);
@@ -186,7 +192,7 @@ pub async fn mfa_enable(
 
 /// Disable MFA
 // #[delete("/auth/mfa")]
-pub async fn mfa_disable(session_info: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+pub async fn mfa_disable(session_info: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let mut user = session_info.user;
     debug!("Disabling MFA for user {}", user.username);
     user.disable_mfa(&appstate.pool).await?;
@@ -196,7 +202,10 @@ pub async fn mfa_disable(session_info: SessionInfo, appstate: &State<AppState>) 
 
 /// Initialize WebAuthn registration
 // #[post("/auth/webauthn/init")]
-pub async fn webauthn_init(mut session_info: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+pub async fn webauthn_init(
+    mut session_info: SessionInfo,
+    State(appstate): State<AppState>,
+) -> ApiResult {
     let user = session_info.user;
     info!(
         "Initializing WebAuthn registration for user {}",
@@ -233,8 +242,8 @@ pub async fn webauthn_init(mut session_info: SessionInfo, appstate: &State<AppSt
 // #[post("/auth/webauthn/finish", format = "json", data = "<data>")]
 pub async fn webauthn_finish(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    data: Json<WebAuthnRegistration>,
+    State(appstate): State<AppState>,
+    Json(webauth_reg): Json<WebAuthnRegistration>,
 ) -> ApiResult {
     info!(
         "Finishing WebAuthn registration for user {}",
@@ -248,15 +257,11 @@ pub async fn webauthn_finish(
                 "Passkey registration session not found".into(),
             ))?;
 
-    let webauth_reg = data.into_inner();
-
     let ccdj: CollectedClientData = serde_json::from_slice(
         webauth_reg.rpkc.response.client_data_json.as_ref(),
     )
     .map_err(|_| {
-        WebError::WebauthnRegistration(
-            "Failed to parse passkey registration request data".into(),
-        )
+        WebError::WebauthnRegistration("Failed to parse passkey registration request data".into())
     })?;
     info!(
         "Passkey registration request origin: {}",
@@ -296,7 +301,7 @@ pub async fn webauthn_finish(
 
 /// Start WebAuthn authentication
 // #[post("/auth/webauthn/start")]
-pub async fn webauthn_start(mut session: Session, appstate: &State<AppState>) -> ApiResult {
+pub async fn webauthn_start(mut session: Session, State(appstate): State<AppState>) -> ApiResult {
     let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
 
     match appstate.webauthn.start_passkey_authentication(&passkeys) {
@@ -317,9 +322,9 @@ pub async fn webauthn_start(mut session: Session, appstate: &State<AppState>) ->
 // #[post("/auth/webauthn", format = "json", data = "<pubkey>")]
 pub async fn webauthn_end(
     mut session: Session,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     pubkey: Json<PublicKeyCredential>,
-    cookies: &CookieJar<'_>,
+    cookies: Cookies,
 ) -> ApiResult {
     if let Some(passkey_auth) = session.get_passkey_authentication() {
         if let Ok(auth_result) = appstate
@@ -339,7 +344,9 @@ pub async fn webauthn_end(
                 .await?;
             return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
                 let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-                if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
+                let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+                let private_cookies = cookies.private(&key);
+                if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
                     debug!("Found openid session cookie.");
                     Ok(ApiResponse {
                         json: json!(AuthResponse {
@@ -367,7 +374,7 @@ pub async fn webauthn_end(
 
 /// Generate new TOTP secret
 // #[post("/auth/totp/init")]
-pub async fn totp_secret(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let mut user = session.user;
     debug!("Generating new TOTP secret for user {}", user.username);
 
@@ -383,7 +390,7 @@ pub async fn totp_secret(session: SessionInfo, appstate: &State<AppState>) -> Ap
 // #[post("/auth/totp", format = "json", data = "<data>")]
 pub async fn totp_enable(
     session: SessionInfo,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     data: Json<AuthCode>,
 ) -> ApiResult {
     let mut user = session.user;
@@ -407,7 +414,7 @@ pub async fn totp_enable(
 
 /// Disable TOTP
 // #[delete("/auth/totp")]
-pub async fn totp_disable(session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+pub async fn totp_disable(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let mut user = session.user;
     debug!("Disabling TOTP for user {}", user.username);
     user.disable_totp(&appstate.pool).await?;
@@ -420,9 +427,9 @@ pub async fn totp_disable(session: SessionInfo, appstate: &State<AppState>) -> A
 // #[post("/auth/totp/verify", format = "json", data = "<data>")]
 pub async fn totp_code(
     mut session: Session,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     data: Json<AuthCode>,
-    cookies: &CookieJar<'_>,
+    cookies: Cookies,
 ) -> ApiResult {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
@@ -432,8 +439,10 @@ pub async fn totp_code(
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-            info!("Verified TOTP for user {}", username);
-            if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
+            info!("Verified TOTP for user {username}");
+            let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+            let private_cookies = cookies.private(&key);
+            if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
                 debug!("Found openid session cookie.");
                 Ok(ApiResponse {
                     json: json!(AuthResponse {
@@ -462,7 +471,7 @@ pub async fn totp_code(
 // #[post("/auth/web3/start", format = "json", data = "<data>")]
 pub async fn web3auth_start(
     mut session: Session,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     data: Json<WalletAddress>,
 ) -> ApiResult {
     debug!("Starting web3 authentication for wallet {}", data.address);
@@ -486,9 +495,9 @@ pub async fn web3auth_start(
 // #[post("/auth/web3", format = "json", data = "<signature>")]
 pub async fn web3auth_end(
     mut session: Session,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     signature: Json<WalletSignature>,
-    cookies: &CookieJar<'_>,
+    cookies: Cookies,
 ) -> ApiResult {
     debug!(
         "Finishing web3 authentication for wallet {}",
@@ -514,7 +523,10 @@ pub async fn web3auth_end(
                                 "User {} authenticated with wallet {}",
                                 username, signature.address
                             );
-                            if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
+                            let key =
+                                Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+                            let private_cookies = cookies.private(&key);
+                            if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
                                 debug!("Found openid session cookie.");
                                 Ok(ApiResponse {
                                     json: json!(AuthResponse {
@@ -548,9 +560,9 @@ pub async fn web3auth_end(
 // #[post("/auth/recovery", format = "json", data = "<recovery_code>")]
 pub async fn recovery_code(
     mut session: Session,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     recovery_code: Json<RecoveryCode>,
-    cookies: &CookieJar<'_>,
+    cookies: Cookies,
 ) -> ApiResult {
     if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
@@ -563,9 +575,11 @@ pub async fn recovery_code(
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-            info!("Authenticated user {} with recovery code", username);
-            if let Some(openid_cookie) = cookies.get_private("known_sign_in") {
-                debug!("Found openid session cookie.");
+            info!("Authenticated user {username} with recovery code");
+            let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+            let private_cookies = cookies.private(&key);
+            if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
+                debug!("Found OpenID session cookie.");
                 return Ok(ApiResponse {
                     json: json!(AuthResponse {
                         user: user_info,

@@ -17,7 +17,7 @@ use crate::{
 };
 
 pub(crate) mod app_info;
-// pub(crate) mod auth;
+pub(crate) mod auth;
 // pub mod forward_auth;
 // pub(crate) mod group;
 // pub(crate) mod mail;
@@ -122,15 +122,6 @@ impl IntoResponse for ApiResponse {
 }
 
 pub type ApiResult = Result<ApiResponse, WebError>;
-
-// impl IntoResponse for ApiResult {
-//     fn into_response(self) -> Response {
-//         match self {
-//             Ok(api_response) => api_response.into_response(),
-//             Err(web_error) => web_error.into_response(),
-//         }
-//     }
-// }
 
 #[derive(Deserialize, Serialize)]
 pub struct Auth {

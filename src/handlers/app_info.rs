@@ -4,8 +4,8 @@ use crate::{appstate::AppState, auth::SessionInfo, db::WireguardNetwork, error::
 use axum::{extract::State, http::StatusCode};
 use serde_json::json;
 
-// Additional information about core state
-#[derive(Serialize, Deserialize)]
+/// Additional information about core state.
+#[derive(Serialize)]
 pub struct AppInfo {
     version: String,
     network_present: bool,

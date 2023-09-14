@@ -13,6 +13,7 @@ use crate::{
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
 };
+
 use regex::Regex;
 
 /// Verify the given username
@@ -50,9 +51,7 @@ pub fn check_password_strength(password: &str) -> Result<(), WebError> {
     let lowercase_expression = Regex::new(r"[a-z]").unwrap();
     let uppercase_expression = Regex::new(r"[A-Z]").unwrap();
     if !(8..=128).contains(&password_length) {
-        return Err(WebError::Serialization(
-            "Incorrect password length".into(),
-        ));
+        return Err(WebError::Serialization("Incorrect password length".into()));
     }
     if !special_chars_expression.is_match(password) {
         return Err(WebError::Serialization(
@@ -167,7 +166,7 @@ pub async fn add_user(
 }
 
 // Trigger enrollment process manually
-#[post("/user/<username>/start_enrollment", format = "json", data = "<data>")]
+// #[post("/user/<username>/start_enrollment", format = "json", data = "<data>")]
 pub async fn start_enrollment(
     _admin: AdminRole,
     session: SessionInfo,
@@ -216,7 +215,7 @@ pub async fn start_enrollment(
     })
 }
 
-#[post("/user/available", format = "json", data = "<data>")]
+// #[post("/user/available", format = "json", data = "<data>")]
 pub async fn username_available(
     _admin: AdminRole,
     appstate: &State<AppState>,
@@ -239,7 +238,7 @@ pub async fn username_available(
     })
 }
 
-#[put("/user/<username>", format = "json", data = "<data>")]
+// #[put("/user/<username>", format = "json", data = "<data>")]
 pub async fn modify_user(
     session: SessionInfo,
     appstate: &State<AppState>,
@@ -290,7 +289,7 @@ pub async fn modify_user(
     Ok(ApiResponse::default())
 }
 
-#[delete("/user/<username>")]
+// #[delete("/user/<username>")]
 pub async fn delete_user(
     _admin: AdminRole,
     appstate: &State<AppState>,
@@ -662,8 +661,6 @@ pub async fn delete_authorized_app(
             Err(WebError::ObjectNotFound("Wrong app".into()))
         }
     } else {
-        Err(WebError::ObjectNotFound(
-            "Authorized app not found".into(),
-        ))
+        Err(WebError::ObjectNotFound("Authorized app not found".into()))
     }
 }
