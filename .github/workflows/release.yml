@@ -1,4 +1,4 @@
-name: Publish to GitHub registry
+name: Release new version
 on:
   push:
     tags:
@@ -6,6 +6,7 @@ on:
 
 jobs:
   publish-docker:
+    name: Build latest Docker image
     runs-on: self-hosted
     steps:
       - name: Checkout
