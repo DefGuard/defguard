@@ -46,7 +46,10 @@ use handlers::auth::{
     totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
     webauthn_init, webauthn_start,
 };
-use handlers::user::{change_password, delete_user, modify_user};
+use handlers::user::{
+    change_password, delete_security_key, delete_user, delete_wallet, modify_user, set_wallet,
+    update_wallet, wallet_challenge,
+};
 use mail::Mail;
 use secrecy::ExposeSecret;
 use std::{
@@ -148,7 +151,15 @@ pub fn build_webapp(
                 .route("/user/:username", delete(delete_user))
                 // FIXME: username `change_password` is invalid
                 .route("/user/change_password", put(change_self_password))
-                .route("/user/:username/password", put(change_password)),
+                .route("/user/:username/password", put(change_password))
+                .route("/user/:username/challenge", get(wallet_challenge))
+                .route("/user/:username/wallet", put(set_wallet))
+                .route("/user/:username/wallet/:address", put(update_wallet))
+                .route("/user/:username/wallet/:address", delete(delete_wallet))
+                .route(
+                    "/user/:username/security_key/:id",
+                    delete(delete_security_key),
+                ),
         )
         .nest_service("/svg", serve_images)
         .nest_service("/", serve_web_dir)
@@ -185,11 +196,6 @@ pub fn build_webapp(
     //         "/api/v1",
     //         routes![
     //             forward_auth,
-    //             delete_security_key,
-    //             wallet_challenge,
-    //             set_wallet,
-    //             update_wallet,
-    //             delete_wallet,
     //             list_groups,
     //             get_group,
     //             me,

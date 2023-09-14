@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Json, Path, State},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use regex::Regex;
@@ -14,8 +14,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
-        WebAuthn,
+        models::WalletInfo, AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails,
+        UserInfo, Wallet, WebAuthn,
     },
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
@@ -415,14 +415,11 @@ pub async fn change_password(
     }
 }
 
-// #[get("/user/<username>/challenge?<address>&<name>&<chain_id>")]
 pub async fn wallet_challenge(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    address: &str,
-    name: &str,
-    chain_id: i64,
+    Query(wallet_info): Query<WalletInfo>,
 ) -> ApiResult {
     debug!(
         "User {} generating wallet challenge for user {username}",
@@ -432,7 +429,8 @@ pub async fn wallet_challenge(
 
     // check if address already exists
     let wallet = if let Some(wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await?
+        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), &wallet_info.address)
+            .await?
     {
         if wallet.validation_timestamp.is_some() {
             return Err(WebError::ObjectNotFound("wrong address".into()));
@@ -441,15 +439,15 @@ pub async fn wallet_challenge(
     } else {
         let challenge_message =
             if let Some(settings) = Settings::find_by_id(&appstate.pool, 1).await? {
-                Wallet::format_challenge(address, &settings.challenge_template)
+                Wallet::format_challenge(&wallet_info.address, &settings.challenge_template)
             } else {
                 return Err(WebError::DbError("cannot retrieve settings".into()));
             };
         let mut wallet = Wallet::new_for_user(
             user.id.unwrap(),
-            address.into(),
-            name.into(),
-            chain_id,
+            wallet_info.address,
+            wallet_info.name,
+            wallet_info.chain_id,
             challenge_message,
         );
         wallet.save(&appstate.pool).await?;
@@ -469,7 +467,6 @@ pub async fn wallet_challenge(
     })
 }
 
-// #[put("/user/<username>/wallet", format = "json", data = "<data>")]
 pub async fn set_wallet(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -504,7 +501,6 @@ pub async fn set_wallet(
 
 /// Change wallet.
 /// Currenly only `use_for_mfa` flag can be set or unset.
-// #[put("/user/<username>/wallet/<address>", format = "json", data = "<data>")]
 pub async fn update_wallet(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -559,12 +555,11 @@ pub async fn update_wallet(
 }
 
 /// Delete wallet.
-// #[delete("/user/<username>/wallet/<address>")]
 pub async fn delete_wallet(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    address: &str,
+    Path(address): Path<String>,
 ) -> ApiResult {
     debug!(
         "User {} deleting wallet {address} for user {username}",
@@ -572,7 +567,7 @@ pub async fn delete_wallet(
     );
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), address).await?
+        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), &address).await?
     {
         if Some(wallet.user_id) == user.id {
             wallet.delete(&appstate.pool).await?;
@@ -590,12 +585,11 @@ pub async fn delete_wallet(
     }
 }
 
-// #[delete("/user/<username>/security_key/<id>")]
 pub async fn delete_security_key(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    id: i64,
+    Path(id): Path<i64>,
 ) -> ApiResult {
     debug!(
         "User {} deleting security key {id} for user {username}",
