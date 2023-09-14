@@ -45,14 +45,94 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  release:
+  create-release:
+    name: Create GitHub release draft
     runs-on: self-hosted
+    outputs:
+      upload_url: ${{ steps.release.outputs.upload_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Create release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           draft: true
           generate_release_notes: true
+
+  build-release:
+    name: Build release ${{ matrix.build }} binary
+    needs: [ 'create-release' ]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [ linux, linux-arm, linux-arm64, freebsd ]
+        include:
+          - build: linux
+            os: self-hosted
+            asset_name: defguard-linux-x86_64
+            target: x86_64-unknown-linux-gnu
+          - build: linux-arm
+            os: self-hosted
+            asset_name: defguard-linux-armv7
+            target: armv7-unknown-linux-gnueabihf
+          - build: linux-arm64
+            os: self-hosted
+            asset_name: defguard-linux-arm64
+            target: aarch64-unknown-linux-gnu
+          - build: freebsd
+            os: self-hosted
+            asset_name: defguard-freebsd-x86_64
+            target: x86_64-unknown-freebsd
+    steps:
+      # Store the version, stripping any v-prefix
+      - name: Write release version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo Version: $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Build release binary
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target ${{ matrix.target }}
+
+      - name: Rename binary
+        run: mv target/${{ matrix.target }}/release/defguard ${{ matrix.asset_name }}-${{ github.ref_name }}
+
+      - name: Strip release binary (linux)
+        if: matrix.build == 'linux'
+        run: strip "${{ matrix.asset_name }}-${{ github.ref_name }}"
+
+      - name: Tar
+        uses: a7ul/tar-action@v1.1.0
+        with:
+          command: c
+          files: |
+            ${{ matrix.asset_name }}-${{ github.ref_name }}
+          outPath: ${{ matrix.asset_name }}-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+
+      - name: Upload release archive
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ matrix.asset_name }}-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+          asset_name: ${{ matrix.asset_name }}-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+          asset_content_type: application/octet-stream
