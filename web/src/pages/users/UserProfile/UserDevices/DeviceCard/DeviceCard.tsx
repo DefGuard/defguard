@@ -100,7 +100,7 @@ export const DeviceCard = ({ device }: Props) => {
     >
       <section className="main-info">
         <header>
-          <DeviceAvatar deviceId={Number(device.id)} />
+          <DeviceAvatar deviceId={Number(device.id)} active={false} />
           <h3 data-testid="device-name">{device.name}</h3>
         </header>
         <div className="section-content">
