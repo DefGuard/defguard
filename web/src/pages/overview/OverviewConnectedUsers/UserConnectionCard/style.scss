@@ -174,17 +174,10 @@
       grid-template-columns: 30px 30px 30px;
       grid-template-rows: 30px;
       column-gap: 5px;
-      .avatar-box {
+
+      .avatar-icon {
         width: 30px;
         height: 30px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        align-content: center;
-        justify-content: center;
-        border-radius: 10px;
-        box-sizing: border-box;
-        background-color: var(--bg-light);
       }
 
       .count-box {
