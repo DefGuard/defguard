@@ -1,8 +1,13 @@
 use std::fmt::Display;
 
+use axum::{
+    extract::{Json, State},
+    http::StatusCode,
+};
 use chrono::Utc;
 use lettre::message::header::ContentType;
-use tokio::sync::mpsc::unbounded_channel;
+use serde_json::json;
+use tokio::{fs::read_to_string, sync::mpsc::unbounded_channel};
 
 use super::{ApiResponse, ApiResult};
 use crate::{
@@ -14,9 +19,9 @@ use crate::{
     templates::{self, support_data_mail},
 };
 
-const TEST_MAIL_SUBJECT: &str = "Defguard email test";
-const SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
-const SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
+static TEST_MAIL_SUBJECT: &str = "Defguard email test";
+static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
+static SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -34,12 +39,11 @@ fn internal_error(to: &str, subject: &str, error: &impl Display) -> ApiResponse 
     }
 }
 
-#[post("/test", format = "json", data = "<data>")]
 pub async fn test_mail(
     _admin: AdminRole,
     session: SessionInfo,
-    appstate: &State<AppState>,
-    data: Json<TestMail>,
+    State(appstate): State<AppState>,
+    Json(data): Json<TestMail>,
 ) -> ApiResult {
     debug!(
         "User {} sending test mail to {}",
@@ -83,7 +87,7 @@ async fn read_logs(config: &DefGuardConfig) -> String {
         return "Log file not configured".to_string();
     };
 
-    match tokio::fs::read_to_string(path).await {
+    match read_to_string(path).await {
         Ok(logs) => logs,
         Err(err) => {
             error!("Error dumping app logs: {err}");
@@ -92,15 +96,14 @@ async fn read_logs(config: &DefGuardConfig) -> String {
     }
 }
 
-#[post("/support", format = "json")]
 pub async fn send_support_data(
     _admin: AdminRole,
     session: SessionInfo,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!(
-        "User {} sending support mail to {}",
-        session.user.username, SUPPORT_EMAIL_ADDRESS
+        "User {} sending support mail to {SUPPORT_EMAIL_ADDRESS}",
+        session.user.username
     );
     let config = dump_config(&appstate.pool, &appstate.config).await;
     let config =
@@ -129,8 +132,8 @@ pub async fn send_support_data(
         Ok(_) => match rx.recv().await {
             Some(Ok(_)) => {
                 info!(
-                    "User {} sent support mail to {}",
-                    session.user.username, SUPPORT_EMAIL_ADDRESS
+                    "User {} sent support mail to {SUPPORT_EMAIL_ADDRESS}",
+                    session.user.username
                 );
                 Ok(ApiResponse {
                     json: json!({}),

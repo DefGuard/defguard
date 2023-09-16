@@ -1,3 +1,9 @@
+use axum::{
+    extract::{Json, Path, State},
+    http::StatusCode,
+};
+use serde_json::json;
+
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
@@ -5,30 +11,27 @@ use crate::{
     db::WebHook,
 };
 
-// #[post("/", format = "json", data = "<data>")]
 pub async fn add_webhook(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    data: Json<WebHook>,
     session: SessionInfo,
+    State(appstate): State<AppState>,
+    Json(mut webhook): Json<WebHook>,
 ) -> ApiResult {
-    let url = data.url.clone();
-    debug!("User {} adding webhook {}", session.user.username, url);
-    let mut webhook = data.into_inner();
+    let url = webhook.url.clone();
+    debug!("User {} adding webhook {url}", session.user.username);
     let status = match webhook.save(&appstate.pool).await {
-        Ok(_) => Status::Created,
+        Ok(_) => StatusCode::CREATED,
         Err(_) => StatusCode::BAD_REQUEST,
     };
-    info!("User {} added webhook {}", session.user.username, url);
+    info!("User {} added webhook {url}", session.user.username);
     Ok(ApiResponse {
         json: json!({}),
         status,
     })
 }
 
-// #[get("/", format = "json")]
 // TODO: paginate
-pub async fn list_webhooks(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
+pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     let webhooks = WebHook::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(webhooks),
@@ -36,8 +39,11 @@ pub async fn list_webhooks(_admin: AdminRole, appstate: &State<AppState>) -> Api
     })
 }
 
-#[get("/<id>", format = "json")]
-pub async fn get_webhook(_admin: AdminRole, appstate: &State<AppState>, id: i64) -> ApiResult {
+pub async fn get_webhook(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    Path(id): Path<i64>,
+) -> ApiResult {
     match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(webhook) => Ok(ApiResponse {
             json: json!(webhook),
@@ -62,18 +68,16 @@ pub struct WebHookData {
     pub on_hwkey_provision: bool,
 }
 
-#[put("/<id>", format = "json", data = "<data>")]
 pub async fn change_webhook(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    id: i64,
-    data: Json<WebHookData>,
     session: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(id): Path<i64>,
+    Json(data): Json<WebHookData>,
 ) -> ApiResult {
-    debug!("User {} updating webhook {}", session.user.username, id);
+    debug!("User {} updating webhook {id}", session.user.username);
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(mut webhook) => {
-            let data = data.into_inner();
             webhook.url = data.url;
             webhook.description = data.description;
             webhook.token = data.token;
@@ -87,21 +91,20 @@ pub async fn change_webhook(
         }
         None => StatusCode::NOT_FOUND,
     };
-    info!("User {} updated webhook {}", session.user.username, id);
+    info!("User {} updated webhook {id}", session.user.username);
     Ok(ApiResponse {
         json: json!({}),
         status,
     })
 }
 
-#[delete("/<id>")]
 pub async fn delete_webhook(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    id: i64,
+    State(appstate): State<AppState>,
+    Path(id): Path<i64>,
     session: SessionInfo,
 ) -> ApiResult {
-    debug!("User {} deleting webhook {}", session.user.username, id);
+    debug!("User {} deleting webhook {id}", session.user.username);
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(webhook) => {
             webhook.delete(&appstate.pool).await?;
@@ -109,7 +112,7 @@ pub async fn delete_webhook(
         }
         None => StatusCode::NOT_FOUND,
     };
-    info!("User {} deleted webhook {}", session.user.username, id);
+    info!("User {} deleted webhook {id}", session.user.username);
     Ok(ApiResponse {
         json: json!({}),
         status,
@@ -121,17 +124,16 @@ pub struct ChangeStateData {
     pub enabled: bool,
 }
 
-#[post("/<id>", format = "json", data = "<data>")]
 pub async fn change_enabled(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    id: i64,
-    data: Json<ChangeStateData>,
     session: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(id): Path<i64>,
+    Json(data): Json<ChangeStateData>,
 ) -> ApiResult {
     debug!(
-        "User {} changing webhook {} enabled state to {}",
-        session.user.username, id, data.enabled
+        "User {} changing webhook {id} enabled state to {}",
+        session.user.username, data.enabled
     );
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(mut webhook) => {
@@ -142,8 +144,8 @@ pub async fn change_enabled(
         None => StatusCode::NOT_FOUND,
     };
     info!(
-        "User {} changed webhook {} enabled state to {}",
-        session.user.username, id, data.enabled
+        "User {} changed webhook {id} enabled state to {}",
+        session.user.username, data.enabled
     );
     Ok(ApiResponse {
         json: json!({}),

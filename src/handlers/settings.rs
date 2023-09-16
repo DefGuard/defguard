@@ -1,3 +1,9 @@
+use axum::{
+    extract::{Json, Path, State},
+    http::StatusCode,
+};
+use serde_json::json;
+
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
@@ -6,8 +12,7 @@ use crate::{
     AppState,
 };
 
-// #[get("/", format = "json")]
-pub async fn get_settings(appstate: &State<AppState>) -> ApiResult {
+pub async fn get_settings(State(appstate): State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
     let settings = Settings::find_by_id(&appstate.pool, 1).await?;
     info!("Retrieved settings");
@@ -17,12 +22,11 @@ pub async fn get_settings(appstate: &State<AppState>) -> ApiResult {
     })
 }
 
-// #[put("/", format = "json", data = "<data>")]
 pub async fn update_settings(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    mut data: Json<Settings>,
     session: SessionInfo,
+    State(appstate): State<AppState>,
+    Json(mut data): Json<Settings>,
 ) -> ApiResult {
     debug!("User {} updating settings", session.user.username);
     data.id = Some(1);
@@ -31,11 +35,10 @@ pub async fn update_settings(
     Ok(ApiResponse::default())
 }
 
-// #[get("/<id>", format = "json")]
 pub async fn set_default_branding(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    id: i64,
+    State(appstate): State<AppState>,
+    Path(id): Path<i64>,
     session: SessionInfo,
 ) -> ApiResult {
     debug!(

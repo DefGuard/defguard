@@ -19,7 +19,7 @@ async fn test_initialize_enrollment() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create user with password
     let new_user = AddUserData {
@@ -31,7 +31,7 @@ async fn test_initialize_enrollment() {
         password: Some("Password1234543$!".into()),
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify enrollment token was not created
     let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
@@ -43,7 +43,7 @@ async fn test_initialize_enrollment() {
         .json(&json!({}))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // create user without password
     #[derive(Deserialize)]
@@ -59,7 +59,7 @@ async fn test_initialize_enrollment() {
         password: None,
     };
     let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify enrollment token was not created
     let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
@@ -71,7 +71,7 @@ async fn test_initialize_enrollment() {
         .json(&json!({}))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let response: StartEnrollmentResponse = response.into_json().await.unwrap();
 
     // verify enrollment token was created

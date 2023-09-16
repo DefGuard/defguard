@@ -14,7 +14,7 @@ use webauthn_rs_proto::options::CollectedClientData;
 
 use super::{
     ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
-    WalletAddress, WalletSignature, WebAuthnRegistration,
+    WalletAddress, WalletSignature, WebAuthnRegistration, SESSION_COOKIE_NAME,
 };
 use crate::{
     appstate::AppState,
@@ -27,8 +27,6 @@ use crate::{
     ldap::utils::user_from_ldap,
     SERVER_CONFIG,
 };
-
-static SESSION_COOKIE_NAME: &'static str = "defguard_session";
 
 /// For successful login, return:
 /// * 200 with MFA disabled
@@ -156,7 +154,6 @@ pub async fn logout(
 }
 
 /// Enable MFA
-// #[put("/auth/mfa")]
 pub async fn mfa_enable(
     cookies: Cookies,
     session: Session,

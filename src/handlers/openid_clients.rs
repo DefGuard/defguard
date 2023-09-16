@@ -1,4 +1,8 @@
-use axum::http::StatusCode;
+use axum::{
+    extract::{Json, Path, State},
+    http::StatusCode,
+};
+use serde_json::json;
 
 use super::{webhooks::ChangeStateData, ApiResponse, ApiResult};
 use crate::{
@@ -10,14 +14,13 @@ use crate::{
     },
 };
 
-// #[post("/", format = "json", data = "<data>")]
 pub async fn add_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
-    appstate: &State<AppState>,
-    data: Json<NewOpenIDClient>,
+    State(appstate): State<AppState>,
+    Json(data): Json<NewOpenIDClient>,
 ) -> ApiResult {
-    let mut client = OAuth2Client::from_new(data.into_inner());
+    let mut client = OAuth2Client::from_new(data);
     debug!(
         "User {} adding OpenID client {}",
         session.user.username, client.name
@@ -33,8 +36,7 @@ pub async fn add_openid_client(
     })
 }
 
-// #[get("/", format = "json")]
-pub async fn list_openid_clients(_admin: AdminRole, appstate: &State<AppState>) -> ApiResult {
+pub async fn list_openid_clients(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     let openid_clients = OAuth2Client::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(openid_clients),
@@ -42,13 +44,12 @@ pub async fn list_openid_clients(_admin: AdminRole, appstate: &State<AppState>) 
     })
 }
 
-// #[get("/<client_id>", format = "json")]
 pub async fn get_openid_client(
-    appstate: &State<AppState>,
-    client_id: &str,
+    State(appstate): State<AppState>,
+    Path(client_id): Path<String>,
     session: SessionInfo,
 ) -> ApiResult {
-    match OAuth2Client::find_by_client_id(&appstate.pool, client_id).await? {
+    match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
         Some(openid_client) => {
             if session.is_admin {
                 Ok(ApiResponse {
@@ -69,29 +70,27 @@ pub async fn get_openid_client(
     }
 }
 
-// #[put("/<client_id>", format = "json", data = "<data>")]
 pub async fn change_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
-    appstate: &State<AppState>,
-    client_id: &str,
-    data: Json<NewOpenIDClient>,
+    State(appstate): State<AppState>,
+    Path(client_id): Path<String>,
+    Json(data): Json<NewOpenIDClient>,
 ) -> ApiResult {
     debug!(
-        "User {} updating OpenID client {}",
-        session.user.username, client_id
+        "User {} updating OpenID client {client_id}",
+        session.user.username
     );
-    let status = match OAuth2Client::find_by_client_id(&appstate.pool, client_id).await? {
+    let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
         Some(mut openid_client) => {
-            let data = data.into_inner();
             openid_client.name = data.name;
             openid_client.redirect_uri = data.redirect_uri;
             openid_client.enabled = data.enabled;
             openid_client.scope = data.scope;
             openid_client.save(&appstate.pool).await?;
             info!(
-                "User {} updated OpenID client {} ({})",
-                session.user.username, client_id, openid_client.name
+                "User {} updated OpenID client {client_id} ({})",
+                session.user.username, openid_client.name
             );
             StatusCode::OK
         }
@@ -103,25 +102,24 @@ pub async fn change_openid_client(
     })
 }
 
-// #[post("/<client_id>", format = "json", data = "<data>")]
 pub async fn change_openid_client_state(
     _admin: AdminRole,
     session: SessionInfo,
-    appstate: &State<AppState>,
-    client_id: &str,
-    data: Json<ChangeStateData>,
+    State(appstate): State<AppState>,
+    Path(client_id): Path<String>,
+    Json(data): Json<ChangeStateData>,
 ) -> ApiResult {
     debug!(
-        "User {} updating OpenID client {} enabled state",
-        session.user.username, client_id
+        "User {} updating OpenID client {client_id} enabled state",
+        session.user.username
     );
-    let status = match OAuth2Client::find_by_client_id(&appstate.pool, client_id).await? {
+    let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
         Some(mut openid_client) => {
             openid_client.enabled = data.enabled;
             openid_client.save(&appstate.pool).await?;
             info!(
-                "User {} updated OpenID client {} ({}) enabled state to {}",
-                session.user.username, client_id, openid_client.name, openid_client.enabled,
+                "User {} updated OpenID client {client_id} ({}) enabled state to {}",
+                session.user.username, openid_client.name, openid_client.enabled,
             );
             StatusCode::OK
         }
@@ -133,23 +131,22 @@ pub async fn change_openid_client_state(
     })
 }
 
-// #[delete("/<client_id>")]
 pub async fn delete_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
-    appstate: &State<AppState>,
-    client_id: &str,
+    State(appstate): State<AppState>,
+    Path(client_id): Path<String>,
 ) -> ApiResult {
     debug!(
-        "User {} deleting OpenID client {}",
-        session.user.username, client_id
+        "User {} deleting OpenID client {client_id}",
+        session.user.username
     );
-    let status = match OAuth2Client::find_by_client_id(&appstate.pool, client_id).await? {
+    let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
         Some(openid_client) => {
             openid_client.delete(&appstate.pool).await?;
             info!(
-                "User {} deleted OpenID client {}",
-                session.user.username, client_id
+                "User {} deleted OpenID client {client_id}",
+                session.user.username
             );
             StatusCode::OK
         }

@@ -1,3 +1,9 @@
+use axum::{
+    extract::{Json, Path, State},
+    http::StatusCode,
+};
+use serde_json::json;
+
 use super::{ApiResponse, ApiResult, Username};
 use crate::{
     appstate::AppState,
@@ -32,8 +38,7 @@ impl GroupInfo {
     }
 }
 
-#[get("/group", format = "json")]
-pub async fn list_groups(_session: SessionInfo, appstate: &State<AppState>) -> ApiResult {
+pub async fn list_groups(_session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing groups");
     let groups = Group::all(&appstate.pool)
         .await?
@@ -47,10 +52,13 @@ pub async fn list_groups(_session: SessionInfo, appstate: &State<AppState>) -> A
     })
 }
 
-#[get("/group/<name>", format = "json")]
-pub async fn get_group(_session: SessionInfo, appstate: &State<AppState>, name: &str) -> ApiResult {
+pub async fn get_group(
+    _session: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(name): Path<String>,
+) -> ApiResult {
     debug!("Retrieving group {name}");
-    if let Some(group) = Group::find_by_name(&appstate.pool, name).await? {
+    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         let members = group.member_usernames(&appstate.pool).await?;
         info!("Retrieved group {name}");
         Ok(ApiResponse {
@@ -59,20 +67,17 @@ pub async fn get_group(_session: SessionInfo, appstate: &State<AppState>, name: 
         })
     } else {
         error!("Group {name} not found");
-        Err(WebError::ObjectNotFound(format!(
-            "Group {name} not found",
-        )))
+        Err(WebError::ObjectNotFound(format!("Group {name} not found",)))
     }
 }
 
-#[post("/group/<name>", format = "json", data = "<data>")]
 pub async fn add_group_member(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    name: &str,
-    data: Json<Username>,
+    State(appstate): State<AppState>,
+    Path(name): Path<String>,
+    Json(data): Json<Username>,
 ) -> ApiResult {
-    if let Some(group) = Group::find_by_name(&appstate.pool, name).await? {
+    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         if let Some(user) = User::find_by_username(&appstate.pool, &data.username).await? {
             debug!("Adding user: {} to group: {}", user.username, group.name);
             user.add_to_group(&appstate.pool, &group).await?;
@@ -89,21 +94,18 @@ pub async fn add_group_member(
         }
     } else {
         error!("Group {name} not found");
-        Err(WebError::ObjectNotFound(format!(
-            "Group {name} not found"
-        )))
+        Err(WebError::ObjectNotFound(format!("Group {name} not found")))
     }
 }
 
-#[delete("/group/<name>/user/<username>")]
 pub async fn remove_group_member(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    name: &str,
-    username: &str,
+    State(appstate): State<AppState>,
+    Path(name): Path<String>,
+    Path(username): Path<String>,
 ) -> ApiResult {
-    if let Some(group) = Group::find_by_name(&appstate.pool, name).await? {
-        if let Some(user) = User::find_by_username(&appstate.pool, username).await? {
+    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
+        if let Some(user) = User::find_by_username(&appstate.pool, &username).await? {
             debug!(
                 "Removing user: {} from group: {}",
                 user.username, group.name
@@ -117,15 +119,13 @@ pub async fn remove_group_member(
                 status: StatusCode::OK,
             })
         } else {
-            error!("User not found {}", username);
+            error!("User not found {username}");
             Err(WebError::ObjectNotFound(format!(
                 "User {username} not found"
             )))
         }
     } else {
         error!("Group {name} not found");
-        Err(WebError::ObjectNotFound(format!(
-            "Group {name} not found",
-        )))
+        Err(WebError::ObjectNotFound(format!("Group {name} not found",)))
     }
 }

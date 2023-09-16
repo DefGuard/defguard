@@ -613,7 +613,6 @@ pub async fn delete_security_key(
     }
 }
 
-// #[get("/me", format = "json")]
 pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let user_info = UserInfo::from_user(&appstate.pool, &session.user).await?;
     Ok(ApiResponse {
@@ -623,12 +622,11 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
 }
 
 /// Delete Oauth token.
-// #[delete("/user/<username>/oauth_app/<oauth2client_id>")]
 pub async fn delete_authorized_app(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    oauth2client_id: i64,
+    Path(oauth2client_id): Path<i64>,
 ) -> ApiResult {
     debug!(
         "User {} deleting OAuth2 client {oauth2client_id} for user {username}",
@@ -645,8 +643,8 @@ pub async fn delete_authorized_app(
         if Some(app.user_id) == user.id {
             app.delete(&appstate.pool).await?;
             info!(
-                "User {} deleted OAuth2 client {} for user {}",
-                session.user.username, oauth2client_id, username
+                "User {} deleted OAuth2 client {oauth2client_id} for user {username}",
+                session.user.username,
             );
             Ok(ApiResponse::default())
         } else {

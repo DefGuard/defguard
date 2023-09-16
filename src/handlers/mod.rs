@@ -17,21 +17,24 @@ use crate::{
 
 pub(crate) mod app_info;
 pub(crate) mod auth;
-// pub mod forward_auth;
-// pub(crate) mod group;
-// pub(crate) mod mail;
-// #[cfg(feature = "openid")]
-// pub mod openid_clients;
-// #[cfg(feature = "openid")]
-// pub mod openid_flow;
-// pub(crate) mod settings;
-// pub(crate) mod support;
+pub(crate) mod forward_auth;
+pub(crate) mod group;
+pub(crate) mod mail;
+#[cfg(feature = "openid")]
+pub(crate) mod openid_clients;
+#[cfg(feature = "openid")]
+pub mod openid_flow;
+pub(crate) mod settings;
+pub(crate) mod support;
 pub(crate) mod user;
-// pub(crate) mod webhooks;
-// #[cfg(feature = "wireguard")]
-// pub mod wireguard;
+pub(crate) mod webhooks;
+#[cfg(feature = "wireguard")]
+pub(crate) mod wireguard;
 // #[cfg(feature = "worker")]
 // pub mod worker;
+
+pub(self) static SESSION_COOKIE_NAME: &'static str = "defguard_session";
+pub(self) static SIGN_IN_COOKIE_NAME: &'static str = "known_sign_in";
 
 #[derive(Default)]
 pub struct ApiResponse {

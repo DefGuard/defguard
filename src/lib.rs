@@ -11,16 +11,11 @@ use crate::{
 // use crate::handlers::worker::{
 //     create_job, create_worker_token, job_status, list_workers, remove_worker,
 // };
-// #[cfg(feature = "openid")]
-// use crate::handlers::{
-//     openid_clients::{
-//         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-//         get_openid_client, list_openid_clients,
-//     },
-//     openid_flow::{
-//         authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
-//     },
-// };
+#[cfg(feature = "openid")]
+use crate::handlers::openid_clients::{
+    add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
+    get_openid_client, list_openid_clients,
+};
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
 use crate::{
     auth::failed_login::FailedLoginMap,
@@ -31,10 +26,8 @@ use crate::{
 use anyhow::anyhow;
 use appstate::AppState;
 use axum::{
-    error_handling::HandleError,
     handler::HandlerWithoutStateExt,
     http::{Request, StatusCode},
-    response::IntoResponse,
     routing::{delete, get, post, put},
     Router, Server,
 };
@@ -46,9 +39,20 @@ use handlers::auth::{
     totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
     webauthn_init, webauthn_start,
 };
-use handlers::user::{
-    change_password, delete_security_key, delete_user, delete_wallet, modify_user, set_wallet,
-    update_wallet, wallet_challenge,
+use handlers::{
+    forward_auth::forward_auth,
+    group::{add_group_member, get_group, remove_group_member},
+    mail::{send_support_data, test_mail},
+    openid_flow::{authorization, openid_configuration, secure_authorization, token, userinfo},
+    settings::{get_settings, set_default_branding, update_settings},
+    support::{configuration, logs},
+    user::{
+        change_password, delete_authorized_app, delete_security_key, delete_user, delete_wallet,
+        me, modify_user, set_wallet, update_wallet, wallet_challenge,
+    },
+    webhooks::{
+        add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
+    },
 };
 use mail::Mail;
 use secrecy::ExposeSecret;
@@ -119,48 +123,104 @@ pub fn build_webapp(
     let serve_web_dir = ServeDir::new("web/dist").fallback(ServeFile::new("web/dist/index.html"));
     let serve_images =
         ServeDir::new("web/src/shared/images/svg").not_found_service(handle_404.into_service());
-    let webapp = Router::new()
+    let webapp = Router::new().nest(
+        "/api/v1",
+        Router::new()
+            .route("/health", get(health_check))
+            .route("/info", get(get_app_info))
+            // /auth
+            .route("/auth", post(authenticate))
+            .route("/auth/logout", post(logout))
+            .route("/auth/mfa", put(mfa_enable))
+            .route("/auth/mfa", delete(mfa_disable))
+            .route("/auth/webauthn/init", post(webauthn_init))
+            .route("/auth/webauthn/finish", post(webauthn_finish))
+            .route("/auth/webauthn/start", post(webauthn_start))
+            .route("/auth/webauthn", post(webauthn_end))
+            .route("/auth/totp/init", post(totp_secret))
+            .route("/auth/totp", post(totp_enable))
+            .route("/auth/totp", delete(totp_disable))
+            .route("/auth/totp/verify", post(totp_code))
+            .route("/auth/web3/start", post(web3auth_start))
+            .route("/auth/web3", post(web3auth_end))
+            .route("/auth/recovery", post(recovery_code))
+            // /user
+            .route("/user", get(list_users))
+            .route("/user/:username", get(get_user))
+            .route("/user", post(add_user))
+            .route("/user/:username/start_enrollment", post(start_enrollment))
+            .route("/user/available", post(username_available))
+            .route("/user/:username", put(modify_user))
+            .route("/user/:username", delete(delete_user))
+            // FIXME: username `change_password` is invalid
+            .route("/user/change_password", put(change_self_password))
+            .route("/user/:username/password", put(change_password))
+            .route("/user/:username/challenge", get(wallet_challenge))
+            .route("/user/:username/wallet", put(set_wallet))
+            .route("/user/:username/wallet/:address", put(update_wallet))
+            .route("/user/:username/wallet/:address", delete(delete_wallet))
+            .route(
+                "/user/:username/security_key/:id",
+                delete(delete_security_key),
+            )
+            .route("/me", get(me))
+            .route(
+                "/user/:username/oauth_app/:oauth2client_id",
+                delete(delete_authorized_app),
+            )
+            // forward_auth
+            .route("/forward_auth", get(forward_auth))
+            // group
+            .route("/group", get(list_users))
+            .route("/group/:name", get(get_group))
+            .route("/group/:name", post(add_group_member))
+            .route("/group/:name/user/:username", delete(remove_group_member))
+            // mail
+            .route("/mail/test", post(test_mail))
+            .route("/mail/support", post(send_support_data))
+            // settings
+            .route("/settings", get(get_settings))
+            .route("/settings", put(update_settings))
+            .route("/settings/:id", put(set_default_branding))
+            // support
+            .route("/support/configuration", get(configuration))
+            .route("/support/logs", get(logs))
+            // webhooks
+            .route("/webhook", post(add_webhook))
+            .route("/webhook", get(list_webhooks))
+            .route("/webhook/:id", get(get_webhook))
+            .route("/webhook/:id", put(change_webhook))
+            .route("/webhook/:id", delete(delete_webhook))
+            .route("/webhook/:id", post(change_enabled)),
+    );
+
+    #[cfg(feature = "openid")]
+    let webapp = webapp
         .nest(
-            "/api/v1",
+            "/api/v1/oauth",
             Router::new()
-                .route("/health", get(health_check))
-                .route("/info", get(get_app_info))
-                // /auth
-                .route("/auth", post(authenticate))
-                .route("/auth/logout", post(logout))
-                .route("/auth/mfa", put(mfa_enable))
-                .route("/auth/mfa", delete(mfa_disable))
-                .route("/auth/webauthn/init", post(webauthn_init))
-                .route("/auth/webauthn/finish", post(webauthn_finish))
-                .route("/auth/webauthn/start", post(webauthn_start))
-                .route("/auth/webauthn", post(webauthn_end))
-                .route("/auth/totp/init", post(totp_secret))
-                .route("/auth/totp", post(totp_enable))
-                .route("/auth/totp", delete(totp_disable))
-                .route("/auth/totp/verify", post(totp_code))
-                .route("/auth/web3/start", post(web3auth_start))
-                .route("/auth/web3", post(web3auth_end))
-                .route("/auth/recovery", post(recovery_code))
-                // /user
-                .route("/user", get(list_users))
-                .route("/user/:username", get(get_user))
-                .route("/user", post(add_user))
-                .route("/user/:username/start_enrollment", post(start_enrollment))
-                .route("/user/available", post(username_available))
-                .route("/user/:username", put(modify_user))
-                .route("/user/:username", delete(delete_user))
-                // FIXME: username `change_password` is invalid
-                .route("/user/change_password", put(change_self_password))
-                .route("/user/:username/password", put(change_password))
-                .route("/user/:username/challenge", get(wallet_challenge))
-                .route("/user/:username/wallet", put(set_wallet))
-                .route("/user/:username/wallet/:address", put(update_wallet))
-                .route("/user/:username/wallet/:address", delete(delete_wallet))
-                .route(
-                    "/user/:username/security_key/:id",
-                    delete(delete_security_key),
-                ),
+                .route("/", post(add_openid_client))
+                .route("/", get(list_openid_clients))
+                .route("/:client_id", get(get_openid_client))
+                .route("/:client_id", put(change_openid_client))
+                .route("/:client_id", post(change_openid_client_state))
+                .route("/:client_id", delete(delete_openid_client))
+                .route("/authorize", get(authorization))
+                .route("/authorize", post(secure_authorization))
+                .route("/token", post(token))
+                .route("/userinfo", get(userinfo)),
         )
+        .route(
+            "/.well-known/openid-configuration",
+            get(openid_configuration),
+        );
+
+    // #[cfg(feature = "wireguard")]
+    // let webapp = webapp.nest(
+    //     "/api/v1"
+    // )
+
+    let webapp = webapp
         .nest_service("/svg", serve_images)
         .nest_service("/", serve_web_dir)
         .with_state(AppState::new(
@@ -187,41 +247,6 @@ pub fn build_webapp(
 
     webapp
 
-    //     .mount("/", FileServer::new("./web/dist", Options::Missing).rank(3))
-    //     .mount(
-    //         "/svg",
-    //         FileServer::new("./web/src/shared/images/svg", Options::Index).rank(1),
-    //     )
-    //     .mount(
-    //         "/api/v1",
-    //         routes![
-    //             forward_auth,
-    //             list_groups,
-    //             get_group,
-    //             me,
-    //             add_group_member,
-    //             remove_group_member,
-    //             delete_authorized_app,
-    //         ],
-    //     )
-    //     .mount(
-    //         "/api/v1/settings",
-    //         routes![get_settings, update_settings, set_default_branding],
-    //     )
-    //     .mount("/api/v1/support", routes![configuration, logs])
-    //     .mount(
-    //         "/api/v1/webhook",
-    //         routes![
-    //             add_webhook,
-    //             list_webhooks,
-    //             get_webhook,
-    //             delete_webhook,
-    //             change_webhook,
-    //             change_enabled
-    //         ],
-    //     )
-    //     .mount("/api/v1/mail", routes![test_mail, send_support_data]);
-
     // #[cfg(feature = "wireguard")]
     // let webapp = webapp.manage(gateway_state).mount(
     //     "/api/v1",
@@ -234,7 +259,6 @@ pub fn build_webapp(
     //         list_devices,
     //     ],
     // );
-
     // // initialize webapp with network routes
     // #[cfg(feature = "wireguard")]
     // let webapp = webapp.mount(
@@ -255,33 +279,7 @@ pub fn build_webapp(
     //         download_config,
     //     ],
     // );
-
-    // #[cfg(feature = "openid")]
-    // let webapp = if license_decoded.validate(&Features::Openid) {
-    //     webapp
-    //         .mount(
-    //             "/api/v1/oauth",
-    //             routes![
-    //                 discovery_keys,
-    //                 add_openid_client,
-    //                 list_openid_clients,
-    //                 delete_openid_client,
-    //                 change_openid_client,
-    //                 get_openid_client,
-    //                 authorization,
-    //                 secure_authorization,
-    //                 token,
-    //                 userinfo,
-    //                 change_openid_client_state,
-    //             ],
-    //         )
-    //         .mount("/.well-known", routes![openid_configuration])
-    // } else {
-    //     webapp
-    // };
-
     // #[cfg(feature = "worker")]
-    // let webapp = if license_decoded.validate(&Features::Worker) {
     //     webapp.manage(worker_state).mount(
     //         "/api/v1/worker",
     //         routes![
@@ -292,20 +290,7 @@ pub fn build_webapp(
     //             create_worker_token
     //         ],
     //     )
-    // } else {
-    //     webapp
     // };
-
-    // webapp.manage(AppState::new(
-    //     config,
-    //     pool,
-    //     webhook_tx,
-    //     webhook_rx,
-    //     wireguard_tx,
-    //     mail_tx,
-    //     license_decoded,
-    //     failed_logins,
-    // ))
 }
 
 /// Runs core web server exposing REST API.

@@ -3,7 +3,6 @@ use super::{
     wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE_MINUTES},
     DbPool,
 };
-// use crate::handlers::wireguard::DeviceConfig;
 
 #[derive(Serialize)]
 pub struct DeviceConfig {

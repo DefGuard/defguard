@@ -1,3 +1,5 @@
+use axum::{extract::State, http::StatusCode};
+
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
@@ -6,10 +8,9 @@ use crate::{
     AppState,
 };
 
-#[get("/configuration", format = "json")]
 pub async fn configuration(
     _admin: AdminRole,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} dumping app configuration", session.user.username);
@@ -21,10 +22,9 @@ pub async fn configuration(
     })
 }
 
-#[get("/logs", format = "json")]
 pub async fn logs(
     _admin: AdminRole,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     session: SessionInfo,
 ) -> Result<String, WebError> {
     debug!("User {} dumping app logs", session.user.username);
