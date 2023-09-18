@@ -6,7 +6,7 @@ use std::{
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts, Query, State},
-    http::{request::Parts, StatusCode},
+    http::{header::LOCATION, request::Parts, HeaderMap, HeaderValue, StatusCode},
     Form,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
@@ -77,7 +77,6 @@ impl From<&User> for StandardClaims<CoreGenderClaim> {
     }
 }
 
-// #[get("/discovery/keys")]
 pub async fn discovery_keys(State(appstate): State<AppState>) -> ApiResult {
     let mut keys = Vec::new();
     if let Some(openid_key) = appstate.config.openid_key() {
@@ -101,7 +100,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
-        if let Some(basic_auth) = parts.headers.get("Authorization").and_then(|value| {
+        if let Some(basic_auth) = parts.headers.get("authorization").and_then(|value| {
             if let Ok(value) = value.to_str() {
                 if value.starts_with("Basic ") {
                     value.get(6..)
@@ -184,7 +183,6 @@ impl<'de> Visitor<'de> for FieldResponseTypesVisitor {
     }
 }
 
-// #[rocket::async_trait]
 impl<'de> Deserialize<'de> for FieldResponseTypes {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -318,13 +316,24 @@ async fn generate_auth_code_redirect(
     Ok(url.to_string())
 }
 
+/// Helper function to return redirection with status code 302.
+fn redirect_to<T: AsRef<str>>(uri: T) -> (StatusCode, HeaderMap) {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        LOCATION,
+        HeaderValue::try_from(uri.as_ref()).expect("URI isn't a valid header value"),
+    );
+
+    (StatusCode::FOUND, headers)
+}
+
 /// Helper function to redirect unauthorized user to login page
 /// and store information about OpenID authorize url in cookie to redirect later
 async fn login_redirect(
     appstate: AppState,
     data: &AuthenticationRequest,
     cookies: Cookies,
-) -> Result<(StatusCode, String), WebError> {
+) -> Result<(StatusCode, HeaderMap), WebError> {
     let base_url = appstate.config.url.join("api/v1/oauth/authorize").unwrap();
     let expires = OffsetDateTime::now_utc()
         .checked_add(Duration::minutes(10))
@@ -341,7 +350,7 @@ async fn login_redirect(
     let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
     let private_cookies = cookies.private(&key);
     private_cookies.add(cookie);
-    Ok((StatusCode::FOUND, "/login".to_string()))
+    Ok(redirect_to("/login"))
 }
 
 /// Authorization Endpoint
@@ -350,7 +359,7 @@ pub async fn authorization(
     State(appstate): State<AppState>,
     Query(data): Query<AuthenticationRequest>,
     cookies: Cookies,
-) -> Result<(StatusCode, String), WebError> {
+) -> Result<(StatusCode, HeaderMap), WebError> {
     let error;
     if let Some(oauth2client) =
         OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
@@ -363,10 +372,10 @@ pub async fn authorization(
                             "Redirecting user to consent form - client id {}",
                             data.client_id
                         );
-                        return Ok((
-                            StatusCode::FOUND,
-                            format!("/consent?{}", serde_urlencoded::to_string(data).unwrap()),
-                        ));
+                        return Ok(redirect_to(format!(
+                            "/consent?{}",
+                            serde_urlencoded::to_string(data).unwrap(),
+                        )));
                     }
                     Some(s) if s == "none" => {
                         error!("'none' prompt in client id {} request", data.client_id);
@@ -393,7 +402,10 @@ pub async fn authorization(
                                         )
                                         .await?
                                     {
-                                        info!("OAuth client id {} authorized by user id {}, returning auth code", app.oauth2client_id, session.user_id);
+                                        info!(
+                                            "OAuth client id {} authorized by user id {}, returning auth code",
+                                            app.oauth2client_id, session.user_id
+                                        );
                                         let key = Key::from(
                                             appstate.config.secret_key.expose_secret().as_bytes(),
                                         );
@@ -405,17 +417,17 @@ pub async fn authorization(
                                             Some(session.user_id),
                                         )
                                         .await?;
-                                        Ok((StatusCode::FOUND, location))
+                                        Ok(redirect_to(location))
                                     } else {
                                         // If authorized app not found redirect to consent form
-                                        info!("OAuth client id {} not yet authorized by user id {}, redirecting to consent form", oauth2client.id.unwrap(), session.user_id);
-                                        Ok((
-                                            StatusCode::FOUND,
-                                            format!(
-                                                "/consent?{}",
-                                                serde_urlencoded::to_string(data).unwrap()
-                                            ),
-                                        ))
+                                        info!(
+                                            "OAuth client id {} not yet authorized by user id {}, redirecting to consent form",
+                                            oauth2client.id.unwrap(), session.user_id
+                                        );
+                                        Ok(redirect_to(format!(
+                                            "/consent?{}",
+                                            serde_urlencoded::to_string(data).unwrap()
+                                        )))
                                     }
                                 }
                             } else {
@@ -459,17 +471,16 @@ pub async fn authorization(
         };
     };
 
-    Ok((StatusCode::FOUND, url.to_string()))
+    Ok(redirect_to(url))
 }
 
 /// Login Authorization Endpoint redirect with authorization code
-// #[post("/authorize?<allow>&<data..>")]
 pub async fn secure_authorization(
     session_info: SessionInfo,
     State(appstate): State<AppState>,
     Query(data): Query<AuthenticationRequest>,
     cookies: Cookies,
-) -> Result<(StatusCode, String), WebError> {
+) -> Result<(StatusCode, HeaderMap), WebError> {
     let mut url =
         Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
     let error;
@@ -508,7 +519,7 @@ pub async fn secure_authorization(
                         "Redirecting user {} to {location}",
                         session_info.user.username
                     );
-                    return Ok((StatusCode::FOUND, location));
+                    return Ok(redirect_to(location));
                 }
                 Err(err) => {
                     info!(
@@ -541,7 +552,7 @@ pub async fn secure_authorization(
         };
     };
 
-    Ok((StatusCode::FOUND, url.to_string()))
+    Ok(redirect_to(url))
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenRequest

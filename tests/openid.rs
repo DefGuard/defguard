@@ -198,7 +198,7 @@ async fn test_openid_flow() {
     // exchange wrong code for token should fail
     let response = client
         .post("/api/v1/oauth/token")
-        .header("Content-Type", "application/www-form-url-encoded")
+        .header("Content-Type", "application/x-www-form-urlencoded")
         .body(format!(
             "grant_type=authorization_code&\
             code=ncuoew2323&\
@@ -214,7 +214,7 @@ async fn test_openid_flow() {
     // exchange correct code for token
     let response = client
         .post("/api/v1/oauth/token")
-        .header("Content-Type", "application/www-form-url-encoded")
+        .header("Content-Type", "application/x-www-form-urlencoded")
         .body(format!(
             "grant_type=authorization_code&\
             code={}&\
@@ -257,7 +257,7 @@ async fn test_openid_flow() {
     // check code cannot be reused
     let response = client
         .post("/api/v1/oauth/token")
-        .header("Content-Type", "application/www-form-url-encoded")
+        .header("Content-Type", "application/x-www-form-urlencoded")
         .body(format!(
             "grant_type=authorization_code&\
             code={}&\

@@ -32,7 +32,6 @@ use self::{
         forward_auth::forward_auth,
         group::{add_group_member, get_group, list_groups, remove_group_member},
         mail::{send_support_data, test_mail},
-        openid_flow::{authorization, openid_configuration, secure_authorization, token, userinfo},
         settings::{get_settings, set_default_branding, update_settings},
         support::{configuration, logs},
         user::{
@@ -47,11 +46,6 @@ use self::{
     mail::Mail,
 };
 
-#[cfg(feature = "openid")]
-use self::handlers::openid_clients::{
-    add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-    get_openid_client, list_openid_clients,
-};
 #[cfg(feature = "worker")]
 use self::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
@@ -68,6 +62,16 @@ use self::handlers::{
         delete_network, download_config, gateway_status, get_device, import_network, list_devices,
         list_networks, list_user_devices, modify_device, modify_network, network_details,
         network_stats, remove_gateway, user_stats,
+    },
+};
+#[cfg(feature = "openid")]
+use self::handlers::{
+    openid_clients::{
+        add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
+        get_openid_client, list_openid_clients,
+    },
+    openid_flow::{
+        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
     },
 };
 #[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
@@ -205,6 +209,7 @@ pub fn build_webapp(
         .nest(
             "/api/v1/oauth",
             Router::new()
+                .route("/discovery/keys", get(discovery_keys))
                 .route("/", post(add_openid_client))
                 .route("/", get(list_openid_clients))
                 .route("/:client_id", get(get_openid_client))

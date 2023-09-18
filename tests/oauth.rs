@@ -62,7 +62,7 @@ async fn test_authorize() {
         )
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // error response
     let response = client
@@ -412,7 +412,7 @@ async fn test_token_client_credentials() {
 
     let response = client
         .post("/api/v1/oauth/token")
-        .header("Content-Type", "application/www-form-url-encoded")
+        .header("Content-Type", "application/x-www-form-urlencoded")
         .body("client_id=WrongClient&client_secret=WrongSecret&grant_type=code")
         .send()
         .await;
