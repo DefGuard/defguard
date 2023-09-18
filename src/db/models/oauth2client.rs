@@ -1,5 +1,5 @@
-use super::NewOpenIDClient;
-use crate::{db::DbPool, random::gen_alphanumeric};
+use super::{DbPool, NewOpenIDClient};
+use crate::random::gen_alphanumeric;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};
 

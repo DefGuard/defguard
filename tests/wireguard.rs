@@ -1,6 +1,5 @@
-use defguard::db::models::device::WireguardNetworkDevice;
 use defguard::{
-    db::{Device, GatewayEvent, WireguardNetwork},
+    db::{models::device::WireguardNetworkDevice, Device, GatewayEvent, WireguardNetwork},
     handlers::{wireguard::WireguardNetworkData, Auth},
 };
 use matches::assert_matches;
@@ -10,7 +9,7 @@ use rocket::{
 };
 
 mod common;
-use crate::common::make_test_client;
+use self::common::make_test_client;
 
 fn make_network() -> Value {
     json!({

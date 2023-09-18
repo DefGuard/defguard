@@ -1,4 +1,5 @@
-use crate::{auth::SESSION_TIMEOUT, db::DbPool, random::gen_alphanumeric};
+use super::DbPool;
+use crate::{auth::SESSION_TIMEOUT, random::gen_alphanumeric};
 use chrono::{Duration, NaiveDateTime, Utc};
 use sqlx::{query, query_as, Error as SqlxError, Type};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
@@ -39,6 +40,7 @@ impl Session {
         }
     }
 
+    #[must_use]
     pub fn expired(&self) -> bool {
         self.expires < Utc::now().naive_utc()
     }

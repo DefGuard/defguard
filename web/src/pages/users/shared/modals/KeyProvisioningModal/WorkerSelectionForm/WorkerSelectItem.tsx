@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, Variants } from 'framer-motion';
 import React, { useMemo } from 'react';
 
-import SvgIconCheckmarkGreen from '../../../../../../shared/components/svg/IconCheckmarkGreen';
+import SvgIconCheckmark from '../../../../../../shared/components/svg/IconCheckmark';
 import SvgIconConnected from '../../../../../../shared/components/svg/IconConnected';
 import SvgIconDisconnected from '../../../../../../shared/components/svg/IconDisconnected';
 import { ColorsRGB } from '../../../../../../shared/constants';
@@ -100,7 +100,6 @@ const WorkerSelectItem = React.forwardRef<HTMLInputElement, Props>(
         whileHover={{
           borderColor: ColorsRGB.Primary,
         }}
-        layout
       >
         <input ref={ref} {...rest} />
         <motion.div
@@ -116,19 +115,20 @@ const WorkerSelectItem = React.forwardRef<HTMLInputElement, Props>(
                 animate="animate"
                 exit="exit"
                 key="avatar"
+                className="avatar"
               >
                 <DeviceAvatar />
               </motion.span>
             ) : (
               <motion.span
+                className="checkmark"
                 variants={avatarIconsVariants}
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                className="checkmark"
                 key="checkmark"
               >
-                <SvgIconCheckmarkGreen />
+                <SvgIconCheckmark />
               </motion.span>
             )}
           </AnimatePresence>

@@ -16,7 +16,7 @@
         min-width: 100%;
       }
       @include media-breakpoint-up(xl) {
-        width: 635px;
+        width: 640px;
         padding: 4rem 3rem;
       }
 
@@ -96,12 +96,9 @@
         margin-top: auto;
         margin-bottom: auto;
 
-        p {
-          margin-top: 4rem;
-          margin-bottom: 2rem;
-          color: var(--gray-dark);
-          font-size: 14px;
-          @include text-weight(semiBold);
+        & > .no-data {
+          width: 100%;
+          text-align: center;
         }
       }
     }

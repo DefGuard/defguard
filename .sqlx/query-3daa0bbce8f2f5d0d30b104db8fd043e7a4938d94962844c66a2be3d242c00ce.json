@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"wireguard_peer_stats\" SET \"device_id\" = $2,\"collected_at\" = $3,\"network\" = $4,\"endpoint\" = $5,\"upload\" = $6,\"download\" = $7,\"latest_handshake\" = $8,\"allowed_ips\" = $9 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Timestamp",
+        "Int8",
+        "Text",
+        "Int8",
+        "Int8",
+        "Timestamp",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3daa0bbce8f2f5d0d30b104db8fd043e7a4938d94962844c66a2be3d242c00ce"
+}

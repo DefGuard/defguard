@@ -51,11 +51,11 @@ struct SmtpSettings {
 impl SmtpSettings {
     /// Retrieves Settings object from database and builds SmtpSettings
     pub async fn get(db: &Pool<Postgres>) -> Result<Self, MailError> {
-        Self::from_settings(Self::get_settings(db).await?).await
+        Self::from_settings(Self::get_settings(db).await?)
     }
 
     /// Constructs SmtpSettings object from Settings. Returns error if SMTP settings are incomplete.
-    pub async fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
+    pub fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
         if let (Some(server), Some(port), encryption, Some(user), Some(password), Some(sender)) = (
             settings.smtp_server,
             settings.smtp_port,
@@ -149,7 +149,7 @@ impl MailHandler {
         Self { rx, db }
     }
 
-    pub async fn send_result(
+    pub fn send_result(
         tx: Option<UnboundedSender<Result<Response, MailError>>>,
         result: Result<Response, MailError>,
     ) {
@@ -157,7 +157,7 @@ impl MailHandler {
             if tx.send(result).is_ok() {
                 debug!("SMTP result sent back to caller");
             } else {
-                error!("Error sending SMTP result back to caller")
+                error!("Error sending SMTP result back to caller");
             }
         }
     }
@@ -189,34 +189,31 @@ impl MailHandler {
                 }
             };
             // Build mailer and send the message
-            match self.mailer(settings).await {
+            match Self::mailer(settings) {
                 Ok(mailer) => match mailer.send(message).await {
                     Ok(response) => {
-                        Self::send_result(result_tx, Ok(response.clone())).await;
+                        Self::send_result(result_tx, Ok(response.clone()));
                         info!("Mail sent successfully to: {to}, subject: {subject}, response: {response:?}");
                     }
                     Err(err) => {
                         error!("Mail sending failed to: {to}, subject: {subject}, error: {err}");
-                        Self::send_result(result_tx, Err(MailError::SmtpError(err))).await;
+                        Self::send_result(result_tx, Err(MailError::SmtpError(err)));
                     }
                 },
                 Err(MailError::SmtpNotConfigured) => {
                     warn!("SMTP not configured, onboarding email sending skipped");
-                    Self::send_result(result_tx, Err(MailError::SmtpNotConfigured)).await;
+                    Self::send_result(result_tx, Err(MailError::SmtpNotConfigured));
                 }
                 Err(err) => {
                     error!("Error building mailer: {err}");
-                    Self::send_result(result_tx, Err(err)).await
+                    Self::send_result(result_tx, Err(err));
                 }
             }
         }
     }
 
     /// Builds mailer object with specified configuration
-    async fn mailer(
-        &self,
-        settings: SmtpSettings,
-    ) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
+    fn mailer(settings: SmtpSettings) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
         let builder = match settings.encryption {
             SmtpEncryption::None => {
                 AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(settings.server)

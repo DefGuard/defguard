@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"user\" SET mfa_method = $2 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "mfa_method",
+            "kind": {
+              "Enum": [
+                "none",
+                "one_time_password",
+                "webauthn",
+                "web3"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "31b3fcaa8109121f985a2c740475f1d77fe8dcbcab76e64164be140ad361ab14"
+}

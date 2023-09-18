@@ -1,4 +1,4 @@
-FROM rust:1.71 as chef
+FROM rust:1.72 as chef
 
 WORKDIR /build
 
@@ -21,13 +21,13 @@ RUN cargo chef cook --release --recipe-path recipe.json
 
 # build project
 RUN apt-get update && apt-get -y install protobuf-compiler libprotobuf-dev
-COPY Cargo.toml Cargo.lock build.rs sqlx-data.json ./
+COPY Cargo.toml Cargo.lock build.rs ./
+COPY .sqlx .sqlx
 COPY src src
 COPY templates templates
 COPY model-derive model-derive
 COPY proto proto
 COPY migrations migrations
-ENV SQLX_OFFLINE true
 RUN cargo install --locked --path . --root /build
 
 FROM node:20.5-alpine3.17 as web
@@ -43,9 +43,9 @@ RUN pnpm run generate-translation-types
 RUN pnpm build
 
 # run
-FROM debian:bullseye-slim as runtime
+FROM debian:bookworm-slim as runtime
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y ca-certificates && \
+    apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .

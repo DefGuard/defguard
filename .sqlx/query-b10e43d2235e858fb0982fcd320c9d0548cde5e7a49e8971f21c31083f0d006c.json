@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"webauthn\" SET \"user_id\" = $2,\"name\" = $3,\"passkey\" = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b10e43d2235e858fb0982fcd320c9d0548cde5e7a49e8971f21c31083f0d006c"
+}

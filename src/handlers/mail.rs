@@ -9,11 +9,11 @@ use rocket::{
 };
 use tokio::sync::mpsc::unbounded_channel;
 
+use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    handlers::{ApiResponse, ApiResult},
     mail::{Attachment, Mail},
     support::dump_config,
     templates::{self, support_data_mail},
@@ -84,9 +84,8 @@ pub async fn test_mail(
 }
 
 async fn read_logs(config: &DefGuardConfig) -> String {
-    let path = match &config.log_file {
-        Some(path) => path,
-        None => return "Log file not configured".to_string(),
+    let Some(path) = &config.log_file else {
+        return "Log file not configured".to_string();
     };
 
     match tokio::fs::read_to_string(path).await {

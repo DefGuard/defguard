@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"wallet\" SET \"user_id\" = $2,\"address\" = $3,\"name\" = $4,\"chain_id\" = $5,\"challenge_message\" = $6,\"challenge_signature\" = $7,\"creation_timestamp\" = $8,\"validation_timestamp\" = $9,\"use_for_mfa\" = $10 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Text",
+        "Int8",
+        "Text",
+        "Text",
+        "Timestamp",
+        "Timestamp",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "560de8bc16c1bcc80d31c99dc4b788bf5eeef60689d104448989726a5999eb42"
+}

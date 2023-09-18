@@ -35,9 +35,8 @@ pub async fn dump_config(db: &Pool<Postgres>, config: &DefGuardConfig) -> Value 
             // Devices for each network
             let mut devices = HashMap::<i64, Value>::default();
             for network in &networks {
-                let network_id = match network.id {
-                    Some(id) => id,
-                    None => continue,
+                let Some(network_id) = network.id else {
+                    continue;
                 };
                 devices.insert(
                     network_id,

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"authorization_code\" (\"user_id\",\"client_id\",\"code\",\"redirect_uri\",\"scope\",\"auth_time\",\"nonce\",\"code_challenge\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "248067b0803eaf09f88746459986ac8cccb04723772c5b3ec745dbbdf47efe30"
+}

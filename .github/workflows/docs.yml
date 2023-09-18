@@ -4,8 +4,8 @@ on:
     branches:
       - main
     paths-ignore:
-      - '*.md'
-      - 'LICENSE'
+      - "*.md"
+      - "LICENSE"
 
 env:
   CARGO_INCREMENTAL: 0
@@ -16,10 +16,10 @@ env:
 jobs:
   rustdoc:
     runs-on: self-hosted
-    container: rust:1.71
+    container: rust:1.72
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_DB: defguard
           POSTGRES_USER: defguard

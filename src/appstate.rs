@@ -84,12 +84,12 @@ impl AppState {
     pub fn send_multiple_wireguard_events(&self, events: Vec<GatewayEvent>) {
         debug!("Sending {} wireguard events", events.len());
         for event in events {
-            self.send_wireguard_event(event)
+            self.send_wireguard_event(event);
         }
     }
 
     /// Create application state
-    pub async fn new(
+    pub fn new(
         config: DefGuardConfig,
         pool: DbPool,
         tx: UnboundedSender<AppEvent>,

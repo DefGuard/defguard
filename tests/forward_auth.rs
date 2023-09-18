@@ -5,7 +5,7 @@ use rocket::{
 };
 
 mod common;
-use crate::common::make_test_client;
+use self::common::make_test_client;
 
 async fn make_client() -> Client {
     let (client, client_state) = make_test_client().await;

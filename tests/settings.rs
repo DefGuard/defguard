@@ -5,7 +5,7 @@ use defguard::{
 use rocket::{http::Status, local::asynchronous::Client};
 
 mod common;
-use crate::common::make_test_client;
+use self::common::make_test_client;
 
 async fn make_client() -> Client {
     let (client, _) = make_test_client().await;

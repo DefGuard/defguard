@@ -120,12 +120,11 @@ pub async fn run_periodic_stats_purge(
                             .expect("Failed to parse duration"))
                     .naive_utc();
                     info!(
-                        "Stats purge successful. Next purge will be executed at {}",
-                        next_purge_timestamp
+                        "Stats purge successful. Next purge will be executed at {next_purge_timestamp}"
                     );
                 }
                 Err(err) => {
-                    error!("Error while purging stats: {}", err)
+                    error!("Error while purging stats: {err}");
                 }
             }
         }

@@ -1,34 +1,31 @@
+use self::{
+    interceptor::JwtInterceptor,
+    worker::{worker_service_server::WorkerServiceServer, WorkerServer},
+};
+use crate::{auth::failed_login::FailedLoginMap, config::DefGuardConfig, db::AppEvent, mail::Mail};
 #[cfg(feature = "worker")]
 use crate::{
     auth::ClaimsType,
     db::{DbPool, GatewayEvent},
-    grpc::{
-        interceptor::JwtInterceptor,
-        worker::{worker_service_server::WorkerServiceServer, WorkerServer},
-    },
 };
 use auth::{auth_service_server::AuthServiceServer, AuthServer};
+use chrono::{NaiveDateTime, Utc};
 use enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer};
 #[cfg(feature = "wireguard")]
 use gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
+use serde::Serialize;
+use std::{
+    collections::hash_map::HashMap,
+    time::{Duration, Instant},
+};
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::UnboundedSender;
-use tonic::transport::{Identity, Server, ServerTlsConfig};
-
-use crate::auth::failed_login::FailedLoginMap;
-use crate::config::DefGuardConfig;
-use crate::db::AppEvent;
-use crate::mail::Mail;
-use chrono::{NaiveDateTime, Utc};
-use serde::Serialize;
-use std::time::Duration;
-use std::{collections::hash_map::HashMap, time::Instant};
 use thiserror::Error;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tonic::transport::{Identity, Server, ServerTlsConfig};
 use uuid::Uuid;
 
 mod auth;
@@ -68,58 +65,49 @@ impl GatewayMap {
     // this method is meant to be called when a gateway requests a config
     // as a sort of "registration"
     pub fn add_gateway(&mut self, network_id: i64, hostname: String, name: Option<String>) {
-        info!(
-            "Adding gateway {} with to gateway map for network {}",
-            hostname, network_id
-        );
-        match self.0.get_mut(&network_id) {
-            Some(network_gateway_map) => {
-                network_gateway_map.insert(
-                    hostname.clone(),
-                    GatewayState::new(network_id, hostname, name),
-                );
-            }
+        info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
+        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
+            network_gateway_map.insert(
+                hostname.clone(),
+                GatewayState::new(network_id, hostname, name),
+            );
+        } else {
             // no map for a given network exists yet
-            None => {
-                let mut network_gateway_map = HashMap::new();
-                network_gateway_map.insert(
-                    hostname.clone(),
-                    GatewayState::new(network_id, hostname, name),
-                );
-                self.0.insert(network_id, network_gateway_map);
-            }
+            let mut network_gateway_map = HashMap::new();
+            network_gateway_map.insert(
+                hostname.clone(),
+                GatewayState::new(network_id, hostname, name),
+            );
+            self.0.insert(network_id, network_gateway_map);
         }
     }
 
     // remove gateway from map
     pub fn remove_gateway(&mut self, network_id: i64, uid: Uuid) -> Result<(), GatewayMapError> {
-        info!("Removing gateway from network {}", network_id);
-        match self.0.get_mut(&network_id) {
-            Some(network_gateway_map) => {
-                // find gateway by uuid
-                let hostname = match network_gateway_map
-                    .iter()
-                    .find(|(_address, state)| state.uid == uid)
-                {
-                    None => {
-                        error!("Failed to find gateway with UID {}", uid);
-                        return Err(GatewayMapError::UidNotFound(uid));
+        info!("Removing gateway from network {network_id}");
+        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
+            // find gateway by uuid
+            let hostname = match network_gateway_map
+                .iter()
+                .find(|(_address, state)| state.uid == uid)
+            {
+                None => {
+                    error!("Failed to find gateway with UID {uid}");
+                    return Err(GatewayMapError::UidNotFound(uid));
+                }
+                Some((hostname, state)) => {
+                    if state.connected {
+                        return Err(GatewayMapError::RemoveActive(uid));
                     }
-                    Some((hostname, state)) => {
-                        if state.connected {
-                            return Err(GatewayMapError::RemoveActive(uid));
-                        }
-                        hostname.clone()
-                    }
-                };
-                // remove matching gateway
-                network_gateway_map.remove(&hostname)
-            }
+                    hostname.clone()
+                }
+            };
+            // remove matching gateway
+            network_gateway_map.remove(&hostname)
+        } else {
             // no map for a given network exists yet
-            None => {
-                error!("Network {} not found in gateway map", network_id);
-                return Err(GatewayMapError::NetworkNotFound(network_id));
-            }
+            error!("Network {network_id} not found in gateway map");
+            return Err(GatewayMapError::NetworkNotFound(network_id));
         };
         Ok(())
     }
@@ -131,26 +119,19 @@ impl GatewayMap {
         network_id: i64,
         hostname: &str,
     ) -> Result<(), GatewayMapError> {
-        info!("Connecting gateway {} in network {}", hostname, network_id);
-        match self.0.get_mut(&network_id) {
-            Some(network_gateway_map) => match network_gateway_map.get_mut(hostname) {
-                Some(state) => {
-                    state.connected = true;
-                    state.connected_at = Some(Utc::now().naive_utc());
-                }
-                None => {
-                    error!(
-                        "Gateway {} not found in gateway map for network {}",
-                        hostname, network_id
-                    );
-                    return Err(GatewayMapError::NotFound(network_id, hostname.into()));
-                }
-            },
-            // no map for a given network exists yet
-            None => {
-                error!("Network {} not found in gateway map", network_id);
-                return Err(GatewayMapError::NetworkNotFound(network_id));
+        info!("Connecting gateway {hostname} in network {network_id}");
+        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
+            if let Some(state) = network_gateway_map.get_mut(hostname) {
+                state.connected = true;
+                state.connected_at = Some(Utc::now().naive_utc());
+            } else {
+                error!("Gateway {hostname} not found in gateway map for network {network_id}");
+                return Err(GatewayMapError::NotFound(network_id, hostname.into()));
             }
+        } else {
+            // no map for a given network exists yet
+            error!("Network {network_id} not found in gateway map");
+            return Err(GatewayMapError::NetworkNotFound(network_id));
         };
         Ok(())
     }
@@ -161,10 +142,7 @@ impl GatewayMap {
         network_id: i64,
         hostname: String,
     ) -> Result<(), GatewayMapError> {
-        info!(
-            "Disconnecting gateway {} in network {}",
-            hostname, network_id
-        );
+        info!("Disconnecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
@@ -173,11 +151,12 @@ impl GatewayMap {
             };
         };
         let err = GatewayMapError::NotFound(network_id, hostname);
-        error!("Gateway disconnect failed: {}", err);
+        error!("Gateway disconnect failed: {err}");
         Err(err)
     }
 
     // return `true` if at least one gateway in a given network is connected
+    #[must_use]
     pub fn connected(&self, network_id: i64) -> bool {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => network_gateway_map
@@ -188,6 +167,7 @@ impl GatewayMap {
     }
 
     // return a list af aff statuses af all gateways in a given network
+    #[must_use]
     pub fn get_network_gateway_status(&self, network_id: i64) -> Vec<GatewayState> {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => network_gateway_map.clone().into_values().collect(),

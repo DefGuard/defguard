@@ -240,8 +240,7 @@ pub async fn user_for_admin_or_self(
         match User::find_by_username(pool, username).await? {
             Some(user) => Ok(user),
             None => Err(OriWebError::ObjectNotFound(format!(
-                "user {} not found",
-                username
+                "user {username} not found"
             ))),
         }
     } else {
@@ -266,8 +265,7 @@ pub async fn device_for_admin_or_self(
     match fetch {
         Some(device) => Ok(device),
         None => Err(OriWebError::ObjectNotFound(format!(
-            "device id {} not found",
-            id
+            "device id {id} not found"
         ))),
     }
 }

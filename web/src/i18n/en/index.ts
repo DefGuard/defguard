@@ -301,6 +301,8 @@ const en: BaseTranslation = {
     },
     provisionKeys: {
       title: 'Yubikey provisioning:',
+      warning:
+        'Please be advised that this operation wll wipe openpgp application on yubikey and reconfigure it.',
       infoBox: `The selected provisioner must have a <b>clean</b> YubiKey
                 plugged in be provisioned. To clean a used YubiKey
                 <b>gpg --card-edit </b> before provisioning.`,
@@ -1077,17 +1079,11 @@ const en: BaseTranslation = {
     noLicenseMessage: "You don't have a license for this feature.",
     provisioningStation: {
       header: 'YubiKey provisioning station',
-      cardTitle: 'Provisioning station setup command',
+      cardTitle: 'Provisioning station docker setup command',
       content: `In order to be able to provision your YubiKeys, first you need to set up
         physical machine with USB slot. Run provided command on your chosen
         machine to register it and start provisioning your keys.`,
     },
-    noLicenseBox: `<p>
-              <strong>YubiKey module</strong>
-            </p>
-            <br />
-            <p>This is enterprise module for YubiKey</p>
-            <p>management and provisioning.</p>`,
     list: {
       headers: {
         name: 'Name',

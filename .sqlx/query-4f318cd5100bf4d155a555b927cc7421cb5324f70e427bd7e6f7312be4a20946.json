@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM wireguard_network_allowed_group\n            WHERE network_id = $1 AND group_id IN (\n                SELECT id\n                FROM \"group\"\n                WHERE name IN (SELECT * FROM UNNEST($2::text[]))\n            )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4f318cd5100bf4d155a555b927cc7421cb5324f70e427bd7e6f7312be4a20946"
+}

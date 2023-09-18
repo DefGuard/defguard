@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM \"wireguard_peer_stats\" WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9ea6f3e288d0a23c2b020034c80e60c0c73bcc37705cf408ea14c65ec3d1dab8"
+}

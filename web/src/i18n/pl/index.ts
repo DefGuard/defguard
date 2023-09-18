@@ -300,6 +300,7 @@ const pl: Translation = {
       },
     },
     provisionKeys: {
+      warning: 'Ta operacja bezpowrotnie usunie dane z aplikacji openpgp klucza.',
       title: 'Provisionowanie YubiKeya:',
       infoBox: `Wybrany provisioner musi mieć podłączony <b>pusty</b> YubiKey.
                 Aby zresetować YubiKey uruchom
@@ -1080,12 +1081,6 @@ const pl: Translation = {
         fizyczną maszynę z gniazdem USB. Uruchom podane polecenie na wybranej maszynie
         aby zarejestrować maszynę i rozpocząć generowanie kluczy.`,
     },
-    noLicenseBox: `<p>
-              <strong>YubiKey module</strong>
-            </p>
-            <br />
-            <p>Jest to moduł enterprise dla YubiKey</p>>
-            <p>zarządzania i provisioningu.</p>`,
     list: {
       headers: {
         name: 'Nazwa',

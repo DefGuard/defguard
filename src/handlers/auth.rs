@@ -2,12 +2,11 @@ use super::{
     ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
     WalletAddress, WalletSignature, WebAuthnRegistration,
 };
-use crate::auth::failed_login::{check_username, log_failed_login_attempt};
-use crate::db::MFAMethod;
 use crate::{
     appstate::AppState,
+    auth::failed_login::{check_username, log_failed_login_attempt},
     auth::SessionInfo,
-    db::{MFAInfo, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
+    db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::OriWebError,
     ldap::utils::user_from_ldap,
     license::Features,
@@ -269,7 +268,7 @@ pub async fn webauthn_finish(
             .webauthn
             .get_allowed_origins()
             .iter()
-            .map(|url| url.to_string())
+            .map(ToString::to_string)
             .collect::<Vec<String>>()
     );
 
@@ -574,15 +573,15 @@ pub async fn recovery_code(
                     }),
                     status: Status::Ok,
                 });
-            } else {
-                return Ok(ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: None,
-                    }),
-                    status: Status::Ok,
-                });
             }
+
+            return Ok(ApiResponse {
+                json: json!(AuthResponse {
+                    user: user_info,
+                    url: None,
+                }),
+                status: Status::Ok,
+            });
         }
     }
     Err(OriWebError::Http(Status::Unauthorized))
