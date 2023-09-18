@@ -1,9 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use axum::{
-    http::{Request, StatusCode},
-    Router,
-};
+use axum::http::StatusCode;
+use axum_test_helper::TestClient;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
@@ -13,14 +11,12 @@ use defguard::{
     mail::Mail,
     SERVER_CONFIG,
 };
-use hyper::{body, Body};
 use secrecy::ExposeSecret;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
 use tokio::sync::{
     broadcast::{self, Receiver},
     mpsc::unbounded_channel,
 };
-use tower::ServiceExt;
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     let config = DefGuardConfig::new_test_config();
@@ -98,7 +94,7 @@ impl ClientState {
     }
 }
 
-pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Router, ClientState) {
+pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClient, ClientState) {
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -131,33 +127,18 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Router, 
         pool,
         failed_logins,
     );
-    (webapp, client_state)
+    (TestClient::new(webapp), client_state)
 }
 
 #[allow(dead_code)]
-pub async fn make_test_client() -> (Router, ClientState) {
+pub async fn make_test_client() -> (TestClient, ClientState) {
     let (pool, config) = init_test_db().await;
     make_base_client(pool, config).await
 }
 
 #[allow(dead_code)]
-pub async fn make_license_test_client(license: &str) -> (Router, ClientState) {
-    let (pool, mut config) = init_test_db().await;
-    config.license = license.into();
-    make_base_client(pool, config).await
-}
-
-#[allow(dead_code)]
-pub async fn fetch_user_details(client: Router, username: &str) -> UserDetails {
-    let response = client
-        .oneshot(
-            Request::get(format!("/api/v1/user/{username}"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
+pub async fn fetch_user_details(client: TestClient, username: &str) -> UserDetails {
+    let response = client.get(&format!("/api/v1/user/{username}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body = body::to_bytes(response.into_body()).await.unwrap();
-    serde_json::from_slice(&body).unwrap()
+    response.json().await
 }

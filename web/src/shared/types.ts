@@ -441,9 +441,6 @@ export interface ApiHook {
     getUserClients: (username: string) => Promise<AuthorizedClient[]>;
     removeUserClient: (data: RemoveUserClientRequest) => EmptyApiResponse;
   };
-  license: {
-    getLicense: () => Promise<License>;
-  };
   settings: {
     getSettings: () => Promise<Settings>;
     editSettings: (data: Settings) => EmptyApiResponse;
@@ -593,7 +590,6 @@ export interface UseModalStore {
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
   deleteUserModal: DeleteUserModal;
-  licenseModal: StandardModalState;
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
@@ -618,12 +614,10 @@ export interface UseModalStore {
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
-  setLicenseModal: ModalSetter<StandardModalState>;
 }
 
 export interface AppStore {
   settings?: Settings;
-  license?: License;
   language?: Locales;
   appInfo?: AppInfo;
   setAppStore: (newValues: Partial<Omit<AppStore, 'setAppStore'>>) => void;
@@ -765,16 +759,6 @@ export interface WireguardNetworkStats {
   upload: number;
   download: number;
   transfer_series: NetworkSpeedStats[];
-}
-
-export interface License {
-  company: string;
-  expiration: Date;
-  oauth: boolean;
-  enterprise: boolean;
-  openid: boolean;
-  ldap: boolean;
-  worker: boolean;
 }
 
 export interface WalletProvider {

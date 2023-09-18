@@ -134,9 +134,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LDAP_MEMBER_ATTR", default_value = "memberOf")]
     pub ldap_member_attr: String,
 
-    #[arg(long, env = "DEFGUARD_LICENSE", default_value = "")]
-    pub license: String,
-
     #[arg(
         long,
         env = "DEFGUARD_LDAP_GROUP_MEMBER_ATTR",
@@ -223,6 +220,8 @@ impl DefGuardConfig {
     #[must_use]
     pub fn new_test_config() -> Self {
         let mut config = Self::parse_from::<[_; 0], String>([]);
+        // config.url = Url::parse("http://127.0.0.1:8000").unwrap();
+        // config.webauthn_rp_id = Some("127.0.0.1".into());
         config.validate_rp_id();
         config.validate_cookie_domain();
         config

@@ -18,11 +18,11 @@ async fn test_settings() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // get settings
     let response = client.get("/api/v1/settings").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let mut settings: Settings = response.into_json().await.unwrap();
     assert_eq!(
         settings,
@@ -64,11 +64,11 @@ async fn test_settings() {
         .json(&settings)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // verify modified settings
     let response = client.get("/api/v1/settings").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let new_settings: Settings = response.into_json().await.unwrap();
     assert_eq!(new_settings, settings);
 }

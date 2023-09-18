@@ -28,7 +28,7 @@ async fn test_network() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create network
     let response = client
@@ -36,7 +36,7 @@ async fn test_network() {
         .json(&make_network())
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let network: WireguardNetwork = response.into_json().await.unwrap();
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
@@ -57,13 +57,13 @@ async fn test_network() {
         .json(&network_data)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkModified(..));
 
     // list networks
     let response = client.get("/api/v1/network").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let networks: Vec<WireguardNetwork> = response.into_json().await.unwrap();
     assert_eq!(networks.len(), 1);
 
@@ -74,7 +74,7 @@ async fn test_network() {
         .get(format!("/api/v1/network/{}", network_from_list.id.unwrap()))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let network_from_details: WireguardNetwork = response.into_json().await.unwrap();
     assert_eq!(network_from_details, network_from_list);
 
@@ -83,7 +83,7 @@ async fn test_network() {
         .delete(format!("/api/v1/network/{}", network.id.unwrap()))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkDeleted(..));
 }
@@ -96,7 +96,7 @@ async fn test_device() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create network
     let response = client
@@ -104,13 +104,13 @@ async fn test_device() {
         .json(&make_network())
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // network details
     let response = client.get("/api/v1/network/1").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let network_from_details: WireguardNetwork = response.into_json().await.unwrap();
 
     // create device
@@ -123,7 +123,7 @@ async fn test_device() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceCreated(..));
 
@@ -143,7 +143,7 @@ async fn test_device() {
         .json(&make_network())
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
 
     // an IP was assigned for an existing device
@@ -155,7 +155,7 @@ async fn test_device() {
 
     // list devices
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let devices: Vec<Device> = response.into_json().await.unwrap();
     assert_eq!(devices.len(), 1);
     let device = devices[0].clone();
@@ -171,7 +171,7 @@ async fn test_device() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let user_devices: Vec<Device> = response.into_json().await.unwrap();
     assert_eq!(user_devices.len(), 1);
     assert_eq!(devices.len(), 1);
@@ -188,7 +188,7 @@ async fn test_device() {
         .json(&modified_device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceModified(..));
 
@@ -197,7 +197,7 @@ async fn test_device() {
         .get(format!("/api/v1/device/{}", device.id.unwrap()))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let device_from_details: Device = response.into_json().await.unwrap();
     assert_eq!(device_from_details.name, modified_name);
     assert_eq!(device_from_details.wireguard_pubkey, modified_key);
@@ -210,7 +210,7 @@ async fn test_device() {
         ))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let config = response.into_string().await.unwrap();
     assert_eq!(
         config,
@@ -236,7 +236,7 @@ async fn test_device() {
         ))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkDeleted(..));
 
@@ -245,12 +245,12 @@ async fn test_device() {
         .delete(format!("/api/v1/device/{}", device.id.unwrap()))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceDeleted(..));
 
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let devices: Vec<Device> = response.into_json().await.unwrap();
     assert!(devices.is_empty());
 }
@@ -261,7 +261,7 @@ async fn test_device_permissions() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create network
     let response = client
@@ -269,7 +269,7 @@ async fn test_device_permissions() {
         .json(&make_network())
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // admin can add devices for other users
     let device = json!({
@@ -281,7 +281,7 @@ async fn test_device_permissions() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let device = json!({"devices": [{
         "name": "device_2",
         "wireguard_ip": "10.0.0.3",
@@ -294,7 +294,7 @@ async fn test_device_permissions() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let device = json!({
         "name": "device_3",
@@ -305,7 +305,7 @@ async fn test_device_permissions() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let device = json!({"devices": [{
         "name": "device_4",
         "wireguard_ip": "10.0.0.5",
@@ -318,12 +318,12 @@ async fn test_device_permissions() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // normal user cannot add devices for other users or import multiple devices
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let device = json!({
         "name": "device_5",
@@ -334,7 +334,7 @@ async fn test_device_permissions() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let device = json!({"devices": [{
         "name": "device_6",
         "wireguard_ip": "10.0.0.7",
@@ -347,7 +347,7 @@ async fn test_device_permissions() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Forbidden);
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     let device = json!({
         "name": "device_7",
@@ -358,7 +358,7 @@ async fn test_device_permissions() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Forbidden);
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
     let device = json!({"devices": [{
         "name": "device_8",
         "wireguard_ip": "10.0.0.9",
@@ -371,29 +371,29 @@ async fn test_device_permissions() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Forbidden);
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // normal user cannot list devices of other users
     let response = client.get("/api/v1/device/user/admin").dispatch().await;
-    assert_eq!(response.status(), Status::Forbidden);
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     let response = client.get("/api/v1/device/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let user_devices: Vec<Device> = response.into_json().await.unwrap();
     assert_eq!(user_devices.len(), 3);
 
     // admin can list devices of other users
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let response = client.get("/api/v1/device/user/admin").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let user_devices: Vec<Device> = response.into_json().await.unwrap();
     assert_eq!(user_devices.len(), 2);
 
     let response = client.get("/api/v1/device/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let user_devices: Vec<Device> = response.into_json().await.unwrap();
     assert_eq!(user_devices.len(), 3);
 }
@@ -406,7 +406,7 @@ async fn test_device_pubkey() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create network
     let response = client
@@ -414,13 +414,13 @@ async fn test_device_pubkey() {
         .json(&make_network())
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // network details
     let response = client.get("/api/v1/network/1").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let network_from_details: WireguardNetwork = response.into_json().await.unwrap();
 
     // create bad device
@@ -433,7 +433,7 @@ async fn test_device_pubkey() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // create another bad device
     let device = json!({
@@ -445,7 +445,7 @@ async fn test_device_pubkey() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // create good device
     let device = json!({
@@ -457,11 +457,11 @@ async fn test_device_pubkey() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // list devices
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let devices: Vec<Device> = response.into_json().await.unwrap();
     assert_eq!(devices.len(), 1);
 
@@ -473,7 +473,7 @@ async fn test_device_pubkey() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // try to create multiple devices
     let devices = json!({"devices": [{
@@ -495,11 +495,11 @@ async fn test_device_pubkey() {
         .json(&devices)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // make sure no device was created
     let response = client.get("/api/v1/device").json(&device).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let devices: Vec<Device> = response.into_json().await.unwrap();
     assert_eq!(devices.len(), 1);
 }

@@ -32,7 +32,7 @@ async fn test_stats() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create network
     let response = client
@@ -40,7 +40,7 @@ async fn test_stats() {
         .json(&make_network())
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // create devices
     let device = json!({
@@ -52,7 +52,7 @@ async fn test_stats() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let device = json!({
         "name": "device-2",
@@ -63,16 +63,16 @@ async fn test_stats() {
         .json(&device)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // get devices
     let mut devices = Vec::<Device>::new();
     let response = client.get("/api/v1/device/1").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     devices.push(response.into_json().await.unwrap());
 
     let response = client.get("/api/v1/device/2").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     devices.push(response.into_json().await.unwrap());
 
     // empty stats
@@ -85,7 +85,7 @@ async fn test_stats() {
         ))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let stats: Vec<WireguardUserStatsRow> = response.into_json().await.unwrap();
     assert!(stats.is_empty());
 
@@ -116,7 +116,7 @@ async fn test_stats() {
         ))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let stats: Vec<WireguardUserStatsRow> = response.into_json().await.unwrap();
     assert_eq!(stats.len(), 1);
     assert_eq!(stats[0].devices.len(), 2);
@@ -220,7 +220,7 @@ async fn test_stats() {
         ))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let stats: Vec<WireguardUserStatsRow> = response.into_json().await.unwrap();
     assert_eq!(stats.len(), 1);
     assert_eq!(stats[0].devices.len(), 2);
@@ -251,7 +251,7 @@ async fn test_stats() {
         ))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let stats: WireguardNetworkStats = response.into_json().await.unwrap();
     assert_eq!(stats.active_users, 1);
     assert_eq!(stats.active_devices, 2);

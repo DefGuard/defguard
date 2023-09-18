@@ -222,38 +222,36 @@ pub fn build_webapp(
         );
 
     #[cfg(feature = "wireguard")]
-    let webapp = webapp
-        .nest(
-            "/api/v1",
-            Router::new()
-                .route("/device/:device_id", post(add_device))
-                .route("/device/:device_id", put(modify_device))
-                .route("/device/:device_id", get(get_device))
-                .route("/device/:device_id", delete(delete_device))
-                .route("/device", get(list_devices))
-                .route("/device/user/:username", get(list_user_devices))
-                .layer(Extension(gateway_state)),
-        )
-        .nest(
-            "/api/v1/network",
-            Router::new()
-                .route("/", post(create_network))
-                .route("/:network_id", put(modify_network))
-                .route("/:network_id", delete(delete_network))
-                .route("/", get(list_networks))
-                .route("/:network_id", get(network_details))
-                .route("/:network_id/gateways", get(gateway_status))
-                .route("/:network_id/gateways/:gateway_id", delete(remove_gateway))
-                .route("/import", post(import_network))
-                .route("/:network_id/devices", post(add_user_devices))
-                .route(
-                    "/:network_id/device/:device_id/config",
-                    get(download_config),
-                )
-                .route("/:network_id/token", get(create_network_token))
-                .route("/:network_id/stats/users", get(user_stats))
-                .route("/:network_id/stats", get(network_stats)),
-        );
+    let webapp = webapp.nest(
+        "/api/v1",
+        Router::new()
+            .route("/device/:device_id", post(add_device))
+            .route("/device/:device_id", put(modify_device))
+            .route("/device/:device_id", get(get_device))
+            .route("/device/:device_id", delete(delete_device))
+            .route("/device", get(list_devices))
+            .route("/device/user/:username", get(list_user_devices))
+            .route("/network", post(create_network))
+            .route("/network/:network_id", put(modify_network))
+            .route("/network:network_id", delete(delete_network))
+            .route("/network", get(list_networks))
+            .route("/network/:network_id", get(network_details))
+            .route("/network/:network_id/gateways", get(gateway_status))
+            .route(
+                "/network/:network_id/gateways/:gateway_id",
+                delete(remove_gateway),
+            )
+            .route("/network/import", post(import_network))
+            .route("/network/:network_id/devices", post(add_user_devices))
+            .route(
+                "/network/:network_id/device/:device_id/config",
+                get(download_config),
+            )
+            .route("/network/:network_id/token", get(create_network_token))
+            .route("/network/:network_id/stats/users", get(user_stats))
+            .route("/network/:network_id/stats", get(network_stats))
+            .layer(Extension(gateway_state)),
+    );
 
     #[cfg(feature = "worker")]
     let webapp = webapp.nest(

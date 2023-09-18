@@ -79,7 +79,7 @@ async fn test_config_import() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
@@ -87,7 +87,7 @@ async fn test_config_import() {
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": []}))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let response: ImportedNetworkData = response.into_json().await.unwrap();
 
     // network assertions
@@ -159,7 +159,7 @@ async fn test_config_import() {
         .json(&json!({"devices": [device1, device2]}))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // assert events
     let event = wg_rx.try_recv().unwrap();
@@ -228,7 +228,7 @@ async fn test_config_import_missing_interface() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
@@ -262,7 +262,7 @@ async fn test_config_import_invalid_key() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
@@ -321,7 +321,7 @@ async fn test_config_import_invalid_ip() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
@@ -354,7 +354,7 @@ async fn test_config_import_nonadmin() {
     let (client, _) = make_test_client().await;
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
@@ -362,5 +362,5 @@ async fn test_config_import_nonadmin() {
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Forbidden);
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }

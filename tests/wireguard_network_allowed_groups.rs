@@ -103,7 +103,7 @@ async fn test_create_new_network() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create network
     let response = client
@@ -119,7 +119,7 @@ async fn test_create_new_network() {
         }))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let network: WireguardNetwork = response.into_json().await.unwrap();
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
@@ -142,7 +142,7 @@ async fn test_modify_network() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create network without allowed groups
     let response = client
@@ -158,7 +158,7 @@ async fn test_modify_network() {
         }))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let network: WireguardNetwork = response.into_json().await.unwrap();
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
@@ -186,7 +186,7 @@ async fn test_modify_network() {
         }))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
@@ -208,7 +208,7 @@ async fn test_modify_network() {
         }))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
@@ -231,7 +231,7 @@ async fn test_modify_network() {
         }))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
@@ -253,7 +253,7 @@ async fn test_modify_network() {
         }))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
@@ -276,7 +276,7 @@ async fn test_import_network_existing_devices() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // config file includes some existing devices
     let wg_config = format!(
@@ -311,7 +311,7 @@ async fn test_import_network_existing_devices() {
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let response: ImportedNetworkData = response.into_json().await.unwrap();
     assert_eq!(response.devices.len(), 1);
     assert_eq!(
@@ -364,7 +364,7 @@ async fn test_import_mapping_devices() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let wg_config = "
 [Interface]
@@ -401,7 +401,7 @@ PersistentKeepalive = 300
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
     let response: ImportedNetworkData = response.into_json().await.unwrap();
     let network = response.network;
     let mut mapped_devices = response.devices;
@@ -421,7 +421,7 @@ PersistentKeepalive = 300
         .json(&json!({"devices": mapped_devices.clone()}))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(peers.len(), 4);

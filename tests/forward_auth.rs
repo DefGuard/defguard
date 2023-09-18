@@ -1,5 +1,6 @@
 mod common;
 
+use axum::http::StatusCode;
 use defguard::{db::Wallet, handlers::Auth, SERVER_CONFIG};
 
 use self::common::make_test_client;
@@ -30,7 +31,7 @@ async fn test_forward_auth() {
         .header(Header::new("x-forwarded-uri", "/test"))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::TemporaryRedirect);
+    assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
     let headers = response.headers();
     assert_eq!(
         headers.get_one("location").unwrap(),
@@ -44,7 +45,7 @@ async fn test_forward_auth() {
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // store auth cookie for later use
     let auth_cookie = response.cookies().get("defguard_session").unwrap().value();
@@ -57,5 +58,5 @@ async fn test_forward_auth() {
         .header(Header::new("x-forwarded-uri", "/test"))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 }

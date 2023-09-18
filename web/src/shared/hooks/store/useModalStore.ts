@@ -111,10 +111,6 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
       set((state) => ({
         addOpenidClientModal: { ...state.addOpenidClientModal, ...v },
       })),
-    setLicenseModal: (v) =>
-      set((state) => ({
-        licenseModal: { ...state.licenseModal, ...v },
-      })),
     setDeleteOpenidClientModal: (data) =>
       set((state) => ({
         deleteOpenidClientModal: { ...state.deleteOpenidClientModal, ...data },

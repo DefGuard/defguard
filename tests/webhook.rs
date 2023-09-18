@@ -15,7 +15,7 @@ async fn test_webhooks() {
 
     let auth = Auth::new("admin".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let mut webhook = WebHook {
         id: None,
@@ -34,10 +34,10 @@ async fn test_webhooks() {
         .json(&webhook)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let response = client.get("/api/v1/webhook").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let webhooks: Vec<WebHook> = response.into_json().await.unwrap();
     assert_eq!(webhooks.len(), 1);
 
@@ -48,13 +48,13 @@ async fn test_webhooks() {
         .json(&webhook)
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
         .get(format!("/api/v1/webhook/{}", webhooks[0].id.unwrap()))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let fetched_webhook: WebHook = response.into_json().await.unwrap();
     assert_eq!(fetched_webhook.url, webhook.url);
     assert_eq!(fetched_webhook.description, webhook.description);
@@ -64,10 +64,10 @@ async fn test_webhooks() {
         .delete(format!("/api/v1/webhook/{}", webhooks[0].id.unwrap()))
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let response = client.get("/api/v1/webhook").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let webhooks: Vec<WebHook> = response.into_json().await.unwrap();
     assert!(webhooks.is_empty());
 }

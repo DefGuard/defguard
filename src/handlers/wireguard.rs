@@ -695,19 +695,26 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
     Ok(aggregation)
 }
 
-/// If `datetime` is Some, parses the date string, otherwise returns `DateTime` one hour ago.
-fn parse_timestamp(datetime: Option<String>) -> Result<DateTime<Utc>, StatusCode> {
-    Ok(match datetime {
-        Some(from) => DateTime::<Utc>::from_str(&from).map_err(|_| StatusCode::BAD_REQUEST)?,
-        None => Utc::now() - Duration::hours(1),
-    })
+#[derive(Deserialize)]
+pub struct QueryFrom {
+    from: Option<String>,
+}
+
+impl QueryFrom {
+    /// If `datetime` is Some, parses the date string, otherwise returns `DateTime` one hour ago.
+    fn parse_timestamp(&self) -> Result<DateTime<Utc>, StatusCode> {
+        Ok(match &self.from {
+            Some(from) => DateTime::<Utc>::from_str(from).map_err(|_| StatusCode::BAD_REQUEST)?,
+            None => Utc::now() - Duration::hours(1),
+        })
+    }
 }
 
 pub async fn user_stats(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
-    Query(from): Query<Option<String>>,
+    Query(query_from): Query<QueryFrom>,
 ) -> ApiResult {
     debug!("Displaying WireGuard user stats");
     let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? else {
@@ -715,7 +722,7 @@ pub async fn user_stats(
             "Requested network ({network_id}) not found",
         )));
     };
-    let from = parse_timestamp(from)?.naive_utc();
+    let from = query_from.parse_timestamp()?.naive_utc();
     let aggregation = get_aggregation(from)?;
     let stats = network
         .user_stats(&appstate.pool, &from, &aggregation)
@@ -732,7 +739,7 @@ pub async fn network_stats(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
-    Query(from): Query<Option<String>>,
+    Query(query_from): Query<QueryFrom>,
 ) -> ApiResult {
     debug!("Displaying WireGuard network stats");
     let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? else {
@@ -740,7 +747,7 @@ pub async fn network_stats(
             "Requested network ({network_id}) not found"
         )));
     };
-    let from = parse_timestamp(from)?.naive_utc();
+    let from = query_from.parse_timestamp()?.naive_utc();
     let aggregation = get_aggregation(from)?;
     let stats = network
         .network_stats(&appstate.pool, &from, &aggregation)

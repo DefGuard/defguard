@@ -1,25 +1,27 @@
 mod common;
 
 use axum::http::StatusCode;
+use axum_test_helper::TestClient;
 use defguard::{
     db::{models::enrollment::Enrollment, DbPool},
     handlers::{AddUserData, Auth},
 };
+use serde::Deserialize;
 use serde_json::json;
 
 use self::common::make_test_client;
 
-async fn make_client() -> (Client, DbPool) {
+async fn make_client() -> (TestClient, DbPool) {
     let (client, client_state) = make_test_client().await;
     (client, client_state.pool)
 }
 
-#[async_test]
+#[tokio::test]
 async fn test_initialize_enrollment() {
     let (client, pool) = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // create user with password
@@ -31,7 +33,7 @@ async fn test_initialize_enrollment() {
         phone: Some("1234".into()),
         password: Some("Password1234543$!".into()),
     };
-    let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify enrollment token was not created
@@ -42,7 +44,7 @@ async fn test_initialize_enrollment() {
     let response = client
         .post("/api/v1/user/adumbledore/start_enrollment")
         .json(&json!({}))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
@@ -59,7 +61,7 @@ async fn test_initialize_enrollment() {
         phone: Some("1234".into()),
         password: None,
     };
-    let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify enrollment token was not created
@@ -70,7 +72,7 @@ async fn test_initialize_enrollment() {
     let response = client
         .post("/api/v1/user/adumbledore2/start_enrollment")
         .json(&json!({}))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let response: StartEnrollmentResponse = response.into_json().await.unwrap();
