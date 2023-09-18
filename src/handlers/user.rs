@@ -511,9 +511,8 @@ pub async fn set_wallet(
 /// Currenly only `use_for_mfa` flag can be set or unset.
 pub async fn update_wallet(
     session: SessionInfo,
+    Path((username, address)): Path<(String, String)>,
     State(appstate): State<AppState>,
-    Path(username): Path<String>,
-    Path(address): Path<String>,
     Json(data): Json<WalletChange>,
 ) -> ApiResult {
     debug!(
@@ -566,8 +565,7 @@ pub async fn update_wallet(
 pub async fn delete_wallet(
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Path(username): Path<String>,
-    Path(address): Path<String>,
+    Path((username, address)): Path<(String, String)>,
 ) -> ApiResult {
     debug!(
         "User {} deleting wallet {address} for user {username}",
@@ -596,8 +594,7 @@ pub async fn delete_wallet(
 pub async fn delete_security_key(
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Path(username): Path<String>,
-    Path(id): Path<i64>,
+    Path((username, id)): Path<(String, i64)>,
 ) -> ApiResult {
     debug!(
         "User {} deleting security key {id} for user {username}",
@@ -633,8 +630,7 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
 pub async fn delete_authorized_app(
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Path(username): Path<String>,
-    Path(oauth2client_id): Path<i64>,
+    Path((username, oauth2client_id)): Path<(String, i64)>,
 ) -> ApiResult {
     debug!(
         "User {} deleting OAuth2 client {oauth2client_id} for user {username}",

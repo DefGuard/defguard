@@ -1,4 +1,4 @@
-use axum::http::StatusCode;
+use axum::http::{header::ToStrError, StatusCode};
 use defguard::{
     config::DefGuardConfig,
     db::{
@@ -11,17 +11,13 @@ use openidconnect::{
     core::{
         CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType, CoreTokenResponse,
     },
-    http::{
-        header::{HeaderName, HeaderValue},
-        HeaderMap, Method,
-    },
+    http::Method,
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
     PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
 };
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
-use std::str::FromStr;
 
 mod common;
 use self::common::{client::TestClient, init_test_db, make_base_client, make_test_client};
@@ -364,7 +360,7 @@ async fn http_client(
     request: HttpRequest,
     pool: DbPool,
     config: DefGuardConfig,
-) -> Result<HttpResponse, rocket::Error> {
+) -> Result<HttpResponse, ToStrError> {
     let client = make_client_v2(pool, config).await;
 
     let uri = request.url.path();
@@ -376,38 +372,29 @@ async fn http_client(
     if let Ok(text) = String::from_utf8(request.body.clone()) {
         eprintln!("HTTP client body: {text}");
     }
-    let mut rocket_request = match request.method {
+    let mut test_request = match request.method {
         Method::GET => client.get(uri),
+        Method::HEAD => client.head(uri),
         Method::POST => client.post(uri),
         Method::PUT => client.put(uri),
         Method::DELETE => client.delete(uri),
         _ => unimplemented!(),
     };
     for (key, value) in &request.headers {
-        rocket_request = rocket_request.header(key.as_str(), value.to_str().unwrap());
+        test_request = test_request.header(key.as_str(), value.to_str()?);
     }
-    let response = rocket_request.body(request.body).send().await;
-
-    let mut headers = HeaderMap::new();
-    for header in response.headers().iter() {
-        if let (Ok(key), Ok(value)) = (
-            HeaderName::from_str(header.name.as_ref()),
-            HeaderValue::from_str(header.value()),
-        ) {
-            headers.append(key, value);
-        }
-    }
+    let response = test_request.body(request.body).send().await;
 
     Ok(HttpResponse {
         status_code: response.status(),
-        headers,
-        body: response.into_bytes().await.unwrap_or_default(),
+        headers: response.headers().clone(),
+        body: response.bytes().await.to_vec(),
     })
 }
 
 #[tokio::test]
 async fn test_openid_authorization_code() {
-    let (pool, mut config) = init_test_db().await;
+    let (pool, config) = init_test_db().await;
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;

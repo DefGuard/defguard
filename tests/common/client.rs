@@ -7,7 +7,7 @@ use axum::{
     },
     BoxError,
 };
-// use bytes::Bytes;
+use bytes::Bytes;
 use hyper::{Body, Server};
 use reqwest::{redirect::Policy, Client};
 use std::{convert::TryFrom, net::TcpListener};
@@ -19,7 +19,9 @@ pub struct TestClient {
     port: u16,
 }
 
+#[allow(dead_code)]
 impl TestClient {
+    #[must_use]
     pub fn new<S, ResBody>(svc: S) -> Self
     where
         S: Service<Request<Body>, Response = Response<ResBody>> + Clone + Send + 'static,
@@ -50,7 +52,7 @@ impl TestClient {
     ///
     /// this is useful when trying to check if Location headers in responses
     /// are generated correctly as Location contains an absolute URL
-    pub fn base_url(&self) -> String {
+    fn base_url(&self) -> String {
         let mut s = String::from("http://localhost:");
         s.push_str(&self.port.to_string());
         s
@@ -109,6 +111,7 @@ pub struct RequestBuilder {
     builder: reqwest::RequestBuilder,
 }
 
+#[allow(dead_code)]
 impl RequestBuilder {
     pub async fn send(self) -> TestResponse {
         TestResponse {
@@ -160,15 +163,15 @@ pub struct TestResponse {
     response: reqwest::Response,
 }
 
+#[allow(dead_code)]
 impl TestResponse {
     pub async fn text(self) -> String {
         self.response.text().await.unwrap()
     }
 
-    // #[allow(dead_code)]
-    // pub async fn bytes(self) -> Bytes {
-    //     self.response.bytes().await.unwrap()
-    // }
+    pub async fn bytes(self) -> Bytes {
+        self.response.bytes().await.unwrap()
+    }
 
     pub async fn json<T>(self) -> T
     where

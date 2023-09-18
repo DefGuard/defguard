@@ -531,33 +531,38 @@ Click to sign to prove you are in possesion of your private key to the account.
 This request will not trigger a blockchain transaction or cost any gas fees.";
     let message: String = format!(
         r#"{{
-    "domain": {{ "name": "Defguard", "version": "1" }},
-        "types": {{
-        "EIP712Domain": [
-                    {{ "name": "name", "type": "string" }},
-                    {{ "name": "version", "type": "string" }}
-        ],
-        "ProofOfOwnership": [
-                    {{ "name": "wallet", "type": "address" }},
-                    {{ "name": "content", "type": "string" }},
-                    {{ "name": "nonce", "type": "string" }}
-        ]
-    }},
-    "primaryType": "ProofOfOwnership",
-    "message": {{
-        "wallet": "{}",
-        "content": "{}",
-                "nonce": {}
-    }}}}
+            "domain": {{ "name": "Defguard", "version": "1" }},
+            "types": {{
+            "EIP712Domain": [
+                {{ "name": "name", "type": "string" }},
+                {{ "name": "version", "type": "string" }}
+            ],
+            "ProofOfOwnership": [
+                {{ "name": "wallet", "type": "address" }},
+                {{ "name": "content", "type": "string" }},
+                {{ "name": "nonce", "type": "string" }}
+            ]
+        }},
+        "primaryType": "ProofOfOwnership",
+        "message": {{
+            "wallet": "{}",
+            "content": "{}",
+            "nonce": {}
+        }}}}
         "#,
         wallet_address,
         challenge_message,
         parsed_message.get("nonce").unwrap(),
     )
     .chars()
-    .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
+    .filter(|c| *c != ' ' && *c != '\r' && *c != '\n' && *c != '\t')
     .collect::<String>();
-    assert_eq!(data.challenge, message);
+    let challenge = data
+        .challenge
+        .chars()
+        .filter(|c| *c != ' ' && *c != '\r' && *c != '\n' && *c != '\t')
+        .collect::<String>();
+    assert_eq!(challenge, message);
 
     // Sign message
     let signature = sign_message(&data.challenge, secp, secret_key);

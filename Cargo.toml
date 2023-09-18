@@ -86,6 +86,7 @@ webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 
 [dev-dependencies]
+bytes = "1.5"
 claims = "0.7"
 matches = "0.1"
 reqwest = { version = "0.11", features = [

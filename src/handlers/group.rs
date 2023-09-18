@@ -101,8 +101,7 @@ pub async fn add_group_member(
 pub async fn remove_group_member(
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    Path(name): Path<String>,
-    Path(username): Path<String>,
+    Path((name, username)): Path<(String, String)>,
 ) -> ApiResult {
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         if let Some(user) = User::find_by_username(&appstate.pool, &username).await? {

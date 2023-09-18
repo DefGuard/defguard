@@ -308,8 +308,7 @@ pub async fn gateway_status(
 }
 
 pub async fn remove_gateway(
-    Path(network_id): Path<i64>,
-    Path(gateway_id): Path<String>,
+    Path((network_id, gateway_id)): Path<(i64, String)>,
     _admin: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
@@ -634,8 +633,7 @@ pub async fn list_user_devices(
 pub async fn download_config(
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Path(network_id): Path<i64>,
-    Path(device_id): Path<i64>,
+    Path((network_id, device_id)): Path<(i64, i64)>,
 ) -> Result<String, WebError> {
     let network = find_network(network_id, &appstate.pool).await?;
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
