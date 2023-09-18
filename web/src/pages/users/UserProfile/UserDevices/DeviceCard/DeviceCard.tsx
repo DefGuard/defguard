@@ -12,7 +12,6 @@ import IconClip from '../../../../../shared/components/svg/IconClip';
 import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
 import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
 import { ColorsRGB } from '../../../../../shared/constants';
-import { AvatarBox } from '../../../../../shared/defguard-ui/components/Layout/AvatarBox/AvatarBox';
 import { Badge } from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
 import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { DeviceAvatar } from '../../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
@@ -101,9 +100,7 @@ export const DeviceCard = ({ device }: Props) => {
     >
       <section className="main-info">
         <header>
-          <AvatarBox>
-            <DeviceAvatar deviceId={Number(device.id)} />
-          </AvatarBox>
+          <DeviceAvatar deviceId={Number(device.id)} active={false} />
           <h3 data-testid="device-name">{device.name}</h3>
         </header>
         <div className="section-content">

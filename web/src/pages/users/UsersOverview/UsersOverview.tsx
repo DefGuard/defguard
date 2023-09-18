@@ -164,7 +164,7 @@ export const UsersOverview = () => {
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconUserAddNew />}
-            text={LL.usersOverview.addNewUser()}
+            text={breakpoint === 'desktop' ? LL.usersOverview.addNewUser() : undefined}
             data-testid="add-user"
           />
         </div>

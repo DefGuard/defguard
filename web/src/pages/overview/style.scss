@@ -162,6 +162,12 @@
         padding-right: 6rem;
       }
 
+      & > .no-data {
+        width: 100%;
+        padding-top: 20px;
+        text-align: center;
+      }
+
       & > .overview-connected-users {
         @include media-breakpoint-down(xl) {
           & > header,
