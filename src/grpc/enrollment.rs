@@ -41,16 +41,16 @@ struct Instance {
 }
 
 impl Instance {
-    pub fn new(settings: &Settings) -> Self{
+    pub fn new(settings: Settings) -> Self {
         Instance {
-        id: settings.uuid,
-        name: settings.instance_name,
+            id: settings.uuid,
+            name: settings.instance_name,
         }
     }
 }
 
 impl From<Instance> for proto::InstanceInfo {
-    fn from(instance: Instance ) -> Self {
+    fn from(instance: Instance) -> Self {
         Self {
             name: instance.name,
             id: instance.id.to_string(),
@@ -155,7 +155,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 .get_welcome_page_content(&mut transaction)
                 .await?,
             vpn_setup_optional: settings.enrollment_vpn_step_optional,
-            instance: Some(Instance::new(&settings).into()),
+            instance: Some(Instance::new(settings).into()),
         };
 
         transaction.commit().await.map_err(|_| {
@@ -274,7 +274,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             network_info,
         }));
 
-        let settings = Settings::get_settings(&mut transaction)
+        let settings = Settings::get_settings(&mut *transaction)
             .await
             .map_err(|_| {
                 error!("Failed to get settings");
@@ -289,7 +289,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let response = CreateDeviceResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
-            instance: Some(Instance::new(&settings).into()),
+            instance: Some(Instance::new(settings).into()),
         };
 
         Ok(Response::new(response))
@@ -308,13 +308,14 @@ impl From<User> for AdminInfo {
 
 impl From<User> for InitialUserInfo {
     fn from(user: User) -> Self {
+        let is_active = user.has_password();
         Self {
             first_name: user.first_name,
             last_name: user.last_name,
             login: user.username,
             email: user.email,
             phone_number: user.phone,
-            is_active: user.has_password(),
+            is_active,
         }
     }
 }
