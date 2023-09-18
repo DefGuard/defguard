@@ -13,6 +13,7 @@ use crate::{
     mail::Mail,
     templates,
 };
+use ipnetwork::IpNetwork;
 use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
@@ -320,10 +321,20 @@ impl From<User> for InitialUserInfo {
 
 impl From<handlers::wireguard::DeviceConfig> for DeviceConfig {
     fn from(config: handlers::wireguard::DeviceConfig) -> Self {
+        let allowed_ips = config
+            .allowed_ips
+            .iter()
+            .map(IpNetwork::to_string)
+            .collect::<Vec<String>>()
+            .join(",");
         Self {
             network_id: config.network_id,
             network_name: config.network_name,
             config: config.config,
+            endpoint: config.endpoint,
+            assigned_ip: config.address.to_string(),
+            pubkey: config.pubkey,
+            allowed_ips,
         }
     }
 }

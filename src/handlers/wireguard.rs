@@ -475,6 +475,10 @@ pub struct DeviceConfig {
     pub(crate) network_id: i64,
     pub(crate) network_name: String,
     pub(crate) config: String,
+    pub(crate) address: IpAddr,
+    pub(crate) endpoint: String,
+    pub(crate) allowed_ips: Vec<IpNetwork>,
+    pub(crate) pubkey: String,
 }
 
 #[post("/device/<username>", format = "json", data = "<data>")]
