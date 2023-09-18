@@ -1,7 +1,8 @@
+pub(crate) mod client;
+
 use std::sync::{Arc, Mutex};
 
 use axum::http::StatusCode;
-use axum_test_helper::TestClient;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
@@ -17,6 +18,8 @@ use tokio::sync::{
     broadcast::{self, Receiver},
     mpsc::unbounded_channel,
 };
+
+use self::client::TestClient;
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     let config = DefGuardConfig::new_test_config();
@@ -137,7 +140,7 @@ pub async fn make_test_client() -> (TestClient, ClientState) {
 }
 
 #[allow(dead_code)]
-pub async fn fetch_user_details(client: TestClient, username: &str) -> UserDetails {
+pub async fn fetch_user_details(client: &TestClient, username: &str) -> UserDetails {
     let response = client.get(&format!("/api/v1/user/{username}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     response.json().await

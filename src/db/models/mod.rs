@@ -39,7 +39,6 @@ pub struct WalletInfo {
     pub address: String,
     pub name: String,
     pub chain_id: i64,
-    #[serde(skip_deserializing)]
     pub use_for_mfa: bool,
 }
 

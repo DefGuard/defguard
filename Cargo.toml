@@ -86,11 +86,18 @@ webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 
 [dev-dependencies]
-axum-test-helper = { version = "0.3", features = ["cookies"] }
 claims = "0.7"
 matches = "0.1"
+reqwest = { version = "0.11", features = [
+    "json",
+    "cookies",
+    "stream",
+    "multipart",
+    "rustls-tls",
+], default-features = false }
 serde_qs = "0.12"
 tower = "0.4"
+tower-service = "0.3"
 
 [build-dependencies]
 tonic-build = "0.9"

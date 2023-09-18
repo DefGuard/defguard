@@ -1,10 +1,11 @@
 mod common;
 
+use axum::http::StatusCode;
 use defguard::{db::WebHook, handlers::Auth};
 
-use self::common::make_test_client;
+use self::common::{client::TestClient, make_test_client};
 
-async fn make_client() -> Client {
+async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;
     client
 }
@@ -14,7 +15,7 @@ async fn test_webhooks() {
     let client = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let mut webhook = WebHook {
@@ -29,16 +30,12 @@ async fn test_webhooks() {
         on_hwkey_provision: false,
     };
 
-    let response = client
-        .post("/api/v1/webhook")
-        .json(&webhook)
-        .dispatch()
-        .await;
+    let response = client.post("/api/v1/webhook").json(&webhook).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let response = client.get("/api/v1/webhook").dispatch().await;
+    let response = client.get("/api/v1/webhook").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let webhooks: Vec<WebHook> = response.into_json().await.unwrap();
+    let webhooks: Vec<WebHook> = response.json().await;
     assert_eq!(webhooks.len(), 1);
 
     webhook.description = "Changed".into();
@@ -46,28 +43,28 @@ async fn test_webhooks() {
     let response = client
         .put(format!("/api/v1/webhook/{}", webhooks[0].id.unwrap()))
         .json(&webhook)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
         .get(format!("/api/v1/webhook/{}", webhooks[0].id.unwrap()))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let fetched_webhook: WebHook = response.into_json().await.unwrap();
+    let fetched_webhook: WebHook = response.json().await;
     assert_eq!(fetched_webhook.url, webhook.url);
     assert_eq!(fetched_webhook.description, webhook.description);
     assert_eq!(fetched_webhook.on_user_modified, webhook.on_user_modified);
 
     let response = client
         .delete(format!("/api/v1/webhook/{}", webhooks[0].id.unwrap()))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/webhook").dispatch().await;
+    let response = client.get("/api/v1/webhook").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let webhooks: Vec<WebHook> = response.into_json().await.unwrap();
+    let webhooks: Vec<WebHook> = response.json().await;
     assert!(webhooks.is_empty());
 }

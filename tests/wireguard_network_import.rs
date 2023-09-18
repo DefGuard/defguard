@@ -1,10 +1,12 @@
 mod common;
 
+use axum::http::StatusCode;
 use defguard::{
     db::{models::device::UserDevice, Device, GatewayEvent, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
+use serde_json::json;
 use tokio::sync::broadcast::error::TryRecvError;
 
 use self::common::{fetch_user_details, make_test_client};
@@ -78,17 +80,17 @@ async fn test_config_import() {
     let mut wg_rx = client_state.wireguard_rx;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
         .post("/api/v1/network/import")
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": []}))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let response: ImportedNetworkData = response.into_json().await.unwrap();
+    let response: ImportedNetworkData = response.json().await;
 
     // network assertions
     let network = response.network;
@@ -157,7 +159,7 @@ async fn test_config_import() {
     let response = client
         .post(format!("/api/v1/network/{}/devices", network.id.unwrap()))
         .json(&json!({"devices": [device1, device2]}))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
@@ -227,16 +229,16 @@ async fn test_config_import_missing_interface() {
     let (client, _) = make_test_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
         .post("/api/v1/network/import")
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::UnprocessableEntity);
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
 #[tokio::test]
@@ -261,16 +263,16 @@ async fn test_config_import_invalid_key() {
     let (client, _) = make_test_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
         .post("/api/v1/network/import")
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::UnprocessableEntity);
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     // invalid device pubkey
     let wg_config = "
@@ -293,9 +295,9 @@ async fn test_config_import_invalid_key() {
     let response = client
         .post("/api/v1/network/import")
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::UnprocessableEntity);
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
 #[tokio::test]
@@ -320,16 +322,16 @@ async fn test_config_import_invalid_ip() {
     let (client, _) = make_test_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
         .post("/api/v1/network/import")
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::UnprocessableEntity);
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
 #[tokio::test]
@@ -353,14 +355,14 @@ async fn test_config_import_nonadmin() {
     ";
     let (client, _) = make_test_client().await;
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // import network
     let response = client
         .post("/api/v1/network/import")
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config}))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }

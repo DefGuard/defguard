@@ -14,8 +14,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::WalletInfo, AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails,
-        UserInfo, Wallet, WebAuthn,
+        AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
+        WebAuthn,
     },
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
@@ -415,11 +415,19 @@ pub async fn change_password(
     }
 }
 
+/// Similar to [`models::WalletInfo`] but without `use_for_mfa`.
+#[derive(Deserialize)]
+pub struct WalletInfoShort {
+    pub address: String,
+    pub name: String,
+    pub chain_id: i64,
+}
+
 pub async fn wallet_challenge(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    Query(wallet_info): Query<WalletInfo>,
+    Query(wallet_info): Query<WalletInfoShort>,
 ) -> ApiResult {
     debug!(
         "User {} generating wallet challenge for user {username}",

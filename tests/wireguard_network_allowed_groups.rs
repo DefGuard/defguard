@@ -1,11 +1,13 @@
 mod common;
 
+use axum::http::StatusCode;
 use claims::assert_err;
 use defguard::{
     db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
+use serde_json::json;
 
 use self::common::make_test_client;
 
@@ -102,7 +104,7 @@ async fn test_create_new_network() {
     let mut wg_rx = client_state.wireguard_rx;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
@@ -117,10 +119,10 @@ async fn test_create_new_network() {
             "dns": "1.1.1.1",
             "allowed_groups": ["allowed group"],
         }))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let network: WireguardNetwork = response.into_json().await.unwrap();
+    let network: WireguardNetwork = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
@@ -141,7 +143,7 @@ async fn test_modify_network() {
     let mut wg_rx = client_state.wireguard_rx;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network without allowed groups
@@ -156,10 +158,10 @@ async fn test_modify_network() {
             "dns": "1.1.1.1",
             "allowed_groups": [],
         }))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let network: WireguardNetwork = response.into_json().await.unwrap();
+    let network: WireguardNetwork = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
@@ -184,7 +186,7 @@ async fn test_modify_network() {
             "dns": "1.1.1.1",
             "allowed_groups": ["allowed group"],
         }))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
@@ -206,7 +208,7 @@ async fn test_modify_network() {
             "dns": "1.1.1.1",
             "allowed_groups": ["allowed group", "not allowed group"],
         }))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
@@ -229,7 +231,7 @@ async fn test_modify_network() {
             "dns": "1.1.1.1",
             "allowed_groups": ["not allowed group"],
         }))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
@@ -251,7 +253,7 @@ async fn test_modify_network() {
             "dns": "1.1.1.1",
             "allowed_groups": [],
         }))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
@@ -275,7 +277,7 @@ async fn test_import_network_existing_devices() {
     let mut wg_rx = client_state.wireguard_rx;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // config file includes some existing devices
@@ -309,10 +311,10 @@ async fn test_import_network_existing_devices() {
     let response = client
         .post("/api/v1/network/import")
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let response: ImportedNetworkData = response.into_json().await.unwrap();
+    let response: ImportedNetworkData = response.json().await;
     assert_eq!(response.devices.len(), 1);
     assert_eq!(
         response.devices[0].wireguard_pubkey,
@@ -363,7 +365,7 @@ async fn test_import_mapping_devices() {
     let mut wg_rx = client_state.wireguard_rx;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let wg_config = "
@@ -399,10 +401,10 @@ PersistentKeepalive = 300
     let response = client
         .post("/api/v1/network/import")
         .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let response: ImportedNetworkData = response.into_json().await.unwrap();
+    let response: ImportedNetworkData = response.json().await;
     let network = response.network;
     let mut mapped_devices = response.devices;
     assert_eq!(mapped_devices.len(), 4);
@@ -419,7 +421,7 @@ PersistentKeepalive = 300
     let response = client
         .post(format!("/api/v1/network/{}/devices", network.id.unwrap()))
         .json(&json!({"devices": mapped_devices.clone()}))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 

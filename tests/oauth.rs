@@ -16,10 +16,10 @@ use defguard::{
 use reqwest::Url;
 use serde_json::json;
 
-use self::common::make_enterprise_test_client;
+use self::common::{client::TestClient, make_test_client};
 
-async fn make_client() -> (Client, DbPool) {
-    let (client, client_state) = make_enterprise_test_client().await;
+async fn make_client() -> (TestClient, DbPool) {
+    let (client, client_state) = make_test_client().await;
     (client, client_state.pool)
 }
 
@@ -28,7 +28,7 @@ async fn test_authorize() {
     let (client, pool) = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // create OAuth2 client
@@ -41,10 +41,10 @@ async fn test_authorize() {
     let response = client
         .post("/api/v1/oauth")
         .json(&oauth2client)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let oauth_client: OAuth2Client = response.into_json().await.unwrap();
+    let oauth_client: OAuth2Client = response.json().await;
 
     // authorize client for test user
     let mut app = OAuth2AuthorizedApp::new(1, oauth_client.id.unwrap());
@@ -60,7 +60,7 @@ async fn test_authorize() {
             scope=default-scope&\
             state=ABCDEF",
         )
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
@@ -74,10 +74,18 @@ async fn test_authorize() {
             scope=openid&\
             state=ABCDEF",
         )
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    let redirect_url = Url::parse(response.headers().get_one("Location").unwrap()).unwrap();
+    let redirect_url = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(redirect_url.domain().unwrap(), "localhost");
     let mut pairs = redirect_url.query_pairs();
     assert_eq!(pairs.count(), 2);
@@ -100,10 +108,18 @@ async fn test_authorize() {
             scope=invalid",
             oauth_client.client_id
         ))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    let redirect_url = Url::parse(response.headers().get_one("Location").unwrap()).unwrap();
+    let redirect_url = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(redirect_url.domain().unwrap(), "localhost");
     let mut pairs = redirect_url.query_pairs();
     assert_eq!(pairs.count(), 1);
@@ -123,10 +139,18 @@ async fn test_authorize() {
             state=ABCDEF",
             oauth_client.client_id
         ))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    let redirect_url = Url::parse(response.headers().get_one("Location").unwrap()).unwrap();
+    let redirect_url = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(redirect_url.domain().unwrap(), "test.server.tnt");
     let mut pairs = redirect_url.query_pairs();
     assert_eq!(pairs.count(), 2);
@@ -143,7 +167,7 @@ async fn test_openid_app_management_access() {
 
     // login as admin
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // add app
@@ -156,14 +180,14 @@ async fn test_openid_app_management_access() {
     let response = client
         .post("/api/v1/oauth")
         .json(&oauth2client)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // list apps
-    let response = client.get("/api/v1/oauth").dispatch().await;
+    let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    let apps: Vec<OAuth2Client> = response.json().await;
     assert_eq!(apps.len(), 1);
     let test_app = &apps[0];
     assert_eq!(test_app.name, oauth2client.name);
@@ -171,10 +195,10 @@ async fn test_openid_app_management_access() {
     // fetch app details
     let response = client
         .get(format!("/api/v1/oauth/{}", test_app.client_id))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let app: OAuth2Client = response.into_json().await.unwrap();
+    let app: OAuth2Client = response.json().await;
     assert_eq!(app.name, oauth2client.name);
 
     // edit app
@@ -187,7 +211,7 @@ async fn test_openid_app_management_access() {
     let response = client
         .put(format!("/api/v1/oauth/{}", test_app.client_id))
         .json(&oauth2client)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -198,31 +222,31 @@ async fn test_openid_app_management_access() {
     let response = client
         .post(format!("/api/v1/oauth/{}", test_app.client_id))
         .json(&data)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // fetch changed app details
     let response = client
         .get(format!("/api/v1/oauth/{}", test_app.client_id))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let app: OAuth2Client = response.into_json().await.unwrap();
+    let app: OAuth2Client = response.json().await;
     assert_eq!(app.name, oauth2client.name);
     assert!(!app.enabled);
 
     // delete app
     let response = client
         .delete(format!("/api/v1/oauth/{}", test_app.client_id))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // list apps
-    let response = client.get("/api/v1/oauth").dispatch().await;
+    let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    let apps: Vec<OAuth2Client> = response.json().await;
     assert_eq!(apps.len(), 0);
 
     // add another app for further testing
@@ -235,31 +259,30 @@ async fn test_openid_app_management_access() {
     let response = client
         .post("/api/v1/oauth")
         .json(&oauth2client)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let response = client.get("/api/v1/oauth").dispatch().await;
+    let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let apps: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    let apps: Vec<OAuth2Client> = response.json().await;
     let test_app = &apps[0];
 
     // // login as standard user
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // standard user cannot list apps
-    let response = client.get("/api/v1/oauth").dispatch().await;
+    let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // standard user cannot get sensitive app details
     let response = client
         .get(format!("/api/v1/oauth/{}", test_app.client_id))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_details = response.into_json::<OAuth2ClientSafe>().await;
-    assert!(response_details.is_some());
+    let _response_details: OAuth2ClientSafe = response.json().await;
 
     // standard user cannot add apps
     let oauth2client = NewOpenIDClient {
@@ -271,7 +294,7 @@ async fn test_openid_app_management_access() {
     let response = client
         .post("/api/v1/oauth")
         .json(&oauth2client)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
@@ -279,7 +302,7 @@ async fn test_openid_app_management_access() {
     let response = client
         .put(format!("/api/v1/oauth/{}", test_app.client_id))
         .json(&oauth2client)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
@@ -290,14 +313,14 @@ async fn test_openid_app_management_access() {
     let response = client
         .post(format!("/api/v1/oauth/{}", test_app.client_id))
         .json(&data)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // standard user cannot delete apps
     let response = client
         .delete(format!("/api/v1/oauth/{}", test_app.client_id))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
@@ -307,7 +330,7 @@ async fn test_openid_app_management_access() {
 //     let client = make_client().await;
 
 //     let auth = Auth::new("admin".into(), "pass123".into());
-//     let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+//     let response = client.post("/api/v1/auth").json(&auth).send().await;
 //     assert_eq!(response.status(), StatusCode::OK);
 
 //     let response = client
@@ -320,7 +343,7 @@ async fn test_openid_app_management_access() {
 //             "name": "Test",
 //             "enabled": true,
 //         }))
-//         .dispatch()
+//         .send()
 //         .await;
 //     assert_eq!(response.status(), StatusCode::OK);
 
@@ -334,11 +357,11 @@ async fn test_openid_app_management_access() {
 //             scope=default-scope&\
 //             state=ABCDEF",
 //         )
-//         .dispatch()
+//         .send()
 //         .await;
 //     assert_eq!(response.status(), StatusCode::FOUND);
 
-//     let localtion = response.headers().get_one("Location").unwrap();
+//     let localtion = response.headers().get("Location").unwrap().to_str().unwrap();
 //     assert!(localtion.starts_with("http://localhost:3000/?code="));
 
 //     // extract code
@@ -359,7 +382,7 @@ async fn test_openid_app_management_access() {
 //             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
 //             code
 //         ))
-//         .dispatch()
+//         .send()
 //         .await;
 //     assert_eq!(response.status(), StatusCode::OK);
 // }
@@ -378,7 +401,7 @@ async fn test_openid_app_management_access() {
 //             scope=default-scope&\
 //             state=ABCDEF",
 //         )
-//         .dispatch()
+//         .send()
 //         .await;
 //     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 // }
@@ -389,9 +412,9 @@ async fn test_token_client_credentials() {
 
     let response = client
         .post("/api/v1/oauth/token")
-        .header(ContentType::Form)
+        .header("Content-Type", "application/www-form-url-encoded")
         .body("client_id=WrongClient&client_secret=WrongSecret&grant_type=code")
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

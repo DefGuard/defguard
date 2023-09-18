@@ -1,7 +1,6 @@
 mod common;
 
 use axum::http::StatusCode;
-use axum_test_helper::TestClient;
 use defguard::{
     db::{models::enrollment::Enrollment, DbPool},
     handlers::{AddUserData, Auth},
@@ -9,7 +8,7 @@ use defguard::{
 use serde::Deserialize;
 use serde_json::json;
 
-use self::common::make_test_client;
+use self::common::{client::TestClient, make_test_client};
 
 async fn make_client() -> (TestClient, DbPool) {
     let (client, client_state) = make_test_client().await;
@@ -75,7 +74,7 @@ async fn test_initialize_enrollment() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let response: StartEnrollmentResponse = response.into_json().await.unwrap();
+    let response: StartEnrollmentResponse = response.json().await;
 
     // verify enrollment token was created
     let enrollment = Enrollment::find_by_id(&pool, &response.enrollment_token)

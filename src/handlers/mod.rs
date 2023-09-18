@@ -29,9 +29,9 @@ pub(crate) mod support;
 pub(crate) mod user;
 pub(crate) mod webhooks;
 #[cfg(feature = "wireguard")]
-pub(crate) mod wireguard;
+pub mod wireguard;
 #[cfg(feature = "worker")]
-pub(crate) mod worker;
+pub mod worker;
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
 static SIGN_IN_COOKIE_NAME: &str = "known_sign_in";

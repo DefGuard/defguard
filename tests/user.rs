@@ -1,7 +1,6 @@
 mod common;
 
 use axum::http::StatusCode;
-use axum_test_helper::TestClient;
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
@@ -12,9 +11,10 @@ use defguard::{
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
+use serde_json::json;
 use tokio_stream::{self as stream, StreamExt};
 
-use self::common::{fetch_user_details, make_test_client};
+use self::common::{client::TestClient, fetch_user_details, make_test_client};
 
 async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;
@@ -26,16 +26,16 @@ async fn test_authenticate() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let auth = Auth::new("hpotter".into(), "-wrong-".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     let auth = Auth::new("adumbledore".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
 #[tokio::test]
@@ -43,12 +43,12 @@ async fn test_me() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/me").dispatch().await;
+    let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let user_info: UserInfo = response.into_json().await.unwrap();
+    let user_info: UserInfo = response.json().await;
     assert_eq!(user_info.first_name, "Harry");
     assert_eq!(user_info.last_name, "Potter");
 }
@@ -59,7 +59,7 @@ async fn test_change_self_password() {
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
 
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let bad_old = "notCurrentPassword123!$";
@@ -84,31 +84,31 @@ async fn test_change_self_password() {
     let response = client
         .put("/api/v1/user/change_password")
         .json(&bad_old_request)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let response = client
         .put("/api/v1/user/change_password")
         .json(&bad_new_request)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let response = client
         .put("/api/v1/user/change_password")
         .json(&change_password)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // old pass login
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     let new_auth = Auth::new("hpotter".into(), new_password.into());
 
-    let response = client.post("/api/v1/auth").json(&new_auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&new_auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 }
 
@@ -117,7 +117,7 @@ async fn test_change_password() {
     let client = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
 
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -130,7 +130,7 @@ async fn test_change_password() {
     let response = client
         .put("/api/v1/user/admin/password")
         .json(&change_others_password)
-        .dispatch()
+        .send()
         .await;
 
     // can't change own password with this endpoint
@@ -141,20 +141,20 @@ async fn test_change_password() {
     let response = client
         .put("/api/v1/user/hpotter/password")
         .json(&change_others_password)
-        .dispatch()
+        .send()
         .await;
 
     assert_eq!(response.status(), StatusCode::OK);
 
     let auth = Auth::new("hpotter".into(), new_password.to_string());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // route is only for admins
     let response = client
         .put("/api/v1/user/admin/password")
         .json(&change_others_password)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
@@ -163,23 +163,23 @@ async fn test_change_password() {
 async fn test_list_users() {
     let client = make_client().await;
 
-    let response = client.get("/api/v1/user").dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.get("/api/v1/user").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // normal user cannot list users
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/user").dispatch().await;
+    let response = client.get("/api/v1/user").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // admin can list users
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/user").dispatch().await;
+    let response = client.get("/api/v1/user").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 }
 
@@ -187,11 +187,11 @@ async fn test_list_users() {
 async fn test_get_user() {
     let client = make_client().await;
 
-    let response = client.get("/api/v1/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.get("/api/v1/user/hpotter").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let user_info = fetch_user_details(&client, "hpotter").await;
@@ -205,7 +205,7 @@ async fn test_username_available() {
 
     // standard user cannot check username availability
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let avail = Username {
@@ -214,13 +214,13 @@ async fn test_username_available() {
     let response = client
         .post("/api/v1/user/available")
         .json(&avail)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // log in as admin
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let avail = Username {
@@ -229,7 +229,7 @@ async fn test_username_available() {
     let response = client
         .post("/api/v1/user/available")
         .json(&avail)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
@@ -239,7 +239,7 @@ async fn test_username_available() {
     let response = client
         .post("/api/v1/user/available")
         .json(&avail)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -249,7 +249,7 @@ async fn test_username_available() {
     let response = client
         .post("/api/v1/user/available")
         .json(&avail)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
@@ -259,7 +259,7 @@ async fn test_crud_user() {
     let client = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // create user
@@ -271,7 +271,7 @@ async fn test_crud_user() {
         phone: Some("1234".into()),
         password: Some("Password1234543$!".into()),
     };
-    let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // get user
@@ -283,12 +283,12 @@ async fn test_crud_user() {
     let response = client
         .put("/api/v1/user/adumbledore")
         .json(&user_details.user)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // delete user
-    let response = client.delete("/api/v1/user/adumbledore").dispatch().await;
+    let response = client.delete("/api/v1/user/adumbledore").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 }
 
@@ -297,13 +297,13 @@ async fn test_admin_group() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/group").dispatch().await;
+    let response = client.get("/api/v1/group").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/group/admin").dispatch().await;
+    let response = client.get("/api/v1/group/admin").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // TODO: check group membership
@@ -314,7 +314,7 @@ async fn test_wallet() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let secp = Secp256k1::new();
@@ -331,9 +331,9 @@ async fn test_wallet() {
     );
 
     // get challenge message
-    let response = client.get(challenge_query.clone()).dispatch().await;
+    let response = client.get(challenge_query.clone()).send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let challenge: WalletChallenge = response.into_json().await.unwrap();
+    let challenge: WalletChallenge = response.json().await;
 
     let parsed_data: TypedData = serde_json::from_str(&challenge.message).unwrap();
     let parsed_message = parsed_data.message;
@@ -378,7 +378,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert!(user_info.wallets.is_empty());
 
     // Sign message
-    let typed_data: TypedData = rocket::serde::json::serde_json::from_str(&message).unwrap();
+    let typed_data: TypedData = serde_json::from_str(&message).unwrap();
     let hash_msg = typed_data.encode_eip712().unwrap();
     let message = Message::from_slice(&hash_msg).unwrap();
 
@@ -396,7 +396,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
             "address": wallet_address,
             "signature": to_lower_hex(&sig_arr),
         }))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -409,13 +409,13 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert_eq!(wallet_info.chain_id, 5);
 
     // challenge must not be available for verified wallet addresses
-    let response = client.get(challenge_query).dispatch().await;
+    let response = client.get(challenge_query).send().await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     // delete wallet
     let response = client
         .delete(format!("/api/v1/user/hpotter/wallet/{wallet_address}"))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -428,7 +428,7 @@ async fn test_check_username() {
     let client = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let invalid_usernames = ["ADumbledore", "1user"];
@@ -443,7 +443,7 @@ async fn test_check_username() {
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
         };
-        let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
@@ -456,7 +456,7 @@ async fn test_check_username() {
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
         };
-        let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
         assert_eq!(response.status(), StatusCode::CREATED);
     }
 }
@@ -467,7 +467,7 @@ async fn test_check_password_strength() {
 
     // auth session with admin
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // test
@@ -490,7 +490,7 @@ async fn test_check_password_strength() {
         let response = client
             .post("/api/v1/user")
             .json(&weak_password_user)
-            .dispatch()
+            .send()
             .await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
@@ -505,7 +505,7 @@ async fn test_check_password_strength() {
     let response = client
         .post("/api/v1/user")
         .json(&strong_password_user)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 }
@@ -514,7 +514,7 @@ async fn test_check_password_strength() {
 async fn test_user_unregister_authorized_app() {
     let client = make_client().await;
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
@@ -525,10 +525,10 @@ async fn test_user_unregister_authorized_app() {
     let response = client
         .post("/api/v1/oauth")
         .json(&openid_client)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let openid_client: OAuth2Client = response.into_json().await.unwrap();
+    let openid_client: OAuth2Client = response.json().await;
     assert_eq!(openid_client.name, "Test");
     let response = client
         .post(format!(
@@ -542,20 +542,20 @@ async fn test_user_unregister_authorized_app() {
             nonce=blabla",
             openid_client.client_id
         ))
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    let response = client.get("/api/v1/me").dispatch().await;
-    let mut user_info: UserInfo = response.into_json().await.unwrap();
+    let response = client.get("/api/v1/me").send().await;
+    let mut user_info: UserInfo = response.json().await;
     assert_eq!(user_info.authorized_apps.len(), 1);
     user_info.authorized_apps = [].into();
     let response = client
         .put("/api/v1/user/admin")
         .json(&user_info)
-        .dispatch()
+        .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response = client.get("/api/v1/me").dispatch().await;
-    let user_info: UserInfo = response.into_json().await.unwrap();
+    let response = client.get("/api/v1/me").send().await;
+    let user_info: UserInfo = response.json().await;
     assert_eq!(user_info.authorized_apps.len(), 0);
 }
