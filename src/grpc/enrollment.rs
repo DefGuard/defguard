@@ -34,6 +34,29 @@ pub struct EnrollmentServer {
     ldap_feature_active: bool,
 }
 
+struct Instance {
+    id: uuid::Uuid,
+    name: String,
+}
+
+impl Instance {
+    pub fn new(settings: &Settings) -> Self{
+        Instance {
+        id: settings.uuid,
+        name: settings.instance_name,
+        }
+    }
+}
+
+impl From<Instance> for proto::InstanceInfo {
+    fn from(instance: Instance ) -> Self {
+        Self {
+            name: instance.name,
+            id: instance.id.to_string(),
+        }
+    }
+}
+
 impl EnrollmentServer {
     #[must_use]
     pub fn new(
@@ -132,6 +155,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 .get_welcome_page_content(&mut transaction)
                 .await?,
             vpn_setup_optional: settings.enrollment_vpn_step_optional,
+            instance: Some(Instance::new(&settings).into()),
         };
 
         transaction.commit().await.map_err(|_| {
@@ -250,6 +274,13 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             network_info,
         }));
 
+        let settings = Settings::get_settings(&mut transaction)
+            .await
+            .map_err(|_| {
+                error!("Failed to get settings");
+                Status::internal("unexpected error")
+            })?;
+
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
@@ -258,6 +289,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let response = CreateDeviceResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(|config| config.into()).collect(),
+            instance: Some(Instance::new(&settings).into()),
         };
 
         Ok(Response::new(response))
@@ -282,6 +314,7 @@ impl From<User> for InitialUserInfo {
             login: user.username,
             email: user.email,
             phone_number: user.phone,
+            is_active: user.has_password(),
         }
     }
 }
