@@ -20,6 +20,7 @@
     color: var(--text-body-primary);
     text-align: center;
     width: 100%;
+    margin-bottom: 24px;
   }
 
   form {
@@ -33,6 +34,10 @@
 
     & > .input {
       margin-bottom: 5px;
+    }
+
+    & > * {
+      width: 100%;
     }
   }
 }
