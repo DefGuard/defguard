@@ -14,6 +14,7 @@ use crate::{
     templates,
 };
 use ipnetwork::IpNetwork;
+use reqwest::Url;
 use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
@@ -38,13 +39,15 @@ pub struct EnrollmentServer {
 struct Instance {
     id: uuid::Uuid,
     name: String,
+    url: Url,
 }
 
 impl Instance {
-    pub fn new(settings: Settings) -> Self {
+    pub fn new(settings: Settings, url: Url) -> Self {
         Instance {
             id: settings.uuid,
             name: settings.instance_name,
+            url,
         }
     }
 }
@@ -54,6 +57,7 @@ impl From<Instance> for proto::InstanceInfo {
         Self {
             name: instance.name,
             id: instance.id.to_string(),
+            url: instance.url.to_string(),
         }
     }
 }
@@ -155,7 +159,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 .get_welcome_page_content(&mut transaction)
                 .await?,
             vpn_setup_optional: settings.enrollment_vpn_step_optional,
-            instance: Some(Instance::new(settings).into()),
+            instance: Some(Instance::new(settings, self.config.url.to_owned()).into()),
         };
 
         transaction.commit().await.map_err(|_| {
@@ -289,7 +293,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let response = CreateDeviceResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
-            instance: Some(Instance::new(settings).into()),
+            instance: Some(Instance::new(settings, self.config.url.to_owned()).into()),
         };
 
         Ok(Response::new(response))
