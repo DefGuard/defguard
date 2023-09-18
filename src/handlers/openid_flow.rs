@@ -277,7 +277,7 @@ impl AuthenticationRequest {
         if self.code_challenge.is_some() && self.code_challenge_method != Some("S256".to_string()) {
             error!(
                 "Invalid PKCE method: {:?}, only S256 supported",
-                (&self.code_challenge_method)
+                self.code_challenge_method
                     .as_ref()
                     .map_or("None", String::as_str),
             );
@@ -595,7 +595,7 @@ impl TokenRequest {
             if redirect_uri.trim_end_matches('/') != auth_code.redirect_uri.trim_end_matches('/') {
                 error!(
                     "Redirect URIs don't match for client_id {}: {redirect_uri} != {}",
-                    (&self.client_id).as_ref().map_or("Unknown", String::as_str),
+                    self.client_id.as_ref().map_or("Unknown", String::as_str),
                     auth_code.redirect_uri
                 );
                 return Err(CoreErrorResponseType::UnauthorizedClient);
@@ -604,7 +604,7 @@ impl TokenRequest {
             if !self.verify_pkce(auth_code.code_challenge.as_ref()) {
                 error!(
                     "PKCE verification failed for client id {}",
-                    (&self.client_id).as_ref().map_or("Unknown", String::as_str)
+                    self.client_id.as_ref().map_or("Unknown", String::as_str)
                 );
                 return Err(CoreErrorResponseType::InvalidRequest);
             }
@@ -713,7 +713,7 @@ pub async fn token(
             };
 
             if let Some(code) = &form.code {
-                if let Some(stored_auth_code) = AuthCode::find_code(&appstate.pool, &code).await? {
+                if let Some(stored_auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
                     // copy data before removing used token
                     let auth_code = stored_auth_code.clone();
                     // remove authorization_code from DB so it cannot be reused

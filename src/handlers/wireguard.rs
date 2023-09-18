@@ -7,6 +7,7 @@ use std::{
 use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
+    Extension,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -76,7 +77,6 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
-// #[post("/", format = "json", data = "<data>")]
 pub async fn create_network(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -143,19 +143,18 @@ async fn find_network(id: i64, pool: &DbPool) -> Result<WireguardNetwork, WebErr
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
-// #[put("/<id>", format = "json", data = "<data>")]
 pub async fn modify_network(
     _admin: AdminRole,
-    id: i64,
+    Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Json(data): Json<WireguardNetworkData>,
 ) -> ApiResult {
     debug!(
-        "User {} updating WireGuard network {id}",
+        "User {} updating WireGuard network {network_id}",
         session.user.username
     );
-    let mut network = find_network(id, &appstate.pool).await?;
+    let mut network = find_network(network_id, &appstate.pool).await?;
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
@@ -195,8 +194,8 @@ pub async fn modify_network(
     transaction.commit().await?;
 
     info!(
-        "User {} updated WireGuard network {}",
-        session.user.username, id
+        "User {} updated WireGuard network {network_id}",
+        session.user.username,
     );
     Ok(ApiResponse {
         json: json!(network),
@@ -204,33 +203,31 @@ pub async fn modify_network(
     })
 }
 
-// #[delete("/<id>")]
 pub async fn delete_network(
     _admin: AdminRole,
-    Path(id): Path<i64>,
+    Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
 ) -> ApiResult {
     debug!(
-        "User {} deleting WireGuard network {id}",
+        "User {} deleting WireGuard network {network_id}",
         session.user.username,
     );
-    let network = find_network(id, &appstate.pool).await?;
+    let network = find_network(network_id, &appstate.pool).await?;
     let network_name = network.name.clone();
     network.delete(&appstate.pool).await?;
-    appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(id, network_name));
+    appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_id, network_name));
     info!(
-        "User {} deleted WireGuard network {id}",
+        "User {} deleted WireGuard network {network_id}",
         session.user.username,
     );
     Ok(ApiResponse::default())
 }
 
-// #[get("/", format = "json")]
 pub async fn list_networks(
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
+    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Listing WireGuard networks");
     let mut network_info = Vec::new();
@@ -259,14 +256,13 @@ pub async fn list_networks(
     })
 }
 
-// #[get("/<network_id>", format = "json")]
 pub async fn network_details(
     Path(network_id): Path<i64>,
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
+    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
-    debug!("Displaying network details for network {}", network_id);
+    debug!("Displaying network details for network {network_id}");
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id).await?;
     let response = match network {
         Some(network) => {
@@ -290,18 +286,17 @@ pub async fn network_details(
             status: StatusCode::NOT_FOUND,
         },
     };
-    debug!("Displayed network details for network {}", network_id);
+    debug!("Displayed network details for network {network_id}");
 
     Ok(response)
 }
 
-// #[get("/<network_id>/gateways", format = "json")]
 pub async fn gateway_status(
     Path(network_id): Path<i64>,
     _admin: AdminRole,
-    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
+    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
-    debug!("Displaying gateway status for network {}", network_id);
+    debug!("Displaying gateway status for network {network_id}");
     let gateway_state = gateway_state
         .lock()
         .expect("Failed to acquire gateway state lock");
@@ -312,14 +307,13 @@ pub async fn gateway_status(
     })
 }
 
-// #[delete("/<network_id>/gateways/<gateway_id>")]
 pub async fn remove_gateway(
     Path(network_id): Path<i64>,
-    gateway_id: String,
+    Path(gateway_id): Path<String>,
     _admin: AdminRole,
-    gateway_state: &State<Arc<Mutex<GatewayMap>>>,
+    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
-    info!("Removing gateway {} in network {}", gateway_id, network_id);
+    info!("Removing gateway {gateway_id} in network {network_id}");
     let mut gateway_state = gateway_state
         .lock()
         .expect("Failed to acquire gateway state lock");
@@ -336,7 +330,6 @@ pub async fn remove_gateway(
     })
 }
 
-// #[post("/import", format = "json", data = "<data>")]
 pub async fn import_network(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -400,8 +393,7 @@ pub async fn import_network(
     })
 }
 
-// This is used exclusively during wizard for mapping imported devices to users
-// #[post("/<network_id>/devices", format = "json", data = "<data>")]
+// This is used exclusively for the wizard to map imported devices to users.
 pub async fn add_user_devices(
     _admin: AdminRole,
     session: SessionInfo,
@@ -456,13 +448,14 @@ pub async fn add_user_devices(
     }
 }
 
-// #[post("/device/<username>", format = "json", data = "<data>")]
 pub async fn add_device(
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Path(username): Path<String>,
+    Path(device_id): Path<String>,
     Json(add_device): Json<AddDevice>,
 ) -> ApiResult {
+    // FIXME: Alias, because otherwise `axum` reports conflicting routes.
+    let username = device_id;
     let device_name = add_device.name.clone();
     debug!(
         "User {} adding device {device_name} for user {username}",
@@ -520,7 +513,6 @@ pub async fn add_device(
     })
 }
 
-// #[put("/device/<device_id>", format = "json", data = "<data>")]
 pub async fn modify_device(
     session: SessionInfo,
     Path(device_id): Path<i64>,
@@ -582,7 +574,6 @@ pub async fn modify_device(
     })
 }
 
-// #[get("/device/<device_id>", format = "json")]
 pub async fn get_device(
     session: SessionInfo,
     Path(device_id): Path<i64>,
@@ -596,7 +587,6 @@ pub async fn get_device(
     })
 }
 
-// #[delete("/device/<device_id>")]
 pub async fn delete_device(
     session: SessionInfo,
     Path(device_id): Path<i64>,
@@ -612,7 +602,6 @@ pub async fn delete_device(
     Ok(ApiResponse::default())
 }
 
-// #[get("/device", format = "json")]
 pub async fn list_devices(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing devices");
     let devices = Device::all(&appstate.pool).await?;
@@ -624,7 +613,6 @@ pub async fn list_devices(_admin: AdminRole, State(appstate): State<AppState>) -
     })
 }
 
-// #[get("/device/user/<username>", format = "json")]
 pub async fn list_user_devices(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -643,7 +631,6 @@ pub async fn list_user_devices(
     })
 }
 
-// #[get("/<network_id>/device/<device_id>/config", rank = 2, format = "json")]
 pub async fn download_config(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -669,7 +656,6 @@ pub async fn download_config(
     }
 }
 
-// #[get("/<network_id>/token", format = "json")]
 pub async fn create_network_token(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -691,7 +677,7 @@ pub async fn create_network_token(
         ))
     })?;
     Ok(ApiResponse {
-        json: json!({ "token": token, "grpc_url": appstate.config.grpc_url.to_string() }),
+        json: json!({"token": token, "grpc_url": appstate.config.grpc_url.to_string()}),
         status: StatusCode::OK,
     })
 }
@@ -717,14 +703,13 @@ fn parse_timestamp(datetime: Option<String>) -> Result<DateTime<Utc>, StatusCode
     })
 }
 
-// #[get("/<network_id>/stats/users?<from>", format = "json")]
 pub async fn user_stats(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
     Query(from): Query<Option<String>>,
 ) -> ApiResult {
-    debug!("Displaying wireguard user stats");
+    debug!("Displaying WireGuard user stats");
     let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? else {
         return Err(WebError::ObjectNotFound(format!(
             "Requested network ({network_id}) not found",
@@ -735,7 +720,7 @@ pub async fn user_stats(
     let stats = network
         .user_stats(&appstate.pool, &from, &aggregation)
         .await?;
-    debug!("Displayed Wireguard user stats");
+    debug!("Displayed WireGuard user stats");
 
     Ok(ApiResponse {
         json: json!(stats),
@@ -743,14 +728,13 @@ pub async fn user_stats(
     })
 }
 
-// #[get("/<network_id>/stats?<from>", format = "json")]
 pub async fn network_stats(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
     Query(from): Query<Option<String>>,
 ) -> ApiResult {
-    debug!("Displaying wireguard network stats");
+    debug!("Displaying WireGuard network stats");
     let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? else {
         return Err(WebError::ObjectNotFound(format!(
             "Requested network ({network_id}) not found"
@@ -761,7 +745,7 @@ pub async fn network_stats(
     let stats = network
         .network_stats(&appstate.pool, &from, &aggregation)
         .await?;
-    debug!("Displayed wireguard network stats");
+    debug!("Displayed WireGuard network stats");
 
     Ok(ApiResponse {
         json: json!(stats),

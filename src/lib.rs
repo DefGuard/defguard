@@ -1,65 +1,16 @@
-use crate::{
-    auth::{Claims, ClaimsType},
-    config::InitVpnLocationArgs,
-    db::User,
-    handlers::user::{
-        add_user, change_self_password, get_user, list_users, start_enrollment, username_available,
-    },
-};
-
-// #[cfg(feature = "worker")]
-// use crate::handlers::worker::{
-//     create_job, create_worker_token, job_status, list_workers, remove_worker,
-// };
-#[cfg(feature = "openid")]
-use crate::handlers::openid_clients::{
-    add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-    get_openid_client, list_openid_clients,
-};
-#[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
-use crate::{
-    auth::failed_login::FailedLoginMap,
-    db::models::oauth2client::OAuth2Client,
-    grpc::{GatewayMap, WorkerState},
-    handlers::app_info::get_app_info,
-};
-use anyhow::anyhow;
-use appstate::AppState;
-use axum::{
-    handler::HandlerWithoutStateExt,
-    http::{Request, StatusCode},
-    routing::{delete, get, post, put},
-    Router, Server,
-};
-use config::DefGuardConfig;
-use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
-#[cfg(feature = "wireguard")]
-use handlers::auth::{
-    authenticate, logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable,
-    totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
-    webauthn_init, webauthn_start,
-};
-use handlers::{
-    forward_auth::forward_auth,
-    group::{add_group_member, get_group, remove_group_member},
-    mail::{send_support_data, test_mail},
-    openid_flow::{authorization, openid_configuration, secure_authorization, token, userinfo},
-    settings::{get_settings, set_default_branding, update_settings},
-    support::{configuration, logs},
-    user::{
-        change_password, delete_authorized_app, delete_security_key, delete_user, delete_wallet,
-        me, modify_user, set_wallet, update_wallet, wallet_challenge,
-    },
-    webhooks::{
-        add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
-    },
-};
-use mail::Mail;
-use secrecy::ExposeSecret;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
+
+use anyhow::anyhow;
+use axum::{
+    handler::HandlerWithoutStateExt,
+    http::{Request, StatusCode},
+    routing::{delete, get, post, put},
+    Extension, Router, Server,
+};
+use secrecy::ExposeSecret;
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
@@ -71,6 +22,61 @@ use tower_http::{
     trace::{DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
+
+use self::{
+    appstate::AppState,
+    auth::{Claims, ClaimsType},
+    config::{DefGuardConfig, InitVpnLocationArgs},
+    db::{init_db, AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork},
+    handlers::{
+        forward_auth::forward_auth,
+        group::{add_group_member, get_group, list_groups, remove_group_member},
+        mail::{send_support_data, test_mail},
+        openid_flow::{authorization, openid_configuration, secure_authorization, token, userinfo},
+        settings::{get_settings, set_default_branding, update_settings},
+        support::{configuration, logs},
+        user::{
+            add_user, change_password, change_self_password, delete_authorized_app,
+            delete_security_key, delete_user, delete_wallet, get_user, list_users, me, modify_user,
+            set_wallet, start_enrollment, update_wallet, username_available, wallet_challenge,
+        },
+        webhooks::{
+            add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
+        },
+    },
+    mail::Mail,
+};
+
+#[cfg(feature = "openid")]
+use self::handlers::openid_clients::{
+    add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
+    get_openid_client, list_openid_clients,
+};
+#[cfg(feature = "worker")]
+use self::handlers::worker::{
+    create_job, create_worker_token, job_status, list_workers, remove_worker,
+};
+#[cfg(feature = "wireguard")]
+use self::handlers::{
+    auth::{
+        authenticate, logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable,
+        totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
+        webauthn_init, webauthn_start,
+    },
+    wireguard::{
+        add_device, add_user_devices, create_network, create_network_token, delete_device,
+        delete_network, download_config, gateway_status, get_device, import_network, list_devices,
+        list_networks, list_user_devices, modify_device, modify_network, network_details,
+        network_stats, remove_gateway, user_stats,
+    },
+};
+#[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
+use self::{
+    auth::failed_login::FailedLoginMap,
+    db::models::oauth2client::OAuth2Client,
+    grpc::{GatewayMap, WorkerState},
+    handlers::app_info::get_app_info,
+};
 
 pub mod appstate;
 pub mod auth;
@@ -171,7 +177,7 @@ pub fn build_webapp(
             // forward_auth
             .route("/forward_auth", get(forward_auth))
             // group
-            .route("/group", get(list_users))
+            .route("/group", get(list_groups))
             .route("/group/:name", get(get_group))
             .route("/group/:name", post(add_group_member))
             .route("/group/:name/user/:username", delete(remove_group_member))
@@ -215,12 +221,53 @@ pub fn build_webapp(
             get(openid_configuration),
         );
 
-    // #[cfg(feature = "wireguard")]
-    // let webapp = webapp.nest(
-    //     "/api/v1"
-    // )
-
+    #[cfg(feature = "wireguard")]
     let webapp = webapp
+        .nest(
+            "/api/v1",
+            Router::new()
+                .route("/device/:device_id", post(add_device))
+                .route("/device/:device_id", put(modify_device))
+                .route("/device/:device_id", get(get_device))
+                .route("/device/:device_id", delete(delete_device))
+                .route("/device", get(list_devices))
+                .route("/device/user/:username", get(list_user_devices))
+                .layer(Extension(gateway_state)),
+        )
+        .nest(
+            "/api/v1/network",
+            Router::new()
+                .route("/", post(create_network))
+                .route("/:network_id", put(modify_network))
+                .route("/:network_id", delete(delete_network))
+                .route("/", get(list_networks))
+                .route("/:network_id", get(network_details))
+                .route("/:network_id/gateways", get(gateway_status))
+                .route("/:network_id/gateways/:gateway_id", delete(remove_gateway))
+                .route("/import", post(import_network))
+                .route("/:network_id/devices", post(add_user_devices))
+                .route(
+                    "/:network_id/device/:device_id/config",
+                    get(download_config),
+                )
+                .route("/:network_id/token", get(create_network_token))
+                .route("/:network_id/stats/users", get(user_stats))
+                .route("/:network_id/stats", get(network_stats)),
+        );
+
+    #[cfg(feature = "worker")]
+    let webapp = webapp.nest(
+        "/api/v1/worker",
+        Router::new()
+            .route("/job", post(create_job))
+            .route("/token", get(create_worker_token))
+            .route("/", get(list_workers))
+            .route("/:id", delete(remove_worker))
+            .route("/:id", get(job_status))
+            .layer(Extension(worker_state)),
+    );
+
+    webapp
         .nest_service("/svg", serve_images)
         .nest_service("/", serve_web_dir)
         .with_state(AppState::new(
@@ -243,54 +290,7 @@ pub fn build_webapp(
                     )
                 })
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
-        );
-
-    webapp
-
-    // #[cfg(feature = "wireguard")]
-    // let webapp = webapp.manage(gateway_state).mount(
-    //     "/api/v1",
-    //     routes![
-    //         add_device,
-    //         get_device,
-    //         list_user_devices,
-    //         modify_device,
-    //         delete_device,
-    //         list_devices,
-    //     ],
-    // );
-    // // initialize webapp with network routes
-    // #[cfg(feature = "wireguard")]
-    // let webapp = webapp.mount(
-    //     "/api/v1/network",
-    //     routes![
-    //         create_network,
-    //         delete_network,
-    //         modify_network,
-    //         list_networks,
-    //         network_details,
-    //         gateway_status,
-    //         remove_gateway,
-    //         import_network,
-    //         add_user_devices,
-    //         create_network_token,
-    //         user_stats,
-    //         network_stats,
-    //         download_config,
-    //     ],
-    // );
-    // #[cfg(feature = "worker")]
-    //     webapp.manage(worker_state).mount(
-    //         "/api/v1/worker",
-    //         routes![
-    //             create_job,
-    //             list_workers,
-    //             job_status,
-    //             remove_worker,
-    //             create_worker_token
-    //         ],
-    //     )
-    // };
+        )
 }
 
 /// Runs core web server exposing REST API.

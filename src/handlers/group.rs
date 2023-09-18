@@ -62,7 +62,7 @@ pub async fn get_group(
         let members = group.member_usernames(&appstate.pool).await?;
         info!("Retrieved group {name}");
         Ok(ApiResponse {
-            json: json!(GroupInfo::new(name.into(), members)),
+            json: json!(GroupInfo::new(name, members)),
             status: StatusCode::OK,
         })
     } else {
