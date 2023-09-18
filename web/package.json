@@ -1,7 +1,7 @@
 {
   "name": "web",
   "scripts": {
-    "dev": "npm-run-all --parallel vite typesafe-i18n",
+    "dev": "concurrently \"pnpm run vite\" \"pnpm run typesafe-i18n\"",
     "build": "tsc && vite build",
     "serve": "vite preview",
     "generate-translation-types": "typesafe-i18n --no-watch",
@@ -111,6 +111,7 @@
     "@typescript-eslint/parser": "^6.3.0",
     "@vitejs/plugin-react-swc": "^3.3.2",
     "autoprefixer": "^10.4.15",
+    "concurrently": "^8.2.1",
     "esbuild": "^0.19.2",
     "eslint": "^8.47.0",
     "eslint-config-prettier": "^9.0.0",
@@ -121,7 +122,6 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
     "eslint-plugin-simple-import-sort": "^10.0.0",
-    "npm-run-all": "^4.1.5",
     "postcss": "^8.4.27",
     "prettier": "^3.0.1",
     "prop-types": "^15.8.1",

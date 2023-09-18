@@ -6,7 +6,7 @@ use rocket::{http::Status, local::asynchronous::Client, serde::Deserialize};
 use serde_json::json;
 
 mod common;
-use crate::common::make_test_client;
+use self::common::make_test_client;
 
 async fn make_client() -> (Client, DbPool) {
     let (client, client_state) = make_test_client().await;

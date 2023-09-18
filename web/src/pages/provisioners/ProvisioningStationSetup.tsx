@@ -30,7 +30,7 @@ export const ProvisioningStationSetup = () => {
 
   const command = useMemo(
     () =>
-      `docker run ghcr.io/defguard/yubi-bridge:current --worker-token ${data?.token} --id <WORKER_NAME> --grpc <DEFGUARD_GRPC_URL>`,
+      `docker run --privileged ghcr.io/defguard/yubikey-provision:main -t ${data?.token} --id <WORKER_NAME> --grpc <DEFGUARD_GRPC_URL>`,
     [data?.token],
   );
 

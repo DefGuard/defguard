@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id \"id?\", \"user_id\",\"address\",\"name\",\"chain_id\",\"challenge_message\",\"challenge_signature\",\"creation_timestamp\",\"validation_timestamp\",\"use_for_mfa\" FROM \"wallet\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "chain_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "challenge_message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "challenge_signature",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "creation_timestamp",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "validation_timestamp",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 9,
+        "name": "use_for_mfa",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "336532632eb24ed923842cdc8976e26a7f9b8d28ef1d7011407f388d3e983e62"
+}

@@ -1,4 +1,5 @@
-use crate::{appstate::AppState, handlers::ApiResponse, license::License};
+use super::ApiResponse;
+use crate::{appstate::AppState, license::License};
 use rocket::{http::Status, serde::json::serde_json::json, State};
 
 #[get("/license", format = "json")]

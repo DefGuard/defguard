@@ -20,9 +20,9 @@ import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditBu
 import { EditButtonOption } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import ConfirmModal from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModal } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
-import NoData from '../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { NoData } from '../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
@@ -316,7 +316,7 @@ export const OpenidClientsListPage = () => {
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconPlusWhite />}
-            text={LL.openidOverview.addNewApp()}
+            text={breakpoint === 'desktop' ? LL.openidOverview.addNewApp() : undefined}
             disabled={!hasAccess}
           />
         </div>

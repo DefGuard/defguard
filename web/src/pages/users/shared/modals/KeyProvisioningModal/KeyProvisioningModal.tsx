@@ -21,6 +21,7 @@ import { Modal } from '../../../../../shared/defguard-ui/components/Layout/modal
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { messageIds } from '../../../../../shared/messageIds';
 import { QueryKeys } from '../../../../../shared/queries';
 import { WorkerJobStatus, WorkerJobStatusError } from '../../../../../shared/types';
 import WorkerLoader from './WorkerLoader/WorkerLoader';
@@ -68,7 +69,9 @@ export const KeyProvisioningModal = () => {
       console.error(err);
     },
     enabled: isOpen,
+    refetchInterval: 2 * 1000,
   });
+
   useQuery([QueryKeys.FETCH_WORKER_JOB_STATUS, jobId], () => getJobStatus(jobId), {
     enabled: typeof jobId === 'number' && isOpen,
     refetchOnWindowFocus: false,
@@ -132,6 +135,7 @@ export const KeyProvisioningModal = () => {
   return (
     <Modal
       backdrop
+      disableClose={true}
       setIsOpen={setIsOpen}
       isOpen={isOpen}
       className={
@@ -163,13 +167,11 @@ export const KeyProvisioningModal = () => {
                 {breakpoint === 'desktop' ? <SvgIconCancel /> : null}
               </Button>
             </header>
-            <MessageBox type={MessageBoxType.INFO}>
-              <p
-                dangerouslySetInnerHTML={{
-                  __html: LL.modals.provisionKeys.infoBox(),
-                }}
-              ></p>
-            </MessageBox>
+            <MessageBox
+              type={MessageBoxType.WARNING}
+              message={LL.modals.provisionKeys.warning()}
+              dismissId={messageIds.ProvisioningWipeWarning}
+            />
           </section>
           {isLoading || !workers || (workers && !workers.length) ? (
             <div className="loader">

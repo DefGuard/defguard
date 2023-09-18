@@ -1,10 +1,9 @@
-use defguard::db::Settings;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
-    db::{init_db, AppEvent, GatewayEvent, User},
+    db::{init_db, AppEvent, GatewayEvent, Settings, User},
     grpc::{run_grpc_server, GatewayMap, WorkerState},
-    init_dev_env, logging,
+    init_dev_env, init_vpn_location, logging,
     mail::{run_mail_handler, Mail},
     run_web_server,
     wireguard_stats_purge::run_periodic_stats_purge,
@@ -26,23 +25,6 @@ async fn main() -> Result<(), anyhow::Error> {
     logging::init(&config.log_level, &config.log_file)?;
     SERVER_CONFIG.set(config.clone())?;
 
-    log::debug!("Starting defguard server with config: {config:?}");
-
-    match config.openid_signing_key {
-        Some(_) => log::info!("Using RSA OpenID signing key"),
-        None => log::info!("Using HMAC OpenID signing key"),
-    }
-
-    if let Some(Command::InitDevEnv) = config.cmd {
-        init_dev_env(&config).await;
-        return Ok(());
-    }
-
-    let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
-    let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(256);
-    let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
-    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let pool = init_db(
         &config.database_host,
         config.database_port,
@@ -51,6 +33,36 @@ async fn main() -> Result<(), anyhow::Error> {
         config.database_password.expose_secret(),
     )
     .await;
+
+    // handle optional subcommands
+    if let Some(command) = &config.cmd {
+        match command {
+            Command::InitDevEnv => {
+                init_dev_env(&config).await;
+            }
+            Command::InitVpnLocation(args) => {
+                let token = init_vpn_location(&pool, args).await?;
+                println!("{token}");
+            }
+        };
+
+        // return early
+        return Ok(());
+    }
+
+    log::debug!("Starting defguard server with config: {config:?}");
+
+    if config.openid_signing_key.is_some() {
+        log::info!("Using RSA OpenID signing key");
+    } else {
+        log::info!("Using HMAC OpenID signing key");
+    }
+
+    let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
+    let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(256);
+    let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
+    let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
+    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;

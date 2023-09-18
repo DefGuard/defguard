@@ -1,6 +1,5 @@
-use defguard::db::models::device::UserDevice;
 use defguard::{
-    db::{Device, GatewayEvent, WireguardNetwork},
+    db::{models::device::UserDevice, Device, GatewayEvent, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
@@ -8,7 +7,7 @@ use rocket::{http::Status, serde::json::serde_json::json};
 use tokio::sync::broadcast::error::TryRecvError;
 
 mod common;
-use crate::common::{fetch_user_details, make_test_client};
+use self::common::{fetch_user_details, make_test_client};
 
 #[rocket::async_test]
 async fn test_config_import() {
@@ -42,7 +41,7 @@ async fn test_config_import() {
         "initial".into(),
         "10.1.9.0/24".parse().unwrap(),
         51515,
-        "".to_string(),
+        String::new(),
         None,
         vec![],
     )
@@ -57,7 +56,7 @@ async fn test_config_import() {
         "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=".into(),
         1,
     );
-    device_1.save(&mut transaction).await.unwrap();
+    device_1.save(&mut *transaction).await.unwrap();
     device_1
         .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
         .await
@@ -68,7 +67,7 @@ async fn test_config_import() {
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
         1,
     );
-    device_2.save(&mut transaction).await.unwrap();
+    device_2.save(&mut *transaction).await.unwrap();
     device_2
         .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
         .await

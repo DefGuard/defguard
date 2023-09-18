@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"oauth2client\" SET \"client_id\" = $2,\"client_secret\" = $3,\"redirect_uri\" = $4,\"scope\" = $5,\"name\" = $6,\"enabled\" = $7 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b9673d880db788cd95cbcdfd44ffad014cde4eec69233e7ae79ab35e620a5302"
+}

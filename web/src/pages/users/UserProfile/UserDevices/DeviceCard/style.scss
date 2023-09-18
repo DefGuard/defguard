@@ -33,9 +33,16 @@
         grid-template-rows: 40px;
         grid-template-columns: 40px 1fr 55px;
 
-        & > .avatar-box {
+        & > .avatar-icon {
           grid-row: 1;
           grid-column: 1 / 2;
+          height: 100%;
+          width: 100%;
+
+          svg {
+            width: 30px;
+            height: 30px;
+          }
         }
 
         & > h3 {

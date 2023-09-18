@@ -1,13 +1,13 @@
 use claims::assert_err;
-use defguard::db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork};
-use defguard::handlers::wireguard::ImportedNetworkData;
-use defguard::handlers::Auth;
+use defguard::{
+    db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork},
+    handlers::{wireguard::ImportedNetworkData, Auth},
+};
 use matches::assert_matches;
-use rocket::http::Status;
-use rocket::serde::json::json;
+use rocket::{http::Status, serde::json::json};
 
 mod common;
-use crate::common::make_test_client;
+use self::common::make_test_client;
 
 // setup user groups, test users and devices
 async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
@@ -330,7 +330,9 @@ async fn test_import_network_existing_devices() {
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // network config was only created for one of the existing devices and the admin device
-    let GatewayEvent::DeviceModified(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    let GatewayEvent::DeviceModified(device_info) = wg_rx.try_recv().unwrap() else {
+        panic!()
+    };
     assert_eq!(device_info.device.id.unwrap(), devices[1].id.unwrap());
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
@@ -339,7 +341,9 @@ async fn test_import_network_existing_devices() {
         peers[1].allowed_ips[0]
     );
 
-    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
+        panic!()
+    };
     assert_eq!(device_info.device.id.unwrap(), devices[0].id.unwrap());
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
@@ -427,7 +431,9 @@ PersistentKeepalive = 300
     assert_eq!(peers[3].pubkey, mapped_devices[1].wireguard_pubkey);
 
     // assert events
-    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
+        panic!()
+    };
     assert_eq!(
         device_info.device.wireguard_pubkey,
         mapped_devices[0].wireguard_pubkey
@@ -439,7 +445,9 @@ PersistentKeepalive = 300
         mapped_devices[0].wireguard_ip
     );
 
-    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else { panic!() };
+    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
+        panic!()
+    };
     assert_eq!(
         device_info.device.wireguard_pubkey,
         mapped_devices[1].wireguard_pubkey

@@ -8,11 +8,11 @@ use defguard::{
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
-
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
-mod common;
-use crate::common::{fetch_user_details, make_test_client};
 use tokio_stream::{self as stream, StreamExt};
+
+mod common;
+use self::common::{fetch_user_details, make_test_client};
 
 async fn make_client() -> Client {
     let (client, _) = make_test_client().await;
@@ -479,10 +479,10 @@ async fn test_check_password_strength() {
     let mut stream = stream::iter(weak_passwords.iter().enumerate());
     while let Some((index, password)) = stream.next().await {
         let weak_password_user = AddUserData {
-            username: format!("weakpass{}", index),
+            username: format!("weakpass{index}"),
             first_name: "testpassfn".into(),
             last_name: "testpassln".into(),
-            email: format!("testpass{}@test.test", index),
+            email: format!("testpass{index}@test.test"),
             password: Some(password.to_owned().into()),
             phone: None,
         };

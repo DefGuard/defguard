@@ -1,8 +1,7 @@
 use crate::db::{models::wireguard::WireguardNetworkError, Device, WireguardNetwork};
 use base64::{DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
-use std::array::TryFromSliceError;
-use std::net::IpAddr;
+use std::{array::TryFromSliceError, net::IpAddr};
 use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
 
@@ -36,13 +35,13 @@ pub enum WireguardConfigParseError {
 
 impl From<TryFromSliceError> for WireguardConfigParseError {
     fn from(e: TryFromSliceError) -> Self {
-        WireguardConfigParseError::InvalidKey(format!("{}", e))
+        WireguardConfigParseError::InvalidKey(format!("{e}"))
     }
 }
 
 impl From<DecodeError> for WireguardConfigParseError {
     fn from(e: DecodeError) -> Self {
-        WireguardConfigParseError::InvalidKey(format!("{}", e))
+        WireguardConfigParseError::InvalidKey(format!("{e}"))
     }
 }
 
@@ -72,14 +71,14 @@ pub fn parse_wireguard_config(
     let port = port
         .parse()
         .map_err(|_| WireguardConfigParseError::InvalidPort(port.to_string()))?;
-    let dns = interface_section.get("DNS").map(|s| s.to_string());
+    let dns = interface_section.get("DNS").map(ToString::to_string);
     let network_address: IpNetwork = address.parse()?;
     let allowed_ips = IpNetwork::new(network_address.network(), network_address.prefix())?;
     let mut network = WireguardNetwork::new(
         pubkey.clone(),
         network_address,
         port,
-        "".to_string(),
+        String::new(),
         dns,
         vec![allowed_ips],
     )?;
@@ -113,8 +112,7 @@ pub fn parse_wireguard_config(
         // check if device pubkey collides with network pubkey
         if pubkey == network.pubkey {
             return Err(WireguardConfigParseError::InvalidKey(format!(
-                "Device pubkey is the same as network pubkey {}",
-                pubkey
+                "Device pubkey is the same as network pubkey {pubkey}"
             )));
         }
 

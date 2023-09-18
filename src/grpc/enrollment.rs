@@ -83,14 +83,13 @@ impl EnrollmentServer {
         request: &Request<T>,
     ) -> Result<Enrollment, Status> {
         debug!("Validating enrollment session token: {request:?}");
-        let token = match request.metadata().get("authorization") {
-            Some(token) => token
+        let token = if let Some(token) = request.metadata().get("authorization") {
+            token
                 .to_str()
-                .map_err(|_| Status::unauthenticated("Invalid token"))?,
-            None => {
-                error!("Missing authorization header in request");
-                return Err(Status::unauthenticated("Missing authorization header"));
-            }
+                .map_err(|_| Status::unauthenticated("Invalid token"))?
+        } else {
+            error!("Missing authorization header in request");
+            return Err(Status::unauthenticated("Missing authorization header"));
         };
 
         let enrollment = Enrollment::find_by_id(&self.pool, token).await?;
@@ -140,7 +139,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             )
             .await?;
 
-        let settings = Settings::get_settings(&mut transaction)
+        let settings = Settings::get_settings(&mut *transaction)
             .await
             .map_err(|_| {
                 error!("Failed to get settings");
@@ -196,7 +195,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         // update user
         user.phone = Some(request.phone_number);
         user.set_password(&request.password);
-        user.save(&mut transaction).await.map_err(|err| {
+        user.save(&mut *transaction).await.map_err(|err| {
             error!("Failed to update user {}: {err}", user.username);
             Status::internal("unexpected error")
         })?;
@@ -206,7 +205,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let _result = ldap_add_user(&self.config, &user, &request.password).await;
         };
 
-        let settings = Settings::get_settings(&mut transaction)
+        let settings = Settings::get_settings(&mut *transaction)
             .await
             .map_err(|_| {
                 error!("Failed to get settings");
@@ -219,8 +218,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             .await?;
 
         // send success notification to admin
-        let admin = enrollment.fetch_admin(&mut transaction).await?;
-        enrollment.send_admin_notification(&self.mail_tx, &admin, &user)?;
+        let admin = enrollment.fetch_admin(&mut *transaction).await?;
+        Enrollment::send_admin_notification(&self.mail_tx, &admin, &user)?;
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
@@ -253,7 +252,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             error!("Failed to begin transaction");
             Status::internal("unexpected error")
         })?;
-        device.save(&mut transaction).await.map_err(|err| {
+        device.save(&mut *transaction).await.map_err(|err| {
             error!("Failed to save device {}: {err}", device.name);
             Status::internal("unexpected error")
         })?;
@@ -288,7 +287,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         let response = CreateDeviceResponse {
             device: Some(device.into()),
-            configs: configs.into_iter().map(|config| config.into()).collect(),
+            configs: configs.into_iter().map(Into::into).collect(),
             instance: Some(Instance::new(&settings).into()),
         };
 
@@ -372,7 +371,6 @@ impl Enrollment {
 
     // Notify admin that a user has completed enrollment
     fn send_admin_notification(
-        &self,
         mail_tx: &UnboundedSender<Mail>,
         admin: &User,
         user: &User,

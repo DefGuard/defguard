@@ -620,6 +620,10 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
+			 * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​y​u​b​i​k​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
+			 */
+			warning: string
+			/**
 			 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​o​v​i​s​i​o​n​e​r​ ​m​u​s​t​ ​h​a​v​e​ ​a​ ​<​b​>​c​l​e​a​n​<​/​b​>​ ​Y​u​b​i​K​e​y​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​l​u​g​g​e​d​ ​i​n​ ​b​e​ ​p​r​o​v​i​s​i​o​n​e​d​.​ ​T​o​ ​c​l​e​a​n​ ​a​ ​u​s​e​d​ ​Y​u​b​i​K​e​y​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​>​g​p​g​ ​-​-​c​a​r​d​-​e​d​i​t​ ​<​/​b​>​ ​b​e​f​o​r​e​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
@@ -2461,7 +2465,7 @@ type RootTranslation = {
 			 */
 			header: string
 			/**
-			 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
+			 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​d​o​c​k​e​r​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
 			 */
 			cardTitle: string
 			/**
@@ -2471,15 +2475,6 @@ type RootTranslation = {
 			 */
 			content: string
 		}
-		/**
-		 * <​p​>​
-	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​s​t​r​o​n​g​>​Y​u​b​i​K​e​y​ ​m​o​d​u​l​e​<​/​s​t​r​o​n​g​>​
-	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>​
-	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​T​h​i​s​ ​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​m​o​d​u​l​e​ ​f​o​r​ ​Y​u​b​i​K​e​y​<​/​p​>​
-	​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​m​a​n​a​g​e​m​e​n​t​ ​a​n​d​ ​p​r​o​v​i​s​i​o​n​i​n​g​.​<​/​p​>
-		 */
-		noLicenseBox: string
 		list: {
 			headers: {
 				/**
@@ -3890,6 +3885,10 @@ export type TranslationFunctions = {
 			 * Yubikey provisioning:
 			 */
 			title: () => LocalizedString
+			/**
+			 * Please be advised that this operation wll wipe openpgp application on yubikey and reconfigure it.
+			 */
+			warning: () => LocalizedString
 			/**
 			 * The selected provisioner must have a <b>clean</b> YubiKey
 		                plugged in be provisioned. To clean a used YubiKey
@@ -5721,7 +5720,7 @@ export type TranslationFunctions = {
 			 */
 			header: () => LocalizedString
 			/**
-			 * Provisioning station setup command
+			 * Provisioning station docker setup command
 			 */
 			cardTitle: () => LocalizedString
 			/**
@@ -5731,15 +5730,6 @@ export type TranslationFunctions = {
 			 */
 			content: () => LocalizedString
 		}
-		/**
-		 * <p>
-	              <strong>YubiKey module</strong>
-	            </p>
-	            <br />
-	            <p>This is enterprise module for YubiKey</p>
-	            <p>management and provisioning.</p>
-		 */
-		noLicenseBox: () => LocalizedString
 		list: {
 			headers: {
 				/**

@@ -6,15 +6,15 @@ on:
       - main
       - dev
     paths-ignore:
-      - '*.md'
-      - 'LICENSE'
+      - "*.md"
+      - "LICENSE"
   pull_request:
     branches:
       - main
       - dev
     paths-ignore:
-      - '*.md'
-      - 'LICENSE'
+      - "*.md"
+      - "LICENSE"
 
 env:
   CARGO_TERM_COLOR: always
@@ -22,7 +22,7 @@ env:
 jobs:
   test:
     runs-on: self-hosted
-    container: rust:1.71
+    container: rust:1.72
 
     services:
       postgres:

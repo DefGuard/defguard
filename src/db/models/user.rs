@@ -1,14 +1,11 @@
 use super::{
-    device::Device, group::Group, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
+    device::{Device, UserDevice},
+    group::Group,
+    wallet::Wallet,
+    webauthn::WebAuthn,
+    DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
-use crate::db::models::device::UserDevice;
-use crate::{
-    auth::TOTP_CODE_VALIDITY_PERIOD,
-    db::{Wallet, WebAuthn},
-    error::OriWebError,
-    random::gen_alphanumeric,
-    DbPool,
-};
+use crate::{auth::TOTP_CODE_VALIDITY_PERIOD, error::OriWebError, random::gen_alphanumeric};
 use argon2::{
     password_hash::{
         errors::Error as HashError, rand_core::OsRng, PasswordHash, PasswordHasher,
@@ -113,10 +110,12 @@ impl User {
         }
     }
 
+    #[must_use]
     pub fn has_password(&self) -> bool {
         self.password_hash.is_some()
     }
 
+    #[must_use]
     pub fn name(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }

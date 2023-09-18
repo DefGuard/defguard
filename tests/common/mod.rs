@@ -1,20 +1,20 @@
-#[cfg(test)]
 use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
-    db::{init_db, AppEvent, DbPool, GatewayEvent, User},
+    db::{init_db, AppEvent, DbPool, GatewayEvent, User, UserDetails},
     grpc::{GatewayMap, WorkerState},
+    mail::Mail,
+    SERVER_CONFIG,
 };
-use defguard::{db::UserDetails, mail::Mail, SERVER_CONFIG};
-use rocket::http::Status;
-use rocket::local::asynchronous::Client;
+use rocket::{http::Status, local::asynchronous::Client};
 use secrecy::ExposeSecret;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
 use std::sync::{Arc, Mutex};
-use tokio::sync::broadcast;
-use tokio::sync::broadcast::Receiver;
-use tokio::sync::mpsc::unbounded_channel;
+use tokio::sync::{
+    broadcast::{self, Receiver},
+    mpsc::unbounded_channel,
+};
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     let config = DefGuardConfig::new_test_config();
@@ -29,7 +29,7 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
         .await
         .expect("Failed to connect to Postgres");
     let db_name = Uuid::new_v4().to_string();
-    query(&format!("CREATE DATABASE \"{}\"", db_name))
+    query(&format!("CREATE DATABASE \"{db_name}\""))
         .execute(&pool)
         .await
         .expect("Failed to create test database");
@@ -150,7 +150,7 @@ pub async fn make_enterprise_test_client() -> (Client, ClientState) {
 #[allow(dead_code)]
 pub async fn fetch_user_details(client: &Client, username: &str) -> UserDetails {
     let response = client
-        .get(format!("/api/v1/user/{}", username))
+        .get(format!("/api/v1/user/{username}"))
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);

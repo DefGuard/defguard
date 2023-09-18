@@ -2,13 +2,13 @@
 
 1. Sqlx offline build
 
-Requires `sqlx-data.json` to be present in the root directory of the project. Create the file using:
+Requires `.sqlx` directory to be present in the root directory of the project. Create the file using:
 
 ```
 cargo sqlx prepare -- --lib
 ```
 
-2. Build docker image
+1. Build docker image
 
 ```
 docker-compose build

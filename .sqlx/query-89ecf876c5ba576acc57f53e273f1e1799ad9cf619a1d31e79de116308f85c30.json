@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM oauth2token WHERE access_token = $1 AND refresh_token = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "89ecf876c5ba576acc57f53e273f1e1799ad9cf619a1d31e79de116308f85c30"
+}

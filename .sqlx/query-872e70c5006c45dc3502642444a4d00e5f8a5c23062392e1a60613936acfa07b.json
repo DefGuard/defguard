@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM wireguard_network_allowed_group WHERE network_id=$1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "872e70c5006c45dc3502642444a4d00e5f8a5c23062392e1a60613936acfa07b"
+}

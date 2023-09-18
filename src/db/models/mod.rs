@@ -18,10 +18,12 @@ pub mod webauthn;
 pub mod webhook;
 pub mod wireguard;
 
+use self::{
+    device::UserDevice,
+    user::{MFAMethod, User},
+};
 use super::{DbPool, Group};
-use crate::db::models::device::UserDevice;
 use sqlx::{query_as, Error as SqlxError};
-use user::{MFAMethod, User};
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
@@ -216,14 +218,17 @@ impl MFAInfo {
         }
     }
 
+    #[must_use]
     pub fn mfa_available(&self) -> bool {
         self.webauthn_available || self.totp_available || self.web3_available
     }
 
+    #[must_use]
     pub fn current_mfa_method(&self) -> &MFAMethod {
         &self.mfa_method
     }
 
+    #[must_use]
     pub fn list_available_methods(&self) -> Option<Vec<MFAMethod>> {
         if !self.mfa_available() {
             return None;
@@ -231,13 +236,13 @@ impl MFAInfo {
 
         let mut methods = Vec::new();
         if self.webauthn_available {
-            methods.push(MFAMethod::Webauthn)
+            methods.push(MFAMethod::Webauthn);
         }
         if self.web3_available {
-            methods.push(MFAMethod::Web3)
+            methods.push(MFAMethod::Web3);
         }
         if self.totp_available {
-            methods.push(MFAMethod::OneTimePassword)
+            methods.push(MFAMethod::OneTimePassword);
         }
         Some(methods)
     }

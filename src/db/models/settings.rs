@@ -1,4 +1,5 @@
-use crate::{db::DbPool, secret::SecretString};
+use super::DbPool;
+use crate::secret::SecretString;
 use model_derive::Model;
 use sqlx::{query, Type};
 use std::collections::HashMap;

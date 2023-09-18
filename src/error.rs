@@ -1,10 +1,13 @@
-use crate::auth::failed_login::FailedLoginError;
-use crate::db::models::device::DeviceError;
-use crate::db::models::enrollment::EnrollmentError;
-use crate::db::models::wireguard::WireguardNetworkError;
-use crate::grpc::GatewayMapError;
-use crate::templates::TemplateError;
-use crate::{db::models::error::ModelError, ldap::error::OriLDAPError};
+use crate::{
+    auth::failed_login::FailedLoginError,
+    db::models::{
+        device::DeviceError, enrollment::EnrollmentError, error::ModelError,
+        wireguard::WireguardNetworkError,
+    },
+    grpc::GatewayMapError,
+    ldap::error::OriLDAPError,
+    templates::TemplateError,
+};
 use rocket::http::Status;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
@@ -82,9 +85,9 @@ impl From<ModelError> for OriWebError {
 impl From<DeviceError> for OriWebError {
     fn from(error: DeviceError) -> Self {
         match error {
-            DeviceError::PubkeyConflict(..) => Self::PubkeyValidation(format!("{}", error)),
-            DeviceError::DatabaseError(_) => Self::DbError(format!("{}", error)),
-            DeviceError::ModelError(_) => Self::ModelError(format!("{}", error)),
+            DeviceError::PubkeyConflict(..) => Self::PubkeyValidation(error.to_string()),
+            DeviceError::DatabaseError(_) => Self::DbError(error.to_string()),
+            DeviceError::ModelError(_) => Self::ModelError(error.to_string()),
             DeviceError::Unexpected(_) => Self::Http(Status::InternalServerError),
         }
     }
@@ -95,8 +98,8 @@ impl From<GatewayMapError> for OriWebError {
         match error {
             GatewayMapError::NotFound(_, _)
             | GatewayMapError::NetworkNotFound(_)
-            | GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(format!("{}", error)),
-            GatewayMapError::RemoveActive(_) => Self::BadRequest(format!("{}", error)),
+            | GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(error.to_string()),
+            GatewayMapError::RemoveActive(_) => Self::BadRequest(error.to_string()),
         }
     }
 }
@@ -106,9 +109,7 @@ impl From<WireguardNetworkError> for OriWebError {
         match error {
             WireguardNetworkError::NetworkTooSmall
             | WireguardNetworkError::IpNetworkError(_)
-            | WireguardNetworkError::InvalidDevicePubkey(_) => {
-                Self::BadRequest(format!("{}", error))
-            }
+            | WireguardNetworkError::InvalidDevicePubkey(_) => Self::BadRequest(error.to_string()),
             WireguardNetworkError::DbError(_)
             | WireguardNetworkError::ModelError(_)
             | WireguardNetworkError::Unexpected(_)

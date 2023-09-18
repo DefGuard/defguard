@@ -20,9 +20,9 @@ import { EditButton } from '../../shared/defguard-ui/components/Layout/EditButto
 import { EditButtonOption } from '../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../shared/defguard-ui/components/Layout/EditButton/types';
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import ConfirmModal from '../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModal } from '../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 import { ConfirmModalType } from '../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
-import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../shared/defguard-ui/components/Layout/Select/Select';
 import {
@@ -304,7 +304,9 @@ export const WebhooksListPage = () => {
             onClick={() => setWebhookModalState({ visible: true, webhook: undefined })}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
-            text={LL.webhooksOverview.addNewWebhook()}
+            text={
+              breakpoint === 'desktop' ? LL.webhooksOverview.addNewWebhook() : undefined
+            }
             icon={<SvgIconPlusWhite />}
           />
         </div>

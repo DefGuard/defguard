@@ -10,7 +10,7 @@ import { PageContainer } from '../../shared/components/Layout/PageContainer/Page
 import { GatewaysStatus } from '../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import { deviceBreakpoints } from '../../shared/constants';
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import NoData from '../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
