@@ -238,7 +238,7 @@ pub fn build_webapp(
             .route("/device/user/:username", get(list_user_devices))
             .route("/network", post(create_network))
             .route("/network/:network_id", put(modify_network))
-            .route("/network:network_id", delete(delete_network))
+            .route("/network/:network_id", delete(delete_network))
             .route("/network", get(list_networks))
             .route("/network/:network_id", get(network_details))
             .route("/network/:network_id/gateways", get(gateway_status))
