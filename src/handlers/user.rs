@@ -2,7 +2,6 @@ use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
 };
-use regex::Regex;
 use serde_json::json;
 
 use super::{
@@ -50,28 +49,23 @@ fn check_username(username: &str) -> Result<(), WebError> {
 }
 
 pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
-    let password_length = password.len();
-    let special_chars_expression = Regex::new(r#"[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?~]"#).unwrap();
-    let numbers_expression = Regex::new(r"[0-9]").unwrap();
-    let lowercase_expression = Regex::new(r"[a-z]").unwrap();
-    let uppercase_expression = Regex::new(r"[A-Z]").unwrap();
-    if !(8..=128).contains(&password_length) {
+    if !(8..=128).contains(&password.len()) {
         return Err(WebError::Serialization("Incorrect password length".into()));
     }
-    if !special_chars_expression.is_match(password) {
+    if !password.chars().any(|c| c.is_ascii_punctuation()) {
         return Err(WebError::Serialization(
             "No special characters in password".into(),
         ));
     }
-    if !numbers_expression.is_match(password) {
+    if !password.chars().any(|c| c.is_ascii_digit()) {
         return Err(WebError::Serialization("No numbers in password".into()));
     }
-    if !lowercase_expression.is_match(password) {
+    if !password.chars().any(|c| c.is_ascii_lowercase()) {
         return Err(WebError::Serialization(
             "No lowercase characters in password".into(),
         ));
     }
-    if !uppercase_expression.is_match(password) {
+    if !password.chars().any(|c| c.is_ascii_uppercase()) {
         return Err(WebError::Serialization(
             "No uppercase characters in password".into(),
         ));

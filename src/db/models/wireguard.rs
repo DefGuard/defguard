@@ -18,7 +18,7 @@ pub struct MappedDevice {
     pub wireguard_ip: IpAddr,
 }
 
-use base64::Engine;
+use base64::prelude::{Engine, BASE64_STANDARD};
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
@@ -131,8 +131,8 @@ impl WireguardNetwork {
             name,
             address,
             port,
-            pubkey: base64::prelude::BASE64_STANDARD.encode(pubkey.to_bytes()),
-            prvkey: base64::prelude::BASE64_STANDARD.encode(prvkey.to_bytes()),
+            pubkey: BASE64_STANDARD.encode(pubkey.to_bytes()),
+            prvkey: BASE64_STANDARD.encode(prvkey.to_bytes()),
             endpoint,
             dns,
             allowed_ips,
@@ -206,8 +206,8 @@ impl WireguardNetwork {
         let private = StaticSecret::random_from_rng(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
-            private: base64::prelude::BASE64_STANDARD.encode(private.to_bytes()),
-            public: base64::prelude::BASE64_STANDARD.encode(public.to_bytes()),
+            private: BASE64_STANDARD.encode(private.to_bytes()),
+            public: BASE64_STANDARD.encode(public.to_bytes()),
         }
     }
 
