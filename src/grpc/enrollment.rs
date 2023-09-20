@@ -2,11 +2,7 @@ use crate::{
     config::DefGuardConfig,
     db::{
         models::{
-<<<<<<< HEAD
-            device::{DeviceInfo, WireguardNetworkDevice},
-=======
-            device::{DeviceConfig, DeviceInfo},
->>>>>>> 37c0d6f19de65751c6457f43bba720dc3fea0d43
+            device::{DeviceConfig, DeviceInfo, WireguardNetworkDevice},
             enrollment::{Enrollment, EnrollmentError},
             wireguard::WireguardNetwork,
         },
@@ -411,7 +407,7 @@ impl From<User> for InitialUserInfo {
     }
 }
 
-impl From<handlers::wireguard::DeviceConfig> for DeviceConfig {
+impl From<DeviceConfig> for ProtoDeviceConfig {
         let allowed_ips = config
             .allowed_ips
             .iter()
