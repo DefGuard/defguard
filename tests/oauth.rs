@@ -325,6 +325,7 @@ async fn test_openid_app_management_access() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
+// FIXME: revive these tests
 // #[tokio::test]
 // async fn test_authorize_consent() {
 //     let client = make_client().await;
