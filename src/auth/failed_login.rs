@@ -92,7 +92,7 @@ impl FailedLoginMap {
 
     // Add failed login attempt to tracker
     pub fn log_failed_attempt(&mut self, username: &str) {
-        info!("Logging failed login attempt for username {}", username);
+        info!("Logging failed login attempt for username {username}");
         match self.0.get_mut(username) {
             None => {
                 self.0.insert(username.into(), FailedLogin::default());
@@ -109,10 +109,10 @@ impl FailedLoginMap {
 
     // Check if user can proceed with login process or should be locked out
     pub fn verify_username(&mut self, username: &str) -> Result<(), FailedLoginError> {
-        debug!("Checking if user {} can proceed with login", username);
+        debug!("Checking if user {username} can proceed with login");
         if let Some(failed_login) = self.0.get_mut(username) {
             if failed_login.should_prevent_login() {
-                debug!("Preventing user {} from logging in", username);
+                debug!("Preventing user {username} from logging in");
                 // log a failed attempt to prolong timeout
                 failed_login.increment();
                 return Err(FailedLoginError);

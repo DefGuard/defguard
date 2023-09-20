@@ -5,10 +5,19 @@ use super::{
 };
 use crate::{
     grpc::{gateway::Peer, GatewayState},
-    handlers::wireguard::MappedDevice,
     wg_config::ImportedDevice,
 };
-use base64::Engine;
+
+// Used in process of importing network from wireguard config
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MappedDevice {
+    pub user_id: i64,
+    pub name: String,
+    pub wireguard_pubkey: String,
+    pub wireguard_ip: IpAddr,
+}
+
+use base64::prelude::{Engine, BASE64_STANDARD};
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
@@ -121,8 +130,8 @@ impl WireguardNetwork {
             name,
             address,
             port,
-            pubkey: base64::prelude::BASE64_STANDARD.encode(pubkey.to_bytes()),
-            prvkey: base64::prelude::BASE64_STANDARD.encode(prvkey.to_bytes()),
+            pubkey: BASE64_STANDARD.encode(pubkey.to_bytes()),
+            prvkey: BASE64_STANDARD.encode(prvkey.to_bytes()),
             endpoint,
             dns,
             allowed_ips,
@@ -196,8 +205,8 @@ impl WireguardNetwork {
         let private = StaticSecret::random_from_rng(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
-            private: base64::prelude::BASE64_STANDARD.encode(private.to_bytes()),
-            public: base64::prelude::BASE64_STANDARD.encode(public.to_bytes()),
+            private: BASE64_STANDARD.encode(private.to_bytes()),
+            public: BASE64_STANDARD.encode(public.to_bytes()),
         }
     }
 

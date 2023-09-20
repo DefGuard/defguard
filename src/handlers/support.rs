@@ -1,16 +1,16 @@
+use axum::{extract::State, http::StatusCode};
+
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
-    error::OriWebError,
+    error::WebError,
     support::dump_config,
     AppState,
 };
-use rocket::{http::Status, State};
 
-#[get("/configuration", format = "json")]
 pub async fn configuration(
     _admin: AdminRole,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} dumping app configuration", session.user.username);
@@ -18,16 +18,15 @@ pub async fn configuration(
     info!("User {} dumped app configuration", session.user.username);
     Ok(ApiResponse {
         json: config,
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
-#[get("/logs", format = "json")]
 pub async fn logs(
     _admin: AdminRole,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     session: SessionInfo,
-) -> Result<String, OriWebError> {
+) -> Result<String, WebError> {
     debug!("User {} dumping app logs", session.user.username);
     if let Some(ref log_file) = appstate.config.log_file {
         match tokio::fs::read_to_string(log_file).await {

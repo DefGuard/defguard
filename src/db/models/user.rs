@@ -5,7 +5,7 @@ use super::{
     webauthn::WebAuthn,
     DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
-use crate::{auth::TOTP_CODE_VALIDITY_PERIOD, error::OriWebError, random::gen_alphanumeric};
+use crate::{auth::TOTP_CODE_VALIDITY_PERIOD, error::WebError, random::gen_alphanumeric};
 use argon2::{
     password_hash::{
         errors::Error as HashError, rand_core::OsRng, PasswordHash, PasswordHasher,
@@ -13,11 +13,10 @@ use argon2::{
     },
     Argon2,
 };
-use log::debug;
+use axum::http::StatusCode;
 use model_derive::Model;
 use otpauth::TOTP;
 use rand::{thread_rng, Rng};
-use rocket::http::Status;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, Type};
 use std::time::SystemTime;
 
@@ -189,7 +188,7 @@ impl User {
     /// Verify the state of mfa flags are correct.
     /// Recovers from invalid mfa_method
     /// Use this function after removing any of the authentication factors.
-    pub async fn verify_mfa_state(&mut self, pool: &DbPool) -> Result<(), OriWebError> {
+    pub async fn verify_mfa_state(&mut self, pool: &DbPool) -> Result<(), WebError> {
         if let Some(info) = MFAInfo::for_user(pool, self).await? {
             let factors_present = info.mfa_available();
             if self.mfa_enabled != factors_present {
@@ -226,7 +225,7 @@ impl User {
                 match info.list_available_methods() {
                     None => {
                         error!("Incorrect MFA info state for user {}", self.username);
-                        return Err(OriWebError::Http(Status::InternalServerError));
+                        return Err(WebError::Http(StatusCode::INTERNAL_SERVER_ERROR));
                     }
                     Some(methods) => {
                         info!(
@@ -247,7 +246,7 @@ impl User {
     }
 
     /// Enable MFA. At least one of the authenticator factors must be configured.
-    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<(), OriWebError> {
+    pub async fn enable_mfa(&mut self, pool: &DbPool) -> Result<(), WebError> {
         if !self.mfa_enabled {
             self.verify_mfa_state(pool).await?;
         }

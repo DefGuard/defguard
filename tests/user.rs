@@ -1,3 +1,6 @@
+mod common;
+
+use axum::http::StatusCode;
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
@@ -7,58 +10,57 @@ use defguard::{
     hex::to_lower_hex,
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
-use rocket::{http::Status, local::asynchronous::Client, serde::json::serde_json::json};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
+use serde_json::json;
 use tokio_stream::{self as stream, StreamExt};
 
-mod common;
-use self::common::{fetch_user_details, make_test_client};
+use self::common::{client::TestClient, fetch_user_details, make_test_client};
 
-async fn make_client() -> Client {
+async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;
     client
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_authenticate() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let auth = Auth::new("hpotter".into(), "-wrong-".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     let auth = Auth::new("adumbledore".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_me() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/me").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let user_info: UserInfo = response.into_json().await.unwrap();
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let user_info: UserInfo = response.json().await;
     assert_eq!(user_info.first_name, "Harry");
     assert_eq!(user_info.last_name, "Potter");
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_change_self_password() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
 
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let bad_old = "notCurrentPassword123!$";
 
@@ -82,42 +84,42 @@ async fn test_change_self_password() {
     let response = client
         .put("/api/v1/user/change_password")
         .json(&bad_old_request)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let response = client
         .put("/api/v1/user/change_password")
         .json(&bad_new_request)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let response = client
         .put("/api/v1/user/change_password")
         .json(&change_password)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // old pass login
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     let new_auth = Auth::new("hpotter".into(), new_password.into());
 
-    let response = client.post("/api/v1/auth").json(&new_auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&new_auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_change_password() {
     let client = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
 
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let new_password = "newPassword43$!";
 
@@ -128,83 +130,83 @@ async fn test_change_password() {
     let response = client
         .put("/api/v1/user/admin/password")
         .json(&change_others_password)
-        .dispatch()
+        .send()
         .await;
 
     // can't change own password with this endpoint
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // can change others password
 
     let response = client
         .put("/api/v1/user/hpotter/password")
         .json(&change_others_password)
-        .dispatch()
+        .send()
         .await;
 
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let auth = Auth::new("hpotter".into(), new_password.to_string());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // route is only for admins
     let response = client
         .put("/api/v1/user/admin/password")
         .json(&change_others_password)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Forbidden);
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_list_users() {
     let client = make_client().await;
 
-    let response = client.get("/api/v1/user").dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.get("/api/v1/user").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // normal user cannot list users
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/user").dispatch().await;
-    assert_eq!(response.status(), Status::Forbidden);
+    let response = client.get("/api/v1/user").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // admin can list users
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/user").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/user").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_get_user() {
     let client = make_client().await;
 
-    let response = client.get("/api/v1/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.get("/api/v1/user/hpotter").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let user_info = fetch_user_details(&client, "hpotter").await;
     assert_eq!(user_info.user.first_name, "Harry");
     assert_eq!(user_info.user.last_name, "Potter");
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_username_available() {
     let client = make_client().await;
 
     // standard user cannot check username availability
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let avail = Username {
         username: "hpotter".into(),
@@ -212,14 +214,14 @@ async fn test_username_available() {
     let response = client
         .post("/api/v1/user/available")
         .json(&avail)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Forbidden);
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // log in as admin
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let avail = Username {
         username: "CrashTestDummy".into(),
@@ -227,9 +229,9 @@ async fn test_username_available() {
     let response = client
         .post("/api/v1/user/available")
         .json(&avail)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let avail = Username {
         username: "crashtestdummy".into(),
@@ -237,9 +239,9 @@ async fn test_username_available() {
     let response = client
         .post("/api/v1/user/available")
         .json(&avail)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let avail = Username {
         username: "hpotter".into(),
@@ -247,18 +249,18 @@ async fn test_username_available() {
     let response = client
         .post("/api/v1/user/available")
         .json(&avail)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_crud_user() {
     let client = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create user
     let new_user = AddUserData {
@@ -269,8 +271,8 @@ async fn test_crud_user() {
         phone: Some("1234".into()),
         password: Some("Password1234543$!".into()),
     };
-    let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // get user
     let mut user_details = fetch_user_details(&client, "adumbledore").await;
@@ -281,39 +283,39 @@ async fn test_crud_user() {
     let response = client
         .put("/api/v1/user/adumbledore")
         .json(&user_details.user)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // delete user
-    let response = client.delete("/api/v1/user/adumbledore").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.delete("/api/v1/user/adumbledore").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_admin_group() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/group").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/group").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/group/admin").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/group/admin").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // TODO: check group membership
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_wallet() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let secp = Secp256k1::new();
     let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
@@ -329,12 +331,11 @@ async fn test_wallet() {
     );
 
     // get challenge message
-    let response = client.get(challenge_query.clone()).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let challenge: WalletChallenge = response.into_json().await.unwrap();
+    let response = client.get(challenge_query.clone()).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let challenge: WalletChallenge = response.json().await;
 
-    let parsed_data: TypedData =
-        rocket::serde::json::serde_json::from_str(&challenge.message).unwrap();
+    let parsed_data: TypedData = serde_json::from_str(&challenge.message).unwrap();
     let parsed_message = parsed_data.message;
 
     // see migrations for the default message
@@ -377,7 +378,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert!(user_info.wallets.is_empty());
 
     // Sign message
-    let typed_data: TypedData = rocket::serde::json::serde_json::from_str(&message).unwrap();
+    let typed_data: TypedData = serde_json::from_str(&message).unwrap();
     let hash_msg = typed_data.encode_eip712().unwrap();
     let message = Message::from_slice(&hash_msg).unwrap();
 
@@ -395,9 +396,9 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
             "address": wallet_address,
             "signature": to_lower_hex(&sig_arr),
         }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // get user info for wallets
     let user_info = fetch_user_details(&client, "hpotter").await;
@@ -408,27 +409,27 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     assert_eq!(wallet_info.chain_id, 5);
 
     // challenge must not be available for verified wallet addresses
-    let response = client.get(challenge_query).dispatch().await;
-    assert_eq!(response.status(), Status::NotFound);
+    let response = client.get(challenge_query).send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     // delete wallet
     let response = client
         .delete(format!("/api/v1/user/hpotter/wallet/{wallet_address}"))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let user_info = fetch_user_details(&client, "hpotter").await;
     assert!(user_info.wallets.is_empty());
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_check_username() {
     let client = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let invalid_usernames = ["ADumbledore", "1user"];
     let valid_usernames = ["user1", "use2r3", "notwrong"];
@@ -442,8 +443,8 @@ async fn test_check_username() {
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
         };
-        let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
-        assert_eq!(response.status(), Status::BadRequest);
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
     for username in valid_usernames {
@@ -455,19 +456,19 @@ async fn test_check_username() {
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
         };
-        let response = client.post("/api/v1/user").json(&new_user).dispatch().await;
-        assert_eq!(response.status(), Status::Created);
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
+        assert_eq!(response.status(), StatusCode::CREATED);
     }
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_check_password_strength() {
     let client = make_client().await;
 
     // auth session with admin
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // test
     let strong_password = "strongPass1234$!";
@@ -489,9 +490,9 @@ async fn test_check_password_strength() {
         let response = client
             .post("/api/v1/user")
             .json(&weak_password_user)
-            .dispatch()
+            .send()
             .await;
-        assert_eq!(response.status(), Status::BadRequest);
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
     let strong_password_user = AddUserData {
         username: "strongpass".into(),
@@ -504,17 +505,17 @@ async fn test_check_password_strength() {
     let response = client
         .post("/api/v1/user")
         .json(&strong_password_user)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_user_unregister_authorized_app() {
     let client = make_client().await;
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
         redirect_uri: vec!["http://localhost:3000/".into()],
@@ -524,10 +525,10 @@ async fn test_user_unregister_authorized_app() {
     let response = client
         .post("/api/v1/oauth")
         .json(&openid_client)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
-    let openid_client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let openid_client: OAuth2Client = response.json().await;
     assert_eq!(openid_client.name, "Test");
     let response = client
         .post(format!(
@@ -541,20 +542,20 @@ async fn test_user_unregister_authorized_app() {
             nonce=blabla",
             openid_client.client_id
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Found);
-    let response = client.get("/api/v1/me").dispatch().await;
-    let mut user_info: UserInfo = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let response = client.get("/api/v1/me").send().await;
+    let mut user_info: UserInfo = response.json().await;
     assert_eq!(user_info.authorized_apps.len(), 1);
     user_info.authorized_apps = [].into();
     let response = client
         .put("/api/v1/user/admin")
         .json(&user_info)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
-    let response = client.get("/api/v1/me").dispatch().await;
-    let user_info: UserInfo = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client.get("/api/v1/me").send().await;
+    let user_info: UserInfo = response.json().await;
     assert_eq!(user_info.authorized_apps.len(), 0);
 }

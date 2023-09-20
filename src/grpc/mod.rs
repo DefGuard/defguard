@@ -1,3 +1,27 @@
+use std::{
+    collections::hash_map::HashMap,
+    time::{Duration, Instant},
+};
+#[cfg(any(feature = "wireguard", feature = "worker"))]
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{Arc, Mutex},
+};
+
+use chrono::{NaiveDateTime, Utc};
+use serde::Serialize;
+use thiserror::Error;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tonic::transport::{Identity, Server, ServerTlsConfig};
+use uuid::Uuid;
+
+#[cfg(feature = "wireguard")]
+use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
+use self::{
+    auth::{auth_service_server::AuthServiceServer, AuthServer},
+    enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer},
+};
+#[cfg(feature = "worker")]
 use self::{
     interceptor::JwtInterceptor,
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
@@ -8,25 +32,6 @@ use crate::{
     auth::ClaimsType,
     db::{DbPool, GatewayEvent},
 };
-use auth::{auth_service_server::AuthServiceServer, AuthServer};
-use chrono::{NaiveDateTime, Utc};
-use enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer};
-#[cfg(feature = "wireguard")]
-use gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
-use serde::Serialize;
-use std::{
-    collections::hash_map::HashMap,
-    time::{Duration, Instant},
-};
-#[cfg(any(feature = "wireguard", feature = "worker"))]
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
-};
-use thiserror::Error;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::transport::{Identity, Server, ServerTlsConfig};
-use uuid::Uuid;
 
 mod auth;
 pub mod enrollment;

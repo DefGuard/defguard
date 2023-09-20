@@ -35,7 +35,6 @@ import {
   ListSortDirection,
 } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
-import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useClipboard } from '../../../shared/hooks/useClipboard';
@@ -57,7 +56,6 @@ export const OpenidClientsListPage = () => {
   const {
     openid: { getOpenidClients, changeOpenidClientState, deleteOpenidClient },
   } = useApi();
-  const license = useAppStore((state) => state.license);
   const setOpenIdClientModalState = useModalStore((state) => state.setOpenIdClientModal);
 
   const selectOptions = useMemo(
@@ -122,14 +120,10 @@ export const OpenidClientsListPage = () => {
     },
   );
 
-  const hasAccess = useMemo(() => {
-    return license?.openid || license?.enterprise;
-  }, [license]);
-
   const { data: clients, isLoading } = useQuery(
     [QueryKeys.FETCH_CLIENTS],
     getOpenidClients,
-    { enabled: hasAccess, refetchOnWindowFocus: false, refetchInterval: 15000 },
+    { refetchOnWindowFocus: false, refetchInterval: 15000 },
   );
 
   const filteredClients = useMemo(() => {
@@ -317,22 +311,18 @@ export const OpenidClientsListPage = () => {
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={<SvgIconPlusWhite />}
             text={breakpoint === 'desktop' ? LL.openidOverview.addNewApp() : undefined}
-            disabled={!hasAccess}
           />
         </div>
       </section>
-      {!hasAccess && (
-        <NoData customMessage={LL.openidOverview.messages.noLicenseMessage()} />
-      )}
-      {(isLoading || isUndefined(clients)) && hasAccess && (
+      {(isLoading || isUndefined(clients)) && (
         <div className="list-loader">
           <LoaderSpinner size={180} />
         </div>
       )}
-      {!isLoading && hasAccess && filteredClients.length === 0 && (
+      {!isLoading && filteredClients.length === 0 && (
         <NoData customMessage={LL.openidOverview.messages.noClientsFound()} />
       )}
-      {!isLoading && hasAccess && filteredClients?.length > 0 && (
+      {!isLoading && filteredClients?.length > 0 && (
         <VirtualizedList
           className="clients-list"
           data={filteredClients}

@@ -14,7 +14,6 @@ import {
   EmptyApiResponse,
   GetNetworkStatsRequest,
   GroupsResponse,
-  License,
   LoginData,
   MFALoginResponse,
   Network,
@@ -90,7 +89,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const fetchDevice = async (id: string) =>
     client.get<Device>(`/device/${id}`).then((res) => res.data);
 
-  const getUsers = () => client.get('/user/').then(unpackRequest);
+  const getUsers = () => client.get('/user').then(unpackRequest);
 
   const downloadDeviceConfig: ApiHook['device']['downloadDeviceConfig'] = async (data) =>
     client
@@ -151,7 +150,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
 
-  const getWorkers = () => client.get('/worker/').then((res) => res.data);
+  const getWorkers = () => client.get('/worker').then((res) => res.data);
 
   const provisionYubiKey = (data: WorkerJobRequest) =>
     client.post<WorkerJobResponse>(`/worker/job`, data).then((response) => response.data);
@@ -200,7 +199,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const deleteWorker = (id: string) =>
     client.delete<EmptyApiResponse>(`/worker/${id}`).then((res) => res.data);
 
-  const getWebhooks = () => client.get('/webhook/').then((res) => res.data);
+  const getWebhooks = () => client.get('/webhook').then((res) => res.data);
 
   const deleteWebhook = (id: string) =>
     client.delete<EmptyApiResponse>(`/webhook/${id}`).then((res) => res.data);
@@ -214,7 +213,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const editWebhook: ApiHook['webhook']['editWebhook'] = async ({ id, ...rest }) => {
     return client.put<EmptyApiResponse>(`/webhook/${id}`, rest);
   };
-  const getOpenidClients = () => client.get('/oauth/').then((res) => res.data);
+  const getOpenidClients = () => client.get('/oauth').then((res) => res.data);
 
   const getOpenidClient = async (client_id: string) =>
     client.get<OpenidClient>(`/oauth/${client_id}`).then((res) => res.data);
@@ -276,8 +275,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const getWorkerToken = () =>
     client.get<WorkerToken>('/worker/token').then(unpackRequest);
 
-  const getLicense = () => client.get<License>('/license/').then((res) => res.data);
-
   const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
 
   // eslint-disable-next-line max-len
@@ -325,7 +322,7 @@ const useApi = (props?: HookProps): ApiHook => {
     username,
   }) => client.delete(`/user/${username}/security_key/${keyId}`);
 
-  const getSettings = () => client.get('/settings/').then(unpackRequest);
+  const getSettings = () => client.get('/settings').then(unpackRequest);
 
   const editSettings = async (settings: Settings) =>
     client.put('/settings/', settings).then(unpackRequest);
@@ -437,9 +434,6 @@ const useApi = (props?: HookProps): ApiHook => {
           updateWalletMFA: editWalletMFA,
         },
       },
-    },
-    license: {
-      getLicense: getLicense,
     },
     provisioning: {
       provisionYubiKey: provisionYubiKey,

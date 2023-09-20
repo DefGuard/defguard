@@ -6,7 +6,6 @@ const pl: Translation = {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
     errorVersion: 'Nie udało się uzyskać wersji aplikacji.',
-    errorLicense: 'Nie udało się uzyskać licencji.',
     clipboard: {
       success: 'Skopiowano do schowka',
       error: 'Schowek nie jest dostępny',
@@ -17,7 +16,7 @@ const pl: Translation = {
     changePasswordSelf: {
       title: 'Zmień hasło',
       messages: {
-        success: 'Hasło zmienione',
+        success: 'Hasło zostało zmienione',
         error: 'Błąd zmiany hasła',
       },
       form: {
@@ -57,7 +56,7 @@ const pl: Translation = {
     deleteNetwork: {
       cancel: 'Wróć',
       submit: 'Usuń lokalizację',
-      subTitle: 'Lokalizacja zostanie usunięta.',
+      subTitle: 'Lokalizacja zostanie nieodwołalnie usunięta.',
       title: 'Usuń lokalizację {name}',
     },
     changeWebhook: {
@@ -68,7 +67,7 @@ const pl: Translation = {
     manageWebAuthNKeys: {
       title: 'Klucze bezpieczeństwa',
       messages: {
-        deleted: 'Klucz WebAuthN usunięty.',
+        deleted: 'Klucz WebAuthN został usunięty.',
         duplicateKeyError: 'Klucz jest już zarejestrowany',
       },
       infoMessage: `
@@ -134,7 +133,7 @@ const pl: Translation = {
     editDevice: {
       title: 'Edytuj urządzenie',
       messages: {
-        success: 'Urządzenie zaktualizowane.',
+        success: 'Urządzenie zostało zaktualizowane.',
       },
       form: {
         fields: {
@@ -142,7 +141,7 @@ const pl: Translation = {
             label: 'Nazwa urządzenia',
           },
           publicKey: {
-            label: 'Klucz publiczny urządzenia (Wireguard)',
+            label: 'Klucz publiczny urządzenia (WireGuard)',
           },
         },
         controls: {
@@ -155,13 +154,13 @@ const pl: Translation = {
       message: 'Czy chcesz usunąć urządzenie {deviceName} ?',
       submit: 'Usuń urządzenie',
       messages: {
-        success: 'Urządzenie usunięte.',
+        success: 'Urządzenie zostało usunięte.',
       },
     },
 
     addDevice: {
       messages: {
-        success: 'Urządzenie dodane.',
+        success: 'Urządzenie zostało dodane.',
       },
       web: {
         viewTitle: 'Konfiguracja urządzenia',
@@ -169,7 +168,7 @@ const pl: Translation = {
         steps: {
           config: {
             messages: {
-              copyConfig: 'Konfiguracja skopiowana do schowka.',
+              copyConfig: 'Konfiguracja została skopiowana do schowka.',
             },
             helpers: {
               qrHelper: `
@@ -180,7 +179,7 @@ const pl: Translation = {
           </p>`,
               warningAutoMode: `
           <p>
-           Informujemy, że musisz pobrać <strong>teraz</strong> plik konifguracjny. Ponieważ <strong>nie przechowujemy twojego klucza prywatnego</strong>, nie będzie możliwe ponowne pobranie <strong>klucza prywatnego</strong> dla tego urządzenia co uniemożliwi połączenie się tego użądzenia z VPN.
+           Informujemy, że <strong>teraz</strong> musisz pobrać plik konifguracjny. Ponieważ <strong>nie przechowujemy twojego klucza prywatnego</strong>, nie będzie możliwe ponowne pobranie <strong>klucza prywatnego</strong> dla tego urządzenia co uniemożliwi połączenie się tego użądzenia z VPN.
           </p>
 `,
               warningManualMode: `
@@ -192,13 +191,13 @@ const pl: Translation = {
             inputNameLabel: 'Nazwa urządzenia',
             qrInfo: `Użyj dostarczonego pliku konfiguracyjnego poniżej skanując QR Code lub importując go jako plik na
 						instancję WireGuard w Twoich urządzeniach.`,
-            qrLabel: 'Plik konfiguracyjny Wireguard',
+            qrLabel: 'Plik konfiguracyjny WireGuard',
             qrCardTitle: 'Konfiguracja dla lokalizacji:',
           },
           setup: {
             infoMessage: `
         <p>
-          Musisz skonfigurować WireguardVPN na swoim urządzeniu, odwiedź stronę
+          Musisz skonfigurować WireGuardVPN na swoim urządzeniu, odwiedź stronę
           <a href="{addDevicesDocs}" target="_blank">dokumentacji</a> jeśli nie wiesz jak to zrobić.
         </p>
 `,
@@ -711,7 +710,7 @@ const pl: Translation = {
           </a>`,
       fields: {
         wireguard_enabled: {
-          label: 'Wireguard VPN',
+          label: 'WireGuard VPN',
         },
         webhooks_enabled: {
           label: 'Webhooks',
