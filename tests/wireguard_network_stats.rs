@@ -1,3 +1,6 @@
+mod common;
+
+use axum::http::StatusCode;
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
@@ -8,12 +11,8 @@ use defguard::{
     },
     handlers::Auth,
 };
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Value},
-};
+use serde_json::{json, Value};
 
-mod common;
 use self::common::make_test_client;
 
 fn make_network() -> Value {
@@ -28,22 +27,22 @@ fn make_network() -> Value {
     })
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_stats() {
     let (client, client_state) = make_test_client().await;
     let pool = client_state.pool;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = &client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // create network
     let response = client
         .post("/api/v1/network")
         .json(&make_network())
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // create devices
     let device = json!({
@@ -53,9 +52,9 @@ async fn test_stats() {
     let response = client
         .post("/api/v1/device/admin")
         .json(&device)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let device = json!({
         "name": "device-2",
@@ -64,19 +63,19 @@ async fn test_stats() {
     let response = client
         .post("/api/v1/device/admin")
         .json(&device)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // get devices
     let mut devices = Vec::<Device>::new();
-    let response = client.get("/api/v1/device/1").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    devices.push(response.into_json().await.unwrap());
+    let response = client.get("/api/v1/device/1").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    devices.push(response.json().await);
 
-    let response = client.get("/api/v1/device/2").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    devices.push(response.into_json().await.unwrap());
+    let response = client.get("/api/v1/device/2").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    devices.push(response.json().await);
 
     // empty stats
     let now = Utc::now().naive_utc();
@@ -86,10 +85,10 @@ async fn test_stats() {
             "/api/v1/network/1/stats/users?from={}",
             hour_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
-    let stats: Vec<WireguardUserStatsRow> = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let stats: Vec<WireguardUserStatsRow> = response.json().await;
     assert!(stats.is_empty());
 
     // insert stats
@@ -117,10 +116,10 @@ async fn test_stats() {
             "/api/v1/network/1/stats/users?from={}",
             hour_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
-    let stats: Vec<WireguardUserStatsRow> = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let stats: Vec<WireguardUserStatsRow> = response.json().await;
     assert_eq!(stats.len(), 1);
     assert_eq!(stats[0].devices.len(), 2);
     assert_eq!(
@@ -221,10 +220,10 @@ async fn test_stats() {
             "/api/v1/network/1/stats/users?from={}",
             ten_hours_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
-    let stats: Vec<WireguardUserStatsRow> = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let stats: Vec<WireguardUserStatsRow> = response.json().await;
     assert_eq!(stats.len(), 1);
     assert_eq!(stats[0].devices.len(), 2);
     assert_eq!(
@@ -252,10 +251,10 @@ async fn test_stats() {
             "/api/v1/network/1/stats?from={}",
             ten_hours_ago.format("%Y-%m-%dT%H:%M:00Z"),
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
-    let stats: WireguardNetworkStats = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let stats: WireguardNetworkStats = response.json().await;
     assert_eq!(stats.active_users, 1);
     assert_eq!(stats.active_devices, 2);
     assert_eq!(stats.upload, ten_hours_samples * (10 + 20));

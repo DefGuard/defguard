@@ -4,7 +4,6 @@ use chrono::{NaiveDateTime, Utc};
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use model_derive::Model;
 use openidconnect::Nonce;
-use rocket::serde::json::serde_json;
 use secp256k1::{
     ecdsa::{RecoverableSignature, RecoveryId},
     Message, Secp256k1,

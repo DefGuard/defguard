@@ -1,17 +1,19 @@
+use std::sync::{Arc, Mutex};
+
+use axum::{
+    extract::{Extension, Json, Path, State},
+    http::StatusCode,
+};
+use serde_json::json;
+
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::User,
-    error::OriWebError,
+    error::WebError,
     grpc::WorkerState,
 };
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Json},
-    State,
-};
-use std::sync::{Arc, Mutex};
 
 #[derive(Deserialize, Serialize)]
 pub struct JobData {
@@ -29,24 +31,22 @@ struct JobResponseError {
     message: String,
 }
 
-#[post("/job", format = "json", data = "<data>")]
 pub async fn create_job(
     session: SessionInfo,
-    appstate: &State<AppState>,
-    data: Json<JobData>,
-    worker_state: &State<Arc<Mutex<WorkerState>>>,
+    State(appstate): State<AppState>,
+    Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
+    Json(job_data): Json<JobData>,
 ) -> ApiResult {
-    let (worker, username) = (data.worker.clone(), data.username.clone());
+    let (worker, username) = (job_data.worker.clone(), job_data.username.clone());
     debug!(
-        "User {} creating a worker job for worker {} and user {}",
-        session.user.username, worker, username
+        "User {} creating a worker job for worker {worker} and user {username}",
+        session.user.username,
     );
-    let job_data = data.into_inner();
     match User::find_by_username(&appstate.pool, &job_data.username).await? {
         Some(user) => {
             // only admins should be able to create jobs for other users
             if user != session.user && !session.is_admin {
-                return Err(OriWebError::Forbidden(
+                return Err(WebError::Forbidden(
                     "Cannot schedule jobs for other users.".into(),
                 ));
             };
@@ -61,22 +61,21 @@ pub async fn create_job(
                 job_data.username,
             );
             info!(
-                "User {} created a worker job (ID {}) for worker {} and user {}",
-                session.user.username, id, worker, username
+                "User {} created a worker job (ID {id}) for worker {worker} and user {username}",
+                session.user.username,
             );
             Ok(ApiResponse {
                 json: json!(Jobid { id }),
-                status: Status::Created,
+                status: StatusCode::CREATED,
             })
         }
-        None => Err(OriWebError::ObjectNotFound(format!(
+        None => Err(WebError::ObjectNotFound(format!(
             "user {} not found",
             job_data.username
         ))),
     }
 }
 
-#[get("/token", format = "json", rank = 2)]
 pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> ApiResult {
     let username = session.user.username;
     let token = Claims::new(
@@ -86,82 +85,75 @@ pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> Api
         u32::MAX.into(),
     )
     .to_jwt()
-    .map_err(|_| OriWebError::Authorization("Failed to create bridge token".into()))?;
+    .map_err(|_| WebError::Authorization("Failed to create bridge token".into()))?;
     Ok(ApiResponse {
         json: json!({ "token": token }),
-        status: Status::Created,
+        status: StatusCode::CREATED,
     })
 }
 
-#[get("/", format = "json")]
-pub fn list_workers(_admin: AdminRole, worker_state: &State<Arc<Mutex<WorkerState>>>) -> ApiResult {
+pub async fn list_workers(
+    _admin: AdminRole,
+    Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
+) -> ApiResult {
     let state = worker_state.lock().unwrap();
     let workers = state.list_workers();
     Ok(ApiResponse {
         json: json!(workers),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
-#[delete("/<worker_id>")]
 pub async fn remove_worker(
     _admin: AdminRole,
     session: SessionInfo,
-    worker_state: &State<Arc<Mutex<WorkerState>>>,
-    worker_id: &str,
+    Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
+    Path(id): Path<String>,
 ) -> ApiResult {
-    debug!(
-        "User {} deleting worker {}",
-        session.user.username, worker_id
-    );
+    debug!("User {} deleting worker {id}", session.user.username,);
     let mut state = worker_state.lock().unwrap();
-    if state.remove_worker(worker_id) {
-        info!(
-            "User {} deleted worker {}",
-            session.user.username, worker_id
-        );
+    if state.remove_worker(&id) {
+        info!("User {} deleted worker {id}", session.user.username);
         Ok(ApiResponse::default())
     } else {
-        error!("Worker {} not found", worker_id);
-        Err(OriWebError::ObjectNotFound(format!(
-            "worker_id {} not found",
-            worker_id
+        error!("Worker {id} not found");
+        Err(WebError::ObjectNotFound(format!(
+            "worker_id {id} not found",
         )))
     }
 }
 
-#[get("/<job_id>", format = "json")]
 pub async fn job_status(
     session: SessionInfo,
-    worker_state: &State<Arc<Mutex<WorkerState>>>,
-    job_id: u32,
+    Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
+    Path(id): Path<u32>,
 ) -> ApiResult {
     let state = worker_state.lock().unwrap();
-    let job_response = state.get_job_status(job_id);
+    let job_response = state.get_job_status(id);
     if let Some(response) = job_response {
         // prevent non-admin users from accessing other users' jobs status
         if !session.is_admin && response.username != session.user.username {
-            return Err(OriWebError::Forbidden(
+            return Err(WebError::Forbidden(
                 "Cannot fetch job status for other users' jobs.".into(),
             ));
         }
         if response.success {
             Ok(ApiResponse {
                 json: json!(job_response),
-                status: Status::Ok,
+                status: StatusCode::OK,
             })
         } else {
             Ok(ApiResponse {
                 json: json!(JobResponseError {
                     message: response.error.clone()
                 }),
-                status: Status::NotFound,
+                status: StatusCode::NOT_FOUND,
             })
         }
     } else {
         Ok(ApiResponse {
             json: json!(job_response),
-            status: Status::Ok,
+            status: StatusCode::OK,
         })
     }
 }

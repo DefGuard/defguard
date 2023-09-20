@@ -30,13 +30,11 @@ export const AppLoader = () => {
     getAppInfo,
     user: { getMe },
     settings: { getSettings },
-    license: { getLicense },
   } = useApi();
   const [userLoading, setUserLoading] = useState(true);
   const { setLocale } = useI18nContext();
   const activeLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setAppStore);
-  const license = useAppStore((state) => state.license);
   const { LL } = useI18nContext();
 
   useQuery([QueryKeys.FETCH_ME], getMe, {
@@ -83,17 +81,6 @@ export const AppLoader = () => {
     },
   );
 
-  const { isLoading: licenseLoading } = useQuery([QueryKeys.FETCH_LICENSE], getLicense, {
-    onSuccess: (data) => {
-      setAppStore({ license: data });
-    },
-    onError: () => {
-      toaster.error(LL.messages.errorLicense());
-    },
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
-
   useEffect(() => {
     if (!activeLanguage) {
       let lang = detectLocale(navigatorDetector);
@@ -124,8 +111,7 @@ export const AppLoader = () => {
 
   if (
     userLoading ||
-    (settingsLoading && isUndefined(appSettings)) ||
-    (licenseLoading && isUndefined(license))
+    (settingsLoading && isUndefined(appSettings))
   ) {
     return <LoaderPage />;
   }

@@ -2,15 +2,18 @@ use crate::{
     config::DefGuardConfig,
     db::{
         models::{
+<<<<<<< HEAD
             device::{DeviceInfo, WireguardNetworkDevice},
+=======
+            device::{DeviceConfig, DeviceInfo},
+>>>>>>> 37c0d6f19de65751c6457f43bba720dc3fea0d43
             enrollment::{Enrollment, EnrollmentError},
             wireguard::WireguardNetwork,
         },
         DbPool, Device, GatewayEvent, Settings, User,
     },
-    handlers::{self, user::check_password_strength},
+    handlers::user::check_password_strength,
     ldap::utils::ldap_add_user,
-    license::{Features, License},
     mail::Mail,
     templates,
 };
@@ -26,8 +29,8 @@ pub mod proto {
 }
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
-    Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
-    ExistingDevice, InitialUserInfo, NewDevice,
+    Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig, EnrollmentStartRequest,
+    EnrollmentStartResponse, InitialUserInfo, NewDevice,
 };
 
 pub struct EnrollmentServer {
@@ -72,9 +75,8 @@ impl EnrollmentServer {
         mail_tx: UnboundedSender<Mail>,
         config: DefGuardConfig,
     ) -> Self {
-        // check if LDAP feature is enabled
-        let license_decoded = License::decode(&config.license);
-        let ldap_feature_active = license_decoded.validate(&Features::Ldap);
+        // FIXME: check if LDAP feature is enabled
+        let ldap_feature_active = true;
         Self {
             pool,
             wireguard_tx,
@@ -410,13 +412,13 @@ impl From<User> for InitialUserInfo {
 }
 
 impl From<handlers::wireguard::DeviceConfig> for DeviceConfig {
-    fn from(config: handlers::wireguard::DeviceConfig) -> Self {
         let allowed_ips = config
             .allowed_ips
             .iter()
             .map(IpNetwork::to_string)
             .collect::<Vec<String>>()
             .join(",");
+    fn from(config: DeviceConfig) -> Self {
         Self {
             network_id: config.network_id,
             network_name: config.network_name,

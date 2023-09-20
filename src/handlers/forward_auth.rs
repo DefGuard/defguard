@@ -1,27 +1,30 @@
-use crate::{appstate::AppState, db::Session, error::OriWebError, SERVER_CONFIG};
-use reqwest::Url;
-use rocket::{
-    http::{CookieJar, Status},
-    request::{FromRequest, Outcome, Request},
-    response::{self, Redirect, Responder},
-    State,
+use axum::{
+    async_trait,
+    extract::{FromRequestParts, State},
+    http::{header::HeaderValue, request::Parts, StatusCode},
+    response::{IntoResponse, Redirect, Response},
 };
+use reqwest::Url;
+use tower_cookies::Cookies;
 
-/* Header Names */
-static FORWARDED_HOST: &str = "X-Forwarded-Host";
-static FORWARDED_PROTO: &str = "X-Forwarded-Proto";
-static FORWARDED_URI: &str = "X-Forwarded-Uri";
+use super::SESSION_COOKIE_NAME;
+use crate::{appstate::AppState, db::Session, error::WebError, SERVER_CONFIG};
+
+// Header names
+static FORWARDED_HOST: &str = "x-forwarded-host";
+static FORWARDED_PROTO: &str = "x-forwarded-proto";
+static FORWARDED_URI: &str = "x-forwarded-uri";
 
 pub enum ForwardAuthResponse {
     Accept,
     Redirect(String),
 }
 
-impl<'r> Responder<'r, 'static> for ForwardAuthResponse {
-    fn respond_to(self, request: &'r Request) -> response::Result<'static> {
+impl IntoResponse for ForwardAuthResponse {
+    fn into_response(self) -> Response {
         match self {
-            Self::Accept => ().respond_to(request),
-            Self::Redirect(location) => Redirect::temporary(location).respond_to(request),
+            Self::Accept => ().into_response(),
+            Self::Redirect(location) => Redirect::temporary(&location).into_response(),
         }
     }
 }
@@ -32,17 +35,23 @@ pub struct ForwardAuthHeaders {
     pub forwarded_uri: Option<String>,
 }
 
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for ForwardAuthHeaders {
-    type Error = OriWebError;
+#[async_trait]
+impl<S> FromRequestParts<S> for ForwardAuthHeaders {
+    type Rejection = WebError;
 
-    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let headers = request.headers();
-        let forwarded_host = headers.get_one(FORWARDED_HOST).map(String::from);
-        let forwarded_proto = headers.get_one(FORWARDED_PROTO).map(String::from);
-        let forwarded_uri = headers.get_one(FORWARDED_URI).map(String::from);
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        fn header_to_string(header: &HeaderValue) -> Option<String> {
+            header.to_str().ok().map(String::from)
+        }
 
-        Outcome::Success(Self {
+        let forwarded_host = parts.headers.get(FORWARDED_HOST).and_then(header_to_string);
+        let forwarded_proto = parts
+            .headers
+            .get(FORWARDED_PROTO)
+            .and_then(header_to_string);
+        let forwarded_uri = parts.headers.get(FORWARDED_URI).and_then(header_to_string);
+
+        Ok(Self {
             forwarded_host,
             forwarded_proto,
             forwarded_uri,
@@ -50,14 +59,13 @@ impl<'r> FromRequest<'r> for ForwardAuthHeaders {
     }
 }
 
-#[get("/forward_auth")]
 pub async fn forward_auth(
-    appstate: &State<AppState>,
-    cookies: &CookieJar<'_>,
+    State(appstate): State<AppState>,
+    cookies: Cookies,
     headers: ForwardAuthHeaders,
-) -> Result<ForwardAuthResponse, OriWebError> {
+) -> Result<ForwardAuthResponse, WebError> {
     // check if session cookie is present
-    if let Some(session_cookie) = cookies.get("defguard_session") {
+    if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
         // check if session is found in DB
         if let Ok(Some(session)) = Session::find_by_id(&appstate.pool, session_cookie.value()).await
         {
@@ -79,21 +87,21 @@ pub async fn forward_auth(
     login_redirect(headers).await
 }
 
-async fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, OriWebError> {
+async fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, WebError> {
     let server_url = &SERVER_CONFIG
         .get()
-        .ok_or(OriWebError::ServerConfigMissing)?
+        .ok_or(WebError::ServerConfigMissing)?
         .url;
     // prepare redirect URL for login page
     let mut location = server_url.join("/auth/login").map_err(|err| {
         error!("Failed to prepare redirect URL: {err}");
-        OriWebError::Http(Status::InternalServerError)
+        WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
     if let Some(host) = headers.forwarded_host {
-        if host != server_url.to_string() {
+        if host != server_url.as_str() {
             let mut referral_url = Url::parse(format!("http://{host}").as_str()).map_err(|_| {
                 error!("Failed to parse forwarded host as URL: {host}");
-                OriWebError::Http(Status::InternalServerError)
+                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
             })?;
             if let Some(proto) = headers.forwarded_proto {
                 if let Err(_e) = referral_url.set_scheme(&proto) {

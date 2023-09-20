@@ -6,7 +6,6 @@ const en: BaseTranslation = {
     error: 'Error has occurred.',
     success: 'Operation succeeded',
     errorVersion: 'Failed to get application version.',
-    errorLicense: 'Failed to get license.',
     insecureContext: 'Context is not secure.',
     clipboard: {
       error: 'Clipboard is not accessible.',
@@ -17,7 +16,7 @@ const en: BaseTranslation = {
     changePasswordSelf: {
       title: 'Change password',
       messages: {
-        success: 'Password changed',
+        success: 'Password has been changed',
         error: 'Failed to changed password',
       },
       form: {
@@ -68,7 +67,7 @@ const en: BaseTranslation = {
     manageWebAuthNKeys: {
       title: 'Security keys',
       messages: {
-        deleted: 'WebAuthN key deleted.',
+        deleted: 'WebAuthN key has been deleted.',
         duplicateKeyError: 'Key is already registered',
       },
       infoMessage: `
@@ -134,7 +133,7 @@ const en: BaseTranslation = {
     editDevice: {
       title: 'Edit device',
       messages: {
-        success: 'Device updated.',
+        success: 'Device has been updated.',
       },
       form: {
         fields: {
@@ -142,7 +141,7 @@ const en: BaseTranslation = {
             label: 'Device Name',
           },
           publicKey: {
-            label: 'Device Public Key (Wireguard)',
+            label: 'Device Public Key (WireGuard)',
           },
         },
         controls: {
@@ -155,12 +154,12 @@ const en: BaseTranslation = {
       message: 'Do you want to delete {deviceName} device ?',
       submit: 'Delete device',
       messages: {
-        success: 'Device deleted.',
+        success: 'Device has been deleted.',
       },
     },
     addDevice: {
       messages: {
-        success: 'Device added.',
+        success: 'Device has been added.',
       },
       web: {
         title: 'Add device',
@@ -168,7 +167,7 @@ const en: BaseTranslation = {
         steps: {
           config: {
             messages: {
-              copyConfig: 'Config copied to clipboard',
+              copyConfig: 'Configuration has been copied to the clipboard',
             },
             helpers: {
               warningAutoMode: `
@@ -198,7 +197,7 @@ const en: BaseTranslation = {
           setup: {
             infoMessage: `
         <p>
-          You need to configure WireguardVPN on your device, please visit&nbsp;
+          You need to configure WireGuardVPN on your device, please visit&nbsp;
           <a href="{addDevicesDocs:string}">documentation</a> if you don&apos;t know how to do it.
         </p>
 `,
@@ -711,7 +710,7 @@ const en: BaseTranslation = {
           </a>`,
       fields: {
         wireguard_enabled: {
-          label: 'Wireguard VPN',
+          label: 'WireGuard VPN',
         },
         webhooks_enabled: {
           label: 'Webhooks',

@@ -1,3 +1,4 @@
+use axum::http::{header::ToStrError, StatusCode};
 use defguard::{
     config::DefGuardConfig,
     db::{
@@ -10,33 +11,23 @@ use openidconnect::{
     core::{
         CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType, CoreTokenResponse,
     },
-    http::{
-        header::{HeaderName, HeaderValue},
-        HeaderMap, Method, StatusCode,
-    },
+    http::Method,
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
     PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
 };
-use rocket::{
-    http::{ContentType, Header, Status},
-    local::asynchronous::Client,
-};
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
-use std::str::FromStr;
 
 mod common;
-use self::common::{
-    init_test_db, make_base_client, make_enterprise_test_client, LICENSE_ENTERPRISE,
-};
+use self::common::{client::TestClient, init_test_db, make_base_client, make_test_client};
 
-async fn make_client() -> Client {
-    let (client, _) = make_enterprise_test_client().await;
+async fn make_client() -> TestClient {
+    let (client, _) = make_test_client().await;
     client
 }
 
-async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> Client {
+async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> TestClient {
     let (client, _) = make_base_client(pool, config).await;
     client
 }
@@ -47,13 +38,13 @@ pub struct AuthenticationResponse<'r> {
     pub state: &'r str,
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_openid_client() {
     let client = make_client().await;
 
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let mut openid_client = NewOpenIDClient {
         name: "Test".into(),
@@ -65,29 +56,29 @@ async fn test_openid_client() {
     let response = client
         .post("/api/v1/oauth")
         .json(&openid_client)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
-    let response = client.get("/api/v1/oauth").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let openid_clients: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    let response = client.get("/api/v1/oauth").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let openid_clients: Vec<OAuth2Client> = response.json().await;
     assert_eq!(openid_clients.len(), 1);
 
     openid_client.name = "Test changed".into();
     let response = client
         .put(format!("/api/v1/oauth/{}", openid_clients[0].client_id))
         .json(&openid_client)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
         .get(format!("/api/v1/oauth/{}", openid_clients[0].client_id))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
-    let fetched_client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let fetched_client: OAuth2Client = response.json().await;
     assert_eq!(fetched_client.name, openid_client.name);
 
     // OpenID flow tests
@@ -95,23 +86,23 @@ async fn test_openid_client() {
     // Test client delete
     let response = client
         .delete(format!("/api/v1/oauth/{}", openid_clients[0].client_id))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/oauth").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/oauth").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let openid_clients: Vec<OAuth2Client> = response.into_json().await.unwrap();
+    let openid_clients: Vec<OAuth2Client> = response.json().await;
     assert!(openid_clients.is_empty());
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_openid_flow() {
     let client = make_client().await;
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
         redirect_uri: vec!["http://localhost:3000/".into()],
@@ -122,15 +113,15 @@ async fn test_openid_flow() {
     let response = client
         .post("/api/v1/oauth")
         .json(&openid_client)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
-    let openid_client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let openid_client: OAuth2Client = response.json().await;
     assert_eq!(openid_client.name, "Test");
 
     // all clients
-    let response = client.get("/api/v1/oauth").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/oauth").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
         .post(format!(
@@ -144,9 +135,14 @@ async fn test_openid_flow() {
             nonce=blabla",
             openid_client.client_id
         ))
-        .dispatch()
+        .send()
         .await;
-    let location = response.headers().get_one("Location").unwrap();
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
     assert!(location.contains("error=invalid_request"));
 
     let response = client
@@ -161,9 +157,14 @@ async fn test_openid_flow() {
             nonce=blabla",
             openid_client.client_id
         ))
-        .dispatch()
+        .send()
         .await;
-    let location = response.headers().get_one("Location").unwrap();
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
     assert!(location.contains("error=invalid_request"));
 
     // obtain authentication code
@@ -179,11 +180,16 @@ async fn test_openid_flow() {
             nonce=blabla",
             openid_client.client_id
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Found);
+    assert_eq!(response.status(), StatusCode::FOUND);
 
-    let location = response.headers().get_one("Location").unwrap();
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
     let (location, query) = location.split_once('?').unwrap();
     assert_eq!(location, "http://localhost:3000/");
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
@@ -192,7 +198,7 @@ async fn test_openid_flow() {
     // exchange wrong code for token should fail
     let response = client
         .post("/api/v1/oauth/token")
-        .header(ContentType::Form)
+        .header("Content-Type", "application/x-www-form-urlencoded")
         .body(format!(
             "grant_type=authorization_code&\
             code=ncuoew2323&\
@@ -201,14 +207,14 @@ async fn test_openid_flow() {
             client_secret={}",
             openid_client.client_id, openid_client.client_secret
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // exchange correct code for token
     let response = client
         .post("/api/v1/oauth/token")
-        .header(ContentType::Form)
+        .header("Content-Type", "application/x-www-form-urlencoded")
         .body(format!(
             "grant_type=authorization_code&\
             code={}&\
@@ -217,41 +223,41 @@ async fn test_openid_flow() {
             client_secret={}",
             auth_response.code, openid_client.client_id, openid_client.client_secret
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // make sure access token cannot be used to manage defguard server itself
-    client.post("/api/v1/auth/logout").dispatch().await;
-    let token_response: CoreTokenResponse = response.into_json().await.unwrap();
+    client.post("/api/v1/auth/logout").send().await;
+    let token_response: CoreTokenResponse = response.json().await;
     let response = client
         .get("/api/v1/network")
-        .header(Header::new(
+        .header(
             "Authorization",
             format!("Bearer {}", token_response.access_token().secret()),
-        ))
-        .dispatch()
+        )
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     let response = client
         .get("/api/v1/user")
-        .header(Header::new(
+        .header(
             "Authorization",
             format!("Bearer {}", token_response.access_token().secret()),
-        ))
-        .dispatch()
+        )
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // log back in
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // check code cannot be reused
     let response = client
         .post("/api/v1/oauth/token")
-        .header(ContentType::Form)
+        .header("Content-Type", "application/x-www-form-urlencoded")
         .body(format!(
             "grant_type=authorization_code&\
             code={}&\
@@ -260,9 +266,9 @@ async fn test_openid_flow() {
             client_secret={}",
             auth_response.code, openid_client.client_id, openid_client.client_secret
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // test non-existing client
     let response = client
@@ -275,9 +281,14 @@ async fn test_openid_flow() {
             state=ABCDEF&\
             nonce=blabla",
         )
-        .dispatch()
+        .send()
         .await;
-    let location = response.headers().get_one("Location").unwrap();
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
     assert!(location.contains("error"));
 
     // test wrong invalid uri
@@ -291,9 +302,9 @@ async fn test_openid_flow() {
             state=ABCDEF&\
             nonce=blabla",
         )
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::BadRequest);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // test wrong redirect uri
     let response = client
@@ -306,10 +317,15 @@ async fn test_openid_flow() {
             state=ABCDEF&\
             nonce=blabla",
         )
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Found);
-    let location = response.headers().get_one("Location").unwrap();
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
     assert!(location.contains("error=access_denied"));
     assert!(location.contains("value1="));
     assert!(location.contains("value2="));
@@ -327,10 +343,15 @@ async fn test_openid_flow() {
             nonce=blabla",
             openid_client.client_id
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Found);
-    let location = response.headers().get_one("Location").unwrap();
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
     assert!(location.contains("error=access_denied"));
 }
 
@@ -339,7 +360,7 @@ async fn http_client(
     request: HttpRequest,
     pool: DbPool,
     config: DefGuardConfig,
-) -> Result<HttpResponse, rocket::Error> {
+) -> Result<HttpResponse, ToStrError> {
     let client = make_client_v2(pool, config).await;
 
     let uri = request.url.path();
@@ -351,40 +372,29 @@ async fn http_client(
     if let Ok(text) = String::from_utf8(request.body.clone()) {
         eprintln!("HTTP client body: {text}");
     }
-    let mut rocket_request = match request.method {
+    let mut test_request = match request.method {
         Method::GET => client.get(uri),
+        Method::HEAD => client.head(uri),
         Method::POST => client.post(uri),
         Method::PUT => client.put(uri),
         Method::DELETE => client.delete(uri),
         _ => unimplemented!(),
     };
     for (key, value) in &request.headers {
-        let header = Header::new(key.as_str().to_owned(), value.to_str().unwrap().to_owned());
-        rocket_request = rocket_request.header(header);
+        test_request = test_request.header(key.as_str(), value.to_str()?);
     }
-    let response = rocket_request.body(request.body).dispatch().await;
-
-    let mut headers = HeaderMap::new();
-    for header in response.headers().iter() {
-        if let (Ok(key), Ok(value)) = (
-            HeaderName::from_str(header.name.as_ref()),
-            HeaderValue::from_str(header.value()),
-        ) {
-            headers.append(key, value);
-        }
-    }
+    let response = test_request.body(request.body).send().await;
 
     Ok(HttpResponse {
-        status_code: StatusCode::from_u16(response.status().code).unwrap(),
-        headers,
-        body: response.into_bytes().await.unwrap_or_default(),
+        status_code: response.status(),
+        headers: response.headers().clone(),
+        body: response.bytes().await.to_vec(),
     })
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_openid_authorization_code() {
-    let (pool, mut config) = init_test_db().await;
-    config.license = LICENSE_ENTERPRISE.into();
+    let (pool, config) = init_test_db().await;
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
@@ -400,8 +410,8 @@ async fn test_openid_authorization_code() {
 
     // create OAuth2 client
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
         redirect_uri: vec!["http://test.server.tnt:12345/".into()],
@@ -411,10 +421,10 @@ async fn test_openid_authorization_code() {
     let response = client
         .post("/api/v1/oauth")
         .json(&oauth2client)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
-    let oauth2client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth2client: OAuth2Client = response.json().await;
     assert_eq!(oauth2client.name, "My test client");
     assert_eq!(oauth2client.scope[0], "openid");
     assert_eq!(oauth2client.client_id.len(), 16);
@@ -445,9 +455,14 @@ async fn test_openid_authorization_code() {
         authorize_url.path(),
         authorize_url.query().unwrap()
     );
-    let response = client.post(uri).dispatch().await;
-    assert_eq!(response.status(), Status::Found);
-    let location = response.headers().get_one("Location").unwrap();
+    let response = client.post(uri).send().await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
     let (location, query) = location.split_once('?').unwrap();
     assert_eq!(location, "http://test.server.tnt:12345/");
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
@@ -480,10 +495,9 @@ async fn test_openid_authorization_code() {
     assert!(refresh_response.refresh_token().is_some());
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_openid_authorization_code_with_pkce() {
     let (pool, mut config) = init_test_db().await;
-    config.license = LICENSE_ENTERPRISE.into();
     let mut rng = rand::thread_rng();
     config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
 
@@ -501,8 +515,8 @@ async fn test_openid_authorization_code_with_pkce() {
 
     // create OAuth2 client/application
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
         redirect_uri: vec!["http://test.server.tnt:12345/".into()],
@@ -512,10 +526,10 @@ async fn test_openid_authorization_code_with_pkce() {
     let response = client
         .post("/api/v1/oauth")
         .json(&oauth2client)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
-    let oauth2client: OAuth2Client = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth2client: OAuth2Client = response.json().await;
     assert_eq!(oauth2client.name, "My test client");
     assert_eq!(oauth2client.scope[0], "openid");
 
@@ -546,9 +560,14 @@ async fn test_openid_authorization_code_with_pkce() {
         authorize_url.path(),
         authorize_url.query().unwrap()
     );
-    let response = client.post(uri).dispatch().await;
-    assert_eq!(response.status(), Status::Found);
-    let location = response.headers().get_one("Location").unwrap();
+    let response = client.post(uri).send().await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
     let (location, query) = location.split_once('?').unwrap();
     assert_eq!(location, "http://test.server.tnt:12345/");
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
