@@ -123,8 +123,6 @@ where
                     }
                 }
             }
-            // } else {
-            //     Ok(()) // FIXME: was Outcome::Forward(())
         }
         Err(WebError::Authorization("Invalid credentials".into()))
     }

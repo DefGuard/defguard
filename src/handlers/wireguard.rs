@@ -450,11 +450,10 @@ pub async fn add_user_devices(
 pub async fn add_device(
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Path(device_id): Path<String>,
+    // Alias, because otherwise `axum` reports conflicting routes.
+    Path(username): Path<String>,
     Json(add_device): Json<AddDevice>,
 ) -> ApiResult {
-    // FIXME: Alias, because otherwise `axum` reports conflicting routes.
-    let username = device_id;
     let device_name = add_device.name.clone();
     debug!(
         "User {} adding device {device_name} for user {username}",
