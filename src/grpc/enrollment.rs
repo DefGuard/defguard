@@ -2,8 +2,9 @@ use crate::{
     config::DefGuardConfig,
     db::{
         models::{
-            device::DeviceInfo,
+            device::{DeviceInfo, WireguardNetworkDevice},
             enrollment::{Enrollment, EnrollmentError},
+            wireguard::WireguardNetwork,
         },
         DbPool, Device, GatewayEvent, Settings, User,
     },
@@ -19,13 +20,14 @@ use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
 
+#[allow(non_snake_case)]
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
     Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
-    InitialUserInfo, NewDevice,
+    ExistingDevice, InitialUserInfo, NewDevice,
 };
 
 pub struct EnrollmentServer {
@@ -297,6 +299,89 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         };
 
         Ok(Response::new(response))
+    }
+
+    async fn get_network_info(
+        &self,
+        request: Request<ExistingDevice>,
+    ) -> Result<Response<CreateDeviceResponse>, Status> {
+        let enrollment = self.validate_session(&request).await?;
+
+        // fetch related users
+        let user = enrollment.fetch_user(&self.pool).await?;
+
+        // add device
+        info!("Adding new device for user {}", user.username);
+        let request = request.into_inner();
+        Device::validate_pubkey(&request.pubkey).map_err(|_| {
+            error!("Invalid pubkey {}", request.pubkey);
+            Status::invalid_argument("invalid pubkey")
+        })?;
+        let device = Device::find_by_pubkey(&self.pool, &request.pubkey)
+            .await
+            .map_err(|_| {
+                error!("Failed to get device");
+                Status::internal("unexpected error")
+            })?;
+
+        let settings = Settings::get_settings(&self.pool).await.map_err(|_| {
+            error!("Failed to get settings");
+            Status::internal("unexpected error")
+        })?;
+
+        let networks = WireguardNetwork::all(&self.pool).await.map_err(|err| {
+            error!("Invalid failed to get networks {}", err);
+            Status::internal(format!("unexpected error: {}", err))
+        })?;
+
+        let mut configs: Vec<DeviceConfig> = vec![];
+        if let Some(device) = device {
+            for network in networks {
+                let wireguard_network_device = WireguardNetworkDevice::find(
+                    &self.pool,
+                    device.id.unwrap(),
+                    network.id.unwrap(),
+                )
+                .await
+                .map_err(|err| {
+                    error!("Invalid failed to get networks {}", err);
+                    Status::internal(format!("unexpected error: {}", err))
+                })?;
+                if let Some(wireguard_network_device) = wireguard_network_device {
+                    let allowed_ips: Vec<String> = network
+                        .allowed_ips
+                        .iter()
+                        .map(|ip_network| ip_network.to_string())
+                        .collect();
+                    let allowed_ips = allowed_ips.join(",");
+                    let config = DeviceConfig {
+                        config: device.create_config(&network, &wireguard_network_device),
+                        network_id: network.id.unwrap(),
+                        network_name: network.name,
+                        assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
+                        endpoint: network.endpoint,
+                        pubkey: network.pubkey,
+                        allowed_ips,
+                    };
+                    configs.push(config);
+                } else {
+                    return Err(Status::internal(format!(
+                        "Device not found for network: {}",
+                        network.id.unwrap()
+                    )));
+                }
+            }
+
+            let response = CreateDeviceResponse {
+                device: Some(device.into()),
+                configs: configs.into_iter().map(Into::into).collect(),
+                instance: Some(Instance::new(settings, self.config.url.to_owned()).into()),
+            };
+
+            Ok(Response::new(response))
+        } else {
+            Err(Status::internal("device not found error"))
+        }
     }
 }
 
