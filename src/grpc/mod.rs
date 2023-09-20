@@ -21,6 +21,7 @@ use self::{
     auth::{auth_service_server::AuthServiceServer, AuthServer},
     enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer},
 };
+#[cfg(feature = "worker")]
 use self::{
     interceptor::JwtInterceptor,
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},

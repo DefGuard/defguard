@@ -61,7 +61,7 @@ async fn main() -> Result<(), anyhow::Error> {
         return Ok(());
     }
 
-    debug!("Starting Defguard server with config: {config:?}");
+    debug!("Starting defguard server with config: {config:?}");
 
     if config.openid_signing_key.is_some() {
         info!("Using RSA OpenID signing key");

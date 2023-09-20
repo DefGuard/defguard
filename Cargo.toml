@@ -31,7 +31,7 @@ md4 = "0.10"
 otpauth = "0.4"
 openidconnect = { version = "3.3", default-features = false, optional = true }
 pulldown-cmark = "0.9"
-prost = "0.11"
+prost = "0.12"
 rand = "0.8"
 rand_core = { version = "0.6", default-features = false, features = [
     "getrandom",
@@ -48,7 +48,7 @@ secrecy = { version = "0.8", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 # match version from webauthn-rs-core
 serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
-serde_json = "1.0.104"
+serde_json = "1.0"
 serde_urlencoded = "0.7"
 sha-1 = "0.10"
 sqlx = { version = "0.7", features = [
@@ -70,7 +70,7 @@ tokio = { version = "1", features = [
     "time",
 ] }
 tokio-stream = "0.1"
-tonic = { version = "0.9", features = ["gzip", "tls", "tls-roots"] }
+tonic = { version = "0.10", features = ["gzip", "tls", "tls-roots"] }
 tower-cookies = { version = "0.9", features = ["private"] }
 tower-http = { version = "0.4", features = ["fs", "trace"] }
 tracing = "0.1"
@@ -99,8 +99,8 @@ tower = "0.4"
 tower-service = "0.3"
 
 [build-dependencies]
-tonic-build = "0.9"
-prost-build = "0.11"
+tonic-build = "0.10"
+prost-build = "0.12"
 
 [features]
 default = ["openid", "wireguard", "worker"]

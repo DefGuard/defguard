@@ -5,7 +5,6 @@ use super::{
 };
 use crate::{
     grpc::{gateway::Peer, GatewayState},
-    // handlers::wireguard::MappedDevice,
     wg_config::ImportedDevice,
 };
 

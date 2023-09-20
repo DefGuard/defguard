@@ -74,7 +74,7 @@ use self::handlers::{
         authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
     },
 };
-#[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
+#[cfg(any(feature = "openid", feature = "worker"))]
 use self::{
     auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
@@ -406,6 +406,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .expect("Could not assign IP to device");
     }
 
+    #[cfg(feature = "openid")]
     for app_id in 1..=3 {
         let mut app = OAuth2Client::new(
             vec![format!("https://app-{app_id}.com")],
