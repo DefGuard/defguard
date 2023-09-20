@@ -91,7 +91,6 @@ pub mod grpc;
 pub mod handlers;
 pub mod hex;
 pub mod ldap;
-// pub mod license;
 pub mod mail;
 pub(crate) mod random;
 pub mod secret;
@@ -307,7 +306,7 @@ pub async fn run_web_server(
     mail_tx: UnboundedSender<Mail>,
     pool: DbPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-) -> Result<(), hyper::Error> {
+) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         config.clone(),
         webhook_tx,
@@ -322,7 +321,10 @@ pub async fn run_web_server(
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
     // TODO: map_err() and remove `hyper` as depenency from Cargo.toml
-    Server::bind(&addr).serve(webapp.into_make_service()).await
+    Server::bind(&addr)
+        .serve(webapp.into_make_service())
+        .await
+        .map_err(|err| anyhow!("Web server can't be started {}", err))
 }
 
 /// Automates test objects creation to easily setup development environment.

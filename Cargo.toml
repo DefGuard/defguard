@@ -21,7 +21,6 @@ clap = { version = "4.4", features = ["derive", "env"] }
 dotenvy = "0.15"
 ethers-core = "2.0"
 humantime = "2.1"
-hyper = "0.14"
 # match ipnetwork version from sqlx
 ipnetwork = { version = "0.20", features = ["serde"] }
 jsonwebtoken = "8.3"
@@ -86,6 +85,7 @@ x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 [dev-dependencies]
 bytes = "1.5"
 claims = "0.7"
+hyper = "0.14"
 matches = "0.1"
 reqwest = { version = "0.11", features = [
     "json",

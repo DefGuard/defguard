@@ -72,19 +72,17 @@ async fn make_client_with_wallet(address: String) -> TestClient {
 
 #[tokio::test]
 async fn test_logout() {
-    let client = make_client().await;
+    let mut client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // store auth cookie for later use
-    // let auth_cookie = response
-    //     .as_ref()
-    //     .cookies()
-    //     .find(|c| c.name() == "defguard_session")
-    //     .unwrap()
-    //     .value();
+    let auth_cookie = response
+        .cookies()
+        .find(|c| c.name() == "defguard_session")
+        .unwrap();
 
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -96,12 +94,12 @@ async fn test_logout() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // try reusing auth cookie
-    // let response = client
-    //     .get("/api/v1/me")
-    //     .cookie(Cookie::new("defguard_session", auth_cookie))
-    //     .send()
-    //     .await;
-    // assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    client.set_cookie(&auth_cookie);
+    let response = client
+        .get("/api/v1/me")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
 #[tokio::test]

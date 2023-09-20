@@ -9,13 +9,18 @@ use axum::{
 };
 use bytes::Bytes;
 use hyper::{Body, Server};
-use reqwest::{redirect::Policy, Client};
-use std::{convert::TryFrom, net::TcpListener};
+use reqwest::{
+    cookie::{Cookie, Jar},
+    redirect::Policy,
+    Client, Url,
+};
+use std::{convert::TryFrom, net::TcpListener, sync::Arc};
 use tower::make::Shared;
 use tower_service::Service;
 
 pub struct TestClient {
     client: Client,
+    jar: Arc<Jar>,
     port: u16,
 }
 
@@ -39,13 +44,21 @@ impl TestClient {
             server.await.expect("server error");
         });
 
+        let jar = Arc::new(Jar::default());
+
         let client = Client::builder()
             .redirect(Policy::none())
-            .cookie_store(true)
+            .cookie_provider(jar.clone())
             .build()
             .unwrap();
 
-        TestClient { client, port }
+        TestClient { client, jar, port }
+    }
+
+    pub fn set_cookie(&mut self, cookie: &Cookie) {
+        let url = Url::parse(&self.base_url()).unwrap();
+        self.jar
+            .add_cookie_str(&format!("{}={}", cookie.name(), cookie.value()), &url);
     }
 
     /// returns the base URL (http://ip:port) for this TestClient
@@ -186,6 +199,10 @@ impl TestResponse {
 
     pub fn headers(&self) -> &HeaderMap {
         self.response.headers()
+    }
+
+    pub fn cookies(&self) -> impl Iterator<Item = Cookie<'_>> {
+        self.response.cookies()
     }
 
     // pub async fn chunk(&mut self) -> Option<Bytes> {
