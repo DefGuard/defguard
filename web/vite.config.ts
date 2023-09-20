@@ -7,7 +7,7 @@ export default defineConfig({
   clearScreen: false,
   plugins: [react()],
   server: {
-    strictPort: true,
+    strictPort: false,
     port: 3000,
     proxy: {
       '/api': {

@@ -1337,6 +1337,10 @@ type RootTranslation = {
 				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				startEnrollment: string
+				/**
+				 * R​e​m​o​v​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 */
+				activateDesktop: string
 			}
 		}
 	}
@@ -4602,6 +4606,10 @@ export type TranslationFunctions = {
 				 * Start enrollment
 				 */
 				startEnrollment: () => LocalizedString
+				/**
+				 * Remove desktop activation
+				 */
+				activateDesktop: () => LocalizedString
 			}
 		}
 	}

@@ -596,6 +596,7 @@ const en: BaseTranslation = {
         provision: 'Provision YubiKey',
         delete: 'Delete account',
         startEnrollment: 'Start enrollment',
+        activateDesktop: 'Remove desktop activation',
       },
     },
   },
