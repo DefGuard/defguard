@@ -95,10 +95,7 @@ async fn test_logout() {
 
     // try reusing auth cookie
     client.set_cookie(&auth_cookie);
-    let response = client
-        .get("/api/v1/me")
-        .send()
-        .await;
+    let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
