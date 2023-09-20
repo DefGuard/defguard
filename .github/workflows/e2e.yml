@@ -4,7 +4,9 @@ on:
   workflow_run:
     workflows:
       - "Build current image"
-    branches: [main]
+    branches:
+      - main
+      - dev
     types:
       - completed
 
