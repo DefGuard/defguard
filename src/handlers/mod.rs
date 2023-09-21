@@ -1,27 +1,27 @@
+use axum::{
+    http::{HeaderName, HeaderValue, StatusCode},
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde_json::{json, Value};
+use webauthn_rs::prelude::RegisterPublicKeyCredential;
+
 #[cfg(feature = "wireguard")]
 use crate::db::Device;
 use crate::{
     auth::SessionInfo,
     db::{DbPool, User, UserInfo},
-    error::OriWebError,
+    error::WebError,
     VERSION,
 };
-use rocket::{
-    http::{ContentType, Status},
-    request::Request,
-    response::{Responder, Response},
-    serde::json::{serde_json::json, Value},
-};
-use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 pub(crate) mod app_info;
 pub(crate) mod auth;
-pub mod forward_auth;
+pub(crate) mod forward_auth;
 pub(crate) mod group;
-pub(crate) mod license;
 pub(crate) mod mail;
 #[cfg(feature = "openid")]
-pub mod openid_clients;
+pub(crate) mod openid_clients;
 #[cfg(feature = "openid")]
 pub mod openid_flow;
 pub(crate) mod settings;
@@ -33,78 +33,97 @@ pub mod wireguard;
 #[cfg(feature = "worker")]
 pub mod worker;
 
+static SESSION_COOKIE_NAME: &str = "defguard_session";
+static SIGN_IN_COOKIE_NAME: &str = "known_sign_in";
+
 #[derive(Default)]
 pub struct ApiResponse {
     pub json: Value,
-    pub status: Status,
+    pub status: StatusCode,
 }
 
-pub type ApiResult = Result<ApiResponse, OriWebError>;
+impl ApiResponse {
+    #[must_use]
+    pub fn new(json: Value, status: StatusCode) -> Self {
+        Self { json, status }
+    }
+}
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for OriWebError {
-    fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, Status> {
-        let (json, status) = match self {
-            OriWebError::ObjectNotFound(msg) => (json!({ "msg": msg }), Status::NotFound),
-            OriWebError::Authorization(msg) => {
-                error!("{}", msg);
-                (json!({ "msg": msg }), Status::Unauthorized)
+impl From<WebError> for ApiResponse {
+    fn from(web_error: WebError) -> ApiResponse {
+        match web_error {
+            WebError::ObjectNotFound(msg) => {
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
             }
-            OriWebError::Forbidden(msg) => {
-                error!("{}", msg);
-                (json!({ "msg": msg }), Status::Forbidden)
+            WebError::Authorization(msg) => {
+                error!("{msg}");
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
             }
-            OriWebError::DbError(_)
-            | OriWebError::Grpc(_)
-            | OriWebError::Ldap(_)
-            | OriWebError::WebauthnRegistration(_)
-            | OriWebError::Serialization(_)
-            | OriWebError::ModelError(_)
-            | OriWebError::ServerConfigMissing => {
-                error!("{self}");
-                (
+            WebError::Forbidden(msg) => {
+                error!("{msg}");
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::FORBIDDEN)
+            }
+            WebError::DbError(_)
+            | WebError::Grpc(_)
+            | WebError::Ldap(_)
+            | WebError::WebauthnRegistration(_)
+            | WebError::Serialization(_)
+            | WebError::ModelError(_)
+            | WebError::ServerConfigMissing => {
+                error!("{web_error}");
+                ApiResponse::new(
                     json!({"msg": "Internal server error"}),
-                    Status::InternalServerError,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                 )
             }
-            OriWebError::Http(status) => {
-                error!("{}", status);
-                (json!({ "msg": status.reason_lossy() }), status)
+            WebError::Http(status) => {
+                error!("{status}");
+                ApiResponse::new(
+                    json!({ "msg": status.canonical_reason().unwrap_or_default() }),
+                    status,
+                )
             }
-            OriWebError::TooManyLoginAttempts(_) => (
+            WebError::TooManyLoginAttempts(_) => ApiResponse::new(
                 json!({ "msg": "Too many login attempts" }),
-                Status::TooManyRequests,
+                StatusCode::TOO_MANY_REQUESTS,
             ),
-            OriWebError::IncorrectUsername(msg)
-            | OriWebError::PubkeyValidation(msg)
-            | OriWebError::BadRequest(msg) => {
-                error!("{}", msg);
-                (json!({ "msg": msg }), Status::BadRequest)
+            WebError::IncorrectUsername(msg)
+            | WebError::PubkeyValidation(msg)
+            | WebError::BadRequest(msg) => {
+                error!("{msg}");
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
             }
-            OriWebError::TemplateError(err) => {
+            WebError::TemplateError(err) => {
                 error!("Template error: {err}");
-                (
+                ApiResponse::new(
                     json!({"msg": "Internal server error"}),
-                    Status::InternalServerError,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                 )
             }
-        };
-        Response::build_from(json.respond_to(request)?)
-            .status(status)
-            .header(ContentType::JSON)
-            .raw_header("X-Defguard-Version", VERSION)
-            .ok()
+        }
     }
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for ApiResponse {
-    fn respond_to(self, request: &'r Request<'_>) -> Result<Response<'o>, Status> {
-        Response::build_from(self.json.respond_to(request)?)
-            .status(self.status)
-            .header(ContentType::JSON)
-            .raw_header("X-Defguard-Version", VERSION)
-            .ok()
+impl IntoResponse for WebError {
+    fn into_response(self) -> Response {
+        let api_response = ApiResponse::from(self);
+        api_response.into_response()
     }
 }
+
+impl IntoResponse for ApiResponse {
+    fn into_response(self) -> Response {
+        let mut response = Json(self.json).into_response();
+        response.headers_mut().insert(
+            HeaderName::from_static("x-defguard-version"),
+            HeaderValue::from_static(VERSION),
+        );
+        *response.status_mut() = self.status;
+        response
+    }
+}
+
+pub type ApiResult = Result<ApiResponse, WebError>;
 
 #[derive(Deserialize, Serialize)]
 pub struct Auth {
@@ -235,16 +254,16 @@ pub async fn user_for_admin_or_self(
     pool: &DbPool,
     session: &SessionInfo,
     username: &str,
-) -> Result<User, OriWebError> {
+) -> Result<User, WebError> {
     if session.user.username == username || session.is_admin {
         match User::find_by_username(pool, username).await? {
             Some(user) => Ok(user),
-            None => Err(OriWebError::ObjectNotFound(format!(
+            None => Err(WebError::ObjectNotFound(format!(
                 "user {username} not found"
             ))),
         }
     } else {
-        Err(OriWebError::Forbidden("requires privileged access".into()))
+        Err(WebError::Forbidden("requires privileged access".into()))
     }
 }
 
@@ -255,7 +274,7 @@ pub async fn device_for_admin_or_self(
     pool: &DbPool,
     session: &SessionInfo,
     id: i64,
-) -> Result<Device, OriWebError> {
+) -> Result<Device, WebError> {
     let fetch = if session.is_admin {
         Device::find_by_id(pool, id).await
     } else {
@@ -264,7 +283,7 @@ pub async fn device_for_admin_or_self(
 
     match fetch {
         Some(device) => Ok(device),
-        None => Err(OriWebError::ObjectNotFound(format!(
+        None => Err(WebError::ObjectNotFound(format!(
             "device id {id} not found"
         ))),
     }

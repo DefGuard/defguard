@@ -1,33 +1,32 @@
+use axum::{
+    extract::{Json, Path, State},
+    http::StatusCode,
+};
+use serde_json::json;
+
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
     db::Settings,
-    error::OriWebError,
+    error::WebError,
     AppState,
 };
-use rocket::{
-    http::Status,
-    serde::json::{serde_json::json, Json},
-    State,
-};
 
-#[get("/", format = "json")]
-pub async fn get_settings(appstate: &State<AppState>) -> ApiResult {
+pub async fn get_settings(State(appstate): State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
     let settings = Settings::find_by_id(&appstate.pool, 1).await?;
     info!("Retrieved settings");
     Ok(ApiResponse {
         json: json!(settings),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
-#[put("/", format = "json", data = "<data>")]
 pub async fn update_settings(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    mut data: Json<Settings>,
     session: SessionInfo,
+    State(appstate): State<AppState>,
+    Json(mut data): Json<Settings>,
 ) -> ApiResult {
     debug!("User {} updating settings", session.user.username);
     data.id = Some(1);
@@ -36,11 +35,10 @@ pub async fn update_settings(
     Ok(ApiResponse::default())
 }
 
-#[get("/<id>", format = "json")]
 pub async fn set_default_branding(
     _admin: AdminRole,
-    appstate: &State<AppState>,
-    id: i64,
+    State(appstate): State<AppState>,
+    Path(id): Path<i64>,
     session: SessionInfo,
 ) -> ApiResult {
     debug!(
@@ -60,9 +58,9 @@ pub async fn set_default_branding(
             );
             Ok(ApiResponse {
                 json: json!(settings),
-                status: Status::Ok,
+                status: StatusCode::OK,
             })
         }
-        None => Err(OriWebError::DbError("Cannot restore settings".into())),
+        None => Err(WebError::DbError("Cannot restore settings".into())),
     }
 }

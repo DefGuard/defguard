@@ -1,3 +1,8 @@
+mod common;
+
+use std::sync::{Arc, Mutex};
+
+use axum::http::StatusCode;
 use defguard::{
     grpc::{worker::JobStatus, WorkerDetail, WorkerState},
     handlers::{
@@ -5,18 +10,15 @@ use defguard::{
         Auth,
     },
 };
-use rocket::{http::Status, local::asynchronous::Client};
-use std::sync::{Arc, Mutex};
 
-mod common;
-use self::common::make_test_client;
+use self::common::{client::TestClient, make_test_client};
 
-async fn make_client() -> (Client, Arc<Mutex<WorkerState>>) {
+async fn make_client() -> (TestClient, Arc<Mutex<WorkerState>>) {
     let (client, client_status) = make_test_client().await;
     (client, client_status.worker_state)
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_scheduling_worker_jobs() {
     let (client, worker_state) = make_client().await;
 
@@ -28,8 +30,8 @@ async fn test_scheduling_worker_jobs() {
 
     // normal user can only provision keys for themselves
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let job_data = JobData {
         username: "hpotter".to_string(),
@@ -38,10 +40,10 @@ async fn test_scheduling_worker_jobs() {
     let response = client
         .post("/api/v1/worker/job")
         .json(&job_data)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
-    let user_job_id_1 = response.into_json::<Jobid>().await.unwrap().id;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let user_job_id_1 = response.json::<Jobid>().await.id;
 
     let job_data = JobData {
         username: "admin".to_string(),
@@ -50,14 +52,14 @@ async fn test_scheduling_worker_jobs() {
     let response = client
         .post("/api/v1/worker/job")
         .json(&job_data)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Forbidden);
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // admin user can provision keys for other users
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let job_data = JobData {
         username: "hpotter".to_string(),
@@ -66,10 +68,10 @@ async fn test_scheduling_worker_jobs() {
     let response = client
         .post("/api/v1/worker/job")
         .json(&job_data)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
-    let admin_job_id_1 = response.into_json::<Jobid>().await.unwrap().id;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let admin_job_id_1 = response.json::<Jobid>().await.id;
 
     let job_data = JobData {
         username: "admin".to_string(),
@@ -78,10 +80,10 @@ async fn test_scheduling_worker_jobs() {
     let response = client
         .post("/api/v1/worker/job")
         .json(&job_data)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Created);
-    let admin_job_id_2 = response.into_json::<Jobid>().await.unwrap().id;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let admin_job_id_2 = response.json::<Jobid>().await.id;
 
     // add status for created jobs
     {
@@ -127,47 +129,47 @@ async fn test_scheduling_worker_jobs() {
     // admin can fetch status for all jobs
     let response = client
         .get(format!("/api/v1/worker/{user_job_id_1}"))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
         .get(format!("/api/v1/worker/{admin_job_id_1}"))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
         .get(format!("/api/v1/worker/{admin_job_id_2}"))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // // normal user can only fetch status of their own jobs
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
         .get(format!("/api/v1/worker/{admin_job_id_1}"))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
         .get(format!("/api/v1/worker/{admin_job_id_2}"))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Forbidden);
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     let response = client
         .get(format!("/api/v1/worker/{user_job_id_1}"))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_worker_management_permissions() {
     let (client, worker_state) = make_client().await;
 
@@ -181,38 +183,38 @@ async fn test_worker_management_permissions() {
 
     // admin can create worker tokens
     let auth = Auth::new("admin".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/worker/token").dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.get("/api/v1/worker/token").send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // admin can list workers
-    let response = client.get("/api/v1/worker").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let workers: Vec<WorkerDetail> = response.into_json().await.unwrap();
+    let response = client.get("/api/v1/worker").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let workers: Vec<WorkerDetail> = response.json().await;
     assert_eq!(workers.len(), 3);
 
     // admin can remove a worker
-    let response = client.delete("/api/v1/worker/worker_1").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let response = client.get("/api/v1/worker").dispatch().await;
-    let workers: Vec<WorkerDetail> = response.into_json().await.unwrap();
+    let response = client.delete("/api/v1/worker/worker_1").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client.get("/api/v1/worker").send().await;
+    let workers: Vec<WorkerDetail> = response.json().await;
     assert_eq!(workers.len(), 2);
 
     // normal user cannot create worker tokens
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/worker/token").dispatch().await;
-    assert_eq!(response.status(), Status::Forbidden);
+    let response = client.get("/api/v1/worker/token").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // normal user cannot list workers
-    let response = client.get("/api/v1/worker").dispatch().await;
-    assert_eq!(response.status(), Status::Forbidden);
+    let response = client.get("/api/v1/worker").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // normal user cannot remove a worker
-    let response = client.delete("/api/v1/worker/worker_2").dispatch().await;
-    assert_eq!(response.status(), Status::Forbidden);
+    let response = client.delete("/api/v1/worker/worker_2").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }

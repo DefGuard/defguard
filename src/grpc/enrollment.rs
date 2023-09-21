@@ -2,15 +2,14 @@ use crate::{
     config::DefGuardConfig,
     db::{
         models::{
-            device::{DeviceInfo, WireguardNetworkDevice},
+            device::{DeviceConfig, DeviceInfo, WireguardNetworkDevice},
             enrollment::{Enrollment, EnrollmentError},
             wireguard::WireguardNetwork,
         },
         DbPool, Device, GatewayEvent, Settings, User,
     },
-    handlers::{self, user::check_password_strength},
+    handlers::user::check_password_strength,
     ldap::utils::ldap_add_user,
-    license::{Features, License},
     mail::Mail,
     templates,
 };
@@ -26,8 +25,8 @@ pub mod proto {
 }
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
-    Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
-    ExistingDevice, InitialUserInfo, NewDevice,
+    Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig, EnrollmentStartRequest,
+    EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
 };
 
 pub struct EnrollmentServer {
@@ -72,9 +71,8 @@ impl EnrollmentServer {
         mail_tx: UnboundedSender<Mail>,
         config: DefGuardConfig,
     ) -> Self {
-        // check if LDAP feature is enabled
-        let license_decoded = License::decode(&config.license);
-        let ldap_feature_active = license_decoded.validate(&Features::Ldap);
+        // FIXME: check if LDAP feature is enabled
+        let ldap_feature_active = true;
         Self {
             pool,
             wireguard_tx,
@@ -348,20 +346,14 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                     Status::internal(format!("unexpected error: {}", err))
                 })?;
                 if let Some(wireguard_network_device) = wireguard_network_device {
-                    let allowed_ips: Vec<String> = network
-                        .allowed_ips
-                        .iter()
-                        .map(|ip_network| ip_network.to_string())
-                        .collect();
-                    let allowed_ips = allowed_ips.join(",");
                     let config = DeviceConfig {
                         config: device.create_config(&network, &wireguard_network_device),
                         network_id: network.id.unwrap(),
                         network_name: network.name,
-                        assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
+                        address: wireguard_network_device.wireguard_ip,
                         endpoint: network.endpoint,
                         pubkey: network.pubkey,
-                        allowed_ips,
+                        allowed_ips: network.allowed_ips,
                     };
                     configs.push(config);
                 } else {
@@ -409,8 +401,8 @@ impl From<User> for InitialUserInfo {
     }
 }
 
-impl From<handlers::wireguard::DeviceConfig> for DeviceConfig {
-    fn from(config: handlers::wireguard::DeviceConfig) -> Self {
+impl From<DeviceConfig> for ProtoDeviceConfig {
+    fn from(config: DeviceConfig) -> Self {
         let allowed_ips = config
             .allowed_ips
             .iter()

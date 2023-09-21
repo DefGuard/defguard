@@ -134,9 +134,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LDAP_MEMBER_ATTR", default_value = "memberOf")]
     pub ldap_member_attr: String,
 
-    #[arg(long, env = "DEFGUARD_LICENSE", default_value = "")]
-    pub license: String,
-
     #[arg(
         long,
         env = "DEFGUARD_LDAP_GROUP_MEMBER_ATTR",

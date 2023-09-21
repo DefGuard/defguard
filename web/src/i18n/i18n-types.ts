@@ -28,10 +28,6 @@ type RootTranslation = {
 		 */
 		errorVersion: string
 		/**
-		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​l​i​c​e​n​s​e​.
-		 */
-		errorLicense: string
-		/**
 		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
 		insecureContext: string
@@ -3304,10 +3300,6 @@ export type TranslationFunctions = {
 		 * Failed to get application version.
 		 */
 		errorVersion: () => LocalizedString
-		/**
-		 * Failed to get license.
-		 */
-		errorLicense: () => LocalizedString
 		/**
 		 * Context is not secure.
 		 */
