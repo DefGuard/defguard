@@ -9,6 +9,10 @@ pub struct DeviceConfig {
     pub(crate) network_id: i64,
     pub(crate) network_name: String,
     pub(crate) config: String,
+    pub(crate) address: IpAddr,
+    pub(crate) endpoint: String,
+    pub(crate) allowed_ips: Vec<IpNetwork>,
+    pub(crate) pubkey: String,
 }
 
 use base64::{prelude::BASE64_STANDARD, Engine};

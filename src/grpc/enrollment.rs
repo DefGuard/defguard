@@ -26,7 +26,7 @@ pub mod proto {
 use proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
     Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig, EnrollmentStartRequest,
-    EnrollmentStartResponse, InitialUserInfo, NewDevice,
+    EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
 };
 
 pub struct EnrollmentServer {
@@ -346,20 +346,14 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                     Status::internal(format!("unexpected error: {}", err))
                 })?;
                 if let Some(wireguard_network_device) = wireguard_network_device {
-                    let allowed_ips: Vec<String> = network
-                        .allowed_ips
-                        .iter()
-                        .map(|ip_network| ip_network.to_string())
-                        .collect();
-                    let allowed_ips = allowed_ips.join(",");
                     let config = DeviceConfig {
                         config: device.create_config(&network, &wireguard_network_device),
                         network_id: network.id.unwrap(),
                         network_name: network.name,
-                        assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
+                        address: wireguard_network_device.wireguard_ip,
                         endpoint: network.endpoint,
                         pubkey: network.pubkey,
-                        allowed_ips,
+                        allowed_ips: network.allowed_ips,
                     };
                     configs.push(config);
                 } else {
@@ -408,13 +402,13 @@ impl From<User> for InitialUserInfo {
 }
 
 impl From<DeviceConfig> for ProtoDeviceConfig {
+    fn from(config: DeviceConfig) -> Self {
         let allowed_ips = config
             .allowed_ips
             .iter()
             .map(IpNetwork::to_string)
             .collect::<Vec<String>>()
             .join(",");
-    fn from(config: DeviceConfig) -> Self {
         Self {
             network_id: config.network_id,
             network_name: config.network_name,

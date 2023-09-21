@@ -447,8 +447,6 @@ pub async fn add_user_devices(
     }
 }
 
-
-#[post("/device/<username>", format = "json", data = "<data>")]
 pub async fn add_device(
     session: SessionInfo,
     State(appstate): State<AppState>,
