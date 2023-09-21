@@ -594,6 +594,7 @@ const pl: Translation = {
         actions: 'Akcje',
       },
       editButton: {
+        activateDesktop: 'Aktywacja klienta desktop',
         changePassword: 'Zmień hasło',
         edit: 'Edytuj konto',
         provision: 'Stwórz klucze na YubiKey',
