@@ -544,7 +544,7 @@ impl Device {
                     network_id,
                     network_name: network.name,
                     config,
-                    endpoint: network.endpoint,
+                    endpoint: format!("{}:{}", network.endpoint, network.port),
                     address: wireguard_network_device.wireguard_ip,
                     allowed_ips: network.allowed_ips,
                     pubkey: self.wireguard_pubkey.clone(),
