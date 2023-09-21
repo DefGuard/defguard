@@ -6,6 +6,7 @@ const defaultValues: StoreValues = {
   visible: false,
   step: 0,
   user: undefined,
+  desktop: false,
 };
 
 export const useAddUserModal = createWithEqualityFn<Store>(
@@ -27,6 +28,8 @@ type StoreValues = {
   step: number;
   user?: User;
   tokenResponse?: StartEnrollmentResponse;
+  // desktop token mode
+  desktop: boolean;
 };
 
 type StoreMethods = {

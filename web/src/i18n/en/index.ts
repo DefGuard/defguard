@@ -33,9 +33,12 @@ const en: BaseTranslation = {
     },
     startEnrollment: {
       title: 'Start enrollment',
+      desktopTitle: 'Desktop activation',
       messages: {
         success: 'User enrollment started',
+        successDesktop: 'Desktop activation started',
         error: 'Failed to start user enrollment',
+        errorDesktop: 'Failed to start dekstop activation',
       },
       form: {
         email: {
@@ -48,6 +51,7 @@ const en: BaseTranslation = {
           },
         },
         submit: 'Start enrollment',
+        submitDesktop: 'Activate desktop',
       },
       tokenCard: {
         title: 'Copy enrollment token',

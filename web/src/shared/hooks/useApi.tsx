@@ -358,6 +358,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const sendSupportMail: ApiHook['mail']['sendSupportMail'] = () =>
     client.post('/mail/support', {}).then(unpackRequest);
 
+  const startDesktopActivation: ApiHook['user']['startDesktopActivation'] = (data) =>
+    client.post(`/user/${data.username}/start_desktop`, data).then(unpackRequest);
+
   return {
     getAppInfo,
     changePasswordSelf,
@@ -382,6 +385,7 @@ const useApi = (props?: HookProps): ApiHook => {
       addToGroup,
       removeFromGroup,
       startEnrollment,
+      startDesktopActivation,
     },
     device: {
       addDevice: addDevice,

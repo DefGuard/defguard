@@ -361,6 +361,9 @@ export interface ApiHook {
     deleteWallet: (data: WalletChallengeRequest) => EmptyApiResponse;
     addToGroup: (data: UserGroupRequest) => EmptyApiResponse;
     removeFromGroup: (data: UserGroupRequest) => EmptyApiResponse;
+    startDesktopActivation: (
+      data: StartEnrollmentRequest,
+    ) => Promise<StartEnrollmentResponse>;
   };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;

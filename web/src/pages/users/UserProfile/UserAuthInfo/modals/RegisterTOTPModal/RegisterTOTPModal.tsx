@@ -85,8 +85,8 @@ const TOTPRegisterQRCode = () => {
   );
 
   const handleCopy = () => {
-    if (qrData) {
-      writeToClipboard(qrData, LL.modals.registerTOTP.messages.totpCopied());
+    if (data && data.secret) {
+      writeToClipboard(data.secret, LL.modals.registerTOTP.messages.totpCopied());
     }
   };
 

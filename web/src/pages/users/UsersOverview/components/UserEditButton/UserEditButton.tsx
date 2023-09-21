@@ -43,21 +43,32 @@ export const UserEditButton = ({ user }: Props) => {
         text={LL.usersOverview.list.editButton.provision()}
         onClick={() => setProvisionKeyModal({ visible: true, user })}
       />
-      <EditButtonOption
-        key="start-enrollment"
-        text={
-          user.is_active
-            ? LL.usersOverview.list.editButton.activateDesktop()
-            : LL.usersOverview.list.editButton.startEnrollment()
-        }
-        onClick={() =>
-          setAddUserModal({
-            visible: true,
-            step: 1,
-            user: user,
-          })
-        }
-      />
+      {user.is_active ? (
+        <EditButtonOption
+          key="start-dekstop-activation"
+          text={LL.usersOverview.list.editButton.activateDesktop()}
+          onClick={() =>
+            setAddUserModal({
+              visible: true,
+              step: 1,
+              user: user,
+              desktop: true,
+            })
+          }
+        />
+      ) : (
+        <EditButtonOption
+          key="start-enrollment"
+          text={LL.usersOverview.list.editButton.activateDesktop()}
+          onClick={() =>
+            setAddUserModal({
+              visible: true,
+              step: 1,
+              user: user,
+            })
+          }
+        />
+      )}
       {user.username !== currentUser?.username && (
         <EditButtonOption
           key="delete-user"
