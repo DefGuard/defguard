@@ -382,7 +382,7 @@ impl User {
     }
     /// Start user remote desktop configuration process
     /// This creates a new enrollment token valid for 24h
-    /// and optionally sends enrollment email notification to user
+    /// and optionally sends email notification to user
     pub async fn start_remote_desktop_configuration(
         &self,
         transaction: &mut PgConnection,
@@ -431,7 +431,7 @@ impl User {
             match mail_tx.send(mail) {
                 Ok(_) => {
                     info!(
-                        "Sent enrollment start mail for user {} to {email}",
+                        "Sent desktop configuration start mail for user {} to {email}",
                         self.username
                     );
                 }
