@@ -325,7 +325,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const getSettings = () => client.get('/settings').then(unpackRequest);
 
   const editSettings = async (settings: Settings) =>
-    client.put('/settings/', settings).then(unpackRequest);
+    client.put('/settings', settings).then(unpackRequest);
 
   const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
 

@@ -14,7 +14,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
 const ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
-const DESKTOP_START_MAIL_SUBJECT: &str = "Defguard user desktop configuration";
+const DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
 
 #[derive(Error, Debug)]
 pub enum EnrollmentError {
@@ -394,7 +394,7 @@ impl User {
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, EnrollmentError> {
         info!(
-            "User {} starting enrollment for user {}, notification enabled: {send_user_notification}",
+            "User {} starting desktop configuration for user {}, notification enabled: {send_user_notification}",
             admin.username, self.username
         );
 
@@ -419,7 +419,7 @@ impl User {
             let mail = Mail {
                 to: email.clone(),
                 subject: DESKTOP_START_MAIL_SUBJECT.to_string(),
-                content: templates::enrollment_start_mail(
+                content: templates::desktop_start_mail(
                     base_message_context,
                     enrollment_service_url,
                     &enrollment.id,
