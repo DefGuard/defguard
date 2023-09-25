@@ -303,18 +303,14 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         &self,
         request: Request<ExistingDevice>,
     ) -> Result<Response<DeviceConfigResponse>, Status> {
-        let enrollment = self.validate_session(&request).await?;
+        let _enrollment = self.validate_session(&request).await?;
 
-        // fetch related users
-        let user = enrollment.fetch_user(&self.pool).await?;
-
-        // add device
-        info!("Adding new device for user {}", user.username);
         let request = request.into_inner();
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", request.pubkey);
             Status::invalid_argument("invalid pubkey")
         })?;
+        // Find existing device by public key
         let device = Device::find_by_pubkey(&self.pool, &request.pubkey)
             .await
             .map_err(|_| {
