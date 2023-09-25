@@ -24,8 +24,8 @@ pub mod proto {
     tonic::include_proto!("enrollment");
 }
 use proto::{
-    enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
-    Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig, EnrollmentStartRequest,
+    enrollment_service_server, ActivateUserRequest, AdminInfo, Device as ProtoDevice,
+    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
     EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
 };
 
@@ -237,7 +237,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn create_device(
         &self,
         request: Request<NewDevice>,
-    ) -> Result<Response<CreateDeviceResponse>, Status> {
+    ) -> Result<Response<DeviceConfigResponse>, Status> {
         debug!("Adding new user device: {request:?}");
         let enrollment = self.validate_session(&request).await?;
 
@@ -290,7 +290,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
-        let response = CreateDeviceResponse {
+        let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
             instance: Some(Instance::new(settings, self.config.url.to_owned()).into()),
@@ -302,7 +302,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn get_network_info(
         &self,
         request: Request<ExistingDevice>,
-    ) -> Result<Response<CreateDeviceResponse>, Status> {
+    ) -> Result<Response<DeviceConfigResponse>, Status> {
         let enrollment = self.validate_session(&request).await?;
 
         // fetch related users
@@ -332,7 +332,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             Status::internal(format!("unexpected error: {}", err))
         })?;
 
-        let mut configs: Vec<DeviceConfig> = vec![];
+        let mut configs: Vec<ProtoDeviceConfig> = vec![];
         if let Some(device) = device {
             for network in networks {
                 let wireguard_network_device = WireguardNetworkDevice::find(
@@ -346,14 +346,20 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                     Status::internal(format!("unexpected error: {}", err))
                 })?;
                 if let Some(wireguard_network_device) = wireguard_network_device {
-                    let config = DeviceConfig {
+                    let allowed_ips = network
+                        .allowed_ips
+                        .iter()
+                        .map(IpNetwork::to_string)
+                        .collect::<Vec<String>>()
+                        .join(",");
+                    let config = ProtoDeviceConfig {
                         config: device.create_config(&network, &wireguard_network_device),
                         network_id: network.id.unwrap(),
                         network_name: network.name,
-                        address: wireguard_network_device.wireguard_ip,
+                        assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
                         endpoint: network.endpoint,
                         pubkey: network.pubkey,
-                        allowed_ips: network.allowed_ips,
+                        allowed_ips,
                     };
                     configs.push(config);
                 } else {
@@ -364,9 +370,9 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 }
             }
 
-            let response = CreateDeviceResponse {
+            let response = DeviceConfigResponse {
                 device: Some(device.into()),
-                configs: configs.into_iter().map(Into::into).collect(),
+                configs,
                 instance: Some(Instance::new(settings, self.config.url.to_owned()).into()),
             };
 
