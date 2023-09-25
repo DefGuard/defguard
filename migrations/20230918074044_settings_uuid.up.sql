@@ -1,3 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 ALTER TABLE settings
-ADD uuid UUID DEFAULT uuid_generate_v4() NOT NULL;
+ADD uuid UUID DEFAULT gen_random_uuid() NOT NULL;
