@@ -122,7 +122,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.delete<EmptyApiResponse>(`/network/${id}`);
 
   const addNetwork: ApiHook['network']['addNetwork'] = (network) =>
-    client.post(`/network/`, network).then(unpackRequest);
+    client.post(`/network`, network).then(unpackRequest);
 
   const importNetwork: ApiHook['network']['importNetwork'] = (network) =>
     client.post(`/network/import`, network).then(unpackRequest);
