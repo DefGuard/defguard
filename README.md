@@ -54,9 +54,17 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 
 ## Quick start
 
-The easiest way to run defguard is by using docker. Follow our [docker deployment guide](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose).
+The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
 
-## Deployment examples
+Just run the command below in your shell and follow the prompts:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/DefGuard/deployment/main/docker-compose/setup.sh -O && bash setup.sh
+```
+
+To learn more about the script and available options please see the [documentation](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
+
+## Manual deployment examples
 
 * Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
 * Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
