@@ -33,8 +33,11 @@ const pl: Translation = {
     },
     startEnrollment: {
       title: 'Rozpocznij rejestrację',
+      desktopTitle: 'Aktywacja klienta desktop',
       messages: {
         success: 'Rejestracja użytkownika rozpoczęta',
+        successDesktop: 'Aktywacja klienta rozpoczęta',
+        errorDesktop: 'Błąd aktywacji klienta desktop',
         error: 'Błąd rejestracji użytkownika',
       },
       form: {
@@ -48,6 +51,7 @@ const pl: Translation = {
           },
         },
         submit: 'Rozpocznij rejestrację',
+        submitDesktop: 'Aktywacja desktop',
       },
       tokenCard: {
         title: 'Skopiuj token',
@@ -590,6 +594,7 @@ const pl: Translation = {
         actions: 'Akcje',
       },
       editButton: {
+        activateDesktop: 'Aktywacja klienta desktop',
         changePassword: 'Zmień hasło',
         edit: 'Edytuj konto',
         provision: 'Stwórz klucze na YubiKey',

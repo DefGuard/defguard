@@ -9,6 +9,10 @@ pub struct DeviceConfig {
     pub(crate) network_id: i64,
     pub(crate) network_name: String,
     pub(crate) config: String,
+    pub(crate) address: IpAddr,
+    pub(crate) endpoint: String,
+    pub(crate) allowed_ips: Vec<IpNetwork>,
+    pub(crate) pubkey: String,
 }
 
 use base64::{prelude::BASE64_STANDARD, Engine};
@@ -540,6 +544,10 @@ impl Device {
                     network_id,
                     network_name: network.name,
                     config,
+                    endpoint: format!("{}:{}", network.endpoint, network.port),
+                    address: wireguard_network_device.wireguard_ip,
+                    allowed_ips: network.allowed_ips,
+                    pubkey: self.wireguard_pubkey.clone(),
                 });
             }
         }

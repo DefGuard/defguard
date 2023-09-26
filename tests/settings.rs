@@ -54,6 +54,7 @@ async fn test_settings() {
             enrollment_welcome_email: None,
             enrollment_welcome_email_subject: None,
             enrollment_use_welcome_message_as_email: true,
+            uuid: settings.uuid,
         }
     );
 

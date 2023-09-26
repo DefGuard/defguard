@@ -37,7 +37,8 @@ use self::{
         user::{
             add_user, change_password, change_self_password, delete_authorized_app,
             delete_security_key, delete_user, delete_wallet, get_user, list_users, me, modify_user,
-            set_wallet, start_enrollment, update_wallet, username_available, wallet_challenge,
+            set_wallet, start_enrollment, start_remote_desktop_configuration, update_wallet,
+            username_available, wallet_challenge,
         },
         webhooks::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
@@ -158,6 +159,10 @@ pub fn build_webapp(
             .route("/user/:username", get(get_user))
             .route("/user", post(add_user))
             .route("/user/:username/start_enrollment", post(start_enrollment))
+            .route(
+                "/user/:username/start_desktop",
+                post(start_remote_desktop_configuration),
+            )
             .route("/user/available", post(username_available))
             .route("/user/:username", put(modify_user))
             .route("/user/:username", delete(delete_user))

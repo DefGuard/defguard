@@ -50,7 +50,7 @@ type RootTranslation = {
 			title: string
 			messages: {
 				/**
-				 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d
+				 * P​a​s​s​w​o​r​d​ ​h​a​s​ ​b​e​e​n​ ​c​h​a​n​g​e​d
 				 */
 				success: string
 				/**
@@ -90,15 +90,27 @@ type RootTranslation = {
 			 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 			 */
 			title: string
+			/**
+			 * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+			 */
+			desktopTitle: string
 			messages: {
 				/**
 				 * U​s​e​r​ ​e​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
 				 */
 				success: string
 				/**
+				 * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n​ ​s​t​a​r​t​e​d
+				 */
+				successDesktop: string
+				/**
 				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​u​s​e​r​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				error: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​d​e​k​s​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 */
+				errorDesktop: string
 			}
 			form: {
 				email: {
@@ -123,6 +135,10 @@ type RootTranslation = {
 				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				submit: string
+				/**
+				 * A​c​t​i​v​a​t​e​ ​d​e​s​k​t​o​p
+				 */
+				submitDesktop: string
 			}
 			tokenCard: {
 				/**
@@ -165,7 +181,7 @@ type RootTranslation = {
 			title: string
 			messages: {
 				/**
-				 * W​e​b​A​u​t​h​N​ ​k​e​y​ ​d​e​l​e​t​e​d​.
+				 * W​e​b​A​u​t​h​N​ ​k​e​y​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
 				 */
 				deleted: string
 				/**
@@ -288,7 +304,7 @@ type RootTranslation = {
 			title: string
 			messages: {
 				/**
-				 * D​e​v​i​c​e​ ​u​p​d​a​t​e​d​.
+				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​u​p​d​a​t​e​d​.
 				 */
 				success: string
 			}
@@ -302,7 +318,7 @@ type RootTranslation = {
 					}
 					publicKey: {
 						/**
-						 * D​e​v​i​c​e​ ​P​u​b​l​i​c​ ​K​e​y​ ​(​W​i​r​e​g​u​a​r​d​)
+						 * D​e​v​i​c​e​ ​P​u​b​l​i​c​ ​K​e​y​ ​(​W​i​r​e​G​u​a​r​d​)
 						 */
 						label: string
 					}
@@ -331,7 +347,7 @@ type RootTranslation = {
 			submit: string
 			messages: {
 				/**
-				 * D​e​v​i​c​e​ ​d​e​l​e​t​e​d​.
+				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
 				 */
 				success: string
 			}
@@ -339,7 +355,7 @@ type RootTranslation = {
 		addDevice: {
 			messages: {
 				/**
-				 * D​e​v​i​c​e​ ​a​d​d​e​d​.
+				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​a​d​d​e​d​.
 				 */
 				success: string
 			}
@@ -356,7 +372,7 @@ type RootTranslation = {
 					config: {
 						messages: {
 							/**
-							 * C​o​n​f​i​g​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
+							 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​h​a​s​ ​b​e​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
 							 */
 							copyConfig: string
 						}
@@ -409,7 +425,7 @@ type RootTranslation = {
 						/**
 						 * 
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​g​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 				
@@ -1333,6 +1349,10 @@ type RootTranslation = {
 				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				startEnrollment: string
+				/**
+				 * R​e​m​o​v​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 */
+				activateDesktop: string
 			}
 		}
 	}
@@ -1665,7 +1685,7 @@ type RootTranslation = {
 			fields: {
 				wireguard_enabled: {
 					/**
-					 * W​i​r​e​g​u​a​r​d​ ​V​P​N
+					 * W​i​r​e​G​u​a​r​d​ ​V​P​N
 					 */
 					label: string
 				}
@@ -3319,7 +3339,7 @@ export type TranslationFunctions = {
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * Password changed
+				 * Password has been changed
 				 */
 				success: () => LocalizedString
 				/**
@@ -3359,15 +3379,27 @@ export type TranslationFunctions = {
 			 * Start enrollment
 			 */
 			title: () => LocalizedString
+			/**
+			 * Desktop activation
+			 */
+			desktopTitle: () => LocalizedString
 			messages: {
 				/**
 				 * User enrollment started
 				 */
 				success: () => LocalizedString
 				/**
+				 * Desktop activation started
+				 */
+				successDesktop: () => LocalizedString
+				/**
 				 * Failed to start user enrollment
 				 */
 				error: () => LocalizedString
+				/**
+				 * Failed to start dekstop activation
+				 */
+				errorDesktop: () => LocalizedString
 			}
 			form: {
 				email: {
@@ -3392,6 +3424,10 @@ export type TranslationFunctions = {
 				 * Start enrollment
 				 */
 				submit: () => LocalizedString
+				/**
+				 * Activate desktop
+				 */
+				submitDesktop: () => LocalizedString
 			}
 			tokenCard: {
 				/**
@@ -3433,7 +3469,7 @@ export type TranslationFunctions = {
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * WebAuthN key deleted.
+				 * WebAuthN key has been deleted.
 				 */
 				deleted: () => LocalizedString
 				/**
@@ -3556,7 +3592,7 @@ export type TranslationFunctions = {
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * Device updated.
+				 * Device has been updated.
 				 */
 				success: () => LocalizedString
 			}
@@ -3570,7 +3606,7 @@ export type TranslationFunctions = {
 					}
 					publicKey: {
 						/**
-						 * Device Public Key (Wireguard)
+						 * Device Public Key (WireGuard)
 						 */
 						label: () => LocalizedString
 					}
@@ -3598,7 +3634,7 @@ export type TranslationFunctions = {
 			submit: () => LocalizedString
 			messages: {
 				/**
-				 * Device deleted.
+				 * Device has been deleted.
 				 */
 				success: () => LocalizedString
 			}
@@ -3606,7 +3642,7 @@ export type TranslationFunctions = {
 		addDevice: {
 			messages: {
 				/**
-				 * Device added.
+				 * Device has been added.
 				 */
 				success: () => LocalizedString
 			}
@@ -3623,7 +3659,7 @@ export type TranslationFunctions = {
 					config: {
 						messages: {
 							/**
-							 * Config copied to clipboard
+							 * Configuration has been copied to the clipboard
 							 */
 							copyConfig: () => LocalizedString
 						}
@@ -3676,7 +3712,7 @@ export type TranslationFunctions = {
 						/**
 						 * 
 					        <p>
-					          You need to configure WireguardVPN on your device, please visit&nbsp;
+					          You need to configure WireGuardVPN on your device, please visit&nbsp;
 					          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
 					        </p>
 				
@@ -4594,6 +4630,10 @@ export type TranslationFunctions = {
 				 * Start enrollment
 				 */
 				startEnrollment: () => LocalizedString
+				/**
+				 * Remove desktop activation
+				 */
+				activateDesktop: () => LocalizedString
 			}
 		}
 	}
@@ -4923,7 +4963,7 @@ export type TranslationFunctions = {
 			fields: {
 				wireguard_enabled: {
 					/**
-					 * Wireguard VPN
+					 * WireGuard VPN
 					 */
 					label: () => LocalizedString
 				}

@@ -38,6 +38,9 @@ pub struct Settings {
     pub enrollment_welcome_email: Option<String>,
     pub enrollment_welcome_email_subject: Option<String>,
     pub enrollment_use_welcome_message_as_email: bool,
+    // Instance uuid needed for desktop client
+    #[serde(skip)]
+    pub uuid: uuid::Uuid,
 }
 
 impl Settings {

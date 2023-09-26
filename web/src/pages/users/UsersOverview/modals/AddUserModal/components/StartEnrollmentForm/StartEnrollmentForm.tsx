@@ -18,6 +18,7 @@ import {
 import { ToggleOption } from '../../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
+import { StartEnrollmentRequest } from '../../../../../../../shared/types';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 
 enum EnrollmentMode {
@@ -33,10 +34,11 @@ type FormFields = {
 export const StartEnrollmentForm = () => {
   const { LL } = useI18nContext();
   const {
-    user: { startEnrollment },
+    user: { startEnrollment, startDesktopActivation },
   } = useApi();
 
   const user = useAddUserModal((state) => state.user);
+  const desktop = useAddUserModal((state) => state.desktop);
   const [nextStep, setModalState, closeModal] = useAddUserModal(
     (state) => [state.nextStep, state.setState, state.close],
     shallow,
@@ -85,29 +87,54 @@ export const StartEnrollmentForm = () => {
 
   const toaster = useToaster();
 
-  const { mutate, isLoading } = useMutation(startEnrollment, {
-    onSuccess: (res) => {
-      toaster.success(LL.modals.startEnrollment.messages.success());
-      if (choiceValue === EnrollmentMode.EMAIL) {
-        closeModal();
-      } else {
-        setModalState({ tokenResponse: res });
-        nextStep();
-      }
+  const { mutate: startDesktopMutate, isLoading: startDesktopLoading } = useMutation(
+    startDesktopActivation,
+    {
+      onSuccess: (res) => {
+        toaster.success(LL.modals.startEnrollment.messages.successDesktop());
+        if (choiceValue === EnrollmentMode.EMAIL) {
+          closeModal();
+        } else {
+          setModalState({ tokenResponse: res });
+          nextStep();
+        }
+      },
+      onError: (err) => {
+        console.error(err);
+        toaster.error(LL.modals.startEnrollment.messages.errorDesktop());
+      },
     },
-    onError: (err) => {
-      console.error(err);
-      toaster.error(LL.modals.startEnrollment.messages.error());
-    },
-  });
+  );
+
+  const { mutate: startEnrollmentMutate, isLoading: startEnrollmentLoading } =
+    useMutation(startEnrollment, {
+      onSuccess: (res) => {
+        toaster.success(LL.modals.startEnrollment.messages.success());
+        if (choiceValue === EnrollmentMode.EMAIL) {
+          closeModal();
+        } else {
+          setModalState({ tokenResponse: res });
+          nextStep();
+        }
+      },
+      onError: (err) => {
+        console.error(err);
+        toaster.error(LL.modals.startEnrollment.messages.error());
+      },
+    });
 
   const onSubmit: SubmitHandler<FormFields> = async (data) => {
     if (user) {
-      mutate({
+      const requestData: StartEnrollmentRequest = {
         username: user.username,
         email: data.email,
         send_enrollment_notification: data.mode === EnrollmentMode.EMAIL,
-      });
+      };
+      if (desktop) {
+        startDesktopMutate(requestData);
+      } else {
+        startEnrollmentMutate(requestData);
+      }
     }
   };
 
@@ -160,10 +187,14 @@ export const StartEnrollmentForm = () => {
         />
         <Button
           type="submit"
-          text={LL.modals.startEnrollment.form.submit()}
+          text={
+            desktop
+              ? LL.modals.startEnrollment.form.submitDesktop()
+              : LL.modals.startEnrollment.form.submit()
+          }
           styleVariant={ButtonStyleVariant.PRIMARY}
           size={ButtonSize.LARGE}
-          loading={isLoading}
+          loading={startDesktopLoading || startEnrollmentLoading}
         />
       </div>
     </form>

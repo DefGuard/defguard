@@ -7,6 +7,7 @@ use crate::{db::User, VERSION};
 static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.tpl");
 static MAIL_ENROLLMENT_START: &str = include_str!("../templates/mail_enrollment_start.tpl");
+static MAIL_DESKTOP_START: &str = include_str!("../templates/mail_desktop_start.tpl");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tpl");
 static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
     include_str!("../templates/mail_enrollment_admin_notification.tpl");
@@ -47,6 +48,22 @@ pub fn enrollment_start_mail(
     context.insert("version", &VERSION);
 
     Ok(tera.render("mail_enrollment_start", &context)?)
+}
+// mail with link to enrollment service
+pub fn desktop_start_mail(
+    mut context: Context,
+    enrollment_service_url: Url,
+    enrollment_token: &str,
+) -> Result<String, TemplateError> {
+    let mut tera = Tera::default();
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_desktop_start", MAIL_DESKTOP_START)?;
+
+    context.insert("url", &enrollment_service_url.to_string());
+    context.insert("token", enrollment_token);
+    context.insert("version", &VERSION);
+
+    Ok(tera.render("mail_desktop_start", &context)?)
 }
 
 // welcome message sent when activating an account through enrollment

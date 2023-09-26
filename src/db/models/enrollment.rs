@@ -14,6 +14,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
 const ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
+const DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
 
 #[derive(Error, Debug)]
 pub enum EnrollmentError {
@@ -367,6 +368,70 @@ impl User {
                 Ok(_) => {
                     info!(
                         "Sent enrollment start mail for user {} to {email}",
+                        self.username
+                    );
+                }
+                Err(err) => {
+                    error!("Error sending mail: {err}");
+                    return Err(EnrollmentError::NotificationError(err.to_string()));
+                }
+            }
+        }
+
+        Ok(enrollment.id)
+    }
+    /// Start user remote desktop configuration process
+    /// This creates a new enrollment token valid for 24h
+    /// and optionally sends email notification to user
+    pub async fn start_remote_desktop_configuration(
+        &self,
+        transaction: &mut PgConnection,
+        admin: &User,
+        email: Option<String>,
+        token_timeout_seconds: u64,
+        enrollment_service_url: Url,
+        send_user_notification: bool,
+        mail_tx: UnboundedSender<Mail>,
+    ) -> Result<String, EnrollmentError> {
+        info!(
+            "User {} starting desktop configuration for user {}, notification enabled: {send_user_notification}",
+            admin.username, self.username
+        );
+
+        let user_id = self.id.expect("User without ID");
+        let admin_id = admin.id.expect("Admin user without ID");
+
+        self.clear_unused_enrollment_tokens(&mut *transaction)
+            .await?;
+
+        let enrollment = Enrollment::new(user_id, admin_id, email.clone(), token_timeout_seconds);
+        enrollment.save(&mut *transaction).await?;
+
+        if send_user_notification && email.is_some() {
+            let email = email.unwrap();
+            debug!(
+                "Sending desktop configuration start mail for user {} to {email}",
+                self.username
+            );
+            let base_message_context = enrollment
+                .get_welcome_message_context(&mut *transaction)
+                .await?;
+            let mail = Mail {
+                to: email.clone(),
+                subject: DESKTOP_START_MAIL_SUBJECT.to_string(),
+                content: templates::desktop_start_mail(
+                    base_message_context,
+                    enrollment_service_url,
+                    &enrollment.id,
+                )
+                .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+                attachments: Vec::new(),
+                result_tx: None,
+            };
+            match mail_tx.send(mail) {
+                Ok(_) => {
+                    info!(
+                        "Sent desktop configuration start mail for user {} to {email}",
                         self.username
                     );
                 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"openid_enabled\",\"ldap_enabled\",\"wireguard_enabled\",\"webhooks_enabled\",\"worker_enabled\",\"challenge_template\",\"instance_name\",\"main_logo_url\",\"nav_logo_url\",\"smtp_server\",\"smtp_port\",\"smtp_encryption\" \"smtp_encryption: _\",\"smtp_user\",\"smtp_password\" \"smtp_password?: SecretString\",\"smtp_sender\",\"enrollment_vpn_step_optional\",\"enrollment_welcome_message\",\"enrollment_welcome_email\",\"enrollment_welcome_email_subject\",\"enrollment_use_welcome_message_as_email\" FROM \"settings\" WHERE id = $1",
+  "query": "SELECT id \"id?\", \"openid_enabled\",\"ldap_enabled\",\"wireguard_enabled\",\"webhooks_enabled\",\"worker_enabled\",\"challenge_template\",\"instance_name\",\"main_logo_url\",\"nav_logo_url\",\"smtp_server\",\"smtp_port\",\"smtp_encryption\" \"smtp_encryption: _\",\"smtp_user\",\"smtp_password\" \"smtp_password?: SecretString\",\"smtp_sender\",\"enrollment_vpn_step_optional\",\"enrollment_welcome_message\",\"enrollment_welcome_email\",\"enrollment_welcome_email_subject\",\"enrollment_use_welcome_message_as_email\",\"uuid\" FROM \"settings\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -118,6 +118,11 @@
         "ordinal": 20,
         "name": "enrollment_use_welcome_message_as_email",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 21,
+        "name": "uuid",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
@@ -146,8 +151,9 @@
       true,
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "e1c693d11abacbffbeb48c1bb215d8fe08c229a8e7c5befa18406e1be89d69ea"
+  "hash": "882dfef183518cf7c5700bc24c24616d46f6d8e4dfba1acac17121f50de8b8e5"
 }

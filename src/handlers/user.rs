@@ -210,6 +210,54 @@ pub async fn start_enrollment(
     })
 }
 
+pub async fn start_remote_desktop_configuration(
+    _admin: AdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+    Json(data): Json<StartEnrollmentRequest>,
+) -> ApiResult {
+    debug!(
+        "User {} starting enrollment for user {username}",
+        session.user.username
+    );
+
+    // validate request
+    if data.send_enrollment_notification && data.email.is_none() {
+        return Err(WebError::BadRequest(
+            "Email notification is enabled, but email was not provided".into(),
+        ));
+    }
+
+    let user = match User::find_by_username(&appstate.pool, &username).await? {
+        Some(user) => Ok(user),
+        None => Err(WebError::ObjectNotFound(format!(
+            "user {username} not found"
+        ))),
+    }?;
+
+    let mut transaction = appstate.pool.begin().await?;
+
+    let enrollment_token = user
+        .start_remote_desktop_configuration(
+            &mut transaction,
+            &session.user,
+            data.email.clone(),
+            appstate.config.enrollment_token_timeout.as_secs(),
+            appstate.config.enrollment_url.clone(),
+            data.send_enrollment_notification,
+            appstate.mail_tx.clone(),
+        )
+        .await?;
+
+    transaction.commit().await?;
+
+    Ok(ApiResponse {
+        json: json!({"enrollment_token": enrollment_token, "enrollment_url":  appstate.config.enrollment_url.to_string()}),
+        status: StatusCode::CREATED,
+    })
+}
+
 pub async fn username_available(
     _admin: AdminRole,
     State(appstate): State<AppState>,

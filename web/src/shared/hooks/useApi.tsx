@@ -69,7 +69,7 @@ const useApi = (props?: HookProps): ApiHook => {
   });
 
   const addUser = async (data: AddUserRequest) => {
-    return client.post<User>(`/user/`, data).then((res) => res.data);
+    return client.post<User>(`/user`, data).then((res) => res.data);
   };
 
   const getMe = () => client.get<User>(`/me`).then((res) => res.data);
@@ -122,7 +122,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.delete<EmptyApiResponse>(`/network/${id}`);
 
   const addNetwork: ApiHook['network']['addNetwork'] = (network) =>
-    client.post(`/network/`, network).then(unpackRequest);
+    client.post(`/network`, network).then(unpackRequest);
 
   const importNetwork: ApiHook['network']['importNetwork'] = (network) =>
     client.post(`/network/import`, network).then(unpackRequest);
@@ -325,7 +325,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const getSettings = () => client.get('/settings').then(unpackRequest);
 
   const editSettings = async (settings: Settings) =>
-    client.put('/settings/', settings).then(unpackRequest);
+    client.put('/settings', settings).then(unpackRequest);
 
   const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
 
@@ -358,6 +358,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const sendSupportMail: ApiHook['mail']['sendSupportMail'] = () =>
     client.post('/mail/support', {}).then(unpackRequest);
 
+  const startDesktopActivation: ApiHook['user']['startDesktopActivation'] = (data) =>
+    client.post(`/user/${data.username}/start_desktop`, data).then(unpackRequest);
+
   return {
     getAppInfo,
     changePasswordSelf,
@@ -382,6 +385,7 @@ const useApi = (props?: HookProps): ApiHook => {
       addToGroup,
       removeFromGroup,
       startEnrollment,
+      startDesktopActivation,
     },
     device: {
       addDevice: addDevice,

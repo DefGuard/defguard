@@ -109,10 +109,7 @@ export const AppLoader = () => {
     }
   }, [appSettings]);
 
-  if (
-    userLoading ||
-    (settingsLoading && isUndefined(appSettings))
-  ) {
+  if (userLoading || (settingsLoading && isUndefined(appSettings))) {
     return <LoaderPage />;
   }
 
