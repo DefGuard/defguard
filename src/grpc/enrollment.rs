@@ -299,6 +299,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         Ok(Response::new(response))
     }
 
+    /// Get all information needed
+    /// to update instance information for desktop client
     async fn get_network_info(
         &self,
         request: Request<ExistingDevice>,
