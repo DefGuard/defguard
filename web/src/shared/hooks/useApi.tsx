@@ -188,7 +188,7 @@ const useApi = (props?: HookProps): ApiHook => {
       .delete<EmptyApiResponse>(`/user/${username}/wallet/${address}`)
       .then((response) => response.data);
 
-  const getGroups = () => client.get<GroupsResponse>('/group/').then(unpackRequest);
+  const getGroups = () => client.get<GroupsResponse>('/group').then(unpackRequest);
 
   const addToGroup = ({ group, ...rest }: UserGroupRequest) =>
     client.post<EmptyApiResponse>(`/group/${group}`, rest);
@@ -208,7 +208,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.post<EmptyApiResponse>(`/webhook/${id}`, rest);
 
   const addWebhook: ApiHook['webhook']['addWebhook'] = async (data) => {
-    return client.post<EmptyApiResponse>('/webhook/', data);
+    return client.post<EmptyApiResponse>('/webhook', data);
   };
   const editWebhook: ApiHook['webhook']['editWebhook'] = async ({ id, ...rest }) => {
     return client.put<EmptyApiResponse>(`/webhook/${id}`, rest);
@@ -219,7 +219,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.get<OpenidClient>(`/oauth/${client_id}`).then((res) => res.data);
 
   const addOpenidClient = async (data: AddOpenidClientRequest) => {
-    return client.post<EmptyApiResponse>('/oauth/', data);
+    return client.post<EmptyApiResponse>('/oauth', data);
   };
   const editOpenidClient = async ({ client_id, ...rest }: EditOpenidClientRequest) => {
     return client.put<EmptyApiResponse>(`/oauth/${client_id}`, rest);
