@@ -547,7 +547,7 @@ impl Device {
                     endpoint: format!("{}:{}", network.endpoint, network.port),
                     address: wireguard_network_device.wireguard_ip,
                     allowed_ips: network.allowed_ips,
-                    pubkey: self.wireguard_pubkey.clone(),
+                    pubkey: network.pubkey,
                 });
             }
         }
