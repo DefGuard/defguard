@@ -361,10 +361,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                     };
                     configs.push(config);
                 } else {
-                    return Err(Status::internal(format!(
-                        "Device not found for network: {}",
-                        network.id.unwrap()
-                    )));
+                    continue;
                 }
             }
 
