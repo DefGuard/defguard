@@ -15,7 +15,7 @@ env:
 
 jobs:
   rustdoc:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux]
     container: rust:1.72
     services:
       postgres:
