@@ -286,7 +286,13 @@ mod test {
             .unwrap()
             .unwrap();
 
+        let mut transaction = pool.begin().await.unwrap();
+        user_info
+            .handle_user_groups(&mut transaction, &mut user)
+            .await
+            .unwrap();
         user_info.into_user_all_fields(&mut user).await.unwrap();
+        transaction.commit().await.unwrap();
 
         assert_eq!(group1.member_usernames(&pool).await.unwrap(), ["hpotter"]);
         assert_eq!(group3.member_usernames(&pool).await.unwrap(), ["hpotter"]);
