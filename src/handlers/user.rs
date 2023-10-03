@@ -9,13 +9,12 @@ use super::{
     PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
     WalletChange, WalletSignature,
 };
-use crate::db::WireguardNetwork;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
         AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
-        WebAuthn,
+        WebAuthn, WireguardNetwork,
     },
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
