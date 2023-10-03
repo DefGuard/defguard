@@ -516,4 +516,43 @@ async fn test_modify_user() {
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceDeleted(..));
     assert_err!(wg_rx.try_recv());
+
+    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(peers.len(), 1);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+
+    // remove user from unrelated group
+    let mut user_details = fetch_user_details(&client, "ssnape").await;
+    user_details.user.groups = vec![];
+    let response = client
+        .put("/api/v1/user/ssnape")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    assert_err!(wg_rx.try_recv());
+
+    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(peers.len(), 1);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+
+    // add user to allowed group
+    let mut user_details = fetch_user_details(&client, "dobby").await;
+    user_details.user.groups = vec!["allowed group".into()];
+    let response = client
+        .put("/api/v1/user/dobby")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let event = wg_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayEvent::DeviceCreated(..));
+    assert_err!(wg_rx.try_recv());
+
+    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(peers.len(), 2);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[3].wireguard_pubkey);
 }
