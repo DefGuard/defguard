@@ -23,7 +23,7 @@ use self::{
     user::{MFAMethod, User},
 };
 use super::{DbPool, Group};
-use sqlx::{query_as, Error as SqlxError};
+use sqlx::{query_as, Error as SqlxError, PgConnection};
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
@@ -101,13 +101,18 @@ impl UserInfo {
     }
 
     /// Copy groups to [`User`]. This function should be used by administrators.
-    async fn handle_user_groups(
+    ///
+    /// Return `true` if groups were changed, `false` otherwise.
+    pub(crate) async fn handle_user_groups(
         &mut self,
-        pool: &DbPool,
+        transaction: &mut PgConnection,
         user: &mut User,
-    ) -> Result<(), SqlxError> {
+    ) -> Result<bool, SqlxError> {
+        // initialize return value
+        let mut groups_changed = false;
+
         // handle groups
-        let mut present_groups = user.member_of(pool).await?;
+        let mut present_groups = user.member_of(&mut *transaction).await?;
 
         // add to groups if not already a member
         for groupname in &self.groups {
@@ -116,8 +121,9 @@ impl UserInfo {
                     present_groups.swap_remove(index);
                 }
                 None => {
-                    if let Some(group) = Group::find_by_name(pool, groupname).await? {
-                        user.add_to_group(pool, &group).await?;
+                    if let Some(group) = Group::find_by_name(&mut *transaction, groupname).await? {
+                        user.add_to_group(&mut *transaction, &group).await?;
+                        groups_changed = true;
                     }
                 }
             }
@@ -125,12 +131,13 @@ impl UserInfo {
 
         // remove from remaining groups
         for groupname in present_groups {
-            if let Some(group) = Group::find_by_name(pool, &groupname).await? {
-                user.remove_from_group(pool, &group).await?;
+            if let Some(group) = Group::find_by_name(&mut *transaction, &groupname).await? {
+                user.remove_from_group(&mut *transaction, &group).await?;
+                groups_changed = true;
             }
         }
 
-        Ok(())
+        Ok(groups_changed)
     }
 
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
@@ -145,13 +152,7 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
-    pub async fn into_user_all_fields(
-        mut self,
-        pool: &DbPool,
-        user: &mut User,
-    ) -> Result<(), SqlxError> {
-        self.handle_user_groups(pool, user).await?;
-
+    pub async fn into_user_all_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.ssh_key = self.ssh_key;
         user.pgp_key = self.pgp_key;

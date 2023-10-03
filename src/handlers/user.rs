@@ -9,6 +9,7 @@ use super::{
     PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
     WalletChange, WalletSignature,
 };
+use crate::db::WireguardNetwork;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -284,7 +285,7 @@ pub async fn modify_user(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    Json(user_info): Json<UserInfo>,
+    Json(mut user_info): Json<UserInfo>,
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
@@ -295,30 +296,44 @@ pub async fn modify_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
+    let mut transaction = appstate.pool.begin().await?;
+
     // remove authorized apps if needed
     let request_app_ids: Vec<i64> = user_info
         .authorized_apps
         .iter()
         .map(|app| app.oauth2client_id)
         .collect();
-    let db_apps = user.oauth2authorizedapps(&appstate.pool).await?;
+    let db_apps = user.oauth2authorizedapps(&mut *transaction).await?;
     let removed_apps: Vec<i64> = db_apps
         .iter()
         .filter(|app| !request_app_ids.contains(&app.oauth2client_id))
         .map(|app| app.oauth2client_id)
         .collect();
     if !removed_apps.is_empty() {
-        user.remove_oauth2_authorized_apps(&appstate.pool, &removed_apps)
+        user.remove_oauth2_authorized_apps(&mut *transaction, &removed_apps)
             .await?;
     }
     if session.is_admin {
-        user_info
-            .into_user_all_fields(&appstate.pool, &mut user)
-            .await?;
+        // update VPN gateway config if groups have changed
+        if user_info
+            .handle_user_groups(&mut transaction, &mut user)
+            .await?
+        {
+            let networks = WireguardNetwork::all(&mut *transaction).await?;
+            for network in networks {
+                let gateway_events = network
+                    .sync_allowed_devices(&mut transaction, &appstate.config.admin_groupname, None)
+                    .await?;
+                appstate.send_multiple_wireguard_events(gateway_events);
+            }
+        };
+        user_info.into_user_all_fields(&mut user).await?;
     } else {
         user_info.into_user_safe_fields(&mut user).await?;
     }
-    user.save(&appstate.pool).await?;
+    user.save(&mut *transaction).await?;
 
     // FIXME: check for LDAP being enabled
     if true {
@@ -326,6 +341,9 @@ pub async fn modify_user(
     }
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));
+
+    transaction.commit().await?;
+
     info!("User {} updated user {username}", session.user.username);
     Ok(ApiResponse::default())
 }

@@ -21,13 +21,16 @@ impl Group {
         }
     }
 
-    pub async fn find_by_name(pool: &DbPool, name: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         query_as!(
             Self,
             "SELECT id \"id?\", name FROM \"group\" WHERE name = $1",
             name
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 

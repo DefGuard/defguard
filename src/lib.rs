@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
