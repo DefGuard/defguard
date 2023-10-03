@@ -10,3 +10,4 @@ build
 ladle-build
 .idea/
 .vscode/
+.envrc
