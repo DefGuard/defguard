@@ -285,10 +285,8 @@ mod test {
             .await
             .unwrap()
             .unwrap();
-        user_info
-            .into_user_all_fields(&pool, &mut user)
-            .await
-            .unwrap();
+
+        user_info.into_user_all_fields(&mut user).await.unwrap();
 
         assert_eq!(group1.member_usernames(&pool).await.unwrap(), ["hpotter"]);
         assert_eq!(group3.member_usernames(&pool).await.unwrap(), ["hpotter"]);

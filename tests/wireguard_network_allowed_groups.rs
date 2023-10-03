@@ -9,7 +9,7 @@ use defguard::{
 use matches::assert_matches;
 use serde_json::json;
 
-use self::common::make_test_client;
+use self::common::{fetch_user_details, make_test_client};
 
 // setup user groups, test users and devices
 async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
@@ -461,5 +461,59 @@ PersistentKeepalive = 300
         mapped_devices[1].wireguard_ip
     );
 
+    assert_err!(wg_rx.try_recv());
+}
+
+/// Test that changing groups for a particular user generates correct update events
+#[tokio::test]
+async fn test_modify_user() {
+    let (client, client_state) = make_test_client().await;
+    let (_users, devices) = setup_test_users(&client_state.pool).await;
+
+    let mut wg_rx = client_state.wireguard_rx;
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": ["allowed group"],
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let network: WireguardNetwork = response.json().await;
+    assert_eq!(network.name, "network");
+    let event = wg_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_err!(wg_rx.try_recv());
+
+    // network configuration was created only for admin and allowed user
+    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(peers.len(), 2);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+
+    // remove user from allowed group
+    let mut user_details = fetch_user_details(&client, "hpotter").await;
+    user_details.user.groups = vec![];
+    let response = client
+        .put("/api/v1/user/hpotter")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let event = wg_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayEvent::DeviceDeleted(..));
     assert_err!(wg_rx.try_recv());
 }
