@@ -458,10 +458,13 @@ impl User {
         }
     }
 
-    pub async fn oauth2authorizedapps(
+    pub async fn oauth2authorizedapps<'e, E>(
         &self,
-        pool: &DbPool,
-    ) -> Result<Vec<OAuth2AuthorizedAppInfo>, SqlxError> {
+        executor: E,
+    ) -> Result<Vec<OAuth2AuthorizedAppInfo>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         if let Some(id) = self.id {
             query_as!(
                 OAuth2AuthorizedAppInfo,
@@ -472,7 +475,7 @@ impl User {
                 WHERE oauth2authorizedapp.user_id = $1",
                 id
             )
-            .fetch_all(pool)
+            .fetch_all(executor)
             .await
         } else {
             Ok(Vec::new())
@@ -493,7 +496,10 @@ impl User {
         }
     }
 
-    pub async fn add_to_group(&self, pool: &DbPool, group: &Group) -> Result<(), SqlxError> {
+    pub async fn add_to_group<'e, E>(&self, executor: E, group: &Group) -> Result<(), SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         if let (Some(id), Some(group_id)) = (self.id, group.id) {
             query!(
                 "INSERT INTO group_user (group_id, user_id) VALUES ($1, $2) \
@@ -501,38 +507,48 @@ impl User {
                 group_id,
                 id
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         Ok(())
     }
 
-    pub async fn remove_from_group(&self, pool: &DbPool, group: &Group) -> Result<(), SqlxError> {
+    pub async fn remove_from_group<'e, E>(
+        &self,
+        executor: E,
+        group: &Group,
+    ) -> Result<(), SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         if let (Some(id), Some(group_id)) = (self.id, group.id) {
             query!(
                 "DELETE FROM group_user WHERE group_id = $1 AND user_id = $2",
                 group_id,
                 id
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         Ok(())
     }
 
     // Remove authoirzed apps by their client id's from user
-    pub async fn remove_oauth2_authorized_apps(
+    pub async fn remove_oauth2_authorized_apps<'e, E>(
         &self,
-        pool: &DbPool,
+        executor: E,
         app_client_ids: &Vec<i64>,
-    ) -> Result<(), SqlxError> {
+    ) -> Result<(), SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         if let Some(id) = self.id {
             query!(
                 "DELETE FROM oauth2authorizedapp WHERE user_id = $1 AND oauth2client_id = ANY($2)",
                 id,
                 app_client_ids
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         Ok(())
