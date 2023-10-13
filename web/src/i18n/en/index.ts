@@ -54,7 +54,10 @@ const en: BaseTranslation = {
         submitDesktop: 'Activate desktop',
       },
       tokenCard: {
-        title: 'Copy enrollment token',
+        title: 'Activation token',
+      },
+      urlCard: {
+        title: 'Defguard Instance URL',
       },
     },
     deleteNetwork: {

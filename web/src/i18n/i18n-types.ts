@@ -142,7 +142,13 @@ type RootTranslation = {
 			}
 			tokenCard: {
 				/**
-				 * C​o​p​y​ ​e​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n
+				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
+				 */
+				title: string
+			}
+			urlCard: {
+				/**
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
 				 */
 				title: string
 			}
@@ -1350,7 +1356,7 @@ type RootTranslation = {
 				 */
 				startEnrollment: string
 				/**
-				 * R​e​m​o​v​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 * R​e​m​o​t​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				activateDesktop: string
 			}
@@ -3431,7 +3437,13 @@ export type TranslationFunctions = {
 			}
 			tokenCard: {
 				/**
-				 * Copy enrollment token
+				 * Activation token
+				 */
+				title: () => LocalizedString
+			}
+			urlCard: {
+				/**
+				 * Defguard Instance URL
 				 */
 				title: () => LocalizedString
 			}
@@ -4631,7 +4643,7 @@ export type TranslationFunctions = {
 				 */
 				startEnrollment: () => LocalizedString
 				/**
-				 * Remove desktop activation
+				 * Remote desktop activation
 				 */
 				activateDesktop: () => LocalizedString
 			}

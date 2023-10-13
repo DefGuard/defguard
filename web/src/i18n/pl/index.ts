@@ -54,7 +54,10 @@ const pl: Translation = {
         submitDesktop: 'Aktywacja desktop',
       },
       tokenCard: {
-        title: 'Skopiuj token',
+        title: 'Token aktywacji',
+      },
+      urlCard: {
+        title: 'URL Instancji Defguard',
       },
     },
     deleteNetwork: {
