@@ -2,6 +2,15 @@
 
 #enrollment-token-step {
   box-sizing: border-box;
+  display: flex;
+  flex-flow: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  row-gap: 20px;
+
+  & > * {
+    width: 100%;
+  }
 
   @include media-breakpoint-up(lg) {
     padding: 0 40px;
@@ -19,7 +28,6 @@
   }
 
   & > .controls {
-    margin-top: 40px;
     display: none;
 
     & > .btn {
@@ -28,6 +36,7 @@
 
     @include media-breakpoint-up(lg) {
       display: block;
+      margin-top: 40px;
     }
   }
 }
