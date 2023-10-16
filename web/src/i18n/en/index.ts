@@ -1086,10 +1086,15 @@ const en: BaseTranslation = {
     noLicenseMessage: "You don't have a license for this feature.",
     provisioningStation: {
       header: 'YubiKey provisioning station',
-      cardTitle: 'Provisioning station docker setup command',
       content: `In order to be able to provision your YubiKeys, first you need to set up
         physical machine with USB slot. Run provided command on your chosen
         machine to register it and start provisioning your keys.`,
+      dockerCard: {
+        title: 'Provisioning station docker setup command',
+      },
+      tokenCard: {
+        title: 'Access token',
+      },
     },
     list: {
       headers: {
@@ -1107,7 +1112,10 @@ const en: BaseTranslation = {
       },
     },
     messages: {
-      codeCopied: 'Command copied.',
+      copy: {
+        token: 'Token copied',
+        command: 'Command copied',
+      },
     },
   },
   openidAllow: {
