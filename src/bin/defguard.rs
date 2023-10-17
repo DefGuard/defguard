@@ -29,8 +29,13 @@ async fn main() -> Result<(), anyhow::Error> {
     // initialize tracing
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "defguard=info,tower_http=info,axum::rejection=trace".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                format!(
+                    "defguard={},tower_http=info,axum::rejection=trace",
+                    config.log_level
+                )
+                .into()
+            }),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -101,6 +106,6 @@ async fn main() -> Result<(), anyhow::Error> {
         _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), failed_logins) => (),
         _ = run_mail_handler(mail_rx, pool.clone()) => (),
         _ = run_periodic_stats_purge(pool, config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => (),
-    };
+    }
     Ok(())
 }
