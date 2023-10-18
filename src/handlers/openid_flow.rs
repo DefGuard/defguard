@@ -34,7 +34,7 @@ use serde::{
 use serde_json::json;
 use tower_cookies::{
     cookie::{
-        time::{Duration, OffsetDateTime},
+        time::{Duration},
         SameSite,
     },
     Cookie, Cookies, Key,
@@ -50,6 +50,7 @@ use crate::{
     },
     error::WebError,
     handlers::SIGN_IN_COOKIE_NAME,
+    SERVER_CONFIG,
 };
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
@@ -328,24 +329,28 @@ fn redirect_to<T: AsRef<str>>(uri: T) -> (StatusCode, HeaderMap) {
 /// Helper function to redirect unauthorized user to login page
 /// and store information about OpenID authorize url in cookie to redirect later
 async fn login_redirect(
-    appstate: AppState,
     data: &AuthenticationRequest,
     cookies: Cookies,
 ) -> Result<(StatusCode, HeaderMap), WebError> {
-    let base_url = appstate.config.url.join("api/v1/oauth/authorize").unwrap();
-    let expires = OffsetDateTime::now_utc()
-        .checked_add(Duration::minutes(10))
-        .ok_or(WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?;
+    let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
+    let base_url = server_config.url.join("api/v1/oauth/authorize").unwrap();
     let cookie = Cookie::build(
         SIGN_IN_COOKIE_NAME,
         format!("{base_url}?{}", serde_urlencoded::to_string(data).unwrap()),
     )
-    .secure(true)
-    .same_site(SameSite::Strict)
+    .domain(
+        server_config
+            .cookie_domain
+            .clone()
+            .expect("Cookie domain not found"),
+    )
+    .path("/")
+    .secure(!server_config.cookie_insecure)
+    .same_site(SameSite::Lax)
     .http_only(true)
-    .expires(expires)
+    .max_age(Duration::minutes(10))
     .finish();
-    let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+    let key = Key::from(server_config.secret_key.expose_secret().as_bytes());
     let private_cookies = cookies.private(&key);
     private_cookies.add(cookie);
     Ok(redirect_to("/login"))
@@ -388,7 +393,7 @@ pub async fn authorization(
                                 if session.expired() {
                                     info!("Session {} for user id {} has expired, redirecting to login", session.id, session.user_id);
                                     let _result = session.delete(&appstate.pool).await;
-                                    login_redirect(appstate, &data, cookies).await
+                                    login_redirect(&data, cookies).await
                                 } else {
                                     // If session is present check if app is in user authorized apps.
                                     // If yes return auth code and state else redirect to consent form.
@@ -434,13 +439,13 @@ pub async fn authorization(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
                                 );
-                                login_redirect(appstate, &data, cookies).await
+                                login_redirect(&data, cookies).await
                             }
 
                         // If no session cookie provided redirect to login
                         } else {
                             info!("Session cookie not provided, redirecting to login page");
-                            login_redirect(appstate, &data, cookies).await
+                            login_redirect(&data, cookies).await
                         };
                     }
                 }
