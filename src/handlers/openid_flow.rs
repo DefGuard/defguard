@@ -33,10 +33,7 @@ use serde::{
 };
 use serde_json::json;
 use tower_cookies::{
-    cookie::{
-        time::{Duration},
-        SameSite,
-    },
+    cookie::{time::Duration, SameSite},
     Cookie, Cookies, Key,
 };
 
