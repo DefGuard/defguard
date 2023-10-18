@@ -13,6 +13,7 @@ pub struct DeviceConfig {
     pub(crate) endpoint: String,
     pub(crate) allowed_ips: Vec<IpNetwork>,
     pub(crate) pubkey: String,
+    pub(crate) dns: Option<String>,
 }
 
 use base64::{prelude::BASE64_STANDARD, Engine};
@@ -548,6 +549,7 @@ impl Device {
                     address: wireguard_network_device.wireguard_ip,
                     allowed_ips: network.allowed_ips,
                     pubkey: network.pubkey,
+                    dns: network.dns,
                 });
             }
         }
