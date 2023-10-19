@@ -7,7 +7,7 @@ use std::{
 use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -28,7 +28,7 @@ use crate::{
         AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
     },
     grpc::GatewayMap,
-    wg_config::{parse_wireguard_config, ImportedDevice},
+    wg_config::{parse_wireguard_config, ImportedDevice}, handlers::mail::send_new_device_added_email,
 };
 
 #[derive(Deserialize, Serialize)]
@@ -491,10 +491,17 @@ pub async fn add_device(
         .add_to_all_networks(&mut transaction, &appstate.config.admin_groupname)
         .await?;
 
+    let mut network_ips: Vec<String> = Vec::new();
+    for network_info_item in network_info.clone() {
+        network_ips.push(network_info_item.device_wireguard_ip.to_string());
+    }
+
     appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
         device: device.clone(),
         network_info,
     }));
+
+    send_new_device_added_email(device.clone(), user, network_ips, &appstate.mail_tx).await?;
 
     transaction.commit().await?;
 
@@ -576,6 +583,7 @@ pub async fn get_device(
     session: SessionInfo,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
+    // TypedHeader(user_agent): TypedHeader<UserAgent>,
 ) -> ApiResult {
     debug!("Retrieving device with id: {device_id}");
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;

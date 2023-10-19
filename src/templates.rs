@@ -1,8 +1,9 @@
+use chrono::Utc;
 use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
 
-use crate::{db::User, VERSION};
+use crate::{db::{User, Device}, VERSION};
 
 static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.tpl");
@@ -12,6 +13,8 @@ static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollmen
 static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
     include_str!("../templates/mail_enrollment_admin_notification.tpl");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tpl");
+static MAIL_NEW_DEVICE_ADDED: &str = include_str!("../templates/mail_new_device_added.tpl");
+static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tpl");
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
@@ -113,6 +116,33 @@ pub fn support_data_mail() -> Result<String, TemplateError> {
     context.insert("version", &VERSION);
 
     Ok(tera.render("mail_support_data", &context)?)
+}
+
+pub fn new_device_added_mail(device: Device, device_network_ips: Vec<String>) -> Result<String, TemplateError> {
+    let mut tera = Tera::default();
+    let mut context = Context::new();
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_new_device_added", MAIL_NEW_DEVICE_ADDED)?;
+
+    context.insert("version", &VERSION);
+    context.insert("device_name", &device.name);
+    context.insert("public_key", &device.wireguard_pubkey);
+    context.insert("date", &device.created);
+    context.insert("ip_addresses", &device_network_ips);
+
+    Ok(tera.render("mail_new_device_added", &context)?)
+}
+
+pub fn mfa_configured_mail(mfa_type: String) -> Result<String, TemplateError> {
+    let mut tera = Tera::default();
+    let mut context = Context::new();
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
+
+    context.insert("mfa_type", &mfa_type);
+    context.insert("date", &Utc::now().format("%Y-%m-%dT%H:%M:00Z").to_string());
+
+    Ok(tera.render("mail_mfa_configured", &context)?)
 }
 
 #[cfg(test)]

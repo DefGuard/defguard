@@ -8,7 +8,7 @@ use crate::{
         },
         DbPool, Device, GatewayEvent, Settings, User,
     },
-    handlers::user::check_password_strength,
+    handlers::{user::check_password_strength, mail::send_new_device_added_email},
     ldap::utils::ldap_add_user,
     mail::Mail,
     templates,
@@ -273,6 +273,11 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
+        let mut network_ips: Vec<String> = Vec::new();
+        for network_info_item in network_info.clone() {
+            network_ips.push(network_info_item.device_wireguard_ip.to_string());
+        }
+
         self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
             device: device.clone(),
             network_info,
@@ -284,6 +289,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 error!("Failed to get settings");
                 Status::internal("unexpected error")
             })?;
+
+        send_new_device_added_email(device.clone(), user, network_ips, &self.mail_tx).await?;
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");

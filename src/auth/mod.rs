@@ -9,12 +9,15 @@ use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
+    TypedHeader,
+    headers::UserAgent,
 };
 use jsonwebtoken::{
     decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
 };
 use serde::{Deserialize, Serialize};
 use tower_cookies::{Cookie, Cookies};
+use uaparser::{Parser, UserAgentParser, Client};
 
 use crate::{
     appstate::AppState,
@@ -164,6 +167,14 @@ impl SessionInfo {
     }
 }
 
+// pub static parser: UserAgentParser = UserAgentParser::builder()
+//     .build_from_yaml("./regexes.yaml")
+//     // .build_from_yaml("../../regexes.yaml")
+//     // .build_from_yaml("../../templates/regexes.yaml")
+//     // .build_from_yaml("../../regexes.yaml")
+//     // .build_from_yaml("../regexes.yaml")
+//     .expect("Parser creation failed");
+
 #[async_trait]
 impl<S> FromRequestParts<S> for SessionInfo
 where
@@ -176,6 +187,23 @@ where
         let appstate = AppState::from_ref(state);
         let session = Session::from_request_parts(parts, state).await?;
         let user = User::find_by_id(&appstate.pool, session.user_id).await;
+        let user_agent = parts.headers.get("user-agent");
+        println!("User agent from requests: {:?}", user_agent);
+
+        let mut user_agent_str = "";
+
+        if let Some(c) = user_agent {
+            println!("Matched {:?}!", c.to_str());
+            user_agent_str = c.to_str().unwrap();
+            println!("user_agent_str {:?}", user_agent_str);
+
+            let parsed = appstate.user_agent_parser.parse(user_agent_str);
+
+            println!("Parsed: {:?}", parsed.device.model);
+        }
+    
+        // let typedheader_useragent = TypedHeader(user_agent): TypedHeader<UserAgent>;
+
         if let Ok(Some(user)) = user {
             if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
                 return Err(WebError::Authorization("MFA not verified".into()));
@@ -187,6 +215,31 @@ where
             Ok(SessionInfo::new(session, user, is_admin))
         } else {
             Err(WebError::Authorization("User not found".into()))
+        }
+    }
+}
+
+struct ExtractUserAgent<'a>(Client<'a>);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for ExtractUserAgent<'_>
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
+    // type Rejection = (String, &'static str);
+    type Rejection = WebError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        if let Some(user_agent) = parts.headers.get("user-agent") {
+            let user_agent_str = user_agent.to_str().unwrap();
+            let appstate = AppState::from_ref(state);
+            // let parsed = appstate.user_agent_parser.parse(user_agent.clone().to_str().unwrap());
+            let parsed = appstate.user_agent_parser.parse(user_agent_str);
+
+            Ok(ExtractUserAgent(parsed))
+        } else {
+            Err(WebError::Forbidden("User-Agent header is missing".into()))
         }
     }
 }

@@ -23,6 +23,7 @@ use tower_http::{
     trace::{DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
+use uaparser::UserAgentParser;
 
 use self::{
     appstate::AppState,
@@ -129,6 +130,7 @@ pub fn build_webapp(
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     pool: DbPool,
+    user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Router {
     let serve_web_dir = ServeDir::new("web/dist").fallback(ServeFile::new("web/dist/index.html"));
@@ -285,6 +287,7 @@ pub fn build_webapp(
             webhook_rx,
             wireguard_tx,
             mail_tx,
+            user_agent_parser,
             failed_logins,
         ))
         .layer(CookieManagerLayer::new())
@@ -311,6 +314,7 @@ pub async fn run_web_server(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     pool: DbPool,
+    user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
@@ -322,6 +326,7 @@ pub async fn run_web_server(
         worker_state,
         gateway_state,
         pool,
+        user_agent_parser,
         failed_logins,
     );
     info!("Started web services");

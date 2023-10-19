@@ -25,7 +25,7 @@ use crate::{
     db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::WebError,
     ldap::utils::user_from_ldap,
-    SERVER_CONFIG,
+    SERVER_CONFIG, handlers::mail::send_mfa_configured_email,
 };
 
 /// For successful login, return:
@@ -276,6 +276,9 @@ pub async fn webauthn_finish(
         user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
             .await?;
     }
+
+    // TODO: send email KEY
+
     info!("Finished Webauthn registration for user {}", user.username);
 
     Ok(ApiResponse {
@@ -383,6 +386,9 @@ pub async fn totp_enable(
             user.set_mfa_method(&appstate.pool, MFAMethod::OneTimePassword)
                 .await?;
         }
+
+        send_mfa_configured_email(user.clone(), "TOTOP".to_string(), &appstate.mail_tx).await?;
+
         info!("Enabled TOTP for user {}", user.username);
         Ok(ApiResponse {
             json: json!(recovery_codes),
