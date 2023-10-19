@@ -2,6 +2,7 @@ import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
 import { saveAs } from 'file-saver';
+import { useState } from 'react';
 import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -15,12 +16,11 @@ import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card
 import { Divider } from '../../../../shared/defguard-ui/components/Layout/Divider/Divider';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../shared/hooks/useToaster';
-import { SMTPError } from '../../../../shared/types';
+import { SendSupportDataModal } from './components/SendSupportDataModal';
 
 export const DebugDataCard = () => {
+  const [sendDataOpen, setSendDataOpen] = useState(false);
   const { LL } = useI18nContext();
-  const toaster = useToaster();
   const settings = useAppStore((state) => state.settings);
   const smtp_configured =
     settings?.smtp_server &&
@@ -31,7 +31,6 @@ export const DebugDataCard = () => {
 
   const {
     support: { downloadSupportData, downloadLogs },
-    mail: { sendSupportMail },
   } = useApi();
 
   const { isLoading: logsLoading, mutate: logsMutate } = useMutation({
@@ -54,64 +53,54 @@ export const DebugDataCard = () => {
     },
   });
 
-  const { mutate: sendMail, isLoading: mailLoading } = useMutation([], sendSupportMail, {
-    onSuccess: () => {
-      toaster.success(LL.supportPage.debugDataCard.mailSent());
-    },
-    onError: (err: SMTPError) => {
-      toaster.error(
-        `${LL.supportPage.debugDataCard.mailError()}`,
-        `${err.response?.data.error}`,
-      );
-      console.error(err);
-    },
-  });
-
   return (
-    <Card id="support-debug-card" shaded bordered>
-      <div className="controls">
-        <p className="title">{LL.supportPage.debugDataCard.title()}</p>
-        <Button
-          onClick={() => {
-            if (!configLoading) {
-              configMutate();
-            }
-          }}
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.PRIMARY}
-          icon={<SvgIconDownload />}
-          text={LL.supportPage.debugDataCard.downloadSupportData()}
-          loading={configLoading}
-        />
-        <Button
-          onClick={() => {
-            if (!logsLoading) {
-              logsMutate();
-            }
-          }}
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.PRIMARY}
-          icon={<SvgIconDownload />}
-          text={LL.supportPage.debugDataCard.downloadLogs()}
-          loading={logsLoading}
-        />
-        <Button
-          onClick={() => {
-            if (!mailLoading) {
-              sendMail();
-            }
-          }}
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.PRIMARY}
-          text={LL.supportPage.debugDataCard.sendMail()}
-          loading={mailLoading}
-          disabled={!smtp_configured}
-        />
-      </div>
-      <Divider />
-      <div className="content">
-        <ReactMarkdown>{LL.supportPage.debugDataCard.body()}</ReactMarkdown>
-      </div>
-    </Card>
+    <>
+      <SendSupportDataModal
+        isOpen={sendDataOpen}
+        onOpenChange={(v) => setSendDataOpen(v)}
+      />
+      <Card id="support-debug-card" shaded bordered>
+        <div className="controls">
+          <p className="title">{LL.supportPage.debugDataCard.title()}</p>
+          <Button
+            onClick={() => {
+              if (!configLoading) {
+                configMutate();
+              }
+            }}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            icon={<SvgIconDownload />}
+            text={LL.supportPage.debugDataCard.downloadSupportData()}
+            loading={configLoading}
+          />
+          <Button
+            onClick={() => {
+              if (!logsLoading) {
+                logsMutate();
+              }
+            }}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            icon={<SvgIconDownload />}
+            text={LL.supportPage.debugDataCard.downloadLogs()}
+            loading={logsLoading}
+          />
+          <Button
+            onClick={() => {
+              setSendDataOpen(true);
+            }}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            text={LL.supportPage.debugDataCard.sendMail()}
+            disabled={!smtp_configured}
+          />
+        </div>
+        <Divider />
+        <div className="content">
+          <ReactMarkdown>{LL.supportPage.debugDataCard.body()}</ReactMarkdown>
+        </div>
+      </Card>
+    </>
   );
 };
