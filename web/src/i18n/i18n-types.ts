@@ -3267,6 +3267,22 @@ type RootTranslation = {
 		 * S​u​p​p​o​r​t
 		 */
 		title: string
+		modals: {
+			confirmDataSend: {
+				/**
+				 * S​e​n​d​ ​S​u​p​p​o​r​t​ ​D​a​t​a
+				 */
+				title: string
+				/**
+				 * P​l​e​a​s​e​ ​c​o​n​f​i​r​m​ ​t​h​a​t​ ​y​o​u​ ​a​c​t​u​a​l​l​y​ ​w​a​n​t​ ​t​o​ ​s​e​n​d​ ​s​u​p​p​o​r​t​ ​d​e​b​u​g​ ​i​n​f​o​r​m​a​t​i​o​n​.​ ​N​o​n​e​ ​o​f​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​(​w​i​r​e​g​u​a​r​d​ ​k​e​y​s​,​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​e​s​,​ ​e​t​c​.​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​s​e​n​t​)​.
+				 */
+				subTitle: string
+				/**
+				 * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+				 */
+				submit: string
+			}
+		}
 		debugDataCard: {
 			/**
 			 * S​u​p​p​o​r​t​ ​d​a​t​a
@@ -6553,6 +6569,22 @@ export type TranslationFunctions = {
 		 * Support
 		 */
 		title: () => LocalizedString
+		modals: {
+			confirmDataSend: {
+				/**
+				 * Send Support Data
+				 */
+				title: () => LocalizedString
+				/**
+				 * Please confirm that you actually want to send support debug information. None of your private information will be sent (wireguard keys, email addresses, etc. will not be sent).
+				 */
+				subTitle: () => LocalizedString
+				/**
+				 * Send support data
+				 */
+				submit: () => LocalizedString
+			}
+		}
 		debugDataCard: {
 			/**
 			 * Support data

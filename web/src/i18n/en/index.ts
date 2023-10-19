@@ -1434,6 +1434,14 @@ const en: BaseTranslation = {
   },
   supportPage: {
     title: 'Support',
+    modals: {
+      confirmDataSend: {
+        title: 'Send Support Data',
+        subTitle:
+          'Please confirm that you actually want to send support debug information. None of your private information will be sent (wireguard keys, email addresses, etc. will not be sent).',
+        submit: 'Send support data',
+      },
+    },
     debugDataCard: {
       title: 'Support data',
       body: `
