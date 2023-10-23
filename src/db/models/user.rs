@@ -356,13 +356,16 @@ impl User {
         )
         .fetch_all(pool)
         .await?;
-        let res: Vec<UserDiagnostic> = users.iter().map(|u| UserDiagnostic {
-            mfa_method: u.mfa_method.clone(),
-            totp_enabled: u.totp_enabled,
-            mfa_enabled: u.mfa_enabled,
-            id: u.id,
-            is_active: u.password_hash.is_some(),
-        }).collect();
+        let res: Vec<UserDiagnostic> = users
+            .iter()
+            .map(|u| UserDiagnostic {
+                mfa_method: u.mfa_method.clone(),
+                totp_enabled: u.totp_enabled,
+                mfa_enabled: u.mfa_enabled,
+                id: u.id,
+                is_active: u.password_hash.is_some(),
+            })
+            .collect();
         Ok(res)
     }
 
