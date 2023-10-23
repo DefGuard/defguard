@@ -1432,7 +1432,14 @@ const pl: Translation = {
   },
   supportPage: {
     title: 'Wsparcie',
-
+    modals: {
+      confirmDataSend: {
+        title: 'Potwierdź przekazanie danych',
+        submit: 'Wyślij',
+        subTitle:
+          'Potwierdź przesłanie danych diagnostycznych. Żadne poufne dane nie zostaną przesłane. (Klucze wireguard, adresy email, etc.)',
+      },
+    },
     debugDataCard: {
       title: 'Dane wsparcia technicznego',
       body: `
