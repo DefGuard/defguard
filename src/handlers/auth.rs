@@ -287,6 +287,8 @@ pub async fn webauthn_finish(
 
     info!("Finished Webauthn registration for user {}", user.username);
 
+    send_mfa_configured_email(user.clone(), "WebAuthN".to_string(), &appstate.mail_tx).await?;
+
     Ok(ApiResponse {
         json: json!(recovery_codes),
         status: StatusCode::OK,

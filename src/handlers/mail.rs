@@ -195,9 +195,11 @@ pub async fn send_mfa_configured_email(
 ) -> Result<(), EnrollmentError> {
     debug!("Sending MFA configured mail to {}", user.email);
 
+    let subject = format!("MFA method {} was activated on your account", &mfa_type);
+
     let mail = Mail {
         to: user.email,
-        subject: "MFA method ".to_owned() + &mfa_type + " was activated in your account",
+        subject,
         content: templates::mfa_configured_mail(mfa_type)?,
         attachments: Vec::new(),
         result_tx: None,
