@@ -21,15 +21,30 @@ export const EnrollmentTokenCard = () => {
   const { writeToClipboard } = useClipboard();
   const closeModal = useAddUserModal((state) => state.close);
 
-  const actions = useMemo(
+  const tokenActions = useMemo(
     (): ReactNode[] => [
       <ActionButton
         variant={ActionButtonVariant.COPY}
         disabled={isUndefined(tokenResponse)}
         onClick={() => {
           if (tokenResponse) {
-            const res = `URL: ${tokenResponse.enrollment_url} \nToken: ${tokenResponse.enrollment_token}`;
-            writeToClipboard(res);
+            writeToClipboard(tokenResponse.enrollment_token);
+          }
+        }}
+        key={0}
+      />,
+    ],
+    [tokenResponse, writeToClipboard],
+  );
+
+  const urlActions = useMemo(
+    (): ReactNode[] => [
+      <ActionButton
+        variant={ActionButtonVariant.COPY}
+        disabled={!tokenResponse}
+        onClick={() => {
+          if (tokenResponse) {
+            writeToClipboard(tokenResponse.enrollment_url);
           }
         }}
         key={0}
@@ -41,13 +56,18 @@ export const EnrollmentTokenCard = () => {
   return (
     <div id="enrollment-token-step">
       <ExpandableCard
-        title={LL.modals.startEnrollment.tokenCard.title()}
-        actions={actions}
+        title={LL.modals.startEnrollment.urlCard.title()}
+        actions={urlActions}
         expanded
-        disableExpand
       >
-        <p>URL: {tokenResponse?.enrollment_url}</p>
-        <p>TOKEN: {tokenResponse?.enrollment_token}</p>
+        <p>{tokenResponse?.enrollment_url}</p>
+      </ExpandableCard>
+      <ExpandableCard
+        title={LL.modals.startEnrollment.tokenCard.title()}
+        actions={tokenActions}
+        expanded
+      >
+        <p>{tokenResponse?.enrollment_token}</p>
       </ExpandableCard>
       <div className="controls">
         <Button

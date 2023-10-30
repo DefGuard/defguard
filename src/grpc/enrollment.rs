@@ -365,6 +365,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                         endpoint: network.endpoint,
                         pubkey: network.pubkey,
                         allowed_ips,
+                        dns: network.dns,
                     };
                     configs.push(config);
                 } else {
@@ -425,6 +426,7 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
             assigned_ip: config.address.to_string(),
             pubkey: config.pubkey,
             allowed_ips,
+            dns: config.dns,
         }
     }
 }

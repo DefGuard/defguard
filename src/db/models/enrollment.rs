@@ -343,37 +343,38 @@ impl User {
         let enrollment = Enrollment::new(user_id, admin_id, email.clone(), token_timeout_seconds);
         enrollment.save(&mut *transaction).await?;
 
-        if send_user_notification && email.is_some() {
-            let email = email.unwrap();
-            debug!(
-                "Sending enrollment start mail for user {} to {email}",
-                self.username
-            );
-            let base_message_context = enrollment
-                .get_welcome_message_context(&mut *transaction)
-                .await?;
-            let mail = Mail {
-                to: email.clone(),
-                subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
-                content: templates::enrollment_start_mail(
-                    base_message_context,
-                    enrollment_service_url,
-                    &enrollment.id,
-                )
-                .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
-                attachments: Vec::new(),
-                result_tx: None,
-            };
-            match mail_tx.send(mail) {
-                Ok(_) => {
-                    info!(
-                        "Sent enrollment start mail for user {} to {email}",
-                        self.username
-                    );
-                }
-                Err(err) => {
-                    error!("Error sending mail: {err}");
-                    return Err(EnrollmentError::NotificationError(err.to_string()));
+        if send_user_notification {
+            if let Some(email) = email {
+                debug!(
+                    "Sending enrollment start mail for user {} to {email}",
+                    self.username
+                );
+                let base_message_context = enrollment
+                    .get_welcome_message_context(&mut *transaction)
+                    .await?;
+                let mail = Mail {
+                    to: email.clone(),
+                    subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
+                    content: templates::enrollment_start_mail(
+                        base_message_context,
+                        enrollment_service_url,
+                        &enrollment.id,
+                    )
+                    .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+                    attachments: Vec::new(),
+                    result_tx: None,
+                };
+                match mail_tx.send(mail) {
+                    Ok(_) => {
+                        info!(
+                            "Sent enrollment start mail for user {} to {email}",
+                            self.username
+                        );
+                    }
+                    Err(err) => {
+                        error!("Error sending mail: {err}");
+                        return Err(EnrollmentError::NotificationError(err.to_string()));
+                    }
                 }
             }
         }
@@ -407,37 +408,38 @@ impl User {
         let enrollment = Enrollment::new(user_id, admin_id, email.clone(), token_timeout_seconds);
         enrollment.save(&mut *transaction).await?;
 
-        if send_user_notification && email.is_some() {
-            let email = email.unwrap();
-            debug!(
-                "Sending desktop configuration start mail for user {} to {email}",
-                self.username
-            );
-            let base_message_context = enrollment
-                .get_welcome_message_context(&mut *transaction)
-                .await?;
-            let mail = Mail {
-                to: email.clone(),
-                subject: DESKTOP_START_MAIL_SUBJECT.to_string(),
-                content: templates::desktop_start_mail(
-                    base_message_context,
-                    enrollment_service_url,
-                    &enrollment.id,
-                )
-                .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
-                attachments: Vec::new(),
-                result_tx: None,
-            };
-            match mail_tx.send(mail) {
-                Ok(_) => {
-                    info!(
-                        "Sent desktop configuration start mail for user {} to {email}",
-                        self.username
-                    );
-                }
-                Err(err) => {
-                    error!("Error sending mail: {err}");
-                    return Err(EnrollmentError::NotificationError(err.to_string()));
+        if send_user_notification {
+            if let Some(email) = email {
+                debug!(
+                    "Sending desktop configuration start mail for user {} to {email}",
+                    self.username
+                );
+                let base_message_context = enrollment
+                    .get_welcome_message_context(&mut *transaction)
+                    .await?;
+                let mail = Mail {
+                    to: email.clone(),
+                    subject: DESKTOP_START_MAIL_SUBJECT.to_string(),
+                    content: templates::desktop_start_mail(
+                        base_message_context,
+                        enrollment_service_url,
+                        &enrollment.id,
+                    )
+                    .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+                    attachments: Vec::new(),
+                    result_tx: None,
+                };
+                match mail_tx.send(mail) {
+                    Ok(_) => {
+                        info!(
+                            "Sent desktop configuration start mail for user {} to {email}",
+                            self.username
+                        );
+                    }
+                    Err(err) => {
+                        error!("Error sending mail: {err}");
+                        return Err(EnrollmentError::NotificationError(err.to_string()));
+                    }
                 }
             }
         }

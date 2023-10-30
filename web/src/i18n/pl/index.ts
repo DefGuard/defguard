@@ -54,7 +54,10 @@ const pl: Translation = {
         submitDesktop: 'Aktywacja desktop',
       },
       tokenCard: {
-        title: 'Skopiuj token',
+        title: 'Token aktywacji',
+      },
+      urlCard: {
+        title: 'URL Instancji Defguard',
       },
     },
     deleteNetwork: {
@@ -1080,10 +1083,15 @@ const pl: Translation = {
     noLicenseMessage: 'Nie masz licencji na tę funkcję.',
     provisioningStation: {
       header: 'Stacja provisionująca YubiKey',
-      cardTitle: 'Komenda uruchamiająca stację',
       content: `Aby móc sprovisionować YubiKeya, należy najpierw skonfigurować
         fizyczną maszynę z gniazdem USB. Uruchom podane polecenie na wybranej maszynie
         aby zarejestrować maszynę i rozpocząć generowanie kluczy.`,
+      tokenCard: {
+        title: 'Token autoryzacyjny',
+      },
+      dockerCard: {
+        title: 'Przykład Docker',
+      },
     },
     list: {
       headers: {
@@ -1101,7 +1109,10 @@ const pl: Translation = {
       },
     },
     messages: {
-      codeCopied: 'Komenda skopiowana.',
+      copy: {
+        command: 'Komenda skopiowa',
+        token: 'Token skopiowany',
+      },
     },
   },
   openidAllow: {
@@ -1421,7 +1432,14 @@ const pl: Translation = {
   },
   supportPage: {
     title: 'Wsparcie',
-
+    modals: {
+      confirmDataSend: {
+        title: 'Potwierdź przekazanie danych',
+        submit: 'Wyślij',
+        subTitle:
+          'Potwierdź przesłanie danych diagnostycznych. Żadne poufne dane nie zostaną przesłane. (Klucze wireguard, adresy email, etc.)',
+      },
+    },
     debugDataCard: {
       title: 'Dane wsparcia technicznego',
       body: `

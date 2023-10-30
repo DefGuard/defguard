@@ -24,6 +24,7 @@ use crate::{
     },
     db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::WebError,
+    handlers::SIGN_IN_COOKIE_NAME,
     ldap::utils::user_from_ldap,
     SERVER_CONFIG, handlers::mail::send_mfa_configured_email,
 };
@@ -98,6 +99,7 @@ pub async fn authenticate(
                 .clone()
                 .expect("Cookie domain not found"),
         )
+        .path("/")
         .http_only(true)
         .secure(!server_config.cookie_insecure)
         .same_site(SameSite::Lax)
@@ -117,18 +119,21 @@ pub async fn authenticate(
         }
     } else {
         let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-        let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+        let key = Key::from(server_config.secret_key.expose_secret().as_bytes());
         let private_cookies = cookies.private(&key);
-        if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
+        if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
             debug!("Found openid session cookie.");
+            let redirect_url = openid_cookie.value().to_string();
+            private_cookies.remove(openid_cookie);
             Ok(ApiResponse {
                 json: json!(AuthResponse {
                     user: user_info,
-                    url: Some(openid_cookie.value().to_string())
+                    url: Some(redirect_url)
                 }),
                 status: StatusCode::OK,
             })
         } else {
+            debug!("No openid session found");
             Ok(ApiResponse {
                 json: json!(AuthResponse {
                     user: user_info,
@@ -332,12 +337,14 @@ pub async fn webauthn_end(
                 let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
                 let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
                 let private_cookies = cookies.private(&key);
-                if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
+                if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                     debug!("Found OpenID session cookie.");
+                    let redirect_url = openid_cookie.value().to_string();
+                    private_cookies.remove(openid_cookie);
                     Ok(ApiResponse {
                         json: json!(AuthResponse {
                             user: user_info,
-                            url: Some(openid_cookie.value().to_string())
+                            url: Some(redirect_url),
                         }),
                         status: StatusCode::OK,
                     })
@@ -427,12 +434,14 @@ pub async fn totp_code(
             info!("Verified TOTP for user {username}");
             let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
             let private_cookies = cookies.private(&key);
-            if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
+            if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
+                let redirect_url = openid_cookie.value().to_string();
+                private_cookies.remove(openid_cookie);
                 Ok(ApiResponse {
                     json: json!(AuthResponse {
                         user: user_info,
-                        url: Some(openid_cookie.value().to_string())
+                        url: Some(redirect_url),
                     }),
                     status: StatusCode::OK,
                 })
@@ -510,12 +519,14 @@ pub async fn web3auth_end(
                             let key =
                                 Key::from(appstate.config.secret_key.expose_secret().as_bytes());
                             let private_cookies = cookies.private(&key);
-                            if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
+                            if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                                 debug!("Found openid session cookie.");
+                                let redirect_url = openid_cookie.value().to_string();
+                                private_cookies.remove(openid_cookie);
                                 Ok(ApiResponse {
                                     json: json!(AuthResponse {
                                         user: user_info,
-                                        url: Some(openid_cookie.value().to_string())
+                                        url: Some(redirect_url),
                                     }),
                                     status: StatusCode::OK,
                                 })
@@ -561,12 +572,14 @@ pub async fn recovery_code(
             info!("Authenticated user {username} with recovery code");
             let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
             let private_cookies = cookies.private(&key);
-            if let Some(openid_cookie) = private_cookies.get("known_sign_in") {
+            if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found OpenID session cookie.");
+                let redirect_url = openid_cookie.value().to_string();
+                private_cookies.remove(openid_cookie);
                 return Ok(ApiResponse {
                     json: json!(AuthResponse {
                         user: user_info,
-                        url: Some(openid_cookie.value().to_string())
+                        url: Some(redirect_url),
                     }),
                     status: StatusCode::OK,
                 });

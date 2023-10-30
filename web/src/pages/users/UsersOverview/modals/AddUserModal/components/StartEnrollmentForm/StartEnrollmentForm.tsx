@@ -76,7 +76,7 @@ export const StartEnrollmentForm = () => {
     resolver: zodResolver(schema),
     mode: 'all',
     defaultValues: {
-      email: '',
+      email: user?.email ?? '',
       mode: EnrollmentMode.EMAIL,
     },
   });

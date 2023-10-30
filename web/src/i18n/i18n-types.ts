@@ -142,7 +142,13 @@ type RootTranslation = {
 			}
 			tokenCard: {
 				/**
-				 * C​o​p​y​ ​e​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n
+				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
+				 */
+				title: string
+			}
+			urlCard: {
+				/**
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
 				 */
 				title: string
 			}
@@ -1350,7 +1356,7 @@ type RootTranslation = {
 				 */
 				startEnrollment: string
 				/**
-				 * R​e​m​o​v​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 * R​e​m​o​t​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				activateDesktop: string
 			}
@@ -2481,15 +2487,23 @@ type RootTranslation = {
 			 */
 			header: string
 			/**
-			 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​d​o​c​k​e​r​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
-			 */
-			cardTitle: string
-			/**
 			 * I​n​ ​o​r​d​e​r​ ​t​o​ ​b​e​ ​a​b​l​e​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​y​o​u​r​ ​Y​u​b​i​K​e​y​s​,​ ​f​i​r​s​t​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​ ​u​p​
 		​ ​ ​ ​ ​ ​ ​ ​ ​p​h​y​s​i​c​a​l​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​U​S​B​ ​s​l​o​t​.​ ​R​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​ ​o​n​ ​y​o​u​r​ ​c​h​o​s​e​n​
 		​ ​ ​ ​ ​ ​ ​ ​ ​m​a​c​h​i​n​e​ ​t​o​ ​r​e​g​i​s​t​e​r​ ​i​t​ ​a​n​d​ ​s​t​a​r​t​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​y​o​u​r​ ​k​e​y​s​.
 			 */
 			content: string
+			dockerCard: {
+				/**
+				 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​d​o​c​k​e​r​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
+				 */
+				title: string
+			}
+			tokenCard: {
+				/**
+				 * A​c​c​e​s​s​ ​t​o​k​e​n
+				 */
+				title: string
+			}
 		}
 		list: {
 			headers: {
@@ -2528,10 +2542,16 @@ type RootTranslation = {
 			}
 		}
 		messages: {
-			/**
-			 * C​o​m​m​a​n​d​ ​c​o​p​i​e​d​.
-			 */
-			codeCopied: string
+			copy: {
+				/**
+				 * T​o​k​e​n​ ​c​o​p​i​e​d
+				 */
+				token: string
+				/**
+				 * C​o​m​m​a​n​d​ ​c​o​p​i​e​d
+				 */
+				command: string
+			}
 		}
 	}
 	openidAllow: {
@@ -3247,6 +3267,22 @@ type RootTranslation = {
 		 * S​u​p​p​o​r​t
 		 */
 		title: string
+		modals: {
+			confirmDataSend: {
+				/**
+				 * S​e​n​d​ ​S​u​p​p​o​r​t​ ​D​a​t​a
+				 */
+				title: string
+				/**
+				 * P​l​e​a​s​e​ ​c​o​n​f​i​r​m​ ​t​h​a​t​ ​y​o​u​ ​a​c​t​u​a​l​l​y​ ​w​a​n​t​ ​t​o​ ​s​e​n​d​ ​s​u​p​p​o​r​t​ ​d​e​b​u​g​ ​i​n​f​o​r​m​a​t​i​o​n​.​ ​N​o​n​e​ ​o​f​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​(​w​i​r​e​g​u​a​r​d​ ​k​e​y​s​,​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​e​s​,​ ​e​t​c​.​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​s​e​n​t​)​.
+				 */
+				subTitle: string
+				/**
+				 * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+				 */
+				submit: string
+			}
+		}
 		debugDataCard: {
 			/**
 			 * S​u​p​p​o​r​t​ ​d​a​t​a
@@ -3431,7 +3467,13 @@ export type TranslationFunctions = {
 			}
 			tokenCard: {
 				/**
-				 * Copy enrollment token
+				 * Activation token
+				 */
+				title: () => LocalizedString
+			}
+			urlCard: {
+				/**
+				 * Defguard Instance URL
 				 */
 				title: () => LocalizedString
 			}
@@ -4631,7 +4673,7 @@ export type TranslationFunctions = {
 				 */
 				startEnrollment: () => LocalizedString
 				/**
-				 * Remove desktop activation
+				 * Remote desktop activation
 				 */
 				activateDesktop: () => LocalizedString
 			}
@@ -5752,15 +5794,23 @@ export type TranslationFunctions = {
 			 */
 			header: () => LocalizedString
 			/**
-			 * Provisioning station docker setup command
-			 */
-			cardTitle: () => LocalizedString
-			/**
 			 * In order to be able to provision your YubiKeys, first you need to set up
 		        physical machine with USB slot. Run provided command on your chosen
 		        machine to register it and start provisioning your keys.
 			 */
 			content: () => LocalizedString
+			dockerCard: {
+				/**
+				 * Provisioning station docker setup command
+				 */
+				title: () => LocalizedString
+			}
+			tokenCard: {
+				/**
+				 * Access token
+				 */
+				title: () => LocalizedString
+			}
 		}
 		list: {
 			headers: {
@@ -5799,10 +5849,16 @@ export type TranslationFunctions = {
 			}
 		}
 		messages: {
-			/**
-			 * Command copied.
-			 */
-			codeCopied: () => LocalizedString
+			copy: {
+				/**
+				 * Token copied
+				 */
+				token: () => LocalizedString
+				/**
+				 * Command copied
+				 */
+				command: () => LocalizedString
+			}
 		}
 	}
 	openidAllow: {
@@ -6513,6 +6569,22 @@ export type TranslationFunctions = {
 		 * Support
 		 */
 		title: () => LocalizedString
+		modals: {
+			confirmDataSend: {
+				/**
+				 * Send Support Data
+				 */
+				title: () => LocalizedString
+				/**
+				 * Please confirm that you actually want to send support debug information. None of your private information will be sent (wireguard keys, email addresses, etc. will not be sent).
+				 */
+				subTitle: () => LocalizedString
+				/**
+				 * Send support data
+				 */
+				submit: () => LocalizedString
+			}
+		}
 		debugDataCard: {
 			/**
 			 * Support data

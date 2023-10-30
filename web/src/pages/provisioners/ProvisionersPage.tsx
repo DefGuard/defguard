@@ -18,8 +18,9 @@ import {
 } from '../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
-import { ProvisionersList } from './ProvisionersList/ProvisionersList';
-import { ProvisioningStationSetup } from './ProvisioningStationSetup';
+import { DeleteProvisionerModal } from './components/modals/DeleteProvisionerModal';
+import { ProvisionersList } from './components/ProvisionersList/ProvisionersList';
+import { ProvisioningStationSetup } from './components/ProvisioningStationSetupCard/ProvisioningStationSetupCard';
 
 export const ProvisionersPage = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -142,6 +143,7 @@ export const ProvisionersPage = () => {
       <div className="setup-container">
         <ProvisioningStationSetup />
       </div>
+      <DeleteProvisionerModal />
     </PageContainer>
   );
 };
