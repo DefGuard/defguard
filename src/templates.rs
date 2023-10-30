@@ -3,7 +3,10 @@ use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
 
-use crate::{db::{User, Device}, VERSION};
+use crate::{
+    db::{Device, User},
+    VERSION,
+};
 
 static MAIL_BASE: &str = include_str!("../templates/mail_base.tpl");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.tpl");
@@ -118,7 +121,10 @@ pub fn support_data_mail() -> Result<String, TemplateError> {
     Ok(tera.render("mail_support_data", &context)?)
 }
 
-pub fn new_device_added_mail(device: Device, device_network_ips: Vec<String>) -> Result<String, TemplateError> {
+pub fn new_device_added_mail(
+    device: Device,
+    device_network_ips: Vec<String>,
+) -> Result<String, TemplateError> {
     let mut tera = Tera::default();
     let mut context = Context::new();
     tera.add_raw_template("mail_base", MAIL_BASE)?;

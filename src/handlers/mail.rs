@@ -183,7 +183,7 @@ pub async fn send_new_device_added_email(
         }
         Err(err) => {
             error!("Error sending mail: {err}");
-            return Err(EnrollmentError::NotificationError(err.to_string()));
+            Err(EnrollmentError::NotificationError(err.to_string()))
         }
     }
 }
@@ -210,7 +210,7 @@ pub async fn send_mfa_configured_email(
         }
         Err(err) => {
             error!("Error sending mail: {err}");
-            return Err(EnrollmentError::NotificationError(err.to_string()));
+            Err(EnrollmentError::NotificationError(err.to_string()))
         }
     }
 }

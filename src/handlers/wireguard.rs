@@ -7,7 +7,7 @@ use std::{
 use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
-    Extension
+    Extension,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -28,7 +28,8 @@ use crate::{
         AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
     },
     grpc::GatewayMap,
-    wg_config::{parse_wireguard_config, ImportedDevice}, handlers::mail::send_new_device_added_email,
+    handlers::mail::send_new_device_added_email,
+    wg_config::{parse_wireguard_config, ImportedDevice},
 };
 
 #[derive(Deserialize, Serialize)]

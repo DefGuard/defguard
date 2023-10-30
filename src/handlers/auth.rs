@@ -24,9 +24,10 @@ use crate::{
     },
     db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::WebError,
+    handlers::mail::send_mfa_configured_email,
     handlers::SIGN_IN_COOKIE_NAME,
     ldap::utils::user_from_ldap,
-    SERVER_CONFIG, handlers::mail::send_mfa_configured_email,
+    SERVER_CONFIG,
 };
 
 /// For successful login, return:

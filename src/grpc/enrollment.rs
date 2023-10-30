@@ -8,7 +8,7 @@ use crate::{
         },
         DbPool, Device, GatewayEvent, Settings, User,
     },
-    handlers::{user::check_password_strength, mail::send_new_device_added_email},
+    handlers::{mail::send_new_device_added_email, user::check_password_strength},
     ldap::utils::ldap_add_user,
     mail::Mail,
     templates,
