@@ -16,7 +16,6 @@ use std::{
 };
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use uaparser::UserAgentParser;
 
 #[macro_use]
 extern crate tracing;
@@ -81,12 +80,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
-    let user_agent_parser = Arc::new(
-        UserAgentParser::builder()
-            .build_from_yaml("./regexes.yaml")
-            .expect("Parser creation failed"),
-    );
-
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;
 
@@ -110,7 +103,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // run services
     tokio::select! {
         _ = run_grpc_server(&config, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
-        _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), user_agent_parser, failed_logins) => (),
+        _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), failed_logins) => (),
         _ = run_mail_handler(mail_rx, pool.clone()) => (),
         _ = run_periodic_stats_purge(pool, config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => (),
     }

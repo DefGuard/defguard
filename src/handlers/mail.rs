@@ -7,16 +7,20 @@ use axum::{
 use chrono::Utc;
 use lettre::message::header::ContentType;
 use serde_json::json;
-use tokio::{fs::read_to_string, sync::mpsc::{unbounded_channel, UnboundedSender}};
+use tokio::{
+    fs::read_to_string,
+    sync::mpsc::{unbounded_channel, UnboundedSender},
+};
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
+    db::{models::enrollment::EnrollmentError, Device, User},
     mail::{Attachment, Mail},
     support::dump_config,
-    templates::{self, support_data_mail}, db::{models::{enrollment::EnrollmentError, error::ModelError, wireguard::WireguardNetworkError}, Device, User},
+    templates::{self, support_data_mail},
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -157,7 +161,7 @@ pub async fn send_new_device_added_email(
     device: Device,
     user: User,
     device_network_ips: Vec<String>,
-    mail_tx: &UnboundedSender<Mail>
+    mail_tx: &UnboundedSender<Mail>,
 ) -> Result<(), EnrollmentError> {
     debug!(
         "User {} new device added mail to {SUPPORT_EMAIL_ADDRESS}",
@@ -167,19 +171,14 @@ pub async fn send_new_device_added_email(
     let mail = Mail {
         to: user.email,
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
-        content: templates::new_device_added_mail(
-            device,
-            device_network_ips,
-        )?,
+        content: templates::new_device_added_mail(device, device_network_ips)?,
         attachments: Vec::new(),
         result_tx: None,
     };
 
     match mail_tx.send(mail) {
         Ok(_) => {
-            info!(
-                "Sent new device added mail for user",
-            );
+            info!("Sent new device added mail for user",);
             Ok(())
         }
         Err(err) => {
@@ -192,28 +191,21 @@ pub async fn send_new_device_added_email(
 pub async fn send_mfa_configured_email(
     user: User,
     mfa_type: String,
-    mail_tx: &UnboundedSender<Mail>
+    mail_tx: &UnboundedSender<Mail>,
 ) -> Result<(), EnrollmentError> {
-    debug!(
-        "Sending MFA configured mail to {}",
-        user.email
-    );
+    debug!("Sending MFA configured mail to {}", user.email);
 
     let mail = Mail {
         to: user.email,
-        subject: "MFA method ".to_owned() +  &mfa_type +  " was activated in your account",
-        content: templates::mfa_configured_mail(
-            mfa_type,
-        )?,
+        subject: "MFA method ".to_owned() + &mfa_type + " was activated in your account",
+        content: templates::mfa_configured_mail(mfa_type)?,
         attachments: Vec::new(),
         result_tx: None,
     };
 
     match mail_tx.send(mail) {
         Ok(_) => {
-            info!(
-                "Sent mfa configured mail for user",
-            );
+            info!("Sent mfa configured mail for user",);
             Ok(())
         }
         Err(err) => {
