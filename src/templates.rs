@@ -1,4 +1,4 @@
-use chrono::{Datelike, Utc};
+use chrono::Datelike;
 use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
@@ -143,10 +143,7 @@ pub fn new_device_added_mail(
 
 pub fn mfa_configured_mail(mfa_type: String) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None)?;
-    context.insert("mfa_type", &mfa_type);
-    let date = &Utc::now().format("%Y-%m-%dT%H:%M:00Z").to_string();
-    context.insert("mfa_date", date);
-
+    context.insert("mfa_method", &mfa_type);
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
 

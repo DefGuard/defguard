@@ -8,21 +8,26 @@ assigned_ip -> ip of device in location
 #}
 {% extends "base.tera" %}
 {% import "macros.tera" as macros %}
-{% block mail_content %}
-{% set section_content = [macros::paragraph(content="A new device has been added to your account:")] %}
-{{ macros::text_section(content_array=section_content) }}
-{{ macros::spacer(height="40px")}}
 {# Generate locations list#}
 {% macro device_locations(locations) %}
 {% for location in locations %}
-{{ macro::paragraph(content=location.name ~ ":" ~ " " ~ location.assigned_ip)}}
+{{ macros::paragraph(content=location.name ~ ":" ~ " " ~ location.assigned_ip)}}
 {% endfor %}
 {% endmacro device_locations %}
+{# mail content #}
+{% block mail_content %}
+{# title #}
+{% set section_content = [macros::paragraph(content="A new device has been added to your account:")] %}
+{{ macros::text_section(content_array=section_content) }}
+{{ macros::spacer(height="40px")}}
+{# device info block #}
 {% set name = device_name | title %}
+{% set locations_list = self::device_locations(locations=locations) %}
 {% set section_content = [
 macros::paragraph(content="Device name: " ~ name),
 macros::paragraph(content="Public key: " ~ public_key),
-device_locations(locations=locations)] %}
+locations_list ]
+%}
 {# render device section #}
-{{ macros::text_section(content_array=section_content)}}
+{{ macros::text_section(content_array=section_content) }}
 {% endblock %}
