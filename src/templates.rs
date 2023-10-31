@@ -23,12 +23,10 @@ pub enum TemplateError {
 
 pub fn get_base_tera(external_context: Option<Context>) -> Result<(Tera, Context), TemplateError> {
     let mut tera = Tera::default();
-    let mut context: Context;
-    if let Some(c) = external_context {
-        context = c.clone();
-    } else {
-        context = Context::new();
-    }
+    let mut context = match external_context {
+        Some(external) => external,
+        None => Context::new(),
+    };
     tera.add_raw_template("base.tera", MAIL_BASE)?;
     tera.add_raw_template("macros.tera", MAIL_MACROS)?;
     // supply context required by base
