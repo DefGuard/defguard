@@ -1,0 +1,13 @@
+{% extends "base.tera" %}
+{% import "macros.tera" as macros %}
+{% block mail_content %}
+{% set section_content = [macros::paragraph(content="You're receiving this email to configure new desktop client.",
+align="center")] %}
+{{ macros::text_section(content_array=section_content) }}
+{{ macros::spacer() }}
+{% set section_content = [
+macros::paragraph(content="Please paste url and token in your desktop app:"),
+macros::paragraph(content="Url: " ~ url),
+macros::paragraph(content="Token: " ~ token)] %}
+{{ macros::text_section(content_array=section_content)}}
+{% endblock %}

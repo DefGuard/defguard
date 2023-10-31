@@ -1,0 +1,9 @@
+{% extends "base.tera" %}
+{% import "macros.tera" as macros %}
+{% block mail_content %}
+{% set section_content = [
+macros::paragraph(content="You're receiving this email because a new account has been created for you."),
+macros::paragraph(content= "Please copy & paste the following url in your browser:"),
+macros::link(content=url, href=url)] %}
+{{ macros::text_section(content_array=section_content)}}
+{% endblock %}
