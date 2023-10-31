@@ -11,7 +11,7 @@ use crate::{
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     ldap::utils::ldap_add_user,
     mail::Mail,
-    templates,
+    templates::{self, TemplateLocation},
 };
 use ipnetwork::IpNetwork;
 use reqwest::Url;
@@ -280,7 +280,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
             device: device.clone(),
-            network_info,
+            network_info: network_info.clone(),
         }));
 
         let settings = Settings::get_settings(&mut *transaction)
@@ -290,12 +290,33 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
-        send_new_device_added_email(device.clone(), user, network_ips, &self.mail_tx).await?;
-
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
+
+        let template_locations: Vec<TemplateLocation> = configs
+            .iter()
+            .map(|c| {
+                let assigned_ip = match network_info.iter().find(|n| n.network_id == c.network_id) {
+                    Some(info) => info.device_wireguard_ip.to_string(),
+                    None => "".to_string(),
+                };
+                TemplateLocation {
+                    name: c.network_name.clone(),
+                    assigned_ip,
+                }
+            })
+            .collect();
+
+        send_new_device_added_email(
+            &device.name,
+            &device.wireguard_pubkey,
+            &template_locations,
+            &user.email,
+            &self.mail_tx,
+        )
+        .await?;
 
         let response = DeviceConfigResponse {
             device: Some(device.into()),

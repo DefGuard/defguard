@@ -17,10 +17,10 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::{models::enrollment::EnrollmentError, Device, User},
+    db::{models::enrollment::EnrollmentError, User},
     mail::{Attachment, Mail},
     support::dump_config,
-    templates::{self, support_data_mail},
+    templates::{self, support_data_mail, TemplateLocation},
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -158,20 +158,21 @@ pub async fn send_support_data(
 }
 
 pub async fn send_new_device_added_email(
-    device: Device,
-    user: User,
-    device_network_ips: Vec<String>,
+    device_name: &str,
+    public_key: &str,
+    template_locations: &Vec<TemplateLocation>,
+    user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
 ) -> Result<(), EnrollmentError> {
     debug!(
         "User {} new device added mail to {SUPPORT_EMAIL_ADDRESS}",
-        user.email
+        user_email
     );
 
     let mail = Mail {
-        to: user.email,
+        to: user_email.to_string(),
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
-        content: templates::new_device_added_mail(device, device_network_ips)?,
+        content: templates::new_device_added_mail(device_name, public_key, template_locations)?,
         attachments: Vec::new(),
         result_tx: None,
     };

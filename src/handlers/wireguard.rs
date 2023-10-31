@@ -29,6 +29,7 @@ use crate::{
     },
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
+    templates::TemplateLocation,
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
 
@@ -499,12 +500,33 @@ pub async fn add_device(
 
     appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
         device: device.clone(),
-        network_info,
+        network_info: network_info.clone(),
     }));
 
-    send_new_device_added_email(device.clone(), user, network_ips, &appstate.mail_tx).await?;
-
     transaction.commit().await?;
+
+    let template_locations: Vec<TemplateLocation> = configs
+        .iter()
+        .map(|c| {
+            let assigned_ip = match network_info.iter().find(|n| n.network_id == c.network_id) {
+                Some(info) => info.device_wireguard_ip.to_string(),
+                None => "".to_string(),
+            };
+            TemplateLocation {
+                name: device.name.clone(),
+                assigned_ip,
+            }
+        })
+        .collect();
+
+    send_new_device_added_email(
+        &device.name,
+        &device.wireguard_pubkey,
+        &template_locations,
+        &user.email,
+        &appstate.mail_tx,
+    )
+    .await?;
 
     info!(
         "User {} added device {device_name} for user {username}",

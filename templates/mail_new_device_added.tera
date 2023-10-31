@@ -1,0 +1,28 @@
+{# Requires context
+device_name -> name of the device added
+public_key -> Public key of device added
+locations -> {
+name -> location name,
+assigned_ip -> ip of device in location
+}[]
+#}
+{% extends "base.tera" %}
+{% import "macros.tera" as macros %}
+{% block mail_content %}
+{% set section_content = [macros::paragraph(content="A new device has been added to your account:")] %}
+{{ macros::text_section(content_array=section_content) }}
+{{ macros::spacer(height="40px")}}
+{# Generate locations list#}
+{% macro device_locations(locations) %}
+{% for location in locations %}
+{{ macro::paragraph(content=location.name ~ ":" ~ " " ~ location.assigned_ip)}}
+{% endfor %}
+{% endmacro device_locations %}
+{% set name = device_name | title %}
+{% set section_content = [
+macros::paragraph(content="Device name: " ~ name),
+macros::paragraph(content="Public key: " ~ public_key),
+device_locations(locations=locations)] %}
+{# render device section #}
+{{ macros::text_section(content_array=section_content)}}
+{% endblock %}

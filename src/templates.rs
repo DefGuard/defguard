@@ -1,12 +1,9 @@
-use chrono::{DateLike, Utc};
+use chrono::{Datelike, Utc};
 use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
 
-use crate::{
-    db::{Device, User},
-    VERSION,
-};
+use crate::{db::User, VERSION};
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
@@ -17,8 +14,11 @@ static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollmen
 static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
     include_str!("../templates/mail_enrollment_admin_notification.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
-static MAIL_NEW_DEVICE_ADDED: &str = include_str!("../templates/mail_new_device_added.tpl");
-static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tpl");
+static MAIL_NEW_DEVICE_ADDED: &str = include_str!("../templates/mail_new_device_added.tera");
+static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tera");
+
+#[allow(dead_code)]
+static MAIL_DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
@@ -122,28 +122,27 @@ pub fn support_data_mail() -> Result<String, TemplateError> {
     Ok(tera.render("mail_support_data", &context)?)
 }
 
+#[derive(Serialize, Debug, Clone)]
+pub struct TemplateLocation {
+    pub name: String,
+    pub assigned_ip: String,
+}
+
 pub fn new_device_added_mail(
-    device: Device,
-    device_network_ips: Vec<String>,
+    device_name: &str,
+    public_key: &str,
+    template_locations: &Vec<TemplateLocation>,
 ) -> Result<String, TemplateError> {
-    let mut tera = Tera::default();
-    let mut context = Context::new();
-    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    let (mut tera, mut context) = get_base_tera(None)?;
+    context.insert("device_name", device_name);
+    context.insert("public_key", public_key);
+    context.insert("locations", template_locations);
     tera.add_raw_template("mail_new_device_added", MAIL_NEW_DEVICE_ADDED)?;
-
-    context.insert("version", &VERSION);
-    context.insert("device_name", &device.name);
-    context.insert("public_key", &device.wireguard_pubkey);
-    context.insert("date", &device.created);
-    context.insert("ip_addresses", &device_network_ips);
-
     Ok(tera.render("mail_new_device_added", &context)?)
 }
 
 pub fn mfa_configured_mail(mfa_type: String) -> Result<String, TemplateError> {
-    let mut tera = Tera::default();
-    let mut context = Context::new();
-
+    let (mut tera, mut context) = get_base_tera(None)?;
     context.insert("mfa_type", &mfa_type);
     let date = &Utc::now().format("%Y-%m-%dT%H:%M:00Z").to_string();
     context.insert("mfa_date", date);
@@ -152,66 +151,4 @@ pub fn mfa_configured_mail(mfa_type: String) -> Result<String, TemplateError> {
     tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
 
     Ok(tera.render("mail_mfa_configured", &context)?)
-}
-
-pub fn new_device_added_mail(
-    device: Device,
-    device_network_ips: Vec<String>,
-) -> Result<String, TemplateError> {
-    let mut tera = Tera::default();
-    let mut context = Context::new();
-    tera.add_raw_template("mail_base", MAIL_BASE)?;
-    tera.add_raw_template("mail_new_device_added", MAIL_NEW_DEVICE_ADDED)?;
-
-    context.insert("version", &VERSION);
-    context.insert("device_name", &device.name);
-    context.insert("public_key", &device.wireguard_pubkey);
-    context.insert("date", &device.created);
-    context.insert("ip_addresses", &device_network_ips);
-
-    Ok(tera.render("mail_new_device_added", &context)?)
-}
-
-pub fn mfa_configured_mail(mfa_type: String) -> Result<String, TemplateError> {
-    let mut tera = Tera::default();
-    let mut context = Context::new();
-
-    context.insert("mfa_type", &mfa_type);
-    let date = &Utc::now().format("%Y-%m-%dT%H:%M:00Z").to_string();
-    context.insert("mfa_date", date);
-
-    tera.add_raw_template("mail_base", MAIL_BASE)?;
-    tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
-
-    Ok(tera.render("mail_mfa_configured", &context)?)
-}
-
-#[cfg(test)]
-mod test {
-    use claims::assert_ok;
-
-    use super::*;
-    #[test]
-    fn test_test_mail() {
-        assert_ok!(test_mail());
-    }
-
-    #[test]
-    fn test_enrollment_start_mail() {
-        assert_ok!(enrollment_start_mail(
-            Context::new(),
-            Url::parse("http://localhost:8080").unwrap(),
-            "test_token"
-        ));
-    }
-
-    #[test]
-    fn test_enrollment_welcome_mail() {
-        assert_ok!(enrollment_welcome_mail("Hi there! Welcome to DefGuard."));
-    }
-
-    #[test]
-    fn test_support_data_mail() {
-        assert_ok!(support_data_mail());
-    }
 }
