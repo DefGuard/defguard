@@ -1,11 +1,8 @@
 mod common;
 
-use self::common::{client::TestClient, make_test_client};
 use claims::assert_ok;
-use common::ClientState;
+use common::{client::TestClient, make_test_client, ClientState};
 use defguard::{
-    db::User,
-    handlers::AddUserData,
     templates::{
         desktop_start_mail, enrollment_admin_notification, enrollment_start_mail,
         enrollment_welcome_mail, get_base_tera, mfa_configured_mail, new_device_added_mail,
@@ -13,43 +10,12 @@ use defguard::{
     },
     VERSION,
 };
-use hyper::StatusCode;
 use reqwest::Url;
 use tera::Context;
 
-async fn make_client() -> (TestClient, ClientState, User, User) {
-    let (client, state) = make_test_client().await;
-
-    let pool = state.pool.clone();
-
-    let admin_user = User::find_by_username(&pool, "admin")
-        .await
-        .unwrap()
-        .unwrap();
-
-    let test_user_add = AddUserData {
-        username: "adumbledore".into(),
-        last_name: "Dumbledore".into(),
-        first_name: "Albus".into(),
-        email: "a.dumbledore@hogwart.edu.uk".into(),
-        phone: Some("1234".into()),
-        password: Some("Password1234543$!".into()),
-    };
-
-    let response = client
-        .post("/api/v1/user")
-        .json(&test_user_add)
-        .send()
-        .await;
-
-    assert_eq!(response.status(), StatusCode::CREATED);
-
-    let test_user = User::find_by_username(&pool, "adumbeldore")
-        .await
-        .unwrap()
-        .unwrap();
-
-    (client, state, admin_user, test_user)
+async fn make_client() -> (TestClient, ClientState) {
+    let (client, client_state) = make_test_client().await;
+    (client, client_state)
 }
 
 fn get_welcome_context() -> Context {
@@ -111,8 +77,11 @@ async fn test_desktop_start_mail() {
 
 #[tokio::test]
 async fn test_enrollment_admin_notification() {
-    let (_client, _state, admin, user) = make_client().await;
-    assert_ok!(enrollment_admin_notification(&user, &admin));
+    let (_, state) = make_client().await;
+    assert_ok!(enrollment_admin_notification(
+        &state.test_user,
+        &state.test_user
+    ));
 }
 
 #[tokio::test]
