@@ -17,10 +17,10 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::{models::enrollment::EnrollmentError, User},
+    db::User,
     mail::{Attachment, Mail},
     support::dump_config,
-    templates::{self, support_data_mail, TemplateLocation},
+    templates::{self, support_data_mail, TemplateError, TemplateLocation},
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -163,7 +163,7 @@ pub async fn send_new_device_added_email(
     template_locations: &Vec<TemplateLocation>,
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
-) -> Result<(), EnrollmentError> {
+) -> Result<(), TemplateError> {
     debug!(
         "User {} new device added mail to {SUPPORT_EMAIL_ADDRESS}",
         user_email
@@ -177,14 +177,19 @@ pub async fn send_new_device_added_email(
         result_tx: None,
     };
 
+    let to = mail.to.clone();
+
     match mail_tx.send(mail) {
         Ok(_) => {
-            info!("Sent new device added mail for user",);
+            info!("Sent new device notification to {}", &to);
             Ok(())
         }
         Err(err) => {
-            error!("Error sending mail: {err}");
-            Err(EnrollmentError::NotificationError(err.to_string()))
+            error!(
+                "Sending new device notification to {} failed with erorr:\n{}",
+                &to, &err
+            );
+            Ok(())
         }
     }
 }
@@ -193,7 +198,7 @@ pub async fn send_mfa_configured_email(
     user: User,
     mfa_type: String,
     mail_tx: &UnboundedSender<Mail>,
-) -> Result<(), EnrollmentError> {
+) -> Result<(), TemplateError> {
     debug!("Sending MFA configured mail to {}", user.email);
 
     let subject = format!("MFA method {} was activated on your account", &mfa_type);
@@ -206,14 +211,19 @@ pub async fn send_mfa_configured_email(
         result_tx: None,
     };
 
+    let to = mail.to.clone();
+
     match mail_tx.send(mail) {
         Ok(_) => {
-            info!("Sent mfa configured mail for user",);
+            info!("MFA configred mail sent to {}", &to);
             Ok(())
         }
         Err(err) => {
-            error!("Error sending mail: {err}");
-            Err(EnrollmentError::NotificationError(err.to_string()))
+            error!(
+                "Failed to send mfa configured mail to {} with error:\n{}",
+                &to, &err
+            );
+            Ok(())
         }
     }
 }

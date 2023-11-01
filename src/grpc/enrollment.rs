@@ -316,8 +316,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             &user.email,
             &self.mail_tx,
         )
-        .await?;
-
+        .await
+        .map_err(|_| Status::internal("Failed to render new device added tempalte"))?;
         let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
