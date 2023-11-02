@@ -273,11 +273,6 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
-        let mut network_ips: Vec<String> = Vec::new();
-        for network_info_item in network_info.clone() {
-            network_ips.push(network_info_item.device_wireguard_ip.to_string());
-        }
-
         self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
             device: device.clone(),
             network_info: network_info.clone(),
