@@ -6,9 +6,9 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
+import { ConfigStep } from '../../../../../addDevice/steps/AddDeviceConfigStep/ConfigStep';
+import { SetupStep } from '../../../../../addDevice/steps/AddDeviceSetupStep/SetupStep';
 import { DeviceModalSetupMode, useDeviceModal } from '../../hooks/useDeviceModal';
-import { ConfigStep } from './steps/ConfigStep';
-import { SetupStep } from './steps/SetupStep';
 
 const modalSteps: ReactNode[] = [<SetupStep key={0} />, <ConfigStep key={1} />];
 

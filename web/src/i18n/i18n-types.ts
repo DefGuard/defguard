@@ -14,6 +14,42 @@ export type Translation = RootTranslation
 export type Translations = RootTranslation
 
 type RootTranslation = {
+	common: {
+		controls: {
+			/**
+			 * N​e​x​t
+			 */
+			next: string
+			/**
+			 * B​a​c​k
+			 */
+			back: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+			/**
+			 * C​o​n​f​i​r​m
+			 */
+			confirm: string
+			/**
+			 * S​u​b​m​i​t
+			 */
+			submit: string
+			/**
+			 * C​l​o​s​e
+			 */
+			close: string
+			/**
+			 * S​e​l​e​c​t
+			 */
+			select: string
+			/**
+			 * F​i​n​i​s​h
+			 */
+			finish: string
+		}
+	}
 	messages: {
 		/**
 		 * E​r​r​o​r​ ​h​a​s​ ​o​c​c​u​r​r​e​d​.
@@ -108,7 +144,7 @@ type RootTranslation = {
 				 */
 				error: string
 				/**
-				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​d​e​k​s​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				errorDesktop: string
 			}
@@ -376,12 +412,6 @@ type RootTranslation = {
 				viewTitle: string
 				steps: {
 					config: {
-						messages: {
-							/**
-							 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​h​a​s​ ​b​e​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
-							 */
-							copyConfig: string
-						}
 						helpers: {
 							/**
 							 * 
@@ -891,6 +921,164 @@ type RootTranslation = {
 				 * W​e​b​h​o​o​k​ ​d​e​l​e​t​e​d​.
 				 */
 				success: string
+			}
+		}
+	}
+	addDevicePage: {
+		/**
+		 * A​d​d​ ​d​e​v​i​c​e
+		 */
+		title: string
+		helpers: {
+			/**
+			 * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​O​p​t​ ​f​o​r​ ​o​u​r​ ​n​a​t​i​v​e​ ​a​p​p​l​i​c​a​t​i​o​n​ ​"​d​e​f​g​u​a​r​d​"​ ​o​r​ ​a​n​y​ ​o​t​h​e​r​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​.​ ​I​f​ ​y​o​u​'​r​e​ ​u​n​s​u​r​e​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​f​o​r​ ​s​i​m​p​l​i​c​i​t​y​.
+			 */
+			setupOpt: string
+		}
+		messages: {
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			deviceAdded: string
+		}
+		steps: {
+			setupMethod: {
+				remote: {
+					/**
+					 * R​e​m​o​t​e​ ​D​e​s​k​t​o​p​ ​A​c​t​i​v​a​t​i​o​n
+					 */
+					title: string
+					/**
+					 * A​ ​b​r​e​e​z​e​ ​t​o​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​j​u​s​t​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​e​n​j​o​y​ ​s​t​r​a​i​g​h​t​f​o​r​w​a​r​d​ ​s​e​c​u​r​i​t​y​.
+					 */
+					subTitle: string
+					/**
+					 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					link: string
+				}
+				manual: {
+					/**
+					 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					title: string
+					/**
+					 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
+					 */
+					subTitle: string
+					/**
+					 * D​o​w​n​l​o​a​d​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					link: string
+				}
+			}
+			configDevice: {
+				messages: {
+					/**
+					 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​h​a​s​ ​b​e​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
+					 */
+					copyConfig: string
+				}
+				helpers: {
+					/**
+					 * 
+				​ ​ ​ ​ ​<​p​>​
+				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
+				​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
+				​ ​ ​ ​ ​ ​ ​d​i​a​l​o​g​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
+				​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
+				​ ​ ​ ​ ​<​/​p​>​
+			
+					 */
+					warningAutoMode: string
+					/**
+					 * 
+				​ ​ ​ ​ ​<​p​>​
+				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​l​a​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
+				​ ​ ​ ​ ​<​/​p​>​
+			
+					 */
+					warningManualMode: string
+					/**
+					 * 
+				​ ​ ​ ​ ​ ​ ​<​p​>​
+				​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
+				​ ​ ​ ​ ​ ​ ​<​/​p​>
+					 */
+					qrHelper: string
+				}
+				/**
+				 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
+				 */
+				qrInfo: string
+				/**
+				 * D​e​v​i​c​e​ ​N​a​m​e
+				 */
+				inputNameLabel: string
+				/**
+				 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
+				 */
+				qrLabel: string
+			}
+			setupDevice: {
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		
+				 * @param {string} addDevicesDocs
+				 */
+				infoMessage: RequiredParams<'addDevicesDocs'>
+				options: {
+					/**
+					 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
+					 */
+					auto: string
+					/**
+					 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
+					 */
+					manual: string
+				}
+				form: {
+					/**
+					 * G​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+					 */
+					submit: string
+					fields: {
+						name: {
+							/**
+							 * D​e​v​i​c​e​ ​N​a​m​e
+							 */
+							label: string
+						}
+						publicKey: {
+							/**
+							 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
+							 */
+							label: string
+						}
+					}
+					errors: {
+						name: {
+							/**
+							 * D​e​v​i​c​e​ ​w​i​t​h​ ​t​h​i​s​ ​n​a​m​e​ ​a​l​r​e​a​d​y​ ​e​x​i​s​t​s
+							 */
+							duplicatedName: string
+						}
+					}
+				}
+			}
+			copyToken: {
+				/**
+				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
+				 */
+				tokenCardTitle: string
+				/**
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
+				 */
+				urlCardTitle: string
 			}
 		}
 	}
@@ -1593,6 +1781,18 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		deviceConfigsCard: {
+			/**
+			 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
+			 */
+			cardTitle: string
+			messages: {
+				/**
+				 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
+				 */
+				copyConfig: string
+			}
+		}
 		gatewaysStatus: {
 			/**
 			 * G​a​t​e​w​a​y​s
@@ -3339,6 +3539,42 @@ type RootTranslation = {
 }
 
 export type TranslationFunctions = {
+	common: {
+		controls: {
+			/**
+			 * Next
+			 */
+			next: () => LocalizedString
+			/**
+			 * Back
+			 */
+			back: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+			/**
+			 * Confirm
+			 */
+			confirm: () => LocalizedString
+			/**
+			 * Submit
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Close
+			 */
+			close: () => LocalizedString
+			/**
+			 * Select
+			 */
+			select: () => LocalizedString
+			/**
+			 * Finish
+			 */
+			finish: () => LocalizedString
+		}
+	}
 	messages: {
 		/**
 		 * Error has occurred.
@@ -3433,7 +3669,7 @@ export type TranslationFunctions = {
 				 */
 				error: () => LocalizedString
 				/**
-				 * Failed to start dekstop activation
+				 * Failed to start desktop activation
 				 */
 				errorDesktop: () => LocalizedString
 			}
@@ -3699,12 +3935,6 @@ export type TranslationFunctions = {
 				viewTitle: () => LocalizedString
 				steps: {
 					config: {
-						messages: {
-							/**
-							 * Configuration has been copied to the clipboard
-							 */
-							copyConfig: () => LocalizedString
-						}
 						helpers: {
 							/**
 							 * 
@@ -4208,6 +4438,163 @@ export type TranslationFunctions = {
 				 * Webhook deleted.
 				 */
 				success: () => LocalizedString
+			}
+		}
+	}
+	addDevicePage: {
+		/**
+		 * Add device
+		 */
+		title: () => LocalizedString
+		helpers: {
+			/**
+			 * You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.
+			 */
+			setupOpt: () => LocalizedString
+		}
+		messages: {
+			/**
+			 * Device added
+			 */
+			deviceAdded: () => LocalizedString
+		}
+		steps: {
+			setupMethod: {
+				remote: {
+					/**
+					 * Remote Desktop Activation
+					 */
+					title: () => LocalizedString
+					/**
+					 * A breeze to set up with just a single token. Download the client and enjoy straightforward security.
+					 */
+					subTitle: () => LocalizedString
+					/**
+					 * Download defguard Client
+					 */
+					link: () => LocalizedString
+				}
+				manual: {
+					/**
+					 * Manual WireGuard Client
+					 */
+					title: () => LocalizedString
+					/**
+					 * For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.
+					 */
+					subTitle: () => LocalizedString
+					/**
+					 * Download WireGuard Client
+					 */
+					link: () => LocalizedString
+				}
+			}
+			configDevice: {
+				messages: {
+					/**
+					 * Configuration has been copied to the clipboard
+					 */
+					copyConfig: () => LocalizedString
+				}
+				helpers: {
+					/**
+					 * 
+				    <p>
+				      Please be advised that you have to download the configuration now,
+				      since <strong>we do not</strong> store your private key. After this
+				      dialog is closed, you <strong>will not be able</strong> to get your
+				      full configuration file (with private keys, only blank template).
+				    </p>
+			
+					 */
+					warningAutoMode: () => LocalizedString
+					/**
+					 * 
+				    <p>
+				      Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
+				    </p>
+			
+					 */
+					warningManualMode: () => LocalizedString
+					/**
+					 * 
+				      <p>
+				        You can setup your device faster with wireguard application by scanning this QR code.
+				      </p>
+					 */
+					qrHelper: () => LocalizedString
+				}
+				/**
+				 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
+				 */
+				qrInfo: () => LocalizedString
+				/**
+				 * Device Name
+				 */
+				inputNameLabel: () => LocalizedString
+				/**
+				 * WireGuard Config File
+				 */
+				qrLabel: () => LocalizedString
+			}
+			setupDevice: {
+				/**
+				 * 
+			        <p>
+			          You need to configure WireGuardVPN on your device, please visit&nbsp;
+			          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
+			        </p>
+		
+				 */
+				infoMessage: (arg: { addDevicesDocs: string }) => LocalizedString
+				options: {
+					/**
+					 * Generate key pair
+					 */
+					auto: () => LocalizedString
+					/**
+					 * Use my own public key
+					 */
+					manual: () => LocalizedString
+				}
+				form: {
+					/**
+					 * Generate configuration
+					 */
+					submit: () => LocalizedString
+					fields: {
+						name: {
+							/**
+							 * Device Name
+							 */
+							label: () => LocalizedString
+						}
+						publicKey: {
+							/**
+							 * Provide Your Public Key
+							 */
+							label: () => LocalizedString
+						}
+					}
+					errors: {
+						name: {
+							/**
+							 * Device with this name already exists
+							 */
+							duplicatedName: () => LocalizedString
+						}
+					}
+				}
+			}
+			copyToken: {
+				/**
+				 * Activation token
+				 */
+				tokenCardTitle: () => LocalizedString
+				/**
+				 * Defguard Instance URL
+				 */
+				urlCardTitle: () => LocalizedString
 			}
 		}
 	}
@@ -4908,6 +5295,18 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		deviceConfigsCard: {
+			/**
+			 * WireGuard Config for location:
+			 */
+			cardTitle: () => LocalizedString
+			messages: {
+				/**
+				 * Configuration copied to the clipboard
+				 */
+				copyConfig: () => LocalizedString
+			}
+		}
 		gatewaysStatus: {
 			/**
 			 * Gateways

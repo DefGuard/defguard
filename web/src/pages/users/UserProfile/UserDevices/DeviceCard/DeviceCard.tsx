@@ -24,7 +24,6 @@ import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserPr
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
-import { DeviceModalSetupMode, useDeviceModal } from '../hooks/useDeviceModal';
 import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
 
 dayjs.extend(utc);
@@ -46,7 +45,6 @@ export const DeviceCard = ({ device }: Props) => {
   const user = useUserProfileStore((state) => state.userProfile);
   const setDeleteDeviceModal = useDeleteDeviceModal((state) => state.setState);
   const setEditDeviceModal = useEditDeviceModal((state) => state.setState);
-  const openDeviceModal = useDeviceModal((state) => state.open);
 
   const cn = useMemo(
     () =>
@@ -154,14 +152,6 @@ export const DeviceCard = ({ device }: Props) => {
           <EditButtonOption
             styleVariant={EditButtonOptionStyleVariant.STANDARD}
             text={LL.userPage.devices.card.edit.showConfigurations()}
-            onClick={() =>
-              openDeviceModal({
-                visible: true,
-                currentStep: 1,
-                setupMode: DeviceModalSetupMode.MANUAL_CONFIG,
-                device: device,
-              })
-            }
           />
           <EditButtonOption
             styleVariant={EditButtonOptionStyleVariant.WARNING}

@@ -5,61 +5,54 @@ import { useMemo } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
-import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import IconDownload from '../../../../../../../shared/components/svg/IconDownload';
-import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { FormToggle } from '../../../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
-import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import { useI18nContext } from '../../../../i18n/i18n-react';
+import IconDownload from '../../../../shared/components/svg/IconDownload';
+import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormToggle } from '../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
-} from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
-import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { ToggleOption } from '../../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
-import { useUserProfileStore } from '../../../../../../../shared/hooks/store/useUserProfileStore';
-import useApi from '../../../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../../../shared/hooks/useToaster';
-import { externalLink } from '../../../../../../../shared/links';
-import { MutationKeys } from '../../../../../../../shared/mutations';
-import { patternValidWireguardKey } from '../../../../../../../shared/patterns';
-import { QueryKeys } from '../../../../../../../shared/queries';
-import { generateWGKeys } from '../../../../../../../shared/utils/generateWGKeys';
-import { DeviceModalSetupMode, useDeviceModal } from '../../../hooks/useDeviceModal';
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { ToggleOption } from '../../../../shared/defguard-ui/components/Layout/Toggle/types';
+import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
+import { externalLink } from '../../../../shared/links';
+import { MutationKeys } from '../../../../shared/mutations';
+import { patternValidWireguardKey } from '../../../../shared/patterns';
+import { QueryKeys } from '../../../../shared/queries';
+import { generateWGKeys } from '../../../../shared/utils/generateWGKeys';
+import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
+import { AddDeviceSetupMethod } from '../../types';
 
 interface FormValues {
   name: string;
-  choice: DeviceModalSetupMode;
+  choice: AddDeviceSetupMethod;
   publicKey?: string;
 }
 
-export const SetupStep = () => {
+export const AddDeviceSetupStep = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
     device: { addDevice },
   } = useApi();
 
-  const nextStep = useDeviceModal((state) => state.nextStep);
-
-  const userProfile = useUserProfileStore((state) => state.userProfile);
-
-  const user = userProfile?.user;
-
-  const reservedNames = useMemo(
-    () => userProfile?.devices.map((d) => d.name) ?? [],
-    [userProfile?.devices],
-  );
+  const userData = useAddDevicePageStore((state) => state.userData);
+  const nextStep = useAddDevicePageStore((state) => state.nextStep);
 
   const toggleOptions = useMemo(() => {
     const res: ToggleOption<number>[] = [
       {
         text: LL.modals.addDevice.web.steps.setup.options.auto(),
-        value: DeviceModalSetupMode.AUTO_CONFIG,
+        value: AddDeviceSetupMethod.AUTO,
       },
       {
         text: LL.modals.addDevice.web.steps.setup.options.manual(),
-        value: DeviceModalSetupMode.MANUAL_CONFIG,
+        value: AddDeviceSetupMethod.MANUAL,
       },
     ];
     return res;
@@ -78,13 +71,11 @@ export const SetupStep = () => {
             .test(
               'is-duplicated',
               LL.modals.addDevice.web.steps.setup.form.errors.name.duplicatedName(),
-              (value) => !reservedNames?.includes(value),
+              (value) => !userData?.reservedDevices?.includes(value),
             ),
           publicKey: yup.string().when('choice', {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            //@ts-ignore
-            is: (choice: number | undefined) =>
-              choice === DeviceModalSetupMode.MANUAL_CONFIG,
+            is: (choice: number | undefined) => choice === AddDeviceSetupMethod.MANUAL,
             then: () =>
               yup
                 .string()
@@ -96,7 +87,7 @@ export const SetupStep = () => {
           }),
         })
         .required(),
-    [LL.form.error, LL.modals.addDevice.web.steps.setup.form.errors.name, reservedNames],
+    [LL.form.error, LL.modals.addDevice.web.steps.setup.form.errors.name, userData],
   );
 
   const {
@@ -106,7 +97,7 @@ export const SetupStep = () => {
   } = useForm<FormValues>({
     defaultValues: {
       name: '',
-      choice: DeviceModalSetupMode.AUTO_CONFIG,
+      choice: AddDeviceSetupMethod.AUTO,
       publicKey: '',
     },
     resolver: yupResolver(schema),
@@ -131,40 +122,30 @@ export const SetupStep = () => {
   );
 
   const validSubmitHandler: SubmitHandler<FormValues> = async (values) => {
-    if (!user) return;
-    if (values.choice === DeviceModalSetupMode.AUTO_CONFIG) {
+    if (!userData) return;
+    if (values.choice === AddDeviceSetupMethod.AUTO) {
       const keys = generateWGKeys();
       addDeviceMutation({
         name: values.name,
         wireguard_pubkey: keys.publicKey,
-        username: user.username,
+        username: userData.username,
       }).then((response) => {
-        const configs = response.configs.map((c) => {
-          c.config = c.config.replace(/YOUR_PRIVATE_KEY/g, keys.privateKey);
-          return c;
-        });
-        const device = response.device;
         nextStep({
-          configs,
-          deviceName: device.name,
-          setupMode: values.choice,
+          device: response.device,
+          publicKey: keys.publicKey,
+          privateKey: keys.privateKey,
         });
       });
     } else {
       addDeviceMutation({
         name: values.name,
         wireguard_pubkey: values.publicKey as string,
-        username: user.username,
+        username: userData.username,
       }).then((response) => {
-        // This needs to be replaced with valid key so the wireguard mobile app can consume QRCode without errors
-        const configs = response.configs.map((c) => {
-          c.config = c.config.replace(/YOUR_PRIVATE_KEY/g, values.publicKey as string);
-          return c;
-        });
         nextStep({
-          configs,
-          deviceName: values.name,
-          setupMode: values.choice,
+          device: response.device,
+          publicKey: values.publicKey as string,
+          privateKey: undefined,
         });
       });
     }
@@ -175,7 +156,7 @@ export const SetupStep = () => {
   } = useController({ control, name: 'choice' });
 
   return (
-    <>
+    <Card id="add-device-setup-step">
       <MessageBox type={MessageBoxType.INFO}>
         {parser(
           LL.modals.addDevice.web.steps.setup.infoMessage({
@@ -192,7 +173,7 @@ export const SetupStep = () => {
         <FormInput
           label={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
           controller={{ control, name: 'publicKey' }}
-          disabled={choiceValue === DeviceModalSetupMode.AUTO_CONFIG}
+          disabled={choiceValue === AddDeviceSetupMethod.AUTO}
         />
         <div className="controls">
           <Button
@@ -206,6 +187,6 @@ export const SetupStep = () => {
           />
         </div>
       </form>
-    </>
+    </Card>
   );
 };
