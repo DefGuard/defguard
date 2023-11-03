@@ -453,6 +453,7 @@ const en: BaseTranslation = {
         },
       },
       configDevice: {
+        title: 'Configure device',
         messages: {
           copyConfig: 'Configuration has been copied to the clipboard',
         },
@@ -461,7 +462,7 @@ const en: BaseTranslation = {
     <p>
       Please be advised that you have to download the configuration now,
       since <strong>we do not</strong> store your private key. After this
-      dialog is closed, you <strong>will not be able</strong> to get your
+      page is closed, you <strong>will not be able</strong> to get your
       full configuration file (with private keys, only blank template).
     </p>
 `,
@@ -481,6 +482,7 @@ const en: BaseTranslation = {
         qrLabel: 'WireGuard Config File',
       },
       setupDevice: {
+        title: 'Create VPN device',
         infoMessage: `
         <p>
           You need to configure WireGuardVPN on your device, please visit&nbsp;
@@ -492,7 +494,6 @@ const en: BaseTranslation = {
           manual: 'Use my own public key',
         },
         form: {
-          submit: 'Generate configuration',
           fields: {
             name: {
               label: 'Device Name',
@@ -509,6 +510,7 @@ const en: BaseTranslation = {
         },
       },
       copyToken: {
+        title: 'Client activation',
         tokenCardTitle: 'Activation token',
         urlCardTitle: 'Defguard Instance URL',
       },
@@ -771,10 +773,10 @@ const en: BaseTranslation = {
   },
   components: {
     deviceConfigsCard: {
-        cardTitle: 'WireGuard Config for location:',
-        messages: {
-          copyConfig: 'Configuration copied to the clipboard',
-        },
+      cardTitle: 'WireGuard Config for location:',
+      messages: {
+        copyConfig: 'Configuration copied to the clipboard',
+      },
     },
     gatewaysStatus: {
       label: 'Gateways',

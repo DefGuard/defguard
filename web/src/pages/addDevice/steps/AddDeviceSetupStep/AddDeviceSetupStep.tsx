@@ -1,19 +1,15 @@
+import './style.scss';
+
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parser from 'html-react-parser';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import IconDownload from '../../../../shared/components/svg/IconDownload';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormToggle } from '../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
-import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
@@ -36,13 +32,16 @@ interface FormValues {
 
 export const AddDeviceSetupStep = () => {
   const { LL } = useI18nContext();
+  const localLL = LL.addDevicePage.steps.setupDevice;
   const toaster = useToaster();
   const {
     device: { addDevice },
   } = useApi();
-
+  const submitRef = useRef<HTMLInputElement | null>(null);
   const userData = useAddDevicePageStore((state) => state.userData);
   const nextStep = useAddDevicePageStore((state) => state.nextStep);
+  const nextSubject = useAddDevicePageStore((state) => state.nextSubject);
+  const setPageState = useAddDevicePageStore((state) => state.setState);
 
   const toggleOptions = useMemo(() => {
     const res: ToggleOption<number>[] = [
@@ -90,11 +89,7 @@ export const AddDeviceSetupStep = () => {
     [LL.form.error, LL.modals.addDevice.web.steps.setup.form.errors.name, userData],
   );
 
-  const {
-    handleSubmit,
-    control,
-    formState: { isValid },
-  } = useForm<FormValues>({
+  const { handleSubmit, control } = useForm<FormValues>({
     defaultValues: {
       name: '',
       choice: AddDeviceSetupMethod.AUTO,
@@ -106,7 +101,7 @@ export const AddDeviceSetupStep = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutateAsync: addDeviceMutation, isLoading: addDeviceLoading } = useMutation(
+  const { mutateAsync: addDeviceMutation, isLoading } = useMutation(
     [MutationKeys.ADD_DEVICE],
     addDevice,
     {
@@ -134,6 +129,10 @@ export const AddDeviceSetupStep = () => {
           device: response.device,
           publicKey: keys.publicKey,
           privateKey: keys.privateKey,
+          networks: response.configs.map((c) => ({
+            networkName: c.network_name,
+            networkId: c.network_id,
+          })),
         });
       });
     } else {
@@ -146,6 +145,10 @@ export const AddDeviceSetupStep = () => {
           device: response.device,
           publicKey: values.publicKey as string,
           privateKey: undefined,
+          networks: response.configs.map((c) => ({
+            networkName: c.network_name,
+            networkId: c.network_id,
+          })),
         });
       });
     }
@@ -155,8 +158,23 @@ export const AddDeviceSetupStep = () => {
     field: { value: choiceValue },
   } = useController({ control, name: 'choice' });
 
+  useEffect(() => {
+    const sub = nextSubject.subscribe(() => {
+      submitRef?.current?.click();
+    });
+
+    return () => {
+      sub.unsubscribe();
+    };
+  }, [nextSubject, submitRef]);
+
+  useEffect(() => {
+    setPageState({ loading: isLoading });
+  }, [isLoading, setPageState]);
+
   return (
-    <Card id="add-device-setup-step">
+    <Card id="add-device-setup-step" shaded>
+      <h2>{localLL.title()}</h2>
       <MessageBox type={MessageBoxType.INFO}>
         {parser(
           LL.modals.addDevice.web.steps.setup.infoMessage({
@@ -175,17 +193,7 @@ export const AddDeviceSetupStep = () => {
           controller={{ control, name: 'publicKey' }}
           disabled={choiceValue === AddDeviceSetupMethod.AUTO}
         />
-        <div className="controls">
-          <Button
-            type="submit"
-            text={LL.modals.addDevice.web.steps.setup.form.submit()}
-            styleVariant={ButtonStyleVariant.PRIMARY}
-            size={ButtonSize.LARGE}
-            disabled={!isValid}
-            loading={addDeviceLoading}
-            icon={<IconDownload />}
-          />
-        </div>
+        <input type="submit" className="hidden" ref={submitRef} />
       </form>
     </Card>
   );

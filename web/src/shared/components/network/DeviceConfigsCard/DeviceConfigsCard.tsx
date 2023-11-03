@@ -19,7 +19,6 @@ import {
 import useApi from '../../../hooks/useApi';
 import { useClipboard } from '../../../hooks/useClipboard';
 import { QueryKeys } from '../../../queries';
-import { GetDeviceConfigRequest } from '../../../types';
 import { downloadWGConfig } from '../../../utils/downloadWGConfig';
 import { DeviceConfigsCardNetworkInfo } from './types';
 
@@ -35,6 +34,7 @@ type Props = {
 
 /*Expandable card variant that shows wireguard configs in qrcode form and allows for copy and download of them*/
 export const DeviceConfigsCard = ({
+  userId,
   deviceId,
   deviceName,
   privateKey,
@@ -51,24 +51,26 @@ export const DeviceConfigsCard = ({
   const [selectedConfig, setSelectedConfig] = useState<string | undefined>();
   const [selectedNetwork, setSelectedNetwork] = useState<number>(networks[0].networkId);
 
-  const queryParams = useMemo((): GetDeviceConfigRequest => {
+  const queryParams = useMemo(() => {
     return {
       device_id: deviceId,
       network_id: selectedNetwork,
+      userId,
     };
-  }, [selectedNetwork, deviceId]);
+  }, [selectedNetwork, deviceId, userId]);
 
   const { isLoading: loadingConfig } = useQuery(
     [QueryKeys.FETCH_DEVICE_CONFIG, queryParams],
-    () => downloadDeviceConfig(queryParams as GetDeviceConfigRequest),
+    () =>
+      downloadDeviceConfig({
+        network_id: queryParams.network_id,
+        device_id: queryParams.device_id,
+      }),
     {
       enabled: !!queryParams,
+      refetchOnMount: true,
       onSuccess: (res) => {
-        if (privateKey) {
-          setSelectedConfig(res.replace('YOUR_PRIVATE_KEY', privateKey));
-        } else {
-          setSelectedConfig(res.replace('YOUR_PRIVATE_KEY', publicKey));
-        }
+        setSelectedConfig(res);
       },
     },
   );
@@ -109,37 +111,57 @@ export const DeviceConfigsCard = ({
     );
   }, [loadingConfig, getSelectOptions, selectedNetwork, renderSelected]);
 
+  const getQrConfig = useMemo((): string => {
+    if (selectedConfig) {
+      if (privateKey) {
+        return selectedConfig.replace('YOUR_PRIVATE_KEY', privateKey);
+      }
+      return selectedConfig.replace('YOUR_PRIVATE_KEY', publicKey);
+    }
+    return '';
+  }, [selectedConfig, publicKey, privateKey]);
+
+  const getConfigExport = useMemo((): string | undefined => {
+    if (selectedConfig) {
+      if (privateKey) {
+        return selectedConfig.replace('YOUR_PRIVATE_KEY', privateKey);
+      }
+      return selectedConfig;
+    }
+    return undefined;
+  }, [selectedConfig, privateKey]);
+
   const expandableCardActions = useMemo(() => {
     return [
       <ActionButton variant={ActionButtonVariant.QRCODE} key={1} active={true} />,
       <ActionButton
         variant={ActionButtonVariant.COPY}
         key={2}
+        disabled={isUndefined(getConfigExport)}
         onClick={() => {
-          if (selectedConfig) {
+          if (getConfigExport) {
             writeToClipboard(
-              selectedConfig,
+              getConfigExport,
               LL.components.deviceConfigsCard.messages.copyConfig(),
             );
           }
         }}
-        disabled={isUndefined(selectedConfig)}
       />,
       <ActionButton
         variant={ActionButtonVariant.DOWNLOAD}
         key={3}
+        disabled={isUndefined(getConfigExport)}
         onClick={() => {
-          if (selectedConfig) {
-            downloadWGConfig(selectedConfig, `${deviceName}.config`);
+          if (getConfigExport) {
+            downloadWGConfig(getConfigExport, deviceName.toLowerCase().replace(' ', '-'));
           }
         }}
-        disabled={isUndefined(selectedConfig)}
       />,
     ];
   }, [
     deviceName,
     LL.components.deviceConfigsCard.messages,
-    selectedConfig,
+    getConfigExport,
     writeToClipboard,
   ]);
 
@@ -151,8 +173,8 @@ export const DeviceConfigsCard = ({
       topExtras={getExpandCardExtras}
       expanded
     >
-      {selectedConfig && <QRCode value={selectedConfig} size={250} />}
-      {isUndefined(selectedConfig) && <LoaderSpinner size={250} />}
+      {getQrConfig && !loadingConfig && <QRCode value={getQrConfig} size={250} />}
+      {(isUndefined(selectedConfig) || loadingConfig) && <LoaderSpinner size={250} />}
     </ExpandableCard>
   );
 };

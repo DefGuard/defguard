@@ -49,6 +49,8 @@ export const UserDevices = () => {
                 initAddDevice({
                   username: userProfile.user.username,
                   id: userProfile.user.id,
+                  reservedDevices: userProfile.devices.map((d) => d.name),
+                  email: userProfile.user.email,
                 });
                 navigate('/add-device', { replace: true });
               }}

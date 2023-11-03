@@ -973,6 +973,10 @@ type RootTranslation = {
 				}
 			}
 			configDevice: {
+				/**
+				 * C​o​n​f​i​g​u​r​e​ ​d​e​v​i​c​e
+				 */
+				title: string
 				messages: {
 					/**
 					 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​h​a​s​ ​b​e​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
@@ -985,7 +989,7 @@ type RootTranslation = {
 				​ ​ ​ ​ ​<​p​>​
 				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
 				​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
-				​ ​ ​ ​ ​ ​ ​d​i​a​l​o​g​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
+				​ ​ ​ ​ ​ ​ ​p​a​g​e​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
 				​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
 				​ ​ ​ ​ ​<​/​p​>​
 			
@@ -1022,6 +1026,10 @@ type RootTranslation = {
 			}
 			setupDevice: {
 				/**
+				 * C​r​e​a​t​e​ ​V​P​N​ ​d​e​v​i​c​e
+				 */
+				title: string
+				/**
 				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
@@ -1042,10 +1050,6 @@ type RootTranslation = {
 					manual: string
 				}
 				form: {
-					/**
-					 * G​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
-					 */
-					submit: string
 					fields: {
 						name: {
 							/**
@@ -1071,6 +1075,10 @@ type RootTranslation = {
 				}
 			}
 			copyToken: {
+				/**
+				 * C​l​i​e​n​t​ ​a​c​t​i​v​a​t​i​o​n
+				 */
+				title: string
 				/**
 				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
 				 */
@@ -4490,6 +4498,10 @@ export type TranslationFunctions = {
 				}
 			}
 			configDevice: {
+				/**
+				 * Configure device
+				 */
+				title: () => LocalizedString
 				messages: {
 					/**
 					 * Configuration has been copied to the clipboard
@@ -4502,7 +4514,7 @@ export type TranslationFunctions = {
 				    <p>
 				      Please be advised that you have to download the configuration now,
 				      since <strong>we do not</strong> store your private key. After this
-				      dialog is closed, you <strong>will not be able</strong> to get your
+				      page is closed, you <strong>will not be able</strong> to get your
 				      full configuration file (with private keys, only blank template).
 				    </p>
 			
@@ -4539,6 +4551,10 @@ export type TranslationFunctions = {
 			}
 			setupDevice: {
 				/**
+				 * Create VPN device
+				 */
+				title: () => LocalizedString
+				/**
 				 * 
 			        <p>
 			          You need to configure WireGuardVPN on your device, please visit&nbsp;
@@ -4558,10 +4574,6 @@ export type TranslationFunctions = {
 					manual: () => LocalizedString
 				}
 				form: {
-					/**
-					 * Generate configuration
-					 */
-					submit: () => LocalizedString
 					fields: {
 						name: {
 							/**
@@ -4587,6 +4599,10 @@ export type TranslationFunctions = {
 				}
 			}
 			copyToken: {
+				/**
+				 * Client activation
+				 */
+				title: () => LocalizedString
 				/**
 				 * Activation token
 				 */

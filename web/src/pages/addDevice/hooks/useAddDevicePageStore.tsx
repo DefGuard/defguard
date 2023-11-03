@@ -1,7 +1,10 @@
+import { omit } from 'lodash-es';
 import { Subject } from 'rxjs';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { Device } from '../../../shared/types';
+import { DeviceConfigsCardNetworkInfo } from '../../../shared/components/network/DeviceConfigsCard/types';
+import { AddDeviceResponseDevice, Device } from '../../../shared/types';
 import { AddDeviceMethod } from '../types';
 
 const defaultValues: StoreValues = {
@@ -13,25 +16,34 @@ const defaultValues: StoreValues = {
   publicKey: undefined,
   privateKey: undefined,
   device: undefined,
+  networks: undefined,
+  enrollment: undefined,
 };
 
-export const useAddDevicePageStore = createWithEqualityFn<Store>(
-  (set, get) => ({
-    ...defaultValues,
-    nextStep: (values) => {
-      const current = get().currentStep;
-      if (values) {
-        set({ ...values, currentStep: current + 1 });
-      } else {
-        set({ currentStep: current + 1 });
-      }
+export const useAddDevicePageStore = createWithEqualityFn<Store>()(
+  persist(
+    (set, get) => ({
+      ...defaultValues,
+      nextStep: (values) => {
+        const current = get().currentStep;
+        if (values) {
+          set({ ...values, currentStep: current + 1 });
+        } else {
+          set({ currentStep: current + 1 });
+        }
+      },
+      reset: () => set(defaultValues),
+      init: (userData) => {
+        set({ ...defaultValues, userData });
+      },
+      setState: (values) => set({ ...values }),
+    }),
+    {
+      name: 'add-device-store',
+      partialize: (store) => omit(store, ['nextSubject', 'loading']),
+      storage: createJSONStorage(() => sessionStorage),
     },
-    reset: () => set(defaultValues),
-    init: (userData) => {
-      set({ ...defaultValues, userData });
-    },
-    setState: (values) => set({ ...values }),
-  }),
+  ),
   Object.is,
 );
 
@@ -44,11 +56,17 @@ type StoreValues = {
   method: AddDeviceMethod;
   privateKey?: string;
   publicKey?: string;
-  device?: Device;
+  device?: AddDeviceResponseDevice;
+  networks?: DeviceConfigsCardNetworkInfo[];
   userData?: {
     id: number;
     username: string;
     reservedDevices: string[];
+    email: string;
+  };
+  enrollment?: {
+    token: string;
+    url: string;
   };
 };
 

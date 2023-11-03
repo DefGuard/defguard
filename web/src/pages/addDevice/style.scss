@@ -18,6 +18,7 @@
     h2 {
       @include typography(app-body-1);
       color: var(--text-body-primary);
+      margin-bottom: 25px;
     }
 
     & > .content-wrapper {
@@ -37,6 +38,16 @@
       & > .card {
         box-sizing: border-box;
         padding: 55px;
+
+        .message-box {
+          margin-bottom: 20px;
+        }
+
+        form {
+          & > * {
+            width: 100%;
+          }
+        }
       }
 
       & > header {

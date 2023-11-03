@@ -17,7 +17,10 @@ import {
   ButtonStyleVariant,
 } from '../../shared/defguard-ui/components/Layout/Button/types';
 import { useAddDevicePageStore } from './hooks/useAddDevicePageStore';
+import { AddDeviceConfigStep } from './steps/AddDeviceConfigStep/AddDeviceConfigStep';
 import { AddDeviceSetupMethodStep } from './steps/AddDeviceSetupMethodStep/AddDeviceSetupMethodStep';
+import { AddDeviceSetupStep } from './steps/AddDeviceSetupStep/AddDeviceSetupStep';
+import { AddDeviceTokenStep } from './steps/AddDeviceTokenStep/AddDeviceTokenStep';
 import { AddDeviceMethod } from './types';
 
 export const AddDevicePage = () => {
@@ -85,11 +88,14 @@ export const AddDevicePage = () => {
           </div>
         </header>
         {currentStep === 0 && <AddDeviceSetupMethodStep />}
-        {currentStep !== 0 && steps[currentStep]}
+        {currentStep !== 0 && steps[currentStep - 1]}
       </div>
     </PageContainer>
   );
 };
 
-const manualSteps: ReactNode[] = [];
-const desktopSteps: ReactNode[] = [];
+const manualSteps: ReactNode[] = [
+  <AddDeviceSetupStep key="setup-step" />,
+  <AddDeviceConfigStep key="config-step" />,
+];
+const desktopSteps: ReactNode[] = [<AddDeviceTokenStep key="token-step" />];
