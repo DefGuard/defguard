@@ -507,15 +507,9 @@ pub async fn add_device(
 
     let template_locations: Vec<TemplateLocation> = configs
         .iter()
-        .map(|c| {
-            let assigned_ip = match network_info.iter().find(|n| n.network_id == c.network_id) {
-                Some(info) => info.device_wireguard_ip.to_string(),
-                None => "".to_string(),
-            };
-            TemplateLocation {
-                name: device.name.clone(),
-                assigned_ip,
-            }
+        .map(|c| TemplateLocation {
+            name: c.network_name.clone(),
+            assigned_ip: c.address.to_string(),
         })
         .collect();
 

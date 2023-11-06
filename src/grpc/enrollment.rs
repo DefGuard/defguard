@@ -275,7 +275,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
             device: device.clone(),
-            network_info: network_info.clone(),
+            network_info,
         }));
 
         let settings = Settings::get_settings(&mut *transaction)
