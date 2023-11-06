@@ -46,16 +46,16 @@ export const AddDeviceSetupStep = () => {
   const toggleOptions = useMemo(() => {
     const res: ToggleOption<number>[] = [
       {
-        text: LL.modals.addDevice.web.steps.setup.options.auto(),
+        text: localLL.options.auto(),
         value: AddDeviceSetupMethod.AUTO,
       },
       {
-        text: LL.modals.addDevice.web.steps.setup.options.manual(),
+        text: localLL.options.manual(),
         value: AddDeviceSetupMethod.MANUAL,
       },
     ];
     return res;
-  }, [LL.modals.addDevice.web.steps.setup.options]);
+  }, [localLL.options]);
 
   const schema = useMemo(
     () =>
@@ -69,7 +69,7 @@ export const AddDeviceSetupStep = () => {
             .required(LL.form.error.required())
             .test(
               'is-duplicated',
-              LL.modals.addDevice.web.steps.setup.form.errors.name.duplicatedName(),
+              localLL.form.errors.name.duplicatedName(),
               (value) => !userData?.reservedDevices?.includes(value),
             ),
           publicKey: yup.string().when('choice', {
@@ -86,7 +86,7 @@ export const AddDeviceSetupStep = () => {
           }),
         })
         .required(),
-    [LL.form.error, LL.modals.addDevice.web.steps.setup.form.errors.name, userData],
+    [LL.form.error, localLL.form.errors.name, userData],
   );
 
   const { handleSubmit, control } = useForm<FormValues>({
@@ -107,7 +107,7 @@ export const AddDeviceSetupStep = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
-        toaster.success(LL.modals.addDevice.messages.success());
+        toaster.success(LL.addDevicePage.messages.deviceAdded());
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
@@ -177,19 +177,19 @@ export const AddDeviceSetupStep = () => {
       <h2>{localLL.title()}</h2>
       <MessageBox type={MessageBoxType.INFO}>
         {parser(
-          LL.modals.addDevice.web.steps.setup.infoMessage({
+          localLL.infoMessage({
             addDevicesDocs: externalLink.gitbook.wireguard.addDevices,
           }),
         )}
       </MessageBox>
       <form onSubmit={handleSubmit(validSubmitHandler)}>
         <FormInput
-          label={LL.modals.addDevice.web.steps.setup.form.fields.name.label()}
+          label={localLL.form.fields.name.label()}
           controller={{ control, name: 'name' }}
         />
         <FormToggle options={toggleOptions} controller={{ control, name: 'choice' }} />
         <FormInput
-          label={LL.modals.addDevice.web.steps.setup.form.fields.publicKey.label()}
+          label={localLL.form.fields.publicKey.label()}
           controller={{ control, name: 'publicKey' }}
           disabled={choiceValue === AddDeviceSetupMethod.AUTO}
         />

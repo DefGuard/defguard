@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import { DeviceConfigsCardNetworkInfo } from '../../../shared/components/network/DeviceConfigsCard/types';
-import { AddDeviceResponseDevice, Device } from '../../../shared/types';
+import { AddDeviceResponseDevice } from '../../../shared/types';
 import { AddDeviceMethod } from '../types';
 
 const defaultValues: StoreValues = {

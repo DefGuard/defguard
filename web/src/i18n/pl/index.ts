@@ -2,6 +2,18 @@
 import type { Translation } from '../i18n-types';
 
 const pl: Translation = {
+  common: {
+    controls: {
+      back: 'Wróć',
+      next: 'Następny',
+      close: 'Zamknij',
+      cancel: 'Anuluj',
+      finish: 'Zakończ',
+      select: 'Wybierz',
+      submit: 'Wyślij',
+      confirm: 'Potwierdź',
+    },
+  },
   messages: {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
@@ -162,85 +174,6 @@ const pl: Translation = {
       submit: 'Usuń urządzenie',
       messages: {
         success: 'Urządzenie zostało usunięte.',
-      },
-    },
-
-    addDevice: {
-      messages: {
-        success: 'Urządzenie zostało dodane.',
-      },
-      web: {
-        viewTitle: 'Konfiguracja urządzenia',
-        title: 'Dodaj urządzenie',
-        steps: {
-          config: {
-            messages: {
-              copyConfig: 'Konfiguracja została skopiowana do schowka.',
-            },
-            helpers: {
-              qrHelper: `
-          <p>
-          	Ten plik konfiguracyjny można zeskanować, skopiować lub pobrać,
-            <strong>ale musi być użyty na urządzeniu, które teraz dodajesz.</strong>
-            <a>Przeczytaj więcej w dokumentacji.</a>
-          </p>`,
-              warningAutoMode: `
-          <p>
-           Informujemy, że <strong>teraz</strong> musisz pobrać plik konifguracjny. Ponieważ <strong>nie przechowujemy twojego klucza prywatnego</strong>, nie będzie możliwe ponowne pobranie <strong>klucza prywatnego</strong> dla tego urządzenia co uniemożliwi połączenie się tego użądzenia z VPN.
-          </p>
-`,
-              warningManualMode: `
-          <p>
-          Informujemy, że podany plik konfiguracyjny <strong>nie posiada klucza prywatnego</strong>. Musisz uzupełnić konfigurację o swój <strong>klucz prywatny</strong> aby urządzenie mogło nawiązać połączenie z VPN.
-          </p>
-`,
-            },
-            inputNameLabel: 'Nazwa urządzenia',
-            qrInfo: `Użyj dostarczonego pliku konfiguracyjnego poniżej skanując QR Code lub importując go jako plik na
-						instancję WireGuard w Twoich urządzeniach.`,
-            qrLabel: 'Plik konfiguracyjny WireGuard',
-            qrCardTitle: 'Konfiguracja dla lokalizacji:',
-          },
-          setup: {
-            infoMessage: `
-        <p>
-          Musisz skonfigurować WireGuardVPN na swoim urządzeniu, odwiedź stronę
-          <a href="{addDevicesDocs}" target="_blank">dokumentacji</a> jeśli nie wiesz jak to zrobić.
-        </p>
-`,
-            options: {
-              auto: 'Wygeneruj parę kluczy',
-              manual: 'Użyj mojego własnego klucza publicznego',
-            },
-            form: {
-              errors: {
-                name: {
-                  duplicatedName: 'Urządzenie o tej nazwie już istnieje',
-                },
-              },
-              submit: 'Stwórz konfigurację',
-              fields: {
-                name: {
-                  label: 'Nazwa urządzenia',
-                },
-                publicKey: {
-                  label: 'Podaj swój klucz publiczny',
-                },
-              },
-            },
-          },
-        },
-      },
-      desktop: {
-        title: 'Dodaj aktualne urządzenie',
-        form: {
-          submit: 'Dodaj to urządzenie',
-          fields: {
-            name: {
-              label: 'Nazwa',
-            },
-          },
-        },
       },
     },
     addWallet: {
@@ -417,6 +350,77 @@ const pl: Translation = {
       submit: 'Usuń',
       messages: {
         success: 'Webhook usunięty.',
+      },
+    },
+  },
+  addDevicePage: {
+    title: 'Dodaj urządzenie',
+    messages: {
+      deviceAdded: 'Urządzenie dodane',
+    },
+    helpers: {
+      setupOpt: `Możesz dodać urządzenie poprzez nasz klient lub skonfigurwać swoje urządzenie samemu.`,
+    },
+    steps: {
+      setupDevice: {
+        title: 'Dodaj urządzenie',
+        form: {
+          errors: {
+            name: {
+              duplicatedName: 'Nazwa jest już zajęta',
+            },
+          },
+          fields: {
+            name: {
+              label: 'Nazwa',
+            },
+            publicKey: {
+              label: 'Klucz publiczny',
+            },
+          },
+        },
+        options: {
+          auto: 'Generuj klucze',
+          manual: 'Użyj własnych',
+        },
+        infoMessage: `<p>W razie problemów możesz odwiedzić <a href="{addDevicesDocs}">dokumentacje</a>.</p>`,
+      },
+      setupMethod: {
+        manual: {
+          subTitle:
+            'Dla zaawansowanych użytkowników, pobierz konfigurację i skonfiguruj VPN na własnych zasadach.',
+          link: 'Pobierz WireGuard',
+          title: 'Konfiguracja ręczna',
+        },
+        remote: {
+          title: 'Aktywacja klienta desktop',
+          link: 'Pobierz klient Defguard',
+          subTitle: 'Prosta konfiguracja jednym tokenem.',
+        },
+      },
+      configDevice: {
+        title: 'Skonfiguruj urządzenie',
+        messages: {
+          copyConfig: 'Konfiguracja skopiowa',
+        },
+        qrInfo:
+          'Użyj poniższych konfiguracji aby połączyć się z wybranymi lokalizacjami.',
+        helpers: {
+          qrHelper: `<p>Możesz skonfigurować Wireguard na telefonie skanując QR kod przez aplikację Wireguard.</p>`,
+          warningAutoMode: `
+<p>Uwaga, Defguard nie przechowuje twojego klucza prywatnego. Gdy opuścisz obecną stronę <strong> nie będziesz mógł</strong> pobrać ponownie konfiguracji z kluczem prywatnym.</p>
+`,
+          warningManualMode: `<p>
+Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musisz uzupełnić pobraną konfigurację o swój klucz prywatny.
+</p>`,
+        },
+        qrLabel: 'Konfiguracja Wireguard',
+        inputNameLabel: 'Nazwa urządzenia',
+      },
+      copyToken: {
+        title: 'Autoryzacja klienta',
+        urlCardTitle: 'Url',
+        tokenCardTitle: 'Token',
       },
     },
   },
@@ -676,6 +680,12 @@ const pl: Translation = {
     },
   },
   components: {
+    deviceConfigsCard: {
+      cardTitle: 'Konfiguracja lokalizacji',
+      messages: {
+        copyConfig: 'Konfiguracja skopiowana',
+      },
+    },
     gatewaysStatus: {
       label: 'Gateways',
       states: {
@@ -1421,7 +1431,7 @@ const pl: Translation = {
         title: 'Opcjonalność kroku VPN',
         select: {
           options: {
-            optional: 'Opcjnalny',
+            optional: 'Opcjonalny',
             mandatory: 'Obowiązkowy',
           },
         },
