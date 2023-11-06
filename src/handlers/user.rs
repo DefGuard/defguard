@@ -223,13 +223,6 @@ pub async fn start_remote_desktop_configuration(
         session.user.username
     );
 
-    // validate request
-    if data.send_enrollment_notification && data.email.is_none() {
-        return Err(WebError::BadRequest(
-            "Email notification is enabled, but email was not provided".into(),
-        ));
-    }
-
     let user = match User::find_by_username(&appstate.pool, &username).await? {
         Some(user) => Ok(user),
         None => Err(WebError::ObjectNotFound(format!(
@@ -237,13 +230,19 @@ pub async fn start_remote_desktop_configuration(
         ))),
     }?;
 
+    // if email is None assume that email should be sent to enrolling user
+    let email = match data.email {
+        Some(email) => email,
+        None => user.email.clone(),
+    };
+
     let mut transaction = appstate.pool.begin().await?;
 
     let enrollment_token = user
         .start_remote_desktop_configuration(
             &mut transaction,
             &session.user,
-            data.email.clone(),
+            Some(email),
             appstate.config.enrollment_token_timeout.as_secs(),
             appstate.config.enrollment_url.clone(),
             data.send_enrollment_notification,

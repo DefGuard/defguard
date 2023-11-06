@@ -1,0 +1,21 @@
+@use '@scssutils' as *;
+
+#add-device-page {
+  #add-device-config-step {
+    & > .info {
+      width: 100%;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 30px;
+
+      & > p {
+        @include typography(app-input);
+        color: var(--text-body-secondary);
+        text-align: center;
+        max-width: 410px;
+      }
+    }
+  }
+}

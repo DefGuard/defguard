@@ -2,6 +2,18 @@
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
+  common: {
+    controls: {
+      next: 'Next',
+      back: 'Back',
+      cancel: 'Cancel',
+      confirm: 'Confirm',
+      submit: 'Submit',
+      close: 'Close',
+      select: 'Select',
+      finish: 'Finish',
+    },
+  },
   messages: {
     error: 'Error has occurred.',
     success: 'Operation succeeded',
@@ -13,6 +25,9 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    deviceConfig: {
+      title: 'Device VPN configurations',
+    },
     changePasswordSelf: {
       title: 'Change password',
       messages: {
@@ -38,7 +53,7 @@ const en: BaseTranslation = {
         success: 'User enrollment started',
         successDesktop: 'Desktop activation started',
         error: 'Failed to start user enrollment',
-        errorDesktop: 'Failed to start dekstop activation',
+        errorDesktop: 'Failed to start desktop activation',
       },
       form: {
         email: {
@@ -162,85 +177,6 @@ const en: BaseTranslation = {
       submit: 'Delete device',
       messages: {
         success: 'Device has been deleted.',
-      },
-    },
-    addDevice: {
-      messages: {
-        success: 'Device has been added.',
-      },
-      web: {
-        title: 'Add device',
-        viewTitle: 'Device configuration',
-        steps: {
-          config: {
-            messages: {
-              copyConfig: 'Configuration has been copied to the clipboard',
-            },
-            helpers: {
-              warningAutoMode: `
-        <p>
-          Please be advised that you have to download the configuration now,
-          since <strong>we do not</strong> store your private key. After this
-          dialog is closed, you <strong>will not be able</strong> to get your
-          full configuration file (with private keys, only blank template).
-        </p>
-`,
-              warningManualMode: `
-        <p>
-          Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to repalce it on your own for configuration to work properly.
-        </p>
-`,
-              qrHelper: `
-          <p>
-            You can setup your device faster with wireguard application by scanning this QR code.
-          </p>`,
-            },
-            qrInfo:
-              'Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.',
-            inputNameLabel: 'Device Name',
-            qrLabel: 'WireGuard Config File',
-            qrCardTitle: 'WireGuard Config for location:',
-          },
-          setup: {
-            infoMessage: `
-        <p>
-          You need to configure WireGuardVPN on your device, please visit&nbsp;
-          <a href="{addDevicesDocs:string}">documentation</a> if you don&apos;t know how to do it.
-        </p>
-`,
-            options: {
-              auto: 'Generate key pair',
-              manual: 'Use my own public key',
-            },
-            form: {
-              submit: 'Generate configuration',
-              fields: {
-                name: {
-                  label: 'Device Name',
-                },
-                publicKey: {
-                  label: 'Provide Your Public Key',
-                },
-              },
-              errors: {
-                name: {
-                  duplicatedName: 'Device with this name already exists',
-                },
-              },
-            },
-          },
-        },
-      },
-      desktop: {
-        title: 'Add current device',
-        form: {
-          submit: 'Add this device',
-          fields: {
-            name: {
-              label: 'Name',
-            },
-          },
-        },
       },
     },
     addWallet: {
@@ -417,6 +353,93 @@ const en: BaseTranslation = {
       submit: 'Delete',
       messages: {
         success: 'Webhook deleted.',
+      },
+    },
+  },
+  addDevicePage: {
+    title: 'Add device',
+    helpers: {
+      setupOpt: `You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.`,
+    },
+    messages: {
+      deviceAdded: 'Device added',
+    },
+    steps: {
+      setupMethod: {
+        remote: {
+          title: 'Remote Desktop Activation',
+          subTitle:
+            'A breeze to set up with just a single token. Download the client and enjoy straightforward security.',
+          link: 'Download defguard Client',
+        },
+        manual: {
+          title: 'Manual WireGuard Client',
+          subTitle:
+            'For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.',
+          link: 'Download WireGuard Client',
+        },
+      },
+      configDevice: {
+        title: 'Configure device',
+        messages: {
+          copyConfig: 'Configuration has been copied to the clipboard',
+        },
+        helpers: {
+          warningAutoMode: `
+    <p>
+      Please be advised that you have to download the configuration now,
+      since <strong>we do not</strong> store your private key. After this
+      page is closed, you <strong>will not be able</strong> to get your
+      full configuration file (with private keys, only blank template).
+    </p>
+`,
+          warningManualMode: `
+    <p>
+      Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
+    </p>
+`,
+          qrHelper: `
+      <p>
+        You can setup your device faster with wireguard application by scanning this QR code.
+      </p>`,
+        },
+        qrInfo:
+          'Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.',
+        inputNameLabel: 'Device Name',
+        qrLabel: 'WireGuard Config File',
+      },
+      setupDevice: {
+        title: 'Create VPN device',
+        infoMessage: `
+        <p>
+          You need to configure WireGuardVPN on your device, please visit&nbsp;
+          <a href="{addDevicesDocs:string}">documentation</a> if you don&apos;t know how to do it.
+        </p>
+`,
+        options: {
+          auto: 'Generate key pair',
+          manual: 'Use my own public key',
+        },
+        form: {
+          fields: {
+            name: {
+              label: 'Device Name',
+            },
+            publicKey: {
+              label: 'Provide Your Public Key',
+            },
+          },
+          errors: {
+            name: {
+              duplicatedName: 'Device with this name already exists',
+            },
+          },
+        },
+      },
+      copyToken: {
+        title: 'Client activation',
+        tokenCardTitle: 'Activation token',
+        urlCardTitle: 'Defguard Instance URL',
       },
     },
   },
@@ -676,6 +699,12 @@ const en: BaseTranslation = {
     },
   },
   components: {
+    deviceConfigsCard: {
+      cardTitle: 'WireGuard Config for location:',
+      messages: {
+        copyConfig: 'Configuration copied to the clipboard',
+      },
+    },
     gatewaysStatus: {
       label: 'Gateways',
       states: {

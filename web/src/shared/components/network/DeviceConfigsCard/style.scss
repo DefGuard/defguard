@@ -1,0 +1,18 @@
+.device-configs-card {
+  width: 100%;
+
+  .top {
+    .extras {
+      .select {
+        width: 140px;
+      }
+    }
+  }
+
+  .expanded-content {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+  }
+}

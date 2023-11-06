@@ -438,7 +438,6 @@ impl User {
                     }
                     Err(err) => {
                         error!("Error sending mail: {err}");
-                        return Err(EnrollmentError::NotificationError(err.to_string()));
                     }
                 }
             }

@@ -1,0 +1,97 @@
+@use '@scssutils' as *;
+
+#add-device-page {
+  & > .page-content {
+    box-sizing: border-box;
+    padding: 100px 40px;
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: auto;
+
+    h1 {
+      @include typography(app-title);
+      color: var(--text-body-primary);
+    }
+
+    h2 {
+      @include typography(app-body-1);
+      color: var(--text-body-primary);
+      margin-bottom: 25px;
+    }
+
+    & > .content-wrapper {
+      width: 100%;
+      max-width: 920px;
+      display: flex;
+      flex-flow: column;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      row-gap: 40px;
+
+      & > * {
+        width: 100%;
+      }
+
+      & > .card {
+        box-sizing: border-box;
+        padding: 55px;
+
+        .message-box {
+          margin-bottom: 20px;
+        }
+
+        form {
+          & > * {
+            width: 100%;
+          }
+        }
+      }
+
+      & > header {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: center;
+        justify-content: flex-start;
+        user-select: none;
+
+        & > .controls {
+          margin-left: auto;
+          display: flex;
+          flex-flow: row nowrap;
+          align-items: center;
+          justify-content: flex-start;
+          column-gap: 32px;
+
+          & > .btn {
+            min-width: 180px;
+
+            .arrow-single {
+              svg {
+                g {
+                  fill: var(--surface-icon-secondary);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    form {
+      width: 100%;
+      display: flex;
+      flex-flow: column;
+      align-items: center;
+      justify-content: flex-start;
+
+      & > * {
+        &:not(.input, .select) {
+          padding-bottom: 20px;
+        }
+      }
+    }
+  }
+}

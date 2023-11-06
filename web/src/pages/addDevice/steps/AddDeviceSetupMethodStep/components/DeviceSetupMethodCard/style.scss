@@ -1,0 +1,68 @@
+@use '@scssutils' as *;
+
+.device-setup-method {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  padding: 68px 42px;
+  background-color: var(--surface-frame-bg);
+  box-shadow: var(--box-shadow);
+  border-radius: 15px;
+
+  & > h3 {
+    @include typography(app-body-1);
+    color: var(--text-body-primary);
+    text-align: center;
+    padding-bottom: 20px;
+  }
+
+  & > .sub-title {
+    @include typography(welcome-h2);
+    color: var(--text-body-tertiary);
+    width: 100%;
+    max-width: 280px;
+    text-align: center;
+  }
+
+  & > .logo-wrapper {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    min-height: 166px;
+    box-sizing: border-box;
+    padding-bottom: 20px;
+    user-select: none;
+  }
+
+  & > .btn {
+    width: 100%;
+    max-width: 225px;
+    height: 47px;
+    user-select: none;
+  }
+
+  & > a {
+    box-sizing: border-box;
+    margin-top: 40px;
+    @include typography(app-body-2);
+    color: var(--text-body-primary);
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    column-gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    text-decoration: none;
+
+    & > svg {
+      path {
+        fill: var(--text-body-primary);
+      }
+    }
+  }
+}
