@@ -79,6 +79,12 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		deviceConfig: {
+			/**
+			 * D​e​v​i​c​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s
+			 */
+			title: string
+		}
 		changePasswordSelf: {
 			/**
 			 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
@@ -3476,6 +3482,12 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		deviceConfig: {
+			/**
+			 * Device VPN configurations
+			 */
+			title: () => LocalizedString
+		}
 		changePasswordSelf: {
 			/**
 			 * Change password

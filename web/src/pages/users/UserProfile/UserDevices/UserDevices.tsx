@@ -10,6 +10,7 @@ import { useAddDevicePageStore } from '../../../addDevice/hooks/useAddDevicePage
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { DeviceCard } from './DeviceCard/DeviceCard';
 import { DeleteUserDeviceModal } from './modals/DeleteUserDeviceModal/DeleteUserDeviceModal';
+import { DeviceConfigModal } from './modals/DeviceConfigModal/DeviceConfigModal';
 import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDeviceModal';
 
 export const UserDevices = () => {
@@ -60,6 +61,7 @@ export const UserDevices = () => {
       )}
       <DeleteUserDeviceModal />
       <EditUserDeviceModal />
+      <DeviceConfigModal />
     </section>
   );
 };

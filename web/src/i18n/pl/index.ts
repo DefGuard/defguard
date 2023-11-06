@@ -25,6 +25,9 @@ const pl: Translation = {
     insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
+    deviceConfig: {
+      title: 'Konfiguracje VPN urządzenia',
+    },
     changePasswordSelf: {
       title: 'Zmień hasło',
       messages: {

@@ -25,6 +25,9 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    deviceConfig: {
+      title: 'Device VPN configurations',
+    },
     changePasswordSelf: {
       title: 'Change password',
       messages: {
