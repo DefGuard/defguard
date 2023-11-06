@@ -600,7 +600,6 @@ pub async fn get_device(
     session: SessionInfo,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
-    // TypedHeader(user_agent): TypedHeader<UserAgent>,
 ) -> ApiResult {
     debug!("Retrieving device with id: {device_id}");
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
