@@ -31,6 +31,17 @@ pub enum MFAMethod {
     Web3,
 }
 
+impl std::string::ToString for MFAMethod {
+    fn to_string(&self) -> String {
+        match self {
+            MFAMethod::None => "None".into(),
+            MFAMethod::OneTimePassword => "TOTP".into(),
+            MFAMethod::Web3 => "Web3".into(),
+            MFAMethod::Webauthn => "WebAuthn".into(),
+        }
+    }
+}
+
 // User information ready to be sent as part of diagnostic data.
 #[derive(Debug, Serialize)]
 pub struct UserDiagnostic {
@@ -41,7 +52,7 @@ pub struct UserDiagnostic {
     pub is_active: bool,
 }
 
-#[derive(Model, PartialEq, Serialize)]
+#[derive(Model, PartialEq, Serialize, Clone)]
 pub struct User {
     pub id: Option<i64>,
     pub username: String,

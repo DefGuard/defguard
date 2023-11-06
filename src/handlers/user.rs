@@ -17,6 +17,7 @@ use crate::{
         WebAuthn, WireguardNetwork,
     },
     error::WebError,
+    handlers::mail::send_mfa_configured_email,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
 };
 
@@ -588,6 +589,9 @@ pub async fn update_wallet(
             if mfa_change {
                 if data.use_for_mfa {
                     debug!("Wallet {} MFA flag enabled", wallet.address);
+                    // send notification email about enabled MFA
+                    send_mfa_configured_email(user.clone(), &MFAMethod::Web3, &appstate.mail_tx)
+                        .await?;
                     if !user.mfa_enabled {
                         user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
                         let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;

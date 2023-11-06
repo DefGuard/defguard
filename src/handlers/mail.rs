@@ -7,21 +7,27 @@ use axum::{
 use chrono::Utc;
 use lettre::message::header::ContentType;
 use serde_json::json;
-use tokio::{fs::read_to_string, sync::mpsc::unbounded_channel};
+use tokio::{
+    fs::read_to_string,
+    sync::mpsc::{unbounded_channel, UnboundedSender},
+};
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
+    db::{MFAMethod, User},
     mail::{Attachment, Mail},
     support::dump_config,
-    templates::{self, support_data_mail},
+    templates::{self, support_data_mail, TemplateError, TemplateLocation},
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
 static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
+
+static NEW_DEVICE_ADDED_EMAIL_SUBJECT: &str = "Defguard: new device added to your account";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -148,5 +154,79 @@ pub async fn send_support_data(
             )),
         },
         Err(err) => Ok(internal_error(&to, &subject, &err)),
+    }
+}
+
+pub async fn send_new_device_added_email(
+    device_name: &str,
+    public_key: &str,
+    template_locations: &Vec<TemplateLocation>,
+    user_email: &str,
+    mail_tx: &UnboundedSender<Mail>,
+) -> Result<(), TemplateError> {
+    debug!(
+        "User {} new device added mail to {SUPPORT_EMAIL_ADDRESS}",
+        user_email
+    );
+
+    let mail = Mail {
+        to: user_email.to_string(),
+        subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
+        content: templates::new_device_added_mail(device_name, public_key, template_locations)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(_) => {
+            info!("Sent new device notification to {}", &to);
+            Ok(())
+        }
+        Err(err) => {
+            error!(
+                "Sending new device notification to {} failed with erorr:\n{}",
+                &to, &err
+            );
+            Ok(())
+        }
+    }
+}
+
+pub async fn send_mfa_configured_email(
+    user: User,
+    mfa_method: &MFAMethod,
+    mail_tx: &UnboundedSender<Mail>,
+) -> Result<(), TemplateError> {
+    debug!("Sending MFA configured mail to {}", user.email);
+
+    let subject = format!(
+        "MFA method {} was activated on your account",
+        mfa_method.to_string()
+    );
+
+    let mail = Mail {
+        to: user.email,
+        subject,
+        content: templates::mfa_configured_mail(mfa_method)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(_) => {
+            info!("MFA configred mail sent to {}", &to);
+            Ok(())
+        }
+        Err(err) => {
+            error!(
+                "Failed to send mfa configured mail to {} with error:\n{}",
+                &to, &err
+            );
+            Ok(())
+        }
     }
 }

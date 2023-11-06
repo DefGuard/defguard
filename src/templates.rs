@@ -3,7 +3,10 @@ use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
 
-use crate::{db::User, VERSION};
+use crate::{
+    db::{MFAMethod, User},
+    VERSION,
+};
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
@@ -14,6 +17,11 @@ static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollmen
 static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
     include_str!("../templates/mail_enrollment_admin_notification.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
+static MAIL_NEW_DEVICE_ADDED: &str = include_str!("../templates/mail_new_device_added.tera");
+static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tera");
+
+#[allow(dead_code)]
+static MAIL_DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
@@ -103,22 +111,46 @@ pub fn enrollment_admin_notification(user: &User, admin: &User) -> Result<String
         "mail_enrollment_admin_notification",
         MAIL_ENROLLMENT_ADMIN_NOTIFICATION,
     )?;
-
     context.insert("first_name", &user.first_name);
     context.insert("last_name", &user.last_name);
     context.insert("admin_first_name", &admin.first_name);
     context.insert("admin_last_name", &admin.last_name);
-
     Ok(tera.render("mail_enrollment_admin_notification", &context)?)
 }
 
 // message with support data
 pub fn support_data_mail() -> Result<String, TemplateError> {
     let (mut tera, context) = get_base_tera(None)?;
-
     tera.add_raw_template("mail_support_data", MAIL_SUPPORT_DATA)?;
-
     Ok(tera.render("mail_support_data", &context)?)
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct TemplateLocation {
+    pub name: String,
+    pub assigned_ip: String,
+}
+
+pub fn new_device_added_mail(
+    device_name: &str,
+    public_key: &str,
+    template_locations: &Vec<TemplateLocation>,
+) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None)?;
+    context.insert("device_name", device_name);
+    context.insert("public_key", public_key);
+    context.insert("locations", template_locations);
+    tera.add_raw_template("mail_new_device_added", MAIL_NEW_DEVICE_ADDED)?;
+    Ok(tera.render("mail_new_device_added", &context)?)
+}
+
+pub fn mfa_configured_mail(method: &MFAMethod) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None)?;
+    context.insert("mfa_method", &method.to_string());
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
+
+    Ok(tera.render("mail_mfa_configured", &context)?)
 }
 
 #[cfg(test)]
@@ -126,6 +158,38 @@ mod test {
     use claims::assert_ok;
 
     use super::*;
+
+    fn get_welcome_context() -> Context {
+        let mut context = Context::new();
+        context.insert("first_name", "test_first");
+        context.insert("last_name", "test_last");
+        context.insert("username", "username");
+        context.insert("defguard_url", "test_url");
+        context.insert("defguard_version", &VERSION);
+        context.insert("admin_first_name", "test_first_name");
+        context.insert("admin_last_name", "test_last_name");
+        context.insert("admin_email", "test_email");
+        context.insert("admin_phone", "test_phone");
+        context
+    }
+
+    #[test]
+    fn test_mfa_configured_mail() {
+        let mfa_method = MFAMethod::OneTimePassword;
+        assert_ok!(mfa_configured_mail(&mfa_method));
+    }
+
+    #[test]
+    fn test_base_mail_no_context() {
+        assert_ok!(get_base_tera(None));
+    }
+
+    #[test]
+    fn test_base_mail_external_context() {
+        let external_context: Context = Context::new();
+        assert_ok!(get_base_tera(Some(external_context)));
+    }
+
     #[test]
     fn test_test_mail() {
         assert_ok!(test_mail());
@@ -146,7 +210,42 @@ mod test {
     }
 
     #[test]
-    fn test_support_data_mail() {
-        assert_ok!(support_data_mail());
+    fn test_desktop_start_mail() {
+        let external_context = get_welcome_context();
+        let url = Url::parse("http://127.0.0.1:8080").unwrap();
+        let token = "TestToken";
+        assert_ok!(desktop_start_mail(external_context, url, token));
+    }
+
+    #[test]
+    fn test_new_device_added_mail() {
+        let template_locations: Vec<TemplateLocation> = vec![
+            TemplateLocation {
+                name: "Test 01".into(),
+                assigned_ip: "10.0.0.10".into(),
+            },
+            TemplateLocation {
+                name: "Test 02".into(),
+                assigned_ip: "10.0.0.10".into(),
+            },
+        ];
+        assert_ok!(new_device_added_mail(
+            "Test device",
+            "TestKey",
+            &template_locations
+        ));
+    }
+
+    #[test]
+    fn test_enrollment_admin_notification() {
+        let test_user: User = User::new(
+            "test".into(),
+            "1234".into(),
+            "test_last".into(),
+            "test_first".into(),
+            "test@example.com".into(),
+            Some("99999".into()),
+        );
+        assert_ok!(enrollment_admin_notification(&test_user, &test_user));
     }
 }
