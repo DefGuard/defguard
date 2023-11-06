@@ -590,7 +590,7 @@ pub async fn update_wallet(
                 if data.use_for_mfa {
                     debug!("Wallet {} MFA flag enabled", wallet.address);
                     // send notification email about enabled MFA
-                    send_mfa_configured_email(user.clone(), "WEB3".to_string(), &appstate.mail_tx)
+                    send_mfa_configured_email(user.clone(), &MFAMethod::Web3, &appstate.mail_tx)
                         .await?;
                     if !user.mfa_enabled {
                         user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;

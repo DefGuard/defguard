@@ -164,14 +164,6 @@ impl SessionInfo {
     }
 }
 
-// pub static parser: UserAgentParser = UserAgentParser::builder()
-//     .build_from_yaml("./regexes.yaml")
-//     // .build_from_yaml("../../regexes.yaml")
-//     // .build_from_yaml("../../templates/regexes.yaml")
-//     // .build_from_yaml("../../regexes.yaml")
-//     // .build_from_yaml("../regexes.yaml")
-//     .expect("Parser creation failed");
-
 #[async_trait]
 impl<S> FromRequestParts<S> for SessionInfo
 where

@@ -3,7 +3,10 @@ use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
 
-use crate::{db::User, VERSION};
+use crate::{
+    db::{MFAMethod, User},
+    VERSION,
+};
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
@@ -141,9 +144,9 @@ pub fn new_device_added_mail(
     Ok(tera.render("mail_new_device_added", &context)?)
 }
 
-pub fn mfa_configured_mail(mfa_type: String) -> Result<String, TemplateError> {
+pub fn mfa_configured_mail(method: &MFAMethod) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None)?;
-    context.insert("mfa_method", &mfa_type);
+    context.insert("mfa_method", &method.to_string());
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
 
@@ -168,6 +171,12 @@ mod test {
         context.insert("admin_email", "test_email");
         context.insert("admin_phone", "test_phone");
         context
+    }
+
+    #[test]
+    fn test_mfa_configured_mail() {
+        let mfa_method = MFAMethod::OneTimePassword;
+        assert_ok!(mfa_configured_mail(&mfa_method));
     }
 
     #[test]

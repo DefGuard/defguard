@@ -283,11 +283,9 @@ pub async fn webauthn_finish(
             .await?;
     }
 
-    // TODO: send email KEY
-
     info!("Finished Webauthn registration for user {}", user.username);
 
-    send_mfa_configured_email(user.clone(), "WebAuthN".to_string(), &appstate.mail_tx).await?;
+    send_mfa_configured_email(user.clone(), &MFAMethod::Webauthn, &appstate.mail_tx).await?;
 
     Ok(ApiResponse {
         json: json!(recovery_codes),
@@ -397,7 +395,8 @@ pub async fn totp_enable(
                 .await?;
         }
 
-        send_mfa_configured_email(user.clone(), "TOTOP".to_string(), &appstate.mail_tx).await?;
+        send_mfa_configured_email(user.clone(), &MFAMethod::OneTimePassword, &appstate.mail_tx)
+            .await?;
 
         info!("Enabled TOTP for user {}", user.username);
         Ok(ApiResponse {

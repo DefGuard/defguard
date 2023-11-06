@@ -17,7 +17,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::User,
+    db::{MFAMethod, User},
     mail::{Attachment, Mail},
     support::dump_config,
     templates::{self, support_data_mail, TemplateError, TemplateLocation},
@@ -196,17 +196,20 @@ pub async fn send_new_device_added_email(
 
 pub async fn send_mfa_configured_email(
     user: User,
-    mfa_type: String,
+    mfa_method: &MFAMethod,
     mail_tx: &UnboundedSender<Mail>,
 ) -> Result<(), TemplateError> {
     debug!("Sending MFA configured mail to {}", user.email);
 
-    let subject = format!("MFA method {} was activated on your account", &mfa_type);
+    let subject = format!(
+        "MFA method {} was activated on your account",
+        mfa_method.to_string()
+    );
 
     let mail = Mail {
         to: user.email,
         subject,
-        content: templates::mfa_configured_mail(mfa_type)?,
+        content: templates::mfa_configured_mail(mfa_method)?,
         attachments: Vec::new(),
         result_tx: None,
     };
