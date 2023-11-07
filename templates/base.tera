@@ -1,0 +1,487 @@
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <title></title>
+  <!--[if !mso]><!-->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--<![endif]-->
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style type="text/css">
+    #outlook a {
+      padding: 0;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    table,
+    td {
+      border-collapse: collapse;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+
+    img {
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+      -ms-interpolation-mode: bicubic;
+    }
+
+    p {
+      display: block;
+      margin: 13px 0;
+    }
+  </style>
+  <!--[if mso]>
+    <noscript>
+    <xml>
+    <o:OfficeDocumentSettings>
+      <o:AllowPNG/>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+    </xml>
+    </noscript>
+    <![endif]-->
+  <!--[if lte mso 11]>
+    <style type="text/css">
+      .mj-outlook-group-fix { width:100% !important; }
+    </style>
+    <![endif]-->
+  <!--[if !mso]><!-->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;1,400;1,600&display=swap"
+    rel="stylesheet" type="text/css">
+  <style type="text/css">
+    @import url(https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;1,400;1,600&display=swap);
+  </style>
+  <!--<![endif]-->
+  <style type="text/css">
+    @media only screen and (min-width:480px) {
+      .mj-column-per-100 {
+        width: 100% !important;
+        max-width: 100%;
+      }
+    }
+  </style>
+  <style media="screen and (min-width:480px)">
+    .moz-text-html .mj-column-per-100 {
+      width: 100% !important;
+      max-width: 100%;
+    }
+  </style>
+  <style type="text/css">
+    @media only screen and (max-width:479px) {
+      table.mj-full-width-mobile {
+        width: 100% !important;
+      }
+
+      td.mj-full-width-mobile {
+        width: auto !important;
+      }
+    }
+  </style>
+  <style type="text/css">
+  </style>
+</head>
+
+<body style="word-spacing:normal;background-color:#F9F9F9;">
+  <div style="background-color:#F9F9F9;">
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:16px;line-height:16px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0px;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0;line-height:0;text-align:left;display:inline-block;width:100%;direction:ltr;vertical-align:middle;">
+                <!--[if mso | IE]><table border="0" cellpadding="0" cellspacing="0" role="presentation" ><tr><td style="vertical-align:top;width:600px;" ><![endif]-->
+                <div class="mj-column-per-100 mj-outlook-group-fix"
+                  style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                  <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                    <tbody>
+                      <tr>
+                        <td style="vertical-align:top;padding:0;">
+                          <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                            <tbody>
+                              <tr>
+                                <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
+                                  <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                    style="border-collapse:collapse;border-spacing:0px;">
+                                    <tbody>
+                                      <tr>
+                                        <td style="width:550px;">
+                                          <img width="550" height="64"
+                                            style="border:0;display:block;outline:none;text-decoration:none;height:64px;width:100%;font-size:13px;"
+                                            alt="Defguard logo"
+                                            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwIiBoZWlnaHQ9IjY0IiB2aWV3Qm94PSIwIDAgMTYwIDY0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8ZyBjbGlwLXBhdGg9InVybCgjY2xpcDBfNTE3XzI2KSI+CjxwYXRoIGQ9Ik0zMC40NDUgMjYuMTI2NVYyLjkxMDMyTDI1LjM5NzMgMFYxMS41ODQ3TDE1LjMwMjMgNS43NjE5N0wwLjE1OTU0NiAxNC40OTU0VjQ5LjQzMTFMMTUuMzAyMyA1OC4xNjQ1TDI1LjM5NzMgNTIuMzQxOFY1OC4xODIyTDIwLjM1NjEgNjEuMDg5M0wyNS40MDM5IDY0TDMwLjQ0NSA2MS4wOTI5VjMxLjk1NUwxNS4zMDIzIDIzLjIzMUw1LjIwNjgzIDI5LjA1MzNWMTcuNDAxMkwxNS4zMDIzIDExLjU3ODlMMjUuMzk3MyAxNy40MDEyVjIzLjIxNjJMMzAuNDQ1IDI2LjEyNjVaTTE1LjMwMjMgMjkuMDU0MUwyMC4zNSAzMS45NjQ1TDE1LjMwMjMgMzQuODc1MkwxMC4yNTQ2IDMxLjk2NDVMMTUuMzAyMyAyOS4wNTQxWk0xNS4zMDIzIDQwLjY5NTlMMjUuMzk3MyAzNC44NzQ4VjQ2LjUxOTlMMTUuMzAyMyA1Mi4zNDE4TDUuMjA2ODMgNDYuNTE5OVYzNC44NzQ4TDE1LjMwMjMgNDAuNjk1OVoiIGZpbGw9InVybCgjcGFpbnQwX2xpbmVhcl81MTdfMjYpIi8+CjxwYXRoIGQ9Ik01MS40MDEzIDI0LjE2NjdDNTAuMzA2OCAyMy4zODU5IDQ4Ljk5MDQgMjIuOTc3NCA0Ny42NDYxIDIzLjAwMTVDNDUuNzY5MiAyMy4wMDMzIDQzLjk2ODcgMjMuNzQ1MyA0Mi42MzU0IDI1LjA2NjRDNDEuMzAyMSAyNi4zODc1IDQwLjU0MzcgMjguMTgxMiA0MC41MjQ3IDMwLjA1OFYzNi43OTE0QzQwLjUyNDcgNDAuOTk5NiA0My41NjczIDQzLjg0NzkgNDcuNzc1NSA0My44NDc5QzUxLjY2MDEgNDMuODQ3OSA1NS4wMjY4IDQwLjY3NTYgNTUuMDI2OCAzNi43OTE0VjE2LjMzM0g1MS40MDEzVjI0LjE2NjdaTTUxLjQwMTMgMzYuNzkxNEM1MS40MTk4IDM3LjI3NTUgNTEuMzM5MSAzNy43NTgzIDUxLjE2NDMgMzguMjEwMUM1MC45ODk0IDM4LjY2MTkgNTAuNzI0MSAzOS4wNzMyIDUwLjM4NDYgMzkuNDE4OEM1MC4wNDUgMzkuNzY0MyA0OS42Mzg1IDQwLjAzNjkgNDkuMTg5OCA0MC4yMTk3QzQ4Ljc0MTEgNDAuNDAyNCA0OC4yNTk5IDQwLjQ5MTYgNDcuNzc1NSA0MC40ODE3QzQ3LjI5MjcgNDAuNDg2IDQ2LjgxMzkgNDAuMzkzMSA0Ni4zNjc4IDQwLjIwODRDNDUuOTIxNyA0MC4wMjM2IDQ1LjUxNzQgMzkuNzUwOSA0NS4xNzkxIDM5LjQwNjVDNDQuODQwNyAzOS4wNjIgNDQuNTc1MiAzOC42NTMgNDQuMzk4NCAzOC4yMDM3QzQ0LjIyMTYgMzcuNzU0NCA0NC4xMzcxIDM3LjI3NCA0NC4xNTAxIDM2Ljc5MTRMNDQuMjE1IDMwLjA1OEM0NC4yMTUgMjcuOTIyMyA0NS43MDM4IDI2LjM2NzcgNDcuNzc1NSAyNi4zNjc3QzQ5LjkxMTIgMjYuMzY3NyA1MS40MDEzIDI3LjkyMTUgNTEuNDAxMyAzMC4wNThWMzYuNzkxNFoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik02NS41Nzg1IDIzLjAwMUM2MS42OTQ0IDIzLjAwMSA1OC4zMjc3IDI2LjE3MyA1OC4zMjc3IDMwLjA1NzZWMzYuNzkwOUM1OC4zMjc3IDQwLjk5OTEgNjEuMzcwMyA0My44NDc1IDY1LjU3ODUgNDMuODQ3NUM2OS40NjMxIDQzLjg0NzUgNzIuODI5OCA0MC42NzUxIDcyLjgyOTggMzYuNzkwOUg2OS4yMDRDNjkuMjIyNCAzNy4yNzUgNjkuMTQxOCAzNy43NTc3IDY4Ljk2NyAzOC4yMDk1QzY4Ljc5MjEgMzguNjYxMyA2OC41MjY4IDM5LjA3MjYgNjguMTg3NCAzOS40MTgxQzY3Ljg0NzkgMzkuNzYzNyA2Ny40NDEzIDQwLjAzNjMgNjYuOTkyNyA0MC4yMTkxQzY2LjU0NDEgNDAuNDAxOSA2Ni4wNjI5IDQwLjQ5MTEgNjUuNTc4NSA0MC40ODEyQzY1LjA5NTcgNDAuNDg1NiA2NC42MTcgNDAuMzkyNiA2NC4xNzA5IDQwLjIwNzlDNjMuNzI0OCA0MC4wMjMyIDYzLjMyMDUgMzkuNzUwNCA2Mi45ODIxIDM5LjQwNkM2Mi42NDM3IDM5LjA2MTYgNjIuMzc4MiAzOC42NTI1IDYyLjIwMTQgMzguMjAzMkM2Mi4wMjQ2IDM3Ljc1MzkgNjEuOTQwMiAzNy4yNzM2IDYxLjk1MzEgMzYuNzkwOVYzNS4xMDY5SDcyLjgyOThWMzAuMDU1MUM3Mi44Mjk4IDI1Ljg0OTcgNjkuNzg3MiAyMy4wMDEgNjUuNTc4NSAyMy4wMDFaTTY5LjIwNCAzMS43NDExSDYyLjAxNjRWMzAuMDU3MUM2Mi4wMTY0IDI3LjkyMTQgNjMuNTA1MiAyNi4zNjY4IDY1LjU3NjkgMjYuMzY2OEM2Ny43MTI3IDI2LjM2NjggNjkuMjAyMyAyNy45MjA2IDY5LjIwMjMgMzAuMDU3MUw2OS4yMDQgMzEuNzQxMVoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik03Ny4wMzgxIDIxLjMxNzlWMjMuMzI0N0g3NS4yMjUyVjI2LjY5MjZINzcuMDM4MVY0My41MjUxSDgwLjY2MzVWMjYuNjkxM0g4Mi40NzZWMjMuMzIzNEg4MC42NjM1VjIxLjMxNjZDODAuNjUwOSAyMS4wOTIyIDgwLjY4NTggMjAuODY3NiA4MC43NjYgMjAuNjU3NkM4MC44NDYxIDIwLjQ0NzYgODAuOTY5NyAyMC4yNTY5IDgxLjEyODcgMjAuMDk3OUM4MS4yODc3IDE5LjkzODkgODEuNDc4NCAxOS44MTUzIDgxLjY4ODQgMTkuNzM1MkM4MS44OTg0IDE5LjY1NSA4Mi4xMjMgMTkuNjIwMSA4Mi4zNDc1IDE5LjYzMjdIODIuNjcxMVYxNi4yNjQ4SDgyLjA4ODNDODEuNDE3NyAxNi4yMzgyIDgwLjc0ODkgMTYuMzUwOCA4MC4xMjQgMTYuNTk1NEM3OS40OTkxIDE2LjgzOTkgNzguOTMxNSAxNy4yMTEzIDc4LjQ1NzEgMTcuNjg1OUM3Ny45ODI4IDE4LjE2MDYgNzcuNjExNyAxOC43MjgzIDc3LjM2NzUgMTkuMzUzNEM3Ny4xMjMzIDE5Ljk3ODUgNzcuMDExMSAyMC42NDczIDc3LjAzODEgMjEuMzE3OVoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik05Mi4xMjI2IDIzLjAwMUM4OC4yMzggMjMuMDAxIDg0Ljg3MTMgMjYuMTczIDg0Ljg3MTMgMzAuMDU3NlYzNi43OTA5Qzg0Ljg3MTMgNDAuOTk5MSA4Ny43ODUgNDMuODQ3NSA5MS43OTg5IDQzLjg0NzVDOTMuNDgyOSA0My44NDc1IDk1LjEwMDcgNDMuMjY1MSA5NS44MTI5IDQyLjM1ODZWNDMuNTIzOEM5NS44MTI5IDQ1LjcyNDkgOTQuMzg4NSA0Ny40MDg0IDkyLjE4NzUgNDcuNDA4NEM5Mi4xNjQ1IDQ3LjQwODQgOTIuMTQyNyA0Ny40MDU5IDkyLjExOTcgNDcuNDA1NVY1MC41Nzk2SDkyLjE4NzVDOTYuMDA3MiA1MC41Nzk2IDk5LjM3NTEgNDcuNzMxMiA5OS4zNzUxIDQzLjUyM1YzMC4wNTc2Qzk5LjM3MzQgMjUuODQ5NyA5Ni4zMzA4IDIzLjAwMSA5Mi4xMjI2IDIzLjAwMVpNOTUuNzQ4IDM2Ljc5MDlDOTUuNzY2NSAzNy4yNzUgOTUuNjg1OCAzNy43NTc3IDk1LjUxMSAzOC4yMDk1Qzk1LjMzNjIgMzguNjYxMyA5NS4wNzA5IDM5LjA3MjYgOTQuNzMxNCAzOS40MTgxQzk0LjM5MTkgMzkuNzYzNyA5My45ODU0IDQwLjAzNjIgOTMuNTM2OCA0MC4yMTkxQzkzLjA4ODIgNDAuNDAxOSA5Mi42MDY5IDQwLjQ5MTEgOTIuMTIyNiA0MC40ODEyQzkxLjYzOTcgNDAuNDg1NiA5MS4xNjA5IDQwLjM5MjcgOTAuNzE0OCA0MC4yMDhDOTAuMjY4NyA0MC4wMjMzIDg5Ljg2NDMgMzkuNzUwNiA4OS41MjU5IDM5LjQwNjFDODkuMTg3NSAzOS4wNjE3IDg4LjkyMTkgMzguNjUyNiA4OC43NDUxIDM4LjIwMzNDODguNTY4MyAzNy43NTM5IDg4LjQ4MzggMzcuMjczNiA4OC40OTY3IDM2Ljc5MDlWMzAuMDU3NkM4OC40Nzg0IDI5LjU3MzUgODguNTU5MSAyOS4wOTA3IDg4LjczMzkgMjguNjM4OUM4OC45MDg4IDI4LjE4NzEgODkuMTc0MSAyNy43NzU4IDg5LjUxMzYgMjcuNDMwM0M4OS44NTMyIDI3LjA4NDcgOTAuMjU5NyAyNi44MTIyIDkwLjcwODQgMjYuNjI5NEM5MS4xNTcgMjYuNDQ2NiA5MS42MzgyIDI2LjM1NzQgOTIuMTIyNiAyNi4zNjcyQzk0LjI1ODMgMjYuMzY3MiA5NS43NDggMjcuOTIxIDk1Ljc0OCAzMC4wNTc2VjM2Ljc5MDlaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMTEzLjE2MyAzNi43OTFDMTEzLjE4MSAzNy4yNzUxIDExMy4xMDEgMzcuNzU3OSAxMTIuOTI2IDM4LjIwOTdDMTEyLjc1MSAzOC42NjE1IDExMi40ODYgMzkuMDcyOCAxMTIuMTQ2IDM5LjQxODRDMTExLjgwNyAzOS43NjM5IDExMS40IDQwLjAzNjUgMTEwLjk1MSA0MC4yMTkzQzExMC41MDMgNDAuNDAyMSAxMTAuMDIxIDQwLjQ5MTIgMTA5LjUzNyA0MC40ODEzQzEwOS4wNTQgNDAuNDg1NyAxMDguNTc2IDQwLjM5MjcgMTA4LjEyOSA0MC4yMDhDMTA3LjY4MyA0MC4wMjMyIDEwNy4yNzkgMzkuNzUwNSAxMDYuOTQxIDM5LjQwNjFDMTA2LjYwMiAzOS4wNjE2IDEwNi4zMzcgMzguNjUyNiAxMDYuMTYgMzguMjAzM0MxMDUuOTgzIDM3Ljc1NCAxMDUuODk5IDM3LjI3MzYgMTA1LjkxMiAzNi43OTFWMjMuMzI0N0gxMDIuMjg2VjM2Ljc5MUMxMDIuMjg2IDQwLjk5OTIgMTA1LjI2NCA0My44NDc2IDEwOS40NzQgNDMuODQ3NkMxMTMuMTY0IDQzLjg0NzYgMTE2Ljc5IDQwLjk5OTIgMTE2Ljc5IDM2Ljc5MVYyMy4zMjQ3SDExMy4xNjRMMTEzLjE2MyAzNi43OTFaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMTI3LjA4MiAyMy4wMDFDMTIzLjMyNyAyMy4wMDEgMTE5LjgzMSAyNS43MTk5IDExOS44MzEgMjkuOTI4MkgxMjMuMjYyQzEyMy4yNjIgMjcuNzI3MSAxMjQuNzUxIDI2LjE3MyAxMjYuOTUyIDI2LjE3M0MxMjkuMTUzIDI2LjE3MyAxMzAuNjQzIDI3Ljg1NjkgMTMwLjY0MyAzMC4wNTc2VjMxLjI4OTdIMTMwLjU3OEMxMjkuNTIgMzAuNDI1NCAxMjguMTg5IDI5Ljk2NjMgMTI2LjgyMyAyOS45OTQ3QzEyNS45IDI5Ljk4MTIgMTI0Ljk4NCAzMC4xNDk4IDEyNC4xMjcgMzAuNDkwOEMxMjMuMjY5IDMwLjgzMTggMTIyLjQ4NyAzMS4zMzg1IDEyMS44MjYgMzEuOTgxOUMxMjEuMTY0IDMyLjYyNTQgMTIwLjYzNiAzMy4zOTI5IDEyMC4yNzIgMzQuMjQwNkMxMTkuOTA3IDM1LjA4ODQgMTE5LjcxNCAzNS45OTk2IDExOS43MDIgMzYuOTIyM0MxMTkuNzAyIDQxLjEzMDYgMTIyLjYxNSA0My44NDk1IDEyNi42MjkgNDMuODQ5NUMxMjguMzEzIDQzLjg0OTUgMTI5Ljg2NiA0My4yNjcxIDEzMC42NDMgNDIuMzYwN1Y0My41MjU5SDEzNC4yMDRWMzAuMDU3NkMxMzQuMjAzIDI1Ljg0OTcgMTMxLjI5IDIzLjAwMSAxMjcuMDgyIDIzLjAwMVpNMTI2Ljk1MiA0MC42MTA2QzEyNi40NyA0MC42MTUgMTI1Ljk5MSA0MC41MjIgMTI1LjU0NSA0MC4zMzczQzEyNS4wOTkgNDAuMTUyNSAxMjQuNjk0IDM5Ljg3OTggMTI0LjM1NiAzOS41MzU0QzEyNC4wMTggMzkuMTkwOSAxMjMuNzUyIDM4Ljc4MTkgMTIzLjU3NSAzOC4zMzI2QzEyMy4zOTkgMzcuODgzMiAxMjMuMzE0IDM3LjQwMjkgMTIzLjMyNyAzNi45MjAzQzEyMy4zMDkgMzYuNDM2MiAxMjMuMzg5IDM1Ljk1MzUgMTIzLjU2NCAzNS41MDE3QzEyMy43MzkgMzUuMDUgMTI0LjAwNCAzNC42Mzg3IDEyNC4zNDQgMzQuMjkzMkMxMjQuNjgzIDMzLjk0NzYgMTI1LjA5IDMzLjY3NTEgMTI1LjUzOCAzMy40OTIyQzEyNS45ODcgMzMuMzA5NCAxMjYuNDY4IDMzLjIyMDEgMTI2Ljk1MiAzMy4yM0MxMjkuMDg4IDMzLjIzIDEzMC41NzggMzQuNzgzNyAxMzAuNTc4IDM2LjkyMDNDMTMwLjU5NiAzNy40MDQ0IDEzMC41MTYgMzcuODg3MiAxMzAuMzQxIDM4LjMzOUMxMzAuMTY2IDM4Ljc5MDggMTI5LjkwMSAzOS4yMDIxIDEyOS41NjEgMzkuNTQ3N0MxMjkuMjIyIDM5Ljg5MzIgMTI4LjgxNSA0MC4xNjU4IDEyOC4zNjYgNDAuMzQ4NkMxMjcuOTE4IDQwLjUzMTMgMTI3LjQzNiA0MC42MjA1IDEyNi45NTIgNDAuNjEwNkgxMjYuOTUyWiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTEzNi45ODYgMjguMzc0NVY0My41MjM4SDE0MC42MTJWMjguMzc0NUMxNDAuNTk5IDI4LjE1IDE0MC42MzQgMjcuOTI1NCAxNDAuNzE0IDI3LjcxNTRDMTQwLjc5NCAyNy41MDU0IDE0MC45MTggMjcuMzE0NyAxNDEuMDc3IDI3LjE1NTdDMTQxLjIzNiAyNi45OTY3IDE0MS40MjcgMjYuODczMSAxNDEuNjM3IDI2Ljc5M0MxNDEuODQ3IDI2LjcxMjggMTQyLjA3MSAyNi42Nzc5IDE0Mi4yOTYgMjYuNjkwNUgxNDMuMzMyVjIzLjMyMjZIMTQyLjAzOEMxNDEuMzY4IDIzLjI5NTggMTQwLjY5OSAyMy40MDgyIDE0MC4wNzQgMjMuNjUyNkMxMzkuNDQ5IDIzLjg5NyAxMzguODgxIDI0LjI2ODEgMTM4LjQwNiAyNC43NDI3QzEzNy45MzIgMjUuMjE3MiAxMzcuNTYxIDI1Ljc4NDkgMTM3LjMxNiAyNi40MUMxMzcuMDcyIDI3LjAzNSAxMzYuOTYgMjcuNzAzOSAxMzYuOTg2IDI4LjM3NDVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMTU2LjIxNSAxNi4zMzNWMjQuMTY2N0MxNTUuMTIgMjMuMzg1OSAxNTMuODA0IDIyLjk3NzUgMTUyLjQ2IDIzLjAwMTVDMTUwLjU4MyAyMy4wMDMyIDE0OC43ODIgMjMuNzQ1MiAxNDcuNDQ5IDI1LjA2NjNDMTQ2LjExNSAyNi4zODc0IDE0NS4zNTcgMjguMTgxMSAxNDUuMzM4IDMwLjA1OFYzNi43OTE0QzE0NS4zMzggNDAuOTk5NiAxNDguMzgxIDQzLjg0NzkgMTUyLjU4OSA0My44NDc5QzE1Ni40NzQgNDMuODQ3OSAxNTkuODQgNDAuNjc1NiAxNTkuODQgMzYuNzkxNFYxNi4zMzNIMTU2LjIxNVpNMTU2LjIxNSAzNi43OTE0QzE1Ni4yMzMgMzcuMjc1NCAxNTYuMTUyIDM3Ljc1ODIgMTU1Ljk3OCAzOC4yMUMxNTUuODAzIDM4LjY2MTcgMTU1LjUzNyAzOS4wNzMgMTU1LjE5OCAzOS40MTg2QzE1NC44NTggMzkuNzY0MiAxNTQuNDUyIDQwLjAzNjcgMTU0LjAwMyA0MC4yMTk1QzE1My41NTUgNDAuNDAyMyAxNTMuMDczIDQwLjQ5MTUgMTUyLjU4OSA0MC40ODE3QzE1Mi4xMDYgNDAuNDg2MSAxNTEuNjI4IDQwLjM5MzIgMTUxLjE4MSA0MC4yMDg1QzE1MC43MzUgNDAuMDIzOCAxNTAuMzMxIDM5Ljc1MTEgMTQ5Ljk5MiAzOS40MDY2QzE0OS42NTQgMzkuMDYyMiAxNDkuMzg4IDM4LjY1MzEgMTQ5LjIxMiAzOC4yMDM3QzE0OS4wMzUgMzcuNzU0NCAxNDguOTUgMzcuMjc0MSAxNDguOTYzIDM2Ljc5MTRMMTQ5LjAyOCAzMC4wNThDMTQ5LjAyOCAyNy45MjIzIDE1MC41MTcgMjYuMzY3NyAxNTIuNTg5IDI2LjM2NzdDMTU0LjcyNSAyNi4zNjc3IDE1Ni4yMTUgMjcuOTIxNSAxNTYuMjE1IDMwLjA1OFYzNi43OTE0WiIgZmlsbD0iYmxhY2siLz4KPC9nPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyXzUxN18yNiIgeDE9IjE1LjMwMjMiIHkxPSIwIiB4Mj0iMTUuMzAyMyIgeTI9IjY0IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMyQUNDRkYiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDA3MUQ0Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjxjbGlwUGF0aCBpZD0iY2xpcDBfNTE3XzI2Ij4KPHJlY3Qgd2lkdGg9IjE1OS42ODEiIGhlaWdodD0iNjQiIGZpbGw9IndoaXRlIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjE1OTU0NikiLz4KPC9jbGlwUGF0aD4KPC9kZWZzPgo8L3N2Zz4K" />
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!--[if mso | IE]></td></tr></table><![endif]-->
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:48px;line-height:48px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><![endif]-->
+    {% block mail_content %}
+    {% endblock %}
+    <!-- footer -->
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:20px;line-height:20px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0px;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0px;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td align="center" style="font-size:0px;padding:0;word-break:break-word;">
+                                <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" ><tr><td><![endif]-->
+                                <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                  style="float:none;display:inline-table;">
+                                  <tbody>
+                                    <tr>
+                                      <td style="padding:4px;vertical-align:middle;">
+                                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                          style="border-radius:3px;width:18px;">
+                                          <tbody>
+                                            <tr>
+                                              <td style="font-size:0;height:18px;vertical-align:middle;width:18px;">
+                                                <a href="https://github.com/defguard/defguard/" target="_blank">
+                                                  <img style="border-radius:3px;display:block;" width="18" height="18"
+                                                    alt="Github"
+                                                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTkiIHZpZXdCb3g9IjAgMCAxOCAxOSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IkdpdGh1YiAtIE9yaWdpbmFsIiBjbGlwLXBhdGg9InVybCgjY2xpcDBfNDgwMF80NDY4KSI+CjxwYXRoIGlkPSJWZWN0b3IiIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNOS4wMDAyMyAwLjg3NUM2Ljg2MzY1IDAuODc2MTA5IDQuNzk3MTMgMS42MzI4NCAzLjE3MDE4IDMuMDA5ODlDMS41NDMyNCA0LjM4Njk0IDAuNDYxOTU4IDYuMjk0NTEgMC4xMTk2ODkgOC4zOTE1Qy0wLjIyMjU4IDEwLjQ4ODUgMC4xOTY0NzYgMTIuNjM4MiAxLjMwMTkzIDE0LjQ1NjFDMi40MDczOSAxNi4yNzQxIDQuMTI3MTYgMTcuNjQxOCA2LjE1MzczIDE4LjMxNDdDNi42MDA4MiAxOC4zOTc3IDYuNzY5MjMgMTguMTIwNiA2Ljc2OTIzIDE3Ljg4NUM2Ljc2OTIzIDE3LjY0OTQgNi43NjAyOCAxNi45NjYzIDYuNzU3MyAxNi4yMTk0QzQuMjUzNTggMTYuNzYwMyAzLjcyNDUyIDE1LjE2MjkgMy43MjQ1MiAxNS4xNjI5QzMuMzE2MTcgMTQuMTI1NiAyLjcyNjAxIDEzLjg1MjkgMi43MjYwMSAxMy44NTI5QzEuOTA5MzIgMTMuMjk4NyAyLjc4NzEyIDEzLjMwOTEgMi43ODcxMiAxMy4zMDkxQzMuNjkxNzQgMTMuMzcyOCA0LjE2NzE1IDE0LjIzMjMgNC4xNjcxNSAxNC4yMzIzQzQuOTY4OTQgMTUuNiA2LjI3Mjk1IDE1LjIwNDQgNi43ODU2MiAxNC45NzMyQzYuODY2MSAxNC4zOTM4IDcuMTAwMDggMTMuOTk5NiA3LjM1NzkgMTMuNzc1OUM1LjM1NzkgMTMuNTUwNiAzLjI1NjU2IDEyLjc4MyAzLjI1NjU2IDkuMzU0MDdDMy4yNDQxNiA4LjQ2NDc4IDMuNTc2MDUgNy42MDQ3OSA0LjE4MzU0IDYuOTUyMDFDNC4wOTExNCA2LjcyNjc3IDMuNzgyNjQgNS44MTY5MiA0LjI3MTQ2IDQuNTgxMDdDNC4yNzE0NiA0LjU4MTA3IDUuMDI3MDYgNC4zNDEwMiA2Ljc0Njg4IDUuNDk4MzNDOC4yMjIwMyA1LjA5NzIyIDkuNzc4NDMgNS4wOTcyMiAxMS4yNTM2IDUuNDk4MzNDMTIuOTcxOSA0LjM0MTAyIDEzLjcyNiA0LjU4MTA3IDEzLjcyNiA0LjU4MTA3QzE0LjIxNjMgNS44MTM5NiAxMy45MDc4IDYuNzIzODEgMTMuODE1NCA2Ljk1MjAxQzE0LjQyNDggNy42MDQ4OSAxNC43NTc0IDguNDY2MzkgMTQuNzQzOSA5LjM1NzAzQzE0Ljc0MzkgMTIuNzkzNCAxMi42MzgxIDEzLjU1MDYgMTAuNjM1MSAxMy43NzE0QzEwLjk1NyAxNC4wNSAxMS4yNDQ2IDE0LjU5MzggMTEuMjQ0NiAxNS40Mjk2QzExLjI0NDYgMTYuNjI2OSAxMS4yMzQyIDE3LjU5MDEgMTEuMjM0MiAxNy44ODVDMTEuMjM0MiAxOC4xMjM2IDExLjM5NjYgMTguNDAyMiAxMS44NTI3IDE4LjMxNDdDMTMuODc5NSAxNy42NDE3IDE1LjU5OTQgMTYuMjczOCAxNi43MDQ5IDE0LjQ1NTVDMTcuODEwMyAxMi42MzcyIDE4LjIyOTEgMTAuNDg3MiAxNy44ODY1IDguMzkwMDRDMTcuNTQzOCA2LjI5Mjg1IDE2LjQ2MiA0LjM4NTI3IDE0LjgzNDUgMy4wMDg0NUMxMy4yMDcgMS42MzE2NCAxMS4xNCAwLjg3NTQwNiA5LjAwMzIxIDAuODc1SDkuMDAwMjNaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBpZD0iVmVjdG9yXzIiIGQ9Ik0zLjQwODQyIDEzLjcyNEMzLjM4OTA0IDEzLjc2ODQgMy4zMTc1MSAxMy43ODE4IDMuMjU5MzkgMTMuNzUwNkMzLjIwMTI3IDEzLjcxOTUgMy4xNTgwNSAxMy42NjE3IDMuMTc4OTEgMTMuNjE1OEMzLjE5OTc4IDEzLjU2OTkgMy4yNjk4MiAxMy41NTggMy4zMjc5NSAxMy41ODkxQzMuMzg2MDcgMTMuNjIwMiAzLjQzMDc3IDEzLjY3OTUgMy40MDg0MiAxMy43MjRaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBpZD0iVmVjdG9yXzMiIGQ9Ik0zLjc3MzQyIDE0LjEyODZDMy43NDI1NiAxNC4xNDQxIDMuNzA3MjUgMTQuMTQ4NCAzLjY3MzU0IDE0LjE0MDhDMy42Mzk4MyAxNC4xMzMyIDMuNjA5ODEgMTQuMTE0MyAzLjU4ODYyIDE0LjA4NzFDMy41MzA1IDE0LjAyNDkgMy41MTg1NyAxMy45Mzg5IDMuNTYzMjggMTMuOTAwNEMzLjYwNzk5IDEzLjg2MTkgMy42ODg0NyAxMy44Nzk3IDMuNzQ2NiAxMy45NDE5QzMuODA0NzIgMTQuMDA0MSAzLjgxODEzIDE0LjA5MDEgMy43NzM0MiAxNC4xMjg2WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl80IiBkPSJNNC4xMjgxNSAxNC42NDI3QzQuMDczMDEgMTQuNjgxMiAzLjk3OTEyIDE0LjY0MjcgMy45MjY5NiAxNC41NjU3QzMuOTEyNTMgMTQuNTUxOCAzLjkwMTA2IDE0LjUzNTMgMy44OTMyMyAxNC41MTY5QzMuODg1MzkgMTQuNDk4NiAzLjg4MTM1IDE0LjQ3ODkgMy44ODEzNSAxNC40NTlDMy44ODEzNSAxNC40MzkgMy44ODUzOSAxNC40MTkzIDMuODkzMjMgMTQuNDAxQzMuOTAxMDYgMTQuMzgyNyAzLjkxMjUzIDE0LjM2NjEgMy45MjY5NiAxNC4zNTIzQzMuOTgyMSAxNC4zMTUyIDQuMDc1OTkgMTQuMzUyMyA0LjEyODE1IDE0LjQyNzhDNC4xODAzMSAxNC41MDM0IDQuMTgxOCAxNC42MDQyIDQuMTI4MTUgMTQuNjQyN1oiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGlkPSJWZWN0b3JfNSIgZD0iTTQuNjA5NDYgMTUuMTQwN0M0LjU2MDI4IDE1LjE5NTUgNC40NjA0NCAxNS4xODA3IDQuMzc4NDcgMTUuMTA2NkM0LjI5NjUgMTUuMDMyNSA0LjI3NzEyIDE0LjkzMTcgNC4zMjYzIDE0Ljg3ODRDNC4zNzU0OCAxNC44MjUxIDQuNDc1MzMgMTQuODM5OSA0LjU2MDI4IDE0LjkxMjVDNC42NDUyMyAxNC45ODUxIDQuNjYxNjMgMTUuMDg3MyA0LjYwOTQ2IDE1LjE0MDdaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBpZD0iVmVjdG9yXzYiIGQ9Ik01LjI4NDYzIDE1LjQzMUM1LjI2MjI4IDE1LjUwMDcgNS4xNjA5MyAxNS41MzE4IDUuMDU5NTkgMTUuNTAyMkM0Ljk1ODI1IDE1LjQ3MjUgNC44OTExOSAxNS4zODk2IDQuOTEwNTYgMTUuMzE4NEM0LjkyOTkzIDE1LjI0NzMgNS4wMzI3NyAxNS4yMTQ3IDUuMTM1NiAxNS4yNDczQzUuMjM4NDMgMTUuMjc5OSA1LjMwNCAxNS4zNTg0IDUuMjg0NjMgMTUuNDMxWiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl83IiBkPSJNNi4wMjA3NSAxNS40ODE1QzYuMDIwNzUgMTUuNTU0MSA1LjkzNzMgMTUuNjE2NCA1LjgzIDE1LjYxNzhDNS43MjI2OSAxNS42MTkzIDUuNjM0NzcgMTUuNTYgNS42MzQ3NyAxNS40ODc0QzUuNjM0NzcgMTUuNDE0OCA1LjcxODIyIDE1LjM1MjYgNS44MjU1MiAxNS4zNTExQzUuOTMyODIgMTUuMzQ5NiA2LjAyMDc1IDE1LjQwNzQgNi4wMjA3NSAxNS40ODE1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl84IiBkPSJNNi43MDYzIDE1LjM2NzNDNi43MTk3MSAxNS40Mzk5IDYuNjQ1MiAxNS41MTU1IDYuNTM3ODkgMTUuNTMzM0M2LjQzMDU5IDE1LjU1MTEgNi4zMzY3IDE1LjUwODEgNi4zMjMyOSAxNS40MzdDNi4zMDk4OCAxNS4zNjU4IDYuMzg3MzcgMTUuMjg4OCA2LjQ5MTY5IDE1LjI2OTVDNi41OTYwMiAxNS4yNTAzIDYuNjkyODkgMTUuMjk0NyA2LjcwNjMgMTUuMzY3M1oiIGZpbGw9ImJsYWNrIi8+CjwvZz4KPGRlZnM+CjxjbGlwUGF0aCBpZD0iY2xpcDBfNDgwMF80NDY4Ij4KPHJlY3Qgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiBmaWxsPSJ3aGl0ZSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCAwLjUpIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg==" />
+                                                </a>
+                                              </td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if mso | IE]></td><td><![endif]-->
+                                <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                  style="float:none;display:inline-table;">
+                                  <tbody>
+                                    <tr>
+                                      <td style="padding:4px;padding-left:20px;vertical-align:middle;">
+                                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                          style="border-radius:3px;width:18px;">
+                                          <tbody>
+                                            <tr>
+                                              <td style="font-size:0;height:18px;vertical-align:middle;width:18px;">
+                                                <a href="https://matrix.to/#/#defguard:teonite.com" target="_blank">
+                                                  <img alt="Matrix" height="18" style="border-radius:3px;display:block;"
+                                                    width="18"
+                                                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTkiIHZpZXdCb3g9IjAgMCAxOCAxOSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9Im1hdHJpeCAtIE9yaWdpbmFsIiBjbGlwLXBhdGg9InVybCgjY2xpcDBfNDgwMF80NDc5KSI+CjxwYXRoIGlkPSJWZWN0b3IiIGQ9Ik0wLjUyNjc5NiAwLjkxMTk4MlYxOC4wODhIMS43NjE2MlYxOC41SDAuMDUzNDY2OFYwLjVIMS43NjEwNVYwLjkxMTk4MkgwLjUyNjc5NlpNNS44OTExMyA2LjM1NzIzVjcuMjI2MjJINS45MTU4OUM2LjEzMjMgNi45MDg5NSA2LjQxODYyIDYuNjQ1NTUgNi43NTI4IDYuNDU2MjlDNy4wNzkyMyA2LjI3NDUgNy40NTM1MSA2LjE4MzMyIDcuODc0NDkgNi4xODMzMkM4LjI3OTcyIDYuMTgzMzIgOC42NDk0OSA2LjI2MjEyIDguOTg0MzcgNi40MTk3QzkuMzE5MjQgNi41NzY3MyA5LjU3MzY0IDYuODUzNjQgOS43NDY5OSA3LjI1MDk5QzkuOTM3MjIgNi45Njk1OCAxMC4xOTUgNi43MjEzNyAxMC41MjIgNi41MDYzOEMxMC44NDg0IDYuMjkwODIgMTEuMjM0NSA2LjE4MzMyIDExLjY4MTQgNi4xODMzMkMxMi4wMjAyIDYuMTgzMzIgMTIuMzM0MyA2LjIyNDk3IDEyLjYyMzUgNi4zMDcxNEMxMi45MTI4IDYuMzkwNDQgMTMuMTYwNSA2LjUyMjcgMTMuMzY3NiA2LjcwNTA1QzEzLjU3MzYgNi44ODY4NCAxMy43MzUxIDcuMTI0OTEgMTMuODUxIDcuNDE4N0MxMy45NjY0IDcuNzEyNDkgMTQuMDI0NCA4LjA2NTk0IDE0LjAyNDQgOC40ODA3NFYxMi43NzY3SDEyLjI2NDVWOS4xMzg2N0MxMi4yNjQ1IDguOTIzMTEgMTIuMjU2IDguNzIwNSAxMi4yMzk3IDguNTI5N0MxMi4yMjc5IDguMzU2OCAxMi4xODE2IDguMTg4MDEgMTIuMTAzNSA4LjAzMzNDMTIuMDI4NiA3Ljg5MjE0IDExLjkxNDQgNy43NzU2NiAxMS43NzQ4IDcuNjk3ODZDMTEuNjMwMiA3LjYxNTY5IDExLjQzMzcgNy41NzQwNCAxMS4xODU1IDcuNTc0MDRDMTAuOTM3OSA3LjU3NDA0IDEwLjczNzUgNy42MjE4OCAxMC41ODQ1IDcuNzE2NDNDMTAuNDMxNCA3LjgxMjExIDEwLjMxMTUgNy45MzU5MyAxMC4yMjQ4IDguMDg5MDJDMTAuMTM1MyA4LjI1MDcxIDEwLjA3NjUgOC40Mjc2MSAxMC4wNTE1IDguNjEwNzVDMTAuMDIyMiA4LjgwNiAxMC4wMDc2IDkuMDAzMTUgMTAuMDA3NiA5LjIwMDU4VjEyLjc3NjdIOC4yNDcwOFY5LjE3NTgyQzguMjQ3MDggOC45ODU1OSA4LjI0MzE0IDguNzk3MDQgOC4yMzUyNiA4LjYxMDc1QzguMjI4ODcgOC40MzQyMiA4LjE5MzExIDguMjU5OTkgOC4xMjk0NSA4LjA5NTIxQzguMDY4NjkgNy45Mzk1MyA3Ljk2MDM3IDcuODA2OTggNy44MTk5IDcuNzE2NDNDNy42NzQ2OSA3LjYyMTg4IDcuNDYxOTUgNy41NzQwNCA3LjE4MTEgNy41NzQwNEM3LjA2OTU5IDcuNTc4NzQgNi45NTkxNCA3LjU5NzY1IDYuODUyNDIgNy42MzAzMkM2LjcwNyA3LjY3MjIzIDYuNTcxODggNy43NDM5MSA2LjQ1NTYzIDcuODQwODJDNi4zMjczMSA3Ljk0NDM4IDYuMjE4MTIgOC4wOTM1MiA2LjEyNjk1IDguMjg3NjlDNi4wMzYzMyA4LjQ4MjQzIDUuOTkwNzUgOC43MzY4MiA1Ljk5MDc1IDkuMDUxNDRWMTIuNzc2N0g0LjIyOTY5VjYuMzU3MjNINS44OTExM1pNMTcuNTI4MiAxOC4wODhWMC45MTE5ODJIMTYuMjkzNFYwLjVIMTguMDAxNVYxOC41SDE2LjI5MzRWMTguMDg4SDE3LjUyODJaIiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzQ4MDBfNDQ3OSI+CjxyZWN0IHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgZmlsbD0id2hpdGUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMC41KSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo=" />
+                                                </a>
+                                              </td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if mso | IE]></td><td><![endif]-->
+                                <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                  style="float:none;display:inline-table;">
+                                  <tbody>
+                                    <tr>
+                                      <td style="padding:4px;padding-left:20px;vertical-align:middle;">
+                                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                          style="border-radius:3px;width:18px;">
+                                          <tbody>
+                                            <tr>
+                                              <td style="font-size:0;height:18px;vertical-align:middle;width:18px;">
+                                                <a href="https://floss.social/@defguard" target="_blank">
+                                                  <img alt="Mastodon" style="border-radius:3px;display:block;"
+                                                    width="18" height="18"
+                                                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTkiIHZpZXdCb3g9IjAgMCAxOCAxOSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9ImxvZ28tYmxhY2siIGNsaXAtcGF0aD0idXJsKCNjbGlwMF80ODAwXzQ0ODYpIj4KPHBhdGggaWQ9IlZlY3RvciIgZD0iTTE3LjU0MjcgNC40NzE5NEMxNy4yODMgMi41NjI0IDE1LjYwMDUgMS4wNTc1NSAxMy42MDYxIDAuNzY1OTQ5QzEzLjI2OTYgMC43MTY2NzYgMTEuOTk0NyAwLjUzNzM1NCA5LjA0MTQyIDAuNTM3MzU0SDkuMDE5MzZDNi4wNjUyNiAwLjUzNzM1NCA1LjQzMTQ4IDAuNzE2Njc2IDUuMDk1IDAuNzY1OTQ5QzMuMTU2MDggMS4wNDk0NyAxLjM4NTQyIDIuNDAxNjYgMC45NTU4MTcgNC4zMzM4QzAuNzQ5MTg1IDUuMjg1MzQgMC43MjcxMzMgNi4zNDAyOCAwLjc2NTUxOSA3LjMwNzk3QzAuODIwMjQgOC42OTU3IDAuODMwODU3IDEwLjA4MSAwLjk1ODI2NyAxMS40NjMxQzEuMDQ2MzUgMTIuMzgxMSAxLjIgMTMuMjkxOSAxLjQxODA4IDE0LjE4ODRDMS44MjY0NSAxNS44NDQzIDMuNDc5NTEgMTcuMjIyNCA1LjA5OTA3IDE3Ljc4NDZDNi44MzMwNyAxOC4zNzA5IDguNjk3ODIgMTguNDY4MiAxMC40ODQ2IDE4LjA2NTdDMTAuNjgxMSAxOC4wMjA1IDEwLjg3NTUgMTcuOTY3OSAxMS4wNjc3IDE3LjkwODJDMTEuNTAxNCAxNy43NzE3IDEyLjAxMDIgMTcuNjE5IDEyLjM4NDMgMTcuMzUwOEMxMi4zODk0IDE3LjM0NyAxMi4zOTM2IDE3LjM0MjIgMTIuMzk2NiAxNy4zMzY2QzEyLjM5OTYgMTcuMzMxIDEyLjQwMTIgMTcuMzI0OCAxMi40MDE0IDE3LjMxODVWMTUuOTc5M0MxMi40MDEzIDE1Ljk3MzQgMTIuMzk5OSAxNS45Njc1IDEyLjM5NzMgMTUuOTYyM0MxMi4zOTQ2IDE1Ljk1NyAxMi4zOTA4IDE1Ljk1MjMgMTIuMzg2MSAxNS45NDg3QzEyLjM4MTQgMTUuOTQ1MSAxMi4zNzU5IDE1Ljk0MjUgMTIuMzcwMSAxNS45NDEyQzEyLjM2NDMgMTUuOTM5OSAxMi4zNTgyIDE1Ljk0IDEyLjM1MjQgMTUuOTQxM0MxMS4yMDc3IDE2LjIxMTcgMTAuMDM0NiAxNi4zNDczIDguODU3NjYgMTYuMzQ1MkM2LjgzMjE4IDE2LjM0NTIgNi4yODc0MiAxNS4zOTQ0IDYuMTMxNDEgMTQuOTk4NkM2LjAwNjAyIDE0LjY1NjYgNS45MjYzOSAxNC4yOTk3IDUuODk0NTYgMTMuOTM3MkM1Ljg5NDI0IDEzLjkzMTIgNS44OTUzOCAxMy45MjUxIDUuODk3ODYgMTMuOTE5NUM1LjkwMDM1IDEzLjkxMzkgNS45MDQxNSAxMy45MDkgNS45MDg5MSAxMy45MDUyQzUuOTEzNyAxMy45MDEzIDUuOTE5MzMgMTMuODk4NiA1LjkyNTM0IDEzLjg5NzNDNS45MzEzNiAxMy44OTYgNS45Mzc2IDEzLjg5NjEgNS45NDM1NyAxMy44OTc3QzcuMDY5MjUgMTQuMTY2MyA4LjIyMzE5IDE0LjMwMTggOS4zODExOCAxNC4zMDE1QzkuNjU5NjggMTQuMzAxNSA5LjkzNzM2IDE0LjMwMTUgMTAuMjE1OSAxNC4yOTQzQzExLjM4MDUgMTQuMjYyIDEyLjYwODEgMTQuMjAzIDEzLjc1MzkgMTMuOTgxN0MxMy43ODI1IDEzLjk3NiAxMy44MTExIDEzLjk3MTIgMTMuODM1NiAxMy45NjM5QzE1LjY0MyAxMy42MjA2IDE3LjM2MyAxMi41NDMxIDE3LjUzNzggOS44MTQ0NEMxNy41NDQ0IDkuNzA3MDEgMTcuNTYwNyA4LjY4OTIzIDE3LjU2MDcgOC41Nzc3N0MxNy41NjE1IDguMTk4OTMgMTcuNjg0IDUuODkwMzcgMTcuNTQyNyA0LjQ3MTk0Wk0xNC43NjEgMTEuMjgwNUgxMi44NjA0VjYuNjc2MzFDMTIuODYwNCA1LjcwNyAxMi40NTIxIDUuMjEyNjYgMTEuNjIxNSA1LjIxMjY2QzEwLjcwODQgNS4yMTI2NiAxMC4yNTEgNS43OTc0NyAxMC4yNTEgNi45NTI1NVY5LjQ3Mjc2SDguMzYxOVY2Ljk1MjU1QzguMzYxOSA1Ljc5NzQ3IDcuOTAzNzIgNS4yMTI2NiA2Ljk5MDYyIDUuMjEyNjZDNi4xNjQ5IDUuMjEyNjYgNS43NTI0NSA1LjcwNyA1Ljc1MTYzIDYuNjc2MzFWMTEuMjgwNUgzLjg1Mjc0VjYuNTM2NTdDMy44NTI3NCA1LjU2NzI2IDQuMTAyOTQgNC43OTcyIDQuNjAzMzIgNC4yMjYzN0M1LjExOTQ5IDMuNjU2OTEgNS43OTY1NiAzLjM2NDUxIDYuNjM2OTggMy4zNjQ1MUM3LjYwOTY5IDMuMzY0NTEgOC4zNDQ3NSAzLjczNDQ1IDguODM0NzggNC40NzM1Nkw5LjMwNzY4IDUuMjU4N0w5Ljc4MTM3IDQuNDczNTZDMTAuMjcxNCAzLjczNDQ1IDExLjAwNjUgMy4zNjQ1MSAxMS45Nzc2IDMuMzY0NTFDMTIuODE3MiAzLjM2NDUxIDEzLjQ5NDIgMy42NTY5MSAxNC4wMTIgNC4yMjYzN0MxNC41MTI0IDQuNzk2NjUgMTQuNzYyNiA1LjU2NjcxIDE0Ljc2MjYgNi41MzY1N0wxNC43NjEgMTEuMjgwNVoiIGZpbGw9ImJsYWNrIi8+CjwvZz4KPGRlZnM+CjxjbGlwUGF0aCBpZD0iY2xpcDBfNDgwMF80NDg2Ij4KPHJlY3Qgd2lkdGg9IjE2Ljg2MDgiIGhlaWdodD0iMTgiIGZpbGw9IndoaXRlIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjc1IDAuNSkiLz4KPC9jbGlwUGF0aD4KPC9kZWZzPgo8L3N2Zz4K" />
+                                                </a>
+                                              </td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if mso | IE]></td><td><![endif]-->
+                                <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                  style="float:none;display:inline-table;">
+                                  <tbody>
+                                    <tr>
+                                      <td style="padding:4px;padding-left:20px;vertical-align:middle;">
+                                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                          style="border-radius:3px;width:18px;">
+                                          <tbody>
+                                            <tr>
+                                              <td style="font-size:0;height:18px;vertical-align:middle;width:18px;">
+                                                <a href="https://twitter.com/defguard_net/" target="_blank">
+                                                  <img alt="Twitter" height="18"
+                                                    style="border-radius:3px;display:block;" width="18"
+                                                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTkiIHZpZXdCb3g9IjAgMCAxOCAxOSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlR3aXR0ZXIgLSBPcmlnaW5hbCI+CjxwYXRoIGlkPSJWZWN0b3IiIGQ9Ik01LjY2MDY0IDE2LjgxMzFDMTIuNDUzMSAxNi44MTMxIDE2LjE2ODMgMTEuMTg1NiAxNi4xNjgzIDYuMzA1MzlDMTYuMTY4MyA2LjE0NTU1IDE2LjE2ODMgNS45ODY0MyAxNi4xNTc1IDUuODI4MDNDMTYuODgwMyA1LjMwNTI1IDE3LjUwNDIgNC42NTc5NCAxOCAzLjkxNjQzQzE3LjMyNiA0LjIxNTIzIDE2LjYxMSA0LjQxMTEgMTUuODc4OSA0LjQ5NzQ3QzE2LjY0OTkgNC4wMzU5OSAxNy4yMjY5IDMuMzEwMDYgMTcuNTAyNSAyLjQ1NDgzQzE2Ljc3NzYgMi44ODUwNCAxNS45ODQ1IDMuMTg4MiAxNS4xNTc0IDMuMzUxMjNDMTQuNjAwNiAyLjc1OTE2IDEzLjg2NDIgMi4zNjcxMSAxMy4wNjIxIDIuMjM1NzRDMTIuMjYwMSAyLjEwNDM4IDExLjQzNzEgMi4yNDEwMiAxMC43MjA1IDIuNjI0NTJDMTAuMDAzOSAzLjAwODAyIDkuNDMzNjcgMy42MTcwMSA5LjA5ODA2IDQuMzU3MjRDOC43NjI0NSA1LjA5NzQ3IDguNjgwMTYgNS45Mjc2OCA4Ljg2MzkyIDYuNzE5MzlDNy4zOTU2NyA2LjY0NTc0IDUuOTU5MzIgNi4yNjQxNiA0LjY0ODA5IDUuNTk5NDNDMy4zMzY4NiA0LjkzNDcgMi4xODAwNyA0LjAwMTY4IDEuMjUyOCAyLjg2MDkxQzAuNzgwNTQ2IDMuNjczOTEgMC42MzU5MDQgNC42MzYzMyAwLjg0ODMyNSA1LjU1MjIzQzEuMDYwNzUgNi40NjgxMiAxLjYxNDI2IDcuMjY4NjMgMi4zOTYxNiA3Ljc5MDc1QzEuODA4NDIgNy43NzM1MyAxLjIzMzQ5IDcuNjE0OTggMC43MiA3LjMyODUxVjcuMzc1MzFDMC43MjAyMzMgOC4yMjc5NSAxLjAxNTM5IDkuMDU0MjYgMS41NTU0IDkuNzE0MDlDMi4wOTU0MiAxMC4zNzM5IDIuODQ3MDUgMTAuODI2NiAzLjY4MjggMTAuOTk1NUMzLjEzOTExIDExLjE0MzggMi41Njg2NiAxMS4xNjU0IDIuMDE1MjggMTEuMDU4OEMyLjI1MTM2IDExLjc5MjYgMi43MTA4MiAxMi40MzQyIDMuMzI5NDMgMTIuODk0QzMuOTQ4MDQgMTMuMzUzOSA0LjY5NDg3IDEzLjYwODkgNS40NjU1MiAxMy42MjM1QzQuNjk5ODMgMTQuMjI1MyAzLjgyMjk5IDE0LjY3MDMgMi44ODUxNiAxNC45MzNDMS45NDczMyAxNS4xOTU2IDAuOTY2OTExIDE1LjI3MDggMCAxNS4xNTQyQzEuNjg4ODcgMTYuMjM4IDMuNjUzOTQgMTYuODEyOCA1LjY2MDY0IDE2LjgxMDIiIGZpbGw9ImJsYWNrIi8+CjwvZz4KPC9zdmc+Cg==" />
+                                                </a>
+                                              </td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if mso | IE]></td></tr></table><![endif]-->
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:20px;line-height:20px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td align="center" style="font-size:0px;padding:0;word-break:break-word;">
+                                <div
+                                  style="font-family:Poppins, Arial;font-size:10px;font-weight:300;line-height:120%;text-align:center;color:#899CA8;">
+                                  Copyright © {{ current_year }} <a href="https://teonite.com" target="_blank"
+                                    style="text-decoration: none; color: #899CA8;">teonite</a></br> Sent by Defguard
+                                  v.{{ application_version }}</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:20px;line-height:20px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><![endif]-->
+  </div>
+</body>
+
+</html>

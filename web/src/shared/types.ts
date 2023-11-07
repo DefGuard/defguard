@@ -29,7 +29,7 @@ export type User = {
   mfa_method: UserMFAMethod;
   mfa_enabled: boolean;
   totp_enabled: boolean;
-  email?: string;
+  email: string;
   phone?: string;
   pgp_cert_id?: string;
   pgp_key?: string;
@@ -71,6 +71,8 @@ export interface WalletInfo {
   name: string;
   use_for_mfa: boolean;
 }
+
+export type AddDeviceResponseDevice = Omit<Device, 'networks'>;
 
 export interface Device {
   id: number;
@@ -323,7 +325,7 @@ export type GetDeviceConfigRequest = {
 };
 
 export type AddDeviceResponse = {
-  device: Device;
+  device: AddDeviceResponseDevice;
   configs: AddDeviceConfig[];
 };
 

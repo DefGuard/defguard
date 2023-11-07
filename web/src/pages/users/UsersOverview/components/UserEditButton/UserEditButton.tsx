@@ -25,11 +25,13 @@ export const UserEditButton = ({ user }: Props) => {
   const currentUser = useAuthStore((state) => state.user);
   return (
     <EditButton>
-      <EditButtonOption
-        key="change-password"
-        text={LL.usersOverview.list.editButton.changePassword()}
-        onClick={() => setChangePasswordModal({ visible: true, user })}
-      />
+      {user.username !== currentUser?.username && (
+        <EditButtonOption
+          key="change-password"
+          text={LL.usersOverview.list.editButton.changePassword()}
+          onClick={() => setChangePasswordModal({ visible: true, user })}
+        />
+      )}
       <EditButtonOption
         key="edit-user"
         text={LL.usersOverview.list.editButton.edit()}
@@ -43,7 +45,7 @@ export const UserEditButton = ({ user }: Props) => {
         text={LL.usersOverview.list.editButton.provision()}
         onClick={() => setProvisionKeyModal({ visible: true, user })}
       />
-      {user.is_active ? (
+      {user.is_active === true && (
         <EditButtonOption
           key="start-dekstop-activation"
           text={LL.usersOverview.list.editButton.activateDesktop()}
@@ -56,10 +58,11 @@ export const UserEditButton = ({ user }: Props) => {
             })
           }
         />
-      ) : (
+      )}
+      {!user.is_active && (
         <EditButtonOption
           key="start-enrollment"
-          text={LL.usersOverview.list.editButton.activateDesktop()}
+          text={LL.usersOverview.list.editButton.startEnrollment()}
           onClick={() =>
             setAddUserModal({
               visible: true,

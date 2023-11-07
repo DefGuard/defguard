@@ -107,10 +107,16 @@ export const OpenIdClientModalForm = () => {
               .required(
                 LL.openidOverview.modals.openidClientModal.form.error.urlRequired(),
               )
-              .matches(
-                patternValidUrl,
-                LL.openidOverview.modals.openidClientModal.form.error.validUrl(),
-              ),
+              .test('valid-url', (val, ctx) => {
+                if (val.includes('localhost')) return true;
+                if (!patternValidUrl.test(val)) {
+                  return ctx.createError({
+                    message:
+                      LL.openidOverview.modals.openidClientModal.form.error.validUrl(),
+                  });
+                }
+                return true;
+              }),
           })
           .required(),
       ),

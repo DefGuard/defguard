@@ -2,6 +2,7 @@
 // Static links to other services
 
 export const externalLink = {
+  defguardReleases: `https://github.com/DefGuard/client/releases`,
   gitbook: {
     base: 'https://defguard.gitbook.io/defguard/',
     setup: {
@@ -14,4 +15,7 @@ export const externalLink = {
     },
   },
   defguardSite: 'https://defguard.net',
+  wireguard: {
+    download: 'https://www.wireguard.com/install/',
+  },
 };

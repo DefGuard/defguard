@@ -31,7 +31,28 @@ pub enum MFAMethod {
     Web3,
 }
 
-#[derive(Model, PartialEq, Serialize)]
+impl std::string::ToString for MFAMethod {
+    fn to_string(&self) -> String {
+        match self {
+            MFAMethod::None => "None".into(),
+            MFAMethod::OneTimePassword => "TOTP".into(),
+            MFAMethod::Web3 => "Web3".into(),
+            MFAMethod::Webauthn => "WebAuthn".into(),
+        }
+    }
+}
+
+// User information ready to be sent as part of diagnostic data.
+#[derive(Debug, Serialize)]
+pub struct UserDiagnostic {
+    pub id: i64,
+    pub mfa_enabled: bool,
+    pub totp_enabled: bool,
+    pub mfa_method: MFAMethod,
+    pub is_active: bool,
+}
+
+#[derive(Model, PartialEq, Serialize, Clone)]
 pub struct User {
     pub id: Option<i64>,
     pub username: String,
@@ -336,17 +357,27 @@ impl User {
     }
     /// Select all users without sensitive data.
     // FIXME: Remove it when Model macro will suport SecretString
-    pub async fn all_without_sensitive_data(pool: &DbPool) -> Result<Vec<Self>, SqlxError> {
-        let users = query_as!(
-            Self,
-            "SELECT id \"id?\", username, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, \
-            mfa_method \"mfa_method: _\", ARRAY[]::TEXT[] AS \"recovery_codes!\", '*' AS password_hash, \
-            CAST(NULL AS BYTEA) totp_secret FROM \"user\"",
+    pub async fn all_without_sensitive_data(
+        pool: &DbPool,
+    ) -> Result<Vec<UserDiagnostic>, SqlxError> {
+        let users = query!(
+            r#"
+            SELECT id, mfa_enabled, totp_enabled, mfa_method as "mfa_method: MFAMethod", password_hash FROM "user"
+        "#
         )
         .fetch_all(pool)
         .await?;
-        Ok(users)
+        let res: Vec<UserDiagnostic> = users
+            .iter()
+            .map(|u| UserDiagnostic {
+                mfa_method: u.mfa_method.clone(),
+                totp_enabled: u.totp_enabled,
+                mfa_enabled: u.mfa_enabled,
+                id: u.id,
+                is_active: u.password_hash.is_some(),
+            })
+            .collect();
+        Ok(res)
     }
 
     /// Check if TOTP `code` is valid.

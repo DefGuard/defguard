@@ -34,7 +34,7 @@ pub mod wireguard;
 pub mod worker;
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
-static SIGN_IN_COOKIE_NAME: &str = "known_sign_in";
+static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
 #[derive(Default)]
 pub struct ApiResponse {

@@ -8,10 +8,10 @@ use crate::{
         },
         DbPool, Device, GatewayEvent, Settings, User,
     },
-    handlers::user::check_password_strength,
+    handlers::{mail::send_new_device_added_email, user::check_password_strength},
     ldap::utils::ldap_add_user,
     mail::Mail,
-    templates,
+    templates::{self, TemplateLocation},
 };
 use ipnetwork::IpNetwork;
 use reqwest::Url;
@@ -290,6 +290,23 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
+        let template_locations: Vec<TemplateLocation> = configs
+            .iter()
+            .map(|c| TemplateLocation {
+                name: c.network_name.clone(),
+                assigned_ip: c.address.to_string(),
+            })
+            .collect();
+
+        send_new_device_added_email(
+            &device.name,
+            &device.wireguard_pubkey,
+            &template_locations,
+            &user.email,
+            &self.mail_tx,
+        )
+        .await
+        .map_err(|_| Status::internal("Failed to render new device added tempalte"))?;
         let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
@@ -358,6 +375,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                         endpoint: network.endpoint,
                         pubkey: network.pubkey,
                         allowed_ips,
+                        dns: network.dns,
                     };
                     configs.push(config);
                 } else {
@@ -418,6 +436,7 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
             assigned_ip: config.address.to_string(),
             pubkey: config.pubkey,
             allowed_ips,
+            dns: config.dns,
         }
     }
 }

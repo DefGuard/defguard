@@ -176,6 +176,7 @@ where
         let appstate = AppState::from_ref(state);
         let session = Session::from_request_parts(parts, state).await?;
         let user = User::find_by_id(&appstate.pool, session.user_id).await;
+
         if let Ok(Some(user)) = user {
             if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
                 return Err(WebError::Authorization("MFA not verified".into()));
