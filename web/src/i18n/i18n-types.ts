@@ -1350,7 +1350,7 @@ type RootTranslation = {
 				 */
 				startEnrollment: string
 				/**
-				 * R​e​m​o​v​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 * R​e​m​o​t​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				activateDesktop: string
 			}
@@ -4631,7 +4631,7 @@ export type TranslationFunctions = {
 				 */
 				startEnrollment: () => LocalizedString
 				/**
-				 * Remove desktop activation
+				 * Remote desktop activation
 				 */
 				activateDesktop: () => LocalizedString
 			}
