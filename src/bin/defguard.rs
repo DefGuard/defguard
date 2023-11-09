@@ -3,6 +3,7 @@ use defguard::{
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
     grpc::{run_grpc_server, GatewayMap, WorkerState},
+    headers::create_user_agent_parser,
     init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
     run_web_server,
@@ -16,7 +17,6 @@ use std::{
 };
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use uaparser::UserAgentParser;
 
 #[macro_use]
 extern crate tracing;
@@ -80,12 +80,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
-
-    let user_agent_parser = Arc::new(
-        UserAgentParser::builder()
-            .build_from_yaml("./regexes.yaml")
-            .expect("Parser creation failed"),
-    );
+    let user_agent_parser = create_user_agent_parser();
 
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;

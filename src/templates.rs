@@ -43,6 +43,11 @@ pub fn get_base_tera(external_context: Option<Context>) -> Result<(Tera, Context
     let current_year = format!("{:04}", &now.year());
     context.insert("current_year", &current_year);
     context.insert("date_now", &now.format("%A, %B %d, %Y at %r").to_string());
+
+    if !context.contains_key("device_type") {
+        context.insert("device_type", "");
+    }
+
     Ok((tera, context))
 }
 
@@ -136,12 +141,17 @@ pub fn new_device_added_mail(
     device_name: &str,
     public_key: &str,
     template_locations: &Vec<TemplateLocation>,
-    context: Option<Context>,
+    device_type: Option<&str>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(context)?;
+    let (mut tera, mut context) = get_base_tera(None)?;
     context.insert("device_name", device_name);
     context.insert("public_key", public_key);
     context.insert("locations", template_locations);
+
+    if device_type.is_some() {
+        context.insert("device_type", &device_type);
+    }
+
     tera.add_raw_template("mail_new_device_added", MAIL_NEW_DEVICE_ADDED)?;
     Ok(tera.render("mail_new_device_added", &context)?)
 }

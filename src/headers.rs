@@ -1,11 +1,30 @@
+use std::sync::Arc;
+
 use axum::headers::UserAgent;
 use tera::Context;
-use uaparser::{Client, Parser};
+use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::appstate::AppState;
 
+pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
+    return Arc::new(
+        UserAgentParser::builder()
+            .build_from_yaml("./regexes.yaml")
+            .expect("Parser creation failed"),
+    );
+}
+
 pub fn parse_user_agent(appstate: AppState, user_agent: &UserAgent) -> uaparser::Client {
     return appstate.user_agent_parser.parse(user_agent.as_str());
+}
+
+pub fn get_device_type(user_agent_client: Option<Client>) -> String {
+    let mut device_type = "".to_string();
+    if user_agent_client.is_some() {
+        device_type = get_user_agent_device(user_agent_client.unwrap().clone());
+    }
+
+    return device_type.to_string();
 }
 
 pub fn init_context_user_agent(user_agent_client: Option<Client>) -> Context {

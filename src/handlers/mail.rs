@@ -19,7 +19,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
     db::{MFAMethod, User},
-    headers::{get_user_agent_device, init_context_user_agent},
+    headers::get_device_type,
     mail::{Attachment, Mail},
     support::dump_config,
     templates::{self, support_data_mail, TemplateError, TemplateLocation},
@@ -172,7 +172,7 @@ pub async fn send_new_device_added_email(
         user_email
     );
 
-    let context = init_context_user_agent(user_agent_client.cloned());
+    let device_type = get_device_type(user_agent_client.cloned());
     let mail = Mail {
         to: user_email.to_string(),
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
@@ -180,7 +180,7 @@ pub async fn send_new_device_added_email(
             device_name,
             public_key,
             template_locations,
-            Some(context),
+            Some(&device_type),
         )?,
         attachments: Vec::new(),
         result_tx: None,
