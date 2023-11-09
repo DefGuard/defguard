@@ -9,7 +9,7 @@ use crate::appstate::AppState;
 pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
     return Arc::new(
         UserAgentParser::builder()
-            .build_from_yaml("./regexes.yaml")
+            .build_from_yaml("regexes.yaml")
             .expect("Parser creation failed"),
     );
 }
