@@ -6,7 +6,6 @@ use crate::{
 };
 use reqwest::Client;
 use serde_json::json;
-use uaparser::UserAgentParser;
 use std::sync::{Arc, Mutex};
 use tokio::{
     sync::{
@@ -15,6 +14,7 @@ use tokio::{
     },
     task::spawn,
 };
+use uaparser::UserAgentParser;
 use webauthn_rs::prelude::*;
 
 #[derive(Clone)]

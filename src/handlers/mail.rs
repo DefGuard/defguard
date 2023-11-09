@@ -19,9 +19,10 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
     db::{MFAMethod, User},
+    headers::{get_user_agent_device, init_context_user_agent},
     mail::{Attachment, Mail},
     support::dump_config,
-    templates::{self, support_data_mail, TemplateError, TemplateLocation}, headers::{get_user_agent_device, init_context_user_agent},
+    templates::{self, support_data_mail, TemplateError, TemplateLocation},
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -175,7 +176,12 @@ pub async fn send_new_device_added_email(
     let mail = Mail {
         to: user_email.to_string(),
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
-        content: templates::new_device_added_mail(device_name, public_key, template_locations, Some(context))?,
+        content: templates::new_device_added_mail(
+            device_name,
+            public_key,
+            template_locations,
+            Some(context),
+        )?,
         attachments: Vec::new(),
         result_tx: None,
     };

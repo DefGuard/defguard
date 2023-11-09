@@ -92,6 +92,7 @@ pub mod db;
 mod error;
 pub mod grpc;
 pub mod handlers;
+pub mod headers;
 pub mod hex;
 pub mod ldap;
 pub mod mail;
@@ -101,7 +102,6 @@ pub mod support;
 pub mod templates;
 pub mod wg_config;
 pub mod wireguard_stats_purge;
-pub mod headers;
 
 #[macro_use]
 extern crate tracing;

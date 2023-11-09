@@ -1,6 +1,6 @@
 use axum::headers::UserAgent;
 use tera::Context;
-use uaparser::{Parser, Client};
+use uaparser::{Client, Parser};
 
 use crate::appstate::AppState;
 

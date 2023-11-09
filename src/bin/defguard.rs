@@ -10,13 +10,13 @@ use defguard::{
     SERVER_CONFIG,
 };
 use secrecy::ExposeSecret;
-use uaparser::UserAgentParser;
 use std::{
     fs::read_to_string,
     sync::{Arc, Mutex},
 };
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use uaparser::UserAgentParser;
 
 #[macro_use]
 extern crate tracing;
@@ -81,9 +81,11 @@ async fn main() -> Result<(), anyhow::Error> {
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
-    let user_agent_parser = Arc::new(UserAgentParser::builder()
-        .build_from_yaml("./regexes.yaml")
-        .expect("Parser creation failed"));
+    let user_agent_parser = Arc::new(
+        UserAgentParser::builder()
+            .build_from_yaml("./regexes.yaml")
+            .expect("Parser creation failed"),
+    );
 
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;
