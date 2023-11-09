@@ -7,7 +7,7 @@ use std::{
 use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, TypedHeader, headers::UserAgent,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -30,7 +30,7 @@ use crate::{
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     templates::TemplateLocation,
-    wg_config::{parse_wireguard_config, ImportedDevice},
+    wg_config::{parse_wireguard_config, ImportedDevice}, headers::{parse_user_agent},
 };
 
 #[derive(Deserialize, Serialize)]
@@ -450,6 +450,7 @@ pub async fn add_user_devices(
 }
 
 pub async fn add_device(
+    TypedHeader(user_agent): TypedHeader<UserAgent>,
     session: SessionInfo,
     State(appstate): State<AppState>,
     // Alias, because otherwise `axum` reports conflicting routes.
@@ -461,6 +462,7 @@ pub async fn add_device(
         "User {} adding device {device_name} for user {username}",
         session.user.username,
     );
+    let agent = parse_user_agent(appstate.clone(), &user_agent);
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     if networks.is_empty() {
@@ -519,6 +521,7 @@ pub async fn add_device(
         &template_locations,
         &user.email,
         &appstate.mail_tx,
+        Some(&agent),
     )
     .await?;
 

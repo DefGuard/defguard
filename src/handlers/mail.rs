@@ -11,6 +11,7 @@ use tokio::{
     fs::read_to_string,
     sync::mpsc::{unbounded_channel, UnboundedSender},
 };
+use uaparser::Client;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
@@ -20,7 +21,7 @@ use crate::{
     db::{MFAMethod, User},
     mail::{Attachment, Mail},
     support::dump_config,
-    templates::{self, support_data_mail, TemplateError, TemplateLocation},
+    templates::{self, support_data_mail, TemplateError, TemplateLocation}, headers::{get_user_agent_device, init_context_user_agent},
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -163,16 +164,18 @@ pub async fn send_new_device_added_email(
     template_locations: &Vec<TemplateLocation>,
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
+    user_agent_client: Option<&Client<'_>>,
 ) -> Result<(), TemplateError> {
     debug!(
         "User {} new device added mail to {SUPPORT_EMAIL_ADDRESS}",
         user_email
     );
 
+    let context = init_context_user_agent(user_agent_client.cloned());
     let mail = Mail {
         to: user_email.to_string(),
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
-        content: templates::new_device_added_mail(device_name, public_key, template_locations)?,
+        content: templates::new_device_added_mail(device_name, public_key, template_locations, Some(context))?,
         attachments: Vec::new(),
         result_tx: None,
     };

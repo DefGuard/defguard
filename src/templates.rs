@@ -42,6 +42,7 @@ pub fn get_base_tera(external_context: Option<Context>) -> Result<(Tera, Context
     let now = chrono::Utc::now();
     let current_year = format!("{:04}", &now.year());
     context.insert("current_year", &current_year);
+    context.insert("date_now", &now.format("%A, %B %d, %Y at %r").to_string());
     Ok((tera, context))
 }
 
@@ -135,8 +136,9 @@ pub fn new_device_added_mail(
     device_name: &str,
     public_key: &str,
     template_locations: &Vec<TemplateLocation>,
+    context: Option<Context>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None)?;
+    let (mut tera, mut context) = get_base_tera(context)?;
     context.insert("device_name", device_name);
     context.insert("public_key", public_key);
     context.insert("locations", template_locations);
@@ -232,7 +234,8 @@ mod test {
         assert_ok!(new_device_added_mail(
             "Test device",
             "TestKey",
-            &template_locations
+            &template_locations,
+            None
         ));
     }
 

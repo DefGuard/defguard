@@ -304,6 +304,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             &template_locations,
             &user.email,
             &self.mail_tx,
+            None,
         )
         .await
         .map_err(|_| Status::internal("Failed to render new device added tempalte"))?;
