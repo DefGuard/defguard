@@ -1,10 +1,22 @@
 use axum::headers::UserAgent;
+use tera::Context;
 use uaparser::{Parser, Client};
 
 use crate::appstate::AppState;
 
 pub fn parse_user_agent(appstate: AppState, user_agent: &UserAgent) -> uaparser::Client {
     return appstate.user_agent_parser.parse(user_agent.as_str());
+}
+
+pub fn init_context_user_agent(user_agent_client: Option<Client>) -> Context {
+    let mut context = Context::new();
+
+    if user_agent_client.is_some() {
+        let device_type = get_user_agent_device(user_agent_client.unwrap().clone());
+        context.insert("device_type", &device_type);
+    }
+
+    return context;
 }
 
 pub fn get_user_agent_device(user_agent_client: Client) -> String {
