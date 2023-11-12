@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use axum::{headers::UserAgent, TypedHeader};
 use tera::Context;
 use uaparser::{Client, Parser, UserAgentParser};
 
