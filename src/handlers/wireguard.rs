@@ -452,7 +452,7 @@ pub async fn add_user_devices(
 }
 
 pub async fn add_device(
-    TypedHeader(user_agent): TypedHeader<UserAgent>,
+    user_agent: Option<TypedHeader<UserAgent>>,
     session: SessionInfo,
     State(appstate): State<AppState>,
     // Alias, because otherwise `axum` reports conflicting routes.
@@ -464,7 +464,13 @@ pub async fn add_device(
         "User {} adding device {device_name} for user {username}",
         session.user.username,
     );
-    let agent = parse_user_agent(appstate.clone(), &user_agent);
+
+    let user_agent_string = match user_agent {
+        Some(value) => value.to_string(),
+        None => "".to_string(),
+    };
+    let agent = parse_user_agent(appstate.clone(), &user_agent_string);
+
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     if networks.is_empty() {
@@ -523,7 +529,7 @@ pub async fn add_device(
         &template_locations,
         &user.email,
         &appstate.mail_tx,
-        Some(&agent),
+        agent,
     )
     .await?;
 

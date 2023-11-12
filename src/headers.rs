@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::headers::UserAgent;
+use axum::{headers::UserAgent, TypedHeader};
 use tera::Context;
 use uaparser::{Client, Parser, UserAgentParser};
 
@@ -9,13 +9,17 @@ use crate::appstate::AppState;
 pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
     return Arc::new(
         UserAgentParser::builder()
-            .build_from_yaml("regexes.yaml")
+            .build_from_yaml("user_agent_header_regexes.yaml")
             .expect("Parser creation failed"),
     );
 }
 
-pub fn parse_user_agent(appstate: AppState, user_agent: &UserAgent) -> uaparser::Client {
-    return appstate.user_agent_parser.parse(user_agent.as_str());
+pub fn parse_user_agent(appstate: AppState, user_agent: &String) -> Option<uaparser::Client> {
+    if user_agent.is_empty() {
+        None
+    } else {
+        Some(appstate.user_agent_parser.parse(user_agent.as_str()))
+    }
 }
 
 pub fn get_device_type(user_agent_client: Option<Client>) -> String {

@@ -165,14 +165,14 @@ pub async fn send_new_device_added_email(
     template_locations: &Vec<TemplateLocation>,
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
-    user_agent_client: Option<&Client<'_>>,
+    user_agent_client: Option<Client<'_>>,
 ) -> Result<(), TemplateError> {
     debug!(
         "User {} new device added mail to {SUPPORT_EMAIL_ADDRESS}",
         user_email
     );
 
-    let device_type = get_device_type(user_agent_client.cloned());
+    let device_type = get_device_type(user_agent_client);
     let mail = Mail {
         to: user_email.to_string(),
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
