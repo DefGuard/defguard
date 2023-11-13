@@ -14,6 +14,7 @@ use tokio::{
     },
     task::spawn,
 };
+use uaparser::UserAgentParser;
 use webauthn_rs::prelude::*;
 
 #[derive(Clone)]
@@ -24,6 +25,7 @@ pub struct AppState {
     wireguard_tx: Sender<GatewayEvent>,
     pub mail_tx: UnboundedSender<Mail>,
     pub webauthn: Arc<Webauthn>,
+    pub user_agent_parser: Arc<UserAgentParser>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
 }
 
@@ -31,8 +33,8 @@ impl AppState {
     pub fn trigger_action(&self, event: AppEvent) {
         let event_name = event.name().to_owned();
         match self.tx.send(event) {
-            Ok(_) => info!("Sent trigger {}", event_name),
-            Err(err) => error!("Error sending trigger {}: {}", event_name, err),
+            Ok(()) => info!("Sent trigger {event_name}"),
+            Err(err) => error!("Error sending trigger {event_name}: {err}"),
         }
     }
     /// Handle webhook events
@@ -95,6 +97,7 @@ impl AppState {
         rx: UnboundedReceiver<AppEvent>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
+        user_agent_parser: Arc<UserAgentParser>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
@@ -120,6 +123,7 @@ impl AppState {
             wireguard_tx,
             mail_tx,
             webauthn,
+            user_agent_parser,
             failed_logins,
         }
     }

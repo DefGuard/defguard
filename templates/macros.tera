@@ -173,3 +173,28 @@ size="12px", line_height="120%", weight="400") %}
     </table>
 </div>
 {% endmacro title %}
+
+{% macro device_info(device_data, date, color="#222", font_size="12px", align="left", line_height="120%") %}
+<p style="
+  font-family: Roboto, Arial;
+  font-size: {{ font_size }};
+  color: {{ color }};
+  line-height: {{ line_height }};
+  text-align: {{ align }};
+  ">
+    Date: {{ date | safe }}
+</p>
+
+{% if device_data %}
+<p style="
+  font-family: Roboto, Arial;
+  font-size: {{ font_size }};
+  color: {{ color }};
+  line-height: {{ line_height }};
+  text-align: {{ align }};
+  ">
+   Device type: {{ device_data | safe }}
+</p>
+{% endif %}
+
+{% endmacro device_info %}
