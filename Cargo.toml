@@ -74,6 +74,7 @@ tower-cookies = { version = "0.9", features = ["private"] }
 tower-http = { version = "0.4", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uaparser = "0.6"
 uuid = { version = "1.4", features = ["v4"] }
 webauthn-authenticator-rs = { version = "0.4" }
 webauthn-rs = { version = "0.4", features = [
@@ -81,7 +82,6 @@ webauthn-rs = { version = "0.4", features = [
 ] }
 webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-uaparser = "0.6"
 
 [dev-dependencies]
 bytes = "1.5"

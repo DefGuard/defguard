@@ -41,15 +41,15 @@ pub fn get_user_agent_device(user_agent_client: &Client) -> String {
 
     let mut device_version = String::new();
     if let Some(major) = &user_agent_client.os.major {
-        device_version.push_str(major.to_string().as_str());
+        device_version.push_str(major);
 
         if let Some(minor) = &user_agent_client.os.minor {
             device_version.push('.');
-            device_version.push_str(minor.to_string().as_str());
+            device_version.push_str(minor);
 
             if let Some(patch) = &user_agent_client.os.patch {
                 device_version.push('.');
-                device_version.push_str(patch.to_string().as_str());
+                device_version.push_str(patch);
             }
         }
     }
