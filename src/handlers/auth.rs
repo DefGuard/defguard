@@ -45,7 +45,7 @@ pub async fn authenticate(
 
     let user = match User::find_by_username(&appstate.pool, &lowercase_username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
-            Ok(_) => user,
+            Ok(()) => user,
             Err(err) => {
                 info!("Failed to authenticate user {lowercase_username}: {err}");
                 log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);

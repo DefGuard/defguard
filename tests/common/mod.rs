@@ -9,6 +9,7 @@ use defguard::{
     config::DefGuardConfig,
     db::{init_db, AppEvent, DbPool, GatewayEvent, User, UserDetails},
     grpc::{GatewayMap, WorkerState},
+    headers::create_user_agent_parser,
     mail::Mail,
     SERVER_CONFIG,
 };
@@ -107,6 +108,8 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
+    let user_agent_parser = create_user_agent_parser();
+
     let client_state = ClientState::new(
         pool.clone(),
         worker_state.clone(),
@@ -139,6 +142,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
         worker_state,
         gateway_state,
         pool,
+        user_agent_parser,
         failed_logins,
     );
     (TestClient::new(webapp), client_state)
