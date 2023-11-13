@@ -148,7 +148,7 @@ pub fn new_device_added_mail(
     context.insert("public_key", public_key);
     context.insert("locations", template_locations);
 
-    if device_type.is_some() {
+    if let Some(device_type) = device_type {
         context.insert("device_type", &device_type);
     }
 

@@ -22,9 +22,9 @@ pub fn parse_user_agent(appstate: AppState, user_agent: &String) -> Option<uapar
 }
 
 pub fn get_device_type(user_agent_client: Option<Client>) -> String {
-    let mut device_type = "".to_string();
+    let mut device_type = String::new();
     if let Some(client) = user_agent_client {
-        device_type = get_user_agent_device(client.clone());
+        device_type = get_user_agent_device(&client);
     }
 
     device_type.to_string()
@@ -34,37 +34,34 @@ pub fn init_context_user_agent(user_agent_client: Option<Client>) -> Context {
     let mut context = Context::new();
 
     if let Some(client) = user_agent_client {
-        let device_type = get_user_agent_device(client.clone());
+        let device_type = get_user_agent_device(&client);
         context.insert("device_type", &device_type);
     }
 
     context
 }
 
-pub fn get_user_agent_device(user_agent_client: Client) -> String {
-    let device_type = match user_agent_client.device.model {
-        Some(v) => v.to_string(),
-        None => "".to_string(),
-    };
+pub fn get_user_agent_device(user_agent_client: &Client) -> String {
+    let device_type = user_agent_client
+        .device
+        .model
+        .clone()
+        .unwrap_or(std::borrow::Cow::Borrowed("unknown model"));
 
-    let device_os_major = match user_agent_client.os.major {
-        Some(v) => v.to_string(),
-        None => "".to_string(),
-    };
+    let mut device_version = String::new();
+    if let Some(major) = &user_agent_client.os.major {
+        device_version.push_str(major.to_string().as_str());
 
-    let device_os_minor = match user_agent_client.os.minor {
-        Some(v) => v.to_string(),
-        None => "".to_string(),
-    };
+        if let Some(minor) = &user_agent_client.os.minor {
+            device_version.push('.');
+            device_version.push_str(minor.to_string().as_str());
 
-    let device_os_patch = match user_agent_client.os.patch {
-        Some(v) => v.to_string(),
-        None => "".to_string(),
-    };
-
-    let mut device_version_list = vec![device_os_major, device_os_minor, device_os_patch];
-    device_version_list.retain(|ver| !ver.is_empty());
-    let device_version = device_version_list.join(".");
+            if let Some(patch) = &user_agent_client.os.patch {
+                device_version.push('.');
+                device_version.push_str(patch.to_string().as_str());
+            }
+        }
+    }
 
     let mut device_os = user_agent_client.os.family.to_string() + " ";
     device_os.push_str(&device_version);
