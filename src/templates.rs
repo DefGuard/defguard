@@ -80,7 +80,7 @@ pub fn enrollment_start_mail(
 // mail with link to enrollment service
 pub fn desktop_start_mail(
     context: Context,
-    enrollment_service_url: Url,
+    enrollment_service_url: &Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(Some(context))?;
@@ -226,7 +226,7 @@ mod test {
         let external_context = get_welcome_context();
         let url = Url::parse("http://127.0.0.1:8080").unwrap();
         let token = "TestToken";
-        assert_ok!(desktop_start_mail(external_context, url, token));
+        assert_ok!(desktop_start_mail(external_context, &url, token));
     }
 
     #[test]

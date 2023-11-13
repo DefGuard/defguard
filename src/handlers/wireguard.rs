@@ -467,9 +467,9 @@ pub async fn add_device(
 
     let user_agent_string = match user_agent {
         Some(value) => value.to_string(),
-        None => "".to_string(),
+        None => String::new(),
     };
-    let agent = parse_user_agent(appstate.clone(), &user_agent_string);
+    let agent = parse_user_agent(&appstate, &user_agent_string);
 
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let networks = WireguardNetwork::all(&appstate.pool).await?;

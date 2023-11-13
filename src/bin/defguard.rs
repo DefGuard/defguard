@@ -106,7 +106,7 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::select! {
         _ = run_grpc_server(&config, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
         _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), user_agent_parser, failed_logins) => (),
-        _ = run_mail_handler(mail_rx, pool.clone()) => (),
+        () = run_mail_handler(mail_rx, pool.clone()) => (),
         _ = run_periodic_stats_purge(pool, config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => (),
     }
     Ok(())

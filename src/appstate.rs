@@ -33,8 +33,8 @@ impl AppState {
     pub fn trigger_action(&self, event: AppEvent) {
         let event_name = event.name().to_owned();
         match self.tx.send(event) {
-            Ok(_) => info!("Sent trigger {}", event_name),
-            Err(err) => error!("Error sending trigger {}: {}", event_name, err),
+            Ok(()) => info!("Sent trigger {event_name}"),
+            Err(err) => error!("Error sending trigger {event_name}: {err}"),
         }
     }
     /// Handle webhook events

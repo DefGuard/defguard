@@ -28,7 +28,7 @@ ldap3 = "0.11"
 lettre = { version = "0.10", features = ["tokio1", "tokio1-native-tls"] }
 md4 = "0.10"
 otpauth = "0.4"
-openidconnect = { version = "3.3", default-features = false, optional = true }
+openidconnect = { version = "3.4", default-features = false, optional = true }
 pulldown-cmark = "0.9"
 prost = "0.12"
 rand = "0.8"
@@ -37,7 +37,7 @@ rand_core = { version = "0.6", default-features = false, features = [
 ] }
 reqwest = { version = "0.11", features = ["json"] }
 rsa = { version = "0.9", features = ["pem"] }
-rust-ini = "0.19"
+rust-ini = "0.20"
 secp256k1 = { version = "0.27", features = [
     "recovery",
     "rand-std",

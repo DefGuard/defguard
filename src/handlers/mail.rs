@@ -68,7 +68,7 @@ pub async fn test_mail(
     };
     let (to, subject) = (mail.to.clone(), mail.subject.clone());
     match appstate.mail_tx.send(mail) {
-        Ok(_) => match rx.recv().await {
+        Ok(()) => match rx.recv().await {
             Some(Ok(_)) => {
                 info!(
                     "User {} sent test mail to {}",
@@ -137,7 +137,7 @@ pub async fn send_support_data(
     };
     let (to, subject) = (mail.to.clone(), mail.subject.clone());
     match appstate.mail_tx.send(mail) {
-        Ok(_) => match rx.recv().await {
+        Ok(()) => match rx.recv().await {
             Some(Ok(_)) => {
                 info!(
                     "User {} sent support mail to {SUPPORT_EMAIL_ADDRESS}",
@@ -167,10 +167,7 @@ pub async fn send_new_device_added_email(
     mail_tx: &UnboundedSender<Mail>,
     user_agent_client: Option<Client<'_>>,
 ) -> Result<(), TemplateError> {
-    debug!(
-        "User {} new device added mail to {SUPPORT_EMAIL_ADDRESS}",
-        user_email
-    );
+    debug!("User {user_email} new device added mail to {SUPPORT_EMAIL_ADDRESS}");
 
     let device_type = get_device_type(user_agent_client);
     let mail = Mail {
@@ -189,15 +186,12 @@ pub async fn send_new_device_added_email(
     let to = mail.to.clone();
 
     match mail_tx.send(mail) {
-        Ok(_) => {
-            info!("Sent new device notification to {}", &to);
+        Ok(()) => {
+            info!("Sent new device notification to {to}");
             Ok(())
         }
         Err(err) => {
-            error!(
-                "Sending new device notification to {} failed with erorr:\n{}",
-                &to, &err
-            );
+            error!("Sending new device notification to {to} failed with erorr:\n{err}");
             Ok(())
         }
     }
@@ -226,15 +220,12 @@ pub async fn send_mfa_configured_email(
     let to = mail.to.clone();
 
     match mail_tx.send(mail) {
-        Ok(_) => {
-            info!("MFA configred mail sent to {}", &to);
+        Ok(()) => {
+            info!("MFA configred mail sent to {to}");
             Ok(())
         }
         Err(err) => {
-            error!(
-                "Failed to send mfa configured mail to {} with error:\n{}",
-                &to, &err
-            );
+            error!("Failed to send mfa configured mail to {to} with error:\n{err}");
             Ok(())
         }
     }
