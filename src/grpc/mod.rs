@@ -2,6 +2,7 @@ use std::{
     collections::hash_map::HashMap,
     time::{Duration, Instant},
 };
+use chrono::Duration as ChronoDuration;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -28,7 +29,7 @@ use self::{
 };
 use crate::{
     auth::failed_login::FailedLoginMap, config::DefGuardConfig, db::AppEvent,
-    handlers::mail::send_gateway_disconnected_email, mail::Mail,
+    handlers::mail::send_gateway_disconnected_email, mail::Mail, SERVER_CONFIG,
 };
 #[cfg(feature = "worker")]
 use crate::{
@@ -166,14 +167,22 @@ impl GatewayMap {
                 let name = state.name.clone();
                 let mail_tx = state.mail_tx.clone();
                 let pool = state.pool.clone();
-                tokio::spawn(async move {
-                    if let Err(e) =
-                        send_gateway_disconnected_email(name, hostname, network_id, &mail_tx, &pool)
-                            .await
-                    {
-                        error!("Sending gateway disconnected notification failed: {}", e);
-                    }
-                });
+                if state.disconnected_at.unwrap() - state.connected_at.unwrap()
+                    < ChronoDuration::from_std(*SERVER_CONFIG
+                        .get()
+                        .unwrap()
+                        .gateway_notification_time).unwrap()
+                {
+                    tokio::spawn(async move {
+                        if let Err(e) = send_gateway_disconnected_email(
+                            name, hostname, network_id, &mail_tx, &pool,
+                        )
+                        .await
+                        {
+                            error!("Sending gateway disconnected notification failed: {}", e);
+                        }
+                    });
+                }
                 return Ok(());
             };
         };

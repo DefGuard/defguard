@@ -178,6 +178,7 @@ pub struct DefGuardConfig {
         env = "DEFGUARD_GATEWAY_NOTIFICATION_TIME",
         default_value = "10m"
     )]
+    #[serde(skip_serializing)]
     pub gateway_notification_time: Duration,
 
     #[command(subcommand)]
