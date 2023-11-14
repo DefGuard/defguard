@@ -179,11 +179,17 @@ impl GatewayMap {
             None => Vec::new(),
         }
     }
-    // return gateway name 
+    // return gateway name
     #[must_use]
     pub fn get_network_gateway_name(&self, network_id: i64, hostname: &str) -> Option<String> {
         match self.0.get(&network_id) {
-            Some(network_gateway_map) => network_gateway_map.get(hostname).unwrap().name.clone(),
+            Some(network_gateway_map) => {
+                if let Some(state) = network_gateway_map.get(hostname) {
+                    state.name.clone()
+                } else {
+                    None
+                }
+            }
             None => None,
         }
     }

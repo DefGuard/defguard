@@ -1,11 +1,12 @@
 use super::GatewayMap;
 use crate::{
-    mail::Mail,
-    handlers::mail::send_gateway_disconnected_email,
     db::{
-    models::wireguard::{WireguardNetwork, WireguardPeerStats},
-    DbPool, Device, GatewayEvent,
-}};
+        models::wireguard::{WireguardNetwork, WireguardPeerStats},
+        DbPool, Device, GatewayEvent,
+    },
+    handlers::mail::send_gateway_disconnected_email,
+    mail::Mail,
+};
 use chrono::{NaiveDateTime, Utc};
 use sqlx::{query_as, Error as SqlxError};
 use std::{
@@ -394,7 +395,7 @@ impl GatewayUpdatesStream {
         gateway_hostname: String,
         gateway_state: Arc<Mutex<GatewayMap>>,
         mail_tx: UnboundedSender<Mail>,
-        pool: DbPool
+        pool: DbPool,
     ) -> Self {
         Self {
             task_handle,
@@ -403,7 +404,7 @@ impl GatewayUpdatesStream {
             gateway_hostname,
             gateway_state,
             mail_tx,
-            pool
+            pool,
         }
     }
 }
@@ -416,29 +417,35 @@ impl Stream for GatewayUpdatesStream {
     }
 }
 
-
 impl Drop for GatewayUpdatesStream {
     fn drop(&mut self) {
         info!("Client disconnected");
         // terminate update task
         self.task_handle.abort();
         // update gateway state
-        let gateway_name = self.gateway_state.lock().unwrap().get_network_gateway_name(self.network_id, &self.gateway_hostname);
+        let gateway_name = self
+            .gateway_state
+            .lock()
+            .unwrap()
+            .get_network_gateway_name(self.network_id, &self.gateway_hostname);
         self.gateway_state
             .lock()
             .unwrap()
             .disconnect_gateway(self.network_id, self.gateway_hostname.clone())
             .expect("Unable to disconnect gateway.");
-        // Clone objects here to avoid '`self` is a reference that is only valid in the method body'
+        // Clone objects here to avoid '`self` is a reference that is only valid in the method body' error
         let hostname = self.gateway_hostname.clone();
         let network_id = self.network_id;
         let mail_tx = self.mail_tx.clone();
         let pool = self.pool.clone();
         tokio::spawn(async move {
-            let _ = send_gateway_disconnected_email(gateway_name, hostname, network_id, &mail_tx, pool).await;
-
+            if let Err(e) =
+                send_gateway_disconnected_email(gateway_name, hostname, network_id, &mail_tx, pool)
+                    .await
+            {
+                error!("Sending gateway disconnected notification failed: {}", e);
+            }
         });
-
     }
 }
 
