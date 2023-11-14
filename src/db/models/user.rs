@@ -29,6 +29,7 @@ pub enum MFAMethod {
     OneTimePassword,
     Webauthn,
     Web3,
+    Email,
 }
 
 impl std::string::ToString for MFAMethod {
@@ -38,6 +39,7 @@ impl std::string::ToString for MFAMethod {
             MFAMethod::OneTimePassword => "TOTP".into(),
             MFAMethod::Web3 => "Web3".into(),
             MFAMethod::Webauthn => "WebAuthn".into(),
+            MFAMethod::Email => "Email".into(),
         }
     }
 }
