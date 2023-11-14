@@ -423,14 +423,10 @@ impl Drop for GatewayUpdatesStream {
         // terminate update task
         self.task_handle.abort();
         // update gateway state
-        let gateway_name = self
-            .gateway_state
-            .lock()
-            .unwrap()
-            .get_network_gateway_name(self.network_id, &self.gateway_hostname);
-        self.gateway_state
-            .lock()
-            .unwrap()
+        let mut gateway_state = self.gateway_state.lock().unwrap();
+        let gateway_name =
+            gateway_state.get_network_gateway_name(self.network_id, &self.gateway_hostname);
+        gateway_state
             .disconnect_gateway(self.network_id, self.gateway_hostname.clone())
             .expect("Unable to disconnect gateway.");
         // Clone objects here to avoid '`self` is a reference that is only valid in the method body' error
