@@ -1,0 +1,1 @@
+ALTER TYPE mfa_method ADD VALUE 'email';
