@@ -179,6 +179,14 @@ impl GatewayMap {
             None => Vec::new(),
         }
     }
+    // return gateway name 
+    #[must_use]
+    pub fn get_network_gateway_name(&self, network_id: i64, hostname: &str) -> Option<String> {
+        match self.0.get(&network_id) {
+            Some(network_gateway_map) => network_gateway_map.get(hostname).unwrap().name.clone(),
+            None => None,
+        }
+    }
 }
 
 impl Default for GatewayMap {
@@ -230,7 +238,7 @@ pub async fn run_grpc_server(
     let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(
         pool.clone(),
         wireguard_tx.clone(),
-        mail_tx,
+        mail_tx.clone(),
         config.clone(),
     ));
     #[cfg(feature = "worker")]
@@ -240,7 +248,7 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state, wireguard_tx),
+        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
     // Run gRPC server

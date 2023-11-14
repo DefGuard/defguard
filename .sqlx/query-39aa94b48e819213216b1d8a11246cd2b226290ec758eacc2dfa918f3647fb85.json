@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT email\n            FROM \"user\"\n            INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id\n            INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id\n            WHERE \"group\".name = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "39aa94b48e819213216b1d8a11246cd2b226290ec758eacc2dfa918f3647fb85"
+}

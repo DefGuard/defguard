@@ -379,6 +379,23 @@ impl User {
             .collect();
         Ok(res)
     }
+    /// Return all emails of members of group
+    pub async fn all_emails_by_group_name(
+        pool: &DbPool,
+        group_name: &str,
+    ) -> Result<Vec<String>, SqlxError> {
+        let emails = query_scalar!(
+            "SELECT email
+            FROM \"user\"
+            INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
+            INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id
+            WHERE \"group\".name = $1",
+            group_name
+        )
+        .fetch_all(pool)
+        .await?;
+        Ok(emails)
+    }
 
     /// Check if TOTP `code` is valid.
     #[must_use]

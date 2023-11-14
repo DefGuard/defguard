@@ -1,8 +1,11 @@
 use super::GatewayMap;
-use crate::db::{
+use crate::{
+    mail::Mail,
+    handlers::mail::send_gateway_disconnected_email,
+    db::{
     models::wireguard::{WireguardNetwork, WireguardPeerStats},
     DbPool, Device, GatewayEvent,
-};
+}};
 use chrono::{NaiveDateTime, Utc};
 use sqlx::{query_as, Error as SqlxError};
 use std::{
@@ -13,7 +16,7 @@ use std::{
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
-        mpsc::{self, Receiver},
+        mpsc::{self, Receiver, UnboundedSender},
     },
     task::JoinHandle,
 };
@@ -25,6 +28,7 @@ tonic::include_proto!("gateway");
 pub struct GatewayServer {
     pool: DbPool,
     state: Arc<Mutex<GatewayMap>>,
+    mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
 }
 
@@ -60,11 +64,13 @@ impl GatewayServer {
         pool: DbPool,
         state: Arc<Mutex<GatewayMap>>,
         wireguard_tx: Sender<GatewayEvent>,
+        mail_tx: UnboundedSender<Mail>,
     ) -> Self {
         Self {
             pool,
             state,
             wireguard_tx,
+            mail_tx,
         }
     }
 
@@ -375,6 +381,8 @@ pub struct GatewayUpdatesStream {
     network_id: i64,
     gateway_hostname: String,
     gateway_state: Arc<Mutex<GatewayMap>>,
+    mail_tx: UnboundedSender<Mail>,
+    pool: DbPool,
 }
 
 impl GatewayUpdatesStream {
@@ -385,6 +393,8 @@ impl GatewayUpdatesStream {
         network_id: i64,
         gateway_hostname: String,
         gateway_state: Arc<Mutex<GatewayMap>>,
+        mail_tx: UnboundedSender<Mail>,
+        pool: DbPool
     ) -> Self {
         Self {
             task_handle,
@@ -392,6 +402,8 @@ impl GatewayUpdatesStream {
             network_id,
             gateway_hostname,
             gateway_state,
+            mail_tx,
+            pool
         }
     }
 }
@@ -404,17 +416,29 @@ impl Stream for GatewayUpdatesStream {
     }
 }
 
+
 impl Drop for GatewayUpdatesStream {
     fn drop(&mut self) {
         info!("Client disconnected");
         // terminate update task
         self.task_handle.abort();
         // update gateway state
+        let gateway_name = self.gateway_state.lock().unwrap().get_network_gateway_name(self.network_id, &self.gateway_hostname);
         self.gateway_state
             .lock()
             .unwrap()
             .disconnect_gateway(self.network_id, self.gateway_hostname.clone())
             .expect("Unable to disconnect gateway.");
+        // Clone objects here to avoid '`self` is a reference that is only valid in the method body'
+        let hostname = self.gateway_hostname.clone();
+        let network_id = self.network_id;
+        let mail_tx = self.mail_tx.clone();
+        let pool = self.pool.clone();
+        tokio::spawn(async move {
+            let _ = send_gateway_disconnected_email(gateway_name, hostname, network_id, &mail_tx, pool).await;
+
+        });
+
     }
 }
 
@@ -563,6 +587,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
             gateway_network_id,
             hostname,
             Arc::clone(&self.state),
+            self.mail_tx.clone(),
+            self.pool.clone(),
         )))
     }
 }
