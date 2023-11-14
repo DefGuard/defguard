@@ -464,6 +464,26 @@ pub async fn totp_code(
     }
 }
 
+/// Initialize email MFA setup
+pub async fn email_mfa_init() {
+    todo!()
+}
+
+/// Enable email MFA
+pub async fn email_mfa_enable() {
+    todo!()
+}
+
+/// Disable email MFA
+pub async fn email_mfa_disable() {
+    todo!()
+}
+
+/// Validate email MFA code
+pub async fn email_mfa_code() {
+    todo!()
+}
+
 /// Start Web3 authentication
 pub async fn web3auth_start(
     mut session: Session,
