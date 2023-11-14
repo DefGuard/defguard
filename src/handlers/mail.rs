@@ -209,6 +209,7 @@ pub async fn send_gateway_disconnected_email(
         .ok_or(WebError::ServerConfigMissing)?
         .admin_groupname;
     let admin_users = User::find_by_group_name(&pool, admin_group_name).await?;
+    let gateway_name = gateway_name.unwrap_or("".into());
     if let Some(network) = WireguardNetwork::find_by_id(&pool, network_id).await? {
         for user in admin_users.into_iter() {
             let mail = Mail {

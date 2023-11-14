@@ -156,7 +156,7 @@ pub fn mfa_configured_mail(method: &MFAMethod) -> Result<String, TemplateError> 
 }
 
 pub fn gateway_disconnected_mail(
-    gateway_name: &Option<String>,
+    gateway_name: &str,
     gateway_ip: &str,
     network_name: &str,
 ) -> Result<String, TemplateError> {
@@ -248,6 +248,14 @@ mod test {
             "Test device",
             "TestKey",
             &template_locations
+        ));
+    }
+    #[test]
+    fn test_gateway_disconnected() {
+        assert_ok!(gateway_disconnected_mail(
+            "Gateway A",
+            "127.0.0.1",
+            "Location1"
         ));
     }
 
