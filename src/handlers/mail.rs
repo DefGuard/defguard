@@ -201,16 +201,16 @@ pub async fn send_gateway_disconnected_email(
     gateway_adress: String,
     network_id: i64,
     mail_tx: &UnboundedSender<Mail>,
-    pool: DbPool,
+    pool: &DbPool,
 ) -> Result<(), WebError> {
     debug!("Sending gateway disconnected mail to all admin users");
     let admin_group_name = &SERVER_CONFIG
         .get()
         .ok_or(WebError::ServerConfigMissing)?
         .admin_groupname;
-    let admin_users = User::find_by_group_name(&pool, admin_group_name).await?;
+    let admin_users = User::find_by_group_name(pool, admin_group_name).await?;
     let gateway_name = gateway_name.unwrap_or("".into());
-    if let Some(network) = WireguardNetwork::find_by_id(&pool, network_id).await? {
+    if let Some(network) = WireguardNetwork::find_by_id(pool, network_id).await? {
         for user in admin_users.into_iter() {
             let mail = Mail {
                 to: user.email,

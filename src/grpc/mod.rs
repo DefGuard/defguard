@@ -26,7 +26,10 @@ use self::{
     interceptor::JwtInterceptor,
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
-use crate::{auth::failed_login::FailedLoginMap, config::DefGuardConfig, db::AppEvent, mail::Mail};
+use crate::{
+    auth::failed_login::FailedLoginMap, config::DefGuardConfig, db::AppEvent,
+    handlers::mail::send_gateway_disconnected_email, mail::Mail,
+};
 #[cfg(feature = "worker")]
 use crate::{
     auth::ClaimsType,
@@ -69,19 +72,26 @@ impl GatewayMap {
     // add a new gateway to map
     // this method is meant to be called when a gateway requests a config
     // as a sort of "registration"
-    pub fn add_gateway(&mut self, network_id: i64, hostname: String, name: Option<String>) {
+    pub fn add_gateway(
+        &mut self,
+        network_id: i64,
+        hostname: String,
+        name: Option<String>,
+        pool: DbPool,
+        mail_tx: UnboundedSender<Mail>,
+    ) {
         info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             network_gateway_map.insert(
                 hostname.clone(),
-                GatewayState::new(network_id, hostname, name),
+                GatewayState::new(network_id, hostname, name, pool, mail_tx),
             );
         } else {
             // no map for a given network exists yet
             let mut network_gateway_map = HashMap::new();
             network_gateway_map.insert(
                 hostname.clone(),
-                GatewayState::new(network_id, hostname, name),
+                GatewayState::new(network_id, hostname, name, pool, mail_tx),
             );
             self.0.insert(network_id, network_gateway_map);
         }
@@ -152,6 +162,18 @@ impl GatewayMap {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
+                // Clone here because self doesn't live long enough
+                let name = state.name.clone();
+                let mail_tx = state.mail_tx.clone();
+                let pool = state.pool.clone();
+                tokio::spawn(async move {
+                    if let Err(e) =
+                        send_gateway_disconnected_email(name, hostname, network_id, &mail_tx, &pool)
+                            .await
+                    {
+                        error!("Sending gateway disconnected notification failed: {}", e);
+                    }
+                });
                 return Ok(());
             };
         };
@@ -210,11 +232,21 @@ pub struct GatewayState {
     pub hostname: String,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
+    #[serde(skip)]
+    pub mail_tx: UnboundedSender<Mail>,
+    #[serde(skip)]
+    pub pool: DbPool,
 }
 
 impl GatewayState {
     #[must_use]
-    pub fn new(network_id: i64, hostname: String, name: Option<String>) -> Self {
+    pub fn new(
+        network_id: i64,
+        hostname: String,
+        name: Option<String>,
+        pool: DbPool,
+        mail_tx: UnboundedSender<Mail>,
+    ) -> Self {
         Self {
             uid: Uuid::new_v4(),
             connected: false,
@@ -223,6 +255,8 @@ impl GatewayState {
             hostname,
             connected_at: None,
             disconnected_at: None,
+            mail_tx,
+            pool,
         }
     }
 }
