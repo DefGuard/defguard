@@ -504,6 +504,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             let mut state = self.state.lock().unwrap();
             state.add_gateway(
                 network_id,
+                network.name.clone(),
                 hostname,
                 request.into_inner().name,
                 self.pool.clone(),

@@ -18,7 +18,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::{MFAMethod, User, WireguardNetwork},
+    db::{MFAMethod, User},
     error::WebError,
     headers::get_device_type,
     mail::{Attachment, Mail},
@@ -201,8 +201,8 @@ pub async fn send_new_device_added_email(
 }
 pub async fn send_gateway_disconnected_email(
     gateway_name: Option<String>,
+    network_name: String,
     gateway_adress: String,
-    network_id: i64,
     mail_tx: &UnboundedSender<Mail>,
     pool: &DbPool,
 ) -> Result<(), WebError> {
@@ -213,40 +213,33 @@ pub async fn send_gateway_disconnected_email(
         .admin_groupname;
     let admin_users = User::find_by_group_name(pool, admin_group_name).await?;
     let gateway_name = gateway_name.unwrap_or("".into());
-    if let Some(network) = WireguardNetwork::find_by_id(pool, network_id).await? {
-        for user in admin_users.into_iter() {
-            let mail = Mail {
-                to: user.email,
-                subject: GATEWAY_DISCONNECTED.to_string(),
-                content: templates::gateway_disconnected_mail(
-                    &gateway_name,
-                    &gateway_adress,
-                    &network.name,
-                )?,
-                attachments: Vec::new(),
-                result_tx: None,
-            };
-            let to = mail.to.clone();
+    for user in admin_users.into_iter() {
+        let mail = Mail {
+            to: user.email,
+            subject: GATEWAY_DISCONNECTED.to_string(),
+            content: templates::gateway_disconnected_mail(
+                &gateway_name,
+                &gateway_adress,
+                &network_name,
+            )?,
+            attachments: Vec::new(),
+            result_tx: None,
+        };
+        let to = mail.to.clone();
 
-            match mail_tx.send(mail) {
-                Ok(_) => {
-                    info!("Sent gateway disconnected notification to {}", &to);
-                }
-                Err(err) => {
-                    error!(
-                        "Sending gateway disconnected notification to {} failed with error:\n{}",
-                        &to, &err
-                    );
-                }
+        match mail_tx.send(mail) {
+            Ok(_) => {
+                info!("Sent gateway disconnected notification to {}", &to);
+            }
+            Err(err) => {
+                error!(
+                    "Sending gateway disconnected notification to {} failed with error:\n{}",
+                    &to, &err
+                );
             }
         }
-        Ok(())
-    } else {
-        Err(WebError::ObjectNotFound(format!(
-            "Network with id: {} not found.",
-            network_id
-        )))
     }
+    Ok(())
 }
 
 pub async fn send_mfa_configured_email(
