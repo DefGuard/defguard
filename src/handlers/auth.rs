@@ -528,8 +528,49 @@ pub async fn email_mfa_disable(
 }
 
 /// Validate email MFA code
-pub async fn email_mfa_code() {
-    todo!()
+pub async fn email_mfa_code(
+    cookies: Cookies,
+    mut session: Session,
+    State(appstate): State<AppState>,
+    Json(data): Json<AuthCode>,
+) -> ApiResult {
+    if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+        let username = user.username.clone();
+        debug!("Verifying email code for user {}", username);
+        if user.email_mfa_enabled && user.verify_email_mfa_code(data.code) {
+            session
+                .set_state(&appstate.pool, SessionState::MultiFactorVerified)
+                .await?;
+            let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
+            info!("Verified email code for user {username}");
+            let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+            let private_cookies = cookies.private(&key);
+            if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
+                debug!("Found openid session cookie.");
+                let redirect_url = openid_cookie.value().to_string();
+                private_cookies.remove(openid_cookie);
+                Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: Some(redirect_url),
+                    }),
+                    status: StatusCode::OK,
+                })
+            } else {
+                Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
+                    status: StatusCode::OK,
+                })
+            }
+        } else {
+            Err(WebError::Authorization("Invalid email code".into()))
+        }
+    } else {
+        Err(WebError::ObjectNotFound("Invalid user".into()))
+    }
 }
 
 /// Start Web3 authentication
