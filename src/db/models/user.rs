@@ -148,7 +148,7 @@ impl User {
     }
 
     /// Generate new `secret`, save it, then return it as RFC 4648 base32-encoded string.
-    pub async fn new_secret(&mut self, pool: &DbPool) -> Result<String, SqlxError> {
+    pub async fn new_totp_secret(&mut self, pool: &DbPool) -> Result<String, SqlxError> {
         let secret = thread_rng().gen::<[u8; 20]>().to_vec();
         if let Some(id) = self.id {
             query!(
@@ -162,6 +162,22 @@ impl User {
         let secret_base32 = TOTP::from_bytes(&secret).base32_secret();
         self.totp_secret = Some(secret);
         Ok(secret_base32)
+    }
+
+    /// Generate new `secret` similar to TOTP secret above, but don't return generated value.
+    pub async fn new_email_secret(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        let email_secret = thread_rng().gen::<[u8; 20]>().to_vec();
+        if let Some(id) = self.id {
+            query!(
+                "UPDATE \"user\" SET email_mfa_secret = $1 WHERE id = $2",
+                email_secret,
+                id
+            )
+            .execute(pool)
+            .await?;
+        }
+        self.email_mfa_secret = Some(email_secret);
+        Ok(())
     }
 
     pub async fn set_mfa_method(

@@ -371,7 +371,7 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
     let mut user = session.user;
     debug!("Generating new TOTP secret for user {}", user.username);
 
-    let secret = user.new_secret(&appstate.pool).await?;
+    let secret = user.new_totp_secret(&appstate.pool).await?;
     info!("Generated new TOTP secret for user {}", user.username);
     Ok(ApiResponse {
         json: json!(AuthTotp::new(secret)),
@@ -465,11 +465,23 @@ pub async fn totp_code(
 }
 
 /// Initialize email MFA setup
-pub async fn email_mfa_init() {
+pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     // check if SMTP is configured
-    todo!()
+    let settings = Settings::get_settings(&appstate.pool).await?;
+    if !settings.smtp_configured() {
+        error!("Unable to start email MFA configuration. SMTP is not configured.");
+        return Err(WebError::EmailMfa("SMTP not configured".into()));
+    }
 
     // generate TOTP secret
+    let mut user = session.user;
+    debug!("Generating new email MFA secret for user {}", user.username);
+    user.new_email_secret(&appstate.pool).await?;
+    info!("Generated new email MFA secret for user {}", user.username);
+
+    // send email with code
+
+    Ok(ApiResponse::default())
 }
 
 /// Enable email MFA

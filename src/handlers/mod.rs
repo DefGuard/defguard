@@ -69,7 +69,8 @@ impl From<WebError> for ApiResponse {
             | WebError::WebauthnRegistration(_)
             | WebError::Serialization(_)
             | WebError::ModelError(_)
-            | WebError::ServerConfigMissing => {
+            | WebError::ServerConfigMissing
+            | WebError::EmailMfa(_) => {
                 error!("{web_error}");
                 ApiResponse::new(
                     json!({"msg": "Internal server error"}),
