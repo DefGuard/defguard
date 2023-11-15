@@ -415,6 +415,7 @@ impl Drop for GatewayUpdatesStream {
         info!("Client disconnected");
         // terminate update task
         self.task_handle.abort();
+        // update gateway state
         self.gateway_state
             .lock()
             .unwrap()

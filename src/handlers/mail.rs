@@ -18,7 +18,6 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-
     db::{MFAMethod, User, WireguardNetwork},
     error::WebError,
     headers::get_device_type,
