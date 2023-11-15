@@ -487,13 +487,44 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
 }
 
 /// Enable email MFA
-pub async fn email_mfa_enable() {
-    todo!()
+pub async fn email_mfa_enable(
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+    Json(data): Json<AuthCode>,
+) -> ApiResult {
+    let mut user = session.user;
+    debug!("Enabling email MFA for user {}", user.username);
+    if user.verify_email_mfa_code(data.code) {
+        let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
+        user.enable_email_mfa(&appstate.pool).await?;
+        if user.mfa_method == MFAMethod::None {
+            user.set_mfa_method(&appstate.pool, MFAMethod::Email)
+                .await?;
+        }
+
+        send_mfa_configured_email(user.clone(), &MFAMethod::Email, &appstate.mail_tx).await?;
+
+        info!("Enabled email MFA for user {}", user.username);
+        Ok(ApiResponse {
+            json: json!(recovery_codes),
+            status: StatusCode::OK,
+        })
+    } else {
+        Err(WebError::ObjectNotFound("Invalid email code".into()))
+    }
 }
 
 /// Disable email MFA
-pub async fn email_mfa_disable() {
-    todo!()
+pub async fn email_mfa_disable(
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    let mut user = session.user;
+    debug!("Disabling email MFA for user {}", user.username);
+    user.disable_email_mfa(&appstate.pool).await?;
+    user.verify_mfa_state(&appstate.pool).await?;
+    info!("Disabled email MFA for user {}", user.username);
+    Ok(ApiResponse::default())
 }
 
 /// Validate email MFA code

@@ -355,8 +355,7 @@ impl User {
                     .execute(pool)
                     .await?;
             }
-            // FIXME: seems to be set to a wrong value
-            self.totp_enabled = false;
+            self.totp_enabled = true;
         }
         Ok(())
     }
@@ -383,6 +382,45 @@ impl User {
         }
         Ok(())
     }
+
+    /// Enable email MFA
+    pub async fn enable_email_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        if !self.email_mfa_enabled {
+            if let Some(id) = self.id {
+                query!(
+                    "UPDATE \"user\" SET email_mfa_enabled = TRUE WHERE id = $1",
+                    id
+                )
+                .execute(pool)
+                .await?;
+            }
+            self.email_mfa_enabled = true;
+        }
+        Ok(())
+    }
+
+    /// Disable email MFA; discard the secret.
+    pub async fn disable_email_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        if self.email_mfa_enabled {
+            self.mfa_enabled = self.check_mfa_enabled(pool).await?;
+            self.email_mfa_enabled = false;
+            self.email_mfa_secret = None;
+            if let Some(id) = self.id {
+                query!(
+                    "UPDATE \"user\" SET mfa_enabled = $2, email_mfa_enabled = $3 AND email_mfa_secret = $4 \
+                    WHERE id = $1",
+                    id,
+                    self.mfa_enabled,
+                    self.email_mfa_enabled,
+                    self.email_mfa_secret,
+                )
+                .execute(pool)
+                .await?;
+            }
+        }
+        Ok(())
+    }
+
     /// Select all users without sensitive data.
     // FIXME: Remove it when Model macro will suport SecretString
     pub async fn all_without_sensitive_data(
