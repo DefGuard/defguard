@@ -50,6 +50,7 @@ pub mod worker;
 // gateways are grouped by network
 type NetworkId = i64;
 type GatewayHostname = String;
+#[derive(Debug)]
 pub struct GatewayMap(HashMap<NetworkId, HashMap<GatewayHostname, GatewayState>>);
 
 #[derive(Error, Debug)]
@@ -85,10 +86,12 @@ impl GatewayMap {
     ) {
         info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            network_gateway_map.insert(
-                hostname.clone(),
-                GatewayState::new(network_id, hostname, name, pool, mail_tx),
-            );
+            if !network_gateway_map.contains_key(&hostname) {
+                network_gateway_map.insert(
+                    hostname.clone(),
+                    GatewayState::new(network_id, hostname, name, pool, mail_tx),
+                );
+            }
         } else {
             // no map for a given network exists yet
             let mut network_gateway_map = HashMap::new();
@@ -141,6 +144,7 @@ impl GatewayMap {
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(hostname) {
                 state.connected = true;
+                debug!("State in connected: {:#?}", state.last_email_notification);
                 state.connected_at = Some(Utc::now().naive_utc());
             } else {
                 error!("Gateway {hostname} not found in gateway map for network {network_id}");
@@ -165,38 +169,8 @@ impl GatewayMap {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
-                // Clone here because self doesn't live long enough
-                let name = state.name.clone();
-                let mail_tx = state.mail_tx.clone();
-                let pool = state.pool.clone();
-                if let Some(connected_at) = state.connected_at {
-                    if let Some(disconnected_at) = state.disconnected_at {
-                        if disconnected_at - connected_at
-                            > ChronoDuration::from_std(
-                                *SERVER_CONFIG
-                                    .get()
-                                    .ok_or(GatewayMapError::ConfigError)?
-                                    .gateway_disconnection_notification_time,
-                            )
-                            .expect("Failed to parse duration")
-                        {
-                            tokio::spawn(async move {
-                                if let Err(e) = send_gateway_disconnected_email(
-                                    name, hostname, network_id, &mail_tx, &pool,
-                                )
-                                .await
-                                {
-                                    error!(
-                                        "Sending gateway disconnected notification failed: {}",
-                                        e
-                                    );
-                                }
-                            });
-                        } else {
-                            debug!("Gateway {} disconnected.", hostname);
-                        }
-                    }
-                }
+                state.send_disconnect_notification(network_id)?;
+                debug!("Gateway map: {:?}", self);
                 return Ok(());
             };
         };
@@ -259,6 +233,8 @@ pub struct GatewayState {
     pub mail_tx: UnboundedSender<Mail>,
     #[serde(skip)]
     pub pool: DbPool,
+    #[serde(skip)]
+    pub last_email_notification: Option<NaiveDateTime>,
 }
 
 impl GatewayState {
@@ -280,7 +256,56 @@ impl GatewayState {
             disconnected_at: None,
             mail_tx,
             pool,
+            last_email_notification: None,
         }
+    }
+    /// Send gateway disconnected notification
+    /// Sends notification only if last notification time is bigger than specified in config
+    fn send_disconnect_notification(&mut self, network_id: i64) -> Result<(), GatewayMapError> {
+        // Clone here because self doesn't live long enough
+        let name = self.name.clone();
+        let mail_tx = self.mail_tx.clone();
+        let pool = self.pool.clone();
+        let hostname = self.hostname.clone();
+        if let Some(last_notification_time) = self.last_email_notification {
+            if Utc::now().naive_utc() - last_notification_time
+                > ChronoDuration::from_std(
+                    *SERVER_CONFIG
+                        .get()
+                        .ok_or(GatewayMapError::ConfigError)?
+                        .gateway_disconnection_notification_timeout,
+                )
+                .expect("Failed to parse duration")
+            {
+                self.last_email_notification = Some(Utc::now().naive_utc());
+                tokio::spawn(async move {
+                    if let Err(e) =
+                        send_gateway_disconnected_email(name, hostname, network_id, &mail_tx, &pool)
+                            .await
+                    {
+                        error!("Sending gateway disconnected notification failed: {}", e);
+                    }
+                });
+                return Ok(());
+            } else {
+                debug!(
+                    "Gateway {} disconnected not sending email. Last notification time was at {:?}",
+                    hostname, self.last_email_notification
+                );
+                return Ok(());
+            }
+        } else {
+            self.last_email_notification = Some(Utc::now().naive_utc());
+            tokio::spawn(async move {
+                if let Err(e) =
+                    send_gateway_disconnected_email(name, hostname, network_id, &mail_tx, &pool)
+                        .await
+                {
+                    error!("Sending gateway disconnected notification failed: {}", e);
+                }
+            });
+        }
+        Ok(())
     }
 }
 
