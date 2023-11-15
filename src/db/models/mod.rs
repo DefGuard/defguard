@@ -141,7 +141,7 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
-    pub async fn into_user_safe_fields(self, user: &mut User) -> Result<(), SqlxError> {
+    pub fn into_user_safe_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.ssh_key = self.ssh_key;
         user.pgp_key = self.pgp_key;
@@ -152,7 +152,7 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
-    pub async fn into_user_all_fields(self, user: &mut User) -> Result<(), SqlxError> {
+    pub fn into_user_all_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.ssh_key = self.ssh_key;
         user.pgp_key = self.pgp_key;
@@ -291,7 +291,7 @@ mod test {
             .handle_user_groups(&mut transaction, &mut user)
             .await
             .unwrap();
-        user_info.into_user_all_fields(&mut user).await.unwrap();
+        user_info.into_user_all_fields(&mut user).unwrap();
         transaction.commit().await.unwrap();
 
         assert_eq!(group1.member_usernames(&pool).await.unwrap(), ["hpotter"]);

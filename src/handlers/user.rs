@@ -328,9 +328,9 @@ pub async fn modify_user(
                 appstate.send_multiple_wireguard_events(gateway_events);
             }
         };
-        user_info.into_user_all_fields(&mut user).await?;
+        user_info.into_user_all_fields(&mut user)?;
     } else {
-        user_info.into_user_safe_fields(&mut user).await?;
+        user_info.into_user_safe_fields(&mut user)?;
     }
     user.save(&mut *transaction).await?;
 

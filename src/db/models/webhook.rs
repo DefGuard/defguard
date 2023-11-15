@@ -66,8 +66,7 @@ impl WebHook {
         let query = format!(
             "SELECT id, url, description, token, enabled, on_user_created, \
             on_user_deleted, on_user_modified, on_hwkey_provision FROM webhook \
-            WHERE enabled AND {}",
-            column_name,
+            WHERE enabled AND {column_name}"
         );
         query_as(&query).fetch_all(pool).await
     }

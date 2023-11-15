@@ -365,7 +365,7 @@ impl User {
                     result_tx: None,
                 };
                 match mail_tx.send(mail) {
-                    Ok(_) => {
+                    Ok(()) => {
                         info!(
                             "Sent enrollment start mail for user {} to {email}",
                             self.username
@@ -422,7 +422,7 @@ impl User {
                     subject: DESKTOP_START_MAIL_SUBJECT.to_string(),
                     content: templates::desktop_start_mail(
                         base_message_context,
-                        enrollment_service_url,
+                        &enrollment_service_url,
                         &enrollment.id,
                     )
                     .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
@@ -430,7 +430,7 @@ impl User {
                     result_tx: None,
                 };
                 match mail_tx.send(mail) {
-                    Ok(_) => {
+                    Ok(()) => {
                         info!(
                             "Sent desktop configuration start mail for user {} to {email}",
                             self.username

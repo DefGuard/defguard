@@ -3,6 +3,7 @@ use defguard::{
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
     grpc::{run_grpc_server, GatewayMap, WorkerState},
+    headers::create_user_agent_parser,
     init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
     run_web_server,
@@ -79,6 +80,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
+    let user_agent_parser = create_user_agent_parser();
 
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;
@@ -103,8 +105,8 @@ async fn main() -> Result<(), anyhow::Error> {
     // run services
     tokio::select! {
         _ = run_grpc_server(&config, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
-        _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), failed_logins) => (),
-        _ = run_mail_handler(mail_rx, pool.clone()) => (),
+        _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), user_agent_parser, failed_logins) => (),
+        () = run_mail_handler(mail_rx, pool.clone()) => (),
         _ = run_periodic_stats_purge(pool, config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => (),
     }
     Ok(())

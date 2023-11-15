@@ -20,7 +20,7 @@ pub async fn add_webhook(
     let url = webhook.url.clone();
     debug!("User {} adding webhook {url}", session.user.username);
     let status = match webhook.save(&appstate.pool).await {
-        Ok(_) => StatusCode::CREATED,
+        Ok(()) => StatusCode::CREATED,
         Err(_) => StatusCode::BAD_REQUEST,
     };
     info!("User {} added webhook {url}", session.user.username);
