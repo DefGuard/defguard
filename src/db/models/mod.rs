@@ -224,7 +224,10 @@ impl MFAInfo {
 
     #[must_use]
     pub fn mfa_available(&self) -> bool {
-        self.webauthn_available || self.totp_available || self.web3_available || self.email_available
+        self.webauthn_available
+            || self.totp_available
+            || self.web3_available
+            || self.email_available
     }
 
     #[must_use]
