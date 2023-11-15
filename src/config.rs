@@ -175,11 +175,11 @@ pub struct DefGuardConfig {
 
     #[arg(
         long,
-        env = "DEFGUARD_GATEWAY_NOTIFICATION_TIME",
+        env = "DEFGUARD_GATEWAY_DISCONNECTION_NOTIFICATION_TIME",
         default_value = "10m"
     )]
     #[serde(skip_serializing)]
-    pub gateway_notification_time: Duration,
+    pub gateway_disconnection_notification_time: Duration,
 
     #[command(subcommand)]
     #[serde(skip_serializing)]
