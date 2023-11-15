@@ -55,26 +55,14 @@ pub async fn authenticate(
         Ok(None) => {
             // create user from LDAP
             debug!("User not found in DB, authenticating user {lowercase_username} with LDAP");
-            // FIXME: assume LDAP is enabled; use other means to enable/disable LDAP.
-            if true {
-                if let Ok(user) = user_from_ldap(
-                    &appstate.pool,
-                    &appstate.config,
-                    &lowercase_username,
-                    &data.password,
-                )
-                .await
-                {
-                    user
-                } else {
-                    info!("Failed to authenticate user {lowercase_username} with LDAP");
-                    log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);
-                    return Err(WebError::Authorization("user not found".into()));
-                }
+            if let Ok(user) =
+                user_from_ldap(&appstate.pool, &lowercase_username, &data.password).await
+            {
+                user
             } else {
-                info!("User {lowercase_username} not found in DB and LDAP is disabled");
+                info!("Failed to authenticate user {lowercase_username} with LDAP");
                 log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);
-                return Err(WebError::Authorization("LDAP feature disabled".into()));
+                return Err(WebError::Authorization("user not found".into()));
             }
         }
         Err(err) => {

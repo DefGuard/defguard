@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import {
   AddOpenidClientRequest,
   AddUserRequest,
@@ -37,6 +38,7 @@ import {
   WorkerToken,
 } from '../types';
 import { removeNulls } from '../utils/removeNulls';
+import { useToaster } from './useToaster';
 
 interface HookProps {
   baseURL?: string;
@@ -53,6 +55,9 @@ client.defaults.headers.common['Content-Type'] = 'application/json';
 const unpackRequest = <T,>(res: AxiosResponse<T>): T => res.data;
 
 const useApi = (props?: HookProps): ApiHook => {
+  const toaster = useToaster();
+  const { LL } = useI18nContext();
+
   if (props) {
     const { baseURL } = props;
     if (baseURL && baseURL.length) {
@@ -64,6 +69,9 @@ const useApi = (props?: HookProps): ApiHook => {
     // API sometimes returns null in optional fields.
     if (res.data) {
       res.data = removeNulls(res.data);
+    }
+    if (res.status >= 400) {
+      toaster.error(LL.messages.error());
     }
     return res;
   });
@@ -361,6 +369,12 @@ const useApi = (props?: HookProps): ApiHook => {
   const startDesktopActivation: ApiHook['user']['startDesktopActivation'] = (data) =>
     client.post(`/user/${data.username}/start_desktop`, data).then(unpackRequest);
 
+  const patchSettings: ApiHook['settings']['patchSettings'] = (data) =>
+    client.patch('/settings', data).then(unpackRequest);
+
+  const getEssentialSettings: ApiHook['settings']['getEssentialSettings'] = () =>
+    client.get('/settings_essentials').then(unpackRequest);
+
   return {
     getAppInfo,
     changePasswordSelf,
@@ -468,6 +482,8 @@ const useApi = (props?: HookProps): ApiHook => {
       getSettings: getSettings,
       editSettings: editSettings,
       setDefaultBranding: setDefaultBranding,
+      patchSettings,
+      getEssentialSettings,
     },
     support: {
       downloadSupportData,

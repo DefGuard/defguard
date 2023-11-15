@@ -1737,9 +1737,9 @@ type RootTranslation = {
 			 */
 			global: string
 			/**
-			 * S​u​p​p​o​r​t
+			 * L​D​A​P
 			 */
-			support: string
+			ldap: string
 		}
 		messages: {
 			/**
@@ -1750,6 +1750,8 @@ type RootTranslation = {
 			 * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
 			 */
 			challengeSuccess: string
+		}
+		ldapSettings: {
 		}
 		modulesVisibility: {
 			/**
@@ -2121,73 +2123,6 @@ type RootTranslation = {
 					 */
 					label: string
 				}
-			}
-		}
-		licenseCard: {
-			/**
-			 * L​i​c​e​n​s​e​ ​&​ ​S​u​p​p​o​r​t​ ​I​n​f​o​r​m​a​t​i​o​n
-			 */
-			header: string
-			licenseCardTitles: {
-				/**
-				 * C​o​m​m​u​n​i​t​y
-				 */
-				community: string
-				/**
-				 * E​n​t​e​r​p​r​i​s​e
-				 */
-				enterprise: string
-				/**
-				 * l​i​c​e​n​s​e
-				 */
-				license: string
-			}
-			body: {
-				/**
-				 * 
-			​	​	​	​	​<​p​>​ ​T​h​a​n​k​ ​y​o​u​ ​f​o​r​ ​p​u​r​c​h​a​s​i​n​g​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​!​<​/​p​>​
-			​	​	​	​	​<​b​r​ ​/​>​
-			​	​	​	​	​<​p​>​T​h​i​s​ ​i​n​c​l​u​d​e​s​ ​f​o​l​l​o​w​i​n​g​ ​m​o​d​u​l​e​s​:​<​/​p​>
-				 */
-				enterprise: string
-				/**
-				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​o​u​r​ ​c​o​m​m​u​n​i​t​y​ ​l​i​c​e​n​s​e​.​ ​I​f​ ​y​o​u​ ​w​i​s​h​ ​t​o​ ​g​e​t​ ​E​n​t​e​r​p​r​i​s​e​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​f​u​l​l​ ​f​e​a​t​u​r​e​s​ ​s​e​t​ ​a​n​d​ ​s​u​p​p​o​r​t​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​"​>​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​<​/​a​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​n​c​l​u​d​e​s​:​<​/​p​>​
-			​	​	​	​
-				 */
-				community: string
-				/**
-				 * r​e​a​d​ ​l​i​c​e​n​s​e​ ​a​g​r​e​e​m​e​n​t
-				 */
-				agreement: string
-				/**
-				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​Y​u​b​i​B​r​i​d​g​e​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​O​p​e​n​I​D​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​O​p​e​n​L​D​A​P​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>
-				 */
-				modules: string
-			}
-			footer: {
-				/**
-				 * l​i​c​e​n​s​e​d​ ​t​o​:​ ​{​c​o​m​p​a​n​y​}
-				 * @param {string} company
-				 */
-				company: RequiredParams<'company'>
-				/**
-				 * e​x​p​i​r​a​t​i​o​n​ ​d​a​t​e​:​ ​{​e​x​p​i​r​a​t​i​o​n​}
-				 * @param {string} expiration
-				 */
-				expiration: RequiredParams<'expiration'>
 			}
 		}
 	}
@@ -5130,9 +5065,9 @@ export type TranslationFunctions = {
 			 */
 			global: () => LocalizedString
 			/**
-			 * Support
+			 * LDAP
 			 */
-			support: () => LocalizedString
+			ldap: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -5143,6 +5078,8 @@ export type TranslationFunctions = {
 			 * Challenge message changed
 			 */
 			challengeSuccess: () => LocalizedString
+		}
+		ldapSettings: {
 		}
 		modulesVisibility: {
 			/**
@@ -5511,71 +5448,6 @@ export type TranslationFunctions = {
 					 */
 					label: () => LocalizedString
 				}
-			}
-		}
-		licenseCard: {
-			/**
-			 * License & Support Information
-			 */
-			header: () => LocalizedString
-			licenseCardTitles: {
-				/**
-				 * Community
-				 */
-				community: () => LocalizedString
-				/**
-				 * Enterprise
-				 */
-				enterprise: () => LocalizedString
-				/**
-				 * license
-				 */
-				license: () => LocalizedString
-			}
-			body: {
-				/**
-				 * 
-							<p> Thank you for purchasing enterprise license!</p>
-							<br />
-							<p>This includes following modules:</p>
-				 */
-				enterprise: () => LocalizedString
-				/**
-				 * 
-			              <p>
-			                You have our community license. If you wish to get Enterprise
-			                license for full features set and support, please visit
-			                <a href="https://defguard.net">https://defguard.net</a>
-			              </p>
-			              <br />
-			              <p>Enterprise license includes:</p>
-						
-				 */
-				community: () => LocalizedString
-				/**
-				 * read license agreement
-				 */
-				agreement: () => LocalizedString
-				/**
-				 * 
-			          <ul>
-			            <li>YubiBridge</li>
-			            <li>OpenID</li>
-			            <li>OpenLDAP</li>
-			          </ul>
-			          <br />
-				 */
-				modules: () => LocalizedString
-			}
-			footer: {
-				/**
-				 * licensed to: {company}
-				 */
-				company: (arg: { company: string }) => LocalizedString
-				/**
-				 * expiration date: {expiration}
-				 */
-				expiration: (arg: { expiration: string }) => LocalizedString
 			}
 		}
 	}

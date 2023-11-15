@@ -30,7 +30,6 @@ async fn test_settings() {
         Settings {
             id: None,
             openid_enabled: true,
-            ldap_enabled: true,
             wireguard_enabled: true,
             webhooks_enabled: true,
             worker_enabled: true,

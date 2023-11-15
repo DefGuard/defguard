@@ -66,6 +66,7 @@ services:
 
   openldap:
     image: bitnami/openldap:2.6
+    user: root
     environment:
       LDAP_EXTRA_SCHEMAS: "cosine,inetorgperson,nis,openssh-lpk_openldap,samba,gnupg-ldap-schema,orion"
     ports:
@@ -78,4 +79,4 @@ services:
       - ./ldif/samba.ldif:/opt/bitnami/openldap/etc/schema/samba.ldif:ro
       - ./ldif/init.ldif:/ldifs/init.ldif:ro
       - ./ldif/custom.ldif:/schema/custom.ldif:ro
-      - ./.volumes/openldap:/bitnami/openldap
+      - ./.volumes_ldap/openldap:/bitnami/openldap

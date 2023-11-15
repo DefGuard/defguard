@@ -8,9 +8,10 @@ use anyhow::anyhow;
 use axum::{
     handler::HandlerWithoutStateExt,
     http::{Request, StatusCode},
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
     Extension, Router, Server,
 };
+use handlers::settings::{get_settings_essentials, patch_settings};
 use secrecy::ExposeSecret;
 use tokio::sync::{
     broadcast::Sender,
@@ -199,7 +200,10 @@ pub fn build_webapp(
             // settings
             .route("/settings", get(get_settings))
             .route("/settings", put(update_settings))
+            .route("/settings", patch(patch_settings))
             .route("/settings/:id", put(set_default_branding))
+            // settings for frontend
+            .route("/settings_essentials", get(get_settings_essentials))
             // support
             .route("/support/configuration", get(configuration))
             .route("/support/logs", get(logs))

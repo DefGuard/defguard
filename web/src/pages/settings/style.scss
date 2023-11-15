@@ -36,6 +36,11 @@
       color: var(--text-body-primary);
     }
 
+    & > .loader-spinner {
+      padding-top: 10vh;
+      width: 100% !important;
+    }
+
     section {
       & > header {
         display: flex;

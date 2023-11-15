@@ -67,6 +67,7 @@ impl From<OriLDAPError> for WebError {
         match error {
             OriLDAPError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
             OriLDAPError::Ldap(msg) => Self::Ldap(msg),
+            OriLDAPError::MissingSettings => Self::Ldap("LDAP settings are missing".to_string()),
         }
     }
 }

@@ -731,11 +731,13 @@ const en: BaseTranslation = {
     tabs: {
       smtp: 'SMTP',
       global: 'Global settings',
-      support: 'Support',
+      ldap: 'LDAP',
     },
     messages: {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
+    },
+    ldapSettings: {
     },
     modulesVisibility: {
       header: 'Modules Visibility',
@@ -760,7 +762,6 @@ const en: BaseTranslation = {
         },
       },
     },
-
     defaultNetworkSelect: {
       header: 'Default location view',
       helper: `<p>Here you can change your default location view.</p>
@@ -926,41 +927,6 @@ const en: BaseTranslation = {
         useMessageAsEmail: {
           label: 'Same as welcome message',
         },
-      },
-    },
-    licenseCard: {
-      header: 'License & Support Information',
-      licenseCardTitles: {
-        community: 'Community',
-        enterprise: 'Enterprise',
-        license: 'license',
-      },
-      body: {
-        enterprise: `
-				<p> Thank you for purchasing enterprise license!</p>
-				<br />
-				<p>This includes following modules:</p>`,
-        community: `
-              <p>
-                You have our community license. If you wish to get Enterprise
-                license for full features set and support, please visit
-                <a href="https://defguard.net">https://defguard.net</a>
-              </p>
-              <br />
-              <p>Enterprise license includes:</p>
-				`,
-        agreement: 'read license agreement',
-        modules: `
-          <ul>
-            <li>YubiBridge</li>
-            <li>OpenID</li>
-            <li>OpenLDAP</li>
-          </ul>
-          <br />`,
-      },
-      footer: {
-        company: 'licensed to: {company: string}',
-        expiration: 'expiration date: {expiration: string}',
       },
     },
   },
