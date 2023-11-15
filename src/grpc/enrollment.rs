@@ -159,7 +159,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 .get_welcome_page_content(&mut transaction)
                 .await?,
             vpn_setup_optional: settings.enrollment_vpn_step_optional,
-            instance: Some(Instance::new(settings, self.config.url.to_owned()).into()),
+            instance: Some(Instance::new(settings, self.config.url.clone()).into()),
         };
 
         transaction.commit().await.map_err(|_| {
@@ -304,13 +304,14 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             &template_locations,
             &user.email,
             &self.mail_tx,
+            None,
         )
         .await
         .map_err(|_| Status::internal("Failed to render new device added tempalte"))?;
         let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
-            instance: Some(Instance::new(settings, self.config.url.to_owned()).into()),
+            instance: Some(Instance::new(settings, self.config.url.clone()).into()),
         };
 
         Ok(Response::new(response))
@@ -343,8 +344,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         })?;
 
         let networks = WireguardNetwork::all(&self.pool).await.map_err(|err| {
-            error!("Invalid failed to get networks {}", err);
-            Status::internal(format!("unexpected error: {}", err))
+            error!("Invalid failed to get networks {err}");
+            Status::internal(format!("unexpected error: {err}"))
         })?;
 
         let mut configs: Vec<ProtoDeviceConfig> = vec![];
@@ -357,8 +358,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 )
                 .await
                 .map_err(|err| {
-                    error!("Invalid failed to get networks {}", err);
-                    Status::internal(format!("unexpected error: {}", err))
+                    error!("Invalid failed to get networks {err}");
+                    Status::internal(format!("unexpected error: {err}"))
                 })?;
                 if let Some(wireguard_network_device) = wireguard_network_device {
                     let allowed_ips = network
@@ -378,15 +379,13 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                         dns: network.dns,
                     };
                     configs.push(config);
-                } else {
-                    continue;
                 }
             }
 
             let response = DeviceConfigResponse {
                 device: Some(device.into()),
                 configs,
-                instance: Some(Instance::new(settings, self.config.url.to_owned()).into()),
+                instance: Some(Instance::new(settings, self.config.url.clone()).into()),
             };
 
             Ok(Response::new(response))
@@ -471,7 +470,7 @@ impl Enrollment {
             result_tx: None,
         };
         match mail_tx.send(mail) {
-            Ok(_) => {
+            Ok(()) => {
                 info!("Sent enrollment welcome mail to {}", user.username);
                 Ok(())
             }
@@ -500,7 +499,7 @@ impl Enrollment {
             result_tx: None,
         };
         match mail_tx.send(mail) {
-            Ok(_) => {
+            Ok(()) => {
                 info!(
                     "Sent enrollment success notification for user {} to {}",
                     user.username, admin.username

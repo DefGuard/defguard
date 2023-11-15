@@ -30,4 +30,5 @@ locations_list ]
 %}
 {# render device section #}
 {{ macros::text_section(content_array=section_content) }}
+{{ macros::text_section(content_array=[macros::device_info(device_data=device_type, date=date_now)]) }}
 {% endblock %}
