@@ -23,3 +23,4 @@ ALTER TYPE mfa_method_new RENAME TO mfa_method;
 
 -- remove email flag from `user` table
 ALTER TABLE "user" DROP COLUMN email_mfa_enabled;
+ALTER TABLE "user" DROP COLUMN email_mfa_secret;

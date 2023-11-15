@@ -72,6 +72,7 @@ pub struct User {
     pub(crate) totp_enabled: bool,
     pub(crate) email_mfa_enabled: bool,
     totp_secret: Option<Vec<u8>>,
+    email_mfa_secret: Option<Vec<u8>>,
     #[model(enum)]
     pub(crate) mfa_method: MFAMethod,
     #[model(ref)]
@@ -113,6 +114,7 @@ impl User {
             totp_enabled: false,
             email_mfa_enabled: false,
             totp_secret: None,
+            email_mfa_secret: None,
             mfa_method: MFAMethod::None,
             recovery_codes: Vec::new(),
         }
@@ -311,7 +313,7 @@ impl User {
         if let Some(id) = self.id {
             query!(
                 "UPDATE \"user\" SET mfa_enabled = FALSE, mfa_method = 'none', totp_enabled = FALSE, email_mfa_enabled = FALSE, \
-                totp_secret = NULL, recovery_codes = '{}' WHERE id = $1",
+                totp_secret = NULL, email_mfa_secret = NULL, recovery_codes = '{}' WHERE id = $1",
                 id
             )
             .execute(pool)
@@ -320,6 +322,7 @@ impl User {
             WebAuthn::delete_all_for_user(pool, id).await?;
         }
         self.totp_secret = None;
+        self.email_mfa_secret = None;
         self.totp_enabled = false;
         self.email_mfa_enabled = false;
         self.mfa_method = MFAMethod::None;
@@ -347,7 +350,6 @@ impl User {
             // FIXME: check if this flag is set correctly when TOTP is the only method
             self.mfa_enabled = self.check_mfa_enabled(pool).await?;
             self.totp_enabled = false;
-            // FIXME: don't discard if the same secret is used for email MFA
             self.totp_secret = None;
             if let Some(id) = self.id {
                 query!(
@@ -433,8 +435,8 @@ impl User {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes \
+            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\" WHERE username = $1",
             username
         )
