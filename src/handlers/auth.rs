@@ -466,7 +466,10 @@ pub async fn totp_code(
 
 /// Initialize email MFA setup
 pub async fn email_mfa_init() {
+    // check if SMTP is configured
     todo!()
+
+    // generate TOTP secret
 }
 
 /// Enable email MFA

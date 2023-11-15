@@ -29,6 +29,7 @@ export type User = {
   mfa_method: UserMFAMethod;
   mfa_enabled: boolean;
   totp_enabled: boolean;
+  email_mfa_enabled: boolean;
   email: string;
   phone?: string;
   pgp_cert_id?: string;

@@ -50,6 +50,7 @@ pub struct UserDiagnostic {
     pub id: i64,
     pub mfa_enabled: bool,
     pub totp_enabled: bool,
+    pub email_mfa_enabled: bool,
     pub mfa_method: MFAMethod,
     pub is_active: bool,
 }
@@ -69,6 +70,7 @@ pub struct User {
     pub mfa_enabled: bool,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
+    pub(crate) email_mfa_enabled: bool,
     totp_secret: Option<Vec<u8>>,
     #[model(enum)]
     pub(crate) mfa_method: MFAMethod,
@@ -109,6 +111,7 @@ impl User {
             pgp_cert_id: None,
             mfa_enabled: false,
             totp_enabled: false,
+            email_mfa_enabled: false,
             totp_secret: None,
             mfa_method: MFAMethod::None,
             recovery_codes: Vec::new(),
@@ -186,19 +189,19 @@ impl User {
     /// - TOTP is enabled
     /// - a [`Wallet`] flagged `use_for_mfa`
     /// - a security key for Webauthn
-    async fn check_mfa(&self, pool: &DbPool) -> Result<bool, SqlxError> {
+    async fn check_mfa_enabled(&self, pool: &DbPool) -> Result<bool, SqlxError> {
         // short-cut
-        if self.totp_enabled {
+        if self.totp_enabled || self.email_mfa_enabled {
             return Ok(true);
         }
 
         if let Some(id) = self.id {
             query_scalar!(
-                "SELECT totp_enabled OR coalesce(bool_or(wallet.use_for_mfa), FALSE) \
+                "SELECT totp_enabled OR email_mfa_enabled OR coalesce(bool_or(wallet.use_for_mfa), FALSE) \
                 OR count(webauthn.id) > 0 \"bool!\" FROM \"user\" \
                 LEFT JOIN wallet ON wallet.user_id = \"user\".id \
                 LEFT JOIN webauthn ON webauthn.user_id = \"user\".id \
-                WHERE \"user\".id = $1 GROUP BY totp_enabled;",
+                WHERE \"user\".id = $1 GROUP BY totp_enabled, email_mfa_enabled;",
                 id
             )
             .fetch_one(pool)
@@ -307,7 +310,7 @@ impl User {
     pub async fn disable_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
         if let Some(id) = self.id {
             query!(
-                "UPDATE \"user\" SET mfa_enabled = FALSE, mfa_method = 'none', totp_enabled = FALSE, \
+                "UPDATE \"user\" SET mfa_enabled = FALSE, mfa_method = 'none', totp_enabled = FALSE, email_mfa_enabled = FALSE, \
                 totp_secret = NULL, recovery_codes = '{}' WHERE id = $1",
                 id
             )
@@ -318,6 +321,7 @@ impl User {
         }
         self.totp_secret = None;
         self.totp_enabled = false;
+        self.email_mfa_enabled = false;
         self.mfa_method = MFAMethod::None;
         self.recovery_codes.clear();
         Ok(())
@@ -331,6 +335,7 @@ impl User {
                     .execute(pool)
                     .await?;
             }
+            // FIXME: seems to be set to a wrong value
             self.totp_enabled = false;
         }
         Ok(())
@@ -339,8 +344,10 @@ impl User {
     /// Disable TOTP; discard the secret.
     pub async fn disable_totp(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
         if self.totp_enabled {
-            self.mfa_enabled = self.check_mfa(pool).await?;
+            // FIXME: check if this flag is set correctly when TOTP is the only method
+            self.mfa_enabled = self.check_mfa_enabled(pool).await?;
             self.totp_enabled = false;
+            // FIXME: don't discard if the same secret is used for email MFA
             self.totp_secret = None;
             if let Some(id) = self.id {
                 query!(
@@ -364,7 +371,7 @@ impl User {
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
             r#"
-            SELECT id, mfa_enabled, totp_enabled, mfa_method as "mfa_method: MFAMethod", password_hash FROM "user"
+            SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, mfa_method as "mfa_method: MFAMethod", password_hash FROM "user"
         "#
         )
         .fetch_all(pool)
@@ -374,6 +381,7 @@ impl User {
             .map(|u| UserDiagnostic {
                 mfa_method: u.mfa_method.clone(),
                 totp_enabled: u.totp_enabled,
+                email_mfa_enabled: u.email_mfa_enabled,
                 mfa_enabled: u.mfa_enabled,
                 id: u.id,
                 is_active: u.password_hash.is_some(),
@@ -425,7 +433,7 @@ impl User {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
+            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, \
             mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\" WHERE username = $1",
             username
