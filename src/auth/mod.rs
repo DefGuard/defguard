@@ -28,6 +28,7 @@ pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
 pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
 pub const SESSION_TIMEOUT: u64 = 3600 * 24 * 7;
 pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
+pub const EMAIL_CODE_VALIDITY_PERIOD: u64 = 60 * 15;
 
 #[derive(Clone, Copy, Default)]
 pub enum ClaimsType {

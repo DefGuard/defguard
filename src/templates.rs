@@ -19,12 +19,17 @@ static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
 static MAIL_NEW_DEVICE_ADDED: &str = include_str!("../templates/mail_new_device_added.tera");
 static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tera");
+static MAIL_EMAIL_MFA_ACTIVATION: &str =
+    include_str!("../templates/mail_email_mfa_activation.tera");
+static MAIL_EMAIL_MFA_CODE: &str = include_str!("../templates/mail_email_mfa_code.tera");
 
 #[allow(dead_code)]
 static MAIL_DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
+    #[error("Failed to generate email MFA code")]
+    MfaError,
     #[error(transparent)]
     TemplateError(#[from] tera::Error),
 }
@@ -163,6 +168,26 @@ pub fn mfa_configured_mail(method: &MFAMethod) -> Result<String, TemplateError> 
     tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
 
     Ok(tera.render("mail_mfa_configured", &context)?)
+}
+
+pub fn email_mfa_activation_mail(code: u32) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None)?;
+    // zero-pad code to make sure it's always 6 digits long
+    context.insert("code", &format!("{code:0>6}"));
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_email_mfa_activation", MAIL_EMAIL_MFA_ACTIVATION)?;
+
+    Ok(tera.render("mail_email_mfa_activation", &context)?)
+}
+
+pub fn email_mfa_code_mail(code: u32) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None)?;
+    // zero-pad code to make sure it's always 6 digits long
+    context.insert("code", &format!("{code:0>6}"));
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+    tera.add_raw_template("mail_email_mfa_code", MAIL_EMAIL_MFA_CODE)?;
+
+    Ok(tera.render("mail_email_mfa_code", &context)?)
 }
 
 #[cfg(test)]

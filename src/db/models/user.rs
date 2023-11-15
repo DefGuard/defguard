@@ -5,6 +5,7 @@ use super::{
     webauthn::WebAuthn,
     DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
+use crate::auth::EMAIL_CODE_VALIDITY_PERIOD;
 use crate::{auth::TOTP_CODE_VALIDITY_PERIOD, error::WebError, random::gen_alphanumeric};
 use argon2::{
     password_hash::{
@@ -410,11 +411,41 @@ impl User {
 
     /// Check if TOTP `code` is valid.
     #[must_use]
-    pub fn verify_code(&self, code: u32) -> bool {
+    pub fn verify_totp_code(&self, code: u32) -> bool {
         if let Some(totp_secret) = &self.totp_secret {
             let totp = TOTP::from_bytes(totp_secret);
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
                 return totp.verify(code, TOTP_CODE_VALIDITY_PERIOD, timestamp.as_secs());
+            }
+        }
+        false
+    }
+
+    pub fn generate_email_mfa_code(&self) -> Result<u32, WebError> {
+        match &self.email_mfa_secret {
+            Some(email_mfa_secret) => {
+                let auth = TOTP::from_bytes(email_mfa_secret);
+                let timestamp = SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
+                let code = auth.generate(EMAIL_CODE_VALIDITY_PERIOD, timestamp);
+                Ok(code)
+            }
+            None => Err(WebError::EmailMfa(format!(
+                "Email MFA secret not configured for user {}",
+                self.username
+            ))),
+        }
+    }
+
+    /// Check if email MFA `code` is valid.
+    #[must_use]
+    pub fn verify_email_mfa_code(&self, code: u32) -> bool {
+        if let Some(email_mfa_secret) = &self.email_mfa_secret {
+            let totp = TOTP::from_bytes(email_mfa_secret);
+            if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+                return totp.verify(code, EMAIL_CODE_VALIDITY_PERIOD, timestamp.as_secs());
             }
         }
         false

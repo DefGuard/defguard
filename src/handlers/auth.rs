@@ -16,6 +16,7 @@ use super::{
     ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
     WalletAddress, WalletSignature, WebAuthnRegistration, SESSION_COOKIE_NAME,
 };
+use crate::handlers::mail::send_email_mfa_activation_email;
 use crate::{
     appstate::AppState,
     auth::{
@@ -387,7 +388,7 @@ pub async fn totp_enable(
 ) -> ApiResult {
     let mut user = session.user;
     debug!("Enabling TOTP for user {}", user.username);
-    if user.verify_code(data.code) {
+    if user.verify_totp_code(data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_totp(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
@@ -428,7 +429,7 @@ pub async fn totp_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying TOTP for user {}", username);
-        if user.totp_enabled && user.verify_code(data.code) {
+        if user.totp_enabled && user.verify_totp_code(data.code) {
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
@@ -480,6 +481,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     info!("Generated new email MFA secret for user {}", user.username);
 
     // send email with code
+    send_email_mfa_activation_email(user, &appstate.mail_tx).await?;
 
     Ok(ApiResponse::default())
 }
