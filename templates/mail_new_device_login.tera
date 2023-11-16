@@ -1,0 +1,20 @@
+{# Requires context
+device_name -> name of the device added
+public_key -> Public key of device added
+locations -> {
+name -> location name,
+assigned_ip -> ip of device in location
+}[]
+#}
+{% extends "base.tera" %}
+{% import "macros.tera" as macros %}
+
+{# mail content #}
+{% block mail_content %}
+{# title #}
+{% set section_content = [macros::paragraph(content="Your account was just logged into from a new device:")] %}
+{{ macros::text_section(content_array=section_content) }}
+{{ macros::spacer(height="40px")}}
+{# render device section #}
+{{ macros::text_section(content_array=[macros::device_info(device_data=device_type, date=created)]) }}
+{% endblock %}

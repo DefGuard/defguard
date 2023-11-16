@@ -4,7 +4,7 @@ use axum::{
     extract::{Json, State},
     http::StatusCode,
 };
-use chrono::Utc;
+use chrono::{NaiveDateTime, Utc};
 use lettre::message::header::ContentType;
 use serde_json::json;
 use tokio::{
@@ -192,6 +192,37 @@ pub async fn send_new_device_added_email(
         }
         Err(err) => {
             error!("Sending new device notification to {to} failed with erorr:\n{err}");
+            Ok(())
+        }
+    }
+}
+
+pub async fn send_new_device_login_email(
+    user_email: &str,
+    mail_tx: &UnboundedSender<Mail>,
+    user_agent_client: Option<Client<'_>>,
+    created: NaiveDateTime,
+) -> Result<(), TemplateError> {
+    debug!("User {user_email} new device login mail to {SUPPORT_EMAIL_ADDRESS}");
+
+    let device_type = get_device_type(user_agent_client);
+    let mail = Mail {
+        to: user_email.to_string(),
+        subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
+        content: templates::new_device_login_mail(Some(&device_type), created)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Sent new device login notification to {to}");
+            Ok(())
+        }
+        Err(err) => {
+            error!("Sending new device login notification to {to} failed with erorr:\n{err}");
             Ok(())
         }
     }

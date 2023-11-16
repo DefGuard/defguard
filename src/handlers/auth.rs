@@ -1,6 +1,10 @@
+use std::net::SocketAddr;
+
 use axum::{
-    extract::{Json, State},
+    extract::{Json, State, ConnectInfo},
+    headers::UserAgent,
     http::StatusCode,
+    TypedHeader,
 };
 use secrecy::ExposeSecret;
 use serde_json::json;
@@ -26,6 +30,7 @@ use crate::{
     error::WebError,
     handlers::mail::send_mfa_configured_email,
     handlers::SIGN_IN_COOKIE_NAME,
+    headers::{check_new_device_login, parse_user_agent},
     ldap::utils::user_from_ldap,
     SERVER_CONFIG,
 };
@@ -35,6 +40,8 @@ use crate::{
 /// * 201 with MFA enabled when additional authentication factor is required
 pub async fn authenticate(
     cookies: Cookies,
+    user_agent: Option<TypedHeader<UserAgent>>,
+    ConnectInfo(_connect_info): ConnectInfo<SocketAddr>,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
 ) -> ApiResult {
@@ -108,9 +115,23 @@ pub async fn authenticate(
         .finish();
     cookies.add(auth_cookie);
 
+    let user_agent_string = match user_agent {
+        Some(value) => value.to_string(),
+        None => String::new(),
+    };
+    let agent = parse_user_agent(&appstate, &user_agent_string);
+
     info!("Authenticated user {lowercase_username}");
     if user.mfa_enabled {
         if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
+            check_new_device_login(
+                &appstate.pool,
+                &appstate.mail_tx,
+                &user,
+                "AUTHENTICATION".to_string(),
+                agent,
+            )
+            .await?;
             Ok(ApiResponse {
                 json: json!(mfa_info),
                 status: StatusCode::CREATED,
@@ -122,6 +143,17 @@ pub async fn authenticate(
         let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
         let key = Key::from(server_config.secret_key.expose_secret().as_bytes());
         let private_cookies = cookies.private(&key);
+
+        // TODO: enum for AUTHENTICATION?
+        check_new_device_login(
+            &appstate.pool,
+            &appstate.mail_tx,
+            &user,
+            "AUTHENTICATION".to_string(),
+            agent,
+        )
+        .await?;
+
         if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
             debug!("Found openid session cookie.");
             let redirect_url = openid_cookie.value().to_string();

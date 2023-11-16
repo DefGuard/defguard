@@ -1,8 +1,15 @@
 use std::{borrow::Borrow, sync::Arc};
 
+use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
-use crate::appstate::AppState;
+use crate::{
+    appstate::AppState,
+    db::{models::device_login::DeviceLoginEvent, DbPool, User},
+    handlers::mail::send_new_device_login_email,
+    mail::Mail,
+    templates::TemplateError,
+};
 
 #[must_use]
 pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
@@ -61,4 +68,72 @@ pub fn get_user_agent_device(user_agent_client: &Client) -> String {
     device_os.push_str(&user_agent_client.user_agent.family);
 
     format!("{device_type}, OS: {device_os}")
+}
+
+#[must_use]
+pub fn get_device_login_event(
+    user_id: i64,
+    event_type: String,
+    user_agent_client: Option<Client>,
+) -> Option<DeviceLoginEvent> {
+    if let Some(client) = user_agent_client {
+        Some(get_user_agent_device_login_data(
+            user_id, event_type, &client,
+        ))
+    } else {
+        None
+    }
+}
+
+pub fn get_user_agent_device_login_data<'a>(
+    user_id: i64,
+    event_type: String,
+    user_agent_client: &Client,
+) -> DeviceLoginEvent {
+    let mut model = None;
+    if let Some(ua_model) = &user_agent_client.device.model {
+        model = Some(ua_model.to_string());
+    }
+
+    let mut brand = None;
+    if let Some(ua_brand) = &user_agent_client.device.brand {
+        brand = Some(ua_brand.to_string());
+    }
+
+    let family = user_agent_client.device.family.to_string();
+    let os_family = user_agent_client.os.family.to_string();
+    let browser = user_agent_client.user_agent.family.to_string();
+
+    DeviceLoginEvent::new(
+        user_id, model, family, brand, os_family, browser, event_type,
+    )
+}
+
+pub async fn check_new_device_login(
+    pool: &DbPool,
+    mail_tx: &UnboundedSender<Mail>,
+    user: &User,
+    event_type: String,
+    agent: Option<Client<'_>>,
+) -> Result<(), TemplateError> {
+    if let Some(user_id) = user.id {
+        if let Some(device_login_event) = get_device_login_event(user_id, event_type, agent.clone())
+        {
+            if let Ok(existing_device_login_event) =
+                DeviceLoginEvent::check_if_device_already_logged_in(&pool, device_login_event).await
+            {
+                if let Some(created_device_login_event) = existing_device_login_event {
+                    send_new_device_login_email(
+                        &user.email,
+                        &mail_tx,
+                        agent,
+                        created_device_login_event.created,
+                    )
+                    .await?;
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
