@@ -13,6 +13,9 @@ use sqlx::{
 pub struct SecretString(Secret<String>);
 
 impl SecretString {
+    pub fn from_str(src: &str) -> Self {
+        Self(Secret::new(src.to_string()))
+    }
     #[must_use]
     pub fn expose_secret(&self) -> &str {
         self.0.expose_secret()

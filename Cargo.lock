@@ -894,6 +894,7 @@ dependencies = [
  "pulldown-cmark",
  "rand",
  "rand_core",
+ "regex",
  "reqwest",
  "rsa",
  "rust-ini",
