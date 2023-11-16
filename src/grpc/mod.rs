@@ -275,8 +275,8 @@ impl GatewayState {
         let pool = self.pool.clone();
         let hostname = self.hostname.clone();
         let network_name = self.network_name.clone();
-        if let Some(last_notification_time) = self.last_email_notification {
-            if Utc::now().naive_utc() - last_notification_time
+        let send_email = if let Some(last_notification_time) = self.last_email_notification {
+            Utc::now().naive_utc() - last_notification_time
                 > ChronoDuration::from_std(
                     *SERVER_CONFIG
                         .get()
@@ -284,31 +284,13 @@ impl GatewayState {
                         .gateway_disconnection_notification_timeout,
                 )
                 .expect("Failed to parse duration")
-            {
-                self.last_email_notification = Some(Utc::now().naive_utc());
-                tokio::spawn(async move {
-                    if let Err(e) = send_gateway_disconnected_email(
-                        name,
-                        network_name,
-                        hostname,
-                        &mail_tx,
-                        &pool,
-                    )
-                    .await
-                    {
-                        error!("Sending gateway disconnected notification failed: {}", e);
-                    }
-                });
-                return Ok(());
-            } else {
-                debug!(
-                    "Gateway {} disconnected not sending email. Last notification time was at {:?}",
-                    hostname, self.last_email_notification
-                );
-                return Ok(());
-            }
         } else {
+            true
+        };
+        if send_email {
             self.last_email_notification = Some(Utc::now().naive_utc());
+            // FIXME: Try to get rid of spawn and use something like block_on
+            // To return result instead of logging
             tokio::spawn(async move {
                 if let Err(e) =
                     send_gateway_disconnected_email(name, network_name, hostname, &mail_tx, &pool)
@@ -317,7 +299,13 @@ impl GatewayState {
                     error!("Sending gateway disconnected notification failed: {}", e);
                 }
             });
-        }
+        } else {
+            debug!(
+                "Gateway {} disconnected not sending email. Last notification time was at {:?}",
+                hostname, self.last_email_notification
+            );
+        };
+
         Ok(())
     }
 }
