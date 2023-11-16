@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use axum::{
-    extract::{Json, State, ConnectInfo},
+    extract::{ConnectInfo, Json, State},
     headers::UserAgent,
     http::StatusCode,
     TypedHeader,
