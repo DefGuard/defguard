@@ -53,7 +53,7 @@ impl DeviceLoginEvent {
         }
     }
 
-    pub async fn find_device_login_event(
+    pub async fn find_code(
         pool: &DbPool,
         device_login_event: &Self,
     ) -> Result<Option<Self>, SqlxError> {
@@ -71,8 +71,7 @@ impl DeviceLoginEvent {
         pool: &DbPool,
         device_login_event: Self,
     ) -> Result<Option<Self>, anyhow::Error> {
-        let existing_login_event =
-            Self::find_device_login_event(&pool, &device_login_event).await?;
+        let existing_login_event = Self::find_code(&pool, &device_login_event).await?;
 
         if let None = existing_login_event {
             let mut login_event: DeviceLoginEvent = DeviceLoginEvent::from(device_login_event);
