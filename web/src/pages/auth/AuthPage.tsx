@@ -46,7 +46,7 @@ export const AuthPage = () => {
 
   const toaster = useToaster();
 
-  const setAppStore = useAppStore((state) => state.setAppStore);
+  const setAppStore = useAppStore((state) => state.setState);
 
   const [params] = useSearchParams();
   const redirectUrl = params.get('r');
