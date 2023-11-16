@@ -76,16 +76,10 @@ pub fn get_device_login_event(
     event_type: String,
     user_agent_client: Option<Client>,
 ) -> Option<DeviceLoginEvent> {
-    if let Some(client) = user_agent_client {
-        Some(get_user_agent_device_login_data(
-            user_id, event_type, &client,
-        ))
-    } else {
-        None
-    }
+    user_agent_client.map(|client| get_user_agent_device_login_data(user_id, event_type, &client))
 }
 
-pub fn get_user_agent_device_login_data<'a>(
+pub fn get_user_agent_device_login_data(
     user_id: i64,
     event_type: String,
     user_agent_client: &Client,
@@ -119,18 +113,17 @@ pub async fn check_new_device_login(
     if let Some(user_id) = user.id {
         if let Some(device_login_event) = get_device_login_event(user_id, event_type, agent.clone())
         {
-            if let Ok(existing_device_login_event) =
-                DeviceLoginEvent::check_if_device_already_logged_in(&pool, device_login_event).await
+            if let Ok(Some(created_device_login_event)) = device_login_event
+                .check_if_device_already_logged_in(pool)
+                .await
             {
-                if let Some(created_device_login_event) = existing_device_login_event {
-                    send_new_device_login_email(
-                        &user.email,
-                        &mail_tx,
-                        agent,
-                        created_device_login_event.created,
-                    )
-                    .await?;
-                }
+                send_new_device_login_email(
+                    &user.email,
+                    mail_tx,
+                    agent,
+                    created_device_login_event.created,
+                )
+                .await?;
             }
         }
     }

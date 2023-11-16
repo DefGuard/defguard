@@ -53,32 +53,28 @@ impl DeviceLoginEvent {
         }
     }
 
-    pub async fn find_code(
-        pool: &DbPool,
-        device_login_event: &Self,
-    ) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_code(&self, pool: &DbPool) -> Result<Option<Self>, SqlxError> {
         query_as!(
           Self,
           "SELECT id \"id?\", user_id, model, family, brand, os_family, browser, event_type, created
           FROM device_login_event WHERE user_id = $1 AND event_type = $2 AND family = $3",
-          device_login_event.user_id, device_login_event.event_type, device_login_event.family
+          self.user_id, self.event_type, self.family
       )
         .fetch_optional(pool)
         .await
     }
 
     pub async fn check_if_device_already_logged_in(
+        mut self,
         pool: &DbPool,
-        device_login_event: Self,
     ) -> Result<Option<Self>, anyhow::Error> {
-        let existing_login_event = Self::find_code(&pool, &device_login_event).await?;
+        let existing_login_event = self.find_code(pool).await?;
 
-        if let None = existing_login_event {
-            let mut login_event: DeviceLoginEvent = DeviceLoginEvent::from(device_login_event);
-            login_event.save(pool).await?;
-            return Ok(Some(login_event));
+        if existing_login_event.is_none() {
+            self.save(pool).await?;
+            Ok(Some(self))
+        } else {
+            Ok(None)
         }
-
-        Ok(None)
     }
 }
