@@ -527,6 +527,20 @@ pub async fn email_mfa_disable(
     Ok(ApiResponse::default())
 }
 
+/// Send email code to user
+pub async fn send_email_mfa_code(session: Session, State(appstate): State<AppState>) -> ApiResult {
+    if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+        debug!("Sending email code for user {}", user.username);
+        if user.email_mfa_enabled {
+            todo!()
+        } else {
+            Err(WebError::Authorization("Email MFA not enabled".into()))
+        }
+    } else {
+        Err(WebError::ObjectNotFound("Invalid user".into()))
+    }
+}
+
 /// Validate email MFA code
 pub async fn email_mfa_code(
     cookies: Cookies,
