@@ -6,7 +6,7 @@ code -> 6-digit zero-padded verification code
 {% import "macros.tera" as macros %}
 {% block mail_content %}
 {% set section_content = [
-  macros::paragraph(content="Your are activating Multi-Factor Authentication using email verification codes."),
+  macros::paragraph(content="You are activating Multi-Factor Authentication using email verification codes."),
 ] %}
 {{ macros::text_section(content_array=section_content) }}
 {{ macros::spacer(height="10px") }}
