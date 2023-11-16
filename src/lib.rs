@@ -11,7 +11,7 @@ use axum::{
     routing::{delete, get, patch, post, put},
     Extension, Router, Server,
 };
-use handlers::settings::{get_settings_essentials, patch_settings};
+use handlers::settings::{get_settings_essentials, patch_settings, test_ldap_settings};
 use secrecy::ExposeSecret;
 use tokio::sync::{
     broadcast::Sender,
@@ -213,7 +213,9 @@ pub fn build_webapp(
             .route("/webhook/:id", get(get_webhook))
             .route("/webhook/:id", put(change_webhook))
             .route("/webhook/:id", delete(delete_webhook))
-            .route("/webhook/:id", post(change_enabled)),
+            .route("/webhook/:id", post(change_enabled))
+            // ldap
+            .route("/ldap/test", get(test_ldap_settings)),
     );
 
     #[cfg(feature = "openid")]

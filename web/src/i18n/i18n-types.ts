@@ -48,6 +48,18 @@ type RootTranslation = {
 			 * F​i​n​i​s​h
 			 */
 			finish: string
+			/**
+			 * S​a​v​e​ ​c​h​a​n​g​e​s
+			 */
+			saveChanges: string
+			/**
+			 * S​a​v​e
+			 */
+			save: string
+			/**
+			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
+			 */
+			RestoreDefault: string
 		}
 	}
 	messages: {
@@ -1752,6 +1764,78 @@ type RootTranslation = {
 			challengeSuccess: string
 		}
 		ldapSettings: {
+			/**
+			 * L​D​A​P​ ​S​e​t​t​i​n​g​s
+			 */
+			title: string
+			form: {
+				labels: {
+					/**
+					 * U​R​L
+					 */
+					ldap_url: string
+					/**
+					 * B​i​n​d​ ​U​s​e​r​n​a​m​e
+					 */
+					ldap_bind_username: string
+					/**
+					 * B​i​n​d​ ​P​a​s​s​w​o​r​d
+					 */
+					ldap_bind_password: string
+					/**
+					 * M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_member_attr: string
+					/**
+					 * U​s​e​r​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_username_attr: string
+					/**
+					 * U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s
+					 */
+					ldap_user_obj_class: string
+					/**
+					 * U​s​e​r​ ​S​e​a​r​c​h​ ​B​a​s​e
+					 */
+					ldap_user_search_base: string
+					/**
+					 * G​r​o​u​p​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_groupname_attr: string
+					/**
+					 * G​r​o​u​p​ ​S​e​a​r​c​h​ ​B​a​s​e
+					 */
+					ldap_group_search_base: string
+					/**
+					 * G​r​o​u​p​ ​M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_group_member_attr: string
+					/**
+					 * G​r​o​u​p​ ​O​b​j​e​c​t​ ​C​l​a​s​s
+					 */
+					ldap_group_obj_class: string
+				}
+			}
+			test: {
+				/**
+				 * T​e​s​t​ ​L​D​A​P​ ​C​o​n​n​e​c​t​i​o​n
+				 */
+				title: string
+				/**
+				 * T​e​s​t
+				 */
+				submit: string
+				messages: {
+					/**
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
+					 */
+					success: string
+					/**
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​r​e​j​e​c​t​e​d
+					 */
+					error: string
+				}
+			}
 		}
 		modulesVisibility: {
 			/**
@@ -3386,6 +3470,18 @@ export type TranslationFunctions = {
 			 * Finish
 			 */
 			finish: () => LocalizedString
+			/**
+			 * Save changes
+			 */
+			saveChanges: () => LocalizedString
+			/**
+			 * Save
+			 */
+			save: () => LocalizedString
+			/**
+			 * Restore default
+			 */
+			RestoreDefault: () => LocalizedString
 		}
 	}
 	messages: {
@@ -5080,6 +5176,78 @@ export type TranslationFunctions = {
 			challengeSuccess: () => LocalizedString
 		}
 		ldapSettings: {
+			/**
+			 * LDAP Settings
+			 */
+			title: () => LocalizedString
+			form: {
+				labels: {
+					/**
+					 * URL
+					 */
+					ldap_url: () => LocalizedString
+					/**
+					 * Bind Username
+					 */
+					ldap_bind_username: () => LocalizedString
+					/**
+					 * Bind Password
+					 */
+					ldap_bind_password: () => LocalizedString
+					/**
+					 * Member Attribute
+					 */
+					ldap_member_attr: () => LocalizedString
+					/**
+					 * Username Attribute
+					 */
+					ldap_username_attr: () => LocalizedString
+					/**
+					 * User Object Class
+					 */
+					ldap_user_obj_class: () => LocalizedString
+					/**
+					 * User Search Base
+					 */
+					ldap_user_search_base: () => LocalizedString
+					/**
+					 * Groupname Attribute
+					 */
+					ldap_groupname_attr: () => LocalizedString
+					/**
+					 * Group Search Base
+					 */
+					ldap_group_search_base: () => LocalizedString
+					/**
+					 * Group Member Attribute
+					 */
+					ldap_group_member_attr: () => LocalizedString
+					/**
+					 * Group Object Class
+					 */
+					ldap_group_obj_class: () => LocalizedString
+				}
+			}
+			test: {
+				/**
+				 * Test LDAP Connection
+				 */
+				title: () => LocalizedString
+				/**
+				 * Test
+				 */
+				submit: () => LocalizedString
+				messages: {
+					/**
+					 * LDAP connected successfully
+					 */
+					success: () => LocalizedString
+					/**
+					 * LDAP connection rejected
+					 */
+					error: () => LocalizedString
+				}
+			}
 		}
 		modulesVisibility: {
 			/**

@@ -12,6 +12,9 @@ const en: BaseTranslation = {
       close: 'Close',
       select: 'Select',
       finish: 'Finish',
+      saveChanges: 'Save changes',
+      save: 'Save',
+      RestoreDefault: 'Restore default',
     },
   },
   messages: {
@@ -738,6 +741,30 @@ const en: BaseTranslation = {
       challengeSuccess: 'Challenge message changed',
     },
     ldapSettings: {
+      title: 'LDAP Settings',
+      form: {
+        labels: {
+          ldap_url: 'URL',
+          ldap_bind_username: 'Bind Username',
+          ldap_bind_password: 'Bind Password',
+          ldap_member_attr: 'Member Attribute',
+          ldap_username_attr: 'Username Attribute',
+          ldap_user_obj_class: 'User Object Class',
+          ldap_user_search_base: 'User Search Base',
+          ldap_groupname_attr: 'Groupname Attribute',
+          ldap_group_search_base: 'Group Search Base',
+          ldap_group_member_attr: 'Group Member Attribute',
+          ldap_group_obj_class: 'Group Object Class',
+        },
+      },
+      test: {
+        title: 'Test LDAP Connection',
+        submit: 'Test',
+        messages: {
+          success: 'LDAP connected successfully',
+          error: 'LDAP connection rejected',
+        },
+      },
     },
     modulesVisibility: {
       header: 'Modules Visibility',

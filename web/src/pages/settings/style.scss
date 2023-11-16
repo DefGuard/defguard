@@ -49,6 +49,14 @@
         justify-content: flex-start;
         gap: 10px;
         margin-bottom: 26px;
+
+        & > .controls,
+        .btn {
+          margin-left: auto;
+        }
+        .btn {
+          min-width: 130px;
+        }
       }
     }
 

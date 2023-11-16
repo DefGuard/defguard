@@ -450,6 +450,7 @@ export interface ApiHook {
     setDefaultBranding: (id: string) => Promise<Settings>;
     patchSettings: (data: Partial<Settings>) => EmptyApiResponse;
     getEssentialSettings: () => Promise<SettingsEssentials>;
+    testLdapSettings: () => Promise<EmptyApiResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;

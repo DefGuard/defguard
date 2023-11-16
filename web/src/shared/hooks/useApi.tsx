@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import { useEffect, useMemo } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import {
@@ -42,15 +43,11 @@ import { useToaster } from './useToaster';
 
 interface HookProps {
   baseURL?: string;
+  // Spawns toaster type Error when request response code is above 399
+  notifyError?: boolean;
 }
 
 const envBaseUrl = import.meta.env.API_BASE_URL;
-
-const client = axios.create({
-  baseURL: envBaseUrl && String(envBaseUrl).length > 0 ? envBaseUrl : '/api/v1',
-});
-
-client.defaults.headers.common['Content-Type'] = 'application/json';
 
 const unpackRequest = <T,>(res: AxiosResponse<T>): T => res.data;
 
@@ -58,23 +55,21 @@ const useApi = (props?: HookProps): ApiHook => {
   const toaster = useToaster();
   const { LL } = useI18nContext();
 
+  const client = useMemo(() => {
+    const res = axios.create({
+      baseURL: envBaseUrl && String(envBaseUrl).length > 0 ? envBaseUrl : '/api/v1',
+    });
+
+    res.defaults.headers.common['Content-Type'] = 'application/json';
+    return res;
+  }, []);
+
   if (props) {
     const { baseURL } = props;
     if (baseURL && baseURL.length) {
       client.defaults.baseURL = baseURL;
     }
   }
-
-  client.interceptors.response.use((res) => {
-    // API sometimes returns null in optional fields.
-    if (res.data) {
-      res.data = removeNulls(res.data);
-    }
-    if (res.status >= 400) {
-      toaster.error(LL.messages.error());
-    }
-    return res;
-  });
 
   const addUser = async (data: AddUserRequest) => {
     return client.post<User>(`/user`, data).then((res) => res.data);
@@ -375,6 +370,30 @@ const useApi = (props?: HookProps): ApiHook => {
   const getEssentialSettings: ApiHook['settings']['getEssentialSettings'] = () =>
     client.get('/settings_essentials').then(unpackRequest);
 
+  const testLdapSettings: ApiHook['settings']['testLdapSettings'] = () =>
+    client.get('/ldap/test').then(unpackRequest);
+
+  useEffect(() => {
+    client.interceptors.response.use(
+      (res) => {
+        // API sometimes returns null in optional fields.
+        if (res.data) {
+          res.data = removeNulls(res.data);
+        }
+        return res;
+      },
+      (err) => {
+        if (props?.notifyError) {
+          toaster.error(LL.messages.error());
+        }
+        return Promise.reject(err);
+      },
+    );
+    return () => {
+      client.interceptors.response.clear();
+    };
+  }, [LL.messages, client.interceptors.response, toaster, props?.notifyError]);
+
   return {
     getAppInfo,
     changePasswordSelf,
@@ -484,6 +503,7 @@ const useApi = (props?: HookProps): ApiHook => {
       setDefaultBranding: setDefaultBranding,
       patchSettings,
       getEssentialSettings,
+      testLdapSettings,
     },
     support: {
       downloadSupportData,

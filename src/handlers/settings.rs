@@ -5,6 +5,7 @@ use axum::{
 use serde_json::json;
 use struct_patch::Patch;
 
+
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
@@ -13,6 +14,7 @@ use crate::{
         Settings,
     },
     error::WebError,
+    ldap::LDAPConnection,
     AppState,
 };
 
@@ -91,4 +93,24 @@ pub async fn patch_settings(
     settings.save(&appstate.pool).await?;
     info!("Admin {} patched settings.", &session.user.username);
     Ok(ApiResponse::default())
+}
+
+pub async fn test_ldap_settings(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+    debug!("Testing LDAP connection");
+    match LDAPConnection::create(&appstate.pool).await {
+        Ok(_) => {
+            debug!("LDAP connected succesfully");
+            Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::OK,
+            })
+        }
+        Err(_) => {
+            debug!("LDAP connection rejected");
+            Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            })
+        }
+    }
 }
