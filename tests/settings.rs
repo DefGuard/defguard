@@ -54,6 +54,17 @@ async fn test_settings() {
             enrollment_welcome_email_subject: None,
             enrollment_use_welcome_message_as_email: true,
             uuid: settings.uuid,
+            ldap_url: None,
+            ldap_member_attr: None,
+            ldap_bind_username: None,
+            ldap_username_attr: None,
+            ldap_groupname_attr: None,
+            ldap_user_obj_class: None,
+            ldap_group_obj_class: None,
+            ldap_user_search_base: None,
+            ldap_group_search_base: None,
+            ldap_group_member_attr: None,
+            ldap_bind_password: None,
         }
     );
 
