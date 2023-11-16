@@ -33,9 +33,9 @@ use self::{
     handlers::{
         auth::{
             authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
-            logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable, totp_enable,
-            totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
-            webauthn_init, webauthn_start,
+            logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
+            totp_disable, totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end,
+            webauthn_finish, webauthn_init, webauthn_start,
         },
         forward_auth::forward_auth,
         group::{add_group_member, get_group, list_groups, remove_group_member},
@@ -155,6 +155,7 @@ pub fn build_webapp(
             .route("/auth/totp", delete(totp_disable))
             .route("/auth/totp/verify", post(totp_code))
             .route("/auth/email/init", post(email_mfa_init))
+            .route("/auth/email", get(request_email_mfa_code))
             .route("/auth/email", post(email_mfa_enable))
             .route("/auth/email", delete(email_mfa_disable))
             .route("/auth/email/verify", post(email_mfa_code))
