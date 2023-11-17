@@ -318,6 +318,7 @@ export interface MappedDevice extends ImportedDevice {
 export interface AppInfo {
   version: string;
   network_present: boolean;
+  smtp_enabled: boolean;
 }
 
 export type GetDeviceConfigRequest = {
