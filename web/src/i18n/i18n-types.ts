@@ -345,6 +345,46 @@ type RootTranslation = {
 				}
 			}
 		}
+		registerEmailMFA: {
+			/**
+			 * E​m​a​i​l​ ​M​F​A​ ​S​e​t​u​p
+			 */
+			title: string
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​t​h​a​t​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​ ​i​n​ ​t​h​e​ ​f​i​e​l​d​ ​b​e​l​o​w​:​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+	
+			 */
+			infoMessage: string
+			messages: {
+				/**
+				 * E​m​a​i​l​ ​M​F​A​ ​E​n​a​b​l​e​d
+				 */
+				success: string
+			}
+			form: {
+				fields: {
+					code: {
+						/**
+						 * E​m​a​i​l​ ​c​o​d​e
+						 */
+						label: string
+						/**
+						 * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
+						 */
+						error: string
+					}
+				}
+				controls: {
+					/**
+					 * V​e​r​i​f​y​ ​c​o​d​e
+					 */
+					submit: string
+				}
+			}
+		}
 		editDevice: {
 			/**
 			 * E​d​i​t​ ​d​e​v​i​c​e
@@ -3739,6 +3779,46 @@ export type TranslationFunctions = {
 					code: {
 						/**
 						 * Authenticator code
+						 */
+						label: () => LocalizedString
+						/**
+						 * Code is invalid
+						 */
+						error: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Verify code
+					 */
+					submit: () => LocalizedString
+				}
+			}
+		}
+		registerEmailMFA: {
+			/**
+			 * Email MFA Setup
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		        <p>
+		          To setup your MFA enter the code that was sent to your email address in the field below:
+		        </p>
+	
+			 */
+			infoMessage: () => LocalizedString
+			messages: {
+				/**
+				 * Email MFA Enabled
+				 */
+				success: () => LocalizedString
+			}
+			form: {
+				fields: {
+					code: {
+						/**
+						 * Email code
 						 */
 						label: () => LocalizedString
 						/**

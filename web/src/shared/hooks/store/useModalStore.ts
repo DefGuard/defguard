@@ -30,6 +30,9 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
     registerTOTP: {
       visible: false,
     },
+    registerEmailMFA: {
+      visible: false,
+    },
     provisionKeyModal: {
       visible: false,
       user: undefined,

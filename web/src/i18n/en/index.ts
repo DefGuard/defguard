@@ -152,6 +152,28 @@ const en: BaseTranslation = {
         },
       },
     },
+    registerEmailMFA: {
+      title: 'Email MFA Setup',
+      infoMessage: `
+        <p>
+          To setup your MFA enter the code that was sent to your email address in the field below:
+        </p>
+`,
+      messages: {
+        success: 'Email MFA Enabled',
+      },
+      form: {
+        fields: {
+          code: {
+            label: 'Email code',
+            error: 'Code is invalid',
+          },
+        },
+        controls: {
+          submit: 'Verify code',
+        },
+      },
+    },
     editDevice: {
       title: 'Edit device',
       messages: {

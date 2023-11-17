@@ -608,6 +608,7 @@ export interface UseModalStore {
   manageWebAuthNKeysModal: StandardModalState;
   addSecurityKeyModal: StandardModalState;
   registerTOTP: StandardModalState;
+  registerEmailMFA: StandardModalState;
   connectWalletModal: ConnectWalletModal;
   recoveryCodesModal: RecoveryCodesModal;
   setState: (data: Partial<UseModalStore>) => void;
