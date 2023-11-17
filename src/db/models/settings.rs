@@ -63,7 +63,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub(crate) async fn get_settings<'e, E>(executor: E) -> Result<Settings, sqlx::Error>
+    pub async fn get_settings<'e, E>(executor: E) -> Result<Settings, sqlx::Error>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
