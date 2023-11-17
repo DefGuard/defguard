@@ -59,6 +59,7 @@ services:
   device:
     build:
       dockerfile: Dockerfile.device
+      context: .
     depends_on:
       - gateway
     cap_add:
@@ -67,6 +68,7 @@ services:
   openldap:
     image: bitnami/openldap:2.6
     user: root
+    restart: unless-stopped
     environment:
       LDAP_EXTRA_SCHEMAS: "cosine,inetorgperson,nis,openssh-lpk_openldap,samba,gnupg-ldap-schema,orion"
     ports:
