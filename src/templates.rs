@@ -168,10 +168,12 @@ pub fn mfa_configured_mail(method: &MFAMethod) -> Result<String, TemplateError> 
 
 pub fn new_device_login_mail(
     device_type: Option<&str>,
+    ip_address: String,
     created: NaiveDateTime,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None)?;
     tera.add_raw_template("mail_base", MAIL_BASE)?;
+    context.insert("ip_address", &ip_address);
     context.insert(
         "created",
         &created.format("%A, %B %d, %Y at %r").to_string(),

@@ -11,6 +11,7 @@ use sqlx::{query_as, Error as SqlxError};
 pub struct DeviceLoginEvent {
     id: Option<i64>,
     pub user_id: i64,
+    pub ip_address: String,
     pub model: Option<String>,
     pub family: String,
     pub brand: Option<String>,
@@ -33,6 +34,7 @@ impl DeviceLoginEvent {
     #[must_use]
     pub fn new(
         user_id: i64,
+        ip_address: String,
         model: Option<String>,
         family: String,
         brand: Option<String>,
@@ -43,6 +45,7 @@ impl DeviceLoginEvent {
         Self {
             id: None,
             user_id,
+            ip_address,
             model,
             family,
             brand,
@@ -53,12 +56,13 @@ impl DeviceLoginEvent {
         }
     }
 
-    pub async fn find_code(&self, pool: &DbPool) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_device_login_event(&self, pool: &DbPool) -> Result<Option<Self>, SqlxError> {
         query_as!(
           Self,
-          "SELECT id \"id?\", user_id, model, family, brand, os_family, browser, event_type, created
-          FROM device_login_event WHERE user_id = $1 AND event_type = $2 AND family = $3",
-          self.user_id, self.event_type, self.family
+          "SELECT id \"id?\", user_id, ip_address, model, family, brand, os_family, browser, event_type, created
+          FROM device_login_event WHERE user_id = $1 AND event_type = $2 AND family = $3 AND \
+          brand = $4 AND model = $5 AND browser = $6",
+          self.user_id, self.event_type, self.family, self.brand, self.model, self.browser
       )
         .fetch_optional(pool)
         .await
@@ -68,7 +72,7 @@ impl DeviceLoginEvent {
         mut self,
         pool: &DbPool,
     ) -> Result<Option<Self>, anyhow::Error> {
-        let existing_login_event = self.find_code(pool).await?;
+        let existing_login_event = self.find_device_login_event(pool).await?;
 
         if existing_login_event.is_none() {
             self.save(pool).await?;

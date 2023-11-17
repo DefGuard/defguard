@@ -73,14 +73,17 @@ pub fn get_user_agent_device(user_agent_client: &Client) -> String {
 #[must_use]
 pub fn get_device_login_event(
     user_id: i64,
+    ip_address: String,
     event_type: String,
     user_agent_client: Option<Client>,
 ) -> Option<DeviceLoginEvent> {
-    user_agent_client.map(|client| get_user_agent_device_login_data(user_id, event_type, &client))
+    user_agent_client
+        .map(|client| get_user_agent_device_login_data(user_id, ip_address, event_type, &client))
 }
 
 pub fn get_user_agent_device_login_data(
     user_id: i64,
+    ip_address: String,
     event_type: String,
     user_agent_client: &Client,
 ) -> DeviceLoginEvent {
@@ -99,7 +102,7 @@ pub fn get_user_agent_device_login_data(
     let browser = user_agent_client.user_agent.family.to_string();
 
     DeviceLoginEvent::new(
-        user_id, model, family, brand, os_family, browser, event_type,
+        user_id, ip_address, model, family, brand, os_family, browser, event_type,
     )
 }
 
@@ -107,11 +110,13 @@ pub async fn check_new_device_login(
     pool: &DbPool,
     mail_tx: &UnboundedSender<Mail>,
     user: &User,
+    ip_address: String,
     event_type: String,
     agent: Option<Client<'_>>,
 ) -> Result<(), TemplateError> {
     if let Some(user_id) = user.id {
-        if let Some(device_login_event) = get_device_login_event(user_id, event_type, agent.clone())
+        if let Some(device_login_event) =
+            get_device_login_event(user_id, ip_address, event_type, agent.clone())
         {
             if let Ok(Some(created_device_login_event)) = device_login_event
                 .check_if_device_already_logged_in(pool)
@@ -121,6 +126,7 @@ pub async fn check_new_device_login(
                     &user.email,
                     mail_tx,
                     agent,
+                    created_device_login_event.ip_address,
                     created_device_login_event.created,
                 )
                 .await?;

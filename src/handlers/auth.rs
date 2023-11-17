@@ -41,7 +41,7 @@ use crate::{
 pub async fn authenticate(
     cookies: Cookies,
     user_agent: Option<TypedHeader<UserAgent>>,
-    ConnectInfo(_connect_info): ConnectInfo<SocketAddr>,
+    ConnectInfo(connect_info): ConnectInfo<SocketAddr>,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
 ) -> ApiResult {
@@ -90,8 +90,16 @@ pub async fn authenticate(
         }
     };
 
+    let ip_address = connect_info.ip().to_string();
+    let device_info = user_agent.clone().map(|v| v.to_string());
+
     Session::delete_expired(&appstate.pool).await?;
-    let session = Session::new(user.id.unwrap(), SessionState::PasswordVerified);
+    let session = Session::new(
+        user.id.unwrap(),
+        SessionState::PasswordVerified,
+        ip_address.clone(),
+        device_info,
+    );
     session.save(&appstate.pool).await?;
 
     let max_age = match &appstate.config.session_auth_lifetime {
@@ -120,6 +128,7 @@ pub async fn authenticate(
         None => String::new(),
     };
     let agent = parse_user_agent(&appstate, &user_agent_string);
+    let login_event_type = "AUTHENTICATION".to_string();
 
     info!("Authenticated user {lowercase_username}");
     if user.mfa_enabled {
@@ -128,7 +137,8 @@ pub async fn authenticate(
                 &appstate.pool,
                 &appstate.mail_tx,
                 &user,
-                "AUTHENTICATION".to_string(),
+                ip_address,
+                login_event_type,
                 agent,
             )
             .await?;
@@ -144,12 +154,12 @@ pub async fn authenticate(
         let key = Key::from(server_config.secret_key.expose_secret().as_bytes());
         let private_cookies = cookies.private(&key);
 
-        // TODO: enum for AUTHENTICATION?
         check_new_device_login(
             &appstate.pool,
             &appstate.mail_tx,
             &user,
-            "AUTHENTICATION".to_string(),
+            ip_address,
+            login_event_type,
             agent,
         )
         .await?;

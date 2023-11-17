@@ -1,6 +1,7 @@
 CREATE TABLE device_login_event (
     id bigserial PRIMARY KEY NOT NULL,
     user_id bigint NOT NULL,
+    ip_address text NOT NULL,
     model text NULL,
     family text NOT NULL,
     brand text NULL,

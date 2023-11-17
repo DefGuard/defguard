@@ -16,5 +16,5 @@ assigned_ip -> ip of device in location
 {{ macros::text_section(content_array=section_content) }}
 {{ macros::spacer(height="40px")}}
 {# render device section #}
-{{ macros::text_section(content_array=[macros::device_info(device_data=device_type, date=created)]) }}
+{{ macros::text_section(content_array=[macros::device_info(device_data=device_type, ip_address=ip_address, date=created)]) }}
 {% endblock %}
