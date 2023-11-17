@@ -15,11 +15,11 @@ use defguard::{
 };
 use secrecy::ExposeSecret;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::{
     broadcast::{self, Receiver},
     mpsc::unbounded_channel,
 };
-use tokio::sync::mpsc::UnboundedReceiver;
 
 use self::client::TestClient;
 
