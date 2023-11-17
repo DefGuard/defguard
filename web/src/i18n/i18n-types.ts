@@ -1097,6 +1097,10 @@ type RootTranslation = {
 					 */
 					OTPDisabled: string
 					/**
+					 * E​m​a​i​l​ ​M​F​A​ ​d​i​s​a​b​l​e​d​.
+					 */
+					EmailMFADisabled: string
+					/**
 					 * M​F​A​ ​m​e​t​h​o​d​ ​c​h​a​n​g​e​d
 					 */
 					changeMFAMethod: string
@@ -1138,6 +1142,10 @@ type RootTranslation = {
 					 * T​i​m​e​ ​b​a​s​e​d​ ​o​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​s
 					 */
 					totp: string
+					/**
+					 * E​m​a​i​l
+					 */
+					email: string
 					/**
 					 * S​e​c​u​r​i​t​y​ ​k​e​y​s
 					 */
@@ -4492,6 +4500,10 @@ export type TranslationFunctions = {
 					 */
 					OTPDisabled: () => LocalizedString
 					/**
+					 * Email MFA disabled.
+					 */
+					EmailMFADisabled: () => LocalizedString
+					/**
 					 * MFA method changed
 					 */
 					changeMFAMethod: () => LocalizedString
@@ -4533,6 +4545,10 @@ export type TranslationFunctions = {
 					 * Time based one time passwords
 					 */
 					totp: () => LocalizedString
+					/**
+					 * Email
+					 */
+					email: () => LocalizedString
 					/**
 					 * Security keys
 					 */

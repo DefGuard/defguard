@@ -52,7 +52,154 @@ client.defaults.headers.common['Content-Type'] = 'application/json';
 
 const unpackRequest = <T,>(res: AxiosResponse<T>): T => res.data;
 
-const useApi = (props?: HookProps): ApiHook => {
+const useApi = (
+  props?: HookProps,
+): {
+  settings: {
+    getSettings: () => Promise<T>;
+    editSettings: (settings: Settings) => Promise<T>;
+    setDefaultBranding: (id: string) => Promise<Settings>;
+  };
+  webhook: {
+    addWebhook: (data: Omit<Webhook, 'id'>) => EmptyApiResponse;
+    changeWebhookState: ({
+      id,
+      ...rest
+    }: changeWebhookStateRequest) => Promise<axios.AxiosResponse<T>>;
+    getWebhooks: () => Promise<axios.AxiosResponse<any>>;
+    deleteWebhook: (id: string) => Promise<T>;
+    editWebhook: (data: Webhook) => EmptyApiResponse;
+  };
+  mail: {
+    sendSupportMail: () => EmptyApiResponse;
+    sendTestMail: (data: TestMail) => EmptyApiResponse;
+  };
+  auth: {
+    logout: () => Promise<T>;
+    mfa: {
+      totp: {
+        init: () => Promise<T>;
+        enable: (data: TOTPRequest) => MFARecoveryCodesResponse;
+        disable: () => Promise<T>;
+        verify: (data: TOTPRequest) => Promise<MFAFinishResponse>;
+      };
+      disable: () => Promise<T>;
+      enable: () => Promise<T>;
+      webauthn: {
+        start: () => Promise<T>;
+        finish: (
+          data: PublicKeyCredentialWithAssertionJSON,
+        ) => Promise<MFAFinishResponse>;
+        deleteKey: (data: DeleteWebAuthNKeyRequest) => EmptyApiResponse;
+        register: {
+          start: (data: { name: string }) => Promise<CredentialCreationOptionsJSON>;
+          finish: (data: WebAuthnRegistrationRequest) => MFARecoveryCodesResponse;
+        };
+      };
+      web3: {
+        start: (data: Web3StartRequest) => Promise<{ challenge: string }>;
+        finish: (data: WalletSignature) => Promise<MFAFinishResponse>;
+        updateWalletMFA: (data: EditWalletMFARequest) => MFARecoveryCodesResponse;
+      };
+      recovery: (data: RecoveryLoginRequest) => Promise<MFAFinishResponse>;
+      email: {
+        init: () => Promise<T>;
+        enable: (data: TOTPRequest) => MFARecoveryCodesResponse;
+        disable: () => Promise<T>;
+        request: () => Promise<T>;
+        verify: (data: TOTPRequest) => Promise<MFAFinishResponse>;
+      };
+    };
+    login: (data: LoginData) => Promise<LoginResponse>;
+  };
+  openid: {
+    getOpenidClients: () => Promise<axios.AxiosResponse<any>>;
+    getUserClients: (username: string) => Promise<T>;
+    editOpenidClient: ({
+      client_id,
+      ...rest
+    }: EditOpenidClientRequest) => Promise<axios.AxiosResponse<T>>;
+    addOpenidClient: (data: AddOpenidClientRequest) => Promise<axios.AxiosResponse<T>>;
+    deleteOpenidClient: (id: string) => Promise<T>;
+    removeUserClient: (data: RemoveUserClientRequest) => Promise<T>;
+    getOpenidClient: (client_id: string) => Promise<T>;
+    changeOpenidClientState: ({
+      clientId,
+      ...rest
+    }: ChangeOpenidClientStateRequest) => Promise<axios.AxiosResponse<T>>;
+    verifyOpenidClient: (
+      data: VerifyOpenidClientRequest,
+    ) => Promise<axios.AxiosResponse<any>>;
+  };
+  changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
+  groups: { getGroups: () => Promise<T> };
+  getAppInfo: () => Promise<AppInfo>;
+  oAuth: { consent: (params: unknown) => Promise<axios.AxiosResponse<any>> };
+  network: {
+    addNetwork: (network: ModifyNetworkRequest['network']) => Promise<Network>;
+    getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
+    mapUserDevices: (devices: MapUserDevicesRequest) => EmptyApiResponse;
+    getNetwork: (id: number) => Promise<T>;
+    getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
+    importNetwork: (network: ImportNetworkRequest) => Promise<ImportNetworkResponse>;
+    editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
+    getUsersStats: (data: GetNetworkStatsRequest) => Promise<T>;
+    deleteGateway: (data: DeleteGatewayRequest) => Promise<void>;
+    getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
+    getNetworks: () => Promise<T>;
+    deleteNetwork: (networkId: number) => EmptyApiResponse;
+  };
+  provisioning: {
+    getJobStatus: (id?: number) => Promise<T>;
+    getWorkerToken: () => Promise<T>;
+    provisionYubiKey: (data: WorkerJobRequest) => Promise<T>;
+    deleteWorker: (id: string) => Promise<T>;
+    getWorkers: () => Promise<axios.AxiosResponse<any>>;
+  };
+  user: {
+    walletChallenge: ({
+      username,
+      address,
+      name,
+      chainId,
+    }: WalletChallengeRequest) => Promise<T>;
+    addUser: (data: AddUserRequest) => Promise<T>;
+    getUser: (username: string) => Promise<UserProfile>;
+    editUser: ({ username, data }: UserEditRequest) => Promise<T>;
+    removeFromGroup: ({
+      group,
+      username,
+    }: UserGroupRequest) => Promise<axios.AxiosResponse<any>>;
+    startEnrollment: ({ username, ...rest }: StartEnrollmentRequest) => Promise<T>;
+    changePassword: ({
+      username,
+      ...rest
+    }: ChangePasswordRequest) => Promise<axios.AxiosResponse<T>>;
+    deleteWallet: ({ username, address }: WalletChallengeRequest) => Promise<T>;
+    usernameAvailable: (username: string) => Promise<axios.AxiosResponse<any>>;
+    getMe: () => Promise<T>;
+    getUsers: () => Promise<T>;
+    deleteUser: (user: User) => Promise<T>;
+    addToGroup: ({ group, ...rest }: UserGroupRequest) => Promise<axios.AxiosResponse<T>>;
+    setWallet: ({ username, ...rest }: AddWalletRequest) => Promise<T>;
+    startDesktopActivation: (
+      data: StartEnrollmentRequest,
+    ) => Promise<StartEnrollmentResponse>;
+  };
+  device: {
+    getDevices: () => Promise<T>;
+    editDevice: (device: Device) => Promise<T>;
+    addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
+    deleteDevice: (device: Device) => Promise<axios.AxiosResponse<T>>;
+    getUserDevices: (username: string) => Promise<T>;
+    getDevice: (id: string) => Promise<T>;
+    downloadDeviceConfig: (data: GetDeviceConfigRequest) => Promise<string>;
+  };
+  support: {
+    downloadLogs: () => Promise<string>;
+    downloadSupportData: () => Promise<unknown>;
+  };
+} => {
   if (props) {
     const { baseURL } = props;
     if (baseURL && baseURL.length) {
@@ -300,6 +447,19 @@ const useApi = (props?: HookProps): ApiHook => {
   const mfaTOTPVerify: ApiHook['auth']['mfa']['totp']['verify'] = (data) =>
     client.post('/auth/totp/verify', data).then(unpackRequest);
 
+  const mfaEmailMFAInit = () => client.post('/auth/email/init').then(unpackRequest);
+
+  const mfaEmailMFAEnable: ApiHook['auth']['mfa']['email']['enable'] = (data) =>
+    client.post('/auth/email', data).then(unpackRequest);
+
+  const mfaEmailMFADisable = () => client.delete('/auth/email').then(unpackRequest);
+
+  const mfaEmailMFARequest: ApiHook['auth']['mfa']['email']['request'] = () =>
+    client.get('/auth/email').then(unpackRequest);
+
+  const mfaEmailMFAVerify: ApiHook['auth']['mfa']['email']['verify'] = (data) =>
+    client.post('/auth/email/verify', data).then(unpackRequest);
+
   const mfaWeb3Start: ApiHook['auth']['mfa']['web3']['start'] = (data) =>
     client.post('/auth/web3/start', data).then(unpackRequest);
 
@@ -431,6 +591,13 @@ const useApi = (props?: HookProps): ApiHook => {
           enable: mfaTOTPEnable,
           disable: mfaTOTPDisable,
           verify: mfaTOTPVerify,
+        },
+        email: {
+          init: mfaEmailMFAInit,
+          enable: mfaEmailMFAEnable,
+          disable: mfaEmailMFADisable,
+          request: mfaEmailMFARequest,
+          verify: mfaEmailMFAVerify,
         },
         web3: {
           start: mfaWeb3Start,

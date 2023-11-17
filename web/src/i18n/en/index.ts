@@ -504,6 +504,7 @@ const en: BaseTranslation = {
         messages: {
           mfaDisabled: 'MFA disabled.',
           OTPDisabled: 'One time password disabled.',
+          EmailMFADisabled: 'Email MFA disabled.',
           changeMFAMethod: 'MFA method changed',
         },
         securityKey: {
@@ -519,6 +520,7 @@ const en: BaseTranslation = {
         },
         labels: {
           totp: 'Time based one time passwords',
+          email: 'Email',
           webauth: 'Security keys',
           wallets: 'Wallets',
         },

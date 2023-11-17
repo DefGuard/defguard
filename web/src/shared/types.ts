@@ -17,6 +17,7 @@ export enum UserStatus {
 export enum UserMFAMethod {
   NONE = 'None',
   ONE_TIME_PASSWORD = 'OneTimePassword',
+  EMAIL = 'Email',
   WEB_AUTH_N = 'Webauthn',
   WEB3 = 'Web3',
 }
