@@ -28,6 +28,7 @@ COPY templates templates
 COPY model-derive model-derive
 COPY proto proto
 COPY migrations migrations
+COPY user_agent_header_regexes.yaml ./
 RUN cargo install --locked --path . --root /build
 
 FROM node:20.5-alpine3.17 as web
