@@ -1,7 +1,10 @@
 use super::GatewayMap;
-use crate::db::{
-    models::wireguard::{WireguardNetwork, WireguardPeerStats},
-    DbPool, Device, GatewayEvent,
+use crate::{
+    db::{
+        models::wireguard::{WireguardNetwork, WireguardPeerStats},
+        DbPool, Device, GatewayEvent,
+    },
+    mail::Mail,
 };
 use chrono::{NaiveDateTime, Utc};
 use sqlx::{query_as, Error as SqlxError};
@@ -13,7 +16,7 @@ use std::{
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
-        mpsc::{self, Receiver},
+        mpsc::{self, Receiver, UnboundedSender},
     },
     task::JoinHandle,
 };
@@ -26,6 +29,7 @@ pub struct GatewayServer {
     pool: DbPool,
     state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
 }
 
 impl WireguardNetwork {
@@ -60,11 +64,13 @@ impl GatewayServer {
         pool: DbPool,
         state: Arc<Mutex<GatewayMap>>,
         wireguard_tx: Sender<GatewayEvent>,
+        mail_tx: UnboundedSender<Mail>,
     ) -> Self {
         Self {
             pool,
             state,
             wireguard_tx,
+            mail_tx,
         }
     }
 
@@ -496,7 +502,14 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         {
             let mut state = self.state.lock().unwrap();
-            state.add_gateway(network_id, hostname, request.into_inner().name);
+            state.add_gateway(
+                network_id,
+                network.name.clone(),
+                hostname,
+                request.into_inner().name,
+                self.pool.clone(),
+                self.mail_tx.clone(),
+            );
         }
 
         network.connected_at = Some(Utc::now().naive_utc());

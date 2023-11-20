@@ -446,6 +446,26 @@ impl User {
             .collect();
         Ok(res)
     }
+    /// Return all members of group
+    pub async fn find_by_group_name(
+        pool: &DbPool,
+        group_name: &str,
+    ) -> Result<Vec<User>, SqlxError> {
+        let emails = query_as!(
+            User,
+            "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
+            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes \
+            FROM \"user\"
+            INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
+            INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id
+            WHERE \"group\".name = $1",
+            group_name
+        )
+        .fetch_all(pool)
+        .await?;
+        Ok(emails)
+    }
 
     /// Check if TOTP `code` is valid.
     #[must_use]

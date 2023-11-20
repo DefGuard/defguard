@@ -173,6 +173,14 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
     pub cookie_insecure: bool,
 
+    #[arg(
+        long,
+        env = "DEFGUARD_GATEWAY_DISCONNECTION_NOTIFICATION_TIMEOUT",
+        default_value = "10m"
+    )]
+    #[serde(skip_serializing)]
+    pub gateway_disconnection_notification_timeout: Duration,
+
     #[command(subcommand)]
     #[serde(skip_serializing)]
     pub cmd: Option<Command>,
