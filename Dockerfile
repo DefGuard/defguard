@@ -28,7 +28,7 @@ COPY templates templates
 COPY model-derive model-derive
 COPY proto proto
 COPY migrations migrations
-COPY user_agent_header_regexes.yaml ./
+COPY user_agent_header_regexes.yaml /src/user_agent_header_regexes.yaml
 RUN cargo install --locked --path . --root /build
 
 FROM node:20.5-alpine3.17 as web
@@ -50,6 +50,7 @@ RUN apt-get update -y && \
     rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
+COPY --from=builder /src/user_agent_header_regexes.yaml .
 COPY --from=web /app/dist ./web/dist
 COPY web/src/shared/images/svg ./web/src/shared/images/svg
 ENTRYPOINT ["./defguard"]
