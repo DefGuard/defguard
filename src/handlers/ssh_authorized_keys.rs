@@ -1,4 +1,8 @@
-use crate::{appstate::AppState, db::User, error::WebError};
+use crate::{
+    appstate::AppState,
+    db::{Group, User},
+    error::WebError,
+};
 use axum::extract::{Query, State};
 
 /// Trim optional newline
@@ -32,7 +36,25 @@ pub async fn get_authorized_keys(
 
     // find user by username
     if let Some(user) = User::find_by_username(&appstate.pool, &params.username).await? {
-        // TODO: check if user belongs to specified group
+        // check if user belongs to specified group
+        if let Some(group_name) = &params.group {
+            match Group::find_by_name(&appstate.pool, group_name).await? {
+                Some(group) => {
+                    let members = group.member_usernames(&appstate.pool).await?;
+                    if !members.contains(&user.username) {
+                        debug!(
+                            "User {} is not a member of group {group_name}",
+                            user.username
+                        );
+                        return Ok("".into());
+                    }
+                }
+                None => {
+                    error!("Group {group_name} not found");
+                    return Ok("".into());
+                }
+            }
+        }
 
         // add key to list if user has an assigned SSH key
         if let Some(mut key) = user.ssh_key {
