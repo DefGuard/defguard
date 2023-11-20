@@ -4,6 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::handlers::ssh_authorized_keys::get_authorized_keys;
 use anyhow::anyhow;
 use axum::{
     handler::HandlerWithoutStateExt,
@@ -24,7 +25,6 @@ use tower_http::{
 };
 use tracing::Level;
 use uaparser::UserAgentParser;
-use crate::handlers::ssh_authorized_keys::get_authorized_keys;
 
 use self::{
     appstate::AppState,

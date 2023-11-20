@@ -25,6 +25,7 @@ pub(crate) mod openid_clients;
 #[cfg(feature = "openid")]
 pub mod openid_flow;
 pub(crate) mod settings;
+pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
 pub(crate) mod user;
 pub(crate) mod webhooks;
@@ -32,7 +33,6 @@ pub(crate) mod webhooks;
 pub mod wireguard;
 #[cfg(feature = "worker")]
 pub mod worker;
-pub(crate) mod ssh_authorized_keys;
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
 static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
