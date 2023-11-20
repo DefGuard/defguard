@@ -455,6 +455,7 @@ impl User {
             User,
             "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
+            email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\"
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
