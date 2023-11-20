@@ -30,7 +30,7 @@ use crate::{
     error::WebError,
     handlers::mail::send_mfa_configured_email,
     handlers::SIGN_IN_COOKIE_NAME,
-    headers::{check_new_device_login, parse_user_agent},
+    headers::{check_new_device_login, parse_user_agent, get_user_agent_device},
     ldap::utils::user_from_ldap,
     SERVER_CONFIG,
 };
@@ -91,13 +91,32 @@ pub async fn authenticate(
     };
 
     let ip_address = connect_info.ip().to_string();
-    let device_info = user_agent.clone().map(|v| v.to_string());
+    // let device_info = user_agent.clone().map(|v| v.to_string());
+
+    let user_agent_string = match user_agent {
+        Some(value) => value.to_string(),
+        None => String::new(),
+    };
+    let agent = parse_user_agent(&appstate, &user_agent_string);
+
+    // let mut device_info: Option<String> = None;
+
+    // if let Some(client) = agent.clone() {
+    //     device_info = Some(get_user_agent_device(&client));
+    // } else {
+    //     // String::new()
+    // }
+
+    let device_info = agent.clone().map(|v| get_user_agent_device(&v));
+
+
 
     Session::delete_expired(&appstate.pool).await?;
     let session = Session::new(
         user.id.unwrap(),
         SessionState::PasswordVerified,
         ip_address.clone(),
+        // device_info,
         device_info,
     );
     session.save(&appstate.pool).await?;
@@ -108,7 +127,7 @@ pub async fn authenticate(
     };
 
     let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
-    let auth_cookie = Cookie::build(SESSION_COOKIE_NAME, session.id)
+    let auth_cookie = Cookie::build(SESSION_COOKIE_NAME, session.clone().id)
         .domain(
             server_config
                 .cookie_domain
@@ -123,11 +142,11 @@ pub async fn authenticate(
         .finish();
     cookies.add(auth_cookie);
 
-    let user_agent_string = match user_agent {
-        Some(value) => value.to_string(),
-        None => String::new(),
-    };
-    let agent = parse_user_agent(&appstate, &user_agent_string);
+    // let user_agent_string = match user_agent {
+    //     Some(value) => value.to_string(),
+    //     None => String::new(),
+    // };
+    // let agent = parse_user_agent(&appstate, &user_agent_string);
     let login_event_type = "AUTHENTICATION".to_string();
 
     info!("Authenticated user {lowercase_username}");
@@ -136,6 +155,7 @@ pub async fn authenticate(
             check_new_device_login(
                 &appstate.pool,
                 &appstate.mail_tx,
+                &session,
                 &user,
                 ip_address,
                 login_event_type,
@@ -157,6 +177,7 @@ pub async fn authenticate(
         check_new_device_login(
             &appstate.pool,
             &appstate.mail_tx,
+            &session,
             &user,
             ip_address,
             login_event_type,

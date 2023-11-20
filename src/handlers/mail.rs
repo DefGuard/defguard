@@ -18,7 +18,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::{MFAMethod, User},
+    db::{MFAMethod, User, Session},
     headers::get_device_type,
     mail::{Attachment, Mail},
     support::dump_config,
@@ -200,6 +200,7 @@ pub async fn send_new_device_added_email(
 pub async fn send_new_device_login_email(
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
+    session: &Session,
     user_agent_client: Option<Client<'_>>,
     ip_address: String,
     created: NaiveDateTime,
@@ -210,7 +211,7 @@ pub async fn send_new_device_login_email(
     let mail = Mail {
         to: user_email.to_string(),
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
-        content: templates::new_device_login_mail(Some(&device_type), ip_address, created)?,
+        content: templates::new_device_login_mail(session, Some(&device_type), ip_address, created)?,
         attachments: Vec::new(),
         result_tx: None,
     };

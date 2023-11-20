@@ -5,7 +5,7 @@ use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::{
     appstate::AppState,
-    db::{models::device_login::DeviceLoginEvent, DbPool, User},
+    db::{models::device_login::DeviceLoginEvent, DbPool, User, Session},
     handlers::mail::send_new_device_login_email,
     mail::Mail,
     templates::TemplateError,
@@ -109,6 +109,7 @@ pub fn get_user_agent_device_login_data(
 pub async fn check_new_device_login(
     pool: &DbPool,
     mail_tx: &UnboundedSender<Mail>,
+    session: &Session,
     user: &User,
     ip_address: String,
     event_type: String,
@@ -125,6 +126,7 @@ pub async fn check_new_device_login(
                 send_new_device_login_email(
                     &user.email,
                     mail_tx,
+                    session,
                     agent,
                     created_device_login_event.ip_address,
                     created_device_login_event.created,

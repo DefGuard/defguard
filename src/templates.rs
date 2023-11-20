@@ -4,7 +4,7 @@ use tera::{Context, Tera};
 use thiserror::Error;
 
 use crate::{
-    db::{MFAMethod, User},
+    db::{MFAMethod, User, Session},
     VERSION,
 };
 
@@ -167,6 +167,7 @@ pub fn mfa_configured_mail(method: &MFAMethod) -> Result<String, TemplateError> 
 }
 
 pub fn new_device_login_mail(
+    session: &Session,
     device_type: Option<&str>,
     ip_address: String,
     created: NaiveDateTime,
@@ -179,8 +180,8 @@ pub fn new_device_login_mail(
         &created.format("%A, %B %d, %Y at %r").to_string(),
     );
 
-    if let Some(device_type) = device_type {
-        context.insert("device_type", &device_type);
+    if let Some(device_info) = session.device_info.clone() {
+        context.insert("device_type", &device_info);
     }
 
     tera.add_raw_template("mail_new_device_login", MAIL_NEW_DEVICE_LOGIN)?;
