@@ -156,21 +156,23 @@ const en: BaseTranslation = {
       title: 'Email MFA Setup',
       infoMessage: `
         <p>
-          To setup your MFA enter the code that was sent to your email address in the field below:
+          To setup your MFA enter the code that was sent to your account email: <strong>{email: string}</strong>
         </p>
 `,
       messages: {
         success: 'Email MFA Enabled',
+        resend: 'Verification code resent',
       },
       form: {
         fields: {
-          code: {
+          code: { 
             label: 'Email code',
             error: 'Code is invalid',
           },
         },
         controls: {
           submit: 'Verify code',
+          resend: 'Resend email',
         },
       },
     },

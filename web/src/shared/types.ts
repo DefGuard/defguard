@@ -342,6 +342,10 @@ export type ChangePasswordSelfRequest = {
   new_password: string;
 };
 
+export type AuthCodeRequsest = {
+  code: number;
+};
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
@@ -400,6 +404,15 @@ export interface ApiHook {
       disable: () => EmptyApiResponse;
       enable: () => EmptyApiResponse;
       recovery: (data: RecoveryLoginRequest) => Promise<MFAFinishResponse>;
+      email: {
+        register: {
+          start: () => EmptyApiResponse;
+          finish: (data: AuthCodeRequsest) => MFARecoveryCodesResponse;
+        };
+        disable: () => EmptyApiResponse;
+        sendCode: () => EmptyApiResponse;
+        verify: (data: AuthCodeRequsest) => Promise<MFAFinishResponse>;
+      };
       webauthn: {
         register: {
           start: (data: { name: string }) => Promise<CredentialCreationOptionsJSON>;
@@ -591,37 +604,47 @@ export interface OpenIdClientModal extends StandardModalState {
   viewMode: boolean;
 }
 
+// DO NOT EXTEND THIS STORE
 export interface UseModalStore {
   openIdClientModal: OpenIdClientModal;
   setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
+  // DO NOT EXTEND THIS STORE
   addWalletModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
   deleteUserModal: DeleteUserModal;
+  // DO NOT EXTEND THIS STORE
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
+  // DO NOT EXTEND THIS STORE
   webhookModal: WebhookModal;
   addOpenidClientModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   deleteOpenidClientModal: DeleteOpenidClientModal;
   enableOpenidClientModal: EnableOpenidClientModal;
   manageWebAuthNKeysModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   addSecurityKeyModal: StandardModalState;
   registerTOTP: StandardModalState;
-  registerEmailMFA: StandardModalState;
   connectWalletModal: ConnectWalletModal;
   recoveryCodesModal: RecoveryCodesModal;
   setState: (data: Partial<UseModalStore>) => void;
   setWebhookModal: ModalSetter<WebhookModal>;
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
+  // DO NOT EXTEND THIS STORE
   setKeyDetailModal: ModalSetter<KeyDetailModal>;
   setKeyDeleteModal: ModalSetter<KeyDeleteModal>;
   setDeleteUserModal: ModalSetter<DeleteUserModal>;
+  // DO NOT EXTEND THIS STORE
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
+  // DO NOT EXTEND THIS STORE
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
+  // DO NOT EXTEND THIS STORE
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
 }
 

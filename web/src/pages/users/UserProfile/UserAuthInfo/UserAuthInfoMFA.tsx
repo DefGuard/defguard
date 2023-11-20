@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cloneDeep, isUndefined } from 'lodash-es';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { ActivityStatus } from '../../../../shared/defguard-ui/components/Layout/ActivityStatus/ActivityStatus';
@@ -17,6 +17,7 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
 import { UserMFAMethod } from '../../../../shared/types';
+import { useEmailMFAModal } from './modals/RegisterEmailMFAModal/hooks/useEmailMFAModal.tsx';
 
 export const UserAuthInfoMFA = () => {
   const { LL, locale } = useI18nContext();
@@ -25,6 +26,7 @@ export const UserAuthInfoMFA = () => {
   const editMode = useUserProfileStore((store) => store.editMode);
   const setModalsState = useModalStore((store) => store.setState);
   const smtpEnabled = useAppStore((state) => state.appInfo?.smtp_enabled);
+  const openEmailMFAModal = useEmailMFAModal((state) => state.open);
   const queryClient = useQueryClient();
 
   const refreshUserQueries = () => {
@@ -184,6 +186,13 @@ export const UserAuthInfoMFA = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, locale]);
 
+  useEffect(() => {
+    console.log({
+      isMe,
+      editMode,
+    });
+  }, [isMe, editMode]);
+
   return (
     <section className="mfa">
       <header>
@@ -260,9 +269,7 @@ export const UserAuthInfoMFA = () => {
                     <EditButtonOption
                       data-testid="enable-email-mfa-option"
                       text={LL.userPage.userAuthInfo.mfa.editMode.enable()}
-                      onClick={() =>
-                        setModalsState({ registerEmailMFA: { visible: true } })
-                      }
+                      onClick={() => openEmailMFAModal()}
                     />
                   )}
                   <EditButtonOption

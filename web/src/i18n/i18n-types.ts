@@ -353,16 +353,21 @@ type RootTranslation = {
 			/**
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​t​h​a​t​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​ ​i​n​ ​t​h​e​ ​f​i​e​l​d​ ​b​e​l​o​w​:​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​t​h​a​t​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​a​c​c​o​u​n​t​ ​e​m​a​i​l​:​ ​<​s​t​r​o​n​g​>​{​e​m​a​i​l​}​<​/​s​t​r​o​n​g​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 	
+			 * @param {string} email
 			 */
-			infoMessage: string
+			infoMessage: RequiredParams<'email'>
 			messages: {
 				/**
 				 * E​m​a​i​l​ ​M​F​A​ ​E​n​a​b​l​e​d
 				 */
 				success: string
+				/**
+				 * V​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​ ​r​e​s​e​n​t
+				 */
+				resend: string
 			}
 			form: {
 				fields: {
@@ -382,6 +387,10 @@ type RootTranslation = {
 					 * V​e​r​i​f​y​ ​c​o​d​e
 					 */
 					submit: string
+					/**
+					 * R​e​s​e​n​d​ ​e​m​a​i​l
+					 */
+					resend: string
 				}
 			}
 		}
@@ -3803,16 +3812,20 @@ export type TranslationFunctions = {
 			/**
 			 * 
 		        <p>
-		          To setup your MFA enter the code that was sent to your email address in the field below:
+		          To setup your MFA enter the code that was sent to your account email: <strong>{email}</strong>
 		        </p>
 	
 			 */
-			infoMessage: () => LocalizedString
+			infoMessage: (arg: { email: string }) => LocalizedString
 			messages: {
 				/**
 				 * Email MFA Enabled
 				 */
 				success: () => LocalizedString
+				/**
+				 * Verification code resent
+				 */
+				resend: () => LocalizedString
 			}
 			form: {
 				fields: {
@@ -3832,6 +3845,10 @@ export type TranslationFunctions = {
 					 * Verify code
 					 */
 					submit: () => LocalizedString
+					/**
+					 * Resend email
+					 */
+					resend: () => LocalizedString
 				}
 			}
 		}
