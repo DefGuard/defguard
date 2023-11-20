@@ -24,6 +24,7 @@ use tower_http::{
 };
 use tracing::Level;
 use uaparser::UserAgentParser;
+use crate::handlers::ssh_authorized_keys::get_authorized_keys;
 
 use self::{
     appstate::AppState,
@@ -142,6 +143,7 @@ pub fn build_webapp(
         Router::new()
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
+            .route("/ssh_authorized_keys", get(get_authorized_keys))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
