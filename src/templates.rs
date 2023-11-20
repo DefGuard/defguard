@@ -18,6 +18,8 @@ static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
     include_str!("../templates/mail_enrollment_admin_notification.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
 static MAIL_NEW_DEVICE_ADDED: &str = include_str!("../templates/mail_new_device_added.tera");
+static MAIL_GATEWAY_DISCONNECTED: &str =
+    include_str!("../templates/mail_gateway_disconnected.tera");
 static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tera");
 static MAIL_EMAIL_MFA_ACTIVATION: &str =
     include_str!("../templates/mail_email_mfa_activation.tera");
@@ -170,6 +172,19 @@ pub fn mfa_configured_mail(method: &MFAMethod) -> Result<String, TemplateError> 
     Ok(tera.render("mail_mfa_configured", &context)?)
 }
 
+pub fn gateway_disconnected_mail(
+    gateway_name: &str,
+    gateway_ip: &str,
+    network_name: &str,
+) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None)?;
+    context.insert("gateway_name", gateway_name);
+    context.insert("gateway_ip", gateway_ip);
+    context.insert("network_name", network_name);
+    tera.add_raw_template("mail_gateway_disconnected", MAIL_GATEWAY_DISCONNECTED)?;
+    Ok(tera.render("mail_gateway_disconnected", &context)?)
+}
+
 pub fn email_mfa_activation_mail(code: u32) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None)?;
     // zero-pad code to make sure it's always 6 digits long
@@ -271,6 +286,14 @@ mod test {
             "TestKey",
             &template_locations,
             None
+        ));
+    }
+    #[test]
+    fn test_gateway_disconnected() {
+        assert_ok!(gateway_disconnected_mail(
+            "Gateway A",
+            "127.0.0.1",
+            "Location1"
         ));
     }
 
