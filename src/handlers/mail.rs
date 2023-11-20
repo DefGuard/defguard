@@ -19,10 +19,12 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
     db::{MFAMethod, User},
+    error::WebError,
     headers::get_device_type,
     mail::{Attachment, Mail},
     support::dump_config,
     templates::{self, support_data_mail, TemplateError, TemplateLocation},
+    DbPool, SERVER_CONFIG,
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -30,6 +32,7 @@ static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
 
 static NEW_DEVICE_ADDED_EMAIL_SUBJECT: &str = "Defguard: new device added to your account";
+static GATEWAY_DISCONNECTED: &str = "Defguard: Gateway disconnected";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -195,6 +198,48 @@ pub async fn send_new_device_added_email(
             Ok(())
         }
     }
+}
+pub async fn send_gateway_disconnected_email(
+    gateway_name: Option<String>,
+    network_name: String,
+    gateway_adress: String,
+    mail_tx: &UnboundedSender<Mail>,
+    pool: &DbPool,
+) -> Result<(), WebError> {
+    debug!("Sending gateway disconnected mail to all admin users");
+    let admin_group_name = &SERVER_CONFIG
+        .get()
+        .ok_or(WebError::ServerConfigMissing)?
+        .admin_groupname;
+    let admin_users = User::find_by_group_name(pool, admin_group_name).await?;
+    let gateway_name = gateway_name.unwrap_or("".into());
+    for user in admin_users.into_iter() {
+        let mail = Mail {
+            to: user.email,
+            subject: GATEWAY_DISCONNECTED.to_string(),
+            content: templates::gateway_disconnected_mail(
+                &gateway_name,
+                &gateway_adress,
+                &network_name,
+            )?,
+            attachments: Vec::new(),
+            result_tx: None,
+        };
+        let to = mail.to.clone();
+
+        match mail_tx.send(mail) {
+            Ok(_) => {
+                info!("Sent gateway disconnected notification to {}", &to);
+            }
+            Err(err) => {
+                error!(
+                    "Sending gateway disconnected notification to {} failed with error:\n{}",
+                    &to, &err
+                );
+            }
+        }
+    }
+    Ok(())
 }
 
 pub async fn send_mfa_configured_email(
