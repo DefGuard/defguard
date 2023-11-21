@@ -10,6 +10,7 @@ on:
 jobs:
   deploy-dev:
     runs-on: [self-hosted, Linux]
+    environment: DEV
     env:
       KUBE_HOST: ${{ secrets.KUBE_HOST }}
       KUBE_CERTIFICATE: ${{ secrets.KUBE_CERTIFICATE }}
