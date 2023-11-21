@@ -30,7 +30,7 @@ use crate::{
     error::WebError,
     handlers::mail::send_mfa_configured_email,
     handlers::SIGN_IN_COOKIE_NAME,
-    headers::{check_new_device_login, parse_user_agent, get_user_agent_device},
+    headers::{check_new_device_login, get_user_agent_device, parse_user_agent},
     ldap::utils::user_from_ldap,
     SERVER_CONFIG,
 };
@@ -91,32 +91,18 @@ pub async fn authenticate(
     };
 
     let ip_address = connect_info.ip().to_string();
-    // let device_info = user_agent.clone().map(|v| v.to_string());
-
     let user_agent_string = match user_agent {
         Some(value) => value.to_string(),
         None => String::new(),
     };
     let agent = parse_user_agent(&appstate, &user_agent_string);
-
-    // let mut device_info: Option<String> = None;
-
-    // if let Some(client) = agent.clone() {
-    //     device_info = Some(get_user_agent_device(&client));
-    // } else {
-    //     // String::new()
-    // }
-
     let device_info = agent.clone().map(|v| get_user_agent_device(&v));
-
-
 
     Session::delete_expired(&appstate.pool).await?;
     let session = Session::new(
         user.id.unwrap(),
         SessionState::PasswordVerified,
         ip_address.clone(),
-        // device_info,
         device_info,
     );
     session.save(&appstate.pool).await?;
@@ -142,11 +128,6 @@ pub async fn authenticate(
         .finish();
     cookies.add(auth_cookie);
 
-    // let user_agent_string = match user_agent {
-    //     Some(value) => value.to_string(),
-    //     None => String::new(),
-    // };
-    // let agent = parse_user_agent(&appstate, &user_agent_string);
     let login_event_type = "AUTHENTICATION".to_string();
 
     info!("Authenticated user {lowercase_username}");
@@ -348,7 +329,13 @@ pub async fn webauthn_finish(
 
     info!("Finished Webauthn registration for user {}", user.username);
 
-    send_mfa_configured_email(user.clone(), &MFAMethod::Webauthn, &appstate.mail_tx).await?;
+    send_mfa_configured_email(
+        Some(&session.session),
+        user.clone(),
+        &MFAMethod::Webauthn,
+        &appstate.mail_tx,
+    )
+    .await?;
 
     Ok(ApiResponse {
         json: json!(recovery_codes),
@@ -458,8 +445,13 @@ pub async fn totp_enable(
                 .await?;
         }
 
-        send_mfa_configured_email(user.clone(), &MFAMethod::OneTimePassword, &appstate.mail_tx)
-            .await?;
+        send_mfa_configured_email(
+            Some(&session.session),
+            user.clone(),
+            &MFAMethod::OneTimePassword,
+            &appstate.mail_tx,
+        )
+        .await?;
 
         info!("Enabled TOTP for user {}", user.username);
         Ok(ApiResponse {

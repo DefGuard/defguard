@@ -174,7 +174,7 @@ size="12px", line_height="120%", weight="400") %}
 </div>
 {% endmacro title %}
 
-{% macro device_info(device_data, ip_address, date, color="#222", font_size="12px", align="left", line_height="120%") %}
+{% macro device_info(date, device_data, ip_address="", color="#222", font_size="12px", align="left", line_height="120%") %}
 <p style="
   font-family: Roboto, Arial;
   font-size: {{ font_size }};

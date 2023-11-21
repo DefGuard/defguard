@@ -11,15 +11,13 @@ use tokio::{
     fs::read_to_string,
     sync::mpsc::{unbounded_channel, UnboundedSender},
 };
-use uaparser::Client;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::{MFAMethod, User, Session},
-    headers::get_device_type,
+    db::{MFAMethod, Session, User},
     mail::{Attachment, Mail},
     support::dump_config,
     templates::{self, support_data_mail, TemplateError, TemplateLocation},
@@ -30,6 +28,7 @@ static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
 
 static NEW_DEVICE_ADDED_EMAIL_SUBJECT: &str = "Defguard: new device added to your account";
+static NEW_DEVICE_LOGIN_EMAIL_SUBJECT: &str = "Defguard: new device logged in to your account";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -62,7 +61,7 @@ pub async fn test_mail(
     let mail = Mail {
         to: data.to.clone(),
         subject: TEST_MAIL_SUBJECT.to_string(),
-        content: templates::test_mail()?,
+        content: templates::test_mail(Some(&session.session))?,
         attachments: Vec::new(),
         result_tx: Some(tx),
     };
@@ -165,19 +164,18 @@ pub async fn send_new_device_added_email(
     template_locations: &Vec<TemplateLocation>,
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
-    user_agent_client: Option<Client<'_>>,
+    session: Option<&Session>,
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device added mail to {SUPPORT_EMAIL_ADDRESS}");
 
-    let device_type = get_device_type(user_agent_client);
     let mail = Mail {
         to: user_email.to_string(),
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
         content: templates::new_device_added_mail(
+            session,
             device_name,
             public_key,
             template_locations,
-            Some(&device_type),
         )?,
         attachments: Vec::new(),
         result_tx: None,
@@ -201,17 +199,14 @@ pub async fn send_new_device_login_email(
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
     session: &Session,
-    user_agent_client: Option<Client<'_>>,
-    ip_address: String,
     created: NaiveDateTime,
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device login mail to {SUPPORT_EMAIL_ADDRESS}");
 
-    let device_type = get_device_type(user_agent_client);
     let mail = Mail {
         to: user_email.to_string(),
-        subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
-        content: templates::new_device_login_mail(session, Some(&device_type), ip_address, created)?,
+        subject: NEW_DEVICE_LOGIN_EMAIL_SUBJECT.to_string(),
+        content: templates::new_device_login_mail(session, created)?,
         attachments: Vec::new(),
         result_tx: None,
     };
@@ -230,7 +225,43 @@ pub async fn send_new_device_login_email(
     }
 }
 
+pub async fn send_new_device_ocid_login_email(
+    user_email: &str,
+    oauth2client_name: String,
+    mail_tx: &UnboundedSender<Mail>,
+    session: &Session,
+) -> Result<(), TemplateError> {
+    debug!("User {user_email} new device OCID login mail to {SUPPORT_EMAIL_ADDRESS}");
+
+    let subject = format!(
+        "New login to {} application with defguard",
+        oauth2client_name
+    );
+
+    let mail = Mail {
+        to: user_email.to_string(),
+        subject,
+        content: templates::new_device_ocid_login_mail(session, oauth2client_name)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Sent new device OCID login notification to {to}");
+            Ok(())
+        }
+        Err(err) => {
+            error!("Sending new device OCID login notification to {to} failed with erorr:\n{err}");
+            Ok(())
+        }
+    }
+}
+
 pub async fn send_mfa_configured_email(
+    session: Option<&Session>,
     user: User,
     mfa_method: &MFAMethod,
     mail_tx: &UnboundedSender<Mail>,
@@ -245,7 +276,7 @@ pub async fn send_mfa_configured_email(
     let mail = Mail {
         to: user.email,
         subject,
-        content: templates::mfa_configured_mail(mfa_method)?,
+        content: templates::mfa_configured_mail(session, mfa_method)?,
         attachments: Vec::new(),
         result_tx: None,
     };

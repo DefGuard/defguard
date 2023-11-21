@@ -4,8 +4,8 @@ use tera::{Context, Tera};
 use thiserror::Error;
 
 use crate::{
-    db::{MFAMethod, User, Session},
-    VERSION,
+    db::{MFAMethod, Session, User},
+    SERVER_CONFIG, VERSION,
 };
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
@@ -20,6 +20,8 @@ static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.te
 static MAIL_NEW_DEVICE_ADDED: &str = include_str!("../templates/mail_new_device_added.tera");
 static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tera");
 static MAIL_NEW_DEVICE_LOGIN: &str = include_str!("../templates/mail_new_device_login.tera");
+static MAIL_NEW_DEVICE_OCID_LOGIN: &str =
+    include_str!("../templates/mail_new_device_ocid_login.tera");
 
 #[allow(dead_code)]
 static MAIL_DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
@@ -30,7 +32,10 @@ pub enum TemplateError {
     TemplateError(#[from] tera::Error),
 }
 
-pub fn get_base_tera(external_context: Option<Context>) -> Result<(Tera, Context), TemplateError> {
+pub fn get_base_tera(
+    external_context: Option<Context>,
+    session: Option<&Session>,
+) -> Result<(Tera, Context), TemplateError> {
     let mut tera = Tera::default();
     let mut context = match external_context {
         Some(external) => external,
@@ -45,16 +50,18 @@ pub fn get_base_tera(external_context: Option<Context>) -> Result<(Tera, Context
     context.insert("current_year", &current_year);
     context.insert("date_now", &now.format("%A, %B %d, %Y at %r").to_string());
 
-    if !context.contains_key("device_type") {
-        context.insert("device_type", "");
+    if let Some(current_session) = session {
+        let device_info = current_session.device_info.clone();
+        context.insert("device_type", &device_info);
+        context.insert("ip_address", &current_session.ip_address);
     }
 
     Ok((tera, context))
 }
 
 // sends test message when requested during SMTP configuration process
-pub fn test_mail() -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(None)?;
+pub fn test_mail(session: Option<&Session>) -> Result<String, TemplateError> {
+    let (mut tera, context) = get_base_tera(None, session)?;
     tera.add_raw_template("mail_test", MAIL_TEST)?;
     Ok(tera.render("mail_test", &context)?)
 }
@@ -70,7 +77,7 @@ pub fn enrollment_start_mail(
         .query_pairs_mut()
         .append_pair("token", enrollment_token);
 
-    let (mut tera, mut context) = get_base_tera(Some(context))?;
+    let (mut tera, mut context) = get_base_tera(Some(context), None)?;
 
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
 
@@ -84,7 +91,7 @@ pub fn desktop_start_mail(
     enrollment_service_url: &Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Some(context))?;
+    let (mut tera, mut context) = get_base_tera(Some(context), None)?;
 
     tera.add_raw_template("mail_desktop_start", MAIL_DESKTOP_START)?;
 
@@ -97,7 +104,7 @@ pub fn desktop_start_mail(
 // welcome message sent when activating an account through enrollment
 // content is stored in markdown, so it's parsed into HTML
 pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None)?;
+    let (mut tera, mut context) = get_base_tera(None, None)?;
     tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
 
     // convert content to HTML
@@ -112,7 +119,7 @@ pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
 
 // notification sent to admin after user completes enrollment
 pub fn enrollment_admin_notification(user: &User, admin: &User) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None)?;
+    let (mut tera, mut context) = get_base_tera(None, None)?;
 
     tera.add_raw_template(
         "mail_enrollment_admin_notification",
@@ -127,7 +134,7 @@ pub fn enrollment_admin_notification(user: &User, admin: &User) -> Result<String
 
 // message with support data
 pub fn support_data_mail() -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(None)?;
+    let (mut tera, context) = get_base_tera(None, None)?;
     tera.add_raw_template("mail_support_data", MAIL_SUPPORT_DATA)?;
     Ok(tera.render("mail_support_data", &context)?)
 }
@@ -139,26 +146,25 @@ pub struct TemplateLocation {
 }
 
 pub fn new_device_added_mail(
+    session: Option<&Session>,
     device_name: &str,
     public_key: &str,
     template_locations: &Vec<TemplateLocation>,
-    device_type: Option<&str>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None)?;
+    let (mut tera, mut context) = get_base_tera(None, session)?;
     context.insert("device_name", device_name);
     context.insert("public_key", public_key);
     context.insert("locations", template_locations);
-
-    if let Some(device_type) = device_type {
-        context.insert("device_type", &device_type);
-    }
 
     tera.add_raw_template("mail_new_device_added", MAIL_NEW_DEVICE_ADDED)?;
     Ok(tera.render("mail_new_device_added", &context)?)
 }
 
-pub fn mfa_configured_mail(method: &MFAMethod) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None)?;
+pub fn mfa_configured_mail(
+    session: Option<&Session>,
+    method: &MFAMethod,
+) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None, session)?;
     context.insert("mfa_method", &method.to_string());
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
@@ -168,24 +174,33 @@ pub fn mfa_configured_mail(method: &MFAMethod) -> Result<String, TemplateError> 
 
 pub fn new_device_login_mail(
     session: &Session,
-    device_type: Option<&str>,
-    ip_address: String,
     created: NaiveDateTime,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None)?;
+    let (mut tera, mut context) = get_base_tera(None, Some(session))?;
     tera.add_raw_template("mail_base", MAIL_BASE)?;
-    context.insert("ip_address", &ip_address);
     context.insert(
-        "created",
+        "date_now",
         &created.format("%A, %B %d, %Y at %r").to_string(),
     );
 
-    if let Some(device_info) = session.device_info.clone() {
-        context.insert("device_type", &device_info);
-    }
-
     tera.add_raw_template("mail_new_device_login", MAIL_NEW_DEVICE_LOGIN)?;
     Ok(tera.render("mail_new_device_login", &context)?)
+}
+
+pub fn new_device_ocid_login_mail(
+    session: &Session,
+    oauth2client_name: String,
+) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None, Some(session))?;
+    tera.add_raw_template("mail_base", MAIL_BASE)?;
+
+    let url = format!("{}me", SERVER_CONFIG.get().unwrap().url);
+
+    context.insert("oauth2client_name", &oauth2client_name);
+    context.insert("profile_url", &url);
+
+    tera.add_raw_template("mail_new_device_oicd_login", MAIL_NEW_DEVICE_OCID_LOGIN)?;
+    Ok(tera.render("mail_new_device_oicd_login", &context)?)
 }
 
 #[cfg(test)]
@@ -211,23 +226,23 @@ mod test {
     #[test]
     fn test_mfa_configured_mail() {
         let mfa_method = MFAMethod::OneTimePassword;
-        assert_ok!(mfa_configured_mail(&mfa_method));
+        assert_ok!(mfa_configured_mail(None, &mfa_method));
     }
 
     #[test]
     fn test_base_mail_no_context() {
-        assert_ok!(get_base_tera(None));
+        assert_ok!(get_base_tera(None, None));
     }
 
     #[test]
     fn test_base_mail_external_context() {
         let external_context: Context = Context::new();
-        assert_ok!(get_base_tera(Some(external_context)));
+        assert_ok!(get_base_tera(Some(external_context), None));
     }
 
     #[test]
     fn test_test_mail() {
-        assert_ok!(test_mail());
+        assert_ok!(test_mail(None));
     }
 
     #[test]
@@ -265,10 +280,10 @@ mod test {
             },
         ];
         assert_ok!(new_device_added_mail(
+            None,
             "Test device",
             "TestKey",
             &template_locations,
-            None
         ));
     }
 

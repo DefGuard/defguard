@@ -12,7 +12,10 @@ assigned_ip -> ip of device in location
 {# mail content #}
 {% block mail_content %}
 {# title #}
-{% set section_content = [macros::paragraph(content="Your account was just logged into from a new device:")] %}
+{% set section_content = [
+  macros::paragraph(content="Your account was just logged into a system: " ~ oauth2client_name ~ " using OpenID Connect authorization."),
+  macros::link(content="You can deauthorize all applications that have access to your account from the web vault under (My Profile > Apps).", href=profile_url),
+] %}
 {{ macros::text_section(content_array=section_content) }}
 {{ macros::spacer(height="40px")}}
 {# render device section #}
