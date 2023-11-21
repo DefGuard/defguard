@@ -23,8 +23,13 @@ import { useMFAStore } from '../../shared/hooks/useMFAStore';
 export const MFARecovery = () => {
   const toaster = useToaster();
   const navigate = useNavigate();
-  const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
-    (state) => [state.totp_available, state.web3_available, state.webauthn_available],
+  const [totpAvailable, web3Available, webauthnAvailable, emailAvailable] = useMFAStore(
+    (state) => [
+      state.totp_available,
+      state.web3_available,
+      state.webauthn_available,
+      state.email_available,
+    ],
     shallow,
   );
   const loginSubject = useAuthStore((state) => state.loginSubject);
@@ -60,7 +65,7 @@ export const MFARecovery = () => {
   });
 
   useEffect(() => {
-    if (!totpAvailable && !web3Available && !webauthnAvailable) {
+    if (!totpAvailable && !web3Available && !webauthnAvailable && !emailAvailable) {
       navigate('../');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,32 +90,6 @@ export const MFARecovery = () => {
           loading={isLoading}
         />
       </form>
-      <nav>
-        <span>or</span>
-        {totpAvailable && (
-          <Button
-            text={LL.loginPage.mfa.controls.useAuthenticator()}
-            size={ButtonSize.LARGE}
-            onClick={() => navigate('../totp')}
-          />
-        )}
-        {webauthnAvailable && (
-          <Button
-            text={LL.loginPage.mfa.controls.useWebauthn()}
-            size={ButtonSize.LARGE}
-            styleVariant={ButtonStyleVariant.LINK}
-            onClick={() => navigate('../webauthn')}
-          />
-        )}
-        {web3Available && (
-          <Button
-            text={LL.loginPage.mfa.controls.useWallet()}
-            size={ButtonSize.LARGE}
-            styleVariant={ButtonStyleVariant.LINK}
-            onClick={() => navigate('../web3')}
-          />
-        )}
-      </nav>
     </>
   );
 };

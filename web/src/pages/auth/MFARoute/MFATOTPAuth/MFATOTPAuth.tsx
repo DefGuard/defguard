@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import * as yup from 'yup';
-import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -25,10 +24,7 @@ interface Inputs {
 export const MFATOTPAuth = () => {
   const navigate = useNavigate();
   const loginSubject = useAuthStore((state) => state.loginSubject);
-  const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
-    (state) => [state.totp_available, state.web3_available, state.webauthn_available],
-    shallow,
-  );
+  const totpAvailable = useMFAStore((state) => state.totp_available);
   const {
     auth: {
       mfa: {
@@ -94,31 +90,6 @@ export const MFATOTPAuth = () => {
           type="submit"
         />
       </form>
-      <nav>
-        <span>or</span>
-        {webauthnAvailable && (
-          <Button
-            text={LL.loginPage.mfa.controls.useWebauthn()}
-            size={ButtonSize.LARGE}
-            styleVariant={ButtonStyleVariant.LINK}
-            onClick={() => navigate('../webauthn')}
-          />
-        )}
-        {web3Available && (
-          <Button
-            text={LL.loginPage.mfa.controls.useWallet()}
-            size={ButtonSize.LARGE}
-            styleVariant={ButtonStyleVariant.LINK}
-            onClick={() => navigate('../web3')}
-          />
-        )}
-        <Button
-          text={LL.loginPage.mfa.controls.useRecoveryCode()}
-          size={ButtonSize.LARGE}
-          styleVariant={ButtonStyleVariant.LINK}
-          onClick={() => navigate('../recovery')}
-        />
-      </nav>
     </>
   );
 };

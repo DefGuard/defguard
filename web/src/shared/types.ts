@@ -268,6 +268,7 @@ export interface MFALoginResponse {
   totp_available: boolean;
   web3_available: boolean;
   webauthn_available: boolean;
+  email_available: boolean;
 }
 
 export interface LoginResponse {

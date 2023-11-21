@@ -15,6 +15,20 @@ export type Translations = RootTranslation
 
 type RootTranslation = {
 	common: {
+		conditions: {
+			/**
+			 * o​r
+			 */
+			or: string
+			/**
+			 * a​n​d
+			 */
+			and: string
+			/**
+			 * e​q​u​a​l
+			 */
+			equal: string
+		}
 		controls: {
 			/**
 			 * N​e​x​t
@@ -3048,6 +3062,30 @@ type RootTranslation = {
 				 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​ ​i​n​s​t​e​a​d
 				 */
 				useRecoveryCode: string
+				/**
+				 * U​s​e​ ​E​-​m​a​i​l​ ​i​n​s​t​e​a​d
+				 */
+				useEmail: string
+			}
+			email: {
+				/**
+				 * U​s​e​ ​c​o​d​e​ ​w​e​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​e​-​m​a​i​l​ ​t​o​ ​p​r​o​c​e​e​d​.
+				 */
+				header: string
+				form: {
+					labels: {
+						/**
+						 * C​o​d​e
+						 */
+						code: string
+					}
+					controls: {
+						/**
+						 * R​e​s​e​n​d​ ​C​o​d​e
+						 */
+						resendCode: string
+					}
+				}
 			}
 			totp: {
 				/**
@@ -3475,6 +3513,20 @@ type RootTranslation = {
 
 export type TranslationFunctions = {
 	common: {
+		conditions: {
+			/**
+			 * or
+			 */
+			or: () => LocalizedString
+			/**
+			 * and
+			 */
+			and: () => LocalizedString
+			/**
+			 * equal
+			 */
+			equal: () => LocalizedString
+		}
 		controls: {
 			/**
 			 * Next
@@ -6484,6 +6536,30 @@ export type TranslationFunctions = {
 				 * Use recovery code instead
 				 */
 				useRecoveryCode: () => LocalizedString
+				/**
+				 * Use E-mail instead
+				 */
+				useEmail: () => LocalizedString
+			}
+			email: {
+				/**
+				 * Use code we sent to your e-mail to proceed.
+				 */
+				header: () => LocalizedString
+				form: {
+					labels: {
+						/**
+						 * Code
+						 */
+						code: () => LocalizedString
+					}
+					controls: {
+						/**
+						 * Resend Code
+						 */
+						resendCode: () => LocalizedString
+					}
+				}
 			}
 			totp: {
 				/**

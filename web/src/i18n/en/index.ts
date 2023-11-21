@@ -3,6 +3,11 @@ import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
   common: {
+    conditions: {
+      or: 'or',
+      and: 'and',
+      equal: 'equal',
+    },
     controls: {
       next: 'Next',
       back: 'Back',
@@ -165,7 +170,7 @@ const en: BaseTranslation = {
       },
       form: {
         fields: {
-          code: { 
+          code: {
             label: 'Email code',
             error: 'Code is invalid',
           },
@@ -1323,6 +1328,18 @@ const en: BaseTranslation = {
         useWallet: 'Use your wallet instead',
         useWebauthn: 'Use security key instead',
         useRecoveryCode: 'Use recovery code instead',
+        useEmail: 'Use E-mail instead',
+      },
+      email: {
+        header: 'Use code we sent to your e-mail to proceed.',
+        form: {
+          labels: {
+            code: 'Code',
+          },
+          controls: {
+            resendCode: 'Resend Code',
+          },
+        },
       },
       totp: {
         header: 'Use code from your authentication app and click button to proceed.',
