@@ -1,0 +1,21 @@
+name: Deploy to DEV environment
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - '*.md'
+      - 'LICENSE'
+
+jobs:
+  deploy-dev:
+    runs-on: [self-hosted, Linux]
+    env:
+      KUBE_HOST: ${{ secrets.KUBE_HOST }}
+      KUBE_CERTIFICATE: ${{ secrets.KUBE_CERTIFICATE }}
+      KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
+    steps:
+      - name: Deploy new image version
+        uses: actions-hub/kubectl@v1.28.4
+        with:
+          args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${{ github.sha }}
