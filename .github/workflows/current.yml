@@ -46,5 +46,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Trigger E2E tests
-        uses: ./.github/workflows/e2e.yml
+  trigger-e2e:
+    uses: ./.github/workflows/e2e.yml

@@ -62,6 +62,6 @@ jobs:
           path: |
             ./e2e/playwright-report
           retention-days: 7
-      - name: Trigger deployment to DEV
-        if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
-        uses: ./.github/workflows/dev-deployment.yml 
+  trigger-dev-deploy:
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
+    uses: ./.github/workflows/dev-deployment.yml 
