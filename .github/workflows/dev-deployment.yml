@@ -1,17 +1,12 @@
 name: Deploy to DEV environment
 on:
-  workflow_run:
-    workflows:
-      - "E2E tests"
-    branches:
-      - dev
-    types:
-      - completed
+  workflow_call:
 
 jobs:
   deploy-dev:
     runs-on: [self-hosted, Linux]
     environment: DEV
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
     env:
       KUBE_HOST: ${{ secrets.KUBE_HOST }}
       KUBE_CERTIFICATE: ${{ secrets.KUBE_CERTIFICATE }}
