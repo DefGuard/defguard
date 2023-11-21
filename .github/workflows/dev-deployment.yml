@@ -6,6 +6,9 @@ on:
     paths-ignore:
       - '*.md'
       - 'LICENSE'
+  pull_request:
+    branches:
+      - dev
 
 jobs:
   deploy-dev:
@@ -19,4 +22,4 @@ jobs:
       - name: Deploy new image version
         uses: actions-hub/kubectl@v1.28.4
         with:
-          args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${{ github.sha }}
+          args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-defe18a
