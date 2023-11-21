@@ -175,7 +175,7 @@ impl RequestBuilder {
 #[derive(Debug)]
 
 pub struct TestResponse {
-    pub response: reqwest::Response,
+    response: reqwest::Response,
 }
 
 #[allow(dead_code)]
