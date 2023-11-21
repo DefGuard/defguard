@@ -1,9 +1,8 @@
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection};
 
-use crate::db::User;
 use crate::{
-    db::{models::error::ModelError, WireguardNetwork},
+    db::{models::error::ModelError, User, WireguardNetwork},
     DbPool,
 };
 
