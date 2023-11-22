@@ -1,10 +1,10 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::{self, Display, Formatter};
 
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
+use sqlx::{query_as, Error as SqlxError};
 
 use crate::db::DbPool;
-use sqlx::{query_as, Error as SqlxError};
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
 #[table(device_login_event)]
@@ -22,7 +22,7 @@ pub struct DeviceLoginEvent {
 }
 
 impl Display for DeviceLoginEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.id {
             Some(device_id) => write!(f, "[ID {}] {}", device_id, self.family),
             None => write!(f, "{}", self.family),

@@ -187,16 +187,14 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let ip_address = request
             .metadata()
             .get("ip_address")
-            .and_then(|value| value.to_str().ok())
-            .unwrap_or("")
-            .to_string();
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
 
         let user_agent = request
             .metadata()
             .get("user_agent")
-            .and_then(|value| value.to_str().ok())
-            .unwrap_or("")
-            .to_string();
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
 
         let device_info = get_device_info(&self.user_agent_parser, &user_agent);
 
@@ -277,17 +275,17 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         // add device
         info!("Adding new device for user {}", user.username);
 
-        let ip_address = match request.metadata().get("ip_address") {
-            Some(value) => value.to_str().unwrap_or(""),
-            None => "",
-        }
-        .to_string();
+        let ip_address = request
+            .metadata()
+            .get("ip_address")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
 
-        let user_agent = match request.metadata().get("user_agent") {
-            Some(value) => value.to_str().unwrap_or(""),
-            None => "",
-        }
-        .to_string();
+        let user_agent = request
+            .metadata()
+            .get("user_agent")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
 
         let device_info = get_device_info(&self.user_agent_parser, &user_agent);
 

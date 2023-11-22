@@ -206,7 +206,7 @@ pub fn new_device_login_mail(
 
 pub fn new_device_ocid_login_mail(
     session: &Session,
-    oauth2client_name: String,
+    oauth2client_name: &str,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
     tera.add_raw_template("mail_base", MAIL_BASE)?;

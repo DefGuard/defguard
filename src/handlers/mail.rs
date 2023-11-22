@@ -240,7 +240,7 @@ pub async fn send_new_device_ocid_login_email(
     let mail = Mail {
         to: user_email.to_string(),
         subject,
-        content: templates::new_device_ocid_login_mail(session, oauth2client_name)?,
+        content: templates::new_device_ocid_login_mail(session, &oauth2client_name)?,
         attachments: Vec::new(),
         result_tx: None,
     };
