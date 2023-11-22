@@ -220,13 +220,14 @@ pub fn new_device_ocid_login_mail(
 
     tera.add_raw_template("mail_new_device_oicd_login", MAIL_NEW_DEVICE_OCID_LOGIN)?;
     Ok(tera.render("mail_new_device_oicd_login", &context)?)
+}
 
 pub fn gateway_disconnected_mail(
     gateway_name: &str,
     gateway_ip: &str,
     network_name: &str,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None)?;
+    let (mut tera, mut context) = get_base_tera(None, None, None, None)?;
     context.insert("gateway_name", gateway_name);
     context.insert("gateway_ip", gateway_ip);
     context.insert("network_name", network_name);

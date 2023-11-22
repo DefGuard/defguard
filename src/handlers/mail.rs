@@ -19,7 +19,6 @@ use crate::{
     config::DefGuardConfig,
     db::{MFAMethod, Session, User},
     error::WebError,
-    headers::get_device_type,
     mail::{Attachment, Mail},
     support::dump_config,
     templates::{self, support_data_mail, TemplateError, TemplateLocation},
