@@ -4,7 +4,6 @@ use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::{
-    appstate::AppState,
     db::{models::device_login::DeviceLoginEvent, DbPool, Session, User},
     handlers::mail::send_new_device_login_email,
     mail::Mail,
@@ -21,12 +20,24 @@ pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
 }
 
 #[must_use]
-pub fn parse_user_agent<'a>(appstate: &'a AppState, user_agent: &'a str) -> Option<Client<'a>> {
+pub fn parse_user_agent<'a>(
+    user_parser: &'a Arc<UserAgentParser>,
+    user_agent: &'a str,
+) -> Option<Client<'a>> {
     if user_agent.is_empty() {
         None
     } else {
-        Some(appstate.user_agent_parser.parse(user_agent))
+        Some(user_parser.parse(user_agent))
     }
+}
+
+pub fn get_device_info(
+    user_agent_parser: &Arc<UserAgentParser>,
+    user_agent: &str,
+) -> Option<String> {
+    let agent = parse_user_agent(user_agent_parser, user_agent);
+
+    agent.clone().map(|v| get_user_agent_device(&v))
 }
 
 #[must_use]

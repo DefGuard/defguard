@@ -164,7 +164,8 @@ pub async fn send_new_device_added_email(
     template_locations: &Vec<TemplateLocation>,
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
-    session: Option<&Session>,
+    ip_address: String,
+    device_info: Option<String>,
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device added mail to {SUPPORT_EMAIL_ADDRESS}");
 
@@ -172,10 +173,11 @@ pub async fn send_new_device_added_email(
         to: user_email.to_string(),
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
         content: templates::new_device_added_mail(
-            session,
             device_name,
             public_key,
             template_locations,
+            ip_address,
+            device_info,
         )?,
         attachments: Vec::new(),
         result_tx: None,

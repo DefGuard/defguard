@@ -520,7 +520,8 @@ pub async fn add_device(
         &template_locations,
         &user.email,
         &appstate.mail_tx,
-        Some(&session.session),
+        session.session.ip_address.clone(),
+        session.session.device_info.clone(),
     )
     .await?;
 

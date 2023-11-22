@@ -35,6 +35,8 @@ pub enum TemplateError {
 pub fn get_base_tera(
     external_context: Option<Context>,
     session: Option<&Session>,
+    ip_address: Option<String>,
+    device_info: Option<String>,
 ) -> Result<(Tera, Context), TemplateError> {
     let mut tera = Tera::default();
     let mut context = match external_context {
@@ -56,12 +58,20 @@ pub fn get_base_tera(
         context.insert("ip_address", &current_session.ip_address);
     }
 
+    if let Some(ip) = ip_address {
+        context.insert("ip_address", &ip);
+    }
+
+    if let Some(device_info) = device_info {
+        context.insert("device_type", &device_info);
+    }
+
     Ok((tera, context))
 }
 
 // sends test message when requested during SMTP configuration process
 pub fn test_mail(session: Option<&Session>) -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(None, session)?;
+    let (mut tera, context) = get_base_tera(None, session, None, None)?;
     tera.add_raw_template("mail_test", MAIL_TEST)?;
     Ok(tera.render("mail_test", &context)?)
 }
@@ -77,7 +87,7 @@ pub fn enrollment_start_mail(
         .query_pairs_mut()
         .append_pair("token", enrollment_token);
 
-    let (mut tera, mut context) = get_base_tera(Some(context), None)?;
+    let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
 
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
 
@@ -91,7 +101,7 @@ pub fn desktop_start_mail(
     enrollment_service_url: &Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Some(context), None)?;
+    let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
 
     tera.add_raw_template("mail_desktop_start", MAIL_DESKTOP_START)?;
 
@@ -103,8 +113,12 @@ pub fn desktop_start_mail(
 
 // welcome message sent when activating an account through enrollment
 // content is stored in markdown, so it's parsed into HTML
-pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, None)?;
+pub fn enrollment_welcome_mail(
+    content: &str,
+    ip_address: Option<String>,
+    device_info: Option<String>,
+) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
     tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
 
     // convert content to HTML
@@ -118,8 +132,13 @@ pub fn enrollment_welcome_mail(content: &str) -> Result<String, TemplateError> {
 }
 
 // notification sent to admin after user completes enrollment
-pub fn enrollment_admin_notification(user: &User, admin: &User) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, None)?;
+pub fn enrollment_admin_notification(
+    user: &User,
+    admin: &User,
+    ip_address: String,
+    device_info: Option<String>,
+) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None, None, Some(ip_address), device_info)?;
 
     tera.add_raw_template(
         "mail_enrollment_admin_notification",
@@ -134,7 +153,7 @@ pub fn enrollment_admin_notification(user: &User, admin: &User) -> Result<String
 
 // message with support data
 pub fn support_data_mail() -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(None, None)?;
+    let (mut tera, context) = get_base_tera(None, None, None, None)?;
     tera.add_raw_template("mail_support_data", MAIL_SUPPORT_DATA)?;
     Ok(tera.render("mail_support_data", &context)?)
 }
@@ -146,12 +165,13 @@ pub struct TemplateLocation {
 }
 
 pub fn new_device_added_mail(
-    session: Option<&Session>,
     device_name: &str,
     public_key: &str,
     template_locations: &Vec<TemplateLocation>,
+    ip_address: String,
+    device_info: Option<String>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, session)?;
+    let (mut tera, mut context) = get_base_tera(None, None, Some(ip_address), device_info)?;
     context.insert("device_name", device_name);
     context.insert("public_key", public_key);
     context.insert("locations", template_locations);
@@ -164,7 +184,7 @@ pub fn mfa_configured_mail(
     session: Option<&Session>,
     method: &MFAMethod,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, session)?;
+    let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     context.insert("mfa_method", &method.to_string());
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
@@ -176,7 +196,7 @@ pub fn new_device_login_mail(
     session: &Session,
     created: NaiveDateTime,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, Some(session))?;
+    let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     context.insert(
         "date_now",
@@ -191,7 +211,7 @@ pub fn new_device_ocid_login_mail(
     session: &Session,
     oauth2client_name: String,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, Some(session))?;
+    let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
     tera.add_raw_template("mail_base", MAIL_BASE)?;
 
     let url = format!("{}me", SERVER_CONFIG.get().unwrap().url);
@@ -231,13 +251,13 @@ mod test {
 
     #[test]
     fn test_base_mail_no_context() {
-        assert_ok!(get_base_tera(None, None));
+        assert_ok!(get_base_tera(None, None, None, None));
     }
 
     #[test]
     fn test_base_mail_external_context() {
         let external_context: Context = Context::new();
-        assert_ok!(get_base_tera(Some(external_context), None));
+        assert_ok!(get_base_tera(Some(external_context), None, None, None));
     }
 
     #[test]
@@ -256,7 +276,11 @@ mod test {
 
     #[test]
     fn test_enrollment_welcome_mail() {
-        assert_ok!(enrollment_welcome_mail("Hi there! Welcome to DefGuard."));
+        assert_ok!(enrollment_welcome_mail(
+            "Hi there! Welcome to DefGuard.",
+            None,
+            None
+        ));
     }
 
     #[test]
@@ -280,10 +304,11 @@ mod test {
             },
         ];
         assert_ok!(new_device_added_mail(
-            None,
             "Test device",
             "TestKey",
             &template_locations,
+            "1.1.1.1".to_string(),
+            None,
         ));
     }
 
@@ -297,6 +322,11 @@ mod test {
             "test@example.com".into(),
             Some("99999".into()),
         );
-        assert_ok!(enrollment_admin_notification(&test_user, &test_user));
+        assert_ok!(enrollment_admin_notification(
+            &test_user,
+            &test_user,
+            "11.11.11.11".to_string(),
+            None
+        ));
     }
 }

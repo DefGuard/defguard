@@ -249,9 +249,11 @@
                                     text-align: left;
                                     color: #222222;
                                   ">
-                                    <p>
-                                      Date: {{ date_now | safe }}
-                                    </p>
+                                    {% if date_now %}
+                                      <p>
+                                        Date: {{ date_now | safe }}
+                                      </p>
+                                    {% endif %}
                                     {% if ip_address %}
                                       <p>
                                         IP Address: {{ ip_address | safe }}

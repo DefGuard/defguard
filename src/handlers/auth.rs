@@ -95,7 +95,7 @@ pub async fn authenticate(
         Some(value) => value.to_string(),
         None => String::new(),
     };
-    let agent = parse_user_agent(&appstate, &user_agent_string);
+    let agent = parse_user_agent(&appstate.user_agent_parser, &user_agent_string);
     let device_info = agent.clone().map(|v| get_user_agent_device(&v));
 
     Session::delete_expired(&appstate.pool).await?;
