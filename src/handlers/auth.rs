@@ -523,7 +523,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     info!("Generated new email MFA secret for user {}", user.username);
 
     // send email with code
-    send_email_mfa_activation_email(&user, &appstate.mail_tx)?;
+    send_email_mfa_activation_email(&user, &appstate.mail_tx, &session.session)?;
 
     Ok(ApiResponse::default())
 }
@@ -582,7 +582,7 @@ pub async fn request_email_mfa_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         debug!("Sending email MFA code for user {}", user.username);
         if user.email_mfa_enabled {
-            send_email_mfa_code_email(&user, &appstate.mail_tx)?;
+            send_email_mfa_code_email(&user, &appstate.mail_tx, &session)?;
             info!("Sent email MFA code for user {}", user.username);
             Ok(ApiResponse::default())
         } else {

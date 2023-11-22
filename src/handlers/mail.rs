@@ -346,6 +346,7 @@ pub fn send_mfa_configured_email(
 pub fn send_email_mfa_activation_email(
     user: &User,
     mail_tx: &UnboundedSender<Mail>,
+    session: &Session,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA activation mail to {}", user.email);
 
@@ -358,7 +359,7 @@ pub fn send_email_mfa_activation_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_activation_mail(code)?,
+        content: templates::email_mfa_activation_mail(code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
@@ -380,6 +381,7 @@ pub fn send_email_mfa_activation_email(
 pub fn send_email_mfa_code_email(
     user: &User,
     mail_tx: &UnboundedSender<Mail>,
+    session: &Session,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA code mail to {}", user.email);
 
@@ -392,7 +394,7 @@ pub fn send_email_mfa_code_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_code_mail(code)?,
+        content: templates::email_mfa_code_mail(code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
