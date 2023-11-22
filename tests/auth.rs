@@ -1,13 +1,14 @@
 mod common;
 
-use std::time::SystemTime;
-
+use crate::common::ClientState;
 use axum::http::StatusCode;
+use claims::assert_err;
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
-    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, UserDetails, Wallet},
+    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, Settings, UserDetails, Wallet},
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, WalletChallenge},
     hex::to_lower_hex,
+    secret::SecretString,
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use otpauth::TOTP;
@@ -15,6 +16,7 @@ use secp256k1::{rand::rngs::OsRng, All, Message, Secp256k1, SecretKey};
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::query;
+use std::{str::FromStr, time::SystemTime};
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
@@ -53,6 +55,21 @@ async fn make_client_with_db() -> (TestClient, DbPool) {
     wallet.save(&client_state.pool).await.unwrap();
 
     (client, client_state.pool)
+}
+
+async fn make_client_with_state() -> (TestClient, ClientState) {
+    let (client, client_state) = make_test_client().await;
+
+    let mut wallet = Wallet::new_for_user(
+        client_state.test_user.id.unwrap(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
+        "test".into(),
+        5,
+        String::new(),
+    );
+    wallet.save(&client_state.pool).await.unwrap();
+
+    (client, client_state)
 }
 
 async fn make_client_with_wallet(address: String) -> TestClient {
@@ -228,6 +245,154 @@ async fn test_totp() {
     let code = totp_code(&auth_totp);
     let response = client
         .post("/api/v1/auth/totp/verify")
+        .json(&code)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // authorized
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // disable MFA
+    let response = client.delete("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // login again
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+fn extract_email_code(content: &str) -> u32 {
+    let re = regex::Regex::new(r"<b>(?<code>\d{6})</b>").unwrap();
+    let code = re.captures(content).unwrap().name("code").unwrap().as_str();
+    code.parse().unwrap()
+}
+
+#[tokio::test]
+async fn test_email_mfa() {
+    let (client, state) = make_client_with_state().await;
+    let pool = state.pool;
+    let mut mail_rx = state.mail_rx;
+
+    // try to initialize email MFA setup before logging in
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // try to initialize email MFA setup without SMTP settings configured
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+    // add dummy SMTP settings
+    let mut settings = Settings::get_settings(&pool).await.unwrap();
+    settings.smtp_server = Some("smtp_server".into());
+    settings.smtp_port = Some(587);
+    settings.smtp_user = Some("dummy_user".into());
+    settings.smtp_password = Some(SecretString::from_str("dummy_password").unwrap());
+    settings.smtp_sender = Some("smtp@sender.pl".into());
+    settings.save(&pool).await.unwrap();
+
+    // initialize email MFA setup
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // check email was sent
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
+
+    // resend setup email
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
+    let code = extract_email_code(&mail.content);
+
+    // finish setup
+    let code = AuthCode::new(code);
+    let response = client.post("/api/v1/auth/email").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // check that confirmation email was sent
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "MFA method Email was activated on your account"
+    );
+
+    // check recovery codes
+    let recovery_codes: RecoveryCodes = response.json().await;
+    assert_eq!(recovery_codes.codes.as_ref().unwrap().len(), 8); // RECOVERY_CODES_COUNT
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // login again, this time a different status code is returned
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // still unauthorized
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // provide wrong code
+    let code = AuthCode::new(0);
+    let response = client
+        .post("/api/v1/auth/email/verify")
+        .json(&code)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // still unauthorized
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // request code
+    let response = client.get("/api/v1/auth/email").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // check that code email was sent
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "Your Multi-Factor Authentication Code for Login"
+    );
+
+    // resend code
+    let response = client.get("/api/v1/auth/email").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "Your Multi-Factor Authentication Code for Login"
+    );
+    let code = extract_email_code(&mail.content);
+
+    // login
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // provide correct code
+    let code = AuthCode::new(code);
+    let response = client
+        .post("/api/v1/auth/email/verify")
         .json(&code)
         .send()
         .await;

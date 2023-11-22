@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';
@@ -13,26 +13,25 @@ import {
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { Textarea } from '../../../../../../shared/defguard-ui/components/Layout/Textarea/Textarea';
-import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
-import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
+import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 
 export const Web3Settings = () => {
   const { LL } = useI18nContext();
-  const [signMessage, setSignMessage] = useState('');
-  const settings = useAppStore((state) => state.settings);
+  const settings = useSettingsPage((state) => state.settings);
+  const [signMessage, setSignMessage] = useState(settings?.challenge_template ?? '');
 
   const {
-    settings: { editSettings },
+    settings: { patchSettings },
   } = useApi();
 
   const queryClient = useQueryClient();
 
   const toaster = useToaster();
 
-  const { mutate, isLoading } = useMutation([MutationKeys.EDIT_SETTINGS], editSettings, {
+  const { mutate, isLoading } = useMutation(patchSettings, {
     onSuccess: () => {
       toaster.success(LL.settingsPage.messages.challengeSuccess());
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
@@ -42,14 +41,6 @@ export const Web3Settings = () => {
       toaster.error(LL.messages.error());
     },
   });
-
-  useEffect(() => {
-    if (settings) {
-      setSignMessage(settings.challenge_template);
-    }
-
-    // eslint-disable-next-line
-  }, []);
 
   return (
     <section id="web3-settings">
@@ -67,8 +58,8 @@ export const Web3Settings = () => {
             loading={isLoading}
             disabled={signMessage.length < 4}
             onClick={() => {
-              if (settings && signMessage) {
-                mutate({ ...settings, challenge_template: signMessage });
+              if (signMessage) {
+                mutate({ challenge_template: signMessage });
               }
             }}
           />

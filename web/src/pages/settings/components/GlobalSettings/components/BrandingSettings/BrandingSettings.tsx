@@ -19,13 +19,13 @@ import {
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
-import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { externalLink } from '../../../../../../shared/links';
 import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { Settings } from '../../../../../../shared/types';
+import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 
 type FormFields = {
   instance_name: string;
@@ -43,20 +43,20 @@ export const BrandingSettings = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
-    settings: { editSettings, setDefaultBranding },
+    settings: { patchSettings, setDefaultBranding },
   } = useApi();
 
-  const [settings, setAppStore] = useAppStore((state) => [
-    state.settings,
-    state.setAppStore,
-  ]);
+  const settings = useSettingsPage((state) => state.settings);
 
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
-  const { mutate, isLoading } = useMutation([MutationKeys.EDIT_SETTINGS], editSettings, {
+  const { mutate, isLoading } = useMutation(patchSettings, {
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+      const keys = [QueryKeys.FETCH_SETTINGS, QueryKeys.FETCH_ESSENTAIL_SETTINGS];
+      keys.forEach((key) => {
+        queryClient.invalidateQueries([key]);
+      });
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (err) => {
@@ -69,13 +69,8 @@ export const BrandingSettings = () => {
     [MutationKeys.EDIT_SETTINGS],
     setDefaultBranding,
     {
-      onSuccess: (settings) => {
-        setAppStore({ settings });
+      onSuccess: () => {
         toaster.success(LL.settingsPage.messages.editSuccess());
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
       },
     },
   );
@@ -121,18 +116,16 @@ export const BrandingSettings = () => {
     reset();
   }, [reset, defaultValues]);
 
-  const onSubmit: SubmitHandler<FormFields> = (data) => {
-    if (settings) {
-      const res = { ...settings };
-      res.instance_name = data.instance_name;
-      if (data.main_logo_url != '') {
-        res.main_logo_url = data.main_logo_url;
-      }
-      if (data.nav_logo_url != '') {
-        res.nav_logo_url = data.nav_logo_url;
-      }
-      mutate(res);
-    }
+  const onSubmit: SubmitHandler<FormFields> = ({
+    instance_name,
+    main_logo_url,
+    nav_logo_url,
+  }) => {
+    mutate({
+      instance_name,
+      main_logo_url,
+      nav_logo_url,
+    });
   };
 
   return (

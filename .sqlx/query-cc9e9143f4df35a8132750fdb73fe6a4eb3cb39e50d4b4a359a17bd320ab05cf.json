@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"ssh_key\",\"pgp_key\",\"pgp_cert_id\",\"mfa_enabled\",\"totp_enabled\",\"totp_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\"",
+  "query": "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id WHERE group_user.group_id = $1",
   "describe": {
     "columns": [
       {
@@ -70,6 +70,16 @@
       },
       {
         "ordinal": 13,
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "email_mfa_secret",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 15,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -79,20 +89,23 @@
                 "none",
                 "one_time_password",
                 "webauthn",
-                "web3"
+                "web3",
+                "email"
               ]
             }
           }
         }
       },
       {
-        "ordinal": 14,
-        "name": "recovery_codes: _",
+        "ordinal": 16,
+        "name": "recovery_codes",
         "type_info": "TextArray"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -109,8 +122,10 @@
       false,
       true,
       false,
+      true,
+      false,
       false
     ]
   },
-  "hash": "d4822c2e2aea609a3807a9f26ad8b9441548a7d17293b87c877a5e8cdcc95b32"
+  "hash": "cc9e9143f4df35a8132750fdb73fe6a4eb3cb39e50d4b4a359a17bd320ab05cf"
 }

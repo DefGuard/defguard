@@ -22,6 +22,8 @@ pub enum WebError {
     Ldap(String),
     #[error("Webauthn registration error: {0}")]
     WebauthnRegistration(String),
+    #[error("Email MFA error: {0}")]
+    EmailMfa(String),
     #[error("Incorrect username: {0}")]
     IncorrectUsername(String),
     #[error("Object not found: {0}")]
@@ -67,6 +69,7 @@ impl From<OriLDAPError> for WebError {
         match error {
             OriLDAPError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
             OriLDAPError::Ldap(msg) => Self::Ldap(msg),
+            OriLDAPError::MissingSettings => Self::Ldap("LDAP settings are missing".to_string()),
         }
     }
 }

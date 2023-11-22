@@ -21,13 +21,12 @@ import {
   SelectOption,
   SelectSelectedValue,
 } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
-import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
-import { MutationKeys } from '../../../../../../shared/mutations';
 import { patternValidEmail } from '../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { validateIpOrDomain } from '../../../../../../shared/validators';
+import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 
 type FormFields = {
   smtp_server: string;
@@ -40,17 +39,18 @@ type FormFields = {
 
 export const SmtpSettingsForm = () => {
   const { LL } = useI18nContext();
-  const settings = useAppStore((state) => state.settings);
+
+  const settings = useSettingsPage((state) => state.settings);
 
   const toaster = useToaster();
 
   const {
-    settings: { editSettings },
+    settings: { patchSettings },
   } = useApi();
 
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation([MutationKeys.EDIT_SETTINGS], editSettings, {
+  const { mutate, isLoading } = useMutation(patchSettings, {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       toaster.success(LL.settingsPage.messages.editSuccess());
@@ -141,12 +141,7 @@ export const SmtpSettingsForm = () => {
   });
 
   const onSubmit: SubmitHandler<FormFields> = (data) => {
-    if (settings) {
-      mutate({
-        ...settings,
-        ...data,
-      });
-    }
+    mutate(data);
   };
 
   if (!settings) return null;

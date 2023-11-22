@@ -3,6 +3,11 @@ import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
   common: {
+    conditions: {
+      or: 'or',
+      and: 'and',
+      equal: 'equal',
+    },
     controls: {
       next: 'Next',
       back: 'Back',
@@ -12,6 +17,9 @@ const en: BaseTranslation = {
       close: 'Close',
       select: 'Select',
       finish: 'Finish',
+      saveChanges: 'Save changes',
+      save: 'Save',
+      RestoreDefault: 'Restore default',
     },
   },
   messages: {
@@ -149,6 +157,30 @@ const en: BaseTranslation = {
         },
         controls: {
           submit: 'Verify code',
+        },
+      },
+    },
+    registerEmailMFA: {
+      title: 'Email MFA Setup',
+      infoMessage: `
+        <p>
+          To setup your MFA enter the code that was sent to your account email: <strong>{email: string}</strong>
+        </p>
+`,
+      messages: {
+        success: 'Email MFA Enabled',
+        resend: 'Verification code resent',
+      },
+      form: {
+        fields: {
+          code: {
+            label: 'Email code',
+            error: 'Code is invalid',
+          },
+        },
+        controls: {
+          submit: 'Verify code',
+          resend: 'Resend email',
         },
       },
     },
@@ -504,6 +536,7 @@ const en: BaseTranslation = {
         messages: {
           mfaDisabled: 'MFA disabled.',
           OTPDisabled: 'One time password disabled.',
+          EmailMFADisabled: 'Email MFA disabled.',
           changeMFAMethod: 'MFA method changed',
         },
         securityKey: {
@@ -519,6 +552,7 @@ const en: BaseTranslation = {
         },
         labels: {
           totp: 'Time based one time passwords',
+          email: 'Email',
           webauth: 'Security keys',
           wallets: 'Wallets',
         },
@@ -731,11 +765,37 @@ const en: BaseTranslation = {
     tabs: {
       smtp: 'SMTP',
       global: 'Global settings',
-      support: 'Support',
+      ldap: 'LDAP',
     },
     messages: {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
+    },
+    ldapSettings: {
+      title: 'LDAP Settings',
+      form: {
+        labels: {
+          ldap_url: 'URL',
+          ldap_bind_username: 'Bind Username',
+          ldap_bind_password: 'Bind Password',
+          ldap_member_attr: 'Member Attribute',
+          ldap_username_attr: 'Username Attribute',
+          ldap_user_obj_class: 'User Object Class',
+          ldap_user_search_base: 'User Search Base',
+          ldap_groupname_attr: 'Groupname Attribute',
+          ldap_group_search_base: 'Group Search Base',
+          ldap_group_member_attr: 'Group Member Attribute',
+          ldap_group_obj_class: 'Group Object Class',
+        },
+      },
+      test: {
+        title: 'Test LDAP Connection',
+        submit: 'Test',
+        messages: {
+          success: 'LDAP connected successfully',
+          error: 'LDAP connection rejected',
+        },
+      },
     },
     modulesVisibility: {
       header: 'Modules Visibility',
@@ -760,7 +820,6 @@ const en: BaseTranslation = {
         },
       },
     },
-
     defaultNetworkSelect: {
       header: 'Default location view',
       helper: `<p>Here you can change your default location view.</p>
@@ -926,41 +985,6 @@ const en: BaseTranslation = {
         useMessageAsEmail: {
           label: 'Same as welcome message',
         },
-      },
-    },
-    licenseCard: {
-      header: 'License & Support Information',
-      licenseCardTitles: {
-        community: 'Community',
-        enterprise: 'Enterprise',
-        license: 'license',
-      },
-      body: {
-        enterprise: `
-				<p> Thank you for purchasing enterprise license!</p>
-				<br />
-				<p>This includes following modules:</p>`,
-        community: `
-              <p>
-                You have our community license. If you wish to get Enterprise
-                license for full features set and support, please visit
-                <a href="https://defguard.net">https://defguard.net</a>
-              </p>
-              <br />
-              <p>Enterprise license includes:</p>
-				`,
-        agreement: 'read license agreement',
-        modules: `
-          <ul>
-            <li>YubiBridge</li>
-            <li>OpenID</li>
-            <li>OpenLDAP</li>
-          </ul>
-          <br />`,
-      },
-      footer: {
-        company: 'licensed to: {company: string}',
-        expiration: 'expiration date: {expiration: string}',
       },
     },
   },
@@ -1297,6 +1321,18 @@ const en: BaseTranslation = {
         useWallet: 'Use your wallet instead',
         useWebauthn: 'Use security key instead',
         useRecoveryCode: 'Use recovery code instead',
+        useEmail: 'Use E-mail instead',
+      },
+      email: {
+        header: 'Use code we sent to your e-mail to proceed.',
+        form: {
+          labels: {
+            code: 'Code',
+          },
+          controls: {
+            resendCode: 'Resend Code',
+          },
+        },
       },
       totp: {
         header: 'Use code from your authentication app and click button to proceed.',

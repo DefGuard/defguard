@@ -24,7 +24,9 @@ use crate::{
     },
     db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::WebError,
-    handlers::mail::send_mfa_configured_email,
+    handlers::mail::{
+        send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
+    },
     handlers::SIGN_IN_COOKIE_NAME,
     ldap::utils::user_from_ldap,
     SERVER_CONFIG,
@@ -55,26 +57,14 @@ pub async fn authenticate(
         Ok(None) => {
             // create user from LDAP
             debug!("User not found in DB, authenticating user {lowercase_username} with LDAP");
-            // FIXME: assume LDAP is enabled; use other means to enable/disable LDAP.
-            if true {
-                if let Ok(user) = user_from_ldap(
-                    &appstate.pool,
-                    &appstate.config,
-                    &lowercase_username,
-                    &data.password,
-                )
-                .await
-                {
-                    user
-                } else {
-                    info!("Failed to authenticate user {lowercase_username} with LDAP");
-                    log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);
-                    return Err(WebError::Authorization("user not found".into()));
-                }
+            if let Ok(user) =
+                user_from_ldap(&appstate.pool, &lowercase_username, &data.password).await
+            {
+                user
             } else {
-                info!("User {lowercase_username} not found in DB and LDAP is disabled");
+                info!("Failed to authenticate user {lowercase_username} with LDAP");
                 log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);
-                return Err(WebError::Authorization("LDAP feature disabled".into()));
+                return Err(WebError::Authorization("user not found".into()));
             }
         }
         Err(err) => {
@@ -285,7 +275,7 @@ pub async fn webauthn_finish(
 
     info!("Finished Webauthn registration for user {}", user.username);
 
-    send_mfa_configured_email(user.clone(), &MFAMethod::Webauthn, &appstate.mail_tx).await?;
+    send_mfa_configured_email(&user, &MFAMethod::Webauthn, &appstate.mail_tx)?;
 
     Ok(ApiResponse {
         json: json!(recovery_codes),
@@ -371,7 +361,7 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
     let mut user = session.user;
     debug!("Generating new TOTP secret for user {}", user.username);
 
-    let secret = user.new_secret(&appstate.pool).await?;
+    let secret = user.new_totp_secret(&appstate.pool).await?;
     info!("Generated new TOTP secret for user {}", user.username);
     Ok(ApiResponse {
         json: json!(AuthTotp::new(secret)),
@@ -387,7 +377,7 @@ pub async fn totp_enable(
 ) -> ApiResult {
     let mut user = session.user;
     debug!("Enabling TOTP for user {}", user.username);
-    if user.verify_code(data.code) {
+    if user.verify_totp_code(data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_totp(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
@@ -395,8 +385,7 @@ pub async fn totp_enable(
                 .await?;
         }
 
-        send_mfa_configured_email(user.clone(), &MFAMethod::OneTimePassword, &appstate.mail_tx)
-            .await?;
+        send_mfa_configured_email(&user, &MFAMethod::OneTimePassword, &appstate.mail_tx)?;
 
         info!("Enabled TOTP for user {}", user.username);
         Ok(ApiResponse {
@@ -428,7 +417,7 @@ pub async fn totp_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying TOTP for user {}", username);
-        if user.totp_enabled && user.verify_code(data.code) {
+        if user.totp_enabled && user.verify_totp_code(data.code) {
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
@@ -458,6 +447,133 @@ pub async fn totp_code(
             }
         } else {
             Err(WebError::Authorization("Invalid TOTP code".into()))
+        }
+    } else {
+        Err(WebError::ObjectNotFound("Invalid user".into()))
+    }
+}
+
+/// Initialize email MFA setup
+pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+    // check if SMTP is configured
+    let settings = Settings::get_settings(&appstate.pool).await?;
+    if !settings.smtp_configured() {
+        error!("Unable to start email MFA configuration. SMTP is not configured.");
+        return Err(WebError::EmailMfa("SMTP not configured".into()));
+    }
+
+    // generate TOTP secret
+    let mut user = session.user;
+    debug!("Generating new email MFA secret for user {}", user.username);
+    user.new_email_secret(&appstate.pool).await?;
+    info!("Generated new email MFA secret for user {}", user.username);
+
+    // send email with code
+    send_email_mfa_activation_email(&user, &appstate.mail_tx)?;
+
+    Ok(ApiResponse::default())
+}
+
+/// Enable email MFA
+pub async fn email_mfa_enable(
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+    Json(data): Json<AuthCode>,
+) -> ApiResult {
+    let mut user = session.user;
+    debug!("Enabling email MFA for user {}", user.username);
+    if user.verify_email_mfa_code(data.code) {
+        let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
+        user.enable_email_mfa(&appstate.pool).await?;
+        if user.mfa_method == MFAMethod::None {
+            user.set_mfa_method(&appstate.pool, MFAMethod::Email)
+                .await?;
+        }
+
+        send_mfa_configured_email(&user, &MFAMethod::Email, &appstate.mail_tx)?;
+
+        info!("Enabled email MFA for user {}", user.username);
+        Ok(ApiResponse {
+            json: json!(recovery_codes),
+            status: StatusCode::OK,
+        })
+    } else {
+        Err(WebError::ObjectNotFound("Invalid email code".into()))
+    }
+}
+
+/// Disable email MFA
+pub async fn email_mfa_disable(
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    let mut user = session.user;
+    debug!("Disabling email MFA for user {}", user.username);
+    user.disable_email_mfa(&appstate.pool).await?;
+    user.verify_mfa_state(&appstate.pool).await?;
+    info!("Disabled email MFA for user {}", user.username);
+    Ok(ApiResponse::default())
+}
+
+/// Send email code to user
+pub async fn request_email_mfa_code(
+    session: Session,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+        debug!("Sending email MFA code for user {}", user.username);
+        if user.email_mfa_enabled {
+            send_email_mfa_code_email(&user, &appstate.mail_tx)?;
+            info!("Sent email MFA code for user {}", user.username);
+            Ok(ApiResponse::default())
+        } else {
+            Err(WebError::Authorization("Email MFA not enabled".into()))
+        }
+    } else {
+        Err(WebError::ObjectNotFound("Invalid user".into()))
+    }
+}
+
+/// Validate email MFA code
+pub async fn email_mfa_code(
+    cookies: Cookies,
+    mut session: Session,
+    State(appstate): State<AppState>,
+    Json(data): Json<AuthCode>,
+) -> ApiResult {
+    if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+        let username = user.username.clone();
+        debug!("Verifying email MFA code for user {}", username);
+        if user.email_mfa_enabled && user.verify_email_mfa_code(data.code) {
+            session
+                .set_state(&appstate.pool, SessionState::MultiFactorVerified)
+                .await?;
+            let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
+            info!("Verified email MFA code for user {username}");
+            let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+            let private_cookies = cookies.private(&key);
+            if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
+                debug!("Found openid session cookie.");
+                let redirect_url = openid_cookie.value().to_string();
+                private_cookies.remove(openid_cookie);
+                Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: Some(redirect_url),
+                    }),
+                    status: StatusCode::OK,
+                })
+            } else {
+                Ok(ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
+                    status: StatusCode::OK,
+                })
+            }
+        } else {
+            Err(WebError::Authorization("Invalid email MFA code".into()))
         }
     } else {
         Err(WebError::ObjectNotFound("Invalid user".into()))

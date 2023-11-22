@@ -1,6 +1,7 @@
 use super::{ApiResponse, ApiResult, VERSION};
-use crate::{appstate::AppState, auth::SessionInfo, db::WireguardNetwork, error::WebError};
+use crate::{appstate::AppState, auth::SessionInfo, db::WireguardNetwork};
 
+use crate::db::Settings;
 use axum::{extract::State, http::StatusCode};
 use serde_json::json;
 
@@ -9,17 +10,18 @@ use serde_json::json;
 pub struct AppInfo {
     version: String,
     network_present: bool,
+    smtp_enabled: bool,
 }
 
 pub(crate) async fn get_app_info(
     State(appstate): State<AppState>,
     _session: SessionInfo,
 ) -> ApiResult {
-    let networks = WireguardNetwork::all(&appstate.pool)
-        .await
-        .map_err(WebError::from)?;
+    let networks = WireguardNetwork::all(&appstate.pool).await?;
+    let settings = Settings::get_settings(&appstate.pool).await?;
     let res = AppInfo {
         network_present: !networks.is_empty(),
+        smtp_enabled: settings.smtp_configured(),
         version: VERSION.into(),
     };
 

@@ -69,7 +69,7 @@ export const UserProfile = () => {
   });
 
   useEffect(() => {
-    if (currentUser?.username === username || !username) {
+    if (currentUser?.username === username) {
       setUserProfileState({ isMe: true });
     } else {
       setUserProfileState({ isMe: false });

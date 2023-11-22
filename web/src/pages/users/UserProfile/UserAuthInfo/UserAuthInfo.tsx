@@ -8,6 +8,7 @@ import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfi
 import { ChangeSelfPasswordModal } from './modals/ChangeSelfPasswordModal/ChangeSelfPasswordModal';
 import { ManageWebAuthNKeysModal } from './modals/ManageWebAuthNModal/ManageWebAuthNModal';
 import { RecoveryCodesModal } from './modals/RecoveryCodesModal/RecoveryCodesModal';
+import { RegisterEmailMFAModal } from './modals/RegisterEmailMFAModal/RegisterEmailMFAModal';
 import { RegisterTOTPModal } from './modals/RegisterTOTPModal/RegisterTOTPModal';
 import { UserAuthInfoMFA } from './UserAuthInfoMFA';
 import { UserAuthInfoPassword } from './UserAuthInfoPassword';
@@ -31,6 +32,7 @@ export const UserAuthInfo = () => {
       <RegisterTOTPModal />
       <RecoveryCodesModal />
       <ChangeSelfPasswordModal />
+      <RegisterEmailMFAModal />
     </section>
   );
 };

@@ -32,6 +32,10 @@ static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
 
 static NEW_DEVICE_ADDED_EMAIL_SUBJECT: &str = "Defguard: new device added to your account";
+
+static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Activation";
+static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Code for Login";
+
 static GATEWAY_DISCONNECTED: &str = "Defguard: Gateway disconnected";
 
 #[derive(Clone, Deserialize)]
@@ -242,8 +246,8 @@ pub async fn send_gateway_disconnected_email(
     Ok(())
 }
 
-pub async fn send_mfa_configured_email(
-    user: User,
+pub fn send_mfa_configured_email(
+    user: &User,
     mfa_method: &MFAMethod,
     mail_tx: &UnboundedSender<Mail>,
 ) -> Result<(), TemplateError> {
@@ -255,7 +259,7 @@ pub async fn send_mfa_configured_email(
     );
 
     let mail = Mail {
-        to: user.email,
+        to: user.email.clone(),
         subject,
         content: templates::mfa_configured_mail(mfa_method)?,
         attachments: Vec::new(),
@@ -266,11 +270,79 @@ pub async fn send_mfa_configured_email(
 
     match mail_tx.send(mail) {
         Ok(()) => {
-            info!("MFA configred mail sent to {to}");
+            info!("MFA configured mail sent to {to}");
             Ok(())
         }
         Err(err) => {
             error!("Failed to send mfa configured mail to {to} with error:\n{err}");
+            Ok(())
+        }
+    }
+}
+
+pub fn send_email_mfa_activation_email(
+    user: &User,
+    mail_tx: &UnboundedSender<Mail>,
+) -> Result<(), TemplateError> {
+    debug!("Sending email MFA activation mail to {}", user.email);
+
+    // generate a verification code
+    let code = user.generate_email_mfa_code().map_err(|err| {
+        error!("Failed to generate email MFA code: {err}");
+        TemplateError::MfaError
+    })?;
+
+    let mail = Mail {
+        to: user.email.clone(),
+        subject: EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
+        content: templates::email_mfa_activation_mail(code)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Email MFA activation mail sent to {to}");
+            Ok(())
+        }
+        Err(err) => {
+            error!("Failed to send email MFA activation mail to {to} with error:\n{err}");
+            Ok(())
+        }
+    }
+}
+
+pub fn send_email_mfa_code_email(
+    user: &User,
+    mail_tx: &UnboundedSender<Mail>,
+) -> Result<(), TemplateError> {
+    debug!("Sending email MFA code mail to {}", user.email);
+
+    // generate a verification code
+    let code = user.generate_email_mfa_code().map_err(|err| {
+        error!("Failed to generate email MFA code: {err}");
+        TemplateError::MfaError
+    })?;
+
+    let mail = Mail {
+        to: user.email.clone(),
+        subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
+        content: templates::email_mfa_code_mail(code)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Email MFA code mail sent to {to}");
+            Ok(())
+        }
+        Err(err) => {
+            error!("Failed to send email MFA code mail to {to} with error:\n{err}");
             Ok(())
         }
     }

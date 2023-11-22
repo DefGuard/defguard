@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"user\" (\"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"ssh_key\",\"pgp_key\",\"pgp_cert_id\",\"mfa_enabled\",\"totp_enabled\",\"totp_secret\",\"mfa_method\",\"recovery_codes\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id",
+  "query": "INSERT INTO \"user\" (\"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"ssh_key\",\"pgp_key\",\"pgp_cert_id\",\"mfa_enabled\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\",\"recovery_codes\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,8 @@
         "Text",
         "Bool",
         "Bool",
+        "Bool",
+        "Bytea",
         "Bytea",
         {
           "Custom": {
@@ -31,7 +33,8 @@
                 "none",
                 "one_time_password",
                 "webauthn",
-                "web3"
+                "web3",
+                "email"
               ]
             }
           }
@@ -43,5 +46,5 @@
       false
     ]
   },
-  "hash": "77ca1d65a66cc81ad4855fed73539cdee5e50626f35bfef02fbd1378537c7f35"
+  "hash": "2d5dd580bce091c20151a1cc49ec241f158681185ae0a3fa2732c45fe44735e7"
 }
