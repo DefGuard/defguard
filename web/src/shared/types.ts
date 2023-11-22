@@ -15,6 +15,7 @@ export enum UserStatus {
 export enum UserMFAMethod {
   NONE = 'None',
   ONE_TIME_PASSWORD = 'OneTimePassword',
+  EMAIL = 'Email',
   WEB_AUTH_N = 'Webauthn',
   WEB3 = 'Web3',
 }
@@ -27,6 +28,7 @@ export type User = {
   mfa_method: UserMFAMethod;
   mfa_enabled: boolean;
   totp_enabled: boolean;
+  email_mfa_enabled: boolean;
   email: string;
   phone?: string;
   pgp_cert_id?: string;
@@ -264,6 +266,7 @@ export interface MFALoginResponse {
   totp_available: boolean;
   web3_available: boolean;
   webauthn_available: boolean;
+  email_available: boolean;
 }
 
 export interface LoginResponse {
@@ -315,6 +318,7 @@ export interface MappedDevice extends ImportedDevice {
 export interface AppInfo {
   version: string;
   network_present: boolean;
+  smtp_enabled: boolean;
 }
 
 export type GetDeviceConfigRequest = {
@@ -335,6 +339,10 @@ export type DeleteGatewayRequest = {
 export type ChangePasswordSelfRequest = {
   old_password: string;
   new_password: string;
+};
+
+export type AuthCodeRequsest = {
+  code: number;
 };
 
 export interface ApiHook {
@@ -395,6 +403,15 @@ export interface ApiHook {
       disable: () => EmptyApiResponse;
       enable: () => EmptyApiResponse;
       recovery: (data: RecoveryLoginRequest) => Promise<MFAFinishResponse>;
+      email: {
+        register: {
+          start: () => EmptyApiResponse;
+          finish: (data: AuthCodeRequsest) => MFARecoveryCodesResponse;
+        };
+        disable: () => EmptyApiResponse;
+        sendCode: () => EmptyApiResponse;
+        verify: (data: AuthCodeRequsest) => Promise<MFAFinishResponse>;
+      };
       webauthn: {
         register: {
           start: (data: { name: string }) => Promise<CredentialCreationOptionsJSON>;
@@ -589,24 +606,31 @@ export interface OpenIdClientModal extends StandardModalState {
   viewMode: boolean;
 }
 
+// DO NOT EXTEND THIS STORE
 /**
  * this approach is outdated use individual stores instead
  */
 export interface UseModalStore {
   openIdClientModal: OpenIdClientModal;
   setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
+  // DO NOT EXTEND THIS STORE
   addWalletModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
   deleteUserModal: DeleteUserModal;
+  // DO NOT EXTEND THIS STORE
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
+  // DO NOT EXTEND THIS STORE
   webhookModal: WebhookModal;
   addOpenidClientModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   deleteOpenidClientModal: DeleteOpenidClientModal;
   enableOpenidClientModal: EnableOpenidClientModal;
   manageWebAuthNKeysModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   addSecurityKeyModal: StandardModalState;
   registerTOTP: StandardModalState;
   connectWalletModal: ConnectWalletModal;
@@ -614,14 +638,18 @@ export interface UseModalStore {
   setState: (data: Partial<UseModalStore>) => void;
   setWebhookModal: ModalSetter<WebhookModal>;
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
+  // DO NOT EXTEND THIS STORE
   setKeyDetailModal: ModalSetter<KeyDetailModal>;
   setKeyDeleteModal: ModalSetter<KeyDeleteModal>;
   setDeleteUserModal: ModalSetter<DeleteUserModal>;
+  // DO NOT EXTEND THIS STORE
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
+  // DO NOT EXTEND THIS STORE
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
+  // DO NOT EXTEND THIS STORE
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
 }
 

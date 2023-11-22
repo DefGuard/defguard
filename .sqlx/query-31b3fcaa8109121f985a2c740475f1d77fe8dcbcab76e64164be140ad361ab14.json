@@ -14,7 +14,8 @@
                 "none",
                 "one_time_password",
                 "webauthn",
-                "web3"
+                "web3",
+                "email"
               ]
             }
           }

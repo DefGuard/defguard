@@ -22,6 +22,8 @@ pub enum WebError {
     Ldap(String),
     #[error("Webauthn registration error: {0}")]
     WebauthnRegistration(String),
+    #[error("Email MFA error: {0}")]
+    EmailMfa(String),
     #[error("Incorrect username: {0}")]
     IncorrectUsername(String),
     #[error("Object not found: {0}")]

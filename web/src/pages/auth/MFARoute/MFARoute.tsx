@@ -6,6 +6,8 @@ import { Route, Routes, useNavigate } from 'react-router';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { UserMFAMethod } from '../../../shared/types';
 import { useMFAStore } from '../shared/hooks/useMFAStore';
+import { MFAEmail } from './MFAEmail/MFAEmail';
+import { MFANav } from './MFANav/MFANav';
 import { MFARecovery } from './MFARecovery/MFARecovery';
 import { MFATOTPAuth } from './MFATOTPAuth/MFATOTPAuth';
 import { MFAWeb3 } from './MFAWeb3/MFAWeb3';
@@ -21,9 +23,11 @@ export const MFARoute = () => {
         <Route path="totp" element={<MFATOTPAuth />} />
         <Route path="webauthn" element={<MFAWebAuthN />} />
         <Route path="web3" element={<MFAWeb3 />} />
+        <Route path="email" element={<MFAEmail />} />
         <Route path="recovery" element={<MFARecovery />} />
         <Route path="/*" element={<RedirectToDefaultMFA />} />
       </Routes>
+      <MFANav />
     </section>
   );
 };
@@ -42,6 +46,9 @@ const RedirectToDefaultMFA = () => {
         break;
       case UserMFAMethod.ONE_TIME_PASSWORD:
         navigate('/auth/mfa/totp', { replace: true });
+        break;
+      case UserMFAMethod.EMAIL:
+        navigate('/auth/mfa/email', { replace: true });
         break;
       default:
         navigate('/auth/login', { replace: true });

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id, mfa_enabled, totp_enabled, mfa_method as \"mfa_method: MFAMethod\", password_hash FROM \"user\"\n        ",
+  "query": "\n            SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, mfa_method as \"mfa_method: MFAMethod\", password_hash FROM \"user\"\n        ",
   "describe": {
     "columns": [
       {
@@ -20,6 +20,11 @@
       },
       {
         "ordinal": 3,
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
         "name": "mfa_method: MFAMethod",
         "type_info": {
           "Custom": {
@@ -29,14 +34,15 @@
                 "none",
                 "one_time_password",
                 "webauthn",
-                "web3"
+                "web3",
+                "email"
               ]
             }
           }
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "password_hash",
         "type_info": "Text"
       }
@@ -49,8 +55,9 @@
       false,
       false,
       false,
+      false,
       true
     ]
   },
-  "hash": "677426164ec7f513f7629d58944b1ea8be7e552f6905685b432536ee395999f1"
+  "hash": "2da415f5b71186fcfbe7fdf3794606eb73b47c4ec120aaef50aff6c7d075dbdd"
 }

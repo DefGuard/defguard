@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"user\" SET email_mfa_enabled = TRUE WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ce371fbec3376b2d78aa37060c3363ab06a3763973afde0f14d9c674665918ee"
+}

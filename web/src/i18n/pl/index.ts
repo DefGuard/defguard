@@ -16,6 +16,11 @@ const pl: Translation = {
       saveChanges: 'Zapisz zmiany',
       RestoreDefault: 'Przywróć domyślne',
     },
+    conditions: {
+      and: 'I',
+      equal: 'Równy',
+      or: 'Albo',
+    },
   },
   messages: {
     error: 'Wystąpił błąd.',
@@ -28,6 +33,30 @@ const pl: Translation = {
     insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
+    registerEmailMFA: {
+      title: 'Skonfiguruj Email MFA',
+      form: {
+        controls: {
+          resend: 'Wyślij kod ponownie',
+          submit: 'Zweryfikuj kod',
+        },
+        fields: {
+          code: {
+            error: 'Podany kod jest nieprawidłowy',
+            label: 'Kod',
+          },
+        },
+      },
+      infoMessage: `
+      <p>
+        Aby zakończyć konfigurację, wpisz kod, który został wysłany na email: <strong>{email}</strong> 
+      </p>
+      `,
+      messages: {
+        resend: 'Kod wysłany ponownie',
+        success: 'Metoda MFA email włączona',
+      },
+    },
     deviceConfig: {
       title: 'Konfiguracje VPN urządzenia',
     },
@@ -489,9 +518,10 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           disable: 'Wyłącz MFA',
         },
         messages: {
-          mfaDisabled: 'MFA wyłączone',
+          mfaDisabled: 'MFA wyłączone.',
           OTPDisabled: 'Hasło jednorazowe wyłączone.',
-          changeMFAMethod: 'Metoda MFA zmieniona',
+          changeMFAMethod: 'Metoda MFA zmieniona.',
+          EmailMFADisabled: 'Metoda Email wyłączona.',
         },
         securityKey: {
           singular: 'klucz bezpieczeństwa',
@@ -508,6 +538,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           totp: 'Hasła jednorazowe oparte na czasie',
           webauth: 'Klucze bezpieczeństwa',
           wallets: 'Portfele',
+          email: 'Email',
         },
         editMode: {
           enable: 'Włącz',
@@ -1274,6 +1305,18 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         useWallet: 'Zamiast tego użyj swojego portfela kryptowalutowego',
         useWebauthn: 'Zamiast tego użyj klucza bezpieczeństwa',
         useRecoveryCode: 'Zamiast tego użyj kodu odzyskiwania',
+        useEmail: 'Zamiast tego użyj email',
+      },
+      email: {
+        header: 'Użyj kodu wysłanego na email aby kontynuować',
+        form: {
+          controls: {
+            resendCode: 'Wyślij kod ponownie',
+          },
+          labels: {
+            code: 'Kod',
+          },
+        },
       },
       totp: {
         header:

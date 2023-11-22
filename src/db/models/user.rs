@@ -5,6 +5,7 @@ use super::{
     webauthn::WebAuthn,
     DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
+use crate::auth::EMAIL_CODE_VALIDITY_PERIOD;
 use crate::{auth::TOTP_CODE_VALIDITY_PERIOD, error::WebError, random::gen_alphanumeric};
 use argon2::{
     password_hash::{
@@ -29,6 +30,7 @@ pub enum MFAMethod {
     OneTimePassword,
     Webauthn,
     Web3,
+    Email,
 }
 
 impl std::string::ToString for MFAMethod {
@@ -38,6 +40,7 @@ impl std::string::ToString for MFAMethod {
             MFAMethod::OneTimePassword => "TOTP".into(),
             MFAMethod::Web3 => "Web3".into(),
             MFAMethod::Webauthn => "WebAuthn".into(),
+            MFAMethod::Email => "Email".into(),
         }
     }
 }
@@ -48,6 +51,7 @@ pub struct UserDiagnostic {
     pub id: i64,
     pub mfa_enabled: bool,
     pub totp_enabled: bool,
+    pub email_mfa_enabled: bool,
     pub mfa_method: MFAMethod,
     pub is_active: bool,
 }
@@ -67,7 +71,9 @@ pub struct User {
     pub mfa_enabled: bool,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
+    pub(crate) email_mfa_enabled: bool,
     pub(crate) totp_secret: Option<Vec<u8>>,
+    pub(crate) email_mfa_secret: Option<Vec<u8>>,
     #[model(enum)]
     pub(crate) mfa_method: MFAMethod,
     #[model(ref)]
@@ -107,7 +113,9 @@ impl User {
             pgp_cert_id: None,
             mfa_enabled: false,
             totp_enabled: false,
+            email_mfa_enabled: false,
             totp_secret: None,
+            email_mfa_secret: None,
             mfa_method: MFAMethod::None,
             recovery_codes: Vec::new(),
         }
@@ -141,7 +149,7 @@ impl User {
     }
 
     /// Generate new `secret`, save it, then return it as RFC 4648 base32-encoded string.
-    pub async fn new_secret(&mut self, pool: &DbPool) -> Result<String, SqlxError> {
+    pub async fn new_totp_secret(&mut self, pool: &DbPool) -> Result<String, SqlxError> {
         let secret = thread_rng().gen::<[u8; 20]>().to_vec();
         if let Some(id) = self.id {
             query!(
@@ -155,6 +163,22 @@ impl User {
         let secret_base32 = TOTP::from_bytes(&secret).base32_secret();
         self.totp_secret = Some(secret);
         Ok(secret_base32)
+    }
+
+    /// Generate new `secret` similar to TOTP secret above, but don't return generated value.
+    pub async fn new_email_secret(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        let email_secret = thread_rng().gen::<[u8; 20]>().to_vec();
+        if let Some(id) = self.id {
+            query!(
+                "UPDATE \"user\" SET email_mfa_secret = $1 WHERE id = $2",
+                email_secret,
+                id
+            )
+            .execute(pool)
+            .await?;
+        }
+        self.email_mfa_secret = Some(email_secret);
+        Ok(())
     }
 
     pub async fn set_mfa_method(
@@ -184,19 +208,19 @@ impl User {
     /// - TOTP is enabled
     /// - a [`Wallet`] flagged `use_for_mfa`
     /// - a security key for Webauthn
-    async fn check_mfa(&self, pool: &DbPool) -> Result<bool, SqlxError> {
+    async fn check_mfa_enabled(&self, pool: &DbPool) -> Result<bool, SqlxError> {
         // short-cut
-        if self.totp_enabled {
+        if self.totp_enabled || self.email_mfa_enabled {
             return Ok(true);
         }
 
         if let Some(id) = self.id {
             query_scalar!(
-                "SELECT totp_enabled OR coalesce(bool_or(wallet.use_for_mfa), FALSE) \
+                "SELECT totp_enabled OR email_mfa_enabled OR coalesce(bool_or(wallet.use_for_mfa), FALSE) \
                 OR count(webauthn.id) > 0 \"bool!\" FROM \"user\" \
                 LEFT JOIN wallet ON wallet.user_id = \"user\".id \
                 LEFT JOIN webauthn ON webauthn.user_id = \"user\".id \
-                WHERE \"user\".id = $1 GROUP BY totp_enabled;",
+                WHERE \"user\".id = $1 GROUP BY totp_enabled, email_mfa_enabled;",
                 id
             )
             .fetch_one(pool)
@@ -305,8 +329,8 @@ impl User {
     pub async fn disable_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
         if let Some(id) = self.id {
             query!(
-                "UPDATE \"user\" SET mfa_enabled = FALSE, mfa_method = 'none', totp_enabled = FALSE, \
-                totp_secret = NULL, recovery_codes = '{}' WHERE id = $1",
+                "UPDATE \"user\" SET mfa_enabled = FALSE, mfa_method = 'none', totp_enabled = FALSE, email_mfa_enabled = FALSE, \
+                totp_secret = NULL, email_mfa_secret = NULL, recovery_codes = '{}' WHERE id = $1",
                 id
             )
             .execute(pool)
@@ -315,7 +339,9 @@ impl User {
             WebAuthn::delete_all_for_user(pool, id).await?;
         }
         self.totp_secret = None;
+        self.email_mfa_secret = None;
         self.totp_enabled = false;
+        self.email_mfa_enabled = false;
         self.mfa_method = MFAMethod::None;
         self.recovery_codes.clear();
         Ok(())
@@ -329,7 +355,7 @@ impl User {
                     .execute(pool)
                     .await?;
             }
-            self.totp_enabled = false;
+            self.totp_enabled = true;
         }
         Ok(())
     }
@@ -337,7 +363,8 @@ impl User {
     /// Disable TOTP; discard the secret.
     pub async fn disable_totp(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
         if self.totp_enabled {
-            self.mfa_enabled = self.check_mfa(pool).await?;
+            // FIXME: check if this flag is set correctly when TOTP is the only method
+            self.mfa_enabled = self.check_mfa_enabled(pool).await?;
             self.totp_enabled = false;
             self.totp_secret = None;
             if let Some(id) = self.id {
@@ -355,6 +382,45 @@ impl User {
         }
         Ok(())
     }
+
+    /// Enable email MFA
+    pub async fn enable_email_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        if !self.email_mfa_enabled {
+            if let Some(id) = self.id {
+                query!(
+                    "UPDATE \"user\" SET email_mfa_enabled = TRUE WHERE id = $1",
+                    id
+                )
+                .execute(pool)
+                .await?;
+            }
+            self.email_mfa_enabled = true;
+        }
+        Ok(())
+    }
+
+    /// Disable email MFA; discard the secret.
+    pub async fn disable_email_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        if self.email_mfa_enabled {
+            self.mfa_enabled = self.check_mfa_enabled(pool).await?;
+            self.email_mfa_enabled = false;
+            self.email_mfa_secret = None;
+            if let Some(id) = self.id {
+                query!(
+                    "UPDATE \"user\" SET mfa_enabled = $2, email_mfa_enabled = $3 AND email_mfa_secret = $4 \
+                    WHERE id = $1",
+                    id,
+                    self.mfa_enabled,
+                    self.email_mfa_enabled,
+                    self.email_mfa_secret,
+                )
+                .execute(pool)
+                .await?;
+            }
+        }
+        Ok(())
+    }
+
     /// Select all users without sensitive data.
     // FIXME: Remove it when Model macro will suport SecretString
     pub async fn all_without_sensitive_data(
@@ -362,7 +428,7 @@ impl User {
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
             r#"
-            SELECT id, mfa_enabled, totp_enabled, mfa_method as "mfa_method: MFAMethod", password_hash FROM "user"
+            SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, mfa_method as "mfa_method: MFAMethod", password_hash FROM "user"
         "#
         )
         .fetch_all(pool)
@@ -372,6 +438,7 @@ impl User {
             .map(|u| UserDiagnostic {
                 mfa_method: u.mfa_method.clone(),
                 totp_enabled: u.totp_enabled,
+                email_mfa_enabled: u.email_mfa_enabled,
                 mfa_enabled: u.mfa_enabled,
                 id: u.id,
                 is_active: u.password_hash.is_some(),
@@ -389,6 +456,7 @@ impl User {
             User,
             "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
+            email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\"
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
@@ -403,11 +471,41 @@ impl User {
 
     /// Check if TOTP `code` is valid.
     #[must_use]
-    pub fn verify_code(&self, code: u32) -> bool {
+    pub fn verify_totp_code(&self, code: u32) -> bool {
         if let Some(totp_secret) = &self.totp_secret {
             let totp = TOTP::from_bytes(totp_secret);
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
                 return totp.verify(code, TOTP_CODE_VALIDITY_PERIOD, timestamp.as_secs());
+            }
+        }
+        false
+    }
+
+    pub fn generate_email_mfa_code(&self) -> Result<u32, WebError> {
+        match &self.email_mfa_secret {
+            Some(email_mfa_secret) => {
+                let auth = TOTP::from_bytes(email_mfa_secret);
+                let timestamp = SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
+                let code = auth.generate(EMAIL_CODE_VALIDITY_PERIOD, timestamp);
+                Ok(code)
+            }
+            None => Err(WebError::EmailMfa(format!(
+                "Email MFA secret not configured for user {}",
+                self.username
+            ))),
+        }
+    }
+
+    /// Check if email MFA `code` is valid.
+    #[must_use]
+    pub fn verify_email_mfa_code(&self, code: u32) -> bool {
+        if let Some(email_mfa_secret) = &self.email_mfa_secret {
+            let totp = TOTP::from_bytes(email_mfa_secret);
+            if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+                return totp.verify(code, EMAIL_CODE_VALIDITY_PERIOD, timestamp.as_secs());
             }
         }
         false
@@ -444,8 +542,8 @@ impl User {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes \
+            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\" WHERE username = $1",
             username
         )

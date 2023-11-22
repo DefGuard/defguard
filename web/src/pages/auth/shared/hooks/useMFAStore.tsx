@@ -13,6 +13,7 @@ const defaultState: MFALoginResponse = {
   totp_available: false,
   web3_available: false,
   webauthn_available: false,
+  email_available: false,
 };
 
 export const useMFAStore = createWithEqualityFn<
