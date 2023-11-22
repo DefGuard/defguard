@@ -6,8 +6,6 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
-import { Locales } from '../i18n/i18n-types';
-
 export enum UserStatus {
   active = 'Active',
   inactive = 'Inactive',
@@ -467,6 +465,9 @@ export interface ApiHook {
     getSettings: () => Promise<Settings>;
     editSettings: (data: Settings) => EmptyApiResponse;
     setDefaultBranding: (id: string) => Promise<Settings>;
+    patchSettings: (data: Partial<Settings>) => EmptyApiResponse;
+    getEssentialSettings: () => Promise<SettingsEssentials>;
+    testLdapSettings: () => Promise<EmptyApiResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -606,6 +607,9 @@ export interface OpenIdClientModal extends StandardModalState {
 }
 
 // DO NOT EXTEND THIS STORE
+/**
+ * this approach is outdated use individual stores instead
+ */
 export interface UseModalStore {
   openIdClientModal: OpenIdClientModal;
   setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
@@ -649,40 +653,71 @@ export interface UseModalStore {
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
 }
 
-export interface AppStore {
-  settings?: Settings;
-  language?: Locales;
-  appInfo?: AppInfo;
-  setAppStore: (newValues: Partial<Omit<AppStore, 'setAppStore'>>) => void;
-}
-
 export interface UseOpenIDStore {
   openIDRedirect?: boolean;
   setOpenIDStore: (newValues: Partial<Omit<UseOpenIDStore, 'setOpenIdStore'>>) => void;
 }
 
-export interface Settings {
-  challenge_template: string;
-  openid_enabled: boolean;
-  ldap_enabled: boolean;
-  wireguard_enabled: boolean;
-  webhooks_enabled: boolean;
-  worker_enabled: boolean;
-  main_logo_url: string;
-  nav_logo_url: string;
-  instance_name: string;
+/**
+ * full defguard instance Settings
+ */
+export type Settings = SettingsModules &
+  SettingsWeb3 &
+  SettingsSMTP &
+  SettingsEnrollment &
+  SettingsBranding &
+  SettingsLDAP;
+
+// essentials for core frontend, includes only those that are required for frontend operations
+export type SettingsEssentials = SettingsModules & SettingsBranding;
+
+export type SettingsEnrollment = {
+  enrollment_vpn_step_optional: boolean;
+  enrollment_welcome_message: string;
+  enrollment_welcome_email: string;
+  enrollment_welcome_email_subject: string;
+  enrollment_use_welcome_message_as_email: boolean;
+};
+
+export type SettingsSMTP = {
   smtp_server?: string;
   smtp_port?: number;
   smtp_encryption: string;
   smtp_user?: string;
   smtp_password?: string;
   smtp_sender?: string;
-  enrollment_vpn_step_optional: boolean;
-  enrollment_welcome_message: string;
-  enrollment_welcome_email: string;
-  enrollment_welcome_email_subject: string;
-  enrollment_use_welcome_message_as_email: boolean;
-}
+};
+
+export type SettingsModules = {
+  openid_enabled: boolean;
+  wireguard_enabled: boolean;
+  webhooks_enabled: boolean;
+  worker_enabled: boolean;
+};
+
+export type SettingsBranding = {
+  instance_name: string;
+  main_logo_url: string;
+  nav_logo_url: string;
+};
+
+export type SettingsLDAP = {
+  ldap_bind_password?: string;
+  ldap_bind_username?: string;
+  ldap_url?: string;
+  ldap_group_member_attr: string;
+  ldap_group_obj_class: string;
+  ldap_group_search_base: string;
+  ldap_groupname_attr: string;
+  ldap_member_attr: string;
+  ldap_user_obj_class: string;
+  ldap_user_search_base: string;
+  ldap_username_attr: string;
+};
+
+export type SettingsWeb3 = {
+  challenge_template: string;
+};
 
 export interface Webhook {
   id: string;

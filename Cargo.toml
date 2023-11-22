@@ -82,6 +82,7 @@ webauthn-rs = { version = "0.4", features = [
 ] }
 webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+struct-patch = "0.4"
 
 [dev-dependencies]
 bytes = "1.5"

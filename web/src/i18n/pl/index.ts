@@ -12,6 +12,9 @@ const pl: Translation = {
       select: 'Wybierz',
       submit: 'Wyślij',
       confirm: 'Potwierdź',
+      save: 'Zapisz',
+      saveChanges: 'Zapisz zmiany',
+      RestoreDefault: 'Przywróć domyślne',
     },
     conditions: {
       and: 'I',
@@ -746,11 +749,37 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
     tabs: {
       smtp: 'SMTP',
       global: 'Globalne',
-      support: 'Wsparcie',
+      ldap: 'LDAP',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
       challengeSuccess: 'Zmieniono wiadomość do podpisu.',
+    },
+    ldapSettings: {
+      title: 'Ustawienia LDAP',
+      form: {
+        labels: {
+          ldap_url: 'URL',
+          ldap_bind_username: 'Bind Username',
+          ldap_bind_password: 'Bind Password',
+          ldap_member_attr: 'Member Attribute',
+          ldap_username_attr: 'Username Attribute',
+          ldap_user_obj_class: 'User Object Class',
+          ldap_user_search_base: 'User Search Base',
+          ldap_groupname_attr: 'Groupname Attribute',
+          ldap_group_search_base: 'Group Search Base',
+          ldap_group_member_attr: 'Group Member Attribute',
+          ldap_group_obj_class: 'Group Object Class',
+        },
+      },
+      test: {
+        title: 'Test połączenia LDAP',
+        messages: {
+          error: 'Brak połączenia',
+          success: 'Połączono z LDAP',
+        },
+        submit: 'Test',
+      },
     },
     modulesVisibility: {
       header: 'Widoczność modułów',
@@ -939,40 +968,6 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         useMessageAsEmail: {
           label: 'Taki sam jak wiadomość powitalna',
         },
-      },
-    },
-    licenseCard: {
-      header: 'Informacje o licencji i wsparciu technicznym',
-      licenseCardTitles: {
-        community: 'Community',
-        enterprise: 'Enterprise',
-        license: 'licencja',
-      },
-      body: {
-        enterprise: `
-				<p> Dziękujemy za zakup licencji dla przedsiębiorstw!</p>
-				<br />
-				<p>Obejmuje ona następujące moduły:</p>`,
-        community: `
-              <p>
-							Masz naszą licencję community. Jeśli chcesz uzyskać licencję Enterprise odwiedź:
-                <a href="https://defguard.net">https://defguard.net</a>
-              </p>
-              <br />
-              <p>Licencja enterprise zawiera:</p>
-				`,
-        agreement: 'Przeczytaj umowę licencyjną',
-        modules: `
-          <ul>
-            <li>YubiBridge</li>
-            <li>OpenID</li>
-            <li>OpenLDAP</li>
-          </ul>
-          <br />`,
-      },
-      footer: {
-        company: 'licencjonowany dla: {company}',
-        expiration: 'data ważności: {expiration}',
       },
     },
   },

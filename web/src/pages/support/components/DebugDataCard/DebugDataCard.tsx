@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { saveAs } from 'file-saver';
 import { useState } from 'react';
 import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
@@ -14,23 +14,17 @@ import {
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { Divider } from '../../../../shared/defguard-ui/components/Layout/Divider/Divider';
-import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../shared/hooks/useApi';
+import { QueryKeys } from '../../../../shared/queries';
 import { SendSupportDataModal } from './components/SendSupportDataModal';
 
 export const DebugDataCard = () => {
   const [sendDataOpen, setSendDataOpen] = useState(false);
   const { LL } = useI18nContext();
-  const settings = useAppStore((state) => state.settings);
-  const smtp_configured =
-    settings?.smtp_server &&
-    settings?.smtp_port &&
-    settings?.smtp_user &&
-    settings?.smtp_password &&
-    settings?.smtp_sender;
 
   const {
     support: { downloadSupportData, downloadLogs },
+    settings: { getSettings },
   } = useApi();
 
   const { isLoading: logsLoading, mutate: logsMutate } = useMutation({
@@ -52,6 +46,19 @@ export const DebugDataCard = () => {
       saveAs(content, `defguard-support-data-${timestamp}.json`);
     },
   });
+
+  const { data: settings, isLoading: settingsLoading } = useQuery({
+    queryFn: getSettings,
+    queryKey: [QueryKeys.FETCH_SETTINGS],
+    refetchOnMount: true,
+  });
+
+  const smtp_configured =
+    settings?.smtp_server &&
+    settings?.smtp_port &&
+    settings?.smtp_user &&
+    settings?.smtp_password &&
+    settings?.smtp_sender;
 
   return (
     <>
@@ -94,6 +101,7 @@ export const DebugDataCard = () => {
             styleVariant={ButtonStyleVariant.PRIMARY}
             text={LL.supportPage.debugDataCard.sendMail()}
             disabled={!smtp_configured}
+            loading={settingsLoading}
           />
         </div>
         <Divider />

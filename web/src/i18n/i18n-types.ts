@@ -62,6 +62,18 @@ type RootTranslation = {
 			 * F​i​n​i​s​h
 			 */
 			finish: string
+			/**
+			 * S​a​v​e​ ​c​h​a​n​g​e​s
+			 */
+			saveChanges: string
+			/**
+			 * S​a​v​e
+			 */
+			save: string
+			/**
+			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
+			 */
+			RestoreDefault: string
 		}
 	}
 	messages: {
@@ -1808,9 +1820,9 @@ type RootTranslation = {
 			 */
 			global: string
 			/**
-			 * S​u​p​p​o​r​t
+			 * L​D​A​P
 			 */
-			support: string
+			ldap: string
 		}
 		messages: {
 			/**
@@ -1821,6 +1833,80 @@ type RootTranslation = {
 			 * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
 			 */
 			challengeSuccess: string
+		}
+		ldapSettings: {
+			/**
+			 * L​D​A​P​ ​S​e​t​t​i​n​g​s
+			 */
+			title: string
+			form: {
+				labels: {
+					/**
+					 * U​R​L
+					 */
+					ldap_url: string
+					/**
+					 * B​i​n​d​ ​U​s​e​r​n​a​m​e
+					 */
+					ldap_bind_username: string
+					/**
+					 * B​i​n​d​ ​P​a​s​s​w​o​r​d
+					 */
+					ldap_bind_password: string
+					/**
+					 * M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_member_attr: string
+					/**
+					 * U​s​e​r​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_username_attr: string
+					/**
+					 * U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s
+					 */
+					ldap_user_obj_class: string
+					/**
+					 * U​s​e​r​ ​S​e​a​r​c​h​ ​B​a​s​e
+					 */
+					ldap_user_search_base: string
+					/**
+					 * G​r​o​u​p​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_groupname_attr: string
+					/**
+					 * G​r​o​u​p​ ​S​e​a​r​c​h​ ​B​a​s​e
+					 */
+					ldap_group_search_base: string
+					/**
+					 * G​r​o​u​p​ ​M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_group_member_attr: string
+					/**
+					 * G​r​o​u​p​ ​O​b​j​e​c​t​ ​C​l​a​s​s
+					 */
+					ldap_group_obj_class: string
+				}
+			}
+			test: {
+				/**
+				 * T​e​s​t​ ​L​D​A​P​ ​C​o​n​n​e​c​t​i​o​n
+				 */
+				title: string
+				/**
+				 * T​e​s​t
+				 */
+				submit: string
+				messages: {
+					/**
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
+					 */
+					success: string
+					/**
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​r​e​j​e​c​t​e​d
+					 */
+					error: string
+				}
+			}
 		}
 		modulesVisibility: {
 			/**
@@ -2192,73 +2278,6 @@ type RootTranslation = {
 					 */
 					label: string
 				}
-			}
-		}
-		licenseCard: {
-			/**
-			 * L​i​c​e​n​s​e​ ​&​ ​S​u​p​p​o​r​t​ ​I​n​f​o​r​m​a​t​i​o​n
-			 */
-			header: string
-			licenseCardTitles: {
-				/**
-				 * C​o​m​m​u​n​i​t​y
-				 */
-				community: string
-				/**
-				 * E​n​t​e​r​p​r​i​s​e
-				 */
-				enterprise: string
-				/**
-				 * l​i​c​e​n​s​e
-				 */
-				license: string
-			}
-			body: {
-				/**
-				 * 
-			​	​	​	​	​<​p​>​ ​T​h​a​n​k​ ​y​o​u​ ​f​o​r​ ​p​u​r​c​h​a​s​i​n​g​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​!​<​/​p​>​
-			​	​	​	​	​<​b​r​ ​/​>​
-			​	​	​	​	​<​p​>​T​h​i​s​ ​i​n​c​l​u​d​e​s​ ​f​o​l​l​o​w​i​n​g​ ​m​o​d​u​l​e​s​:​<​/​p​>
-				 */
-				enterprise: string
-				/**
-				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​o​u​r​ ​c​o​m​m​u​n​i​t​y​ ​l​i​c​e​n​s​e​.​ ​I​f​ ​y​o​u​ ​w​i​s​h​ ​t​o​ ​g​e​t​ ​E​n​t​e​r​p​r​i​s​e​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​f​u​l​l​ ​f​e​a​t​u​r​e​s​ ​s​e​t​ ​a​n​d​ ​s​u​p​p​o​r​t​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​"​>​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​<​/​a​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​n​c​l​u​d​e​s​:​<​/​p​>​
-			​	​	​	​
-				 */
-				community: string
-				/**
-				 * r​e​a​d​ ​l​i​c​e​n​s​e​ ​a​g​r​e​e​m​e​n​t
-				 */
-				agreement: string
-				/**
-				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​Y​u​b​i​B​r​i​d​g​e​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​O​p​e​n​I​D​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​O​p​e​n​L​D​A​P​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>
-				 */
-				modules: string
-			}
-			footer: {
-				/**
-				 * l​i​c​e​n​s​e​d​ ​t​o​:​ ​{​c​o​m​p​a​n​y​}
-				 * @param {string} company
-				 */
-				company: RequiredParams<'company'>
-				/**
-				 * e​x​p​i​r​a​t​i​o​n​ ​d​a​t​e​:​ ​{​e​x​p​i​r​a​t​i​o​n​}
-				 * @param {string} expiration
-				 */
-				expiration: RequiredParams<'expiration'>
 			}
 		}
 	}
@@ -3560,6 +3579,18 @@ export type TranslationFunctions = {
 			 * Finish
 			 */
 			finish: () => LocalizedString
+			/**
+			 * Save changes
+			 */
+			saveChanges: () => LocalizedString
+			/**
+			 * Save
+			 */
+			save: () => LocalizedString
+			/**
+			 * Restore default
+			 */
+			RestoreDefault: () => LocalizedString
 		}
 	}
 	messages: {
@@ -5295,9 +5326,9 @@ export type TranslationFunctions = {
 			 */
 			global: () => LocalizedString
 			/**
-			 * Support
+			 * LDAP
 			 */
-			support: () => LocalizedString
+			ldap: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -5308,6 +5339,80 @@ export type TranslationFunctions = {
 			 * Challenge message changed
 			 */
 			challengeSuccess: () => LocalizedString
+		}
+		ldapSettings: {
+			/**
+			 * LDAP Settings
+			 */
+			title: () => LocalizedString
+			form: {
+				labels: {
+					/**
+					 * URL
+					 */
+					ldap_url: () => LocalizedString
+					/**
+					 * Bind Username
+					 */
+					ldap_bind_username: () => LocalizedString
+					/**
+					 * Bind Password
+					 */
+					ldap_bind_password: () => LocalizedString
+					/**
+					 * Member Attribute
+					 */
+					ldap_member_attr: () => LocalizedString
+					/**
+					 * Username Attribute
+					 */
+					ldap_username_attr: () => LocalizedString
+					/**
+					 * User Object Class
+					 */
+					ldap_user_obj_class: () => LocalizedString
+					/**
+					 * User Search Base
+					 */
+					ldap_user_search_base: () => LocalizedString
+					/**
+					 * Groupname Attribute
+					 */
+					ldap_groupname_attr: () => LocalizedString
+					/**
+					 * Group Search Base
+					 */
+					ldap_group_search_base: () => LocalizedString
+					/**
+					 * Group Member Attribute
+					 */
+					ldap_group_member_attr: () => LocalizedString
+					/**
+					 * Group Object Class
+					 */
+					ldap_group_obj_class: () => LocalizedString
+				}
+			}
+			test: {
+				/**
+				 * Test LDAP Connection
+				 */
+				title: () => LocalizedString
+				/**
+				 * Test
+				 */
+				submit: () => LocalizedString
+				messages: {
+					/**
+					 * LDAP connected successfully
+					 */
+					success: () => LocalizedString
+					/**
+					 * LDAP connection rejected
+					 */
+					error: () => LocalizedString
+				}
+			}
 		}
 		modulesVisibility: {
 			/**
@@ -5676,71 +5781,6 @@ export type TranslationFunctions = {
 					 */
 					label: () => LocalizedString
 				}
-			}
-		}
-		licenseCard: {
-			/**
-			 * License & Support Information
-			 */
-			header: () => LocalizedString
-			licenseCardTitles: {
-				/**
-				 * Community
-				 */
-				community: () => LocalizedString
-				/**
-				 * Enterprise
-				 */
-				enterprise: () => LocalizedString
-				/**
-				 * license
-				 */
-				license: () => LocalizedString
-			}
-			body: {
-				/**
-				 * 
-							<p> Thank you for purchasing enterprise license!</p>
-							<br />
-							<p>This includes following modules:</p>
-				 */
-				enterprise: () => LocalizedString
-				/**
-				 * 
-			              <p>
-			                You have our community license. If you wish to get Enterprise
-			                license for full features set and support, please visit
-			                <a href="https://defguard.net">https://defguard.net</a>
-			              </p>
-			              <br />
-			              <p>Enterprise license includes:</p>
-						
-				 */
-				community: () => LocalizedString
-				/**
-				 * read license agreement
-				 */
-				agreement: () => LocalizedString
-				/**
-				 * 
-			          <ul>
-			            <li>YubiBridge</li>
-			            <li>OpenID</li>
-			            <li>OpenLDAP</li>
-			          </ul>
-			          <br />
-				 */
-				modules: () => LocalizedString
-			}
-			footer: {
-				/**
-				 * licensed to: {company}
-				 */
-				company: (arg: { company: string }) => LocalizedString
-				/**
-				 * expiration date: {expiration}
-				 */
-				expiration: (arg: { expiration: string }) => LocalizedString
 			}
 		}
 	}
