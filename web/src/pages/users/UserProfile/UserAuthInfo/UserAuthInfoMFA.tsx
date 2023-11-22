@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cloneDeep, isUndefined } from 'lodash-es';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { ActivityStatus } from '../../../../shared/defguard-ui/components/Layout/ActivityStatus/ActivityStatus';
@@ -185,13 +185,6 @@ export const UserAuthInfoMFA = () => {
     return '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, locale]);
-
-  useEffect(() => {
-    console.log({
-      isMe,
-      editMode,
-    });
-  }, [isMe, editMode]);
 
   return (
     <section className="mfa">

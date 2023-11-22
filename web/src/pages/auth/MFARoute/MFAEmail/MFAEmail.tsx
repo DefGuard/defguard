@@ -64,7 +64,7 @@ export const MFAEmail = () => {
         code: z
           .string()
           .min(6, LL.form.error.minimumLength())
-          .max(6, LL.form.error.minimumLength())
+          .max(6, LL.form.error.maximumLength())
           .regex(patternNumbersOnly, LL.form.error.invalid()),
       }),
     [LL.form.error],
@@ -99,6 +99,14 @@ export const MFAEmail = () => {
           placeholder={localLL.form.labels.code()}
         />
         <Button
+          type="submit"
+          size={ButtonSize.LARGE}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          text={LL.common.controls.submit()}
+          disabled={codeLoading}
+          loading={verifyLoading}
+        />
+        <Button
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.LINK}
           text={localLL.form.controls.resendCode()}
@@ -111,14 +119,6 @@ export const MFAEmail = () => {
               setResendEnabled(true);
             }, 10000);
           }}
-        />
-        <Button
-          type="submit"
-          size={ButtonSize.LARGE}
-          styleVariant={ButtonStyleVariant.PRIMARY}
-          text={LL.common.controls.submit()}
-          disabled={codeLoading}
-          loading={verifyLoading}
         />
       </form>
     </>

@@ -1,0 +1,15 @@
+#register-mfa-email-form {
+  width: 100%;
+
+  .form-extras {
+    width: 100%;
+
+    .btn {
+      height: 50px;
+    }
+
+    & > * {
+      width: 100%;
+    }
+  }
+}

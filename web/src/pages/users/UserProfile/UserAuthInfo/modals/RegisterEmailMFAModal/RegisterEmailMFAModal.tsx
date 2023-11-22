@@ -1,3 +1,5 @@
+import './style.scss';
+
 import prase from 'html-react-parser';
 import { useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
