@@ -4,6 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::handlers::ssh_authorized_keys::get_authorized_keys;
 use anyhow::anyhow;
 use axum::{
     handler::HandlerWithoutStateExt,
@@ -143,6 +144,7 @@ pub fn build_webapp(
         Router::new()
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
+            .route("/ssh_authorized_keys", get(get_authorized_keys))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
