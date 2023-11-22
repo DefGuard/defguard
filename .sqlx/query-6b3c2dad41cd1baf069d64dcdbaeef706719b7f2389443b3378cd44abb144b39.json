@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device_login_event\" SET \"user_id\" = $2,\"ip_address\" = $3,\"model\" = $4,\"family\" = $5,\"brand\" = $6,\"os_family\" = $7,\"browser\" = $8,\"event_type\" = $9,\"created\" = $10 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6b3c2dad41cd1baf069d64dcdbaeef706719b7f2389443b3378cd44abb144b39"
+}
