@@ -44,7 +44,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub(crate) async fn get_settings<'e, E>(executor: E) -> Result<Settings, sqlx::Error>
+    pub async fn get_settings<'e, E>(executor: E) -> Result<Settings, sqlx::Error>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
@@ -74,6 +74,17 @@ impl Settings {
         }
 
         Ok(())
+    }
+
+    /// Check if all required SMTP options are configured.
+    ///
+    /// Meant to be used to check if sending emails is enabled in current instance.
+    pub fn smtp_configured(&self) -> bool {
+        self.smtp_server.is_some()
+            && self.smtp_port.is_some()
+            && self.smtp_user.is_some()
+            && self.smtp_password.is_some()
+            && self.smtp_sender.is_some()
     }
 }
 

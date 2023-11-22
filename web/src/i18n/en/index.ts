@@ -3,6 +3,11 @@ import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
   common: {
+    conditions: {
+      or: 'or',
+      and: 'and',
+      equal: 'equal',
+    },
     controls: {
       next: 'Next',
       back: 'Back',
@@ -149,6 +154,30 @@ const en: BaseTranslation = {
         },
         controls: {
           submit: 'Verify code',
+        },
+      },
+    },
+    registerEmailMFA: {
+      title: 'Email MFA Setup',
+      infoMessage: `
+        <p>
+          To setup your MFA enter the code that was sent to your account email: <strong>{email: string}</strong>
+        </p>
+`,
+      messages: {
+        success: 'Email MFA Enabled',
+        resend: 'Verification code resent',
+      },
+      form: {
+        fields: {
+          code: {
+            label: 'Email code',
+            error: 'Code is invalid',
+          },
+        },
+        controls: {
+          submit: 'Verify code',
+          resend: 'Resend email',
         },
       },
     },
@@ -504,6 +533,7 @@ const en: BaseTranslation = {
         messages: {
           mfaDisabled: 'MFA disabled.',
           OTPDisabled: 'One time password disabled.',
+          EmailMFADisabled: 'Email MFA disabled.',
           changeMFAMethod: 'MFA method changed',
         },
         securityKey: {
@@ -519,6 +549,7 @@ const en: BaseTranslation = {
         },
         labels: {
           totp: 'Time based one time passwords',
+          email: 'Email',
           webauth: 'Security keys',
           wallets: 'Wallets',
         },
@@ -1297,6 +1328,18 @@ const en: BaseTranslation = {
         useWallet: 'Use your wallet instead',
         useWebauthn: 'Use security key instead',
         useRecoveryCode: 'Use recovery code instead',
+        useEmail: 'Use E-mail instead',
+      },
+      email: {
+        header: 'Use code we sent to your e-mail to proceed.',
+        form: {
+          labels: {
+            code: 'Code',
+          },
+          controls: {
+            resendCode: 'Resend Code',
+          },
+        },
       },
       totp: {
         header: 'Use code from your authentication app and click button to proceed.',

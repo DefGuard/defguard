@@ -96,6 +96,9 @@ export const AuthPage = () => {
           case UserMFAMethod.ONE_TIME_PASSWORD:
             mfaUrl = '/auth/mfa/totp';
             break;
+          case UserMFAMethod.EMAIL:
+            mfaUrl = '/auth/mfa/email';
+            break;
           default:
             toaster.error(LL.messages.error());
             console.error('API did not return any MFA method in MFA flow.');

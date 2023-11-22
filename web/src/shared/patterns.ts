@@ -26,6 +26,8 @@ export const patternValidWireguardKey =
 
 export const patternBaseUrl = /:\/\/(.[^/]+)/;
 
+export const patternNumbersOnly = new RegExp('^[0-9]+$');
+
 // https://gist.github.com/dperini/729294
 export const patternValidUrl = new RegExp(
   '^' +

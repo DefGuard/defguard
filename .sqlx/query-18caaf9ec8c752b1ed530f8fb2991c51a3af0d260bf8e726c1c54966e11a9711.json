@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT totp_enabled OR email_mfa_enabled OR coalesce(bool_or(wallet.use_for_mfa), FALSE) OR count(webauthn.id) > 0 \"bool!\" FROM \"user\" LEFT JOIN wallet ON wallet.user_id = \"user\".id LEFT JOIN webauthn ON webauthn.user_id = \"user\".id WHERE \"user\".id = $1 GROUP BY totp_enabled, email_mfa_enabled;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bool!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "18caaf9ec8c752b1ed530f8fb2991c51a3af0d260bf8e726c1c54966e11a9711"
+}

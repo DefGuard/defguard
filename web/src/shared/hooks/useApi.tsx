@@ -300,6 +300,21 @@ const useApi = (props?: HookProps): ApiHook => {
   const mfaTOTPVerify: ApiHook['auth']['mfa']['totp']['verify'] = (data) =>
     client.post('/auth/totp/verify', data).then(unpackRequest);
 
+  const mfaEmailMFAInit: ApiHook['auth']['mfa']['email']['register']['start'] = () =>
+    client.post('/auth/email/init').then(unpackRequest);
+
+  const mfaEmailMFAEnable: ApiHook['auth']['mfa']['email']['register']['finish'] = (
+    data,
+  ) => client.post('/auth/email', data).then(unpackRequest);
+
+  const mfaEmailMFADisable = () => client.delete('/auth/email').then(unpackRequest);
+
+  const mfaEmailMFASendCode: ApiHook['auth']['mfa']['email']['sendCode'] = () =>
+    client.get('/auth/email').then(unpackRequest);
+
+  const mfaEmailMFAVerify: ApiHook['auth']['mfa']['email']['verify'] = (data) =>
+    client.post('/auth/email/verify', data).then(unpackRequest);
+
   const mfaWeb3Start: ApiHook['auth']['mfa']['web3']['start'] = (data) =>
     client.post('/auth/web3/start', data).then(unpackRequest);
 
@@ -431,6 +446,15 @@ const useApi = (props?: HookProps): ApiHook => {
           enable: mfaTOTPEnable,
           disable: mfaTOTPDisable,
           verify: mfaTOTPVerify,
+        },
+        email: {
+          register: {
+            start: mfaEmailMFAInit,
+            finish: mfaEmailMFAEnable,
+          },
+          disable: mfaEmailMFADisable,
+          sendCode: mfaEmailMFASendCode,
+          verify: mfaEmailMFAVerify,
         },
         web3: {
           start: mfaWeb3Start,

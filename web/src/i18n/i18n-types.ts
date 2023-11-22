@@ -15,6 +15,20 @@ export type Translations = RootTranslation
 
 type RootTranslation = {
 	common: {
+		conditions: {
+			/**
+			 * o​r
+			 */
+			or: string
+			/**
+			 * a​n​d
+			 */
+			and: string
+			/**
+			 * e​q​u​a​l
+			 */
+			equal: string
+		}
 		controls: {
 			/**
 			 * N​e​x​t
@@ -342,6 +356,55 @@ type RootTranslation = {
 					 * V​e​r​i​f​y​ ​c​o​d​e
 					 */
 					submit: string
+				}
+			}
+		}
+		registerEmailMFA: {
+			/**
+			 * E​m​a​i​l​ ​M​F​A​ ​S​e​t​u​p
+			 */
+			title: string
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​t​h​a​t​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​a​c​c​o​u​n​t​ ​e​m​a​i​l​:​ ​<​s​t​r​o​n​g​>​{​e​m​a​i​l​}​<​/​s​t​r​o​n​g​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+	
+			 * @param {string} email
+			 */
+			infoMessage: RequiredParams<'email'>
+			messages: {
+				/**
+				 * E​m​a​i​l​ ​M​F​A​ ​E​n​a​b​l​e​d
+				 */
+				success: string
+				/**
+				 * V​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​ ​r​e​s​e​n​t
+				 */
+				resend: string
+			}
+			form: {
+				fields: {
+					code: {
+						/**
+						 * E​m​a​i​l​ ​c​o​d​e
+						 */
+						label: string
+						/**
+						 * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
+						 */
+						error: string
+					}
+				}
+				controls: {
+					/**
+					 * V​e​r​i​f​y​ ​c​o​d​e
+					 */
+					submit: string
+					/**
+					 * R​e​s​e​n​d​ ​e​m​a​i​l
+					 */
+					resend: string
 				}
 			}
 		}
@@ -1097,6 +1160,10 @@ type RootTranslation = {
 					 */
 					OTPDisabled: string
 					/**
+					 * E​m​a​i​l​ ​M​F​A​ ​d​i​s​a​b​l​e​d​.
+					 */
+					EmailMFADisabled: string
+					/**
 					 * M​F​A​ ​m​e​t​h​o​d​ ​c​h​a​n​g​e​d
 					 */
 					changeMFAMethod: string
@@ -1138,6 +1205,10 @@ type RootTranslation = {
 					 * T​i​m​e​ ​b​a​s​e​d​ ​o​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​s
 					 */
 					totp: string
+					/**
+					 * E​m​a​i​l
+					 */
+					email: string
 					/**
 					 * S​e​c​u​r​i​t​y​ ​k​e​y​s
 					 */
@@ -2991,6 +3062,30 @@ type RootTranslation = {
 				 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​ ​i​n​s​t​e​a​d
 				 */
 				useRecoveryCode: string
+				/**
+				 * U​s​e​ ​E​-​m​a​i​l​ ​i​n​s​t​e​a​d
+				 */
+				useEmail: string
+			}
+			email: {
+				/**
+				 * U​s​e​ ​c​o​d​e​ ​w​e​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​e​-​m​a​i​l​ ​t​o​ ​p​r​o​c​e​e​d​.
+				 */
+				header: string
+				form: {
+					labels: {
+						/**
+						 * C​o​d​e
+						 */
+						code: string
+					}
+					controls: {
+						/**
+						 * R​e​s​e​n​d​ ​C​o​d​e
+						 */
+						resendCode: string
+					}
+				}
 			}
 			totp: {
 				/**
@@ -3418,6 +3513,20 @@ type RootTranslation = {
 
 export type TranslationFunctions = {
 	common: {
+		conditions: {
+			/**
+			 * or
+			 */
+			or: () => LocalizedString
+			/**
+			 * and
+			 */
+			and: () => LocalizedString
+			/**
+			 * equal
+			 */
+			equal: () => LocalizedString
+		}
 		controls: {
 			/**
 			 * Next
@@ -3744,6 +3853,54 @@ export type TranslationFunctions = {
 					 * Verify code
 					 */
 					submit: () => LocalizedString
+				}
+			}
+		}
+		registerEmailMFA: {
+			/**
+			 * Email MFA Setup
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		        <p>
+		          To setup your MFA enter the code that was sent to your account email: <strong>{email}</strong>
+		        </p>
+	
+			 */
+			infoMessage: (arg: { email: string }) => LocalizedString
+			messages: {
+				/**
+				 * Email MFA Enabled
+				 */
+				success: () => LocalizedString
+				/**
+				 * Verification code resent
+				 */
+				resend: () => LocalizedString
+			}
+			form: {
+				fields: {
+					code: {
+						/**
+						 * Email code
+						 */
+						label: () => LocalizedString
+						/**
+						 * Code is invalid
+						 */
+						error: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Verify code
+					 */
+					submit: () => LocalizedString
+					/**
+					 * Resend email
+					 */
+					resend: () => LocalizedString
 				}
 			}
 		}
@@ -4492,6 +4649,10 @@ export type TranslationFunctions = {
 					 */
 					OTPDisabled: () => LocalizedString
 					/**
+					 * Email MFA disabled.
+					 */
+					EmailMFADisabled: () => LocalizedString
+					/**
 					 * MFA method changed
 					 */
 					changeMFAMethod: () => LocalizedString
@@ -4533,6 +4694,10 @@ export type TranslationFunctions = {
 					 * Time based one time passwords
 					 */
 					totp: () => LocalizedString
+					/**
+					 * Email
+					 */
+					email: () => LocalizedString
 					/**
 					 * Security keys
 					 */
@@ -6371,6 +6536,30 @@ export type TranslationFunctions = {
 				 * Use recovery code instead
 				 */
 				useRecoveryCode: () => LocalizedString
+				/**
+				 * Use E-mail instead
+				 */
+				useEmail: () => LocalizedString
+			}
+			email: {
+				/**
+				 * Use code we sent to your e-mail to proceed.
+				 */
+				header: () => LocalizedString
+				form: {
+					labels: {
+						/**
+						 * Code
+						 */
+						code: () => LocalizedString
+					}
+					controls: {
+						/**
+						 * Resend Code
+						 */
+						resendCode: () => LocalizedString
+					}
+				}
 			}
 			totp: {
 				/**
