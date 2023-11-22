@@ -1,14 +1,7 @@
 name: E2E tests
 
 on:
-  workflow_run:
-    workflows:
-      - "Build current image"
-    branches:
-      - main
-      - dev
-    types:
-      - completed
+  workflow_call:
 
 jobs:
   test:
@@ -69,3 +62,7 @@ jobs:
           path: |
             ./e2e/playwright-report
           retention-days: 7
+  trigger-dev-deploy:
+    needs: test
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
+    uses: ./.github/workflows/dev-deployment.yml 
