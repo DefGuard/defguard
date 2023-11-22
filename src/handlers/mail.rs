@@ -218,13 +218,13 @@ pub async fn send_new_device_login_email(
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("Sent new device login notification to {to}");
-            Ok(())
         }
         Err(err) => {
             error!("Sending new device login notification to {to} failed with erorr:\n{err}");
-            Ok(())
         }
     }
+
+    Ok(())
 }
 
 pub async fn send_new_device_ocid_login_email(
@@ -235,10 +235,7 @@ pub async fn send_new_device_ocid_login_email(
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device OCID login mail to {SUPPORT_EMAIL_ADDRESS}");
 
-    let subject = format!(
-        "New login to {} application with defguard",
-        oauth2client_name
-    );
+    let subject = format!("New login to {oauth2client_name} application with defguard");
 
     let mail = Mail {
         to: user_email.to_string(),
@@ -253,13 +250,13 @@ pub async fn send_new_device_ocid_login_email(
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("Sent new device OCID login notification to {to}");
-            Ok(())
         }
         Err(err) => {
             error!("Sending new device OCID login notification to {to} failed with erorr:\n{err}");
-            Ok(())
         }
     }
+
+    Ok(())
 }
 
 pub async fn send_mfa_configured_email(

@@ -98,15 +98,17 @@ pub fn get_user_agent_device_login_data(
     event_type: String,
     user_agent_client: &Client,
 ) -> DeviceLoginEvent {
-    let mut model = None;
-    if let Some(ua_model) = &user_agent_client.device.model {
-        model = Some(ua_model.to_string());
-    }
+    let model = user_agent_client
+        .device
+        .model
+        .as_ref()
+        .map(ToString::to_string);
 
-    let mut brand = None;
-    if let Some(ua_brand) = &user_agent_client.device.brand {
-        brand = Some(ua_brand.to_string());
-    }
+    let brand = user_agent_client
+        .device
+        .brand
+        .as_ref()
+        .map(ToString::to_string);
 
     let family = user_agent_client.device.family.to_string();
     let os_family = user_agent_client.os.family.to_string();
