@@ -72,8 +72,8 @@ pub struct User {
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
     pub(crate) email_mfa_enabled: bool,
-    totp_secret: Option<Vec<u8>>,
-    email_mfa_secret: Option<Vec<u8>>,
+    pub(crate) totp_secret: Option<Vec<u8>>,
+    pub(crate) email_mfa_secret: Option<Vec<u8>>,
     #[model(enum)]
     pub(crate) mfa_method: MFAMethod,
     #[model(ref)]
