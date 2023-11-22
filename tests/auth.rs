@@ -12,6 +12,7 @@ use defguard::{
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use otpauth::TOTP;
+use reqwest::header::USER_AGENT;
 use secp256k1::{rand::rngs::OsRng, All, Message, Secp256k1, SecretKey};
 use serde::Deserialize;
 use serde_json::json;
@@ -944,4 +945,113 @@ async fn test_re_adding_wallet() {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     wallet_login(&client, wallet_address.clone(), &secp, secret_key).await;
+}
+
+#[tokio::test]
+async fn test_mfa_method_totp_enabled_mail() {
+    let (client, state) = make_test_client().await;
+    let mut mail_rx = state.mail_rx;
+    let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // new TOTP secret
+    let response = client.post("/api/v1/auth/totp/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let auth_totp: AuthTotp = response.json().await;
+
+    // enable TOTP
+    let code = totp_code(&auth_totp);
+    let response = client.post("/api/v1/auth/totp").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    mail_rx.try_recv().unwrap();
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "MFA method TOTP was activated on your account"
+    );
+    assert_eq!(mail.content.contains("IP Address: 127.0.0.1"), true);
+    assert_eq!(
+        mail.content
+            .contains("Device type: iPhone, OS: iOS 17.1, Mobile Safari"),
+        true
+    );
+}
+
+#[tokio::test]
+async fn test_new_device_login() {
+    let (client, state) = make_test_client().await;
+    let mut mail_rx = state.mail_rx;
+    let user_agent_header_iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+    let user_agent_header_android = "Mozilla/5.0 (Linux; Android 7.0; SM-G930VC Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/58.0.3029.83 Mobile Safari/537.36";
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header_iphone)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "Defguard: new device logged in to your account"
+    );
+    assert_eq!(mail.content.contains("IP Address: 127.0.0.1"), true);
+    assert_eq!(
+        mail.content
+            .contains("Device type: iPhone, OS: iOS 17.1, Mobile Safari"),
+        true
+    );
+
+    let response = client.post("/api/v1/auth/logout").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // login using the same device
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header_iphone)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    assert_err!(mail_rx.try_recv());
+
+    // login using a different device
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header_android)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(
+        mail.subject,
+        "Defguard: new device logged in to your account"
+    );
+    assert_eq!(mail.content.contains("IP Address: 127.0.0.1"), true);
+    assert_eq!(
+        mail.content
+            .contains("Device type: SM-G930VC, OS: Android 7.0, Chrome Mobile WebView"),
+        true
+    );
 }
