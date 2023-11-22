@@ -184,17 +184,19 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(&request).await?;
 
-        let ip_address = match request.metadata().get("ip_address") {
-            Some(value) => value.to_str().unwrap_or(""),
-            None => "",
-        }
-        .to_string();
+        let ip_address = request
+            .metadata()
+            .get("ip_address")
+            .and_then(|value| value.to_str().ok())
+            .unwrap_or("")
+            .to_string();
 
-        let user_agent = match request.metadata().get("user_agent") {
-            Some(value) => value.to_str().unwrap_or(""),
-            None => "",
-        }
-        .to_string();
+        let user_agent = request
+            .metadata()
+            .get("user_agent")
+            .and_then(|value| value.to_str().ok())
+            .unwrap_or("")
+            .to_string();
 
         let device_info = get_device_info(&self.user_agent_parser, &user_agent);
 

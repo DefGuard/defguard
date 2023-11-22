@@ -39,10 +39,7 @@ pub fn get_base_tera(
     device_info: Option<String>,
 ) -> Result<(Tera, Context), TemplateError> {
     let mut tera = Tera::default();
-    let mut context = match external_context {
-        Some(external) => external,
-        None => Context::new(),
-    };
+    let mut context = external_context.unwrap_or_default();
     tera.add_raw_template("base.tera", MAIL_BASE)?;
     tera.add_raw_template("macros.tera", MAIL_MACROS)?;
     // supply context required by base
