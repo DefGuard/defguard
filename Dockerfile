@@ -47,6 +47,7 @@ FROM debian:bookworm-slim as runtime
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
     rm -rf /var/lib/apt/lists/*
+COPY user_agent_header_regexes.yaml /app/user_agent_header_regexes.yaml
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
 COPY --from=web /app/dist ./web/dist

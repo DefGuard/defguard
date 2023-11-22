@@ -56,7 +56,7 @@ pub struct UserDiagnostic {
 pub struct User {
     pub id: Option<i64>,
     pub username: String,
-    password_hash: Option<String>,
+    pub(crate) password_hash: Option<String>,
     pub last_name: String,
     pub first_name: String,
     pub email: String,
@@ -67,11 +67,11 @@ pub struct User {
     pub mfa_enabled: bool,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
-    totp_secret: Option<Vec<u8>>,
+    pub(crate) totp_secret: Option<Vec<u8>>,
     #[model(enum)]
     pub(crate) mfa_method: MFAMethod,
     #[model(ref)]
-    recovery_codes: Vec<String>,
+    pub(crate) recovery_codes: Vec<String>,
 }
 
 impl User {
@@ -378,6 +378,27 @@ impl User {
             })
             .collect();
         Ok(res)
+    }
+
+    /// Return all members of group
+    pub async fn find_by_group_name(
+        pool: &DbPool,
+        group_name: &str,
+    ) -> Result<Vec<User>, SqlxError> {
+        let users = query_as!(
+            User,
+            "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
+            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes \
+            FROM \"user\"
+            INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
+            INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id
+            WHERE \"group\".name = $1",
+            group_name
+        )
+        .fetch_all(pool)
+        .await?;
+        Ok(users)
     }
 
     /// Check if TOTP `code` is valid.
