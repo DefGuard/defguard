@@ -228,7 +228,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // sync with LDAP
         if self.ldap_feature_active {
-            let _result = ldap_add_user(&self.config, &user, &request.password).await;
+            let _result = ldap_add_user(&self.pool, &user, &request.password).await;
         };
 
         let settings = Settings::get_settings(&mut *transaction)

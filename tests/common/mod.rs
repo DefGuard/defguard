@@ -15,6 +15,7 @@ use defguard::{
 };
 use secrecy::ExposeSecret;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::{
     broadcast::{self, Receiver},
     mpsc::unbounded_channel,
@@ -73,6 +74,7 @@ pub struct ClientState {
     pub pool: DbPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub wireguard_rx: Receiver<GatewayEvent>,
+    pub mail_rx: UnboundedReceiver<Mail>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     pub test_user: User,
     pub config: DefGuardConfig,
@@ -83,6 +85,7 @@ impl ClientState {
         pool: DbPool,
         worker_state: Arc<Mutex<WorkerState>>,
         wireguard_rx: Receiver<GatewayEvent>,
+        mail_rx: UnboundedReceiver<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         test_user: User,
         config: DefGuardConfig,
@@ -91,6 +94,7 @@ impl ClientState {
             pool,
             worker_state,
             wireguard_rx,
+            mail_rx,
             failed_logins,
             test_user,
             config,
@@ -102,7 +106,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
-    let (mail_tx, _) = unbounded_channel::<Mail>();
+    let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     let failed_logins = FailedLoginMap::new();
@@ -114,6 +118,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
         pool.clone(),
         worker_state.clone(),
         wg_rx,
+        mail_rx,
         failed_logins.clone(),
         User::find_by_username(&pool, "hpotter")
             .await

@@ -1,25 +1,49 @@
 import './style.scss';
 
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import { CardTabs } from '../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
 import { CardTabsData } from '../../shared/defguard-ui/components/Layout/CardTabs/types';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
+import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { GlobalSettings } from './components/GlobalSettings/GlobalSettings';
+import { LdapSettings } from './components/LdapSettings/LdapSettings';
 import { SmtpSettings } from './components/SmtpSettings/SmtpSettings';
+import { useSettingsPage } from './hooks/useSettingsPage';
 
-const tabsContent: ReactNode[] = [<GlobalSettings key={0} />, <SmtpSettings key={1} />];
+const tabsContent: ReactNode[] = [
+  <GlobalSettings key={0} />,
+  <SmtpSettings key={1} />,
+  <LdapSettings key={2} />,
+];
 
 export const SettingsPage = () => {
-  const queryClient = useQueryClient();
   const { LL } = useI18nContext();
+  const {
+    settings: { getSettings },
+  } = useApi();
 
   const [activeCard, setActiveCard] = useState(0);
+
+  const [setPageState, resetPageState] = useSettingsPage(
+    (state) => [state.setState, state.reset],
+    shallow,
+  );
+
+  const settings = useSettingsPage((state) => state.settings);
+
+  const { data: settingsData, isLoading } = useQuery({
+    queryFn: getSettings,
+    queryKey: [QueryKeys.FETCH_SETTINGS],
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
 
   const tabs = useMemo(
     (): CardTabsData[] => [
@@ -35,27 +59,42 @@ export const SettingsPage = () => {
         active: activeCard === 1,
         onClick: () => setActiveCard(1),
       },
+      {
+        key: 2,
+        content: LL.settingsPage.tabs.ldap(),
+        active: activeCard === 2,
+        onClick: () => setActiveCard(2),
+      },
     ],
     [LL.settingsPage.tabs, activeCard],
   );
 
-  const settings = useAppStore((state) => state.settings);
-
-  // Refetch settings on page mount
+  // set store
   useEffect(() => {
-    queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+    if (settingsData) {
+      setPageState({ settings: settingsData });
+    }
+  }, [settingsData, setPageState]);
+
+  useEffect(() => {
+    return () => {
+      resetPageState?.();
+    };
     // eslint-disable-next-line
   }, []);
-
-  if (!settings) return null;
 
   return (
     <PageContainer id="settings-page">
       <h1>{LL.settingsPage.title()}</h1>
-      <CardTabs tabs={tabs} />
-      <Card className="settings-card" hideMobile shaded>
-        {tabsContent[activeCard]}
-      </Card>
+      {!settingsData && isLoading && <LoaderSpinner size={250} />}
+      {settings && (
+        <>
+          <CardTabs tabs={tabs} />
+          <Card className="settings-card" hideMobile shaded>
+            {tabsContent[activeCard]}
+          </Card>
+        </>
+      )}
     </PageContainer>
   );
 };

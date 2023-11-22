@@ -3,12 +3,17 @@ use axum::{
     http::StatusCode,
 };
 use serde_json::json;
+use struct_patch::Patch;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
-    db::Settings,
+    db::{
+        models::settings::{SettingsEssentials, SettingsPatch},
+        Settings,
+    },
     error::WebError,
+    ldap::LDAPConnection,
     AppState,
 };
 
@@ -33,6 +38,16 @@ pub async fn update_settings(
     data.save(&appstate.pool).await?;
     info!("User {} updated settings", session.user.username);
     Ok(ApiResponse::default())
+}
+
+pub async fn get_settings_essentials(State(appstate): State<AppState>) -> ApiResult {
+    debug!("Retrieving essential settings");
+    let settings = SettingsEssentials::get_settings_essentials(&appstate.pool).await?;
+    info!("Retrieved essential settings");
+    Ok(ApiResponse {
+        json: json!(settings),
+        status: StatusCode::OK,
+    })
 }
 
 pub async fn set_default_branding(
@@ -62,5 +77,39 @@ pub async fn set_default_branding(
             })
         }
         None => Err(WebError::DbError("Cannot restore settings".into())),
+    }
+}
+
+pub async fn patch_settings(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<SettingsPatch>,
+) -> ApiResult {
+    debug!("Admin {} patching settings.", &session.user.username);
+    let mut settings = Settings::get_settings(&appstate.pool).await?;
+    settings.apply(data);
+    settings.save(&appstate.pool).await?;
+    info!("Admin {} patched settings.", &session.user.username);
+    Ok(ApiResponse::default())
+}
+
+pub async fn test_ldap_settings(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+    debug!("Testing LDAP connection");
+    match LDAPConnection::create(&appstate.pool).await {
+        Ok(_) => {
+            debug!("LDAP connected succesfully");
+            Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::OK,
+            })
+        }
+        Err(_) => {
+            debug!("LDAP connection rejected");
+            Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            })
+        }
     }
 }

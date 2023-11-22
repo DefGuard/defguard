@@ -9,9 +9,10 @@ use anyhow::anyhow;
 use axum::{
     handler::HandlerWithoutStateExt,
     http::{Request, StatusCode},
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
     Extension, Router, Server,
 };
+use handlers::settings::{get_settings_essentials, patch_settings, test_ldap_settings};
 use secrecy::ExposeSecret;
 use tokio::sync::{
     broadcast::Sender,
@@ -32,6 +33,12 @@ use self::{
     config::{DefGuardConfig, InitVpnLocationArgs},
     db::{init_db, AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork},
     handlers::{
+        auth::{
+            authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
+            logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
+            totp_disable, totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end,
+            webauthn_finish, webauthn_init, webauthn_start,
+        },
         forward_auth::forward_auth,
         group::{add_group_member, get_group, list_groups, remove_group_member},
         mail::{send_support_data, test_mail},
@@ -50,23 +57,16 @@ use self::{
     mail::Mail,
 };
 
+#[cfg(feature = "wireguard")]
+use self::handlers::wireguard::{
+    add_device, add_user_devices, create_network, create_network_token, delete_device,
+    delete_network, download_config, gateway_status, get_device, import_network, list_devices,
+    list_networks, list_user_devices, modify_device, modify_network, network_details,
+    network_stats, remove_gateway, user_stats,
+};
 #[cfg(feature = "worker")]
 use self::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
-};
-#[cfg(feature = "wireguard")]
-use self::handlers::{
-    auth::{
-        authenticate, logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable,
-        totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
-        webauthn_init, webauthn_start,
-    },
-    wireguard::{
-        add_device, add_user_devices, create_network, create_network_token, delete_device,
-        delete_network, download_config, gateway_status, get_device, import_network, list_devices,
-        list_networks, list_user_devices, modify_device, modify_network, network_details,
-        network_stats, remove_gateway, user_stats,
-    },
 };
 #[cfg(feature = "openid")]
 use self::handlers::{
@@ -157,6 +157,11 @@ pub fn build_webapp(
             .route("/auth/totp", post(totp_enable))
             .route("/auth/totp", delete(totp_disable))
             .route("/auth/totp/verify", post(totp_code))
+            .route("/auth/email/init", post(email_mfa_init))
+            .route("/auth/email", get(request_email_mfa_code))
+            .route("/auth/email", post(email_mfa_enable))
+            .route("/auth/email", delete(email_mfa_disable))
+            .route("/auth/email/verify", post(email_mfa_code))
             .route("/auth/web3/start", post(web3auth_start))
             .route("/auth/web3", post(web3auth_end))
             .route("/auth/recovery", post(recovery_code))
@@ -201,7 +206,10 @@ pub fn build_webapp(
             // settings
             .route("/settings", get(get_settings))
             .route("/settings", put(update_settings))
+            .route("/settings", patch(patch_settings))
             .route("/settings/:id", put(set_default_branding))
+            // settings for frontend
+            .route("/settings_essentials", get(get_settings_essentials))
             // support
             .route("/support/configuration", get(configuration))
             .route("/support/logs", get(logs))
@@ -211,7 +219,9 @@ pub fn build_webapp(
             .route("/webhook/:id", get(get_webhook))
             .route("/webhook/:id", put(change_webhook))
             .route("/webhook/:id", delete(delete_webhook))
-            .route("/webhook/:id", post(change_enabled)),
+            .route("/webhook/:id", post(change_enabled))
+            // ldap
+            .route("/ldap/test", get(test_ldap_settings)),
     );
 
     #[cfg(feature = "openid")]

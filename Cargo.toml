@@ -82,11 +82,13 @@ webauthn-rs = { version = "0.4", features = [
 ] }
 webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+struct-patch = "0.4"
 
 [dev-dependencies]
 bytes = "1.5"
 claims = "0.7"
 matches = "0.1"
+regex = "1.10"
 reqwest = { version = "0.11", features = [
     "json",
     "cookies",

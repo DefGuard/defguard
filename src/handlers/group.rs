@@ -81,8 +81,7 @@ pub async fn add_group_member(
         if let Some(user) = User::find_by_username(&appstate.pool, &data.username).await? {
             debug!("Adding user: {} to group: {}", user.username, group.name);
             user.add_to_group(&appstate.pool, &group).await?;
-            let _result =
-                ldap_add_user_to_group(&appstate.config, &user.username, &group.name).await;
+            let _result = ldap_add_user_to_group(&appstate.pool, &user.username, &group.name).await;
             info!("Added user: {} to group: {}", user.username, group.name);
             Ok(ApiResponse::default())
         } else {
@@ -111,7 +110,7 @@ pub async fn remove_group_member(
             );
             user.remove_from_group(&appstate.pool, &group).await?;
             let _result =
-                ldap_remove_user_from_group(&appstate.config, &user.username, &group.name).await;
+                ldap_remove_user_from_group(&appstate.pool, &user.username, &group.name).await;
             info!("Removed user: {} from group: {}", user.username, group.name);
             Ok(ApiResponse {
                 json: json!({}),

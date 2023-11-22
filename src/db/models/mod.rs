@@ -71,6 +71,7 @@ pub struct UserInfo {
     pub pgp_cert_id: Option<String>,
     pub mfa_enabled: bool,
     pub totp_enabled: bool,
+    pub email_mfa_enabled: bool,
     pub groups: Vec<String>,
     pub mfa_method: MFAMethod,
     pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
@@ -94,6 +95,7 @@ impl UserInfo {
             pgp_cert_id: user.pgp_cert_id.clone(),
             mfa_enabled: user.mfa_enabled,
             totp_enabled: user.totp_enabled,
+            email_mfa_enabled: user.email_mfa_enabled,
             groups,
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
@@ -202,6 +204,7 @@ pub struct MFAInfo {
     totp_available: bool,
     web3_available: bool,
     webauthn_available: bool,
+    email_available: bool,
 }
 
 impl MFAInfo {
@@ -209,7 +212,7 @@ impl MFAInfo {
         if let Some(id) = user.id {
             query_as!(
                 Self,
-                "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, \
+                "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, email_mfa_enabled email_available, \
                 (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", \
                 (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" \
                 FROM \"user\" WHERE \"user\".id = $1",
@@ -222,7 +225,10 @@ impl MFAInfo {
 
     #[must_use]
     pub fn mfa_available(&self) -> bool {
-        self.webauthn_available || self.totp_available || self.web3_available
+        self.webauthn_available
+            || self.totp_available
+            || self.web3_available
+            || self.email_available
     }
 
     #[must_use]
@@ -245,6 +251,9 @@ impl MFAInfo {
         }
         if self.totp_available {
             methods.push(MFAMethod::OneTimePassword);
+        }
+        if self.email_available {
+            methods.push(MFAMethod::Email);
         }
         Some(methods)
     }

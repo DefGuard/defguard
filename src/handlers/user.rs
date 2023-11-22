@@ -142,13 +142,9 @@ pub async fn add_user(
     );
     user.save(&appstate.pool).await?;
 
-    // add LDAP user
-    // FIXME: check for LDAP being enabled
-    if true {
-        if let Some(password) = user_data.password {
-            let _result = ldap_add_user(&appstate.config, &user, &password).await;
-        }
-    };
+    if let Some(password) = user_data.password {
+        let _result = ldap_add_user(&appstate.pool, &user, &password).await;
+    }
 
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
@@ -334,10 +330,7 @@ pub async fn modify_user(
     }
     user.save(&mut *transaction).await?;
 
-    // FIXME: check for LDAP being enabled
-    if true {
-        let _result = ldap_modify_user(&appstate.config, &username, &user).await;
-    }
+    let _result = ldap_modify_user(&appstate.pool, &username, &user).await;
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));
 
@@ -363,10 +356,7 @@ pub async fn delete_user(
     }
     if let Some(user) = User::find_by_username(&appstate.pool, &username).await? {
         user.delete(&appstate.pool).await?;
-        // FIXME: check for LDAP being enabled
-        if true {
-            let _result = ldap_delete_user(&appstate.config, &username).await;
-        }
+        let _result = ldap_delete_user(&appstate.pool, &username).await;
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         info!("User {} deleted user {}", session.user.username, &username);
         Ok(ApiResponse::default())
@@ -401,11 +391,7 @@ pub async fn change_self_password(
     user.set_password(&data.new_password);
     user.save(&appstate.pool).await?;
 
-    // FIXME: check for LDAP being enabled
-    if true {
-        let _result =
-            ldap_change_password(&appstate.config, &user.username, &data.new_password).await;
-    }
+    let _ = ldap_change_password(&appstate.pool, &user.username, &data.new_password).await;
 
     info!("User {} changed password.", &user.username);
 
@@ -455,11 +441,7 @@ pub async fn change_password(
     if let Some(mut user) = user {
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
-        // FIXME: check for LDAP being enabled
-        if true {
-            let _result =
-                ldap_change_password(&appstate.config, &username, &data.new_password).await;
-        }
+        let _ = ldap_change_password(&appstate.pool, &username, &data.new_password).await;
         info!(
             "Admin {} changed password for user {username}",
             session.user.username
@@ -592,11 +574,10 @@ pub async fn update_wallet(
                     // send notification email about enabled MFA
                     send_mfa_configured_email(
                         Some(&session.session),
-                        user.clone(),
+                        &user,
                         &MFAMethod::Web3,
                         &appstate.mail_tx,
-                    )
-                    .await?;
+                    )?;
                     if !user.mfa_enabled {
                         user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
                         let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;

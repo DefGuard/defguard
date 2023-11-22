@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"user\" SET mfa_enabled = FALSE, mfa_method = 'none', totp_enabled = FALSE, email_mfa_enabled = FALSE, totp_secret = NULL, email_mfa_secret = NULL, recovery_codes = '{}' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3f7806f3fcabfb16c9798f4a7bfbb217703111cd43c9b78a0be82fcbf8e1b959"
+}

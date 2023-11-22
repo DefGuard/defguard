@@ -86,6 +86,7 @@ impl SmtpSettings {
     }
 }
 
+#[derive(Debug)]
 pub struct Mail {
     pub to: String,
     pub subject: String,
@@ -94,6 +95,7 @@ pub struct Mail {
     pub result_tx: Option<UnboundedSender<Result<Response, MailError>>>,
 }
 
+#[derive(Debug)]
 pub struct Attachment {
     pub filename: String,
     pub content: Vec<u8>,

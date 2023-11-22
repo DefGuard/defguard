@@ -1,4 +1,6 @@
+use std::convert::Infallible;
 use std::error::Error;
+use std::str::FromStr;
 
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
@@ -16,6 +18,14 @@ impl SecretString {
     #[must_use]
     pub fn expose_secret(&self) -> &str {
         self.0.expose_secret()
+    }
+}
+
+impl FromStr for SecretString {
+    type Err = Infallible;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        Ok(Self(Secret::new(src.to_string())))
     }
 }
 
