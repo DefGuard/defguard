@@ -4,14 +4,15 @@ use axum::http::StatusCode;
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
-        UserInfo,
+        AddDevice, UserInfo,
     },
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username, WalletChallenge},
     hex::to_lower_hex,
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
+use reqwest::header::USER_AGENT;
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
-use serde_json::json;
+use serde_json::{json, Value};
 use tokio_stream::{self as stream, StreamExt};
 
 use self::common::{client::TestClient, fetch_user_details, make_test_client};
@@ -558,4 +559,68 @@ async fn test_user_unregister_authorized_app() {
     let response = client.get("/api/v1/me").send().await;
     let user_info: UserInfo = response.json().await;
     assert_eq!(user_info.authorized_apps.len(), 0);
+}
+
+fn make_network() -> Value {
+    json!({
+        "name": "network",
+        "address": "10.1.1.1/24",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+    })
+}
+
+#[tokio::test]
+async fn test_user_add_device() {
+    let (client, state) = make_test_client().await;
+    let mut mail_rx = state.mail_rx;
+    let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&make_network())
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let device_data = AddDevice {
+        name: "TestDevice".into(),
+        wireguard_pubkey: "mgVXE8WcfStoD8mRatHcX5aaQ0DlcpjvPXibHEOr9y8=".into(),
+    };
+    let response = client
+        .post("/api/v1/device/admin")
+        .header(USER_AGENT, user_agent_header)
+        .json(&device_data)
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // First email recevied is regarding the device login
+    mail_rx.try_recv().unwrap();
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "admin@defguard");
+    assert_eq!(mail.subject, "Defguard: new device added to your account");
+    assert_eq!(mail.content.contains("IP Address: 127.0.0.1"), true);
+    assert_eq!(
+        mail.content
+            .contains("Device type: iPhone, OS: iOS 17.1, Mobile Safari"),
+        true
+    );
 }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     config::DefGuardConfig,
     db::{
@@ -9,6 +11,7 @@ use crate::{
         DbPool, Device, GatewayEvent, Settings, User,
     },
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
+    headers::get_device_info,
     ldap::utils::ldap_add_user,
     mail::Mail,
     templates::{self, TemplateLocation},
@@ -28,11 +31,13 @@ use proto::{
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
     EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
 };
+use uaparser::UserAgentParser;
 
 pub struct EnrollmentServer {
     pool: DbPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    user_agent_parser: Arc<UserAgentParser>,
     config: DefGuardConfig,
     ldap_feature_active: bool,
 }
@@ -69,6 +74,7 @@ impl EnrollmentServer {
         pool: DbPool,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
+        user_agent_parser: Arc<UserAgentParser>,
         config: DefGuardConfig,
     ) -> Self {
         // FIXME: check if LDAP feature is enabled
@@ -77,6 +83,7 @@ impl EnrollmentServer {
             pool,
             wireguard_tx,
             mail_tx,
+            user_agent_parser,
             config,
             ldap_feature_active,
         }
@@ -177,6 +184,20 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(&request).await?;
 
+        let ip_address = request
+            .metadata()
+            .get("ip_address")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
+        let user_agent = request
+            .metadata()
+            .get("user_agent")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
+        let device_info = get_device_info(&self.user_agent_parser, &user_agent);
+
         // check if password is strong enough
         let request = request.into_inner();
         if let Err(err) = check_password_strength(&request.password) {
@@ -219,12 +240,19 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // send welcome email
         enrollment
-            .send_welcome_email(&mut transaction, &self.mail_tx, &user, &settings)
+            .send_welcome_email(
+                &mut transaction,
+                &self.mail_tx,
+                &user,
+                &settings,
+                ip_address.clone(),
+                device_info.clone(),
+            )
             .await?;
 
         // send success notification to admin
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
-        Enrollment::send_admin_notification(&self.mail_tx, &admin, &user)?;
+        Enrollment::send_admin_notification(&self.mail_tx, &admin, &user, ip_address, device_info)?;
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
@@ -246,6 +274,21 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // add device
         info!("Adding new device for user {}", user.username);
+
+        let ip_address = request
+            .metadata()
+            .get("ip_address")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
+        let user_agent = request
+            .metadata()
+            .get("user_agent")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
+        let device_info = get_device_info(&self.user_agent_parser, &user_agent);
+
         let request = request.into_inner();
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", request.pubkey);
@@ -304,7 +347,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             &template_locations,
             &user.email,
             &self.mail_tx,
-            None,
+            ip_address,
+            device_info,
         )
         .await
         .map_err(|_| Status::internal("Failed to render new device added tempalte"))?;
@@ -460,12 +504,16 @@ impl Enrollment {
         mail_tx: &UnboundedSender<Mail>,
         user: &User,
         settings: &Settings,
+        ip_address: String,
+        device_info: Option<String>,
     ) -> Result<(), EnrollmentError> {
         debug!("Sending welcome mail to {}", user.username);
         let mail = Mail {
             to: user.email.clone(),
             subject: settings.enrollment_welcome_email_subject.clone().unwrap(),
-            content: self.get_welcome_email_content(&mut *transaction).await?,
+            content: self
+                .get_welcome_email_content(&mut *transaction, ip_address, device_info)
+                .await?,
             attachments: Vec::new(),
             result_tx: None,
         };
@@ -486,6 +534,8 @@ impl Enrollment {
         mail_tx: &UnboundedSender<Mail>,
         admin: &User,
         user: &User,
+        ip_address: String,
+        device_info: Option<String>,
     ) -> Result<(), EnrollmentError> {
         debug!(
             "Sending enrollment success notification for user {} to {}",
@@ -494,7 +544,12 @@ impl Enrollment {
         let mail = Mail {
             to: admin.email.clone(),
             subject: "[defguard] User enrollment completed".into(),
-            content: templates::enrollment_admin_notification(user, admin)?,
+            content: templates::enrollment_admin_notification(
+                user,
+                admin,
+                ip_address,
+                device_info,
+            )?,
             attachments: Vec::new(),
             result_tx: None,
         };

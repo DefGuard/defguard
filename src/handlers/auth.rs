@@ -1,6 +1,10 @@
+use std::net::SocketAddr;
+
 use axum::{
-    extract::{Json, State},
+    extract::{ConnectInfo, Json, State},
+    headers::UserAgent,
     http::StatusCode,
+    TypedHeader,
 };
 use secrecy::ExposeSecret;
 use serde_json::json;
@@ -28,6 +32,7 @@ use crate::{
         send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
     },
     handlers::SIGN_IN_COOKIE_NAME,
+    headers::{check_new_device_login, get_user_agent_device, parse_user_agent},
     ldap::utils::user_from_ldap,
     SERVER_CONFIG,
 };
@@ -37,6 +42,8 @@ use crate::{
 /// * 201 with MFA enabled when additional authentication factor is required
 pub async fn authenticate(
     cookies: Cookies,
+    user_agent: Option<TypedHeader<UserAgent>>,
+    ConnectInfo(connect_info): ConnectInfo<SocketAddr>,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
 ) -> ApiResult {
@@ -73,8 +80,21 @@ pub async fn authenticate(
         }
     };
 
+    let ip_address = connect_info.ip().to_string();
+    let user_agent_string = match user_agent {
+        Some(value) => value.to_string(),
+        None => String::new(),
+    };
+    let agent = parse_user_agent(&appstate.user_agent_parser, &user_agent_string);
+    let device_info = agent.clone().map(|v| get_user_agent_device(&v));
+
     Session::delete_expired(&appstate.pool).await?;
-    let session = Session::new(user.id.unwrap(), SessionState::PasswordVerified);
+    let session = Session::new(
+        user.id.unwrap(),
+        SessionState::PasswordVerified,
+        ip_address.clone(),
+        device_info,
+    );
     session.save(&appstate.pool).await?;
 
     let max_age = match &appstate.config.session_auth_lifetime {
@@ -83,7 +103,7 @@ pub async fn authenticate(
     };
 
     let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
-    let auth_cookie = Cookie::build(SESSION_COOKIE_NAME, session.id)
+    let auth_cookie = Cookie::build(SESSION_COOKIE_NAME, session.clone().id)
         .domain(
             server_config
                 .cookie_domain
@@ -98,9 +118,21 @@ pub async fn authenticate(
         .finish();
     cookies.add(auth_cookie);
 
+    let login_event_type = "AUTHENTICATION".to_string();
+
     info!("Authenticated user {lowercase_username}");
     if user.mfa_enabled {
         if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
+            check_new_device_login(
+                &appstate.pool,
+                &appstate.mail_tx,
+                &session,
+                &user,
+                ip_address,
+                login_event_type,
+                agent,
+            )
+            .await?;
             Ok(ApiResponse {
                 json: json!(mfa_info),
                 status: StatusCode::CREATED,
@@ -112,6 +144,18 @@ pub async fn authenticate(
         let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
         let key = Key::from(server_config.secret_key.expose_secret().as_bytes());
         let private_cookies = cookies.private(&key);
+
+        check_new_device_login(
+            &appstate.pool,
+            &appstate.mail_tx,
+            &session,
+            &user,
+            ip_address,
+            login_event_type,
+            agent,
+        )
+        .await?;
+
         if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
             debug!("Found openid session cookie.");
             let redirect_url = openid_cookie.value().to_string();
@@ -275,7 +319,12 @@ pub async fn webauthn_finish(
 
     info!("Finished Webauthn registration for user {}", user.username);
 
-    send_mfa_configured_email(&user, &MFAMethod::Webauthn, &appstate.mail_tx)?;
+    send_mfa_configured_email(
+        Some(&session.session),
+        &user,
+        &MFAMethod::Webauthn,
+        &appstate.mail_tx,
+    )?;
 
     Ok(ApiResponse {
         json: json!(recovery_codes),
@@ -385,7 +434,12 @@ pub async fn totp_enable(
                 .await?;
         }
 
-        send_mfa_configured_email(&user, &MFAMethod::OneTimePassword, &appstate.mail_tx)?;
+        send_mfa_configured_email(
+            Some(&session.session),
+            &user,
+            &MFAMethod::OneTimePassword,
+            &appstate.mail_tx,
+        )?;
 
         info!("Enabled TOTP for user {}", user.username);
         Ok(ApiResponse {
@@ -469,7 +523,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     info!("Generated new email MFA secret for user {}", user.username);
 
     // send email with code
-    send_email_mfa_activation_email(&user, &appstate.mail_tx)?;
+    send_email_mfa_activation_email(&user, &appstate.mail_tx, &session.session)?;
 
     Ok(ApiResponse::default())
 }
@@ -490,7 +544,12 @@ pub async fn email_mfa_enable(
                 .await?;
         }
 
-        send_mfa_configured_email(&user, &MFAMethod::Email, &appstate.mail_tx)?;
+        send_mfa_configured_email(
+            Some(&session.session),
+            &user,
+            &MFAMethod::Email,
+            &appstate.mail_tx,
+        )?;
 
         info!("Enabled email MFA for user {}", user.username);
         Ok(ApiResponse {
@@ -523,7 +582,7 @@ pub async fn request_email_mfa_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         debug!("Sending email MFA code for user {}", user.username);
         if user.email_mfa_enabled {
-            send_email_mfa_code_email(&user, &appstate.mail_tx)?;
+            send_email_mfa_code_email(&user, &appstate.mail_tx, &session)?;
             info!("Sent email MFA code for user {}", user.username);
             Ok(ApiResponse::default())
         } else {

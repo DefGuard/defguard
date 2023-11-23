@@ -14,6 +14,7 @@ use serde::Serialize;
 use thiserror::Error;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
+use uaparser::UserAgentParser;
 use uuid::Uuid;
 
 #[cfg(feature = "wireguard")]
@@ -320,6 +321,7 @@ pub async fn run_grpc_server(
     mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
+    user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
@@ -328,6 +330,7 @@ pub async fn run_grpc_server(
         pool.clone(),
         wireguard_tx.clone(),
         mail_tx.clone(),
+        user_agent_parser,
         config.clone(),
     ));
     #[cfg(feature = "worker")]

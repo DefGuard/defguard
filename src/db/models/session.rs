@@ -23,11 +23,18 @@ pub struct Session {
     pub expires: NaiveDateTime,
     pub webauthn_challenge: Option<Vec<u8>>,
     pub web3_challenge: Option<String>,
+    pub ip_address: String,
+    pub device_info: Option<String>,
 }
 
 impl Session {
     #[must_use]
-    pub fn new(user_id: i64, state: SessionState) -> Self {
+    pub fn new(
+        user_id: i64,
+        state: SessionState,
+        ip_address: String,
+        device_info: Option<String>,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: gen_alphanumeric(24),
@@ -37,6 +44,8 @@ impl Session {
             expires: (now + Duration::seconds(SESSION_TIMEOUT as i64)).naive_utc(),
             webauthn_challenge: None,
             web3_challenge: None,
+            ip_address,
+            device_info,
         }
     }
 
@@ -49,7 +58,7 @@ impl Session {
         query_as!(
             Self,
             "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, \
-            web3_challenge FROM session WHERE id = $1",
+            web3_challenge, ip_address, device_info FROM session WHERE id = $1",
             id
         )
         .fetch_optional(pool)
@@ -58,8 +67,8 @@ impl Session {
 
     pub async fn save(&self, pool: &DbPool) -> Result<(), SqlxError> {
         query!(
-            "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, web3_challenge) \
-            VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, web3_challenge, ip_address, device_info) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             self.id,
             self.user_id,
             self.state.clone() as i16,
@@ -67,6 +76,8 @@ impl Session {
             self.expires,
             self.webauthn_challenge,
             self.web3_challenge,
+            self.ip_address,
+            self.device_info,
         )
         .execute(pool)
         .await?;

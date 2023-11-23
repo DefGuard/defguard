@@ -169,7 +169,7 @@ pub struct WireguardNetworkDevice {
     pub device_id: i64,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AddDevice {
     pub name: String,
     pub wireguard_pubkey: String,

@@ -4,23 +4,21 @@ use axum::{
     extract::{Json, State},
     http::StatusCode,
 };
-use chrono::Utc;
+use chrono::{NaiveDateTime, Utc};
 use lettre::message::header::ContentType;
 use serde_json::json;
 use tokio::{
     fs::read_to_string,
     sync::mpsc::{unbounded_channel, UnboundedSender},
 };
-use uaparser::Client;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::{MFAMethod, User},
+    db::{MFAMethod, Session, User},
     error::WebError,
-    headers::get_device_type,
     mail::{Attachment, Mail},
     support::dump_config,
     templates::{self, support_data_mail, TemplateError, TemplateLocation},
@@ -32,6 +30,7 @@ static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
 
 static NEW_DEVICE_ADDED_EMAIL_SUBJECT: &str = "Defguard: new device added to your account";
+static NEW_DEVICE_LOGIN_EMAIL_SUBJECT: &str = "Defguard: new device logged in to your account";
 
 static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Activation";
 static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Code for Login";
@@ -69,7 +68,7 @@ pub async fn test_mail(
     let mail = Mail {
         to: data.to.clone(),
         subject: TEST_MAIL_SUBJECT.to_string(),
-        content: templates::test_mail()?,
+        content: templates::test_mail(Some(&session.session))?,
         attachments: Vec::new(),
         result_tx: Some(tx),
     };
@@ -172,11 +171,11 @@ pub async fn send_new_device_added_email(
     template_locations: &Vec<TemplateLocation>,
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
-    user_agent_client: Option<Client<'_>>,
+    ip_address: String,
+    device_info: Option<String>,
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device added mail to {SUPPORT_EMAIL_ADDRESS}");
 
-    let device_type = get_device_type(user_agent_client);
     let mail = Mail {
         to: user_email.to_string(),
         subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
@@ -184,7 +183,8 @@ pub async fn send_new_device_added_email(
             device_name,
             public_key,
             template_locations,
-            Some(&device_type),
+            ip_address,
+            device_info,
         )?,
         attachments: Vec::new(),
         result_tx: None,
@@ -246,7 +246,70 @@ pub async fn send_gateway_disconnected_email(
     Ok(())
 }
 
+pub async fn send_new_device_login_email(
+    user_email: &str,
+    mail_tx: &UnboundedSender<Mail>,
+    session: &Session,
+    created: NaiveDateTime,
+) -> Result<(), TemplateError> {
+    debug!("User {user_email} new device login mail to {SUPPORT_EMAIL_ADDRESS}");
+
+    let mail = Mail {
+        to: user_email.to_string(),
+        subject: NEW_DEVICE_LOGIN_EMAIL_SUBJECT.to_string(),
+        content: templates::new_device_login_mail(session, created)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Sent new device login notification to {to}");
+        }
+        Err(err) => {
+            error!("Sending new device login notification to {to} failed with erorr:\n{err}");
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn send_new_device_ocid_login_email(
+    user_email: &str,
+    oauth2client_name: String,
+    mail_tx: &UnboundedSender<Mail>,
+    session: &Session,
+) -> Result<(), TemplateError> {
+    debug!("User {user_email} new device OCID login mail to {SUPPORT_EMAIL_ADDRESS}");
+
+    let subject = format!("New login to {oauth2client_name} application with defguard");
+
+    let mail = Mail {
+        to: user_email.to_string(),
+        subject,
+        content: templates::new_device_ocid_login_mail(session, &oauth2client_name)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Sent new device OCID login notification to {to}");
+        }
+        Err(err) => {
+            error!("Sending new device OCID login notification to {to} failed with erorr:\n{err}");
+        }
+    }
+
+    Ok(())
+}
+
 pub fn send_mfa_configured_email(
+    session: Option<&Session>,
     user: &User,
     mfa_method: &MFAMethod,
     mail_tx: &UnboundedSender<Mail>,
@@ -261,7 +324,7 @@ pub fn send_mfa_configured_email(
     let mail = Mail {
         to: user.email.clone(),
         subject,
-        content: templates::mfa_configured_mail(mfa_method)?,
+        content: templates::mfa_configured_mail(session, mfa_method)?,
         attachments: Vec::new(),
         result_tx: None,
     };
@@ -283,6 +346,7 @@ pub fn send_mfa_configured_email(
 pub fn send_email_mfa_activation_email(
     user: &User,
     mail_tx: &UnboundedSender<Mail>,
+    session: &Session,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA activation mail to {}", user.email);
 
@@ -295,7 +359,7 @@ pub fn send_email_mfa_activation_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_activation_mail(code)?,
+        content: templates::email_mfa_activation_mail(code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
@@ -317,6 +381,7 @@ pub fn send_email_mfa_activation_email(
 pub fn send_email_mfa_code_email(
     user: &User,
     mail_tx: &UnboundedSender<Mail>,
+    session: &Session,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA code mail to {}", user.email);
 
@@ -329,7 +394,7 @@ pub fn send_email_mfa_code_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_code_mail(code)?,
+        content: templates::email_mfa_code_mail(code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
