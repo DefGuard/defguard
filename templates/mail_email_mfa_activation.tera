@@ -15,9 +15,4 @@ code -> 6-digit zero-padded verification code
 ] %}
 {{ macros::text_section(content_array=section_content) }}
 {{ macros::spacer(height="10px") }}
-{% set section_content = [
-  macros::paragraph(content="Details about the session:"),
-  macros::device_info(device_data=device_type, date=date_now)
-] %}
-{{ macros::text_section(content_array=section_content) }}
 {% endblock %}

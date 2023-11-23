@@ -6,9 +6,8 @@ use std::{
 
 use axum::{
     extract::{Json, Path, Query, State},
-    headers::UserAgent,
     http::StatusCode,
-    Extension, TypedHeader,
+    Extension,
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -30,7 +29,6 @@ use crate::{
     },
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
-    headers::parse_user_agent,
     templates::TemplateLocation,
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
@@ -452,7 +450,6 @@ pub async fn add_user_devices(
 }
 
 pub async fn add_device(
-    user_agent: Option<TypedHeader<UserAgent>>,
     session: SessionInfo,
     State(appstate): State<AppState>,
     // Alias, because otherwise `axum` reports conflicting routes.
@@ -464,12 +461,6 @@ pub async fn add_device(
         "User {} adding device {device_name} for user {username}",
         session.user.username,
     );
-
-    let user_agent_string = match user_agent {
-        Some(value) => value.to_string(),
-        None => String::new(),
-    };
-    let agent = parse_user_agent(&appstate, &user_agent_string);
 
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let networks = WireguardNetwork::all(&appstate.pool).await?;
@@ -529,7 +520,8 @@ pub async fn add_device(
         &template_locations,
         &user.email,
         &appstate.mail_tx,
-        agent,
+        session.session.ip_address.clone(),
+        session.session.device_info.clone(),
     )
     .await?;
 

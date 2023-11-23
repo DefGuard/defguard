@@ -298,6 +298,8 @@ impl Enrollment {
     pub async fn get_welcome_email_content(
         &self,
         transaction: &mut PgConnection,
+        ip_address: String,
+        device_info: Option<String>,
     ) -> Result<String, EnrollmentError> {
         let settings = Settings::get_settings(&mut *transaction).await?;
 
@@ -308,7 +310,11 @@ impl Enrollment {
         let context = self.get_welcome_message_context(&mut *transaction).await?;
         let content = tera.render("welcome_email", &context)?;
 
-        Ok(templates::enrollment_welcome_mail(&content)?)
+        Ok(templates::enrollment_welcome_mail(
+            &content,
+            Some(ip_address),
+            device_info,
+        )?)
     }
 }
 

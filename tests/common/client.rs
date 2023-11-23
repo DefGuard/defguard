@@ -1,22 +1,22 @@
 use axum::{
-    body::HttpBody,
     http::{
         self,
         header::{HeaderMap, HeaderName, HeaderValue},
-        Request, Response, StatusCode,
+        StatusCode,
     },
-    BoxError,
+    Router, Server,
 };
 use bytes::Bytes;
-use hyper::{Body, Server};
 use reqwest::{
     cookie::{Cookie, Jar},
     redirect::Policy,
     Client, Url,
 };
-use std::{convert::TryFrom, net::TcpListener, sync::Arc};
-use tower::make::Shared;
-use tower_service::Service;
+use std::{
+    convert::TryFrom,
+    net::{SocketAddr, TcpListener},
+    sync::Arc,
+};
 
 pub struct TestClient {
     client: Client,
@@ -27,20 +27,14 @@ pub struct TestClient {
 #[allow(dead_code)]
 impl TestClient {
     #[must_use]
-    pub fn new<S, ResBody>(svc: S) -> Self
-    where
-        S: Service<Request<Body>, Response = Response<ResBody>> + Clone + Send + 'static,
-        ResBody: HttpBody + Send + 'static,
-        ResBody::Data: Send,
-        ResBody::Error: Into<BoxError>,
-        S::Future: Send,
-        S::Error: Into<BoxError>,
-    {
+    pub fn new(app: Router) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("Could not bind ephemeral socket");
         let port = listener.local_addr().unwrap().port();
 
         tokio::spawn(async move {
-            let server = Server::from_tcp(listener).unwrap().serve(Shared::new(svc));
+            let server = Server::from_tcp(listener)
+                .unwrap()
+                .serve(app.into_make_service_with_connect_info::<SocketAddr>());
             server.await.expect("server error");
         });
 

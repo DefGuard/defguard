@@ -1,0 +1,22 @@
+{# Requires context
+device_name -> name of the device added
+public_key -> Public key of device added
+locations -> {
+name -> location name,
+assigned_ip -> ip of device in location
+}[]
+#}
+{% extends "base.tera" %}
+{% import "macros.tera" as macros %}
+
+{# mail content #}
+{% block mail_content %}
+{# title #}
+{% set section_content = [
+  macros::paragraph(content="Your account was just logged into a system: " ~ oauth2client_name ~ " using OpenID Connect authorization."),
+  macros::link(content="You can deauthorize all applications that have access to your account from the web vault under (My Profile > Apps).", href=profile_url),
+] %}
+{{ macros::text_section(content_array=section_content) }}
+{{ macros::spacer(height="40px")}}
+{# render device section #}
+{% endblock %}

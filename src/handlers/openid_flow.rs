@@ -46,7 +46,7 @@ use crate::{
         DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, User,
     },
     error::WebError,
-    handlers::SIGN_IN_COOKIE_NAME,
+    handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
     SERVER_CONFIG,
 };
 
@@ -503,6 +503,14 @@ pub async fn secure_authorization(
                             oauth2client.id.unwrap(),
                         );
                         app.save(&appstate.pool).await?;
+
+                        send_new_device_ocid_login_email(
+                            &session_info.user.email,
+                            oauth2client.name.to_string(),
+                            &appstate.mail_tx,
+                            &session_info.session,
+                        )
+                        .await?;
                     }
                     info!(
                         "User {} allowed login with client {}",

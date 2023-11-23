@@ -572,7 +572,12 @@ pub async fn update_wallet(
                 if data.use_for_mfa {
                     debug!("Wallet {} MFA flag enabled", wallet.address);
                     // send notification email about enabled MFA
-                    send_mfa_configured_email(&user, &MFAMethod::Web3, &appstate.mail_tx)?;
+                    send_mfa_configured_email(
+                        Some(&session.session),
+                        &user,
+                        &MFAMethod::Web3,
+                        &appstate.mail_tx,
+                    )?;
                     if !user.mfa_enabled {
                         user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
                         let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;

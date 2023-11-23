@@ -2,8 +2,8 @@
 {% extends "base.tera" %}
 {% block mail_content %}
 {% set section_content = [
-macros::paragraph(content="Dear" ~ admin_first_name ~ admin_last_name),
-macros::paragraph(content=first_name ~ last_name ~ "just completed their enrollment process."),
+macros::paragraph(content="Dear " ~ admin_first_name ~ " " ~ admin_last_name),
+macros::paragraph(content=first_name ~ " " ~ last_name ~ " just completed their enrollment process."),
 macros::paragraph(content="Have a good day!")] %}
 {{ macros::text_section(content_array=section_content) }}
 {% endblock %}

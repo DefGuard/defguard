@@ -346,7 +346,7 @@ pub async fn run_web_server(
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
     // TODO: map_err() and remove `hyper` as depenency from Cargo.toml
     Server::bind(&addr)
-        .serve(webapp.into_make_service())
+        .serve(webapp.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .map_err(|err| anyhow!("Web server can't be started {}", err))
 }

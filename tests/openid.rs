@@ -1,4 +1,5 @@
 use axum::http::{header::ToStrError, StatusCode};
+use claims::assert_err;
 use defguard::{
     config::DefGuardConfig,
     db::{
@@ -16,6 +17,7 @@ use openidconnect::{
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
     PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
 };
+use reqwest::header::USER_AGENT;
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 
@@ -609,4 +611,96 @@ async fn test_openid_authorization_code_with_pkce() {
         .request_async(move |r| http_client(r, pool, config))
         .await
         .unwrap();
+}
+
+#[tokio::test]
+async fn test_openid_flow_new_login_mail() {
+    let (client, state) = make_test_client().await;
+    let mut mail_rx = state.mail_rx;
+    let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+
+    let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let openid_client = NewOpenIDClient {
+        name: "Test".into(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&openid_client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let openid_client: OAuth2Client = response.json().await;
+    assert_eq!(openid_client.name, "Test");
+
+    // all clients
+    let response = client.get("/api/v1/oauth").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000&\
+            scope=openid&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    let (location, query) = location.split_once('?').unwrap();
+    assert_eq!(location, "http://localhost:3000/");
+    let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
+    assert_eq!(auth_response.state, "ABCDEF");
+
+    mail_rx.try_recv().unwrap();
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "admin@defguard");
+    assert_eq!(mail.subject, "New login to Test application with defguard");
+    assert_eq!(mail.content.contains("IP Address: 127.0.0.1"), true);
+    assert_eq!(
+        mail.content
+            .contains("Device type: iPhone, OS: iOS 17.1, Mobile Safari"),
+        true
+    );
+
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000&\
+            scope=openid&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+
+    // No new mail recevied
+    assert_err!(mail_rx.try_recv());
 }
