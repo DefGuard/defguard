@@ -1,3 +1,4 @@
+import { User } from './types';
 import { mergeObjects } from './utils/utils';
 
 type TestsConfig = {
@@ -44,9 +45,13 @@ export const routes = {
   authorize: '/api/v1/oauth/authorize',
 };
 
-export const defaultUserAdmin = {
+export const defaultUserAdmin: User = {
   username: 'admin',
   password: 'pass123',
+  firstName: 'Administrator',
+  lastName: 'Defguard',
+  mail: 'admin@defguard',
+  phone: '',
 };
 
 export const testUserTemplate = {

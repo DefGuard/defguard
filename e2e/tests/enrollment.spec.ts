@@ -1,6 +1,6 @@
-import { BrowserContext, expect, Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-import { testsConfig } from '../config';
+import { testsConfig, testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
 import { apiGetUserProfile } from '../utils/api/users';
 import {
@@ -13,13 +13,9 @@ import {
 } from '../utils/controllers/enrollment';
 import { loginBasic } from '../utils/controllers/login';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
-import { dockerDown, dockerStartup } from '../utils/docker';
+import { dockerDown, dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
-
-test.describe.configure({
-  mode: 'serial',
-});
 
 const testNetwork: NetworkForm = {
   name: 'test network',
@@ -30,31 +26,22 @@ const testNetwork: NetworkForm = {
 
 test.describe('Create user with enrollment enabled', () => {
   let token: string;
-  let user: User;
-  let page: Page;
-  let context: BrowserContext;
+  const user: User = { ...testUserTemplate, username: 'test' };
 
-  // Setup client and user for tests
-  test.beforeAll(async ({ browser }) => {
-    dockerStartup();
-    context = await browser.newContext();
-    page = await context.newPage();
-    await waitForBase(page);
-    const response = await createUserEnrollment(context, 'testauth01');
-    user = response.user;
+  test.beforeEach(async ({ browser }) => {
+    dockerRestart();
+    const response = await createUserEnrollment(browser, user);
     token = response.token;
-    // Extract token
-    await createNetwork(context, testNetwork);
+    await createNetwork(browser, testNetwork);
   });
 
   test.afterAll(() => {
     dockerDown();
   });
 
-  test('Complete enrollment with created user', async ({ browser }) => {
+  test('Complete enrollment with created user', async ({ page }) => {
     expect(token).toBeDefined();
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);
     await setToken(token, page);

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-import { NetworkForm } from '../../types';
-import { apiGetUserProfile } from '../../utils/api/users';
-import { createUser } from '../../utils/controllers/createUser';
+import { defaultUserAdmin, testUserTemplate } from '../../config';
+import { NetworkForm, User } from '../../types';
+import { apiCreateUser, apiGetUserProfile } from '../../utils/api/users';
 import { loginBasic } from '../../utils/controllers/login';
 import { createDevice } from '../../utils/controllers/vpn/createDevice';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
@@ -22,23 +22,27 @@ const testNetwork: NetworkForm = {
 };
 
 test.describe('Add user device', () => {
-  test.beforeAll(() => dockerRestart());
-  test.afterAll(() => dockerDown());
-  test.afterEach(() => {
-    dockerRestart();
-  });
+  const testUser: User = { ...testUserTemplate, username: 'test' };
 
   test.beforeEach(async ({ browser }) => {
+    dockerRestart();
     const context = await browser.newContext();
     const page = await context.newPage();
+    // wait for fronted
     await waitForBase(page);
-    await createNetwork(context, testNetwork);
+    // prepare test network
+    await createNetwork(browser, testNetwork);
+    // make test user
+    await loginBasic(page, defaultUserAdmin);
+    await apiCreateUser(page, testUser);
+    await context.close();
   });
 
-  test('Add test user device with generate', async ({ page, context }) => {
+  test.afterAll(() => dockerDown());
+
+  test('Add test user device with generate', async ({ page, browser }) => {
     await waitForBase(page);
-    const testUser = await createUser(context, 'testgen');
-    await createDevice(context, testUser, {
+    await createDevice(browser, testUser, {
       name: 'test',
     });
     await loginBasic(page, testUser);
@@ -48,10 +52,9 @@ test.describe('Add user device', () => {
     expect(createdDevice.networks[0].device_wireguard_ip).toBe('10.10.10.2');
   });
 
-  test('Add test user device with manual', async ({ page, context }) => {
+  test('Add test user device with manual', async ({ page, browser }) => {
     await waitForBase(page);
-    const testUser = await createUser(context, 'testmanual');
-    await createDevice(context, testUser, {
+    await createDevice(browser, testUser, {
       name: 'test',
       pubKey: testKeys.public,
     });

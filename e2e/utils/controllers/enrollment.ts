@@ -1,7 +1,6 @@
-import { expect, Page } from '@playwright/test';
-import { BrowserContext } from 'playwright';
+import { Browser, expect, Page } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
+import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { getPageClipboard } from '../getPageClipboard';
 import { waitForBase } from '../waitForBase';
@@ -17,10 +16,10 @@ type EnrollmentResponse = {
 };
 
 export const createUserEnrollment = async (
-  context: BrowserContext,
-  username: string
+  browser: Browser,
+  user: User
 ): Promise<EnrollmentResponse> => {
-  const user: User = { ...testUserTemplate, username };
+  const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
   await page.goto(routes.base + routes.auth.login);
@@ -52,6 +51,7 @@ export const createUserEnrollment = async (
   await modalElement.waitFor({ state: 'hidden' });
   // logout
   await logout(page);
+  await context.close();
   return { user, token };
 };
 

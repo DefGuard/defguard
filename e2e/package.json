@@ -31,5 +31,8 @@
     "lodash": "^4.17.21",
     "playwright": "^1.32.3",
     "totp-generator": "^0.0.14"
+  },
+  "volta": {
+    "node": "19.9.0"
   }
 }

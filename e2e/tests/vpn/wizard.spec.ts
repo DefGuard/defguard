@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import * as fs from 'fs';
 import lodash from 'lodash';
 import path from 'path';
 
@@ -49,10 +50,23 @@ test.describe('Setup VPN (wizard) ', () => {
     await page.getByTestId('field-endpoint').type('127.0.0.1:5051');
     const fileChooserPromise = page.waitForEvent('filechooser');
     await page.getByTestId('upload-config').click();
-    const responseImportConfigPromise = page.waitForResponse('**/network/import');
+    const responseImportConfigPromise = page.waitForResponse('**/import');
     const fileChooser = await fileChooserPromise;
-    const filePath = path.resolve(__dirname.split('e2e/')[0] + 'e2e/assets/test.config');
-    fileChooser.setFiles([filePath.toString()]);
+    const filePath = path.resolve(
+      __dirname.split('e2e')[0],
+      'e2e',
+      'assets',
+      'test.config'
+    );
+    fs.accessSync(filePath, fs.constants.F_OK);
+    const configData = fs.readFileSync(filePath, null);
+    await fileChooser.setFiles([
+      {
+        name: 'test.config',
+        buffer: configData,
+        mimeType: 'text/plain',
+      },
+    ]);
     await navNext.click();
     const response = await responseImportConfigPromise;
     expect(response.status()).toBe(201);
@@ -84,7 +98,7 @@ test.describe('Setup VPN (wizard) ', () => {
     }
   });
 
-  test('Wizard Manual', async ({ context, page }) => {
+  test('Wizard Manual', async ({ page, browser }) => {
     await waitForBase(page);
     const network: NetworkForm = {
       name: 'test manual',
@@ -92,6 +106,6 @@ test.describe('Setup VPN (wizard) ', () => {
       endpoint: '127.0.0.1',
       port: '5055',
     };
-    await createNetwork(context, network);
+    await createNetwork(browser, network);
   });
 });

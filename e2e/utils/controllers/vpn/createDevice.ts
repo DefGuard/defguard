@@ -1,16 +1,12 @@
-import { expect } from '@playwright/test';
-import { BrowserContext } from 'playwright';
+import { Browser, expect } from '@playwright/test';
 
 import { routes } from '../../../config';
 import { DeviceForm, User } from '../../../types';
 import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
 
-export const createDevice = async (
-  context: BrowserContext,
-  user: User,
-  device: DeviceForm
-) => {
+export const createDevice = async (browser: Browser, user: User, device: DeviceForm) => {
+  const context = await browser.newContext();
   const page = await context.newPage();
   await loginBasic(page, user);
   await page.goto(routes.base + routes.me);
@@ -36,5 +32,5 @@ export const createDevice = async (
   await page.getByTestId('next-step').click();
   const response = await responsePromise;
   expect(response.status()).toBe(201);
-  await page.close();
+  await context.close();
 };

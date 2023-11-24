@@ -1,11 +1,27 @@
-import { Page } from 'playwright';
+import { Browser } from 'playwright';
 import totp from 'totp-generator';
 
 import { routes } from '../../../config';
+import { User } from '../../../types';
 import { getPageClipboard } from '../../getPageClipboard';
+import { waitForBase } from '../../waitForBase';
 import { waitForRoute } from '../../waitForRoute';
+import { acceptRecovery } from '../acceptRecovery';
+import { loginBasic } from '../login';
 
-export const enableTOTP = async (page: Page): Promise<string> => {
+export type EnableTOTPResult = {
+  secret: string;
+  recoveryCodes?: string[];
+};
+
+export const enableTOTP = async (
+  browser: Browser,
+  user: User
+): Promise<EnableTOTPResult> => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await waitForBase(page);
+  await loginBasic(page, user);
   await page.goto(routes.base + routes.me);
   await waitForRoute(page, routes.me);
   await page.getByTestId('edit-user').click();
@@ -18,5 +34,10 @@ export const enableTOTP = async (page: Page): Promise<string> => {
   await totpForm.getByTestId('field-code').type(token);
   await totpForm.locator('button[type="submit"]').click();
   await totpForm.waitFor({ state: 'hidden' });
-  return totpSecret;
+  const recovery = await acceptRecovery(page);
+  await context.close();
+  return {
+    secret: totpSecret,
+    recoveryCodes: recovery,
+  };
 };
