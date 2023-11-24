@@ -1,6 +1,6 @@
 import { defineConfig, devices, ReporterDescription } from '@playwright/test';
 
-import { routes } from './config';
+import { routes, testsConfig } from './config';
 import { loadEnv } from './utils/loadEnv';
 
 loadEnv();
@@ -29,7 +29,7 @@ if (process.env.SHOW_REPORT) {
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  timeout: 180 * 1000,
+  timeout: testsConfig.TEST_TIMEOUT * 1000,
   testDir: './tests',
   /* Run tests in files in parallel */
   fullyParallel: false,

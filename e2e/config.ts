@@ -4,18 +4,23 @@ type TestsConfig = {
   BASE_URL: string;
   CORE_BASE_URL: string;
   ENROLLMENT_URL: string;
+  TEST_TIMEOUT: number;
 };
 
 const defaultConfig: TestsConfig = {
   BASE_URL: 'http://localhost:8000',
   CORE_BASE_URL: 'http://localhost:8000/api/v1',
-  ENROLLMENT_URL: 'http://localhost:8080'
+  ENROLLMENT_URL: 'http://localhost:8080',
+  TEST_TIMEOUT: 180,
 };
 
 const envConfig: Partial<TestsConfig> = {
   BASE_URL: process.env.BASE_URL,
   CORE_BASE_URL: process.env.CORE_BASE_URL,
-  ENROLLMENT_URL: process.env.ENROLLMENT_URL
+  ENROLLMENT_URL: process.env.ENROLLMENT_URL,
+  TEST_TIMEOUT: process.env.TEST_TIMEOUT
+    ? Number.parseInt(process.env.TEST_TIMEOUT)
+    : undefined,
 };
 
 export const testsConfig: TestsConfig = mergeObjects(envConfig, defaultConfig);
@@ -24,6 +29,7 @@ export const routes = {
   base: testsConfig.BASE_URL,
   me: '/me',
   consent: '/consent',
+  addDevice: '/add-device',
   auth: {
     login: '/auth/login',
     totp: '/auth/mfa/totp',

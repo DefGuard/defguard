@@ -11,14 +11,22 @@ import {
 } from '../../utils/api/users';
 import { loginBasic } from '../../utils/controllers/login';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../../utils/docker';
+import { dockerDown, dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForPromise } from '../../utils/waitForPromise';
 import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Setup VPN (wizard) ', () => {
+  test.beforeAll(() => {
+    dockerRestart();
+  });
+
   test.afterEach(() => {
     dockerRestart();
+  });
+
+  test.afterAll(() => {
+    dockerDown();
   });
 
   test('Wizard Import', async ({ page }) => {
@@ -76,7 +84,8 @@ test.describe('Setup VPN (wizard) ', () => {
     }
   });
 
-  test('Wizard Manual', async ({ context }) => {
+  test('Wizard Manual', async ({ context, page }) => {
+    await waitForBase(page);
     const network: NetworkForm = {
       name: 'test manual',
       address: '10.10.10.1/24',

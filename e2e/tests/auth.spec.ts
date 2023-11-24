@@ -8,9 +8,13 @@ import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/
 import { logout } from '../utils/controllers/logout';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { changePassword, changePasswordByAdmin } from '../utils/controllers/profile';
-import { dockerRestart } from '../utils/docker';
+import { dockerRestart, dockerStartup } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
+
+test.beforeAll(async () => {
+  dockerStartup();
+});
 
 test.afterEach(async () => {
   dockerRestart();

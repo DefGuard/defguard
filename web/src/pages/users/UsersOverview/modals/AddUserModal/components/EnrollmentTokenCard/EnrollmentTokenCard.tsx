@@ -24,6 +24,7 @@ export const EnrollmentTokenCard = () => {
   const tokenActions = useMemo(
     (): ReactNode[] => [
       <ActionButton
+        data-testid="copy-enrollment-token"
         variant={ActionButtonVariant.COPY}
         disabled={isUndefined(tokenResponse)}
         onClick={() => {
@@ -40,6 +41,7 @@ export const EnrollmentTokenCard = () => {
   const urlActions = useMemo(
     (): ReactNode[] => [
       <ActionButton
+        data-testid="copy-enrollment-url"
         variant={ActionButtonVariant.COPY}
         disabled={!tokenResponse}
         onClick={() => {

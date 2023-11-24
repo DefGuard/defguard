@@ -55,4 +55,9 @@ export type NetworkForm = {
   dns?: string;
 };
 
+export type DeviceForm = {
+  name: string;
+  pubKey?: string;
+};
+
 export type OpenIdScope = 'openid' | 'profile' | 'email' | 'phone';

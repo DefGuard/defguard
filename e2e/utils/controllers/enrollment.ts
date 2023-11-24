@@ -41,25 +41,16 @@ export const createUserEnrollment = async (
   const enrollmentForm = modalElement.getByTestId('start-enrollment-form');
   await enrollmentForm.locator('.toggle-option').nth(1).click();
   await enrollmentForm.locator('button[type="submit"]').click();
+  waitForPromise(2000);
   // Copy to clipboard
-  await modalElement
-    .locator('.step-content')
-    .locator('#enrollment-token-step')
-    .locator('.expandable-card')
-    .locator('.top')
-    .locator('.actions')
-    .locator('button')
-    .click();
-
-  await modalElement
-    .locator('.step-content')
-    .locator('#enrollment-token-step')
-    .locator('.controls')
-    .locator('button')
-    .click();
+  const tokenStep = modalElement.locator('#enrollment-token-step');
+  await tokenStep.getByTestId('copy-enrollment-token').click();
+  const token = await getPageClipboard(page);
+  expect(token.length).toBeGreaterThan(0);
+  // close modal
+  await modalElement.locator('.controls button.cancel').click();
   await modalElement.waitFor({ state: 'hidden' });
-  const response = (await getPageClipboard(page)).split('\n');
-  const token = response[1].split(' ')[1];
+  // logout
   await logout(page);
   return { user, token };
 };

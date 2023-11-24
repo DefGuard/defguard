@@ -13,7 +13,7 @@ import {
 } from '../utils/controllers/enrollment';
 import { loginBasic } from '../utils/controllers/login';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../utils/docker';
+import { dockerDown, dockerStartup } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 
@@ -36,6 +36,7 @@ test.describe('Create user with enrollment enabled', () => {
 
   // Setup client and user for tests
   test.beforeAll(async ({ browser }) => {
+    dockerStartup();
     context = await browser.newContext();
     page = await context.newPage();
     await waitForBase(page);
@@ -47,10 +48,10 @@ test.describe('Create user with enrollment enabled', () => {
   });
 
   test.afterAll(() => {
-    dockerRestart();
+    dockerDown();
   });
 
-  test('Go to enrollment', async ({ browser }) => {
+  test('Complete enrollment with created user', async ({ browser }) => {
     expect(token).toBeDefined();
     const context = await browser.newContext();
     const page = await context.newPage();

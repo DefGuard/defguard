@@ -70,6 +70,7 @@ export const AddDevicePage = () => {
               }}
             />
             <Button
+              data-testid="next-step"
               size={ButtonSize.LARGE}
               styleVariant={ButtonStyleVariant.PRIMARY}
               text={

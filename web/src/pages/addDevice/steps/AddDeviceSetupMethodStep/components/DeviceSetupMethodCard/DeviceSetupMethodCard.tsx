@@ -19,6 +19,7 @@ type Props = {
   link?: string;
   linkText?: string;
   onSelect: () => void;
+  testId?: string;
 };
 export const DeviceSetupMethodCard = ({
   title,
@@ -28,6 +29,7 @@ export const DeviceSetupMethodCard = ({
   logo,
   subtitle,
   onSelect,
+  testId,
 }: Props) => {
   return (
     <div className="device-setup-method">
@@ -40,6 +42,7 @@ export const DeviceSetupMethodCard = ({
         icon={selected ? <SvgIconCheckmarkWhite /> : undefined}
         styleVariant={selected ? ButtonStyleVariant.SAVE : ButtonStyleVariant.PRIMARY}
         onClick={onSelect}
+        data-testid={testId}
       />
       {!isUndefined(link) && !isUndefined(linkText) && (
         <a href={link} target="_blank" rel="noopener noreferrer">

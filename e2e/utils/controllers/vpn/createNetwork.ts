@@ -18,8 +18,9 @@ export const createNetwork = async (context: BrowserContext, network: NetworkFor
     await field.clear();
     await field.type(network[key]);
   }
-  const responseCreateNetworkPromise = page.waitForResponse('**/network/');
+  const responseCreateNetworkPromise = page.waitForResponse('**/network');
   await navNext.click();
   const response = await responseCreateNetworkPromise;
   expect(response.status()).toBe(201);
+  await page.close();
 };
