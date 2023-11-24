@@ -153,9 +153,9 @@
                                     <tbody>
                                       <tr>
                                         <td style="width:550px;">
-                                          <img width="550" height="64"
-                                            style="border:0;display:block;outline:none;text-decoration:none;height:64px;width:100%;font-size:13px;"
-                                            alt="Defguard logo" src="https://defguard.net/images/svg/logo_nav.svg" />
+                                          <img width="150" height="64"
+                                            style="border:0;display:block;outline:none;text-decoration:none;height:64px;font-size:13px;"
+                                            alt="Defguard logo" src="https://defguard.net/images/png/logo_nav.png" />
                                         </td>
                                       </tr>
                                     </tbody>
@@ -345,7 +345,7 @@
                                                 <a href="https://github.com/defguard/defguard/" target="_blank">
                                                   <img style="border-radius:3px;display:block;" width="18" height="18"
                                                     alt="Github"
-                                                    src="https://defguard.net/images/decap/github_black.svg" />
+                                                    src="https://defguard.net/images/decap/github_black.png" />
                                                 </a>
                                               </td>
                                             </tr>
@@ -369,7 +369,7 @@
                                                 <a href="https://matrix.to/#/#defguard:teonite.com" target="_blank">
                                                   <img alt="Matrix" height="18" style="border-radius:3px;display:block;"
                                                     width="18"
-                                                    src="https://defguard.net/images/decap/matrix-icon.svg" />
+                                                    src="https://defguard.net/images/decap/matrix-icon.png" />
                                                 </a>
                                               </td>
                                             </tr>
@@ -393,7 +393,7 @@
                                                 <a href="https://floss.social/@defguard" target="_blank">
                                                   <img alt="Mastodon" style="border-radius:3px;display:block;"
                                                     width="18" height="18"
-                                                    src="https://defguard.net/images/decap/mastodon.svg" />
+                                                    src="https://defguard.net/images/decap/mastodon.png" />
                                                 </a>
                                               </td>
                                             </tr>
@@ -417,7 +417,7 @@
                                                 <a href="https://twitter.com/defguard_net/" target="_blank">
                                                   <img alt="Twitter" height="18"
                                                     style="border-radius:3px;display:block;" width="18"
-                                                    src="https://defguard.net/images/decap/twitter_black.svg" />
+                                                    src="https://defguard.net/images/decap/twitter_black.png" />
                                                 </a>
                                               </td>
                                             </tr>
