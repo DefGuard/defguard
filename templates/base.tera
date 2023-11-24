@@ -152,7 +152,7 @@
                                     style="border-collapse:collapse;border-spacing:0px;">
                                     <tbody>
                                       <tr>
-                                        <td style="width:550px;">
+                                        <td align="center" style="width:550px;">
                                           <img width="160" height="64"
                                             style="border:0;display:block;outline:none;text-decoration:none;height:64px;font-size:13px;"
                                             alt="Defguard logo" src="https://defguard.net/images/png/logo_nav.png" />
@@ -194,7 +194,7 @@
                           <tbody>
                             <tr>
                               <td style="font-size:0px;word-break:break-word;">
-                                <div style="height:48px;line-height:48px;">&#8202;</div>
+                                <div style="height:20px;line-height:20px;">&#8202;</div>
                               </td>
                             </tr>
                           </tbody>
@@ -215,7 +215,7 @@
     {% endblock %}
 
     <!-- device info -->
-    <div style="margin: 0px auto; max-width: 600px">
+    <div style="margin: 0px auto; max-width: 600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%">
         <tbody>
           <tr>
@@ -250,18 +250,18 @@
                                     color: #222222;
                                   ">
                                     {% if date_now %}
-                                      <p>
-                                        Date: {{ date_now | safe }}
+                                      <p style="margin: auto;">
+                                        <span style="font-weight: 700;">Date:</span> {{ date_now | safe }}
                                       </p>
                                     {% endif %}
                                     {% if ip_address %}
-                                      <p>
-                                        IP Address: {{ ip_address | safe }}
+                                      <p style="margin: auto;">
+                                        <span style="font-weight: 700;">IP Address:</span> {{ ip_address | safe }}
                                       </p>
                                     {% endif %}
                                     {% if device_type %}
-                                      <p>
-                                        Device type: {{ device_type | safe }}
+                                      <p style="margin: auto;">
+                                        <span style="font-weight: 700;">Device type:</span> {{ device_type | safe }}
                                       </p>
                                     {% endif %}
                                   </div>

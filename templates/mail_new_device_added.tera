@@ -11,7 +11,7 @@ assigned_ip -> ip of device in location
 {# Generate locations list#}
 {% macro device_locations(locations) %}
 {% for location in locations %}
-{{ macros::paragraph(content=location.name ~ ":" ~ " " ~ location.assigned_ip)}}
+{{ macros::paragraph_with_title(title=location.name ~ ":", content=location.assigned_ip)}}
 {% endfor %}
 {% endmacro device_locations %}
 {# mail content #}
@@ -19,13 +19,13 @@ assigned_ip -> ip of device in location
 {# title #}
 {% set section_content = [macros::paragraph(content="A new device has been added to your account:")] %}
 {{ macros::text_section(content_array=section_content) }}
-{{ macros::spacer(height="40px")}}
+{# {{ macros::spacer(height="40px")}} #}
 {# device info block #}
 {% set name = device_name | title %}
 {% set locations_list = self::device_locations(locations=locations) %}
 {% set section_content = [
-macros::paragraph(content="Device name: " ~ name),
-macros::paragraph(content="Public key: " ~ public_key),
+macros::paragraph_with_title(title="Device name:", content=name),
+macros::paragraph_with_title(title="Public key:", content=public_key),
 locations_list ]
 %}
 {# render device section #}
