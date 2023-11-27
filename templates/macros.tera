@@ -65,6 +65,18 @@
 </p>
 {% endmacro paragraph %}
 
+{% macro paragraph_with_title(title, content="", color="#222", font_size="12px", align="left", line_height="120%", margin="auto") %}
+<p style="
+  font-family: Roboto, Arial;
+  font-size: {{ font_size }};
+  color: {{ color }};
+  line-height: {{ line_height }};
+  text-align: {{ align }};
+  margin: {{ margin }};
+  ">
+    <span style="font-weight: bold;">{{ title | safe }}</span> <span>{{ content | safe }}</span>
+</p>
+{% endmacro paragraph_with_title %}
 
 {% macro spacer(height="20px") %}
 <div style="margin: 0px auto; max-width: 600px">
