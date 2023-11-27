@@ -208,7 +208,6 @@ pub async fn start_enrollment(
 }
 
 pub async fn start_remote_desktop_configuration(
-    _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
