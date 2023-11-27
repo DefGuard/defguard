@@ -1,6 +1,7 @@
 name: Deploy to DEV environment
 on:
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   deploy-dev:
@@ -13,6 +14,6 @@ jobs:
       KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
     steps:
       - name: Deploy new image version
-        uses: actions-hub/kubectl@v1.28.4
+        uses: actions-hub/kubectl@v1.26.3
         with:
-          args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${{ github.sha }}
+          args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${{ github.sha::7 }}
