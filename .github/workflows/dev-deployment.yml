@@ -15,4 +15,4 @@ jobs:
       - name: Deploy new image version
         uses: actions-hub/kubectl@v1.26.3
         with:
-          args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${{ github.sha::7 }}
+          args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${{ github.sha }}
