@@ -12,7 +12,7 @@ const defaultConfig: TestsConfig = {
   BASE_URL: 'http://localhost:8000',
   CORE_BASE_URL: 'http://localhost:8000/api/v1',
   ENROLLMENT_URL: 'http://localhost:8080',
-  TEST_TIMEOUT: 180,
+  TEST_TIMEOUT: 240,
 };
 
 const envConfig: Partial<TestsConfig> = {

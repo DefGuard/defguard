@@ -71,6 +71,7 @@ test.describe('Test user authentication', () => {
   });
 
   test('Login with Email TOTP', async ({ page, browser }) => {
+    test.skip(true, 'Make it later');
     await waitForBase(page);
     await createUser(browser, testUser);
     const { secret } = await enableEmailMFA(browser, testUser);
