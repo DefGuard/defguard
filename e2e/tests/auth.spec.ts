@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import totp from 'totp-generator';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { User } from '../types';
@@ -6,6 +7,7 @@ import { acceptRecovery } from '../utils/controllers/acceptRecovery';
 import { createUser } from '../utils/controllers/createUser';
 import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
+import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { changePassword, changePasswordByAdmin } from '../utils/controllers/profile';
 import { dockerDown, dockerRestart } from '../utils/docker';
@@ -66,6 +68,18 @@ test.describe('Test user authentication', () => {
     await loginRecoveryCodes(page, testUser, recoveryCodes[0]);
     await waitForRoute(page, routes.me);
     expect(page.url()).toBe(routes.base + routes.me);
+  });
+
+  test('Login with Email TOTP', async ({ page, browser }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    const { secret } = await enableEmailMFA(browser, testUser);
+    await loginBasic(page, testUser);
+    await page.goto(routes.base + routes.auth.email);
+    const code = totp(secret);
+    await page.getByTestId('field-code').type(code);
+    await page.locator('button[type="submit"]').click();
+    await waitForRoute(page, routes.me);
   });
 });
 

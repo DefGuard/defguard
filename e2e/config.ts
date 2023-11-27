@@ -35,6 +35,7 @@ export const routes = {
     login: '/auth/login',
     totp: '/auth/mfa/totp',
     recovery: '/auth/mfa/recovery',
+    email: '/auth/mfa/email',
   },
   admin: {
     wizard: '/admin/wizard',
@@ -60,4 +61,12 @@ export const testUserTemplate = {
   password: 'defguarD123!',
   mail: 'test@test.com',
   phone: '123456789',
+};
+
+export const dbCred = {
+  username: 'defguard',
+  password: 'defguard',
+  database: 'defguard',
+  port: 5432,
+  host: 'localhost',
 };

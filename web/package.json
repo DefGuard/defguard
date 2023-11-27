@@ -137,5 +137,8 @@
     "vite": "^4.4.9",
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-package-version": "^1.0.2"
+  },
+  "volta": {
+    "node": "20.5.1"
   }
 }
