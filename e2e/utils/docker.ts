@@ -13,7 +13,6 @@ export const dockerUp = () => {
 
 export const dockerDown = () => {
   const command = `docker compose -f ${dockerFilePath.toString()} down`;
-  console.log(command);
   if (dockerCheckContainers()) {
     execSync(command);
   }
