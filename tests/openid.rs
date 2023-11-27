@@ -678,10 +678,10 @@ async fn test_openid_flow_new_login_mail() {
     let mail = mail_rx.try_recv().unwrap();
     assert_eq!(mail.to, "admin@defguard");
     assert_eq!(mail.subject, "New login to Test application with defguard");
-    assert_eq!(mail.content.contains("IP Address: 127.0.0.1"), true);
+    assert_eq!(mail.content.contains("IP Address:</span> 127.0.0.1"), true);
     assert_eq!(
         mail.content
-            .contains("Device type: iPhone, OS: iOS 17.1, Mobile Safari"),
+            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"),
         true
     );
 

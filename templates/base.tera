@@ -152,10 +152,10 @@
                                     style="border-collapse:collapse;border-spacing:0px;">
                                     <tbody>
                                       <tr>
-                                        <td style="width:550px;">
-                                          <img width="550" height="64"
-                                            style="border:0;display:block;outline:none;text-decoration:none;height:64px;width:100%;font-size:13px;"
-                                            alt="Defguard logo" src="https://defguard.net/images/svg/logo_nav.svg" />
+                                        <td align="center" style="width:550px;">
+                                          <img width="160" height="64"
+                                            style="border:0;display:block;outline:none;text-decoration:none;height:64px;font-size:13px;"
+                                            alt="Defguard logo" src="https://defguard.net/images/png/logo_nav.png" />
                                         </td>
                                       </tr>
                                     </tbody>
@@ -194,7 +194,7 @@
                           <tbody>
                             <tr>
                               <td style="font-size:0px;word-break:break-word;">
-                                <div style="height:48px;line-height:48px;">&#8202;</div>
+                                <div style="height:20px;line-height:20px;">&#8202;</div>
                               </td>
                             </tr>
                           </tbody>
@@ -215,7 +215,7 @@
     {% endblock %}
 
     <!-- device info -->
-    <div style="margin: 0px auto; max-width: 600px">
+    <div style="margin: 0px auto; max-width: 600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%">
         <tbody>
           <tr>
@@ -250,18 +250,18 @@
                                     color: #222222;
                                   ">
                                     {% if date_now %}
-                                      <p>
-                                        Date: {{ date_now | safe }}
+                                      <p style="margin: auto;">
+                                        <span style="font-weight: 700;">Date:</span> {{ date_now | safe }}
                                       </p>
                                     {% endif %}
                                     {% if ip_address %}
-                                      <p>
-                                        IP Address: {{ ip_address | safe }}
+                                      <p style="margin: auto;">
+                                        <span style="font-weight: 700;">IP Address:</span> {{ ip_address | safe }}
                                       </p>
                                     {% endif %}
                                     {% if device_type %}
-                                      <p>
-                                        Device type: {{ device_type | safe }}
+                                      <p style="margin: auto;">
+                                        <span style="font-weight: 700;">Device type:</span> {{ device_type | safe }}
                                       </p>
                                     {% endif %}
                                   </div>
@@ -345,7 +345,7 @@
                                                 <a href="https://github.com/defguard/defguard/" target="_blank">
                                                   <img style="border-radius:3px;display:block;" width="18" height="18"
                                                     alt="Github"
-                                                    src="https://defguard.net/images/decap/github_black.svg" />
+                                                    src="https://defguard.net/images/decap/github_black.png" />
                                                 </a>
                                               </td>
                                             </tr>
@@ -369,7 +369,7 @@
                                                 <a href="https://matrix.to/#/#defguard:teonite.com" target="_blank">
                                                   <img alt="Matrix" height="18" style="border-radius:3px;display:block;"
                                                     width="18"
-                                                    src="https://defguard.net/images/decap/matrix-icon.svg" />
+                                                    src="https://defguard.net/images/decap/matrix-icon.png" />
                                                 </a>
                                               </td>
                                             </tr>
@@ -393,7 +393,7 @@
                                                 <a href="https://floss.social/@defguard" target="_blank">
                                                   <img alt="Mastodon" style="border-radius:3px;display:block;"
                                                     width="18" height="18"
-                                                    src="https://defguard.net/images/decap/mastodon.svg" />
+                                                    src="https://defguard.net/images/decap/mastodon.png" />
                                                 </a>
                                               </td>
                                             </tr>
@@ -417,7 +417,7 @@
                                                 <a href="https://twitter.com/defguard_net/" target="_blank">
                                                   <img alt="Twitter" height="18"
                                                     style="border-radius:3px;display:block;" width="18"
-                                                    src="https://defguard.net/images/decap/twitter_black.svg" />
+                                                    src="https://defguard.net/images/decap/twitter_black.png" />
                                                 </a>
                                               </td>
                                             </tr>
