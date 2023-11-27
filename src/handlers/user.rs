@@ -218,12 +218,7 @@ pub async fn start_remote_desktop_configuration(
         session.user.username
     );
 
-    let user = match User::find_by_username(&appstate.pool, &username).await? {
-        Some(user) => Ok(user),
-        None => Err(WebError::ObjectNotFound(format!(
-            "user {username} not found"
-        ))),
-    }?;
+    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
 
     // if email is None assume that email should be sent to enrolling user
     let email = match data.email {
