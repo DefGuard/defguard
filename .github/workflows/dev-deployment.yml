@@ -5,7 +5,7 @@ on:
 jobs:
   deploy-dev:
     runs-on: [self-hosted, Linux]
-    environment: DEV
+    # environment: DEV
     # if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
     env:
       KUBE_HOST: ${{ secrets.KUBE_HOST }}
@@ -15,4 +15,4 @@ jobs:
       - name: Deploy new image version
         uses: actions-hub/kubectl@v1.26.3
         with:
-          args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${GITHUB_SHA::7}
+          args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${{ github.sha::7 }}
