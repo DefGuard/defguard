@@ -1,27 +1,22 @@
-import { BrowserContext, expect, Page, test } from '@playwright/test';
+import { expect, Page, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes } from '../config';
+import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { OpenIdClient, User } from '../types';
-import { acceptRecovery } from '../utils/controllers/acceptRecovery';
-import { createUser } from '../utils/controllers/createUser';
+import { apiCreateUser } from '../utils/api/users';
 import { loginBasic, loginTOTP } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
+import { copyOpenIdClientId } from '../utils/controllers/openid/copyClientId';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
-import { dockerRestart } from '../utils/docker';
-import { getPageClipboard } from '../utils/getPageClipboard';
+import { dockerDown, dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
 // FIXME containerize test client so tests can run without external testing client
 
-test.describe.configure({
-  mode: 'serial',
-});
-
 test.describe('Authorize OpenID client.', () => {
-  let testUser: User;
+  const testUser: User = { ...testUserTemplate, username: 'test' };
 
   const client: OpenIdClient = {
     name: 'test 01',
@@ -29,31 +24,25 @@ test.describe('Authorize OpenID client.', () => {
     scopes: ['openid'],
   };
 
-  let page: Page;
-  let context: BrowserContext;
-
   // Setup client and user for tests
-  test.beforeAll(async ({ browser }) => {
-    context = await browser.newContext();
-    testUser = await createUser(context, 'testopenid');
-    page = await context.newPage();
-    await waitForBase(page);
+  test.beforeEach(async ({ browser }) => {
+    dockerRestart();
+    await CreateOpenIdClient(browser, client);
+    client.clientID = await copyOpenIdClientId(browser, 1);
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await loginBasic(page, defaultUserAdmin);
-    await waitForRoute(page, routes.admin.wizard);
-    await CreateOpenIdClient(page, client);
-    await page.getByTestId('edit-openid-client-1').click();
-    await page.getByTestId('copy-openid-client-id').click();
-    const clientId = await getPageClipboard(page);
-    client.clientID = clientId;
-    await logout(page);
+    await apiCreateUser(page, testUser);
+    context.close();
   });
 
   test.afterAll(() => {
-    dockerRestart();
+    dockerDown();
   });
 
-  test('Authorize when session is active.', async () => {
+  test('Authorize when session is active.', async ({ page }) => {
     expect(client.clientID).toBeDefined();
+    await waitForBase(page);
     await loginBasic(page, testUser);
     await fillAndSubmitOpenIDDebugger(page, client);
     await page.waitForURL(routes.base + routes.consent + '**');
@@ -73,8 +62,9 @@ test.describe('Authorize OpenID client.', () => {
     await logout(page);
   });
 
-  test('Authorize when session is not active', async () => {
+  test('Authorize when session is not active', async ({ page }) => {
     expect(client.clientID).toBeDefined();
+    await waitForBase(page);
     await fillAndSubmitOpenIDDebugger(page, client);
     await waitForRoute(page, routes.auth.login);
     await loginBasic(page, testUser);
@@ -95,17 +85,15 @@ test.describe('Authorize OpenID client.', () => {
     await logout(page);
   });
 
-  test('Authorize when session is not active and MFA is enabled', async () => {
+  test('Authorize when session is not active and MFA is enabled', async ({
+    page,
+    browser,
+  }) => {
     expect(client.clientID).toBeDefined();
-    await page.goto(routes.base + routes.auth.login);
-    await loginBasic(page, testUser);
-    await waitForRoute(page, routes.me);
-    const totp_secret = await enableTOTP(page);
-    await acceptRecovery(page);
-    await waitForRoute(page, routes.auth.login);
+    const { secret } = await enableTOTP(browser, testUser);
+    await waitForBase(page);
     await fillAndSubmitOpenIDDebugger(page, client);
-    await waitForRoute(page, routes.auth.login);
-    await loginTOTP(page, testUser, totp_secret);
+    await loginTOTP(page, testUser, secret);
     await page.waitForURL(routes.base + routes.consent + '**');
     await page.getByTestId('openid-allow').click();
     await page.waitForURL('https://oidcdebugger.com/**');

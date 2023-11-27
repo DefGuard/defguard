@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import * as fs from 'fs';
 import lodash from 'lodash';
 import path from 'path';
 
@@ -11,14 +12,22 @@ import {
 } from '../../utils/api/users';
 import { loginBasic } from '../../utils/controllers/login';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../../utils/docker';
+import { dockerDown, dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForPromise } from '../../utils/waitForPromise';
 import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Setup VPN (wizard) ', () => {
+  test.beforeAll(() => {
+    dockerRestart();
+  });
+
   test.afterEach(() => {
     dockerRestart();
+  });
+
+  test.afterAll(() => {
+    dockerDown();
   });
 
   test('Wizard Import', async ({ page }) => {
@@ -41,10 +50,23 @@ test.describe('Setup VPN (wizard) ', () => {
     await page.getByTestId('field-endpoint').type('127.0.0.1:5051');
     const fileChooserPromise = page.waitForEvent('filechooser');
     await page.getByTestId('upload-config').click();
-    const responseImportConfigPromise = page.waitForResponse('**/network/import');
+    const responseImportConfigPromise = page.waitForResponse('**/import');
     const fileChooser = await fileChooserPromise;
-    const filePath = path.resolve(__dirname.split('e2e/')[0] + 'e2e/assets/test.config');
-    fileChooser.setFiles([filePath.toString()]);
+    const filePath = path.resolve(
+      __dirname.split('e2e')[0],
+      'e2e',
+      'assets',
+      'test.config'
+    );
+    fs.accessSync(filePath, fs.constants.F_OK);
+    const configData = fs.readFileSync(filePath, null);
+    await fileChooser.setFiles([
+      {
+        name: 'test.config',
+        buffer: configData,
+        mimeType: 'text/plain',
+      },
+    ]);
     await navNext.click();
     const response = await responseImportConfigPromise;
     expect(response.status()).toBe(201);
@@ -76,13 +98,14 @@ test.describe('Setup VPN (wizard) ', () => {
     }
   });
 
-  test('Wizard Manual', async ({ context }) => {
+  test('Wizard Manual', async ({ page, browser }) => {
+    await waitForBase(page);
     const network: NetworkForm = {
       name: 'test manual',
       address: '10.10.10.1/24',
       endpoint: '127.0.0.1',
       port: '5055',
     };
-    await createNetwork(context, network);
+    await createNetwork(browser, network);
   });
 });

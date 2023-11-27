@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-import { routes } from '../../config';
-import { NetworkForm } from '../../types';
-import { apiGetUserProfile } from '../../utils/api/users';
-import { createUser } from '../../utils/controllers/createUser';
+import { defaultUserAdmin, testUserTemplate } from '../../config';
+import { NetworkForm, User } from '../../types';
+import { apiCreateUser, apiGetUserProfile } from '../../utils/api/users';
 import { loginBasic } from '../../utils/controllers/login';
+import { createDevice } from '../../utils/controllers/vpn/createDevice';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../../utils/docker';
+import { dockerDown, dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 
 const testKeys = {
@@ -22,48 +22,43 @@ const testNetwork: NetworkForm = {
 };
 
 test.describe('Add user device', () => {
-  test.afterEach(() => {
-    dockerRestart();
-  });
+  const testUser: User = { ...testUserTemplate, username: 'test' };
 
   test.beforeEach(async ({ browser }) => {
+    dockerRestart();
     const context = await browser.newContext();
     const page = await context.newPage();
+    // wait for fronted
     await waitForBase(page);
-    await createNetwork(context, testNetwork);
+    // prepare test network
+    await createNetwork(browser, testNetwork);
+    // make test user
+    await loginBasic(page, defaultUserAdmin);
+    await apiCreateUser(page, testUser);
+    await context.close();
   });
 
-  test('Add test user device with generate', async ({ page, context }) => {
+  test.afterAll(() => dockerDown());
+
+  test('Add test user device with generate', async ({ page, browser }) => {
     await waitForBase(page);
-    const testUser = await createUser(context, 'testgen');
+    await createDevice(browser, testUser, {
+      name: 'test',
+    });
     await loginBasic(page, testUser);
-    await page.goto(routes.base + routes.me);
-    await page.getByTestId('add-device').click();
-    await page.getByTestId('field-name').type('test');
-    await page.locator('.toggle-option').nth(0).click();
-    const responsePromise = page.waitForResponse('**/device/**');
-    await page.locator('form .controls button[type="submit"]').click();
-    const response = await responsePromise;
-    expect(response.status()).toBe(201);
     const testUserProfile = await apiGetUserProfile(page, testUser.username);
     expect(testUserProfile.devices.length).toBe(1);
     const createdDevice = testUserProfile.devices[0];
     expect(createdDevice.networks[0].device_wireguard_ip).toBe('10.10.10.2');
   });
 
-  test('Add test user device with manual', async ({ page, context }) => {
+  test('Add test user device with manual', async ({ page, browser }) => {
     await waitForBase(page);
-    const testUser = await createUser(context, 'testmanual');
+    await createDevice(browser, testUser, {
+      name: 'test',
+      pubKey: testKeys.public,
+    });
     await loginBasic(page, testUser);
-    await page.goto(routes.base + routes.me);
-    await page.getByTestId('add-device').click();
-    await page.locator('.toggle-option').nth(1).click();
-    await page.getByTestId('field-name').type('test');
-    await page.getByTestId('field-publicKey').type(testKeys.public);
-    const responsePromise = page.waitForResponse('**/device/**');
-    await page.locator('form .controls button[type="submit"]').click();
-    const response = await responsePromise;
-    expect(response.status()).toBe(201);
     const testUserProfile = await apiGetUserProfile(page, testUser.username);
     expect(testUserProfile.devices.length).toBe(1);
     const createdDevice = testUserProfile.devices[0];

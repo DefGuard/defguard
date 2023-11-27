@@ -78,6 +78,7 @@ export const AddDeviceSetupMethodStep = () => {
       />
       <Card shaded id="setup-method-step">
         <DeviceSetupMethodCard
+          testId="choice-desktop"
           title={localLL.remote.title()}
           subtitle={localLL.remote.subTitle()}
           logo={<SvgDefguardNavLogo />}
@@ -91,6 +92,7 @@ export const AddDeviceSetupMethodStep = () => {
           }}
         />
         <DeviceSetupMethodCard
+          testId="choice-manual"
           title={localLL.manual.title()}
           subtitle={localLL.manual.subTitle()}
           logo={<SvgWireguardLogo />}

@@ -1,9 +1,16 @@
-import { Page } from 'playwright';
+import { expect } from '@playwright/test';
+import { Browser } from 'playwright';
 
-import { routes } from '../../../config';
+import { defaultUserAdmin, routes } from '../../../config';
 import { OpenIdClient } from '../../../types';
+import { waitForBase } from '../../waitForBase';
+import { loginBasic } from '../login';
 
-export const CreateOpenIdClient = async (page: Page, client: OpenIdClient) => {
+export const CreateOpenIdClient = async (browser: Browser, client: OpenIdClient) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await waitForBase(page);
+  await loginBasic(page, defaultUserAdmin);
   await page.goto(routes.base + routes.admin.openid, { waitUntil: 'networkidle' });
   await page.getByTestId('add-openid-client').click();
   const modalElement = page.locator('#openid-client-modal');
@@ -14,6 +21,9 @@ export const CreateOpenIdClient = async (page: Page, client: OpenIdClient) => {
   for (const scope of client.scopes) {
     await modalForm.getByTestId(`field-scope-${scope}`).click();
   }
+  const responsePromise = page.waitForResponse('**/oauth');
   await modalForm.locator('button[type="submit"]').click();
-  await modalElement.waitFor({ state: 'hidden' });
+  const resp = await responsePromise;
+  expect(resp.status()).toBe(201);
+  await context.close();
 };

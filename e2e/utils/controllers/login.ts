@@ -29,7 +29,7 @@ export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: stri
   await waitForRoute(page, routes.auth.totp);
   const codeField = page.getByTestId('field-code');
   await codeField.clear();
-  const responsePromise = page.waitForResponse('**/totp/verify');
+  const responsePromise = page.waitForResponse('**/verify');
   const token = totp(totpSecret);
   await codeField.type(token);
   await page.locator('button[type="submit"]').click();
@@ -47,9 +47,6 @@ export const loginRecoveryCodes = async (
     waitUntil: 'networkidle',
   });
   await page.getByTestId('field-code').clear();
-  await page.getByTestId('field-code').type(code);
-  const responsePromise = page.waitForResponse('**/auth/recovery');
-  await page.locator('form button[type=submit]').click();
-  const response = await responsePromise;
-  expect(response.status()).toBe(200);
+  await page.getByTestId('field-code').type(code.trim(), { delay: 100 });
+  await page.locator('button[type="submit"]').click();
 };

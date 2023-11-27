@@ -1,21 +1,20 @@
-import { BrowserContext } from 'playwright';
+import { Browser } from 'playwright';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
+import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
 import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
-import { logout } from './logout';
 
+// create user via default admin on separate context
 export const createUser = async (
-  context: BrowserContext,
-  username: string,
+  browser: Browser,
+  user: User,
   groups?: string[]
-): Promise<User> => {
-  const user: User = { ...testUserTemplate, username };
+): Promise<void> => {
+  const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
-  await page.goto(routes.base + routes.auth.login);
   await loginBasic(page, defaultUserAdmin);
   await page.goto(routes.base + routes.admin.users);
   await page.getByTestId('add-user').click();
@@ -30,6 +29,7 @@ export const createUser = async (
   await formElement.locator('button[type="submit"]').click();
   await formElement.waitFor({ state: 'hidden', timeout: 2000 });
   if (groups) {
+    groups = groups.map((g) => g.toLocaleLowerCase());
     await page.goto(routes.base + routes.admin.users + `/${user.username}`, {
       waitUntil: 'networkidle',
     });
@@ -47,7 +47,5 @@ export const createUser = async (
     }
     await page.getByTestId('user-edit-save').click();
   }
-  await logout(page);
-  await page.close();
-  return user;
+  await context.close();
 };
