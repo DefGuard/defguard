@@ -35,7 +35,10 @@ export const enableEmailMFA = async (
   await requestPromise;
   await waitForPromise(2000);
   const secret = await extractEmailSecret(user.username);
-  const code = totp(secret);
+  const code = totp(secret, {
+    digits: 6,
+    period: 60 * 15,
+  });
   await page.getByTestId('field-code').type(code);
   await formElement.locator('button[type="submit"]').click();
   await formElement.waitFor({ state: 'detached', timeout: 1000 });
