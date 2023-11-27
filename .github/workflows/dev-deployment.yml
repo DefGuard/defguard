@@ -1,7 +1,6 @@
 name: Deploy to DEV environment
 on:
   workflow_call:
-  workflow_dispatch:
 
 jobs:
   deploy-dev:
