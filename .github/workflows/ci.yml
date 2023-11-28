@@ -24,26 +24,26 @@ jobs:
     runs-on: [self-hosted, Linux]
     container: rust:1.73
 
-    services:
-      postgres:
-        image: postgres:14-alpine
-        env:
-          POSTGRES_DB: defguard
-          POSTGRES_USER: defguard
-          POSTGRES_PASSWORD: defguard
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+#    services:
+#      postgres:
+#        image: postgres:14-alpine
+#        env:
+#          POSTGRES_DB: defguard
+#          POSTGRES_USER: defguard
+#          POSTGRES_PASSWORD: defguard
+#        options: >-
+#          --health-cmd pg_isready
+#          --health-interval 10s
+#          --health-timeout 5s
+#          --health-retries 5
 
     steps:
       - name: Debug
         run: echo ${{ github.ref_name }}
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
+#      - name: Checkout
+#        uses: actions/checkout@v3
+#        with:
+#          submodules: recursive
 #      - name: Cache
 #        uses: Swatinem/rust-cache@v2
 #      - name: Install protoc
