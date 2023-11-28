@@ -22,6 +22,7 @@ jobs:
           echo ${SHORT_SHA}
           echo ${{ github.sha }}
           git rev-parse --short HEAD
+          git log --oneline
       - name: Deploy new image version
         uses: actions-hub/kubectl@v1.26.3
         with:
