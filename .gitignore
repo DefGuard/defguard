@@ -11,3 +11,4 @@ ladle-build
 .idea/
 .vscode/
 .envrc
+.direnv/
