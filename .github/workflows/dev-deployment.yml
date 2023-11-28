@@ -13,11 +13,12 @@ jobs:
       KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
     steps:
       - name: Add SHORT_SHA env variable
-        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-7`" >> $GITHUB_ENV
       - name: Debug
         run: |
           echo ${GITHUB_SHA}
           echo ${SHORT_SHA}
+          echo ${{ github.sha }}
       - name: Deploy new image version
         uses: actions-hub/kubectl@v1.26.3
         with:
