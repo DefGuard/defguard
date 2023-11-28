@@ -71,13 +71,15 @@ test.describe('Test user authentication', () => {
   });
 
   test('Login with Email TOTP', async ({ page, browser }) => {
-    test.skip(true, 'Make it later');
     await waitForBase(page);
     await createUser(browser, testUser);
     const { secret } = await enableEmailMFA(browser, testUser);
     await loginBasic(page, testUser);
     await page.goto(routes.base + routes.auth.email);
-    const code = totp(secret);
+    const code = totp(secret, {
+      digits: 6,
+      period: 60 * 15,
+    });
     await page.getByTestId('field-code').type(code);
     await page.locator('button[type="submit"]').click();
     await waitForRoute(page, routes.me);
