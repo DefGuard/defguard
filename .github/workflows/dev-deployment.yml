@@ -5,7 +5,7 @@ on:
 jobs:
   deploy-dev:
     runs-on: [self-hosted, Linux]
-    # environment: DEV
+    environment: DEV
     # if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
     env:
       KUBE_HOST: ${{ secrets.KUBE_HOST }}
