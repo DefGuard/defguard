@@ -49,3 +49,4 @@ jobs:
   trigger-e2e:
     needs: build-docker
     uses: ./.github/workflows/e2e.yml
+    secrets: inherit
