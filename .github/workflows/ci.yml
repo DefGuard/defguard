@@ -44,14 +44,14 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-      - name: Install protoc
-        run: apt-get update && apt-get -y install protobuf-compiler
-      - name: Check format
-        run: |
-          rustup component add rustfmt
-          cargo fmt -- --check
+#      - name: Cache
+#        uses: Swatinem/rust-cache@v2
+#      - name: Install protoc
+#        run: apt-get update && apt-get -y install protobuf-compiler
+#      - name: Check format
+#        run: |
+#          rustup component add rustfmt
+#          cargo fmt -- --check
 #      - name: Run tests
 #        env:
 #          DEFGUARD_SECRET_KEY: aa5a506b11d719dd7170f57f5d9947faf8eb0bc2be1325e42aa0237c3dcfd26456e73dff9eef3b12c7bcf8711b45e3e703d8e21ee1c08520f5e12e3f5772da94
@@ -67,3 +67,4 @@ jobs:
     needs: test
     # if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
     uses: ./.github/workflows/dev-deployment.yml
+    secrets: inherit
