@@ -617,10 +617,8 @@ async fn test_user_add_device() {
     let mail = mail_rx.try_recv().unwrap();
     assert_eq!(mail.to, "admin@defguard");
     assert_eq!(mail.subject, "Defguard: new device added to your account");
-    assert_eq!(mail.content.contains("IP Address:</span> 127.0.0.1"), true);
-    assert_eq!(
-        mail.content
-            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"),
-        true
-    );
+    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(mail
+        .content
+        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
 }
