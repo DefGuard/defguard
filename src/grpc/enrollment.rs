@@ -158,9 +158,16 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
+        let user_info = InitialUserInfo::from_user(&self.pool, user)
+            .await
+            .map_err(|_| {
+                error!("Failed to get user info");
+                Status::internal("unexpected error")
+            })?;
+
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),
-            user: Some(user.into()),
+            user: Some(user_info),
             deadline_timestamp: session_deadline.timestamp(),
             final_page_content: enrollment
                 .get_welcome_page_content(&mut transaction)
@@ -449,17 +456,20 @@ impl From<User> for AdminInfo {
     }
 }
 
-impl From<User> for InitialUserInfo {
-    fn from(user: User) -> Self {
+impl InitialUserInfo {
+    async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
         let is_active = user.has_password();
-        Self {
+        let devices = user.devices(pool).await?;
+        let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
+        Ok(Self {
             first_name: user.first_name,
             last_name: user.last_name,
             login: user.username,
             email: user.email,
             phone_number: user.phone,
             is_active,
-        }
+            device_names,
+        })
     }
 }
 
