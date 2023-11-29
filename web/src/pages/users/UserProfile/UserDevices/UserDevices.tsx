@@ -52,6 +52,7 @@ export const UserDevices = () => {
                   id: userProfile.user.id,
                   reservedDevices: userProfile.devices.map((d) => d.name),
                   email: userProfile.user.email,
+                  originRoutePath: window.location.pathname,
                 });
                 navigate('/add-device', { replace: true });
               }}

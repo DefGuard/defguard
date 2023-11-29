@@ -49,15 +49,17 @@ export const AddDeviceConfigStep = () => {
 
   useEffect(() => {
     const sub = nextSubject.subscribe(() => {
-      navigate(-1);
-      setTimeout(() => {
-        resetPageState();
-      }, 1000);
+      if (userData) {
+        navigate(userData.originRoutePath, { replace: true });
+        setTimeout(() => {
+          resetPageState();
+        }, 1000);
+      }
     });
     return () => {
       sub.unsubscribe();
     };
-  }, [navigate, nextSubject, resetPageState]);
+  }, [navigate, nextSubject, resetPageState, userData]);
 
   if (!device || !userData || !publicKey || !networks) return null;
 

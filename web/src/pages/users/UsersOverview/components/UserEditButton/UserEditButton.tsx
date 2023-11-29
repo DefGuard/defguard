@@ -4,6 +4,7 @@ import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
@@ -23,6 +24,7 @@ export const UserEditButton = ({ user }: Props) => {
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const setAddUserModal = useAddUserModal((state) => state.setState);
   const currentUser = useAuthStore((state) => state.user);
+  const networkPresent = useAppStore((state) => state.appInfo?.network_present);
   return (
     <EditButton>
       {user.username !== currentUser?.username && (
@@ -47,6 +49,7 @@ export const UserEditButton = ({ user }: Props) => {
       />
       {user.is_active === true && (
         <EditButtonOption
+          disabled={!networkPresent}
           key="start-dekstop-activation"
           text={LL.usersOverview.list.editButton.activateDesktop()}
           onClick={() =>
