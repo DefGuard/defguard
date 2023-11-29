@@ -63,6 +63,8 @@ type StoreValues = {
     username: string;
     reservedDevices: string[];
     email: string;
+    // this should be current path that user entered add-device page from, due to brave blocking history relative back doesn't work correctly.
+    originRoutePath: string;
   };
   enrollment?: {
     token: string;

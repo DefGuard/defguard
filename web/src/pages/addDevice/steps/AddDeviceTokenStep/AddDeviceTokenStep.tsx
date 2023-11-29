@@ -19,6 +19,8 @@ export const AddDeviceTokenStep = () => {
   const localLL = LL.addDevicePage.steps.copyToken;
   const navigate = useNavigate();
 
+  const userData = useAddDevicePageStore((state) => state.userData);
+
   const [url, token] = useAddDevicePageStore((state) => [
     state.enrollment?.url,
     state.enrollment?.token,
@@ -63,15 +65,17 @@ export const AddDeviceTokenStep = () => {
 
   useEffect(() => {
     const sub = nextSubject.subscribe(() => {
-      setTimeout(() => {
-        resetPage();
-      }, 1000);
-      navigate(-1);
+      if (userData) {
+        setTimeout(() => {
+          resetPage();
+        }, 1000);
+        navigate(userData.originRoutePath, { replace: true });
+      }
     });
     return () => {
       sub.unsubscribe();
     };
-  }, [resetPage, nextSubject, navigate]);
+  }, [resetPage, nextSubject, navigate, userData]);
 
   return (
     <Card id="add-device-token-step" shaded>
