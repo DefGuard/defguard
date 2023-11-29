@@ -980,11 +980,10 @@ async fn test_mfa_method_totp_enabled_mail() {
         mail.subject,
         "MFA method TOTP was activated on your account"
     );
-    assert_eq!(mail.content.contains("IP Address:</span> 127.0.0.1"), true);
-    assert_eq!(
+    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(
         mail.content
-            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"),
-        true
+            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
     );
 }
 
@@ -1011,11 +1010,10 @@ async fn test_new_device_login() {
         mail.subject,
         "Defguard: new device logged in to your account"
     );
-    assert_eq!(mail.content.contains("IP Address:</span> 127.0.0.1"), true);
-    assert_eq!(
+    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(
         mail.content
-            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"),
-        true
+            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
     );
 
     let response = client.post("/api/v1/auth/logout").send().await;
@@ -1048,10 +1046,9 @@ async fn test_new_device_login() {
         mail.subject,
         "Defguard: new device logged in to your account"
     );
-    assert_eq!(mail.content.contains("IP Address:</span> 127.0.0.1"), true);
-    assert_eq!(
+    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(
         mail.content
-            .contains("Device type:</span> SM-G930VC, OS: Android 7.0, Chrome Mobile WebView"),
-        true
+            .contains("Device type:</span> SM-G930VC, OS: Android 7.0, Chrome Mobile WebView")
     );
 }

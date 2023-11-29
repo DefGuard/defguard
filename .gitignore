@@ -12,3 +12,4 @@ ladle-build
 .vscode/
 .envrc
 .direnv/
+*.pem

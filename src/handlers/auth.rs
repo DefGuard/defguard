@@ -313,18 +313,17 @@ pub async fn webauthn_finish(
     let mut webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
     webauthn.save(&appstate.pool).await?;
     if user.mfa_method == MFAMethod::None {
+        send_mfa_configured_email(
+            Some(&session.session),
+            &user,
+            &MFAMethod::Webauthn,
+            &appstate.mail_tx,
+        )?;
         user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
             .await?;
     }
 
     info!("Finished Webauthn registration for user {}", user.username);
-
-    send_mfa_configured_email(
-        Some(&session.session),
-        &user,
-        &MFAMethod::Webauthn,
-        &appstate.mail_tx,
-    )?;
 
     Ok(ApiResponse {
         json: json!(recovery_codes),
@@ -430,16 +429,15 @@ pub async fn totp_enable(
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_totp(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
+            send_mfa_configured_email(
+                Some(&session.session),
+                &user,
+                &MFAMethod::OneTimePassword,
+                &appstate.mail_tx,
+            )?;
             user.set_mfa_method(&appstate.pool, MFAMethod::OneTimePassword)
                 .await?;
         }
-
-        send_mfa_configured_email(
-            Some(&session.session),
-            &user,
-            &MFAMethod::OneTimePassword,
-            &appstate.mail_tx,
-        )?;
 
         info!("Enabled TOTP for user {}", user.username);
         Ok(ApiResponse {
@@ -540,16 +538,15 @@ pub async fn email_mfa_enable(
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_email_mfa(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
+            send_mfa_configured_email(
+                Some(&session.session),
+                &user,
+                &MFAMethod::Email,
+                &appstate.mail_tx,
+            )?;
             user.set_mfa_method(&appstate.pool, MFAMethod::Email)
                 .await?;
         }
-
-        send_mfa_configured_email(
-            Some(&session.session),
-            &user,
-            &MFAMethod::Email,
-            &appstate.mail_tx,
-        )?;
 
         info!("Enabled email MFA for user {}", user.username);
         Ok(ApiResponse {
