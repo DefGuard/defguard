@@ -16,6 +16,7 @@ Read more about this in [our documentation](https://defguard.gitbook.io/defguard
   - Secure remote (over the internet) [user enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment)
   - User [onboarding after enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment/user-onboarding-after-enrollment)
   - LDAP (tested on [OpenLDAP](https://www.openldap.org/)) synchronization
+  - [forward auth](https://defguard.gitbook.io/defguard/features/forward-auth) for reverse proxies (tested with Traefik and Caddy)
   - nice UI to manage users
   - Users **self-service** (besides typical data management, users can revoke access to granted apps, MFA, Wireguard, etc.)
 * [Wireguard:tm:](https://www.wireguard.com/) VPN management with:
