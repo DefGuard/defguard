@@ -114,6 +114,7 @@ export const LdapSettingsForm = () => {
         <FormInput
           controller={{ control, name: 'ldap_bind_password' }}
           label={localLL.form.labels.ldap_bind_password()}
+          type="password"
         />
         <FormInput
           controller={{ control, name: 'ldap_member_attr' }}
