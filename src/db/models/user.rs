@@ -422,7 +422,7 @@ impl User {
     }
 
     /// Select all users without sensitive data.
-    // FIXME: Remove it when Model macro will suport SecretString
+    // FIXME: Remove it when Model macro will support SecretString
     pub async fn all_without_sensitive_data(
         pool: &DbPool,
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
