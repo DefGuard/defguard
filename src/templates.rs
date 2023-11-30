@@ -86,16 +86,24 @@ pub fn enrollment_start_mail(
     mut enrollment_service_url: Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
+
+    // add required context
+    context.insert("enrollment_url", &enrollment_service_url.to_string());
+    context.insert(
+        "defguard_url",
+        &SERVER_CONFIG.get().expect("Server config not found").url,
+    );
+    context.insert("token", enrollment_token);
+
     // prepare enrollment service URL
     enrollment_service_url
         .query_pairs_mut()
         .append_pair("token", enrollment_token);
 
-    let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
+    context.insert("link_url", &enrollment_service_url.to_string());
 
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
-
-    context.insert("url", &enrollment_service_url.to_string());
 
     Ok(tera.render("mail_enrollment_start", &context)?)
 }
