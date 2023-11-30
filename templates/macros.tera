@@ -120,7 +120,7 @@
 </div>
 {% endmacro spacer %}
 
-{% macro link(content="", href="", color="#222", decoration="none", decoration_color="#222", family="Roboto",
+{% macro link(content="", href="", color="#222", decoration="underline", decoration_color="#222", family="Roboto",
 size="12px", line_height="120%", weight="400") %}
 <a href="{{ href }}" target="_blank"
     style="font-family: {{ family }}, Arial; font-size: {{size}};font-weight: {{ weight }};color: {{color}};text-decoration: {{decoration}};text-decoration-color: {{decoration_color}};">
