@@ -268,6 +268,7 @@ pub fn email_mfa_code_mail(code: u32, session: &Session) -> Result<String, Templ
 
 #[cfg(test)]
 mod test {
+    use crate::config::DefGuardConfig;
     use claims::assert_ok;
 
     use super::*;
@@ -310,6 +311,7 @@ mod test {
 
     #[test]
     fn test_enrollment_start_mail() {
+        SERVER_CONFIG.set(DefGuardConfig::default()).unwrap();
         assert_ok!(enrollment_start_mail(
             Context::new(),
             Url::parse("http://localhost:8080").unwrap(),
