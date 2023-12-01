@@ -2,22 +2,41 @@ import { pick } from 'lodash-es';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { AppStore } from '../../types';
+import { Locales } from '../../../i18n/i18n-types';
+import { AppInfo, SettingsEssentials } from '../../types';
 
-export const useAppStore = createWithEqualityFn<AppStore>()(
+const defaultValues: StoreValues = {
+  settings: undefined,
+  language: undefined,
+  appInfo: undefined,
+};
+
+const persistKeys: Array<keyof StoreValues> = ['language'];
+
+export const useAppStore = createWithEqualityFn<Store>()(
   persist(
     (set) => ({
-      settings: undefined,
-      license: undefined,
-      language: undefined,
-      appInfo: undefined,
-      setAppStore: (data) => set((state) => ({ ...state, ...data })),
+      ...defaultValues,
+      setState: (data) => set(data),
     }),
     {
       name: 'app-store',
-      partialize: (store) => pick(store, ['settings', 'language']),
+      version: 0.2,
+      partialize: (store) => pick(store, persistKeys),
       storage: createJSONStorage(() => sessionStorage),
     },
   ),
   Object.is,
 );
+
+type Store = StoreValues & StoreMethods;
+
+type StoreValues = {
+  settings?: SettingsEssentials;
+  language?: Locales;
+  appInfo?: AppInfo;
+};
+
+type StoreMethods = {
+  setState: (values: Partial<StoreValues>) => void;
+};

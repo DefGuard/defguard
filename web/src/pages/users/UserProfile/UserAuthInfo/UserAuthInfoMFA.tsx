@@ -9,6 +9,7 @@ import { EditButton } from '../../../../shared/defguard-ui/components/Layout/Edi
 import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { RowBox } from '../../../../shared/defguard-ui/components/Layout/RowBox/RowBox';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore.ts';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../shared/hooks/useApi';
@@ -16,6 +17,7 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
 import { UserMFAMethod } from '../../../../shared/types';
+import { useEmailMFAModal } from './modals/RegisterEmailMFAModal/hooks/useEmailMFAModal.tsx';
 
 export const UserAuthInfoMFA = () => {
   const { LL, locale } = useI18nContext();
@@ -23,6 +25,8 @@ export const UserAuthInfoMFA = () => {
   const isMe = useUserProfileStore((store) => store.isMe);
   const editMode = useUserProfileStore((store) => store.editMode);
   const setModalsState = useModalStore((store) => store.setState);
+  const smtpEnabled = useAppStore((state) => state.appInfo?.smtp_enabled);
+  const openEmailMFAModal = useEmailMFAModal((state) => state.open);
   const queryClient = useQueryClient();
 
   const refreshUserQueries = () => {
@@ -35,6 +39,7 @@ export const UserAuthInfoMFA = () => {
       mfa: {
         disable,
         totp: { disable: disableTOTP },
+        email: { disable: disableEmailMFA },
       },
     },
   } = useApi();
@@ -77,6 +82,21 @@ export const UserAuthInfoMFA = () => {
     },
   );
 
+  const { mutate: disableEmailMFAMutation } = useMutation(
+    [MutationKeys.DISABLE_EMAIL_MFA],
+    disableEmailMFA,
+    {
+      onSuccess: () => {
+        refreshUserQueries();
+        toaster.success(LL.userPage.userAuthInfo.mfa.messages.EmailMFADisabled());
+      },
+      onError: (err) => {
+        toaster.error(LL.messages.error());
+        console.error(err);
+      },
+    },
+  );
+
   const { mutate: editUserMutation } = useMutation([MutationKeys.EDIT_USER], editUser, {
     onSuccess: () => {
       toaster.success(LL.userPage.userAuthInfo.mfa.messages.changeMFAMethod());
@@ -102,6 +122,19 @@ export const UserAuthInfoMFA = () => {
     if (userProfile?.user.totp_enabled) {
       const res: string[] = [LL.userPage.userAuthInfo.mfa.enabled()];
       if (userProfile?.user.mfa_method === UserMFAMethod.ONE_TIME_PASSWORD) {
+        const defaultStr = `(${LL.userPage.userAuthInfo.mfa.default()})`;
+        res.push(defaultStr);
+      }
+      return res.join(' ');
+    }
+    return LL.userPage.userAuthInfo.mfa.disabled();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile, locale]);
+
+  const getEmailMFAInfoText = useMemo(() => {
+    if (userProfile?.user.email_mfa_enabled) {
+      const res: string[] = [LL.userPage.userAuthInfo.mfa.enabled()];
+      if (userProfile?.user.mfa_method === UserMFAMethod.EMAIL) {
         const defaultStr = `(${LL.userPage.userAuthInfo.mfa.default()})`;
         res.push(defaultStr);
       }
@@ -183,7 +216,7 @@ export const UserAuthInfoMFA = () => {
       {editMode && isMe ? (
         <>
           <RowBox>
-            <p>One time password</p>
+            <p>{LL.userPage.userAuthInfo.mfa.labels.totp()}</p>
             <div className="right">
               <span>{getTOTPInfoText}</span>
               <EditButton data-testid="edit-totp">
@@ -212,8 +245,40 @@ export const UserAuthInfoMFA = () => {
               </EditButton>
             </div>
           </RowBox>
+          {smtpEnabled && (
+            <RowBox>
+              <p>{LL.userPage.userAuthInfo.mfa.labels.email()}</p>
+              <div className="right">
+                <span>{getEmailMFAInfoText}</span>
+                <EditButton data-testid="edit-email-mfa">
+                  {userProfile?.user.email_mfa_enabled && (
+                    <EditButtonOption
+                      onClick={() => disableEmailMFAMutation()}
+                      text={LL.userPage.userAuthInfo.mfa.editMode.disable()}
+                      styleVariant={EditButtonOptionStyleVariant.WARNING}
+                    />
+                  )}
+                  {!userProfile?.user.email_mfa_enabled && (
+                    <EditButtonOption
+                      data-testid="enable-email-mfa-option"
+                      text={LL.userPage.userAuthInfo.mfa.editMode.enable()}
+                      onClick={() => openEmailMFAModal()}
+                    />
+                  )}
+                  <EditButtonOption
+                    disabled={
+                      !userProfile?.user.email_mfa_enabled ||
+                      userProfile?.user.mfa_method === UserMFAMethod.EMAIL
+                    }
+                    text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
+                    onClick={() => changeDefaultMFAMethod(UserMFAMethod.EMAIL)}
+                  />
+                </EditButton>
+              </div>
+            </RowBox>
+          )}
           <RowBox>
-            <p>Security keys</p>
+            <p>{LL.userPage.userAuthInfo.mfa.labels.webauth()}</p>
             <div className="right">
               <span>{getWebAuthNInfoText}</span>
               <EditButton>
@@ -237,7 +302,7 @@ export const UserAuthInfoMFA = () => {
             </div>
           </RowBox>
           <RowBox>
-            <p>Wallets</p>
+            <p>{LL.userPage.userAuthInfo.mfa.labels.wallets()}</p>
             <div className="right">
               <span>{getWalletsInfoText}</span>
               <EditButton>
@@ -258,6 +323,12 @@ export const UserAuthInfoMFA = () => {
             <p>{LL.userPage.userAuthInfo.mfa.labels.totp()}</p>
             <p className="info">{getTOTPInfoText}</p>
           </div>
+          {smtpEnabled && (
+            <div className="row">
+              <p>{LL.userPage.userAuthInfo.mfa.labels.email()}</p>
+              <p className="info">{getEmailMFAInfoText}</p>
+            </div>
+          )}
           <div className="row">
             <p>{LL.userPage.userAuthInfo.mfa.labels.webauth()}</p>
             <p className="info">{getWebAuthNInfoText}</p>

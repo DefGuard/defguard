@@ -2,7 +2,6 @@ import { useMutation } from '@tanstack/react-query';
 import { isUndefined, omit } from 'lodash-es';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -35,10 +34,7 @@ export const MFAWeb3 = () => {
   const toaster = useToaster();
   const [isSigning, setIsSigning] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
-    (state) => [state.totp_available, state.web3_available, state.webauthn_available],
-    shallow,
-  );
+  const web3Available = useMFAStore((state) => state.web3_available);
   const loginSubject = useAuthStore((state) => state.loginSubject);
 
   const { mutate: mfaFinishMutation, isLoading: finishLoading } = useMutation(
@@ -125,29 +121,6 @@ export const MFAWeb3 = () => {
           }
         }}
       />
-      <nav>
-        <span>or</span>
-        {totpAvailable && (
-          <Button
-            text={LL.loginPage.mfa.controls.useAuthenticator()}
-            size={ButtonSize.LARGE}
-            onClick={() => navigate('../totp')}
-          />
-        )}
-        {webauthnAvailable && (
-          <Button
-            text={LL.loginPage.mfa.controls.useWebauthn()}
-            size={ButtonSize.LARGE}
-            onClick={() => navigate('../webauthn')}
-          />
-        )}
-        <Button
-          text={LL.loginPage.mfa.controls.useRecoveryCode()}
-          size={ButtonSize.LARGE}
-          styleVariant={ButtonStyleVariant.LINK}
-          onClick={() => navigate('../recovery')}
-        />
-      </nav>
     </>
   );
 };

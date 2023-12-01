@@ -21,7 +21,6 @@ import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
-import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 import { OpenIdClientModalFormScopes } from './components/OpenIdClientModalFormScopes';
 import { OpenIdClientFormFields, OpenIdClientScope } from './types';
@@ -106,10 +105,6 @@ export const OpenIdClientModalForm = () => {
               .string()
               .required(
                 LL.openidOverview.modals.openidClientModal.form.error.urlRequired(),
-              )
-              .matches(
-                patternValidUrl,
-                LL.openidOverview.modals.openidClientModal.form.error.validUrl(),
               ),
           })
           .required(),

@@ -79,71 +79,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_GRPC_URL", value_parser = Url::parse, default_value = "http://localhost:50055")]
     pub grpc_url: Url,
 
-    #[arg(
-        long,
-        env = "DEFGUARD_LDAP_URL",
-        default_value = "ldap://localhost:389"
-    )]
-    pub ldap_url: String,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_LDAP_BIND_USERNAME",
-        default_value = "cn=admin,dc=example,dc=org"
-    )]
-    pub ldap_bind_username: String,
-
-    #[arg(long, env = "DEFGUARD_LDAP_BIND_PASSWORD", default_value = "")]
-    #[serde(skip_serializing)]
-    pub ldap_bind_password: Secret<String>,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_LDAP_USER_SEARCH_BASE",
-        default_value = "ou=users,dc=example,dc=org"
-    )]
-    pub ldap_user_search_base: String,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_LDAP_GROUP_SEARCH_BASE",
-        default_value = "ou=groups,dc=example,dc=org"
-    )]
-    pub ldap_group_search_base: String,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_LDAP_USER_OBJ_CLASS",
-        default_value = "inetOrgPerson"
-    )]
-    pub ldap_user_obj_class: String,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_LDAP_GROUP_OBJ_CLASS",
-        default_value = "groupOfUniqueNames"
-    )]
-    pub ldap_group_obj_class: String,
-
-    #[arg(long, env = "DEFGUARD_LDAP_USERNAME_ATTR", default_value = "cn")]
-    pub ldap_username_attr: String,
-
-    #[arg(long, env = "DEFGUARD_LDAP_GROUPNAME_ATTR", default_value = "cn")]
-    pub ldap_groupname_attr: String,
-
-    #[arg(long, env = "DEFGUARD_LDAP_MEMBER_ATTR", default_value = "memberOf")]
-    pub ldap_member_attr: String,
-
-    #[arg(long, env = "DEFGUARD_LICENSE", default_value = "")]
-    pub license: String,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_LDAP_GROUP_MEMBER_ATTR",
-        default_value = "uniqueMember"
-    )]
-    pub ldap_group_member_attr: String,
-
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
     pub disable_stats_purge: bool,
 
@@ -175,6 +110,14 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
     pub cookie_insecure: bool,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_GATEWAY_DISCONNECTION_NOTIFICATION_TIMEOUT",
+        default_value = "10m"
+    )]
+    #[serde(skip_serializing)]
+    pub gateway_disconnection_notification_timeout: Duration,
 
     #[command(subcommand)]
     #[serde(skip_serializing)]
@@ -266,24 +209,6 @@ impl DefGuardConfig {
                 secret_key.len()
             );
         }
-    }
-
-    /// Constructs user distinguished name.
-    #[must_use]
-    pub fn user_dn(&self, username: &str) -> String {
-        format!(
-            "{}={},{}",
-            &self.ldap_username_attr, username, &self.ldap_user_search_base
-        )
-    }
-
-    /// Constructs group distinguished name.
-    #[must_use]
-    pub fn group_dn(&self, groupname: &str) -> String {
-        format!(
-            "{}={},{}",
-            &self.ldap_groupname_attr, groupname, &self.ldap_group_search_base
-        )
     }
 
     /// Try PKCS#1 and PKCS#8 PEM formats.

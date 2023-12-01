@@ -1,6 +1,7 @@
 #[cfg(feature = "openid")]
 pub mod auth_code;
 pub mod device;
+pub mod device_login;
 pub mod enrollment;
 pub mod error;
 pub mod group;
@@ -23,7 +24,7 @@ use self::{
     user::{MFAMethod, User},
 };
 use super::{DbPool, Group};
-use sqlx::{query_as, Error as SqlxError};
+use sqlx::{query_as, Error as SqlxError, PgConnection};
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
@@ -70,6 +71,7 @@ pub struct UserInfo {
     pub pgp_cert_id: Option<String>,
     pub mfa_enabled: bool,
     pub totp_enabled: bool,
+    pub email_mfa_enabled: bool,
     pub groups: Vec<String>,
     pub mfa_method: MFAMethod,
     pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
@@ -93,6 +95,7 @@ impl UserInfo {
             pgp_cert_id: user.pgp_cert_id.clone(),
             mfa_enabled: user.mfa_enabled,
             totp_enabled: user.totp_enabled,
+            email_mfa_enabled: user.email_mfa_enabled,
             groups,
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
@@ -101,13 +104,18 @@ impl UserInfo {
     }
 
     /// Copy groups to [`User`]. This function should be used by administrators.
-    async fn handle_user_groups(
+    ///
+    /// Return `true` if groups were changed, `false` otherwise.
+    pub(crate) async fn handle_user_groups(
         &mut self,
-        pool: &DbPool,
+        transaction: &mut PgConnection,
         user: &mut User,
-    ) -> Result<(), SqlxError> {
+    ) -> Result<bool, SqlxError> {
+        // initialize return value
+        let mut groups_changed = false;
+
         // handle groups
-        let mut present_groups = user.member_of(pool).await?;
+        let mut present_groups = user.member_of(&mut *transaction).await?;
 
         // add to groups if not already a member
         for groupname in &self.groups {
@@ -116,8 +124,9 @@ impl UserInfo {
                     present_groups.swap_remove(index);
                 }
                 None => {
-                    if let Some(group) = Group::find_by_name(pool, groupname).await? {
-                        user.add_to_group(pool, &group).await?;
+                    if let Some(group) = Group::find_by_name(&mut *transaction, groupname).await? {
+                        user.add_to_group(&mut *transaction, &group).await?;
+                        groups_changed = true;
                     }
                 }
             }
@@ -125,16 +134,17 @@ impl UserInfo {
 
         // remove from remaining groups
         for groupname in present_groups {
-            if let Some(group) = Group::find_by_name(pool, &groupname).await? {
-                user.remove_from_group(pool, &group).await?;
+            if let Some(group) = Group::find_by_name(&mut *transaction, &groupname).await? {
+                user.remove_from_group(&mut *transaction, &group).await?;
+                groups_changed = true;
             }
         }
 
-        Ok(())
+        Ok(groups_changed)
     }
 
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
-    pub async fn into_user_safe_fields(self, user: &mut User) -> Result<(), SqlxError> {
+    pub fn into_user_safe_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.ssh_key = self.ssh_key;
         user.pgp_key = self.pgp_key;
@@ -145,13 +155,7 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
-    pub async fn into_user_all_fields(
-        mut self,
-        pool: &DbPool,
-        user: &mut User,
-    ) -> Result<(), SqlxError> {
-        self.handle_user_groups(pool, user).await?;
-
+    pub fn into_user_all_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.ssh_key = self.ssh_key;
         user.pgp_key = self.pgp_key;
@@ -200,6 +204,7 @@ pub struct MFAInfo {
     totp_available: bool,
     web3_available: bool,
     webauthn_available: bool,
+    email_available: bool,
 }
 
 impl MFAInfo {
@@ -207,7 +212,7 @@ impl MFAInfo {
         if let Some(id) = user.id {
             query_as!(
                 Self,
-                "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, \
+                "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, email_mfa_enabled email_available, \
                 (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", \
                 (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" \
                 FROM \"user\" WHERE \"user\".id = $1",
@@ -220,7 +225,10 @@ impl MFAInfo {
 
     #[must_use]
     pub fn mfa_available(&self) -> bool {
-        self.webauthn_available || self.totp_available || self.web3_available
+        self.webauthn_available
+            || self.totp_available
+            || self.web3_available
+            || self.email_available
     }
 
     #[must_use]
@@ -243,6 +251,9 @@ impl MFAInfo {
         }
         if self.totp_available {
             methods.push(MFAMethod::OneTimePassword);
+        }
+        if self.email_available {
+            methods.push(MFAMethod::Email);
         }
         Some(methods)
     }
@@ -284,10 +295,14 @@ mod test {
             .await
             .unwrap()
             .unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
         user_info
-            .into_user_all_fields(&pool, &mut user)
+            .handle_user_groups(&mut transaction, &mut user)
             .await
             .unwrap();
+        user_info.into_user_all_fields(&mut user).unwrap();
+        transaction.commit().await.unwrap();
 
         assert_eq!(group1.member_usernames(&pool).await.unwrap(), ["hpotter"]);
         assert_eq!(group3.member_usernames(&pool).await.unwrap(), ["hpotter"]);

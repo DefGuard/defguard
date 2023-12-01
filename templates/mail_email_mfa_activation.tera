@@ -1,0 +1,18 @@
+{#
+Requires context:
+code -> 6-digit zero-padded verification code
+#}
+{% extends "base.tera" %}
+{% import "macros.tera" as macros %}
+{% block mail_content %}
+{% set section_content = [
+  macros::paragraph(content="You are activating Multi-Factor Authentication using email verification codes."),
+] %}
+{{ macros::text_section(content_array=section_content) }}
+{{ macros::spacer(height="10px") }}
+{% set section_content = [
+  macros::paragraph(content="Your code is: <b>" ~ code ~ "</b> - use this code to complete MFA setup."),
+] %}
+{{ macros::text_section(content_array=section_content) }}
+{{ macros::spacer(height="10px") }}
+{% endblock %}

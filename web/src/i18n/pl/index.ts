@@ -2,11 +2,30 @@
 import type { Translation } from '../i18n-types';
 
 const pl: Translation = {
+  common: {
+    controls: {
+      back: 'Wróć',
+      next: 'Następny',
+      close: 'Zamknij',
+      cancel: 'Anuluj',
+      finish: 'Zakończ',
+      select: 'Wybierz',
+      submit: 'Wyślij',
+      confirm: 'Potwierdź',
+      save: 'Zapisz',
+      saveChanges: 'Zapisz zmiany',
+      RestoreDefault: 'Przywróć domyślne',
+    },
+    conditions: {
+      and: 'I',
+      equal: 'Równy',
+      or: 'Albo',
+    },
+  },
   messages: {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
     errorVersion: 'Nie udało się uzyskać wersji aplikacji.',
-    errorLicense: 'Nie udało się uzyskać licencji.',
     clipboard: {
       success: 'Skopiowano do schowka',
       error: 'Schowek nie jest dostępny',
@@ -14,10 +33,37 @@ const pl: Translation = {
     insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
+    registerEmailMFA: {
+      title: 'Skonfiguruj Email MFA',
+      form: {
+        controls: {
+          resend: 'Wyślij kod ponownie',
+          submit: 'Zweryfikuj kod',
+        },
+        fields: {
+          code: {
+            error: 'Podany kod jest nieprawidłowy',
+            label: 'Kod',
+          },
+        },
+      },
+      infoMessage: `
+      <p>
+        Aby zakończyć konfigurację, wpisz kod, który został wysłany na email: <strong>{email}</strong> 
+      </p>
+      `,
+      messages: {
+        resend: 'Kod wysłany ponownie',
+        success: 'Metoda MFA email włączona',
+      },
+    },
+    deviceConfig: {
+      title: 'Konfiguracje VPN urządzenia',
+    },
     changePasswordSelf: {
       title: 'Zmień hasło',
       messages: {
-        success: 'Hasło zmienione',
+        success: 'Hasło zostało zmienione',
         error: 'Błąd zmiany hasła',
       },
       form: {
@@ -34,8 +80,11 @@ const pl: Translation = {
     },
     startEnrollment: {
       title: 'Rozpocznij rejestrację',
+      desktopTitle: 'Aktywacja klienta desktop',
       messages: {
         success: 'Rejestracja użytkownika rozpoczęta',
+        successDesktop: 'Aktywacja klienta rozpoczęta',
+        errorDesktop: 'Błąd aktywacji klienta desktop',
         error: 'Błąd rejestracji użytkownika',
       },
       form: {
@@ -49,15 +98,19 @@ const pl: Translation = {
           },
         },
         submit: 'Rozpocznij rejestrację',
+        submitDesktop: 'Aktywacja desktop',
       },
       tokenCard: {
-        title: 'Skopiuj token',
+        title: 'Token aktywacji',
+      },
+      urlCard: {
+        title: 'URL Instancji Defguard',
       },
     },
     deleteNetwork: {
       cancel: 'Wróć',
       submit: 'Usuń lokalizację',
-      subTitle: 'Lokalizacja zostanie usunięta.',
+      subTitle: 'Lokalizacja zostanie nieodwołalnie usunięta.',
       title: 'Usuń lokalizację {name}',
     },
     changeWebhook: {
@@ -68,7 +121,7 @@ const pl: Translation = {
     manageWebAuthNKeys: {
       title: 'Klucze bezpieczeństwa',
       messages: {
-        deleted: 'Klucz WebAuthN usunięty.',
+        deleted: 'Klucz WebAuthN został usunięty.',
         duplicateKeyError: 'Klucz jest już zarejestrowany',
       },
       infoMessage: `
@@ -134,7 +187,7 @@ const pl: Translation = {
     editDevice: {
       title: 'Edytuj urządzenie',
       messages: {
-        success: 'Urządzenie zaktualizowane.',
+        success: 'Urządzenie zostało zaktualizowane.',
       },
       form: {
         fields: {
@@ -142,7 +195,7 @@ const pl: Translation = {
             label: 'Nazwa urządzenia',
           },
           publicKey: {
-            label: 'Klucz publiczny urządzenia (Wireguard)',
+            label: 'Klucz publiczny urządzenia (WireGuard)',
           },
         },
         controls: {
@@ -155,86 +208,7 @@ const pl: Translation = {
       message: 'Czy chcesz usunąć urządzenie {deviceName} ?',
       submit: 'Usuń urządzenie',
       messages: {
-        success: 'Urządzenie usunięte.',
-      },
-    },
-
-    addDevice: {
-      messages: {
-        success: 'Urządzenie dodane.',
-      },
-      web: {
-        viewTitle: 'Konfiguracja urządzenia',
-        title: 'Dodaj urządzenie',
-        steps: {
-          config: {
-            messages: {
-              copyConfig: 'Konfiguracja skopiowana do schowka.',
-            },
-            helpers: {
-              qrHelper: `
-          <p>
-          	Ten plik konfiguracyjny można zeskanować, skopiować lub pobrać,
-            <strong>ale musi być użyty na urządzeniu, które teraz dodajesz.</strong>
-            <a>Przeczytaj więcej w dokumentacji.</a>
-          </p>`,
-              warningAutoMode: `
-          <p>
-           Informujemy, że musisz pobrać <strong>teraz</strong> plik konifguracjny. Ponieważ <strong>nie przechowujemy twojego klucza prywatnego</strong>, nie będzie możliwe ponowne pobranie <strong>klucza prywatnego</strong> dla tego urządzenia co uniemożliwi połączenie się tego użądzenia z VPN.
-          </p>
-`,
-              warningManualMode: `
-          <p>
-          Informujemy, że podany plik konfiguracyjny <strong>nie posiada klucza prywatnego</strong>. Musisz uzupełnić konfigurację o swój <strong>klucz prywatny</strong> aby urządzenie mogło nawiązać połączenie z VPN.
-          </p>
-`,
-            },
-            inputNameLabel: 'Nazwa urządzenia',
-            qrInfo: `Użyj dostarczonego pliku konfiguracyjnego poniżej skanując QR Code lub importując go jako plik na
-						instancję WireGuard w Twoich urządzeniach.`,
-            qrLabel: 'Plik konfiguracyjny Wireguard',
-            qrCardTitle: 'Konfiguracja dla lokalizacji:',
-          },
-          setup: {
-            infoMessage: `
-        <p>
-          Musisz skonfigurować WireguardVPN na swoim urządzeniu, odwiedź stronę
-          <a href="{addDevicesDocs}" target="_blank">dokumentacji</a> jeśli nie wiesz jak to zrobić.
-        </p>
-`,
-            options: {
-              auto: 'Wygeneruj parę kluczy',
-              manual: 'Użyj mojego własnego klucza publicznego',
-            },
-            form: {
-              errors: {
-                name: {
-                  duplicatedName: 'Urządzenie o tej nazwie już istnieje',
-                },
-              },
-              submit: 'Stwórz konfigurację',
-              fields: {
-                name: {
-                  label: 'Nazwa urządzenia',
-                },
-                publicKey: {
-                  label: 'Podaj swój klucz publiczny',
-                },
-              },
-            },
-          },
-        },
-      },
-      desktop: {
-        title: 'Dodaj aktualne urządzenie',
-        form: {
-          submit: 'Dodaj to urządzenie',
-          fields: {
-            name: {
-              label: 'Nazwa',
-            },
-          },
-        },
+        success: 'Urządzenie zostało usunięte.',
       },
     },
     addWallet: {
@@ -414,6 +388,77 @@ const pl: Translation = {
       },
     },
   },
+  addDevicePage: {
+    title: 'Dodaj urządzenie',
+    messages: {
+      deviceAdded: 'Urządzenie dodane',
+    },
+    helpers: {
+      setupOpt: `Możesz dodać urządzenie poprzez nasz klient lub skonfigurwać swoje urządzenie samemu.`,
+    },
+    steps: {
+      setupDevice: {
+        title: 'Dodaj urządzenie',
+        form: {
+          errors: {
+            name: {
+              duplicatedName: 'Nazwa jest już zajęta',
+            },
+          },
+          fields: {
+            name: {
+              label: 'Nazwa',
+            },
+            publicKey: {
+              label: 'Klucz publiczny',
+            },
+          },
+        },
+        options: {
+          auto: 'Generuj klucze',
+          manual: 'Użyj własnych',
+        },
+        infoMessage: `<p>W razie problemów możesz odwiedzić <a href="{addDevicesDocs}">dokumentacje</a>.</p>`,
+      },
+      setupMethod: {
+        manual: {
+          subTitle:
+            'Dla zaawansowanych użytkowników, pobierz konfigurację i skonfiguruj VPN na własnych zasadach.',
+          link: 'Pobierz WireGuard',
+          title: 'Konfiguracja ręczna',
+        },
+        remote: {
+          title: 'Aktywacja klienta desktop',
+          link: 'Pobierz klient Defguard',
+          subTitle: 'Prosta konfiguracja jednym tokenem.',
+        },
+      },
+      configDevice: {
+        title: 'Skonfiguruj urządzenie',
+        messages: {
+          copyConfig: 'Konfiguracja skopiowa',
+        },
+        qrInfo:
+          'Użyj poniższych konfiguracji aby połączyć się z wybranymi lokalizacjami.',
+        helpers: {
+          qrHelper: `<p>Możesz skonfigurować Wireguard na telefonie skanując QR kod przez aplikację Wireguard.</p>`,
+          warningAutoMode: `
+<p>Uwaga, Defguard nie przechowuje twojego klucza prywatnego. Gdy opuścisz obecną stronę <strong> nie będziesz mógł</strong> pobrać ponownie konfiguracji z kluczem prywatnym.</p>
+`,
+          warningManualMode: `<p>
+Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musisz uzupełnić pobraną konfigurację o swój klucz prywatny.
+</p>`,
+        },
+        qrLabel: 'Konfiguracja Wireguard',
+        inputNameLabel: 'Nazwa urządzenia',
+      },
+      copyToken: {
+        title: 'Autoryzacja klienta',
+        urlCardTitle: 'Url',
+        tokenCardTitle: 'Token',
+      },
+    },
+  },
   userPage: {
     title: {
       view: 'Profil użytkownika',
@@ -473,9 +518,10 @@ const pl: Translation = {
           disable: 'Wyłącz MFA',
         },
         messages: {
-          mfaDisabled: 'MFA wyłączone',
+          mfaDisabled: 'MFA wyłączone.',
           OTPDisabled: 'Hasło jednorazowe wyłączone.',
-          changeMFAMethod: 'Metoda MFA zmieniona',
+          changeMFAMethod: 'Metoda MFA zmieniona.',
+          EmailMFADisabled: 'Metoda Email wyłączona.',
         },
         securityKey: {
           singular: 'klucz bezpieczeństwa',
@@ -492,6 +538,7 @@ const pl: Translation = {
           totp: 'Hasła jednorazowe oparte na czasie',
           webauth: 'Klucze bezpieczeństwa',
           wallets: 'Portfele',
+          email: 'Email',
         },
         editMode: {
           enable: 'Włącz',
@@ -591,6 +638,7 @@ const pl: Translation = {
         actions: 'Akcje',
       },
       editButton: {
+        activateDesktop: 'Aktywacja klienta desktop',
         changePassword: 'Zmień hasło',
         edit: 'Edytuj konto',
         provision: 'Stwórz klucze na YubiKey',
@@ -669,6 +717,12 @@ const pl: Translation = {
     },
   },
   components: {
+    deviceConfigsCard: {
+      cardTitle: 'Konfiguracja lokalizacji',
+      messages: {
+        copyConfig: 'Konfiguracja skopiowana',
+      },
+    },
     gatewaysStatus: {
       label: 'Gateways',
       states: {
@@ -695,11 +749,37 @@ const pl: Translation = {
     tabs: {
       smtp: 'SMTP',
       global: 'Globalne',
-      support: 'Wsparcie',
+      ldap: 'LDAP',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
       challengeSuccess: 'Zmieniono wiadomość do podpisu.',
+    },
+    ldapSettings: {
+      title: 'Ustawienia LDAP',
+      form: {
+        labels: {
+          ldap_url: 'URL',
+          ldap_bind_username: 'Bind Username',
+          ldap_bind_password: 'Bind Password',
+          ldap_member_attr: 'Member Attribute',
+          ldap_username_attr: 'Username Attribute',
+          ldap_user_obj_class: 'User Object Class',
+          ldap_user_search_base: 'User Search Base',
+          ldap_groupname_attr: 'Groupname Attribute',
+          ldap_group_search_base: 'Group Search Base',
+          ldap_group_member_attr: 'Group Member Attribute',
+          ldap_group_obj_class: 'Group Object Class',
+        },
+      },
+      test: {
+        title: 'Test połączenia LDAP',
+        messages: {
+          error: 'Brak połączenia',
+          success: 'Połączono z LDAP',
+        },
+        submit: 'Test',
+      },
     },
     modulesVisibility: {
       header: 'Widoczność modułów',
@@ -711,7 +791,7 @@ const pl: Translation = {
           </a>`,
       fields: {
         wireguard_enabled: {
-          label: 'Wireguard VPN',
+          label: 'WireGuard VPN',
         },
         webhooks_enabled: {
           label: 'Webhooks',
@@ -890,40 +970,6 @@ const pl: Translation = {
         },
       },
     },
-    licenseCard: {
-      header: 'Informacje o licencji i wsparciu technicznym',
-      licenseCardTitles: {
-        community: 'Community',
-        enterprise: 'Enterprise',
-        license: 'licencja',
-      },
-      body: {
-        enterprise: `
-				<p> Dziękujemy za zakup licencji dla przedsiębiorstw!</p>
-				<br />
-				<p>Obejmuje ona następujące moduły:</p>`,
-        community: `
-              <p>
-							Masz naszą licencję community. Jeśli chcesz uzyskać licencję Enterprise odwiedź:
-                <a href="https://defguard.net">https://defguard.net</a>
-              </p>
-              <br />
-              <p>Licencja enterprise zawiera:</p>
-				`,
-        agreement: 'Przeczytaj umowę licencyjną',
-        modules: `
-          <ul>
-            <li>YubiBridge</li>
-            <li>OpenID</li>
-            <li>OpenLDAP</li>
-          </ul>
-          <br />`,
-      },
-      footer: {
-        company: 'licencjonowany dla: {company}',
-        expiration: 'data ważności: {expiration}',
-      },
-    },
   },
   openidOverview: {
     pageTitle: 'Aplikacje OpenID',
@@ -1076,10 +1122,15 @@ const pl: Translation = {
     noLicenseMessage: 'Nie masz licencji na tę funkcję.',
     provisioningStation: {
       header: 'Stacja provisionująca YubiKey',
-      cardTitle: 'Komenda uruchamiająca stację',
       content: `Aby móc sprovisionować YubiKeya, należy najpierw skonfigurować
         fizyczną maszynę z gniazdem USB. Uruchom podane polecenie na wybranej maszynie
         aby zarejestrować maszynę i rozpocząć generowanie kluczy.`,
+      tokenCard: {
+        title: 'Token autoryzacyjny',
+      },
+      dockerCard: {
+        title: 'Przykład Docker',
+      },
     },
     list: {
       headers: {
@@ -1097,7 +1148,10 @@ const pl: Translation = {
       },
     },
     messages: {
-      codeCopied: 'Komenda skopiowana.',
+      copy: {
+        command: 'Komenda skopiowa',
+        token: 'Token skopiowany',
+      },
     },
   },
   openidAllow: {
@@ -1251,6 +1305,18 @@ const pl: Translation = {
         useWallet: 'Zamiast tego użyj swojego portfela kryptowalutowego',
         useWebauthn: 'Zamiast tego użyj klucza bezpieczeństwa',
         useRecoveryCode: 'Zamiast tego użyj kodu odzyskiwania',
+        useEmail: 'Zamiast tego użyj email',
+      },
+      email: {
+        header: 'Użyj kodu wysłanego na email aby kontynuować',
+        form: {
+          controls: {
+            resendCode: 'Wyślij kod ponownie',
+          },
+          labels: {
+            code: 'Kod',
+          },
+        },
       },
       totp: {
         header:
@@ -1406,7 +1472,7 @@ const pl: Translation = {
         title: 'Opcjonalność kroku VPN',
         select: {
           options: {
-            optional: 'Opcjnalny',
+            optional: 'Opcjonalny',
             mandatory: 'Obowiązkowy',
           },
         },
@@ -1417,7 +1483,14 @@ const pl: Translation = {
   },
   supportPage: {
     title: 'Wsparcie',
-
+    modals: {
+      confirmDataSend: {
+        title: 'Potwierdź przekazanie danych',
+        submit: 'Wyślij',
+        subTitle:
+          'Potwierdź przesłanie danych diagnostycznych. Żadne poufne dane nie zostaną przesłane. (Klucze wireguard, adresy email, etc.)',
+      },
+    },
     debugDataCard: {
       title: 'Dane wsparcia technicznego',
       body: `

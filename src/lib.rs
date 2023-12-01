@@ -1,26 +1,75 @@
-#![allow(clippy::derive_partial_eq_without_eq)]
-// Rocket macro
-#![allow(clippy::unnecessary_lazy_evaluations)]
 #![allow(clippy::too_many_arguments)]
-
-use crate::{
-    auth::{Claims, ClaimsType},
-    config::InitVpnLocationArgs,
-    db::User,
-    handlers::{
-        mail::{send_support_data, test_mail},
-        support::{configuration, logs},
-        user::change_self_password,
-    },
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{Arc, Mutex},
 };
-use secrecy::ExposeSecret;
 
+use crate::handlers::ssh_authorized_keys::get_authorized_keys;
+use anyhow::anyhow;
+use axum::{
+    handler::HandlerWithoutStateExt,
+    http::{Request, StatusCode},
+    routing::{delete, get, patch, post, put},
+    Extension, Router, Server,
+};
+use handlers::settings::{get_settings_essentials, patch_settings, test_ldap_settings};
+use secrecy::ExposeSecret;
+use tokio::sync::{
+    broadcast::Sender,
+    mpsc::{UnboundedReceiver, UnboundedSender},
+    OnceCell,
+};
+use tower_cookies::CookieManagerLayer;
+use tower_http::{
+    services::{ServeDir, ServeFile},
+    trace::{DefaultOnResponse, TraceLayer},
+};
+use tracing::Level;
+use uaparser::UserAgentParser;
+
+use self::{
+    appstate::AppState,
+    auth::{Claims, ClaimsType},
+    config::{DefGuardConfig, InitVpnLocationArgs},
+    db::{init_db, AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork},
+    handlers::{
+        auth::{
+            authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
+            logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
+            totp_disable, totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end,
+            webauthn_finish, webauthn_init, webauthn_start,
+        },
+        forward_auth::forward_auth,
+        group::{add_group_member, get_group, list_groups, remove_group_member},
+        mail::{send_support_data, test_mail},
+        settings::{get_settings, set_default_branding, update_settings},
+        support::{configuration, logs},
+        user::{
+            add_user, change_password, change_self_password, delete_authorized_app,
+            delete_security_key, delete_user, delete_wallet, get_user, list_users, me, modify_user,
+            set_wallet, start_enrollment, start_remote_desktop_configuration, update_wallet,
+            username_available, wallet_challenge,
+        },
+        webhooks::{
+            add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
+        },
+    },
+    mail::Mail,
+};
+
+#[cfg(feature = "wireguard")]
+use self::handlers::wireguard::{
+    add_device, add_user_devices, create_network, create_network_token, delete_device,
+    delete_network, download_config, gateway_status, get_device, import_network, list_devices,
+    list_networks, list_user_devices, modify_device, modify_network, network_details,
+    network_stats, remove_gateway, user_stats,
+};
 #[cfg(feature = "worker")]
-use crate::handlers::worker::{
+use self::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
 };
 #[cfg(feature = "openid")]
-use crate::handlers::{
+use self::handlers::{
     openid_clients::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
         get_openid_client, list_openid_clients,
@@ -29,63 +78,12 @@ use crate::handlers::{
         authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
     },
 };
-#[cfg(any(feature = "oauth", feature = "openid", feature = "worker"))]
-use crate::{
+#[cfg(any(feature = "openid", feature = "worker"))]
+use self::{
     auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
     grpc::{GatewayMap, WorkerState},
-    handlers::{
-        app_info::get_app_info,
-        wireguard::{add_user_devices, import_network},
-    },
-    license::{Features, License},
-};
-use anyhow::anyhow;
-use appstate::AppState;
-use config::DefGuardConfig;
-use db::{init_db, AppEvent, DbPool, Device, GatewayEvent, WireguardNetwork};
-#[cfg(feature = "wireguard")]
-use handlers::{
-    auth::{
-        authenticate, logout, mfa_disable, mfa_enable, recovery_code, totp_code, totp_disable,
-        totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end, webauthn_finish,
-        webauthn_init, webauthn_start,
-    },
-    forward_auth::forward_auth,
-    group::{add_group_member, get_group, list_groups, remove_group_member},
-    license::get_license,
-    settings::{get_settings, set_default_branding, update_settings},
-    user::{
-        add_user, change_password, delete_authorized_app, delete_security_key, delete_user,
-        delete_wallet, get_user, list_users, me, modify_user, set_wallet, start_enrollment,
-        update_wallet, username_available, wallet_challenge,
-    },
-    webhooks::{
-        add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
-    },
-    wireguard::{
-        add_device, create_network, create_network_token, delete_device, delete_network,
-        download_config, gateway_status, get_device, list_devices, list_networks,
-        list_user_devices, modify_device, modify_network, network_details, network_stats,
-        remove_gateway, user_stats,
-    },
-};
-use mail::Mail;
-use rocket::{
-    config::{Config, SecretKey},
-    error::Error as RocketError,
-    fs::{FileServer, NamedFile, Options},
-    Build, Ignite, Rocket,
-};
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
-use tokio::sync::{
-    broadcast::Sender,
-    mpsc::{UnboundedReceiver, UnboundedSender},
-    OnceCell,
+    handlers::app_info::get_app_info,
 };
 
 pub mod appstate;
@@ -95,10 +93,9 @@ pub mod db;
 mod error;
 pub mod grpc;
 pub mod handlers;
+pub mod headers;
 pub mod hex;
 pub mod ldap;
-pub mod license;
-pub mod logging;
 pub mod mail;
 pub(crate) mod random;
 pub mod secret;
@@ -108,7 +105,7 @@ pub mod wg_config;
 pub mod wireguard_stats_purge;
 
 #[macro_use]
-extern crate rocket;
+extern crate tracing;
 
 #[macro_use]
 extern crate serde;
@@ -117,23 +114,16 @@ pub static VERSION: &str = env!("CARGO_PKG_VERSION");
 // TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
-/// Catch missing files and serve "index.html".
-#[get("/<path..>", rank = 4)]
-async fn smart_index(path: PathBuf) -> Option<NamedFile> {
-    if path.starts_with("api/") {
-        None
-    } else {
-        NamedFile::open("./web/dist/index.html").await.ok()
-    }
-}
-
 /// Simple health-check.
-#[get("/health")]
-fn health_check() -> &'static str {
+async fn health_check() -> &'static str {
     "alive"
 }
 
-pub async fn build_webapp(
+async fn handle_404() -> (StatusCode, &'static str) {
+    (StatusCode::NOT_FOUND, "Not found")
+}
+
+pub fn build_webapp(
     config: DefGuardConfig,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
@@ -142,170 +132,189 @@ pub async fn build_webapp(
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     pool: DbPool,
+    user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-) -> Rocket<Build> {
-    // configure Rocket webapp
-    let cfg = Config {
-        address: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-        port: config.http_port,
-        secret_key: SecretKey::from(config.secret_key.expose_secret().as_bytes()),
-        ..Config::default()
-    };
-    let license_decoded = License::decode(&config.license);
-    info!("Using license: {:?}", license_decoded);
-    let webapp = rocket::custom(cfg)
-        .mount("/", routes![smart_index])
-        .mount("/", FileServer::new("./web/dist", Options::Missing).rank(3))
-        .mount(
-            "/svg",
-            FileServer::new("./web/src/shared/images/svg", Options::Index).rank(1),
-        )
-        .mount(
-            "/api/v1",
-            routes![
-                health_check,
-                authenticate,
-                forward_auth,
-                logout,
-                username_available,
-                list_users,
-                get_user,
-                add_user,
-                start_enrollment,
-                modify_user,
-                delete_user,
-                delete_security_key,
-                change_password,
-                wallet_challenge,
-                set_wallet,
-                update_wallet,
-                delete_wallet,
-                list_groups,
-                get_group,
-                me,
-                add_group_member,
-                remove_group_member,
-                get_license,
-                mfa_enable,
-                mfa_disable,
-                totp_secret,
-                totp_disable,
-                totp_enable,
-                totp_code,
-                webauthn_init,
-                webauthn_finish,
-                webauthn_start,
-                webauthn_end,
-                web3auth_start,
-                web3auth_end,
-                delete_authorized_app,
-                recovery_code,
-                get_app_info,
-                change_self_password,
-            ],
-        )
-        .mount(
-            "/api/v1/settings",
-            routes![get_settings, update_settings, set_default_branding],
-        )
-        .mount("/api/v1/support", routes![configuration, logs])
-        .mount(
-            "/api/v1/webhook",
-            routes![
-                add_webhook,
-                list_webhooks,
-                get_webhook,
-                delete_webhook,
-                change_webhook,
-                change_enabled
-            ],
-        )
-        .mount("/api/v1/mail", routes![test_mail, send_support_data]);
-
-    #[cfg(feature = "wireguard")]
-    let webapp = webapp.manage(gateway_state).mount(
+) -> Router {
+    let serve_web_dir = ServeDir::new("web/dist").fallback(ServeFile::new("web/dist/index.html"));
+    let serve_images =
+        ServeDir::new("web/src/shared/images/svg").not_found_service(handle_404.into_service());
+    let webapp = Router::new().nest(
         "/api/v1",
-        routes![
-            add_device,
-            get_device,
-            list_user_devices,
-            modify_device,
-            delete_device,
-            list_devices,
-        ],
-    );
-
-    // initialize webapp with network routes
-    #[cfg(feature = "wireguard")]
-    let webapp = webapp.mount(
-        "/api/v1/network",
-        routes![
-            create_network,
-            delete_network,
-            modify_network,
-            list_networks,
-            network_details,
-            gateway_status,
-            remove_gateway,
-            import_network,
-            add_user_devices,
-            create_network_token,
-            user_stats,
-            network_stats,
-            download_config,
-        ],
+        Router::new()
+            .route("/health", get(health_check))
+            .route("/info", get(get_app_info))
+            .route("/ssh_authorized_keys", get(get_authorized_keys))
+            // /auth
+            .route("/auth", post(authenticate))
+            .route("/auth/logout", post(logout))
+            .route("/auth/mfa", put(mfa_enable))
+            .route("/auth/mfa", delete(mfa_disable))
+            .route("/auth/webauthn/init", post(webauthn_init))
+            .route("/auth/webauthn/finish", post(webauthn_finish))
+            .route("/auth/webauthn/start", post(webauthn_start))
+            .route("/auth/webauthn", post(webauthn_end))
+            .route("/auth/totp/init", post(totp_secret))
+            .route("/auth/totp", post(totp_enable))
+            .route("/auth/totp", delete(totp_disable))
+            .route("/auth/totp/verify", post(totp_code))
+            .route("/auth/email/init", post(email_mfa_init))
+            .route("/auth/email", get(request_email_mfa_code))
+            .route("/auth/email", post(email_mfa_enable))
+            .route("/auth/email", delete(email_mfa_disable))
+            .route("/auth/email/verify", post(email_mfa_code))
+            .route("/auth/web3/start", post(web3auth_start))
+            .route("/auth/web3", post(web3auth_end))
+            .route("/auth/recovery", post(recovery_code))
+            // /user
+            .route("/user", get(list_users))
+            .route("/user/:username", get(get_user))
+            .route("/user", post(add_user))
+            .route("/user/:username/start_enrollment", post(start_enrollment))
+            .route(
+                "/user/:username/start_desktop",
+                post(start_remote_desktop_configuration),
+            )
+            .route("/user/available", post(username_available))
+            .route("/user/:username", put(modify_user))
+            .route("/user/:username", delete(delete_user))
+            // FIXME: username `change_password` is invalid
+            .route("/user/change_password", put(change_self_password))
+            .route("/user/:username/password", put(change_password))
+            .route("/user/:username/challenge", get(wallet_challenge))
+            .route("/user/:username/wallet", put(set_wallet))
+            .route("/user/:username/wallet/:address", put(update_wallet))
+            .route("/user/:username/wallet/:address", delete(delete_wallet))
+            .route(
+                "/user/:username/security_key/:id",
+                delete(delete_security_key),
+            )
+            .route("/me", get(me))
+            .route(
+                "/user/:username/oauth_app/:oauth2client_id",
+                delete(delete_authorized_app),
+            )
+            // forward_auth
+            .route("/forward_auth", get(forward_auth))
+            // group
+            .route("/group", get(list_groups))
+            .route("/group/:name", get(get_group))
+            .route("/group/:name", post(add_group_member))
+            .route("/group/:name/user/:username", delete(remove_group_member))
+            // mail
+            .route("/mail/test", post(test_mail))
+            .route("/mail/support", post(send_support_data))
+            // settings
+            .route("/settings", get(get_settings))
+            .route("/settings", put(update_settings))
+            .route("/settings", patch(patch_settings))
+            .route("/settings/:id", put(set_default_branding))
+            // settings for frontend
+            .route("/settings_essentials", get(get_settings_essentials))
+            // support
+            .route("/support/configuration", get(configuration))
+            .route("/support/logs", get(logs))
+            // webhooks
+            .route("/webhook", post(add_webhook))
+            .route("/webhook", get(list_webhooks))
+            .route("/webhook/:id", get(get_webhook))
+            .route("/webhook/:id", put(change_webhook))
+            .route("/webhook/:id", delete(delete_webhook))
+            .route("/webhook/:id", post(change_enabled))
+            // ldap
+            .route("/ldap/test", get(test_ldap_settings)),
     );
 
     #[cfg(feature = "openid")]
-    let webapp = if license_decoded.validate(&Features::Openid) {
-        webapp
-            .mount(
-                "/api/v1/oauth",
-                routes![
-                    discovery_keys,
-                    add_openid_client,
-                    list_openid_clients,
-                    delete_openid_client,
-                    change_openid_client,
-                    get_openid_client,
-                    authorization,
-                    secure_authorization,
-                    token,
-                    userinfo,
-                    change_openid_client_state,
-                ],
+    let webapp = webapp
+        .nest(
+            "/api/v1/oauth",
+            Router::new()
+                .route("/discovery/keys", get(discovery_keys))
+                .route("/", post(add_openid_client))
+                .route("/", get(list_openid_clients))
+                .route("/:client_id", get(get_openid_client))
+                .route("/:client_id", put(change_openid_client))
+                .route("/:client_id", post(change_openid_client_state))
+                .route("/:client_id", delete(delete_openid_client))
+                .route("/authorize", get(authorization))
+                .route("/authorize", post(secure_authorization))
+                .route("/token", post(token))
+                .route("/userinfo", get(userinfo)),
+        )
+        .route(
+            "/.well-known/openid-configuration",
+            get(openid_configuration),
+        );
+
+    #[cfg(feature = "wireguard")]
+    let webapp = webapp.nest(
+        "/api/v1",
+        Router::new()
+            .route("/device/:device_id", post(add_device))
+            .route("/device/:device_id", put(modify_device))
+            .route("/device/:device_id", get(get_device))
+            .route("/device/:device_id", delete(delete_device))
+            .route("/device", get(list_devices))
+            .route("/device/user/:username", get(list_user_devices))
+            .route("/network", post(create_network))
+            .route("/network/:network_id", put(modify_network))
+            .route("/network/:network_id", delete(delete_network))
+            .route("/network", get(list_networks))
+            .route("/network/:network_id", get(network_details))
+            .route("/network/:network_id/gateways", get(gateway_status))
+            .route(
+                "/network/:network_id/gateways/:gateway_id",
+                delete(remove_gateway),
             )
-            .mount("/.well-known", routes![openid_configuration])
-    } else {
-        webapp
-    };
+            .route("/network/import", post(import_network))
+            .route("/network/:network_id/devices", post(add_user_devices))
+            .route(
+                "/network/:network_id/device/:device_id/config",
+                get(download_config),
+            )
+            .route("/network/:network_id/token", get(create_network_token))
+            .route("/network/:network_id/stats/users", get(user_stats))
+            .route("/network/:network_id/stats", get(network_stats))
+            .layer(Extension(gateway_state)),
+    );
 
     #[cfg(feature = "worker")]
-    let webapp = if license_decoded.validate(&Features::Worker) {
-        webapp.manage(worker_state).mount(
-            "/api/v1/worker",
-            routes![
-                create_job,
-                list_workers,
-                job_status,
-                remove_worker,
-                create_worker_token
-            ],
-        )
-    } else {
-        webapp
-    };
+    let webapp = webapp.nest(
+        "/api/v1/worker",
+        Router::new()
+            .route("/job", post(create_job))
+            .route("/token", get(create_worker_token))
+            .route("/", get(list_workers))
+            .route("/:id", delete(remove_worker))
+            .route("/:id", get(job_status))
+            .layer(Extension(worker_state)),
+    );
 
-    webapp.manage(AppState::new(
-        config,
-        pool,
-        webhook_tx,
-        webhook_rx,
-        wireguard_tx,
-        mail_tx,
-        license_decoded,
-        failed_logins,
-    ))
+    webapp
+        .nest_service("/svg", serve_images)
+        .nest_service("/", serve_web_dir)
+        .with_state(AppState::new(
+            config,
+            pool,
+            webhook_tx,
+            webhook_rx,
+            wireguard_tx,
+            mail_tx,
+            user_agent_parser,
+            failed_logins,
+        ))
+        .layer(CookieManagerLayer::new())
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(|request: &Request<_>| {
+                    info_span!(
+                        "http_request",
+                        method = ?request.method(),
+                        path = ?request.uri(),
+                    )
+                })
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+        )
 }
 
 /// Runs core web server exposing REST API.
@@ -318,8 +327,9 @@ pub async fn run_web_server(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     pool: DbPool,
+    user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-) -> Result<Rocket<Ignite>, RocketError> {
+) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         config.clone(),
         webhook_tx,
@@ -329,11 +339,16 @@ pub async fn run_web_server(
         worker_state,
         gateway_state,
         pool,
+        user_agent_parser,
         failed_logins,
-    )
-    .await;
+    );
     info!("Started web services");
-    webapp.launch().await
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
+    // TODO: map_err() and remove `hyper` as depenency from Cargo.toml
+    Server::bind(&addr)
+        .serve(webapp.into_make_service_with_connect_info::<SocketAddr>())
+        .await
+        .map_err(|err| anyhow!("Web server can't be started {}", err))
 }
 
 /// Automates test objects creation to easily setup development environment.
@@ -344,7 +359,7 @@ pub async fn run_web_server(
 /// Public: gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=
 /// Private: wGS1qdJfYbWJsOUuP1IDgaJYpR+VaKZPVZvdmLjsH2Y=
 pub async fn init_dev_env(config: &DefGuardConfig) {
-    log::info!("Initializing dev environment");
+    info!("Initializing dev environment");
     let pool = init_db(
         &config.database_host,
         config.database_port,
@@ -417,6 +432,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .expect("Could not assign IP to device");
     }
 
+    #[cfg(feature = "openid")]
     for app_id in 1..=3 {
         let mut app = OAuth2Client::new(
             vec![format!("https://app-{app_id}.com")],

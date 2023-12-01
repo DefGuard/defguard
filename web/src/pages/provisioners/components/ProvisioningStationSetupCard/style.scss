@@ -1,0 +1,86 @@
+@use '@scssutils' as *;
+
+#provisioning-setup-card {
+  box-sizing: border-box;
+  padding: 15px;
+
+  @include media-breakpoint-down(lg) {
+    margin: 0 2rem;
+    width: calc(100% - 40px);
+  }
+
+  @include media-breakpoint-up(lg) {
+    padding: 4rem;
+    margin: 0 40px 25px;
+    width: calc(100% - 80px);
+  }
+
+  @include media-breakpoint-up(xxl) {
+    margin: 0;
+    width: 100%;
+  }
+
+  & > h4 {
+    @include modal-header;
+
+    text-align: center;
+    margin-bottom: 1.5rem;
+    @include media-breakpoint-up(lg) {
+      margin-bottom: 2rem;
+    }
+  }
+
+  & > .image-row {
+    height: 75px;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    align-content: center;
+  }
+
+  & > p {
+    word-break: normal;
+    text-align: center;
+    @include regular-text;
+
+    margin-bottom: 15px;
+    max-width: 100%;
+    color: var(--gray-dark);
+    font-size: 12px;
+
+    @include media-breakpoint-up(lg) {
+      margin-bottom: 25px;
+    }
+  }
+
+  & > .expandable-card {
+    width: 100%;
+    margin-top: 20px;
+    @include media-breakpoint-up(lg) {
+      margin-top: 40px;
+    }
+
+    & > .expanded-content {
+      overflow: hidden;
+
+      & > p {
+        max-width: 100%;
+        text-overflow: ellipsis;
+        text-align: left;
+        word-break: break-all;
+        white-space: normal;
+        @include small-text;
+
+        line-height: 22px;
+      }
+    }
+  }
+  .command-skeleton {
+    line-height: 1;
+    height: 198px;
+    width: 100%;
+    margin-top: 20px;
+    border-radius: 12px;
+  }
+}

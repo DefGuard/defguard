@@ -48,6 +48,7 @@ export const Navigation = () => {
   const { mutate: logOutMutation } = useMutation(logout, {
     onSuccess: () => {
       resetAuthStore();
+      resetUserProfile();
       setStore({ isOpen: false });
     },
   });

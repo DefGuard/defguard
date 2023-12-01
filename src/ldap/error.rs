@@ -5,6 +5,7 @@ use std::{error::Error, fmt};
 pub enum OriLDAPError {
     Ldap(String),
     ObjectNotFound(String),
+    MissingSettings,
 }
 
 impl fmt::Display for OriLDAPError {
@@ -12,6 +13,9 @@ impl fmt::Display for OriLDAPError {
         match self {
             OriLDAPError::Ldap(msg) => write!(f, "LDAP error: {msg}"),
             OriLDAPError::ObjectNotFound(msg) => write!(f, "Object not found: {msg}"),
+            OriLDAPError::MissingSettings => {
+                write!(f, "LDAP settings are missing.")
+            }
         }
     }
 }

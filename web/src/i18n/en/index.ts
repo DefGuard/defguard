@@ -2,11 +2,30 @@
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
+  common: {
+    conditions: {
+      or: 'or',
+      and: 'and',
+      equal: 'equal',
+    },
+    controls: {
+      next: 'Next',
+      back: 'Back',
+      cancel: 'Cancel',
+      confirm: 'Confirm',
+      submit: 'Submit',
+      close: 'Close',
+      select: 'Select',
+      finish: 'Finish',
+      saveChanges: 'Save changes',
+      save: 'Save',
+      RestoreDefault: 'Restore default',
+    },
+  },
   messages: {
     error: 'Error has occurred.',
     success: 'Operation succeeded',
     errorVersion: 'Failed to get application version.',
-    errorLicense: 'Failed to get license.',
     insecureContext: 'Context is not secure.',
     clipboard: {
       error: 'Clipboard is not accessible.',
@@ -14,10 +33,13 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    deviceConfig: {
+      title: 'Device VPN configurations',
+    },
     changePasswordSelf: {
       title: 'Change password',
       messages: {
-        success: 'Password changed',
+        success: 'Password has been changed',
         error: 'Failed to changed password',
       },
       form: {
@@ -34,9 +56,12 @@ const en: BaseTranslation = {
     },
     startEnrollment: {
       title: 'Start enrollment',
+      desktopTitle: 'Desktop activation',
       messages: {
         success: 'User enrollment started',
+        successDesktop: 'Desktop activation started',
         error: 'Failed to start user enrollment',
+        errorDesktop: 'Failed to start desktop activation',
       },
       form: {
         email: {
@@ -49,9 +74,13 @@ const en: BaseTranslation = {
           },
         },
         submit: 'Start enrollment',
+        submitDesktop: 'Activate desktop',
       },
       tokenCard: {
-        title: 'Copy enrollment token',
+        title: 'Activation token',
+      },
+      urlCard: {
+        title: 'Defguard Instance URL',
       },
     },
     deleteNetwork: {
@@ -68,7 +97,7 @@ const en: BaseTranslation = {
     manageWebAuthNKeys: {
       title: 'Security keys',
       messages: {
-        deleted: 'WebAuthN key deleted.',
+        deleted: 'WebAuthN key has been deleted.',
         duplicateKeyError: 'Key is already registered',
       },
       infoMessage: `
@@ -131,10 +160,34 @@ const en: BaseTranslation = {
         },
       },
     },
+    registerEmailMFA: {
+      title: 'Email MFA Setup',
+      infoMessage: `
+        <p>
+          To setup your MFA enter the code that was sent to your account email: <strong>{email: string}</strong>
+        </p>
+`,
+      messages: {
+        success: 'Email MFA Enabled',
+        resend: 'Verification code resent',
+      },
+      form: {
+        fields: {
+          code: {
+            label: 'Email code',
+            error: 'Code is invalid',
+          },
+        },
+        controls: {
+          submit: 'Verify code',
+          resend: 'Resend email',
+        },
+      },
+    },
     editDevice: {
       title: 'Edit device',
       messages: {
-        success: 'Device updated.',
+        success: 'Device has been updated.',
       },
       form: {
         fields: {
@@ -142,7 +195,7 @@ const en: BaseTranslation = {
             label: 'Device Name',
           },
           publicKey: {
-            label: 'Device Public Key (Wireguard)',
+            label: 'Device Public Key (WireGuard)',
           },
         },
         controls: {
@@ -155,86 +208,7 @@ const en: BaseTranslation = {
       message: 'Do you want to delete {deviceName} device ?',
       submit: 'Delete device',
       messages: {
-        success: 'Device deleted.',
-      },
-    },
-    addDevice: {
-      messages: {
-        success: 'Device added.',
-      },
-      web: {
-        title: 'Add device',
-        viewTitle: 'Device configuration',
-        steps: {
-          config: {
-            messages: {
-              copyConfig: 'Config copied to clipboard',
-            },
-            helpers: {
-              warningAutoMode: `
-        <p>
-          Please be advised that you have to download the configuration now,
-          since <strong>we do not</strong> store your private key. After this
-          dialog is closed, you <strong>will not be able</strong> to get your
-          full configuration file (with private keys, only blank template).
-        </p>
-`,
-              warningManualMode: `
-        <p>
-          Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to repalce it on your own for configuration to work properly.
-        </p>
-`,
-              qrHelper: `
-          <p>
-            You can setup your device faster with wireguard application by scanning this QR code.
-          </p>`,
-            },
-            qrInfo:
-              'Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.',
-            inputNameLabel: 'Device Name',
-            qrLabel: 'WireGuard Config File',
-            qrCardTitle: 'WireGuard Config for location:',
-          },
-          setup: {
-            infoMessage: `
-        <p>
-          You need to configure WireguardVPN on your device, please visit&nbsp;
-          <a href="{addDevicesDocs:string}">documentation</a> if you don&apos;t know how to do it.
-        </p>
-`,
-            options: {
-              auto: 'Generate key pair',
-              manual: 'Use my own public key',
-            },
-            form: {
-              submit: 'Generate configuration',
-              fields: {
-                name: {
-                  label: 'Device Name',
-                },
-                publicKey: {
-                  label: 'Provide Your Public Key',
-                },
-              },
-              errors: {
-                name: {
-                  duplicatedName: 'Device with this name already exists',
-                },
-              },
-            },
-          },
-        },
-      },
-      desktop: {
-        title: 'Add current device',
-        form: {
-          submit: 'Add this device',
-          fields: {
-            name: {
-              label: 'Name',
-            },
-          },
-        },
+        success: 'Device has been deleted.',
       },
     },
     addWallet: {
@@ -414,6 +388,93 @@ const en: BaseTranslation = {
       },
     },
   },
+  addDevicePage: {
+    title: 'Add device',
+    helpers: {
+      setupOpt: `You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.`,
+    },
+    messages: {
+      deviceAdded: 'Device added',
+    },
+    steps: {
+      setupMethod: {
+        remote: {
+          title: 'Remote Desktop Activation',
+          subTitle:
+            'A breeze to set up with just a single token. Download the client and enjoy straightforward security.',
+          link: 'Download defguard Client',
+        },
+        manual: {
+          title: 'Manual WireGuard Client',
+          subTitle:
+            'For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.',
+          link: 'Download WireGuard Client',
+        },
+      },
+      configDevice: {
+        title: 'Configure device',
+        messages: {
+          copyConfig: 'Configuration has been copied to the clipboard',
+        },
+        helpers: {
+          warningAutoMode: `
+    <p>
+      Please be advised that you have to download the configuration now,
+      since <strong>we do not</strong> store your private key. After this
+      page is closed, you <strong>will not be able</strong> to get your
+      full configuration file (with private keys, only blank template).
+    </p>
+`,
+          warningManualMode: `
+    <p>
+      Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
+    </p>
+`,
+          qrHelper: `
+      <p>
+        You can setup your device faster with wireguard application by scanning this QR code.
+      </p>`,
+        },
+        qrInfo:
+          'Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.',
+        inputNameLabel: 'Device Name',
+        qrLabel: 'WireGuard Config File',
+      },
+      setupDevice: {
+        title: 'Create VPN device',
+        infoMessage: `
+        <p>
+          You need to configure WireGuardVPN on your device, please visit&nbsp;
+          <a href="{addDevicesDocs:string}">documentation</a> if you don&apos;t know how to do it.
+        </p>
+`,
+        options: {
+          auto: 'Generate key pair',
+          manual: 'Use my own public key',
+        },
+        form: {
+          fields: {
+            name: {
+              label: 'Device Name',
+            },
+            publicKey: {
+              label: 'Provide Your Public Key',
+            },
+          },
+          errors: {
+            name: {
+              duplicatedName: 'Device with this name already exists',
+            },
+          },
+        },
+      },
+      copyToken: {
+        title: 'Client activation',
+        tokenCardTitle: 'Activation token',
+        urlCardTitle: 'Defguard Instance URL',
+      },
+    },
+  },
   userPage: {
     title: {
       view: 'User Profile',
@@ -475,6 +536,7 @@ const en: BaseTranslation = {
         messages: {
           mfaDisabled: 'MFA disabled.',
           OTPDisabled: 'One time password disabled.',
+          EmailMFADisabled: 'Email MFA disabled.',
           changeMFAMethod: 'MFA method changed',
         },
         securityKey: {
@@ -490,6 +552,7 @@ const en: BaseTranslation = {
         },
         labels: {
           totp: 'Time based one time passwords',
+          email: 'Email',
           webauth: 'Security keys',
           wallets: 'Wallets',
         },
@@ -596,6 +659,7 @@ const en: BaseTranslation = {
         provision: 'Provision YubiKey',
         delete: 'Delete account',
         startEnrollment: 'Start enrollment',
+        activateDesktop: 'Remote desktop activation',
       },
     },
   },
@@ -669,6 +733,12 @@ const en: BaseTranslation = {
     },
   },
   components: {
+    deviceConfigsCard: {
+      cardTitle: 'WireGuard Config for location:',
+      messages: {
+        copyConfig: 'Configuration copied to the clipboard',
+      },
+    },
     gatewaysStatus: {
       label: 'Gateways',
       states: {
@@ -695,11 +765,37 @@ const en: BaseTranslation = {
     tabs: {
       smtp: 'SMTP',
       global: 'Global settings',
-      support: 'Support',
+      ldap: 'LDAP',
     },
     messages: {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
+    },
+    ldapSettings: {
+      title: 'LDAP Settings',
+      form: {
+        labels: {
+          ldap_url: 'URL',
+          ldap_bind_username: 'Bind Username',
+          ldap_bind_password: 'Bind Password',
+          ldap_member_attr: 'Member Attribute',
+          ldap_username_attr: 'Username Attribute',
+          ldap_user_obj_class: 'User Object Class',
+          ldap_user_search_base: 'User Search Base',
+          ldap_groupname_attr: 'Groupname Attribute',
+          ldap_group_search_base: 'Group Search Base',
+          ldap_group_member_attr: 'Group Member Attribute',
+          ldap_group_obj_class: 'Group Object Class',
+        },
+      },
+      test: {
+        title: 'Test LDAP Connection',
+        submit: 'Test',
+        messages: {
+          success: 'LDAP connected successfully',
+          error: 'LDAP connection rejected',
+        },
+      },
     },
     modulesVisibility: {
       header: 'Modules Visibility',
@@ -711,7 +807,7 @@ const en: BaseTranslation = {
           </a>`,
       fields: {
         wireguard_enabled: {
-          label: 'Wireguard VPN',
+          label: 'WireGuard VPN',
         },
         webhooks_enabled: {
           label: 'Webhooks',
@@ -724,7 +820,6 @@ const en: BaseTranslation = {
         },
       },
     },
-
     defaultNetworkSelect: {
       header: 'Default location view',
       helper: `<p>Here you can change your default location view.</p>
@@ -892,41 +987,6 @@ const en: BaseTranslation = {
         },
       },
     },
-    licenseCard: {
-      header: 'License & Support Information',
-      licenseCardTitles: {
-        community: 'Community',
-        enterprise: 'Enterprise',
-        license: 'license',
-      },
-      body: {
-        enterprise: `
-				<p> Thank you for purchasing enterprise license!</p>
-				<br />
-				<p>This includes following modules:</p>`,
-        community: `
-              <p>
-                You have our community license. If you wish to get Enterprise
-                license for full features set and support, please visit
-                <a href="https://defguard.net">https://defguard.net</a>
-              </p>
-              <br />
-              <p>Enterprise license includes:</p>
-				`,
-        agreement: 'read license agreement',
-        modules: `
-          <ul>
-            <li>YubiBridge</li>
-            <li>OpenID</li>
-            <li>OpenLDAP</li>
-          </ul>
-          <br />`,
-      },
-      footer: {
-        company: 'licensed to: {company: string}',
-        expiration: 'expiration date: {expiration: string}',
-      },
-    },
   },
   openidOverview: {
     pageTitle: 'OpenID Apps',
@@ -1079,10 +1139,15 @@ const en: BaseTranslation = {
     noLicenseMessage: "You don't have a license for this feature.",
     provisioningStation: {
       header: 'YubiKey provisioning station',
-      cardTitle: 'Provisioning station docker setup command',
       content: `In order to be able to provision your YubiKeys, first you need to set up
         physical machine with USB slot. Run provided command on your chosen
         machine to register it and start provisioning your keys.`,
+      dockerCard: {
+        title: 'Provisioning station docker setup command',
+      },
+      tokenCard: {
+        title: 'Access token',
+      },
     },
     list: {
       headers: {
@@ -1100,7 +1165,10 @@ const en: BaseTranslation = {
       },
     },
     messages: {
-      codeCopied: 'Command copied.',
+      copy: {
+        token: 'Token copied',
+        command: 'Command copied',
+      },
     },
   },
   openidAllow: {
@@ -1253,6 +1321,18 @@ const en: BaseTranslation = {
         useWallet: 'Use your wallet instead',
         useWebauthn: 'Use security key instead',
         useRecoveryCode: 'Use recovery code instead',
+        useEmail: 'Use E-mail instead',
+      },
+      email: {
+        header: 'Use code we sent to your e-mail to proceed.',
+        form: {
+          labels: {
+            code: 'Code',
+          },
+          controls: {
+            resendCode: 'Resend Code',
+          },
+        },
       },
       totp: {
         header: 'Use code from your authentication app and click button to proceed.',
@@ -1419,6 +1499,14 @@ const en: BaseTranslation = {
   },
   supportPage: {
     title: 'Support',
+    modals: {
+      confirmDataSend: {
+        title: 'Send Support Data',
+        subTitle:
+          'Please confirm that you actually want to send support debug information. None of your private information will be sent (wireguard keys, email addresses, etc. will not be sent).',
+        submit: 'Send support data',
+      },
+    },
     debugDataCard: {
       title: 'Support data',
       body: `

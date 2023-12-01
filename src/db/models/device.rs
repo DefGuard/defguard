@@ -3,12 +3,23 @@ use super::{
     wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE_MINUTES},
     DbPool,
 };
-use crate::handlers::wireguard::DeviceConfig;
+
+#[derive(Serialize)]
+pub struct DeviceConfig {
+    pub(crate) network_id: i64,
+    pub(crate) network_name: String,
+    pub(crate) config: String,
+    pub(crate) address: IpAddr,
+    pub(crate) endpoint: String,
+    pub(crate) allowed_ips: Vec<IpNetwork>,
+    pub(crate) pubkey: String,
+    pub(crate) dns: Option<String>,
+}
+
+use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
-use lazy_static::lazy_static;
 use model_derive::Model;
-use regex::Regex;
 use sqlx::{query, query_as, Error as SqlxError, FromRow, PgConnection};
 use std::{
     fmt::{Display, Formatter},
@@ -158,7 +169,7 @@ pub struct WireguardNetworkDevice {
     pub device_id: i64,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AddDevice {
     pub name: String,
     pub wireguard_pubkey: String,
@@ -534,6 +545,11 @@ impl Device {
                     network_id,
                     network_name: network.name,
                     config,
+                    endpoint: format!("{}:{}", network.endpoint, network.port),
+                    address: wireguard_network_device.wireguard_ip,
+                    allowed_ips: network.allowed_ips,
+                    pubkey: network.pubkey,
+                    dns: network.dns,
                 });
             }
         }
@@ -579,14 +595,13 @@ impl Device {
     }
 
     pub fn validate_pubkey(pubkey: &str) -> Result<(), String> {
-        lazy_static! {
-            static ref RE: Regex = Regex::new("^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=$").unwrap();
+        if let Ok(key) = BASE64_STANDARD.decode(pubkey) {
+            if key.len() == 32 {
+                return Ok(());
+            }
         }
-        if RE.is_match(pubkey) {
-            Ok(())
-        } else {
-            Err(format!("{pubkey} is not a valid pubkey"))
-        }
+
+        Err(format!("{pubkey} is not a valid pubkey"))
     }
 }
 

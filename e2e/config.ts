@@ -1,21 +1,27 @@
+import { User } from './types';
 import { mergeObjects } from './utils/utils';
 
 type TestsConfig = {
   BASE_URL: string;
   CORE_BASE_URL: string;
   ENROLLMENT_URL: string;
+  TEST_TIMEOUT: number;
 };
 
 const defaultConfig: TestsConfig = {
   BASE_URL: 'http://localhost:8000',
   CORE_BASE_URL: 'http://localhost:8000/api/v1',
-  ENROLLMENT_URL: 'http://localhost:8080'
+  ENROLLMENT_URL: 'http://localhost:8080',
+  TEST_TIMEOUT: 240,
 };
 
 const envConfig: Partial<TestsConfig> = {
   BASE_URL: process.env.BASE_URL,
   CORE_BASE_URL: process.env.CORE_BASE_URL,
-  ENROLLMENT_URL: process.env.ENROLLMENT_URL
+  ENROLLMENT_URL: process.env.ENROLLMENT_URL,
+  TEST_TIMEOUT: process.env.TEST_TIMEOUT
+    ? Number.parseInt(process.env.TEST_TIMEOUT)
+    : undefined,
 };
 
 export const testsConfig: TestsConfig = mergeObjects(envConfig, defaultConfig);
@@ -24,10 +30,12 @@ export const routes = {
   base: testsConfig.BASE_URL,
   me: '/me',
   consent: '/consent',
+  addDevice: '/add-device',
   auth: {
     login: '/auth/login',
     totp: '/auth/mfa/totp',
     recovery: '/auth/mfa/recovery',
+    email: '/auth/mfa/email',
   },
   admin: {
     wizard: '/admin/wizard',
@@ -38,9 +46,13 @@ export const routes = {
   authorize: '/api/v1/oauth/authorize',
 };
 
-export const defaultUserAdmin = {
+export const defaultUserAdmin: User = {
   username: 'admin',
   password: 'pass123',
+  firstName: 'Administrator',
+  lastName: 'Defguard',
+  mail: 'admin@defguard',
+  phone: '',
 };
 
 export const testUserTemplate = {
@@ -49,4 +61,12 @@ export const testUserTemplate = {
   password: 'defguarD123!',
   mail: 'test@test.com',
   phone: '123456789',
+};
+
+export const dbCred = {
+  username: 'defguard',
+  password: 'defguard',
+  database: 'defguard',
+  port: 5432,
+  host: 'localhost',
 };

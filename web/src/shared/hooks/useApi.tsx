@@ -1,5 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
+import { useEffect, useMemo } from 'react';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import {
   AddOpenidClientRequest,
   AddUserRequest,
@@ -14,7 +16,6 @@ import {
   EmptyApiResponse,
   GetNetworkStatsRequest,
   GroupsResponse,
-  License,
   LoginData,
   MFALoginResponse,
   Network,
@@ -38,22 +39,31 @@ import {
   WorkerToken,
 } from '../types';
 import { removeNulls } from '../utils/removeNulls';
+import { useToaster } from './useToaster';
 
 interface HookProps {
   baseURL?: string;
+  // Spawns toaster type Error when request response code is above 399
+  notifyError?: boolean;
 }
 
 const envBaseUrl = import.meta.env.API_BASE_URL;
 
-const client = axios.create({
-  baseURL: envBaseUrl && String(envBaseUrl).length > 0 ? envBaseUrl : '/api/v1',
-});
-
-client.defaults.headers.common['Content-Type'] = 'application/json';
-
 const unpackRequest = <T,>(res: AxiosResponse<T>): T => res.data;
 
 const useApi = (props?: HookProps): ApiHook => {
+  const toaster = useToaster();
+  const { LL } = useI18nContext();
+
+  const client = useMemo(() => {
+    const res = axios.create({
+      baseURL: envBaseUrl && String(envBaseUrl).length > 0 ? envBaseUrl : '/api/v1',
+    });
+
+    res.defaults.headers.common['Content-Type'] = 'application/json';
+    return res;
+  }, []);
+
   if (props) {
     const { baseURL } = props;
     if (baseURL && baseURL.length) {
@@ -61,16 +71,8 @@ const useApi = (props?: HookProps): ApiHook => {
     }
   }
 
-  client.interceptors.response.use((res) => {
-    // API sometimes returns null in optional fields.
-    if (res.data) {
-      res.data = removeNulls(res.data);
-    }
-    return res;
-  });
-
   const addUser = async (data: AddUserRequest) => {
-    return client.post<User>(`/user/`, data).then((res) => res.data);
+    return client.post<User>(`/user`, data).then((res) => res.data);
   };
 
   const getMe = () => client.get<User>(`/me`).then((res) => res.data);
@@ -90,7 +92,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const fetchDevice = async (id: string) =>
     client.get<Device>(`/device/${id}`).then((res) => res.data);
 
-  const getUsers = () => client.get('/user/').then(unpackRequest);
+  const getUsers = () => client.get('/user').then(unpackRequest);
 
   const downloadDeviceConfig: ApiHook['device']['downloadDeviceConfig'] = async (data) =>
     client
@@ -123,7 +125,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.delete<EmptyApiResponse>(`/network/${id}`);
 
   const addNetwork: ApiHook['network']['addNetwork'] = (network) =>
-    client.post(`/network/`, network).then(unpackRequest);
+    client.post(`/network`, network).then(unpackRequest);
 
   const importNetwork: ApiHook['network']['importNetwork'] = (network) =>
     client.post(`/network/import`, network).then(unpackRequest);
@@ -151,7 +153,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
 
-  const getWorkers = () => client.get('/worker/').then((res) => res.data);
+  const getWorkers = () => client.get('/worker').then((res) => res.data);
 
   const provisionYubiKey = (data: WorkerJobRequest) =>
     client.post<WorkerJobResponse>(`/worker/job`, data).then((response) => response.data);
@@ -189,7 +191,7 @@ const useApi = (props?: HookProps): ApiHook => {
       .delete<EmptyApiResponse>(`/user/${username}/wallet/${address}`)
       .then((response) => response.data);
 
-  const getGroups = () => client.get<GroupsResponse>('/group/').then(unpackRequest);
+  const getGroups = () => client.get<GroupsResponse>('/group').then(unpackRequest);
 
   const addToGroup = ({ group, ...rest }: UserGroupRequest) =>
     client.post<EmptyApiResponse>(`/group/${group}`, rest);
@@ -200,7 +202,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const deleteWorker = (id: string) =>
     client.delete<EmptyApiResponse>(`/worker/${id}`).then((res) => res.data);
 
-  const getWebhooks = () => client.get('/webhook/').then((res) => res.data);
+  const getWebhooks = () => client.get('/webhook').then((res) => res.data);
 
   const deleteWebhook = (id: string) =>
     client.delete<EmptyApiResponse>(`/webhook/${id}`).then((res) => res.data);
@@ -209,18 +211,18 @@ const useApi = (props?: HookProps): ApiHook => {
     client.post<EmptyApiResponse>(`/webhook/${id}`, rest);
 
   const addWebhook: ApiHook['webhook']['addWebhook'] = async (data) => {
-    return client.post<EmptyApiResponse>('/webhook/', data);
+    return client.post<EmptyApiResponse>('/webhook', data);
   };
   const editWebhook: ApiHook['webhook']['editWebhook'] = async ({ id, ...rest }) => {
     return client.put<EmptyApiResponse>(`/webhook/${id}`, rest);
   };
-  const getOpenidClients = () => client.get('/oauth/').then((res) => res.data);
+  const getOpenidClients = () => client.get('/oauth').then((res) => res.data);
 
   const getOpenidClient = async (client_id: string) =>
     client.get<OpenidClient>(`/oauth/${client_id}`).then((res) => res.data);
 
   const addOpenidClient = async (data: AddOpenidClientRequest) => {
-    return client.post<EmptyApiResponse>('/oauth/', data);
+    return client.post<EmptyApiResponse>('/oauth', data);
   };
   const editOpenidClient = async ({ client_id, ...rest }: EditOpenidClientRequest) => {
     return client.put<EmptyApiResponse>(`/oauth/${client_id}`, rest);
@@ -276,8 +278,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const getWorkerToken = () =>
     client.get<WorkerToken>('/worker/token').then(unpackRequest);
 
-  const getLicense = () => client.get<License>('/license/').then((res) => res.data);
-
   const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
 
   // eslint-disable-next-line max-len
@@ -303,6 +303,21 @@ const useApi = (props?: HookProps): ApiHook => {
   const mfaTOTPVerify: ApiHook['auth']['mfa']['totp']['verify'] = (data) =>
     client.post('/auth/totp/verify', data).then(unpackRequest);
 
+  const mfaEmailMFAInit: ApiHook['auth']['mfa']['email']['register']['start'] = () =>
+    client.post('/auth/email/init').then(unpackRequest);
+
+  const mfaEmailMFAEnable: ApiHook['auth']['mfa']['email']['register']['finish'] = (
+    data,
+  ) => client.post('/auth/email', data).then(unpackRequest);
+
+  const mfaEmailMFADisable = () => client.delete('/auth/email').then(unpackRequest);
+
+  const mfaEmailMFASendCode: ApiHook['auth']['mfa']['email']['sendCode'] = () =>
+    client.get('/auth/email').then(unpackRequest);
+
+  const mfaEmailMFAVerify: ApiHook['auth']['mfa']['email']['verify'] = (data) =>
+    client.post('/auth/email/verify', data).then(unpackRequest);
+
   const mfaWeb3Start: ApiHook['auth']['mfa']['web3']['start'] = (data) =>
     client.post('/auth/web3/start', data).then(unpackRequest);
 
@@ -325,10 +340,10 @@ const useApi = (props?: HookProps): ApiHook => {
     username,
   }) => client.delete(`/user/${username}/security_key/${keyId}`);
 
-  const getSettings = () => client.get('/settings/').then(unpackRequest);
+  const getSettings = () => client.get('/settings').then(unpackRequest);
 
   const editSettings = async (settings: Settings) =>
-    client.put('/settings/', settings).then(unpackRequest);
+    client.put('/settings', settings).then(unpackRequest);
 
   const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
 
@@ -361,6 +376,39 @@ const useApi = (props?: HookProps): ApiHook => {
   const sendSupportMail: ApiHook['mail']['sendSupportMail'] = () =>
     client.post('/mail/support', {}).then(unpackRequest);
 
+  const startDesktopActivation: ApiHook['user']['startDesktopActivation'] = (data) =>
+    client.post(`/user/${data.username}/start_desktop`, data).then(unpackRequest);
+
+  const patchSettings: ApiHook['settings']['patchSettings'] = (data) =>
+    client.patch('/settings', data).then(unpackRequest);
+
+  const getEssentialSettings: ApiHook['settings']['getEssentialSettings'] = () =>
+    client.get('/settings_essentials').then(unpackRequest);
+
+  const testLdapSettings: ApiHook['settings']['testLdapSettings'] = () =>
+    client.get('/ldap/test').then(unpackRequest);
+
+  useEffect(() => {
+    client.interceptors.response.use(
+      (res) => {
+        // API sometimes returns null in optional fields.
+        if (res.data) {
+          res.data = removeNulls(res.data);
+        }
+        return res;
+      },
+      (err) => {
+        if (props?.notifyError) {
+          toaster.error(LL.messages.error());
+        }
+        return Promise.reject(err);
+      },
+    );
+    return () => {
+      client.interceptors.response.clear();
+    };
+  }, [LL.messages, client.interceptors.response, toaster, props?.notifyError]);
+
   return {
     getAppInfo,
     changePasswordSelf,
@@ -385,6 +433,7 @@ const useApi = (props?: HookProps): ApiHook => {
       addToGroup,
       removeFromGroup,
       startEnrollment,
+      startDesktopActivation,
     },
     device: {
       addDevice: addDevice,
@@ -431,15 +480,21 @@ const useApi = (props?: HookProps): ApiHook => {
           disable: mfaTOTPDisable,
           verify: mfaTOTPVerify,
         },
+        email: {
+          register: {
+            start: mfaEmailMFAInit,
+            finish: mfaEmailMFAEnable,
+          },
+          disable: mfaEmailMFADisable,
+          sendCode: mfaEmailMFASendCode,
+          verify: mfaEmailMFAVerify,
+        },
         web3: {
           start: mfaWeb3Start,
           finish: mfaWeb3Finish,
           updateWalletMFA: editWalletMFA,
         },
       },
-    },
-    license: {
-      getLicense: getLicense,
     },
     provisioning: {
       provisionYubiKey: provisionYubiKey,
@@ -470,6 +525,9 @@ const useApi = (props?: HookProps): ApiHook => {
       getSettings: getSettings,
       editSettings: editSettings,
       setDefaultBranding: setDefaultBranding,
+      patchSettings,
+      getEssentialSettings,
+      testLdapSettings,
     },
     support: {
       downloadSupportData,

@@ -1,20 +1,27 @@
+pub(crate) mod client;
+
+use std::sync::{Arc, Mutex};
+
+use axum::http::StatusCode;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
     db::{init_db, AppEvent, DbPool, GatewayEvent, User, UserDetails},
     grpc::{GatewayMap, WorkerState},
+    headers::create_user_agent_parser,
     mail::Mail,
     SERVER_CONFIG,
 };
-use rocket::{http::Status, local::asynchronous::Client};
 use secrecy::ExposeSecret;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
-use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::{
     broadcast::{self, Receiver},
     mpsc::unbounded_channel,
 };
+
+use self::client::TestClient;
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     let config = DefGuardConfig::new_test_config();
@@ -67,6 +74,7 @@ pub struct ClientState {
     pub pool: DbPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub wireguard_rx: Receiver<GatewayEvent>,
+    pub mail_rx: UnboundedReceiver<Mail>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     pub test_user: User,
     pub config: DefGuardConfig,
@@ -77,6 +85,7 @@ impl ClientState {
         pool: DbPool,
         worker_state: Arc<Mutex<WorkerState>>,
         wireguard_rx: Receiver<GatewayEvent>,
+        mail_rx: UnboundedReceiver<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         test_user: User,
         config: DefGuardConfig,
@@ -85,6 +94,7 @@ impl ClientState {
             pool,
             worker_state,
             wireguard_rx,
+            mail_rx,
             failed_logins,
             test_user,
             config,
@@ -92,20 +102,23 @@ impl ClientState {
     }
 }
 
-pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, ClientState) {
+pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClient, ClientState) {
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
-    let (mail_tx, _) = unbounded_channel::<Mail>();
+    let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
+    let user_agent_parser = create_user_agent_parser();
+
     let client_state = ClientState::new(
         pool.clone(),
         worker_state.clone(),
         wg_rx,
+        mail_rx,
         failed_logins.clone(),
         User::find_by_username(&pool, "hpotter")
             .await
@@ -113,6 +126,17 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
             .unwrap(),
         config.clone(),
     );
+
+    // Uncomment this to enable tracing in tests.
+    // It only works for running a single test, so leave it commented out for running all tests.
+    // use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+    // tracing_subscriber::registry()
+    //     .with(
+    //         tracing_subscriber::EnvFilter::try_from_default_env()
+    //             .unwrap_or_else(|_| "defguard=debug,tower_http=debug,axum::rejection=trace".into()),
+    //     )
+    //     .with(tracing_subscriber::fmt::layer())
+    //     .init();
 
     let webapp = build_webapp(
         config,
@@ -123,45 +147,21 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (Client, 
         worker_state,
         gateway_state,
         pool,
+        user_agent_parser,
         failed_logins,
-    )
-    .await;
-    (Client::tracked(webapp).await.unwrap(), client_state)
+    );
+    (TestClient::new(webapp), client_state)
 }
 
 #[allow(dead_code)]
-pub async fn make_test_client() -> (Client, ClientState) {
+pub async fn make_test_client() -> (TestClient, ClientState) {
     let (pool, config) = init_test_db().await;
     make_base_client(pool, config).await
 }
 
 #[allow(dead_code)]
-pub async fn make_license_test_client(license: &str) -> (Client, ClientState) {
-    let (pool, mut config) = init_test_db().await;
-    config.license = license.into();
-    make_base_client(pool, config).await
+pub async fn fetch_user_details(client: &TestClient, username: &str) -> UserDetails {
+    let response = client.get(&format!("/api/v1/user/{username}")).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    response.json().await
 }
-
-#[allow(dead_code)]
-pub async fn make_enterprise_test_client() -> (Client, ClientState) {
-    make_license_test_client(LICENSE_ENTERPRISE).await
-}
-
-#[allow(dead_code)]
-pub async fn fetch_user_details(client: &Client, username: &str) -> UserDetails {
-    let response = client
-        .get(format!("/api/v1/user/{username}"))
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
-    response.into_json().await.unwrap()
-}
-
-#[allow(dead_code)]
-#[cfg(feature = "openid")]
-pub(super) static LICENSE_ENTERPRISE: &str = "BwAAAAAAAAB0ZW9uaXRlCgAAAAAAAAAyMDUwLTEwLTEwAAAAAAFiayfBptq8pZXjPo4FV3VnmmwR/ipZHLriVPTW3AFyRq4c2wR+DzWC4BUACu3YMS27kX116JVKWB3/edYKNELFSiqYc6vsfoOrXnnQQJDI8RoyAQB6MpLv/EcgRZh47iI4L+tp44jKFQZ+EqqvMNt3G41u13P72HdkUv8yzQ7dmm3BrYQGJSCh/xiLna+mtQ9IQdqXOmYVInPXiWtIvi157Utfnow3gS0Ak45jci0DhtH+RWmFfiMOQCc4Qx0kEF9PsHl6Hn9Ay4oRTAnSYEPdWfQlVh5Rp276bLqnHDdyJ3/o2RSNK+QUXR7V2iuN1M3sWyW1rCGXtV5miHGI97CS";
-#[allow(dead_code)]
-pub(super) static LICENSE_EXPIRED: &str = "BwAAAAAAAAB0ZW9uaXRlCgAAAAAAAAAyMDE5LTEwLTEwAAAAAAFuZ7Xm9M20ds/U/PQgVmz4uViCRTJbyAPVLtYRBGvE0i+czH4mxPl4mCyAO1cAOPXNxqh9sAVVr/GzToOix4DfK0aLrYG9FqV5jW13CH+UKTFBqQvN9gGLmnl9+b3pH10gxpGKRZ5fn73fsZsO0SKrJvQ8SAHEQ2+r+VCdZphZ2r9cFR6MC39Ixk4lCki8mz9A4FHZyW4YWWr6k+bxu9RjG/0imh+6OBeddKBpU3HnK96B4rjhiEhrKpfJo6dzib/Mfk+UNZHQA2dAjlocKKxa2+acUaEJQmnaIv4FyFZHl2OzGKkweqDBo0E+Ai7m1g07+pXdXGYb9ykVfoCBEgEX";
-#[allow(dead_code)]
-#[cfg(feature = "openid")]
-pub(super) static LICENSE_WITHOUT_OPENID: &str = "BwAAAAAAAAB0ZW9uaXRlCgAAAAAAAAAyMDUwLTEwLTIyAQABAQCCpzpcqi+8jRX+QTuVjyK0ZmdKa8j+SrA53qSY4rAxjZyt6hgVLlcqTqIbbA7uds5ACa1oBWvQbbPIlGGTpNnG+gQzTm9hAc3CmEd2zMdQXOXzWN8jJHTflsr1dYMxA+tK1el+An+jOY85j0WaRNJma7desF6HEasgEEPktV5P5y3Yh1fULS1scDjEbOJS3pvI07BmSA0/Z+swPMqRzSoyt6NaOUDbR53HR2mMjBSsaZBLsrTQ9Ai16A8fo6pqt2XpSfy/1ImC3mq2q6TG/ABnFw1j65UW0Mx261Bn9184zyLdKPycFUWfyOmOpk/46JZX/PMBHERXeFbmN6YE3KpO";

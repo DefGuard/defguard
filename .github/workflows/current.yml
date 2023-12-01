@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-docker:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -46,3 +46,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+  trigger-e2e:
+    needs: build-docker
+    uses: ./.github/workflows/e2e.yml
+    secrets: inherit

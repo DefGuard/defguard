@@ -14,6 +14,68 @@ export type Translation = RootTranslation
 export type Translations = RootTranslation
 
 type RootTranslation = {
+	common: {
+		conditions: {
+			/**
+			 * o​r
+			 */
+			or: string
+			/**
+			 * a​n​d
+			 */
+			and: string
+			/**
+			 * e​q​u​a​l
+			 */
+			equal: string
+		}
+		controls: {
+			/**
+			 * N​e​x​t
+			 */
+			next: string
+			/**
+			 * B​a​c​k
+			 */
+			back: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+			/**
+			 * C​o​n​f​i​r​m
+			 */
+			confirm: string
+			/**
+			 * S​u​b​m​i​t
+			 */
+			submit: string
+			/**
+			 * C​l​o​s​e
+			 */
+			close: string
+			/**
+			 * S​e​l​e​c​t
+			 */
+			select: string
+			/**
+			 * F​i​n​i​s​h
+			 */
+			finish: string
+			/**
+			 * S​a​v​e​ ​c​h​a​n​g​e​s
+			 */
+			saveChanges: string
+			/**
+			 * S​a​v​e
+			 */
+			save: string
+			/**
+			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
+			 */
+			RestoreDefault: string
+		}
+	}
 	messages: {
 		/**
 		 * E​r​r​o​r​ ​h​a​s​ ​o​c​c​u​r​r​e​d​.
@@ -27,10 +89,6 @@ type RootTranslation = {
 		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
 		 */
 		errorVersion: string
-		/**
-		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​l​i​c​e​n​s​e​.
-		 */
-		errorLicense: string
 		/**
 		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
@@ -47,6 +105,12 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		deviceConfig: {
+			/**
+			 * D​e​v​i​c​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s
+			 */
+			title: string
+		}
 		changePasswordSelf: {
 			/**
 			 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
@@ -54,7 +118,7 @@ type RootTranslation = {
 			title: string
 			messages: {
 				/**
-				 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d
+				 * P​a​s​s​w​o​r​d​ ​h​a​s​ ​b​e​e​n​ ​c​h​a​n​g​e​d
 				 */
 				success: string
 				/**
@@ -94,15 +158,27 @@ type RootTranslation = {
 			 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 			 */
 			title: string
+			/**
+			 * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+			 */
+			desktopTitle: string
 			messages: {
 				/**
 				 * U​s​e​r​ ​e​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
 				 */
 				success: string
 				/**
+				 * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n​ ​s​t​a​r​t​e​d
+				 */
+				successDesktop: string
+				/**
 				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​u​s​e​r​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				error: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 */
+				errorDesktop: string
 			}
 			form: {
 				email: {
@@ -127,10 +203,20 @@ type RootTranslation = {
 				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				submit: string
+				/**
+				 * A​c​t​i​v​a​t​e​ ​d​e​s​k​t​o​p
+				 */
+				submitDesktop: string
 			}
 			tokenCard: {
 				/**
-				 * C​o​p​y​ ​e​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n
+				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
+				 */
+				title: string
+			}
+			urlCard: {
+				/**
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
 				 */
 				title: string
 			}
@@ -169,7 +255,7 @@ type RootTranslation = {
 			title: string
 			messages: {
 				/**
-				 * W​e​b​A​u​t​h​N​ ​k​e​y​ ​d​e​l​e​t​e​d​.
+				 * W​e​b​A​u​t​h​N​ ​k​e​y​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
 				 */
 				deleted: string
 				/**
@@ -285,6 +371,55 @@ type RootTranslation = {
 				}
 			}
 		}
+		registerEmailMFA: {
+			/**
+			 * E​m​a​i​l​ ​M​F​A​ ​S​e​t​u​p
+			 */
+			title: string
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​t​h​a​t​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​a​c​c​o​u​n​t​ ​e​m​a​i​l​:​ ​<​s​t​r​o​n​g​>​{​e​m​a​i​l​}​<​/​s​t​r​o​n​g​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+	
+			 * @param {string} email
+			 */
+			infoMessage: RequiredParams<'email'>
+			messages: {
+				/**
+				 * E​m​a​i​l​ ​M​F​A​ ​E​n​a​b​l​e​d
+				 */
+				success: string
+				/**
+				 * V​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​ ​r​e​s​e​n​t
+				 */
+				resend: string
+			}
+			form: {
+				fields: {
+					code: {
+						/**
+						 * E​m​a​i​l​ ​c​o​d​e
+						 */
+						label: string
+						/**
+						 * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
+						 */
+						error: string
+					}
+				}
+				controls: {
+					/**
+					 * V​e​r​i​f​y​ ​c​o​d​e
+					 */
+					submit: string
+					/**
+					 * R​e​s​e​n​d​ ​e​m​a​i​l
+					 */
+					resend: string
+				}
+			}
+		}
 		editDevice: {
 			/**
 			 * E​d​i​t​ ​d​e​v​i​c​e
@@ -292,7 +427,7 @@ type RootTranslation = {
 			title: string
 			messages: {
 				/**
-				 * D​e​v​i​c​e​ ​u​p​d​a​t​e​d​.
+				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​u​p​d​a​t​e​d​.
 				 */
 				success: string
 			}
@@ -306,7 +441,7 @@ type RootTranslation = {
 					}
 					publicKey: {
 						/**
-						 * D​e​v​i​c​e​ ​P​u​b​l​i​c​ ​K​e​y​ ​(​W​i​r​e​g​u​a​r​d​)
+						 * D​e​v​i​c​e​ ​P​u​b​l​i​c​ ​K​e​y​ ​(​W​i​r​e​G​u​a​r​d​)
 						 */
 						label: string
 					}
@@ -335,151 +470,9 @@ type RootTranslation = {
 			submit: string
 			messages: {
 				/**
-				 * D​e​v​i​c​e​ ​d​e​l​e​t​e​d​.
+				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
 				 */
 				success: string
-			}
-		}
-		addDevice: {
-			messages: {
-				/**
-				 * D​e​v​i​c​e​ ​a​d​d​e​d​.
-				 */
-				success: string
-			}
-			web: {
-				/**
-				 * A​d​d​ ​d​e​v​i​c​e
-				 */
-				title: string
-				/**
-				 * D​e​v​i​c​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
-				 */
-				viewTitle: string
-				steps: {
-					config: {
-						messages: {
-							/**
-							 * C​o​n​f​i​g​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
-							 */
-							copyConfig: string
-						}
-						helpers: {
-							/**
-							 * 
-						​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
-						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
-						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​i​a​l​o​g​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
-						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
-						​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-					
-							 */
-							warningAutoMode: string
-							/**
-							 * 
-						​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​a​l​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
-						​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-					
-							 */
-							warningManualMode: string
-							/**
-							 * 
-						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
-						​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
-							 */
-							qrHelper: string
-						}
-						/**
-						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
-						 */
-						qrInfo: string
-						/**
-						 * D​e​v​i​c​e​ ​N​a​m​e
-						 */
-						inputNameLabel: string
-						/**
-						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
-						 */
-						qrLabel: string
-						/**
-						 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
-						 */
-						qrCardTitle: string
-					}
-					setup: {
-						/**
-						 * 
-					​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​g​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
-					​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-				
-						 * @param {string} addDevicesDocs
-						 */
-						infoMessage: RequiredParams<'addDevicesDocs'>
-						options: {
-							/**
-							 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
-							 */
-							auto: string
-							/**
-							 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
-							 */
-							manual: string
-						}
-						form: {
-							/**
-							 * G​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
-							 */
-							submit: string
-							fields: {
-								name: {
-									/**
-									 * D​e​v​i​c​e​ ​N​a​m​e
-									 */
-									label: string
-								}
-								publicKey: {
-									/**
-									 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
-									 */
-									label: string
-								}
-							}
-							errors: {
-								name: {
-									/**
-									 * D​e​v​i​c​e​ ​w​i​t​h​ ​t​h​i​s​ ​n​a​m​e​ ​a​l​r​e​a​d​y​ ​e​x​i​s​t​s
-									 */
-									duplicatedName: string
-								}
-							}
-						}
-					}
-				}
-			}
-			desktop: {
-				/**
-				 * A​d​d​ ​c​u​r​r​e​n​t​ ​d​e​v​i​c​e
-				 */
-				title: string
-				form: {
-					/**
-					 * A​d​d​ ​t​h​i​s​ ​d​e​v​i​c​e
-					 */
-					submit: string
-					fields: {
-						name: {
-							/**
-							 * N​a​m​e
-							 */
-							label: string
-						}
-					}
-				}
 			}
 		}
 		addWallet: {
@@ -876,6 +869,172 @@ type RootTranslation = {
 			}
 		}
 	}
+	addDevicePage: {
+		/**
+		 * A​d​d​ ​d​e​v​i​c​e
+		 */
+		title: string
+		helpers: {
+			/**
+			 * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​O​p​t​ ​f​o​r​ ​o​u​r​ ​n​a​t​i​v​e​ ​a​p​p​l​i​c​a​t​i​o​n​ ​"​d​e​f​g​u​a​r​d​"​ ​o​r​ ​a​n​y​ ​o​t​h​e​r​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​.​ ​I​f​ ​y​o​u​'​r​e​ ​u​n​s​u​r​e​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​f​o​r​ ​s​i​m​p​l​i​c​i​t​y​.
+			 */
+			setupOpt: string
+		}
+		messages: {
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			deviceAdded: string
+		}
+		steps: {
+			setupMethod: {
+				remote: {
+					/**
+					 * R​e​m​o​t​e​ ​D​e​s​k​t​o​p​ ​A​c​t​i​v​a​t​i​o​n
+					 */
+					title: string
+					/**
+					 * A​ ​b​r​e​e​z​e​ ​t​o​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​j​u​s​t​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​e​n​j​o​y​ ​s​t​r​a​i​g​h​t​f​o​r​w​a​r​d​ ​s​e​c​u​r​i​t​y​.
+					 */
+					subTitle: string
+					/**
+					 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					link: string
+				}
+				manual: {
+					/**
+					 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					title: string
+					/**
+					 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
+					 */
+					subTitle: string
+					/**
+					 * D​o​w​n​l​o​a​d​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					link: string
+				}
+			}
+			configDevice: {
+				/**
+				 * C​o​n​f​i​g​u​r​e​ ​d​e​v​i​c​e
+				 */
+				title: string
+				messages: {
+					/**
+					 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​h​a​s​ ​b​e​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
+					 */
+					copyConfig: string
+				}
+				helpers: {
+					/**
+					 * 
+				​ ​ ​ ​ ​<​p​>​
+				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
+				​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
+				​ ​ ​ ​ ​ ​ ​p​a​g​e​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
+				​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
+				​ ​ ​ ​ ​<​/​p​>​
+			
+					 */
+					warningAutoMode: string
+					/**
+					 * 
+				​ ​ ​ ​ ​<​p​>​
+				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​l​a​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
+				​ ​ ​ ​ ​<​/​p​>​
+			
+					 */
+					warningManualMode: string
+					/**
+					 * 
+				​ ​ ​ ​ ​ ​ ​<​p​>​
+				​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
+				​ ​ ​ ​ ​ ​ ​<​/​p​>
+					 */
+					qrHelper: string
+				}
+				/**
+				 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
+				 */
+				qrInfo: string
+				/**
+				 * D​e​v​i​c​e​ ​N​a​m​e
+				 */
+				inputNameLabel: string
+				/**
+				 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
+				 */
+				qrLabel: string
+			}
+			setupDevice: {
+				/**
+				 * C​r​e​a​t​e​ ​V​P​N​ ​d​e​v​i​c​e
+				 */
+				title: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		
+				 * @param {string} addDevicesDocs
+				 */
+				infoMessage: RequiredParams<'addDevicesDocs'>
+				options: {
+					/**
+					 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
+					 */
+					auto: string
+					/**
+					 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
+					 */
+					manual: string
+				}
+				form: {
+					fields: {
+						name: {
+							/**
+							 * D​e​v​i​c​e​ ​N​a​m​e
+							 */
+							label: string
+						}
+						publicKey: {
+							/**
+							 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
+							 */
+							label: string
+						}
+					}
+					errors: {
+						name: {
+							/**
+							 * D​e​v​i​c​e​ ​w​i​t​h​ ​t​h​i​s​ ​n​a​m​e​ ​a​l​r​e​a​d​y​ ​e​x​i​s​t​s
+							 */
+							duplicatedName: string
+						}
+					}
+				}
+			}
+			copyToken: {
+				/**
+				 * C​l​i​e​n​t​ ​a​c​t​i​v​a​t​i​o​n
+				 */
+				title: string
+				/**
+				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
+				 */
+				tokenCardTitle: string
+				/**
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
+				 */
+				urlCardTitle: string
+			}
+		}
+	}
 	userPage: {
 		title: {
 			/**
@@ -1013,6 +1172,10 @@ type RootTranslation = {
 					 */
 					OTPDisabled: string
 					/**
+					 * E​m​a​i​l​ ​M​F​A​ ​d​i​s​a​b​l​e​d​.
+					 */
+					EmailMFADisabled: string
+					/**
 					 * M​F​A​ ​m​e​t​h​o​d​ ​c​h​a​n​g​e​d
 					 */
 					changeMFAMethod: string
@@ -1054,6 +1217,10 @@ type RootTranslation = {
 					 * T​i​m​e​ ​b​a​s​e​d​ ​o​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​s
 					 */
 					totp: string
+					/**
+					 * E​m​a​i​l
+					 */
+					email: string
 					/**
 					 * S​e​c​u​r​i​t​y​ ​k​e​y​s
 					 */
@@ -1337,6 +1504,10 @@ type RootTranslation = {
 				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				startEnrollment: string
+				/**
+				 * R​e​m​o​t​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 */
+				activateDesktop: string
 			}
 		}
 	}
@@ -1571,6 +1742,18 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		deviceConfigsCard: {
+			/**
+			 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
+			 */
+			cardTitle: string
+			messages: {
+				/**
+				 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
+				 */
+				copyConfig: string
+			}
+		}
 		gatewaysStatus: {
 			/**
 			 * G​a​t​e​w​a​y​s
@@ -1637,9 +1820,9 @@ type RootTranslation = {
 			 */
 			global: string
 			/**
-			 * S​u​p​p​o​r​t
+			 * L​D​A​P
 			 */
-			support: string
+			ldap: string
 		}
 		messages: {
 			/**
@@ -1650,6 +1833,80 @@ type RootTranslation = {
 			 * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
 			 */
 			challengeSuccess: string
+		}
+		ldapSettings: {
+			/**
+			 * L​D​A​P​ ​S​e​t​t​i​n​g​s
+			 */
+			title: string
+			form: {
+				labels: {
+					/**
+					 * U​R​L
+					 */
+					ldap_url: string
+					/**
+					 * B​i​n​d​ ​U​s​e​r​n​a​m​e
+					 */
+					ldap_bind_username: string
+					/**
+					 * B​i​n​d​ ​P​a​s​s​w​o​r​d
+					 */
+					ldap_bind_password: string
+					/**
+					 * M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_member_attr: string
+					/**
+					 * U​s​e​r​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_username_attr: string
+					/**
+					 * U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s
+					 */
+					ldap_user_obj_class: string
+					/**
+					 * U​s​e​r​ ​S​e​a​r​c​h​ ​B​a​s​e
+					 */
+					ldap_user_search_base: string
+					/**
+					 * G​r​o​u​p​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_groupname_attr: string
+					/**
+					 * G​r​o​u​p​ ​S​e​a​r​c​h​ ​B​a​s​e
+					 */
+					ldap_group_search_base: string
+					/**
+					 * G​r​o​u​p​ ​M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_group_member_attr: string
+					/**
+					 * G​r​o​u​p​ ​O​b​j​e​c​t​ ​C​l​a​s​s
+					 */
+					ldap_group_obj_class: string
+				}
+			}
+			test: {
+				/**
+				 * T​e​s​t​ ​L​D​A​P​ ​C​o​n​n​e​c​t​i​o​n
+				 */
+				title: string
+				/**
+				 * T​e​s​t
+				 */
+				submit: string
+				messages: {
+					/**
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
+					 */
+					success: string
+					/**
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​r​e​j​e​c​t​e​d
+					 */
+					error: string
+				}
+			}
 		}
 		modulesVisibility: {
 			/**
@@ -1669,7 +1926,7 @@ type RootTranslation = {
 			fields: {
 				wireguard_enabled: {
 					/**
-					 * W​i​r​e​g​u​a​r​d​ ​V​P​N
+					 * W​i​r​e​G​u​a​r​d​ ​V​P​N
 					 */
 					label: string
 				}
@@ -2021,73 +2278,6 @@ type RootTranslation = {
 					 */
 					label: string
 				}
-			}
-		}
-		licenseCard: {
-			/**
-			 * L​i​c​e​n​s​e​ ​&​ ​S​u​p​p​o​r​t​ ​I​n​f​o​r​m​a​t​i​o​n
-			 */
-			header: string
-			licenseCardTitles: {
-				/**
-				 * C​o​m​m​u​n​i​t​y
-				 */
-				community: string
-				/**
-				 * E​n​t​e​r​p​r​i​s​e
-				 */
-				enterprise: string
-				/**
-				 * l​i​c​e​n​s​e
-				 */
-				license: string
-			}
-			body: {
-				/**
-				 * 
-			​	​	​	​	​<​p​>​ ​T​h​a​n​k​ ​y​o​u​ ​f​o​r​ ​p​u​r​c​h​a​s​i​n​g​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​!​<​/​p​>​
-			​	​	​	​	​<​b​r​ ​/​>​
-			​	​	​	​	​<​p​>​T​h​i​s​ ​i​n​c​l​u​d​e​s​ ​f​o​l​l​o​w​i​n​g​ ​m​o​d​u​l​e​s​:​<​/​p​>
-				 */
-				enterprise: string
-				/**
-				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​o​u​r​ ​c​o​m​m​u​n​i​t​y​ ​l​i​c​e​n​s​e​.​ ​I​f​ ​y​o​u​ ​w​i​s​h​ ​t​o​ ​g​e​t​ ​E​n​t​e​r​p​r​i​s​e​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​f​u​l​l​ ​f​e​a​t​u​r​e​s​ ​s​e​t​ ​a​n​d​ ​s​u​p​p​o​r​t​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​"​>​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​<​/​a​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​n​c​l​u​d​e​s​:​<​/​p​>​
-			​	​	​	​
-				 */
-				community: string
-				/**
-				 * r​e​a​d​ ​l​i​c​e​n​s​e​ ​a​g​r​e​e​m​e​n​t
-				 */
-				agreement: string
-				/**
-				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​Y​u​b​i​B​r​i​d​g​e​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​O​p​e​n​I​D​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​O​p​e​n​L​D​A​P​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​r​ ​/​>
-				 */
-				modules: string
-			}
-			footer: {
-				/**
-				 * l​i​c​e​n​s​e​d​ ​t​o​:​ ​{​c​o​m​p​a​n​y​}
-				 * @param {string} company
-				 */
-				company: RequiredParams<'company'>
-				/**
-				 * e​x​p​i​r​a​t​i​o​n​ ​d​a​t​e​:​ ​{​e​x​p​i​r​a​t​i​o​n​}
-				 * @param {string} expiration
-				 */
-				expiration: RequiredParams<'expiration'>
 			}
 		}
 	}
@@ -2465,15 +2655,23 @@ type RootTranslation = {
 			 */
 			header: string
 			/**
-			 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​d​o​c​k​e​r​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
-			 */
-			cardTitle: string
-			/**
 			 * I​n​ ​o​r​d​e​r​ ​t​o​ ​b​e​ ​a​b​l​e​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​y​o​u​r​ ​Y​u​b​i​K​e​y​s​,​ ​f​i​r​s​t​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​ ​u​p​
 		​ ​ ​ ​ ​ ​ ​ ​ ​p​h​y​s​i​c​a​l​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​U​S​B​ ​s​l​o​t​.​ ​R​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​ ​o​n​ ​y​o​u​r​ ​c​h​o​s​e​n​
 		​ ​ ​ ​ ​ ​ ​ ​ ​m​a​c​h​i​n​e​ ​t​o​ ​r​e​g​i​s​t​e​r​ ​i​t​ ​a​n​d​ ​s​t​a​r​t​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​y​o​u​r​ ​k​e​y​s​.
 			 */
 			content: string
+			dockerCard: {
+				/**
+				 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​d​o​c​k​e​r​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
+				 */
+				title: string
+			}
+			tokenCard: {
+				/**
+				 * A​c​c​e​s​s​ ​t​o​k​e​n
+				 */
+				title: string
+			}
 		}
 		list: {
 			headers: {
@@ -2512,10 +2710,16 @@ type RootTranslation = {
 			}
 		}
 		messages: {
-			/**
-			 * C​o​m​m​a​n​d​ ​c​o​p​i​e​d​.
-			 */
-			codeCopied: string
+			copy: {
+				/**
+				 * T​o​k​e​n​ ​c​o​p​i​e​d
+				 */
+				token: string
+				/**
+				 * C​o​m​m​a​n​d​ ​c​o​p​i​e​d
+				 */
+				command: string
+			}
 		}
 	}
 	openidAllow: {
@@ -2877,6 +3081,30 @@ type RootTranslation = {
 				 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​ ​i​n​s​t​e​a​d
 				 */
 				useRecoveryCode: string
+				/**
+				 * U​s​e​ ​E​-​m​a​i​l​ ​i​n​s​t​e​a​d
+				 */
+				useEmail: string
+			}
+			email: {
+				/**
+				 * U​s​e​ ​c​o​d​e​ ​w​e​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​e​-​m​a​i​l​ ​t​o​ ​p​r​o​c​e​e​d​.
+				 */
+				header: string
+				form: {
+					labels: {
+						/**
+						 * C​o​d​e
+						 */
+						code: string
+					}
+					controls: {
+						/**
+						 * R​e​s​e​n​d​ ​C​o​d​e
+						 */
+						resendCode: string
+					}
+				}
 			}
 			totp: {
 				/**
@@ -3231,6 +3459,22 @@ type RootTranslation = {
 		 * S​u​p​p​o​r​t
 		 */
 		title: string
+		modals: {
+			confirmDataSend: {
+				/**
+				 * S​e​n​d​ ​S​u​p​p​o​r​t​ ​D​a​t​a
+				 */
+				title: string
+				/**
+				 * P​l​e​a​s​e​ ​c​o​n​f​i​r​m​ ​t​h​a​t​ ​y​o​u​ ​a​c​t​u​a​l​l​y​ ​w​a​n​t​ ​t​o​ ​s​e​n​d​ ​s​u​p​p​o​r​t​ ​d​e​b​u​g​ ​i​n​f​o​r​m​a​t​i​o​n​.​ ​N​o​n​e​ ​o​f​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​(​w​i​r​e​g​u​a​r​d​ ​k​e​y​s​,​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​e​s​,​ ​e​t​c​.​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​s​e​n​t​)​.
+				 */
+				subTitle: string
+				/**
+				 * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+				 */
+				submit: string
+			}
+		}
 		debugDataCard: {
 			/**
 			 * S​u​p​p​o​r​t​ ​d​a​t​a
@@ -3287,6 +3531,68 @@ type RootTranslation = {
 }
 
 export type TranslationFunctions = {
+	common: {
+		conditions: {
+			/**
+			 * or
+			 */
+			or: () => LocalizedString
+			/**
+			 * and
+			 */
+			and: () => LocalizedString
+			/**
+			 * equal
+			 */
+			equal: () => LocalizedString
+		}
+		controls: {
+			/**
+			 * Next
+			 */
+			next: () => LocalizedString
+			/**
+			 * Back
+			 */
+			back: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+			/**
+			 * Confirm
+			 */
+			confirm: () => LocalizedString
+			/**
+			 * Submit
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Close
+			 */
+			close: () => LocalizedString
+			/**
+			 * Select
+			 */
+			select: () => LocalizedString
+			/**
+			 * Finish
+			 */
+			finish: () => LocalizedString
+			/**
+			 * Save changes
+			 */
+			saveChanges: () => LocalizedString
+			/**
+			 * Save
+			 */
+			save: () => LocalizedString
+			/**
+			 * Restore default
+			 */
+			RestoreDefault: () => LocalizedString
+		}
+	}
 	messages: {
 		/**
 		 * Error has occurred.
@@ -3300,10 +3606,6 @@ export type TranslationFunctions = {
 		 * Failed to get application version.
 		 */
 		errorVersion: () => LocalizedString
-		/**
-		 * Failed to get license.
-		 */
-		errorLicense: () => LocalizedString
 		/**
 		 * Context is not secure.
 		 */
@@ -3320,6 +3622,12 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		deviceConfig: {
+			/**
+			 * Device VPN configurations
+			 */
+			title: () => LocalizedString
+		}
 		changePasswordSelf: {
 			/**
 			 * Change password
@@ -3327,7 +3635,7 @@ export type TranslationFunctions = {
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * Password changed
+				 * Password has been changed
 				 */
 				success: () => LocalizedString
 				/**
@@ -3367,15 +3675,27 @@ export type TranslationFunctions = {
 			 * Start enrollment
 			 */
 			title: () => LocalizedString
+			/**
+			 * Desktop activation
+			 */
+			desktopTitle: () => LocalizedString
 			messages: {
 				/**
 				 * User enrollment started
 				 */
 				success: () => LocalizedString
 				/**
+				 * Desktop activation started
+				 */
+				successDesktop: () => LocalizedString
+				/**
 				 * Failed to start user enrollment
 				 */
 				error: () => LocalizedString
+				/**
+				 * Failed to start desktop activation
+				 */
+				errorDesktop: () => LocalizedString
 			}
 			form: {
 				email: {
@@ -3400,10 +3720,20 @@ export type TranslationFunctions = {
 				 * Start enrollment
 				 */
 				submit: () => LocalizedString
+				/**
+				 * Activate desktop
+				 */
+				submitDesktop: () => LocalizedString
 			}
 			tokenCard: {
 				/**
-				 * Copy enrollment token
+				 * Activation token
+				 */
+				title: () => LocalizedString
+			}
+			urlCard: {
+				/**
+				 * Defguard Instance URL
 				 */
 				title: () => LocalizedString
 			}
@@ -3441,7 +3771,7 @@ export type TranslationFunctions = {
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * WebAuthN key deleted.
+				 * WebAuthN key has been deleted.
 				 */
 				deleted: () => LocalizedString
 				/**
@@ -3557,6 +3887,54 @@ export type TranslationFunctions = {
 				}
 			}
 		}
+		registerEmailMFA: {
+			/**
+			 * Email MFA Setup
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		        <p>
+		          To setup your MFA enter the code that was sent to your account email: <strong>{email}</strong>
+		        </p>
+	
+			 */
+			infoMessage: (arg: { email: string }) => LocalizedString
+			messages: {
+				/**
+				 * Email MFA Enabled
+				 */
+				success: () => LocalizedString
+				/**
+				 * Verification code resent
+				 */
+				resend: () => LocalizedString
+			}
+			form: {
+				fields: {
+					code: {
+						/**
+						 * Email code
+						 */
+						label: () => LocalizedString
+						/**
+						 * Code is invalid
+						 */
+						error: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Verify code
+					 */
+					submit: () => LocalizedString
+					/**
+					 * Resend email
+					 */
+					resend: () => LocalizedString
+				}
+			}
+		}
 		editDevice: {
 			/**
 			 * Edit device
@@ -3564,7 +3942,7 @@ export type TranslationFunctions = {
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * Device updated.
+				 * Device has been updated.
 				 */
 				success: () => LocalizedString
 			}
@@ -3578,7 +3956,7 @@ export type TranslationFunctions = {
 					}
 					publicKey: {
 						/**
-						 * Device Public Key (Wireguard)
+						 * Device Public Key (WireGuard)
 						 */
 						label: () => LocalizedString
 					}
@@ -3606,150 +3984,9 @@ export type TranslationFunctions = {
 			submit: () => LocalizedString
 			messages: {
 				/**
-				 * Device deleted.
+				 * Device has been deleted.
 				 */
 				success: () => LocalizedString
-			}
-		}
-		addDevice: {
-			messages: {
-				/**
-				 * Device added.
-				 */
-				success: () => LocalizedString
-			}
-			web: {
-				/**
-				 * Add device
-				 */
-				title: () => LocalizedString
-				/**
-				 * Device configuration
-				 */
-				viewTitle: () => LocalizedString
-				steps: {
-					config: {
-						messages: {
-							/**
-							 * Config copied to clipboard
-							 */
-							copyConfig: () => LocalizedString
-						}
-						helpers: {
-							/**
-							 * 
-						        <p>
-						          Please be advised that you have to download the configuration now,
-						          since <strong>we do not</strong> store your private key. After this
-						          dialog is closed, you <strong>will not be able</strong> to get your
-						          full configuration file (with private keys, only blank template).
-						        </p>
-					
-							 */
-							warningAutoMode: () => LocalizedString
-							/**
-							 * 
-						        <p>
-						          Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to repalce it on your own for configuration to work properly.
-						        </p>
-					
-							 */
-							warningManualMode: () => LocalizedString
-							/**
-							 * 
-						          <p>
-						            You can setup your device faster with wireguard application by scanning this QR code.
-						          </p>
-							 */
-							qrHelper: () => LocalizedString
-						}
-						/**
-						 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
-						 */
-						qrInfo: () => LocalizedString
-						/**
-						 * Device Name
-						 */
-						inputNameLabel: () => LocalizedString
-						/**
-						 * WireGuard Config File
-						 */
-						qrLabel: () => LocalizedString
-						/**
-						 * WireGuard Config for location:
-						 */
-						qrCardTitle: () => LocalizedString
-					}
-					setup: {
-						/**
-						 * 
-					        <p>
-					          You need to configure WireguardVPN on your device, please visit&nbsp;
-					          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
-					        </p>
-				
-						 */
-						infoMessage: (arg: { addDevicesDocs: string }) => LocalizedString
-						options: {
-							/**
-							 * Generate key pair
-							 */
-							auto: () => LocalizedString
-							/**
-							 * Use my own public key
-							 */
-							manual: () => LocalizedString
-						}
-						form: {
-							/**
-							 * Generate configuration
-							 */
-							submit: () => LocalizedString
-							fields: {
-								name: {
-									/**
-									 * Device Name
-									 */
-									label: () => LocalizedString
-								}
-								publicKey: {
-									/**
-									 * Provide Your Public Key
-									 */
-									label: () => LocalizedString
-								}
-							}
-							errors: {
-								name: {
-									/**
-									 * Device with this name already exists
-									 */
-									duplicatedName: () => LocalizedString
-								}
-							}
-						}
-					}
-				}
-			}
-			desktop: {
-				/**
-				 * Add current device
-				 */
-				title: () => LocalizedString
-				form: {
-					/**
-					 * Add this device
-					 */
-					submit: () => LocalizedString
-					fields: {
-						name: {
-							/**
-							 * Name
-							 */
-							label: () => LocalizedString
-						}
-					}
-				}
 			}
 		}
 		addWallet: {
@@ -4141,6 +4378,171 @@ export type TranslationFunctions = {
 			}
 		}
 	}
+	addDevicePage: {
+		/**
+		 * Add device
+		 */
+		title: () => LocalizedString
+		helpers: {
+			/**
+			 * You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.
+			 */
+			setupOpt: () => LocalizedString
+		}
+		messages: {
+			/**
+			 * Device added
+			 */
+			deviceAdded: () => LocalizedString
+		}
+		steps: {
+			setupMethod: {
+				remote: {
+					/**
+					 * Remote Desktop Activation
+					 */
+					title: () => LocalizedString
+					/**
+					 * A breeze to set up with just a single token. Download the client and enjoy straightforward security.
+					 */
+					subTitle: () => LocalizedString
+					/**
+					 * Download defguard Client
+					 */
+					link: () => LocalizedString
+				}
+				manual: {
+					/**
+					 * Manual WireGuard Client
+					 */
+					title: () => LocalizedString
+					/**
+					 * For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.
+					 */
+					subTitle: () => LocalizedString
+					/**
+					 * Download WireGuard Client
+					 */
+					link: () => LocalizedString
+				}
+			}
+			configDevice: {
+				/**
+				 * Configure device
+				 */
+				title: () => LocalizedString
+				messages: {
+					/**
+					 * Configuration has been copied to the clipboard
+					 */
+					copyConfig: () => LocalizedString
+				}
+				helpers: {
+					/**
+					 * 
+				    <p>
+				      Please be advised that you have to download the configuration now,
+				      since <strong>we do not</strong> store your private key. After this
+				      page is closed, you <strong>will not be able</strong> to get your
+				      full configuration file (with private keys, only blank template).
+				    </p>
+			
+					 */
+					warningAutoMode: () => LocalizedString
+					/**
+					 * 
+				    <p>
+				      Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
+				    </p>
+			
+					 */
+					warningManualMode: () => LocalizedString
+					/**
+					 * 
+				      <p>
+				        You can setup your device faster with wireguard application by scanning this QR code.
+				      </p>
+					 */
+					qrHelper: () => LocalizedString
+				}
+				/**
+				 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
+				 */
+				qrInfo: () => LocalizedString
+				/**
+				 * Device Name
+				 */
+				inputNameLabel: () => LocalizedString
+				/**
+				 * WireGuard Config File
+				 */
+				qrLabel: () => LocalizedString
+			}
+			setupDevice: {
+				/**
+				 * Create VPN device
+				 */
+				title: () => LocalizedString
+				/**
+				 * 
+			        <p>
+			          You need to configure WireGuardVPN on your device, please visit&nbsp;
+			          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
+			        </p>
+		
+				 */
+				infoMessage: (arg: { addDevicesDocs: string }) => LocalizedString
+				options: {
+					/**
+					 * Generate key pair
+					 */
+					auto: () => LocalizedString
+					/**
+					 * Use my own public key
+					 */
+					manual: () => LocalizedString
+				}
+				form: {
+					fields: {
+						name: {
+							/**
+							 * Device Name
+							 */
+							label: () => LocalizedString
+						}
+						publicKey: {
+							/**
+							 * Provide Your Public Key
+							 */
+							label: () => LocalizedString
+						}
+					}
+					errors: {
+						name: {
+							/**
+							 * Device with this name already exists
+							 */
+							duplicatedName: () => LocalizedString
+						}
+					}
+				}
+			}
+			copyToken: {
+				/**
+				 * Client activation
+				 */
+				title: () => LocalizedString
+				/**
+				 * Activation token
+				 */
+				tokenCardTitle: () => LocalizedString
+				/**
+				 * Defguard Instance URL
+				 */
+				urlCardTitle: () => LocalizedString
+			}
+		}
+	}
 	userPage: {
 		title: {
 			/**
@@ -4278,6 +4680,10 @@ export type TranslationFunctions = {
 					 */
 					OTPDisabled: () => LocalizedString
 					/**
+					 * Email MFA disabled.
+					 */
+					EmailMFADisabled: () => LocalizedString
+					/**
 					 * MFA method changed
 					 */
 					changeMFAMethod: () => LocalizedString
@@ -4319,6 +4725,10 @@ export type TranslationFunctions = {
 					 * Time based one time passwords
 					 */
 					totp: () => LocalizedString
+					/**
+					 * Email
+					 */
+					email: () => LocalizedString
 					/**
 					 * Security keys
 					 */
@@ -4602,6 +5012,10 @@ export type TranslationFunctions = {
 				 * Start enrollment
 				 */
 				startEnrollment: () => LocalizedString
+				/**
+				 * Remote desktop activation
+				 */
+				activateDesktop: () => LocalizedString
 			}
 		}
 	}
@@ -4834,6 +5248,18 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		deviceConfigsCard: {
+			/**
+			 * WireGuard Config for location:
+			 */
+			cardTitle: () => LocalizedString
+			messages: {
+				/**
+				 * Configuration copied to the clipboard
+				 */
+				copyConfig: () => LocalizedString
+			}
+		}
 		gatewaysStatus: {
 			/**
 			 * Gateways
@@ -4900,9 +5326,9 @@ export type TranslationFunctions = {
 			 */
 			global: () => LocalizedString
 			/**
-			 * Support
+			 * LDAP
 			 */
-			support: () => LocalizedString
+			ldap: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -4913,6 +5339,80 @@ export type TranslationFunctions = {
 			 * Challenge message changed
 			 */
 			challengeSuccess: () => LocalizedString
+		}
+		ldapSettings: {
+			/**
+			 * LDAP Settings
+			 */
+			title: () => LocalizedString
+			form: {
+				labels: {
+					/**
+					 * URL
+					 */
+					ldap_url: () => LocalizedString
+					/**
+					 * Bind Username
+					 */
+					ldap_bind_username: () => LocalizedString
+					/**
+					 * Bind Password
+					 */
+					ldap_bind_password: () => LocalizedString
+					/**
+					 * Member Attribute
+					 */
+					ldap_member_attr: () => LocalizedString
+					/**
+					 * Username Attribute
+					 */
+					ldap_username_attr: () => LocalizedString
+					/**
+					 * User Object Class
+					 */
+					ldap_user_obj_class: () => LocalizedString
+					/**
+					 * User Search Base
+					 */
+					ldap_user_search_base: () => LocalizedString
+					/**
+					 * Groupname Attribute
+					 */
+					ldap_groupname_attr: () => LocalizedString
+					/**
+					 * Group Search Base
+					 */
+					ldap_group_search_base: () => LocalizedString
+					/**
+					 * Group Member Attribute
+					 */
+					ldap_group_member_attr: () => LocalizedString
+					/**
+					 * Group Object Class
+					 */
+					ldap_group_obj_class: () => LocalizedString
+				}
+			}
+			test: {
+				/**
+				 * Test LDAP Connection
+				 */
+				title: () => LocalizedString
+				/**
+				 * Test
+				 */
+				submit: () => LocalizedString
+				messages: {
+					/**
+					 * LDAP connected successfully
+					 */
+					success: () => LocalizedString
+					/**
+					 * LDAP connection rejected
+					 */
+					error: () => LocalizedString
+				}
+			}
 		}
 		modulesVisibility: {
 			/**
@@ -4931,7 +5431,7 @@ export type TranslationFunctions = {
 			fields: {
 				wireguard_enabled: {
 					/**
-					 * Wireguard VPN
+					 * WireGuard VPN
 					 */
 					label: () => LocalizedString
 				}
@@ -5281,71 +5781,6 @@ export type TranslationFunctions = {
 					 */
 					label: () => LocalizedString
 				}
-			}
-		}
-		licenseCard: {
-			/**
-			 * License & Support Information
-			 */
-			header: () => LocalizedString
-			licenseCardTitles: {
-				/**
-				 * Community
-				 */
-				community: () => LocalizedString
-				/**
-				 * Enterprise
-				 */
-				enterprise: () => LocalizedString
-				/**
-				 * license
-				 */
-				license: () => LocalizedString
-			}
-			body: {
-				/**
-				 * 
-							<p> Thank you for purchasing enterprise license!</p>
-							<br />
-							<p>This includes following modules:</p>
-				 */
-				enterprise: () => LocalizedString
-				/**
-				 * 
-			              <p>
-			                You have our community license. If you wish to get Enterprise
-			                license for full features set and support, please visit
-			                <a href="https://defguard.net">https://defguard.net</a>
-			              </p>
-			              <br />
-			              <p>Enterprise license includes:</p>
-						
-				 */
-				community: () => LocalizedString
-				/**
-				 * read license agreement
-				 */
-				agreement: () => LocalizedString
-				/**
-				 * 
-			          <ul>
-			            <li>YubiBridge</li>
-			            <li>OpenID</li>
-			            <li>OpenLDAP</li>
-			          </ul>
-			          <br />
-				 */
-				modules: () => LocalizedString
-			}
-			footer: {
-				/**
-				 * licensed to: {company}
-				 */
-				company: (arg: { company: string }) => LocalizedString
-				/**
-				 * expiration date: {expiration}
-				 */
-				expiration: (arg: { expiration: string }) => LocalizedString
 			}
 		}
 	}
@@ -5720,15 +6155,23 @@ export type TranslationFunctions = {
 			 */
 			header: () => LocalizedString
 			/**
-			 * Provisioning station docker setup command
-			 */
-			cardTitle: () => LocalizedString
-			/**
 			 * In order to be able to provision your YubiKeys, first you need to set up
 		        physical machine with USB slot. Run provided command on your chosen
 		        machine to register it and start provisioning your keys.
 			 */
 			content: () => LocalizedString
+			dockerCard: {
+				/**
+				 * Provisioning station docker setup command
+				 */
+				title: () => LocalizedString
+			}
+			tokenCard: {
+				/**
+				 * Access token
+				 */
+				title: () => LocalizedString
+			}
 		}
 		list: {
 			headers: {
@@ -5767,10 +6210,16 @@ export type TranslationFunctions = {
 			}
 		}
 		messages: {
-			/**
-			 * Command copied.
-			 */
-			codeCopied: () => LocalizedString
+			copy: {
+				/**
+				 * Token copied
+				 */
+				token: () => LocalizedString
+				/**
+				 * Command copied
+				 */
+				command: () => LocalizedString
+			}
 		}
 	}
 	openidAllow: {
@@ -6127,6 +6576,30 @@ export type TranslationFunctions = {
 				 * Use recovery code instead
 				 */
 				useRecoveryCode: () => LocalizedString
+				/**
+				 * Use E-mail instead
+				 */
+				useEmail: () => LocalizedString
+			}
+			email: {
+				/**
+				 * Use code we sent to your e-mail to proceed.
+				 */
+				header: () => LocalizedString
+				form: {
+					labels: {
+						/**
+						 * Code
+						 */
+						code: () => LocalizedString
+					}
+					controls: {
+						/**
+						 * Resend Code
+						 */
+						resendCode: () => LocalizedString
+					}
+				}
 			}
 			totp: {
 				/**
@@ -6481,6 +6954,22 @@ export type TranslationFunctions = {
 		 * Support
 		 */
 		title: () => LocalizedString
+		modals: {
+			confirmDataSend: {
+				/**
+				 * Send Support Data
+				 */
+				title: () => LocalizedString
+				/**
+				 * Please confirm that you actually want to send support debug information. None of your private information will be sent (wireguard keys, email addresses, etc. will not be sent).
+				 */
+				subTitle: () => LocalizedString
+				/**
+				 * Send support data
+				 */
+				submit: () => LocalizedString
+			}
+		}
 		debugDataCard: {
 			/**
 			 * Support data

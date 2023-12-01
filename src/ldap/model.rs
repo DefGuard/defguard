@@ -1,6 +1,8 @@
-use crate::{config::DefGuardConfig, db::User, hashset};
+use crate::{db::User, hashset};
 use ldap3::{Mod, SearchEntry};
 use std::collections::HashSet;
+
+use super::LDAPConfig;
 
 impl User {
     #[must_use]
@@ -16,7 +18,7 @@ impl User {
     }
 
     #[must_use]
-    pub fn as_ldap_mod(&self, config: &DefGuardConfig) -> Vec<Mod<&str>> {
+    pub fn as_ldap_mod(&self, config: &LDAPConfig) -> Vec<Mod<&str>> {
         let mut changes = vec![
             Mod::Replace("sn", hashset![self.last_name.as_str()]),
             Mod::Replace("givenName", hashset![self.first_name.as_str()]),
@@ -72,7 +74,7 @@ pub struct Group {
 
 impl Group {
     #[must_use]
-    pub fn from_searchentry(entry: &SearchEntry, config: &DefGuardConfig) -> Self {
+    pub fn from_searchentry(entry: &SearchEntry, config: &LDAPConfig) -> Self {
         Self {
             name: get_value_or_default(entry, &config.ldap_groupname_attr),
             members: match entry.attrs.get(&config.ldap_group_member_attr) {

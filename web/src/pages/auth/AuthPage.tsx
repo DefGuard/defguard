@@ -46,7 +46,7 @@ export const AuthPage = () => {
 
   const toaster = useToaster();
 
-  const setAppStore = useAppStore((state) => state.setAppStore);
+  const setAppStore = useAppStore((state) => state.setState);
 
   const [params] = useSearchParams();
   const redirectUrl = params.get('r');
@@ -95,6 +95,9 @@ export const AuthPage = () => {
             break;
           case UserMFAMethod.ONE_TIME_PASSWORD:
             mfaUrl = '/auth/mfa/totp';
+            break;
+          case UserMFAMethod.EMAIL:
+            mfaUrl = '/auth/mfa/email';
             break;
           default:
             toaster.error(LL.messages.error());

@@ -3,6 +3,7 @@ import './App.scss';
 
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 
+import { AddDevicePage } from '../../pages/addDevice/AddDevicePage';
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
 import { EnrollmentPage } from '../../pages/enrollment/EnrollmentPage';
@@ -31,6 +32,7 @@ const App = () => {
       <div id="app">
         <Router>
           <Routes>
+            <Route path="add-device" element={<AddDevicePage />} />
             <Route path="support/*" element={<SupportPage />} />
             <Route path="auth/*" element={<AuthPage />} />
             <Route path="admin/*">

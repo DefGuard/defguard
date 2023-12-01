@@ -1,15 +1,16 @@
-use super::{ApiResponse, ApiResult};
-use crate::{
-    appstate::AppState,
-    auth::{AccessUserInfo, SessionInfo, SESSION_TIMEOUT},
-    db::{
-        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
-        DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, User,
-    },
-    error::OriWebError,
+use std::{
+    fmt,
+    ops::{Deref, DerefMut},
 };
-use base64::Engine;
-use chrono::{Duration, Utc};
+
+use axum::{
+    async_trait,
+    extract::{FromRef, FromRequestParts, Query, State},
+    http::{header::LOCATION, request::Parts, HeaderMap, HeaderValue, StatusCode},
+    Form,
+};
+use base64::{prelude::BASE64_STANDARD, Engine};
+use chrono::Utc;
 use openidconnect::{
     core::{
         CoreAuthErrorResponseType, CoreClaimName, CoreErrorResponseType, CoreGenderClaim,
@@ -25,16 +26,29 @@ use openidconnect::{
     PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims, StandardErrorResponse,
     StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
-use rocket::{
-    form::{self, Form, FromFormField, ValueField},
-    http::{Cookie, CookieJar, SameSite, Status},
-    request::{FromRequest, Outcome, Request},
-    response::Redirect,
-    serde::json::serde_json::json,
-    time::{Duration as TimeDuration, OffsetDateTime},
-    State,
+use secrecy::ExposeSecret;
+use serde::{
+    de::{Deserialize, Deserializer, Error as DeError, Unexpected, Visitor},
+    ser::{Serialize, Serializer},
 };
-use std::ops::{Deref, DerefMut};
+use serde_json::json;
+use tower_cookies::{
+    cookie::{time::Duration, SameSite},
+    Cookie, Cookies, Key,
+};
+
+use super::{ApiResponse, ApiResult};
+use crate::{
+    appstate::AppState,
+    auth::{AccessUserInfo, SessionInfo, SESSION_TIMEOUT},
+    db::{
+        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
+        DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, User,
+    },
+    error::WebError,
+    handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
+    SERVER_CONFIG,
+};
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 impl From<&User> for StandardClaims<CoreGenderClaim> {
@@ -61,8 +75,7 @@ impl From<&User> for StandardClaims<CoreGenderClaim> {
     }
 }
 
-#[get("/discovery/keys")]
-pub async fn discovery_keys(appstate: &State<AppState>) -> ApiResult {
+pub async fn discovery_keys(State(appstate): State<AppState>) -> ApiResult {
     let mut keys = Vec::new();
     if let Some(openid_key) = appstate.config.openid_key() {
         keys.push(openid_key.as_verification_key());
@@ -70,49 +83,46 @@ pub async fn discovery_keys(appstate: &State<AppState>) -> ApiResult {
 
     Ok(ApiResponse {
         json: json!(CoreJsonWebKeySet::new(keys)),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
 /// Provide `OAuth2Client` when Basic Authorization header contains `client_id` and `client_secret`.
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for OAuth2Client {
-    type Error = OriWebError;
+#[async_trait]
+impl<S> FromRequestParts<S> for OAuth2Client
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
+    type Rejection = WebError;
 
-    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let state = request
-            .rocket()
-            .state::<AppState>()
-            .expect("Missing AppState");
-        if let Some(basic_auth) = request
-            .headers()
-            .get_one("Authorization")
-            .and_then(|value| {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let appstate = AppState::from_ref(state);
+        if let Some(basic_auth) = parts.headers.get("authorization").and_then(|value| {
+            if let Ok(value) = value.to_str() {
                 if value.starts_with("Basic ") {
                     value.get(6..)
                 } else {
                     None
                 }
-            })
-        {
-            if let Ok(decoded) = base64::prelude::BASE64_STANDARD.decode(basic_auth) {
+            } else {
+                None
+            }
+        }) {
+            if let Ok(decoded) = BASE64_STANDARD.decode(basic_auth) {
                 if let Ok(auth_pair) = String::from_utf8(decoded) {
                     if let Some((client_id, client_secret)) = auth_pair.split_once(':') {
                         if let Ok(Some(oauth2client)) =
-                            OAuth2Client::find_by_auth(&state.pool, client_id, client_secret).await
+                            OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
+                                .await
                         {
-                            return Outcome::Success(oauth2client);
+                            return Ok(oauth2client);
                         }
                     }
                 }
             }
-            Outcome::Failure((
-                Status::Unauthorized,
-                OriWebError::Authorization("Invalid credentials".into()),
-            ))
-        } else {
-            Outcome::Forward(())
         }
+        Err(WebError::Authorization("Invalid credentials".into()))
     }
 }
 
@@ -132,55 +142,80 @@ impl DerefMut for FieldResponseTypes {
     }
 }
 
-impl serde::ser::Serialize for FieldResponseTypes {
+impl Serialize for FieldResponseTypes {
     // serialize to a string with values separated by space
-    fn serialize<S: serde::ser::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let types: Vec<&str> = self.iter().map(CoreResponseType::as_ref).collect();
         serializer.serialize_str(&types.join(" "))
     }
 }
 
-#[rocket::async_trait]
-impl<'r> FromFormField<'r> for FieldResponseTypes {
-    fn from_value(field: ValueField<'r>) -> form::Result<'r, Self> {
+struct FieldResponseTypesVisitor;
+
+impl<'de> Visitor<'de> for FieldResponseTypesVisitor {
+    type Value = FieldResponseTypes;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            formatter,
+            "a string containing `code`, `id_token`, or `token`"
+        )
+    }
+
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+    where
+        E: DeError,
+    {
         let mut response_types = FieldResponseTypes(Vec::new());
-        for value in field.value.split(' ') {
+        for value in s.split(' ') {
             match value {
                 "code" => response_types.push(CoreResponseType::Code),
                 "id_token" => response_types.push(CoreResponseType::IdToken),
                 "token" => response_types.push(CoreResponseType::Token),
-                _ => Err(form::Error::validation("invalid value for response type"))?,
+                _ => return Err(DeError::invalid_value(Unexpected::Str(s), &self)),
             }
         }
         Ok(response_types)
     }
 }
 
-/// Authentication Request
-/// See https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-#[derive(FromForm, Serialize)]
-pub struct AuthenticationRequest<'r> {
-    scope: &'r str,
-    response_type: FieldResponseTypes,
-    client_id: &'r str,
-    // client_secret: Option<&'r str>,
-    redirect_uri: &'r str,
-    state: Option<&'r str>,
-    // response_mode: Option<&'r str>,
-    nonce: Option<&'r str>,
-    // display: Option<&'r str>,
-    prompt: Option<&'r str>,
-    // max_age: Option<&'r str>,
-    // ui_locales: Option<&'r str>,
-    // id_token_hint: Option<&'r str>,
-    // login_hint: Option<&'r str>,
-    // acr_values: Option<&'r str>,
-    // PKCE
-    code_challenge: Option<&'r str>,
-    code_challenge_method: Option<&'r str>,
+impl<'de> Deserialize<'de> for FieldResponseTypes {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(FieldResponseTypesVisitor)
+    }
 }
 
-impl<'r> AuthenticationRequest<'r> {
+/// Authentication Request
+/// See https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+#[derive(Deserialize, Serialize)]
+pub struct AuthenticationRequest {
+    #[serde(default)]
+    #[serde(skip_serializing)]
+    allow: bool,
+    scope: String,
+    response_type: FieldResponseTypes,
+    client_id: String,
+    // client_secret: Option<String>,
+    redirect_uri: String,
+    state: Option<String>,
+    // response_mode: Option<String>,
+    nonce: Option<String>,
+    // display: Option<String>,
+    prompt: Option<String>,
+    // max_age: Option<String>,
+    // ui_locales: Option<String>,
+    // id_token_hint: Option<String>,
+    // login_hint: Option<String>,
+    // acr_values: Option<String>,
+    // PKCE
+    code_challenge: Option<String>,
+    code_challenge_method: Option<String>,
+}
+
+impl AuthenticationRequest {
     fn validate_for_client(
         &self,
         oauth2client: &OAuth2Client,
@@ -233,10 +268,12 @@ impl<'r> AuthenticationRequest<'r> {
 
         // check PKCE; currently, only SHA-256 method is supported
         // TODO: support `plain` which is the default if not specified
-        if self.code_challenge.is_some() && self.code_challenge_method != Some("S256") {
+        if self.code_challenge.is_some() && self.code_challenge_method != Some("S256".to_string()) {
             error!(
-                "Invalid PKCE method: {}, only S256 supported",
-                self.code_challenge_method.unwrap_or("None"),
+                "Invalid PKCE method: {:?}, only S256 supported",
+                self.code_challenge_method
+                    .as_ref()
+                    .map_or("None", String::as_str),
             );
             return Err(CoreAuthErrorResponseType::InvalidRequest);
         }
@@ -248,19 +285,19 @@ impl<'r> AuthenticationRequest<'r> {
 
 /// Helper function which creates redirect Uri with authorization code
 async fn generate_auth_code_redirect(
-    appstate: &State<AppState>,
-    data: &AuthenticationRequest<'_>,
+    appstate: AppState,
+    data: AuthenticationRequest,
     user_id: Option<i64>,
-) -> Result<String, OriWebError> {
+) -> Result<String, WebError> {
     let mut url =
-        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
+        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
     let mut auth_code = AuthCode::new(
         user_id.unwrap(),
-        data.client_id.into(),
-        data.redirect_uri.into(),
-        data.scope.into(),
-        data.nonce.map(str::to_owned),
-        data.code_challenge.map(str::to_owned),
+        data.client_id,
+        data.redirect_uri,
+        data.scope,
+        data.nonce,
+        data.code_challenge,
     );
     auth_code.save(&appstate.pool).await?;
 
@@ -268,67 +305,79 @@ async fn generate_auth_code_redirect(
         let mut query_pairs = url.query_pairs_mut();
         query_pairs.append_pair("code", auth_code.code.as_str());
         if let Some(state) = data.state {
-            query_pairs.append_pair("state", state);
+            query_pairs.append_pair("state", &state);
         };
     };
 
     Ok(url.to_string())
 }
 
+/// Helper function to return redirection with status code 302.
+fn redirect_to<T: AsRef<str>>(uri: T) -> (StatusCode, HeaderMap) {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        LOCATION,
+        HeaderValue::try_from(uri.as_ref()).expect("URI isn't a valid header value"),
+    );
+
+    (StatusCode::FOUND, headers)
+}
+
 /// Helper function to redirect unauthorized user to login page
 /// and store information about OpenID authorize url in cookie to redirect later
 async fn login_redirect(
-    appstate: &State<AppState>,
-    data: &AuthenticationRequest<'_>,
-    cookies: &CookieJar<'_>,
-) -> Result<Redirect, OriWebError> {
-    let base_url = appstate.config.url.join("api/v1/oauth/authorize").unwrap();
-    let expires = OffsetDateTime::now_utc()
-        .checked_add(TimeDuration::minutes(10))
-        .ok_or(OriWebError::Http(Status::InternalServerError))?;
+    data: &AuthenticationRequest,
+    cookies: Cookies,
+) -> Result<(StatusCode, HeaderMap), WebError> {
+    let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
+    let base_url = server_config.url.join("api/v1/oauth/authorize").unwrap();
     let cookie = Cookie::build(
-        "known_sign_in",
-        format!(
-            "{}?{}",
-            base_url,
-            serde_urlencoded::to_string(data).unwrap()
-        ),
+        SIGN_IN_COOKIE_NAME,
+        format!("{base_url}?{}", serde_urlencoded::to_string(data).unwrap()),
     )
-    .secure(true)
-    .same_site(SameSite::Strict)
+    .domain(
+        server_config
+            .cookie_domain
+            .clone()
+            .expect("Cookie domain not found"),
+    )
+    .path("/")
+    .secure(!server_config.cookie_insecure)
+    .same_site(SameSite::Lax)
     .http_only(true)
-    .expires(expires)
+    .max_age(Duration::minutes(10))
     .finish();
-    cookies.add_private(cookie);
-    Ok(Redirect::found("/login".to_string()))
+    let key = Key::from(server_config.secret_key.expose_secret().as_bytes());
+    let private_cookies = cookies.private(&key);
+    private_cookies.add(cookie);
+    Ok(redirect_to("/login"))
 }
 
 /// Authorization Endpoint
 /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
-#[get("/authorize?<data..>")]
 pub async fn authorization(
-    appstate: &State<AppState>,
-    data: AuthenticationRequest<'_>,
-    cookies: &CookieJar<'_>,
-) -> Result<Redirect, OriWebError> {
+    State(appstate): State<AppState>,
+    Query(data): Query<AuthenticationRequest>,
+    cookies: Cookies,
+) -> Result<(StatusCode, HeaderMap), WebError> {
     let error;
     if let Some(oauth2client) =
-        OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await?
+        OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
     {
         match data.validate_for_client(&oauth2client) {
             Ok(()) => {
-                match data.prompt {
-                    Some("consent") => {
+                match &data.prompt {
+                    Some(s) if s == "consent" => {
                         info!(
                             "Redirecting user to consent form - client id {}",
                             data.client_id
                         );
-                        return Ok(Redirect::found(format!(
+                        return Ok(redirect_to(format!(
                             "/consent?{}",
-                            serde_urlencoded::to_string(data).unwrap()
+                            serde_urlencoded::to_string(data).unwrap(),
                         )));
                     }
-                    Some("none") => {
+                    Some(s) if s == "none" => {
                         error!("'none' prompt in client id {} request", data.client_id);
                         error = CoreAuthErrorResponseType::LoginRequired;
                     }
@@ -341,7 +390,7 @@ pub async fn authorization(
                                 if session.expired() {
                                     info!("Session {} for user id {} has expired, redirecting to login", session.id, session.user_id);
                                     let _result = session.delete(&appstate.pool).await;
-                                    login_redirect(appstate, &data, cookies).await
+                                    login_redirect(&data, cookies).await
                                 } else {
                                     // If session is present check if app is in user authorized apps.
                                     // If yes return auth code and state else redirect to consent form.
@@ -353,19 +402,29 @@ pub async fn authorization(
                                         )
                                         .await?
                                     {
-                                        info!("OAuth client id {} authorized by user id {}, returning auth code", app.oauth2client_id, session.user_id);
-                                        cookies.remove_private(Cookie::named("known_sign_in"));
+                                        info!(
+                                            "OAuth client id {} authorized by user id {}, returning auth code",
+                                            app.oauth2client_id, session.user_id
+                                        );
+                                        let key = Key::from(
+                                            appstate.config.secret_key.expose_secret().as_bytes(),
+                                        );
+                                        let private_cookies = cookies.private(&key);
+                                        private_cookies.remove(Cookie::named(SIGN_IN_COOKIE_NAME));
                                         let location = generate_auth_code_redirect(
                                             appstate,
-                                            &data,
+                                            data,
                                             Some(session.user_id),
                                         )
                                         .await?;
-                                        Ok(Redirect::found(location))
+                                        Ok(redirect_to(location))
                                     } else {
                                         // If authorized app not found redirect to consent form
-                                        info!("OAuth client id {} not yet authorized by user id {}, redirecting to consent form", oauth2client.id.unwrap(), session.user_id);
-                                        Ok(Redirect::found(format!(
+                                        info!(
+                                            "OAuth client id {} not yet authorized by user id {}, redirecting to consent form",
+                                            oauth2client.id.unwrap(), session.user_id
+                                        );
+                                        Ok(redirect_to(format!(
                                             "/consent?{}",
                                             serde_urlencoded::to_string(data).unwrap()
                                         )))
@@ -377,21 +436,21 @@ pub async fn authorization(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
                                 );
-                                login_redirect(appstate, &data, cookies).await
+                                login_redirect(&data, cookies).await
                             }
 
                         // If no session cookie provided redirect to login
                         } else {
                             info!("Session cookie not provided, redirecting to login page");
-                            login_redirect(appstate, &data, cookies).await
+                            login_redirect(&data, cookies).await
                         };
                     }
                 }
             }
             Err(err) => {
                 error!(
-                    "OIDC login validation failed for client {}: {:?}",
-                    data.client_id, err
+                    "OIDC login validation failed for client {}: {err:?}",
+                    data.client_id
                 );
                 error = err;
             }
@@ -402,34 +461,32 @@ pub async fn authorization(
     }
 
     let mut url =
-        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
+        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
 
     {
         let mut query_pairs = url.query_pairs_mut();
         query_pairs.append_pair("error", error.as_ref());
         if let Some(state) = data.state {
-            query_pairs.append_pair("state", state);
+            query_pairs.append_pair("state", &state);
         };
     };
 
-    Ok(Redirect::found(url.to_string()))
+    Ok(redirect_to(url))
 }
 
 /// Login Authorization Endpoint redirect with authorization code
-#[post("/authorize?<allow>&<data..>")]
 pub async fn secure_authorization(
     session_info: SessionInfo,
-    appstate: &State<AppState>,
-    allow: bool,
-    data: AuthenticationRequest<'_>,
-    cookies: &CookieJar<'_>,
-) -> Result<Redirect, OriWebError> {
+    State(appstate): State<AppState>,
+    Query(data): Query<AuthenticationRequest>,
+    cookies: Cookies,
+) -> Result<(StatusCode, HeaderMap), WebError> {
     let mut url =
-        Url::parse(data.redirect_uri).map_err(|_| OriWebError::Http(Status::BadRequest))?;
+        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
     let error;
-    if allow {
+    if data.allow {
         if let Some(oauth2client) =
-            OAuth2Client::find_by_client_id(&appstate.pool, data.client_id).await?
+            OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
         {
             match data.validate_for_client(&oauth2client) {
                 Ok(()) => {
@@ -446,21 +503,31 @@ pub async fn secure_authorization(
                             oauth2client.id.unwrap(),
                         );
                         app.save(&appstate.pool).await?;
+
+                        send_new_device_ocid_login_email(
+                            &session_info.user.email,
+                            oauth2client.name.to_string(),
+                            &appstate.mail_tx,
+                            &session_info.session,
+                        )
+                        .await?;
                     }
                     info!(
                         "User {} allowed login with client {}",
                         session_info.user.username, oauth2client.name
                     );
-                    if let Some(cookie) = cookies.get_private("known_sign_in") {
+                    let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
+                    let private_cookies = cookies.private(&key);
+                    if let Some(cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                         cookies.remove(cookie.clone());
                     };
                     let location =
-                        generate_auth_code_redirect(appstate, &data, session_info.user.id).await?;
+                        generate_auth_code_redirect(appstate, data, session_info.user.id).await?;
                     info!(
                         "Redirecting user {} to {location}",
                         session_info.user.username
                     );
-                    return Ok(Redirect::found(location));
+                    return Ok(redirect_to(location));
                 }
                 Err(err) => {
                     info!(
@@ -489,35 +556,35 @@ pub async fn secure_authorization(
         let mut query_pairs = url.query_pairs_mut();
         query_pairs.append_pair("error", error.as_ref());
         if let Some(state) = data.state {
-            query_pairs.append_pair("state", state);
+            query_pairs.append_pair("state", &state);
         };
     };
 
-    Ok(Redirect::found(url.to_string()))
+    Ok(redirect_to(url))
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenRequest
-#[derive(FromForm)]
-pub struct TokenRequest<'r> {
-    grant_type: &'r str,
+#[derive(Deserialize)]
+pub struct TokenRequest {
+    grant_type: String,
     // grant_type == "authorization_code"
-    code: Option<&'r str>,
-    redirect_uri: Option<&'r str>,
+    code: Option<String>,
+    redirect_uri: Option<String>,
     // grant_type == "refresh_token"
-    refresh_token: Option<&'r str>,
-    // scope: Option<&'r str>,
+    refresh_token: Option<String>,
+    // scope: Option<String>,
     // Authorization
-    client_id: Option<&'r str>,
-    client_secret: Option<&'r str>,
+    client_id: Option<String>,
+    client_secret: Option<String>,
     // PKCE
-    code_verifier: Option<&'r str>,
+    code_verifier: Option<String>,
 }
 
-impl<'r> TokenRequest<'r> {
+impl TokenRequest {
     /// Verify Proof Key for Code Exchange (PKCE) https://www.rfc-editor.org/rfc/rfc7636
     fn verify_pkce(&self, code_challenge: Option<&String>) -> bool {
         if let Some(challenge) = code_challenge {
-            if let Some(verifier) = self.code_verifier {
+            if let Some(verifier) = &self.code_verifier {
                 let pkce_challenge = PkceCodeChallenge::from_code_verifier_sha256(
                     &PkceCodeVerifier::new(verifier.into()),
                 );
@@ -543,12 +610,11 @@ impl<'r> TokenRequest<'r> {
         T: Into<Vec<u8>>,
     {
         // assume self.grant_type == "authorization_code"
-        if let (Some(code), Some(redirect_uri)) = (self.code, self.redirect_uri) {
+        if let (Some(code), Some(redirect_uri)) = (&self.code, &self.redirect_uri) {
             if redirect_uri.trim_end_matches('/') != auth_code.redirect_uri.trim_end_matches('/') {
                 error!(
-                    "Redirect URIs don't match for client_id {}: {} != {}",
-                    self.client_id.unwrap_or("Unknown"),
-                    redirect_uri,
+                    "Redirect URIs don't match for client_id {}: {redirect_uri} != {}",
+                    self.client_id.as_ref().map_or("Unknown", String::as_str),
                     auth_code.redirect_uri
                 );
                 return Err(CoreErrorResponseType::UnauthorizedClient);
@@ -557,7 +623,7 @@ impl<'r> TokenRequest<'r> {
             if !self.verify_pkce(auth_code.code_challenge.as_ref()) {
                 error!(
                     "PKCE verification failed for client id {}",
-                    self.client_id.unwrap_or("Unknown")
+                    self.client_id.as_ref().map_or("Unknown", String::as_str)
                 );
                 return Err(CoreErrorResponseType::InvalidRequest);
             }
@@ -568,7 +634,7 @@ impl<'r> TokenRequest<'r> {
                 debug!("Scope contains openid, issuing JWT ID token");
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
-                let expiration = issue_time + Duration::seconds(SESSION_TIMEOUT as i64);
+                let expiration = issue_time + chrono::Duration::seconds(SESSION_TIMEOUT as i64);
                 let id_token_claims = CoreIdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],
@@ -633,7 +699,9 @@ impl<'r> TokenRequest<'r> {
     }
 
     async fn oauth2client(&self, pool: &DbPool) -> Option<OAuth2Client> {
-        if let (Some(client_id), Some(client_secret)) = (self.client_id, self.client_secret) {
+        if let (Some(client_id), Some(client_secret)) =
+            (self.client_id.as_ref(), self.client_secret.as_ref())
+        {
             OAuth2Client::find_by_auth(pool, client_id, client_secret)
                 .await
                 .unwrap_or_default()
@@ -647,25 +715,30 @@ impl<'r> TokenRequest<'r> {
 /// Token Endpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
-#[post("/token", format = "form", data = "<form>")]
 pub async fn token(
-    form: Form<TokenRequest<'_>>,
-    appstate: &State<AppState>,
+    State(appstate): State<AppState>,
     oauth2client: Option<OAuth2Client>,
+    Form(form): Form<TokenRequest>,
 ) -> ApiResult {
     // TODO: cleanup branches
-    match form.grant_type {
+    match form.grant_type.as_str() {
         "authorization_code" => {
             debug!("Staring authorization_code flow");
-            if let Some(code) = form.code {
+
+            // for logging
+            let form_client_id = match &form.client_id {
+                Some(id) => id.clone(),
+                None => String::from("N/A"),
+            };
+
+            if let Some(code) = &form.code {
                 if let Some(stored_auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
                     // copy data before removing used token
                     let auth_code = stored_auth_code.clone();
                     // remove authorization_code from DB so it cannot be reused
                     debug!(
-                        "Removing used authorization_code {}, client_id {}",
-                        code,
-                        form.client_id.unwrap_or("N/A")
+                        "Removing used authorization_code {code}, client_id `{}`",
+                        form_client_id
                     );
                     stored_auth_code.consume(&appstate.pool).await?;
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
@@ -714,7 +787,7 @@ pub async fn token(
                                         );
                                         return Ok(ApiResponse {
                                             json: json!(response),
-                                            status: Status::Ok,
+                                            status: StatusCode::OK,
                                         });
                                     }
                                     Err(err) => {
@@ -728,7 +801,7 @@ pub async fn token(
                                             );
                                         return Ok(ApiResponse {
                                             json: json!(response),
-                                            status: Status::BadRequest,
+                                            status: StatusCode::BAD_REQUEST,
                                         });
                                     }
                                 }
@@ -738,30 +811,27 @@ pub async fn token(
                             error!("User id {} not found", auth_code.user_id);
                         }
                     } else {
-                        error!("OAuth client id {} not found", form.client_id.unwrap_or(""));
+                        error!("OAuth client id `{form_client_id}` not found");
                     }
                 } else {
                     error!("OAuth auth code not found");
                 }
             } else {
-                error!(
-                    "No code provided in request for client id {}",
-                    form.client_id.unwrap_or("")
-                );
+                error!("No code provided in request for client id `{form_client_id}`",);
             }
         }
         "refresh_token" => {
             debug!("Starting refresh_token flow");
             if let Some(refresh_token) = form.refresh_token {
                 if let Ok(Some(mut token)) =
-                    OAuth2Token::find_refresh_token(&appstate.pool, refresh_token).await
+                    OAuth2Token::find_refresh_token(&appstate.pool, &refresh_token).await
                 {
                     token.refresh_and_save(&appstate.pool).await?;
                     let response = TokenRequest::refresh_token_flow(&token);
                     token.save(&appstate.pool).await?;
                     return Ok(ApiResponse {
                         json: json!(response),
-                        status: Status::Ok,
+                        status: StatusCode::OK,
                     });
                 }
             }
@@ -772,23 +842,21 @@ pub async fn token(
     let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
     Ok(ApiResponse {
         json: json!(response),
-        status: Status::BadRequest,
+        status: StatusCode::BAD_REQUEST,
     })
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
-#[get("/userinfo", format = "json")]
-pub fn userinfo(user_info: AccessUserInfo) -> ApiResult {
+pub async fn userinfo(user_info: AccessUserInfo) -> ApiResult {
     let userclaims = StandardClaims::<CoreGenderClaim>::from(&user_info.0);
     Ok(ApiResponse {
         json: json!(userclaims),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }
 
 // Must be served under /.well-known/openid-configuration
-#[get("/openid-configuration", format = "json")]
-pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
+pub async fn openid_configuration(State(appstate): State<AppState>) -> ApiResult {
     let provider_metadata = CoreProviderMetadata::new(
         IssuerUrl::from_url(appstate.config.url.clone()),
         AuthUrl::from_url(appstate.config.url.join("api/v1/oauth/authorize").unwrap()),
@@ -838,6 +906,6 @@ pub fn openid_configuration(appstate: &State<AppState>) -> ApiResult {
 
     Ok(ApiResponse {
         json: json!(provider_metadata),
-        status: Status::Ok,
+        status: StatusCode::OK,
     })
 }

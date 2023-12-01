@@ -1,7 +1,6 @@
 use self::{error::OriLDAPError, model::Group};
-use crate::{config::DefGuardConfig, db::User};
+use crate::db::{DbPool, Settings, User};
 use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
-use secrecy::ExposeSecret;
 use std::collections::HashSet;
 
 pub mod error;
@@ -22,22 +21,94 @@ macro_rules! hashset {
     };
 }
 
-pub struct LDAPConnection<'a> {
-    config: &'a DefGuardConfig,
+#[derive(Debug, Clone)]
+pub struct LDAPConfig {
+    pub ldap_bind_username: String,
+    pub ldap_group_search_base: String,
+    pub ldap_user_search_base: String,
+    pub ldap_user_obj_class: String,
+    pub ldap_group_obj_class: String,
+    pub ldap_username_attr: String,
+    pub ldap_groupname_attr: String,
+    pub ldap_group_member_attr: String,
+    pub ldap_member_attr: String,
+}
+
+impl LDAPConfig {
+    /// Constructs user distinguished name.
+    pub fn user_dn(&self, username: &str) -> String {
+        format!(
+            "{}={},{}",
+            &self.ldap_username_attr, username, &self.ldap_user_search_base,
+        )
+    }
+
+    /// Constructs group distinguished name.
+    pub fn group_dn(&self, groupname: &str) -> String {
+        format!(
+            "{}={},{}",
+            &self.ldap_groupname_attr, groupname, &self.ldap_group_search_base,
+        )
+    }
+}
+
+impl TryFrom<Settings> for LDAPConfig {
+    type Error = OriLDAPError;
+
+    fn try_from(settings: Settings) -> Result<LDAPConfig, OriLDAPError> {
+        Ok(Self {
+            ldap_member_attr: settings
+                .ldap_member_attr
+                .ok_or(OriLDAPError::MissingSettings)?,
+            ldap_group_member_attr: settings
+                .ldap_group_member_attr
+                .ok_or(OriLDAPError::MissingSettings)?,
+            ldap_groupname_attr: settings
+                .ldap_groupname_attr
+                .ok_or(OriLDAPError::MissingSettings)?,
+            ldap_username_attr: settings
+                .ldap_username_attr
+                .ok_or(OriLDAPError::MissingSettings)?,
+            ldap_group_obj_class: settings
+                .ldap_group_obj_class
+                .ok_or(OriLDAPError::MissingSettings)?,
+            ldap_user_obj_class: settings
+                .ldap_user_obj_class
+                .ok_or(OriLDAPError::MissingSettings)?,
+            ldap_user_search_base: settings
+                .ldap_user_search_base
+                .ok_or(OriLDAPError::MissingSettings)?,
+            ldap_bind_username: settings
+                .ldap_bind_username
+                .ok_or(OriLDAPError::MissingSettings)?,
+            ldap_group_search_base: settings
+                .ldap_group_search_base
+                .ok_or(OriLDAPError::MissingSettings)?,
+        })
+    }
+}
+
+pub struct LDAPConnection {
+    config: LDAPConfig,
     ldap: Ldap,
 }
 
-impl<'a> LDAPConnection<'a> {
-    pub async fn create(config: &'a DefGuardConfig) -> Result<LDAPConnection<'a>, OriLDAPError> {
-        let (conn, mut ldap) = LdapConnAsync::new(&config.ldap_url).await?;
+impl LDAPConnection {
+    pub async fn create(pool: &DbPool) -> Result<LDAPConnection, OriLDAPError> {
+        let settings = Settings::get_settings(pool)
+            .await
+            .map_err(|_| OriLDAPError::MissingSettings)?;
+        let config = LDAPConfig::try_from(settings.clone())?;
+        let url = settings.ldap_url.ok_or(OriLDAPError::MissingSettings)?;
+        let password = settings
+            .ldap_bind_password
+            .ok_or(OriLDAPError::MissingSettings)?;
+        let (conn, mut ldap) = LdapConnAsync::new(&url).await?;
         drive!(conn);
-        info!("Connected to LDAP: {}", &config.ldap_url);
-        ldap.simple_bind(
-            &config.ldap_bind_username,
-            config.ldap_bind_password.expose_secret(),
-        )
-        .await?
-        .success()?;
+        info!("Connected to LDAP: {}", &url);
+        ldap.simple_bind(&config.ldap_bind_username, password.expose_secret())
+            .await?
+            .success()?;
         Ok(Self { config, ldap })
     }
 
@@ -165,7 +236,7 @@ impl<'a> LDAPConnection<'a> {
         debug!("Modifying user {username}");
         let old_dn = self.config.user_dn(username);
         let new_dn = self.config.user_dn(&user.username);
-        self.modify(&old_dn, &new_dn, user.as_ldap_mod(self.config))
+        self.modify(&old_dn, &new_dn, user.as_ldap_mod(&self.config))
             .await?;
         info!("Modified user {username}");
         Ok(())
@@ -214,7 +285,7 @@ impl<'a> LDAPConnection<'a> {
             .await?;
         if let Some(entry) = enties.pop() {
             info!("Performed LDAP user search: {groupname}");
-            Ok(Group::from_searchentry(&entry, self.config))
+            Ok(Group::from_searchentry(&entry, &self.config))
         } else {
             Err(OriLDAPError::ObjectNotFound(format!(
                 "Group {groupname} not found"
@@ -233,7 +304,7 @@ impl<'a> LDAPConnection<'a> {
             .await?;
         let users = entries
             .drain(..)
-            .map(|entry| Group::from_searchentry(&entry, self.config))
+            .map(|entry| Group::from_searchentry(&entry, &self.config))
             .collect();
         info!("Performed LDAP group search");
         Ok(users)

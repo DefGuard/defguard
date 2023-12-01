@@ -1,37 +1,71 @@
+use std::sync::Arc;
+
 use crate::{
     config::DefGuardConfig,
     db::{
         models::{
-            device::DeviceInfo,
+            device::{DeviceConfig, DeviceInfo, WireguardNetworkDevice},
             enrollment::{Enrollment, EnrollmentError},
+            wireguard::WireguardNetwork,
         },
         DbPool, Device, GatewayEvent, Settings, User,
     },
-    handlers::{self, user::check_password_strength},
+    handlers::{mail::send_new_device_added_email, user::check_password_strength},
+    headers::get_device_info,
     ldap::utils::ldap_add_user,
-    license::{Features, License},
     mail::Mail,
-    templates,
+    templates::{self, TemplateLocation},
 };
+use ipnetwork::IpNetwork;
+use reqwest::Url;
 use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
 
+#[allow(non_snake_case)]
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
 use proto::{
-    enrollment_service_server, ActivateUserRequest, AdminInfo, CreateDeviceResponse,
-    Device as ProtoDevice, DeviceConfig, EnrollmentStartRequest, EnrollmentStartResponse,
-    InitialUserInfo, NewDevice,
+    enrollment_service_server, ActivateUserRequest, AdminInfo, Device as ProtoDevice,
+    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
+    EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
 };
+use uaparser::UserAgentParser;
 
 pub struct EnrollmentServer {
     pool: DbPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    user_agent_parser: Arc<UserAgentParser>,
     config: DefGuardConfig,
     ldap_feature_active: bool,
+}
+
+struct Instance {
+    id: uuid::Uuid,
+    name: String,
+    url: Url,
+}
+
+impl Instance {
+    pub fn new(settings: Settings, url: Url) -> Self {
+        Instance {
+            id: settings.uuid,
+            name: settings.instance_name,
+            url,
+        }
+    }
+}
+
+impl From<Instance> for proto::InstanceInfo {
+    fn from(instance: Instance) -> Self {
+        Self {
+            name: instance.name,
+            id: instance.id.to_string(),
+            url: instance.url.to_string(),
+        }
+    }
 }
 
 impl EnrollmentServer {
@@ -40,15 +74,16 @@ impl EnrollmentServer {
         pool: DbPool,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
+        user_agent_parser: Arc<UserAgentParser>,
         config: DefGuardConfig,
     ) -> Self {
-        // check if LDAP feature is enabled
-        let license_decoded = License::decode(&config.license);
-        let ldap_feature_active = license_decoded.validate(&Features::Ldap);
+        // FIXME: check if LDAP feature is enabled
+        let ldap_feature_active = true;
         Self {
             pool,
             wireguard_tx,
             mail_tx,
+            user_agent_parser,
             config,
             ldap_feature_active,
         }
@@ -123,14 +158,22 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
+        let user_info = InitialUserInfo::from_user(&self.pool, user)
+            .await
+            .map_err(|_| {
+                error!("Failed to get user info");
+                Status::internal("unexpected error")
+            })?;
+
         let response = EnrollmentStartResponse {
             admin: Some(admin.into()),
-            user: Some(user.into()),
+            user: Some(user_info),
             deadline_timestamp: session_deadline.timestamp(),
             final_page_content: enrollment
                 .get_welcome_page_content(&mut transaction)
                 .await?,
             vpn_setup_optional: settings.enrollment_vpn_step_optional,
+            instance: Some(Instance::new(settings, self.config.url.clone()).into()),
         };
 
         transaction.commit().await.map_err(|_| {
@@ -147,6 +190,20 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     ) -> Result<Response<()>, Status> {
         debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(&request).await?;
+
+        let ip_address = request
+            .metadata()
+            .get("ip_address")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
+        let user_agent = request
+            .metadata()
+            .get("user_agent")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
+        let device_info = get_device_info(&self.user_agent_parser, &user_agent);
 
         // check if password is strong enough
         let request = request.into_inner();
@@ -178,7 +235,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // sync with LDAP
         if self.ldap_feature_active {
-            let _result = ldap_add_user(&self.config, &user, &request.password).await;
+            let _result = ldap_add_user(&self.pool, &user, &request.password).await;
         };
 
         let settings = Settings::get_settings(&mut *transaction)
@@ -190,12 +247,19 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // send welcome email
         enrollment
-            .send_welcome_email(&mut transaction, &self.mail_tx, &user, &settings)
+            .send_welcome_email(
+                &mut transaction,
+                &self.mail_tx,
+                &user,
+                &settings,
+                ip_address.clone(),
+                device_info.clone(),
+            )
             .await?;
 
         // send success notification to admin
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
-        Enrollment::send_admin_notification(&self.mail_tx, &admin, &user)?;
+        Enrollment::send_admin_notification(&self.mail_tx, &admin, &user, ip_address, device_info)?;
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
@@ -208,7 +272,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn create_device(
         &self,
         request: Request<NewDevice>,
-    ) -> Result<Response<CreateDeviceResponse>, Status> {
+    ) -> Result<Response<DeviceConfigResponse>, Status> {
         debug!("Adding new user device: {request:?}");
         let enrollment = self.validate_session(&request).await?;
 
@@ -217,6 +281,21 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // add device
         info!("Adding new device for user {}", user.username);
+
+        let ip_address = request
+            .metadata()
+            .get("ip_address")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
+        let user_agent = request
+            .metadata()
+            .get("user_agent")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
+        let device_info = get_device_info(&self.user_agent_parser, &user_agent);
+
         let request = request.into_inner();
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", request.pubkey);
@@ -249,17 +328,121 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             network_info,
         }));
 
+        let settings = Settings::get_settings(&mut *transaction)
+            .await
+            .map_err(|_| {
+                error!("Failed to get settings");
+                Status::internal("unexpected error")
+            })?;
+
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
 
-        let response = CreateDeviceResponse {
+        let template_locations: Vec<TemplateLocation> = configs
+            .iter()
+            .map(|c| TemplateLocation {
+                name: c.network_name.clone(),
+                assigned_ip: c.address.to_string(),
+            })
+            .collect();
+
+        send_new_device_added_email(
+            &device.name,
+            &device.wireguard_pubkey,
+            &template_locations,
+            &user.email,
+            &self.mail_tx,
+            ip_address,
+            device_info,
+        )
+        .await
+        .map_err(|_| Status::internal("Failed to render new device added tempalte"))?;
+        let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
+            instance: Some(Instance::new(settings, self.config.url.clone()).into()),
         };
 
         Ok(Response::new(response))
+    }
+
+    /// Get all information needed
+    /// to update instance information for desktop client
+    async fn get_network_info(
+        &self,
+        request: Request<ExistingDevice>,
+    ) -> Result<Response<DeviceConfigResponse>, Status> {
+        let _enrollment = self.validate_session(&request).await?;
+
+        let request = request.into_inner();
+        Device::validate_pubkey(&request.pubkey).map_err(|_| {
+            error!("Invalid pubkey {}", request.pubkey);
+            Status::invalid_argument("invalid pubkey")
+        })?;
+        // Find existing device by public key
+        let device = Device::find_by_pubkey(&self.pool, &request.pubkey)
+            .await
+            .map_err(|_| {
+                error!("Failed to get device");
+                Status::internal("unexpected error")
+            })?;
+
+        let settings = Settings::get_settings(&self.pool).await.map_err(|_| {
+            error!("Failed to get settings");
+            Status::internal("unexpected error")
+        })?;
+
+        let networks = WireguardNetwork::all(&self.pool).await.map_err(|err| {
+            error!("Invalid failed to get networks {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
+
+        let mut configs: Vec<ProtoDeviceConfig> = vec![];
+        if let Some(device) = device {
+            for network in networks {
+                let wireguard_network_device = WireguardNetworkDevice::find(
+                    &self.pool,
+                    device.id.unwrap(),
+                    network.id.unwrap(),
+                )
+                .await
+                .map_err(|err| {
+                    error!("Invalid failed to get networks {err}");
+                    Status::internal(format!("unexpected error: {err}"))
+                })?;
+                if let Some(wireguard_network_device) = wireguard_network_device {
+                    let allowed_ips = network
+                        .allowed_ips
+                        .iter()
+                        .map(IpNetwork::to_string)
+                        .collect::<Vec<String>>()
+                        .join(",");
+                    let config = ProtoDeviceConfig {
+                        config: device.create_config(&network, &wireguard_network_device),
+                        network_id: network.id.unwrap(),
+                        network_name: network.name,
+                        assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
+                        endpoint: network.endpoint,
+                        pubkey: network.pubkey,
+                        allowed_ips,
+                        dns: network.dns,
+                    };
+                    configs.push(config);
+                }
+            }
+
+            let response = DeviceConfigResponse {
+                device: Some(device.into()),
+                configs,
+                instance: Some(Instance::new(settings, self.config.url.clone()).into()),
+            };
+
+            Ok(Response::new(response))
+        } else {
+            Err(Status::internal("device not found error"))
+        }
     }
 }
 
@@ -273,24 +456,40 @@ impl From<User> for AdminInfo {
     }
 }
 
-impl From<User> for InitialUserInfo {
-    fn from(user: User) -> Self {
-        Self {
+impl InitialUserInfo {
+    async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
+        let is_active = user.has_password();
+        let devices = user.devices(pool).await?;
+        let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
+        Ok(Self {
             first_name: user.first_name,
             last_name: user.last_name,
             login: user.username,
             email: user.email,
             phone_number: user.phone,
-        }
+            is_active,
+            device_names,
+        })
     }
 }
 
-impl From<handlers::wireguard::DeviceConfig> for DeviceConfig {
-    fn from(config: handlers::wireguard::DeviceConfig) -> Self {
+impl From<DeviceConfig> for ProtoDeviceConfig {
+    fn from(config: DeviceConfig) -> Self {
+        let allowed_ips = config
+            .allowed_ips
+            .iter()
+            .map(IpNetwork::to_string)
+            .collect::<Vec<String>>()
+            .join(",");
         Self {
             network_id: config.network_id,
             network_name: config.network_name,
             config: config.config,
+            endpoint: config.endpoint,
+            assigned_ip: config.address.to_string(),
+            pubkey: config.pubkey,
+            allowed_ips,
+            dns: config.dns,
         }
     }
 }
@@ -315,17 +514,21 @@ impl Enrollment {
         mail_tx: &UnboundedSender<Mail>,
         user: &User,
         settings: &Settings,
+        ip_address: String,
+        device_info: Option<String>,
     ) -> Result<(), EnrollmentError> {
         debug!("Sending welcome mail to {}", user.username);
         let mail = Mail {
             to: user.email.clone(),
             subject: settings.enrollment_welcome_email_subject.clone().unwrap(),
-            content: self.get_welcome_email_content(&mut *transaction).await?,
+            content: self
+                .get_welcome_email_content(&mut *transaction, ip_address, device_info)
+                .await?,
             attachments: Vec::new(),
             result_tx: None,
         };
         match mail_tx.send(mail) {
-            Ok(_) => {
+            Ok(()) => {
                 info!("Sent enrollment welcome mail to {}", user.username);
                 Ok(())
             }
@@ -341,6 +544,8 @@ impl Enrollment {
         mail_tx: &UnboundedSender<Mail>,
         admin: &User,
         user: &User,
+        ip_address: String,
+        device_info: Option<String>,
     ) -> Result<(), EnrollmentError> {
         debug!(
             "Sending enrollment success notification for user {} to {}",
@@ -349,12 +554,17 @@ impl Enrollment {
         let mail = Mail {
             to: admin.email.clone(),
             subject: "[defguard] User enrollment completed".into(),
-            content: templates::enrollment_admin_notification(user, admin)?,
+            content: templates::enrollment_admin_notification(
+                user,
+                admin,
+                ip_address,
+                device_info,
+            )?,
             attachments: Vec::new(),
             result_tx: None,
         };
         match mail_tx.send(mail) {
-            Ok(_) => {
+            Ok(()) => {
                 info!(
                     "Sent enrollment success notification for user {} to {}",
                     user.username, admin.username

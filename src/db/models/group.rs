@@ -1,10 +1,10 @@
+use model_derive::Model;
+use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection};
+
 use crate::{
-    db::{models::error::ModelError, WireguardNetwork},
+    db::{models::error::ModelError, User, WireguardNetwork},
     DbPool,
 };
-use model_derive::Model;
-use rocket::form::validate::Contains;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection};
 
 #[derive(Model)]
 pub struct Group {
@@ -21,13 +21,16 @@ impl Group {
         }
     }
 
-    pub async fn find_by_name(pool: &DbPool, name: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         query_as!(
             Self,
             "SELECT id \"id?\", name FROM \"group\" WHERE name = $1",
             name
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 
@@ -35,6 +38,25 @@ impl Group {
         if let Some(id) = self.id {
             query_scalar!(
                 "SELECT \"user\".username FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id \
+                WHERE group_user.group_id = $1",
+                id
+            )
+            .fetch_all(pool)
+            .await
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    pub async fn fetch_all_members(&self, pool: &DbPool) -> Result<Vec<User>, SqlxError> {
+        if let Some(id) = self.id {
+            query_as!(
+                User,
+                "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
+                phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes \
+                FROM \"user\" \
+                JOIN group_user ON \"user\".id = group_user.user_id \
                 WHERE group_user.group_id = $1",
                 id
             )

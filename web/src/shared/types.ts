@@ -6,8 +6,6 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
-import { Locales } from '../i18n/i18n-types';
-
 export enum UserStatus {
   active = 'Active',
   inactive = 'Inactive',
@@ -17,6 +15,7 @@ export enum UserStatus {
 export enum UserMFAMethod {
   NONE = 'None',
   ONE_TIME_PASSWORD = 'OneTimePassword',
+  EMAIL = 'Email',
   WEB_AUTH_N = 'Webauthn',
   WEB3 = 'Web3',
 }
@@ -29,7 +28,8 @@ export type User = {
   mfa_method: UserMFAMethod;
   mfa_enabled: boolean;
   totp_enabled: boolean;
-  email?: string;
+  email_mfa_enabled: boolean;
+  email: string;
   phone?: string;
   pgp_cert_id?: string;
   pgp_key?: string;
@@ -71,6 +71,8 @@ export interface WalletInfo {
   name: string;
   use_for_mfa: boolean;
 }
+
+export type AddDeviceResponseDevice = Omit<Device, 'networks'>;
 
 export interface Device {
   id: number;
@@ -264,6 +266,7 @@ export interface MFALoginResponse {
   totp_available: boolean;
   web3_available: boolean;
   webauthn_available: boolean;
+  email_available: boolean;
 }
 
 export interface LoginResponse {
@@ -315,6 +318,7 @@ export interface MappedDevice extends ImportedDevice {
 export interface AppInfo {
   version: string;
   network_present: boolean;
+  smtp_enabled: boolean;
 }
 
 export type GetDeviceConfigRequest = {
@@ -323,7 +327,7 @@ export type GetDeviceConfigRequest = {
 };
 
 export type AddDeviceResponse = {
-  device: Device;
+  device: AddDeviceResponseDevice;
   configs: AddDeviceConfig[];
 };
 
@@ -335,6 +339,10 @@ export type DeleteGatewayRequest = {
 export type ChangePasswordSelfRequest = {
   old_password: string;
   new_password: string;
+};
+
+export type AuthCodeRequsest = {
+  code: number;
 };
 
 export interface ApiHook {
@@ -361,6 +369,9 @@ export interface ApiHook {
     deleteWallet: (data: WalletChallengeRequest) => EmptyApiResponse;
     addToGroup: (data: UserGroupRequest) => EmptyApiResponse;
     removeFromGroup: (data: UserGroupRequest) => EmptyApiResponse;
+    startDesktopActivation: (
+      data: StartEnrollmentRequest,
+    ) => Promise<StartEnrollmentResponse>;
   };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
@@ -392,6 +403,15 @@ export interface ApiHook {
       disable: () => EmptyApiResponse;
       enable: () => EmptyApiResponse;
       recovery: (data: RecoveryLoginRequest) => Promise<MFAFinishResponse>;
+      email: {
+        register: {
+          start: () => EmptyApiResponse;
+          finish: (data: AuthCodeRequsest) => MFARecoveryCodesResponse;
+        };
+        disable: () => EmptyApiResponse;
+        sendCode: () => EmptyApiResponse;
+        verify: (data: AuthCodeRequsest) => Promise<MFAFinishResponse>;
+      };
       webauthn: {
         register: {
           start: (data: { name: string }) => Promise<CredentialCreationOptionsJSON>;
@@ -441,13 +461,13 @@ export interface ApiHook {
     getUserClients: (username: string) => Promise<AuthorizedClient[]>;
     removeUserClient: (data: RemoveUserClientRequest) => EmptyApiResponse;
   };
-  license: {
-    getLicense: () => Promise<License>;
-  };
   settings: {
     getSettings: () => Promise<Settings>;
     editSettings: (data: Settings) => EmptyApiResponse;
     setDefaultBranding: (id: string) => Promise<Settings>;
+    patchSettings: (data: Partial<Settings>) => EmptyApiResponse;
+    getEssentialSettings: () => Promise<SettingsEssentials>;
+    testLdapSettings: () => Promise<EmptyApiResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -586,22 +606,31 @@ export interface OpenIdClientModal extends StandardModalState {
   viewMode: boolean;
 }
 
+// DO NOT EXTEND THIS STORE
+/**
+ * this approach is outdated use individual stores instead
+ */
 export interface UseModalStore {
   openIdClientModal: OpenIdClientModal;
   setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
+  // DO NOT EXTEND THIS STORE
   addWalletModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   keyDetailModal: KeyDetailModal;
   keyDeleteModal: KeyDeleteModal;
   deleteUserModal: DeleteUserModal;
-  licenseModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
+  // DO NOT EXTEND THIS STORE
   webhookModal: WebhookModal;
   addOpenidClientModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   deleteOpenidClientModal: DeleteOpenidClientModal;
   enableOpenidClientModal: EnableOpenidClientModal;
   manageWebAuthNKeysModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   addSecurityKeyModal: StandardModalState;
   registerTOTP: StandardModalState;
   connectWalletModal: ConnectWalletModal;
@@ -609,24 +638,19 @@ export interface UseModalStore {
   setState: (data: Partial<UseModalStore>) => void;
   setWebhookModal: ModalSetter<WebhookModal>;
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
+  // DO NOT EXTEND THIS STORE
   setKeyDetailModal: ModalSetter<KeyDetailModal>;
   setKeyDeleteModal: ModalSetter<KeyDeleteModal>;
   setDeleteUserModal: ModalSetter<DeleteUserModal>;
+  // DO NOT EXTEND THIS STORE
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
+  // DO NOT EXTEND THIS STORE
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
+  // DO NOT EXTEND THIS STORE
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
-  setLicenseModal: ModalSetter<StandardModalState>;
-}
-
-export interface AppStore {
-  settings?: Settings;
-  license?: License;
-  language?: Locales;
-  appInfo?: AppInfo;
-  setAppStore: (newValues: Partial<Omit<AppStore, 'setAppStore'>>) => void;
 }
 
 export interface UseOpenIDStore {
@@ -634,28 +658,66 @@ export interface UseOpenIDStore {
   setOpenIDStore: (newValues: Partial<Omit<UseOpenIDStore, 'setOpenIdStore'>>) => void;
 }
 
-export interface Settings {
-  challenge_template: string;
-  openid_enabled: boolean;
-  ldap_enabled: boolean;
-  wireguard_enabled: boolean;
-  webhooks_enabled: boolean;
-  worker_enabled: boolean;
-  main_logo_url: string;
-  nav_logo_url: string;
-  instance_name: string;
+/**
+ * full defguard instance Settings
+ */
+export type Settings = SettingsModules &
+  SettingsWeb3 &
+  SettingsSMTP &
+  SettingsEnrollment &
+  SettingsBranding &
+  SettingsLDAP;
+
+// essentials for core frontend, includes only those that are required for frontend operations
+export type SettingsEssentials = SettingsModules & SettingsBranding;
+
+export type SettingsEnrollment = {
+  enrollment_vpn_step_optional: boolean;
+  enrollment_welcome_message: string;
+  enrollment_welcome_email: string;
+  enrollment_welcome_email_subject: string;
+  enrollment_use_welcome_message_as_email: boolean;
+};
+
+export type SettingsSMTP = {
   smtp_server?: string;
   smtp_port?: number;
   smtp_encryption: string;
   smtp_user?: string;
   smtp_password?: string;
   smtp_sender?: string;
-  enrollment_vpn_step_optional: boolean;
-  enrollment_welcome_message: string;
-  enrollment_welcome_email: string;
-  enrollment_welcome_email_subject: string;
-  enrollment_use_welcome_message_as_email: boolean;
-}
+};
+
+export type SettingsModules = {
+  openid_enabled: boolean;
+  wireguard_enabled: boolean;
+  webhooks_enabled: boolean;
+  worker_enabled: boolean;
+};
+
+export type SettingsBranding = {
+  instance_name: string;
+  main_logo_url: string;
+  nav_logo_url: string;
+};
+
+export type SettingsLDAP = {
+  ldap_bind_password?: string;
+  ldap_bind_username?: string;
+  ldap_url?: string;
+  ldap_group_member_attr: string;
+  ldap_group_obj_class: string;
+  ldap_group_search_base: string;
+  ldap_groupname_attr: string;
+  ldap_member_attr: string;
+  ldap_user_obj_class: string;
+  ldap_user_search_base: string;
+  ldap_username_attr: string;
+};
+
+export type SettingsWeb3 = {
+  challenge_template: string;
+};
 
 export interface Webhook {
   id: string;
@@ -765,16 +827,6 @@ export interface WireguardNetworkStats {
   upload: number;
   download: number;
   transfer_series: NetworkSpeedStats[];
-}
-
-export interface License {
-  company: string;
-  expiration: Date;
-  oauth: boolean;
-  enterprise: boolean;
-  openid: boolean;
-  ldap: boolean;
-  worker: boolean;
 }
 
 export interface WalletProvider {

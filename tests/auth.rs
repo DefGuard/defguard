@@ -1,32 +1,34 @@
+mod common;
+
+use crate::common::ClientState;
+use axum::http::StatusCode;
+use claims::assert_err;
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
-    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, UserDetails, Wallet},
+    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, Settings, UserDetails, Wallet},
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, WalletChallenge},
+    hex::to_lower_hex,
+    secret::SecretString,
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use otpauth::TOTP;
-use rocket::{
-    http::{Cookie, Status},
-    local::asynchronous::Client,
-    serde::json::serde_json::json,
-};
+use reqwest::header::USER_AGENT;
 use secp256k1::{rand::rngs::OsRng, All, Message, Secp256k1, SecretKey};
 use serde::Deserialize;
+use serde_json::json;
 use sqlx::query;
-use std::time::SystemTime;
+use std::{str::FromStr, time::SystemTime};
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
-mod common;
-use crate::common::make_test_client;
-use defguard::hex::to_lower_hex;
+use self::common::{client::TestClient, make_test_client};
 
 #[derive(Deserialize)]
 pub struct RecoveryCodes {
     codes: Option<Vec<String>>,
 }
 
-async fn make_client() -> Client {
+async fn make_client() -> TestClient {
     let (client, client_state) = make_test_client().await;
 
     let mut wallet = Wallet::new_for_user(
@@ -41,7 +43,7 @@ async fn make_client() -> Client {
     client
 }
 
-async fn make_client_with_db() -> (Client, DbPool) {
+async fn make_client_with_db() -> (TestClient, DbPool) {
     let (client, client_state) = make_test_client().await;
 
     let mut wallet = Wallet::new_for_user(
@@ -56,7 +58,22 @@ async fn make_client_with_db() -> (Client, DbPool) {
     (client, client_state.pool)
 }
 
-async fn make_client_with_wallet(address: String) -> Client {
+async fn make_client_with_state() -> (TestClient, ClientState) {
+    let (client, client_state) = make_test_client().await;
+
+    let mut wallet = Wallet::new_for_user(
+        client_state.test_user.id.unwrap(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
+        "test".into(),
+        5,
+        String::new(),
+    );
+    wallet.save(&client_state.pool).await.unwrap();
+
+    (client, client_state)
+}
+
+async fn make_client_with_wallet(address: String) -> TestClient {
     let (client, client_state) = make_test_client().await;
 
     let mut wallet = Wallet::new_for_user(
@@ -71,70 +88,63 @@ async fn make_client_with_wallet(address: String) -> Client {
     client
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_logout() {
-    let client = make_client().await;
+    let mut client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // store auth cookie for later use
-    let auth_cookie = response.cookies().get("defguard_session").unwrap().value();
+    let auth_cookie = response
+        .cookies()
+        .find(|c| c.name() == "defguard_session")
+        .unwrap();
 
-    let response = client.get("/api/v1/me").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.post("/api/v1/auth/logout").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth/logout").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client.get("/api/v1/me").dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // try reusing auth cookie
-    let response = client
-        .get("/api/v1/me")
-        .cookie(Cookie::new("defguard_session", auth_cookie))
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    client.set_cookie(&auth_cookie);
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_login_bruteforce() {
     let client = make_client().await;
 
     let invalid_auth = Auth::new("hpotter".into(), "invalid".into());
 
     // fail login 5 times in a row
-    for _ in 1..6 {
-        let response = client
-            .post("/api/v1/auth")
-            .json(&invalid_auth)
-            .dispatch()
-            .await;
-        assert_eq!(response.status(), Status::Unauthorized);
+    for i in 0..6 {
+        let response = client.post("/api/v1/auth").json(&invalid_auth).send().await;
+        if i == 5 {
+            assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        } else {
+            assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        }
     }
-
-    let response = client
-        .post("/api/v1/auth")
-        .json(&invalid_auth)
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::TooManyRequests);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_cannot_enable_mfa() {
     let client = make_client().await;
 
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // enable MFA
-    let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::NotModified);
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_MODIFIED);
 }
 
 fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
@@ -146,125 +156,264 @@ fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
     AuthCode::new(auth.generate(TOTP_CODE_VALIDITY_PERIOD, timestamp))
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_totp() {
     let client = make_client().await;
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // new TOTP secret
-    let response = client.post("/api/v1/auth/totp/init").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let auth_totp: AuthTotp = response.into_json().await.unwrap();
+    let response = client.post("/api/v1/auth/totp/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let auth_totp: AuthTotp = response.json().await;
 
     // enable TOTP
     let code = totp_code(&auth_totp);
-    let response = client
-        .post("/api/v1/auth/totp")
-        .json(&code)
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth/totp").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // check recovery codes
-    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    let recovery_codes: RecoveryCodes = response.json().await;
     assert_eq!(recovery_codes.codes.as_ref().unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // enable MFA
-    let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login again, this time a different status code is returned
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // still unauthorized
-    let response = client.get("/api/v1/me").dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // provide wrong TOTP code
     let code = AuthCode::new(0);
     let response = client
         .post("/api/v1/auth/totp/verify")
         .json(&code)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // provide recovery code
     let code = recovery_codes.codes.unwrap().first().unwrap().to_string();
     let response = client
         .post("/api/v1/auth/recovery")
         .json(&json!({ "code": code }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     assert_eq!(
-        response
-            .into_json::<AuthResponse>()
-            .await
-            .unwrap()
-            .user
-            .username,
+        response.json::<AuthResponse>().await.user.username,
         "hpotter"
     );
 
     // authorized
-    let response = client.get("/api/v1/me").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // logout
-    let response = client.post("/api/v1/auth/logout").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth/logout").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // reuse the same recovery code - shouldn't work
     let response = client
         .post("/api/v1/auth/recovery")
         .json(&json!({ "code": code }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // logout
-    let response = client.post("/api/v1/auth/logout").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth/logout").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // provide correct TOTP code
     let code = totp_code(&auth_totp);
     let response = client
         .post("/api/v1/auth/totp/verify")
         .json(&code)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // authorized
-    let response = client.get("/api/v1/me").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // disable MFA
-    let response = client.delete("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.delete("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login again
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[rocket::async_test]
+fn extract_email_code(content: &str) -> u32 {
+    let re = regex::Regex::new(r"<b>(?<code>\d{6})</b>").unwrap();
+    let code = re.captures(content).unwrap().name("code").unwrap().as_str();
+    code.parse().unwrap()
+}
+
+#[tokio::test]
+async fn test_email_mfa() {
+    let (client, state) = make_client_with_state().await;
+    let pool = state.pool;
+    let mut mail_rx = state.mail_rx;
+
+    // try to initialize email MFA setup before logging in
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // try to initialize email MFA setup without SMTP settings configured
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+    // add dummy SMTP settings
+    let mut settings = Settings::get_settings(&pool).await.unwrap();
+    settings.smtp_server = Some("smtp_server".into());
+    settings.smtp_port = Some(587);
+    settings.smtp_user = Some("dummy_user".into());
+    settings.smtp_password = Some(SecretString::from_str("dummy_password").unwrap());
+    settings.smtp_sender = Some("smtp@sender.pl".into());
+    settings.save(&pool).await.unwrap();
+
+    // initialize email MFA setup
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // check email was sent
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
+
+    // resend setup email
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
+    let code = extract_email_code(&mail.content);
+
+    // finish setup
+    let code = AuthCode::new(code);
+    let response = client.post("/api/v1/auth/email").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // check that confirmation email was sent
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "MFA method Email was activated on your account"
+    );
+
+    // check recovery codes
+    let recovery_codes: RecoveryCodes = response.json().await;
+    assert_eq!(recovery_codes.codes.as_ref().unwrap().len(), 8); // RECOVERY_CODES_COUNT
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // login again, this time a different status code is returned
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // still unauthorized
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // provide wrong code
+    let code = AuthCode::new(0);
+    let response = client
+        .post("/api/v1/auth/email/verify")
+        .json(&code)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // still unauthorized
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // request code
+    let response = client.get("/api/v1/auth/email").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // check that code email was sent
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "Your Multi-Factor Authentication Code for Login"
+    );
+
+    // resend code
+    let response = client.get("/api/v1/auth/email").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mail = mail_rx.try_recv().unwrap();
+    assert_err!(mail_rx.try_recv());
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "Your Multi-Factor Authentication Code for Login"
+    );
+    let code = extract_email_code(&mail.content);
+
+    // login
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // provide correct code
+    let code = AuthCode::new(code);
+    let response = client
+        .post("/api/v1/auth/email/verify")
+        .json(&code)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // authorized
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // disable MFA
+    let response = client.delete("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // login again
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
 async fn test_webauthn() {
     let (client, pool) = make_client_with_db().await;
 
@@ -273,13 +422,13 @@ async fn test_webauthn() {
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // WebAuthn registration
-    let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let ccr: CreationChallengeResponse = response.into_json().await.unwrap();
+    let response = client.post("/api/v1/auth/webauthn/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let ccr: CreationChallengeResponse = response.json().await;
     let rpkc = authenticator.do_registration(origin.clone(), ccr).unwrap();
     let response = client
         .post("/api/v1/auth/webauthn/finish")
@@ -287,39 +436,35 @@ async fn test_webauthn() {
             "name": "My security key",
             "rpkc": &rpkc
         }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // check recovery codes
-    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    let recovery_codes: RecoveryCodes = response.json().await;
     assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // enable MFA
-    let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login again
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // WebAuthn authentication
-    let response = client.post("/api/v1/auth/webauthn/start").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let rcr: RequestChallengeResponse = response.into_json().await.unwrap();
+    let response = client.post("/api/v1/auth/webauthn/start").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let rcr: RequestChallengeResponse = response.json().await;
     let pkc = authenticator.do_authentication(origin, rcr).unwrap();
-    let response = client
-        .post("/api/v1/auth/webauthn")
-        .json(&pkc)
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth/webauthn").json(&pkc).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // get security keys
-    let response = client.get("/api/v1/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let user_info: UserDetails = response.into_json().await.unwrap();
+    let response = client.get("/api/v1/user/hpotter").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let user_info: UserDetails = response.json().await;
     assert_eq!(user_info.security_keys.len(), 1);
 
     // delete security key
@@ -328,14 +473,14 @@ async fn test_webauthn() {
             "/api/v1/user/hpotter/security_key/{}",
             user_info.security_keys[0].id
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login again
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // check that recovery codes were cleared since last MFA method was removed
     let record = query!(
@@ -348,43 +493,39 @@ async fn test_webauthn() {
     assert_eq!(record.recovery_codes.len(), 0);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_cannot_skip_otp_by_adding_yubikey() {
     let client = make_client().await;
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // new TOTP secret
-    let response = client.post("/api/v1/auth/totp/init").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let auth_totp: AuthTotp = response.into_json().await.unwrap();
+    let response = client.post("/api/v1/auth/totp/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let auth_totp: AuthTotp = response.json().await;
 
     // enable TOTP
     let code = totp_code(&auth_totp);
-    let response = client
-        .post("/api/v1/auth/totp")
-        .json(&code)
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth/totp").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // enable MFA
-    let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login again, this time a different status code is returned
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // instead of continuing TOTP login try to add a new YubiKey
-    let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.post("/api/v1/auth/webauthn/init").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_cannot_skip_security_key_by_adding_yubikey() {
     let client = make_client().await;
 
@@ -393,13 +534,13 @@ async fn test_cannot_skip_security_key_by_adding_yubikey() {
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // WebAuthn registration
-    let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let ccr: CreationChallengeResponse = response.into_json().await.unwrap();
+    let response = client.post("/api/v1/auth/webauthn/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let ccr: CreationChallengeResponse = response.json().await;
     let rpkc = authenticator.do_registration(origin.clone(), ccr).unwrap();
     let response = client
         .post("/api/v1/auth/webauthn/finish")
@@ -407,75 +548,71 @@ async fn test_cannot_skip_security_key_by_adding_yubikey() {
             "name": "My security key",
             "rpkc": &rpkc
         }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // enable MFA
-    let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login again
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // instead of continuing TOTP login try to add a new YubiKey
-    let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
-    assert_eq!(response.status(), Status::Unauthorized);
+    let response = client.post("/api/v1/auth/webauthn/init").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     let client = make_client().await;
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // new TOTP secret
-    let response = client.post("/api/v1/auth/totp/init").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let auth_totp: AuthTotp = response.into_json().await.unwrap();
+    let response = client.post("/api/v1/auth/totp/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let auth_totp: AuthTotp = response.json().await;
 
     // enable TOTP
     let code = totp_code(&auth_totp);
-    let response = client
-        .post("/api/v1/auth/totp")
-        .json(&code)
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth/totp").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // check recovery codes
-    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    let recovery_codes: RecoveryCodes = response.json().await;
     assert_eq!(recovery_codes.codes.as_ref().unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // enable MFA
-    let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login again, this time a different status code is returned
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // provide correct TOTP code
     let code = totp_code(&auth_totp);
     let response = client
         .post("/api/v1/auth/totp/verify")
         .json(&code)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // WebAuthn registration
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new());
     let origin = Url::parse("http://localhost:8000").unwrap();
 
-    let response = client.post("/api/v1/auth/webauthn/init").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let ccr: CreationChallengeResponse = response.into_json().await.unwrap();
+    let response = client.post("/api/v1/auth/webauthn/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let ccr: CreationChallengeResponse = response.json().await;
     let rpkc = authenticator.do_registration(origin.clone(), ccr).unwrap();
     let response = client
         .post("/api/v1/auth/webauthn/finish")
@@ -483,23 +620,23 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
             "name": "My security key",
             "rpkc": &rpkc
         }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // get user info
-    let response = client.get("/api/v1/user/hpotter").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    let mut user_info: UserDetails = response.into_json().await.unwrap();
+    let response = client.get("/api/v1/user/hpotter").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut user_info: UserDetails = response.json().await;
 
     // set default MFA method
     user_info.user.mfa_method = MFAMethod::Webauthn;
     let response = client
         .put("/api/v1/user/hpotter")
         .json(&user_info.user)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // delete security key
     let response = client
@@ -507,17 +644,17 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
             "/api/v1/user/hpotter/security_key/{}",
             user_info.security_keys[0].id
         ))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login again
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify that MFA method was updated
-    let mfa_info: MFAInfo = response.into_json().await.unwrap();
+    let mfa_info: MFAInfo = response.json().await;
     assert_eq!(mfa_info.current_mfa_method(), &MFAMethod::OneTimePassword);
 }
 
@@ -528,7 +665,7 @@ struct Challenge {
 
 // helper to perform login using a wallet
 async fn wallet_login(
-    client: &Client,
+    client: &TestClient,
     wallet_address: String,
     secp: &Secp256k1<All>,
     secret_key: SecretKey,
@@ -541,13 +678,12 @@ async fn wallet_login(
     let response = client
         .post("/api/v1/auth/web3/start")
         .json(&wallet_address_request)
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
-    let data: Challenge = response.into_json().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let data: Challenge = response.json().await;
 
-    let parsed_data: TypedData =
-        rocket::serde::json::serde_json::from_str(&data.challenge).unwrap();
+    let parsed_data: TypedData = serde_json::from_str(&data.challenge).unwrap();
     let parsed_message = parsed_data.message;
 
     let challenge_message = "Please read this carefully:
@@ -556,33 +692,38 @@ Click to sign to prove you are in possesion of your private key to the account.
 This request will not trigger a blockchain transaction or cost any gas fees.";
     let message: String = format!(
         r#"{{
-	"domain": {{ "name": "Defguard", "version": "1" }},
-        "types": {{
-		"EIP712Domain": [
-                    {{ "name": "name", "type": "string" }},
-                    {{ "name": "version", "type": "string" }}
-		],
-		"ProofOfOwnership": [
-                    {{ "name": "wallet", "type": "address" }},
-                    {{ "name": "content", "type": "string" }},
-                    {{ "name": "nonce", "type": "string" }}
-		]
-	}},
-	"primaryType": "ProofOfOwnership",
-	"message": {{
-		"wallet": "{}",
-		"content": "{}",
-                "nonce": {}
-	}}}}
+            "domain": {{ "name": "Defguard", "version": "1" }},
+            "types": {{
+            "EIP712Domain": [
+                {{ "name": "name", "type": "string" }},
+                {{ "name": "version", "type": "string" }}
+            ],
+            "ProofOfOwnership": [
+                {{ "name": "wallet", "type": "address" }},
+                {{ "name": "content", "type": "string" }},
+                {{ "name": "nonce", "type": "string" }}
+            ]
+        }},
+        "primaryType": "ProofOfOwnership",
+        "message": {{
+            "wallet": "{}",
+            "content": "{}",
+            "nonce": {}
+        }}}}
         "#,
         wallet_address,
         challenge_message,
         parsed_message.get("nonce").unwrap(),
     )
     .chars()
-    .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
+    .filter(|c| *c != ' ' && *c != '\r' && *c != '\n' && *c != '\t')
     .collect::<String>();
-    assert_eq!(data.challenge, message);
+    let challenge = data
+        .challenge
+        .chars()
+        .filter(|c| *c != ' ' && *c != '\r' && *c != '\n' && *c != '\t')
+        .collect::<String>();
+    assert_eq!(challenge, message);
 
     // Sign message
     let signature = sign_message(&data.challenge, secp, secret_key);
@@ -594,10 +735,10 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
             "address": wallet_address.clone(),
             "signature": "0x00"
         }))
-        .dispatch()
+        .send()
         .await;
 
-    assert_eq!(invalid_request_response.status(), Status::Unauthorized);
+    assert_eq!(invalid_request_response.status(), StatusCode::UNAUTHORIZED);
 
     // Web3 authentication
     let response = client
@@ -606,14 +747,14 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
             "address": wallet_address.clone(),
             "signature": signature,
         }))
-        .dispatch()
+        .send()
         .await;
 
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 fn sign_message(message: &str, secp: &Secp256k1<All>, secret_key: SecretKey) -> String {
-    let typed_data: TypedData = rocket::serde::json::serde_json::from_str(&message).unwrap();
+    let typed_data: TypedData = serde_json::from_str(message).unwrap();
     let hash_msg = typed_data.encode_eip712().unwrap();
     let message = Message::from_slice(&hash_msg).unwrap();
     let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
@@ -627,7 +768,7 @@ fn sign_message(message: &str, secp: &Secp256k1<All>, secret_key: SecretKey) -> 
     to_lower_hex(&sig_arr)
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_web3() {
     let secp = Secp256k1::new();
     let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
@@ -643,8 +784,8 @@ async fn test_web3() {
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // set wallet for MFA
     let response = client
@@ -652,35 +793,35 @@ async fn test_web3() {
         .json(&json!({
             "use_for_mfa": true
         }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // check recovery codes
-    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    let recovery_codes: RecoveryCodes = response.json().await;
     assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // enable MFA
-    let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login with wallet
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
     wallet_login(&client, wallet_address, &secp, secret_key).await;
 
     // disable MFA
-    let response = client.delete("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.delete("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login again
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_re_adding_wallet() {
     let secp = Secp256k1::new();
     let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
@@ -696,8 +837,8 @@ async fn test_re_adding_wallet() {
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // add wallet
     let response = client
@@ -705,9 +846,9 @@ async fn test_re_adding_wallet() {
             "/api/v1/user/hpotter/challenge?address={}&name=TestWallet&chain_id=1",
             &wallet_address
         ))
-        .dispatch()
+        .send()
         .await;
-    let challenge: WalletChallenge = response.into_json().await.unwrap();
+    let challenge: WalletChallenge = response.json().await;
     let signature = sign_message(&challenge.message, &secp, secret_key);
     let response = client
         .put("/api/v1/user/hpotter/wallet")
@@ -717,9 +858,9 @@ async fn test_re_adding_wallet() {
             "name": "TestWallet",
             "signature": signature
         }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // enable wallet for MFA
     let response = client
@@ -727,39 +868,39 @@ async fn test_re_adding_wallet() {
         .json(&json!({
             "use_for_mfa": true
         }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // check recovery codes
-    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    let recovery_codes: RecoveryCodes = response.json().await;
     assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // enable MFA
-    let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login with wallet
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
     wallet_login(&client, wallet_address.clone(), &secp, secret_key).await;
 
     // remove wallet
     let response = client
         .delete(format!("/api/v1/user/hpotter/wallet/{}", &wallet_address))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // logout
-    let response = client.post("/api/v1/auth/logout").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth/logout").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login without MFA
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // add the same wallet and enable MFA
     let response = client
@@ -767,9 +908,9 @@ async fn test_re_adding_wallet() {
             "/api/v1/user/hpotter/challenge?address={}&name=TestWallet&chain_id=1",
             &wallet_address
         ))
-        .dispatch()
+        .send()
         .await;
-    let challenge: WalletChallenge = response.into_json().await.unwrap();
+    let challenge: WalletChallenge = response.json().await;
     let signature = sign_message(&challenge.message, &secp, secret_key);
     let response = client
         .put("/api/v1/user/hpotter/wallet")
@@ -779,29 +920,132 @@ async fn test_re_adding_wallet() {
             "name": "TestWallet",
             "signature": signature
         }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
     let response = client
         .put(format!("/api/v1/user/hpotter/wallet/{}", &wallet_address))
         .json(&json!({
             "use_for_mfa": true
         }))
-        .dispatch()
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // check recovery codes
-    let recovery_codes: RecoveryCodes = response.into_json().await.unwrap();
+    let recovery_codes: RecoveryCodes = response.json().await;
     assert_eq!(recovery_codes.codes.unwrap().len(), 8); // RECOVERY_CODES_COUNT
 
     // enable MFA
-    let response = client.put("/api/v1/auth/mfa").dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // login with wallet
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Created);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
     wallet_login(&client, wallet_address.clone(), &secp, secret_key).await;
+}
+
+#[tokio::test]
+async fn test_mfa_method_totp_enabled_mail() {
+    let (client, state) = make_test_client().await;
+    let mut mail_rx = state.mail_rx;
+    let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // new TOTP secret
+    let response = client.post("/api/v1/auth/totp/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let auth_totp: AuthTotp = response.json().await;
+
+    // enable TOTP
+    let code = totp_code(&auth_totp);
+    let response = client.post("/api/v1/auth/totp").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    mail_rx.try_recv().unwrap();
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "MFA method TOTP was activated on your account"
+    );
+    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(mail
+        .content
+        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+}
+
+#[tokio::test]
+async fn test_new_device_login() {
+    let (client, state) = make_test_client().await;
+    let mut mail_rx = state.mail_rx;
+    let user_agent_header_iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+    let user_agent_header_android = "Mozilla/5.0 (Linux; Android 7.0; SM-G930VC Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/58.0.3029.83 Mobile Safari/537.36";
+
+    // login
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header_iphone)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "Defguard: new device logged in to your account"
+    );
+    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(mail
+        .content
+        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+
+    let response = client.post("/api/v1/auth/logout").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // login using the same device
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header_iphone)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    assert_err!(mail_rx.try_recv());
+
+    // login using a different device
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header_android)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(
+        mail.subject,
+        "Defguard: new device logged in to your account"
+    );
+    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(mail
+        .content
+        .contains("Device type:</span> SM-G930VC, OS: Android 7.0, Chrome Mobile WebView"));
 }

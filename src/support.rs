@@ -50,14 +50,14 @@ pub async fn dump_config(db: &Pool<Postgres>, config: &DefGuardConfig) -> Value 
         }
         Err(err) => (json!({"error": err.to_string()}), Value::Null),
     };
-    let users = unwrap_json(User::all_without_sensitive_data(db).await);
+    let users_diagnostic_data = unwrap_json(User::all_without_sensitive_data(db).await);
 
     json!({
         "settings": settings,
         "networks": networks,
         "version": VERSION,
         "devices": devices,
-        "users": users,
+        "users": users_diagnostic_data,
         "config": config,
     })
 }

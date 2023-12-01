@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -19,20 +19,27 @@ const steps: ReactNode[] = [
 export const AddUserModal = () => {
   const { LL } = useI18nContext();
 
-  const [currentStep, visible] = useAddUserModal(
-    (state) => [state.step, state.visible],
+  const [currentStep, visible, desktop] = useAddUserModal(
+    (state) => [state.step, state.visible, state.desktop],
     shallow,
   );
 
   const [reset, close] = useAddUserModal((state) => [state.reset, state.close], shallow);
 
+  const getTitle = useMemo(() => {
+    if (desktop) {
+      return LL.modals.startEnrollment.desktopTitle();
+    }
+    return currentStep === 0
+      ? LL.modals.addUser.title()
+      : LL.modals.startEnrollment.title();
+  }, [LL.modals.addUser, LL.modals.startEnrollment, desktop, currentStep]);
+
   return (
     <ModalWithTitle
       id="add-user-modal"
       backdrop
-      title={
-        currentStep === 0 ? LL.modals.addUser.title() : LL.modals.startEnrollment.title()
-      }
+      title={getTitle}
       onClose={close}
       afterClose={reset}
       steps={steps}

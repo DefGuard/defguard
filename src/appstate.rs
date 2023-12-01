@@ -2,11 +2,10 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     config::DefGuardConfig,
     db::{AppEvent, DbPool, GatewayEvent, WebHook},
-    license::License,
     mail::Mail,
 };
 use reqwest::Client;
-use rocket::serde::json::serde_json::json;
+use serde_json::json;
 use std::sync::{Arc, Mutex};
 use tokio::{
     sync::{
@@ -15,16 +14,18 @@ use tokio::{
     },
     task::spawn,
 };
+use uaparser::UserAgentParser;
 use webauthn_rs::prelude::*;
 
+#[derive(Clone)]
 pub struct AppState {
     pub config: DefGuardConfig,
     pub pool: DbPool,
     tx: UnboundedSender<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
     pub mail_tx: UnboundedSender<Mail>,
-    pub license: License,
-    pub webauthn: Webauthn,
+    pub webauthn: Arc<Webauthn>,
+    pub user_agent_parser: Arc<UserAgentParser>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
 }
 
@@ -32,8 +33,8 @@ impl AppState {
     pub fn trigger_action(&self, event: AppEvent) {
         let event_name = event.name().to_owned();
         match self.tx.send(event) {
-            Ok(_) => info!("Sent trigger {}", event_name),
-            Err(err) => error!("Error sending trigger {}: {}", event_name, err),
+            Ok(()) => info!("Sent trigger {event_name}"),
+            Err(err) => error!("Error sending trigger {event_name}: {err}"),
         }
     }
     /// Handle webhook events
@@ -43,7 +44,7 @@ impl AppState {
             debug!("WebHook triggered");
             debug!("Retrieving webhooks");
             if let Ok(webhooks) = WebHook::all_enabled(&pool, &msg).await {
-                info!("Found webhooks: {:#?}", webhooks);
+                info!("Found webhooks: {webhooks:#?}");
                 let (payload, event) = match msg {
                     AppEvent::UserCreated(user) => (json!(user), "user_created"),
                     AppEvent::UserModified(user) => (json!(user), "user_modified"),
@@ -56,7 +57,7 @@ impl AppState {
                     match reqwest_client
                         .get(&webhook.url)
                         .bearer_auth(&webhook.token)
-                        .header("X-DefGuard-Event", event)
+                        .header("x-defguard-event", event)
                         .json(&payload)
                         .send()
                         .await
@@ -65,7 +66,7 @@ impl AppState {
                             info!("Trigger sent to {}, status {}", webhook.url, res.status());
                         }
                         Err(err) => {
-                            error!("Error sending trigger to {}: {}", webhook.url, err);
+                            error!("Error sending trigger to {}: {err}", webhook.url);
                         }
                     }
                 }
@@ -76,7 +77,7 @@ impl AppState {
     /// Sends given `GatewayEvent` to be handled by gateway GRPC server
     pub fn send_wireguard_event(&self, event: GatewayEvent) {
         if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending wireguard event {}", err);
+            error!("Error sending wireguard event {err}");
         }
     }
 
@@ -96,7 +97,7 @@ impl AppState {
         rx: UnboundedReceiver<AppEvent>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
-        license: License,
+        user_agent_parser: Arc<UserAgentParser>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
@@ -109,9 +110,11 @@ impl AppState {
             &config.url,
         )
         .expect("Invalid WebAuthn configuration");
-        let webauthn = webauthn_builder
-            .build()
-            .expect("Invalid WebAuthn configuration");
+        let webauthn = Arc::new(
+            webauthn_builder
+                .build()
+                .expect("Invalid WebAuthn configuration"),
+        );
 
         Self {
             config,
@@ -119,8 +122,8 @@ impl AppState {
             tx,
             wireguard_tx,
             mail_tx,
-            license,
             webauthn,
+            user_agent_parser,
             failed_logins,
         }
     }

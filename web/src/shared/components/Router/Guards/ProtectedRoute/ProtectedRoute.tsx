@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 
 import { useAppStore } from '../../../../hooks/store/useAppStore';
 import { useAuthStore } from '../../../../hooks/store/useAuthStore';
-import { Settings } from '../../../../types';
+import { SettingsModules } from '../../../../types';
 
 interface Props {
   children?: ReactNode;
@@ -12,7 +12,8 @@ interface Props {
   moduleRequired?: Setting;
   allowUnauthorized?: boolean;
 }
-type Setting = keyof Settings;
+
+type Setting = keyof SettingsModules;
 
 export const ProtectedRoute = ({
   children,

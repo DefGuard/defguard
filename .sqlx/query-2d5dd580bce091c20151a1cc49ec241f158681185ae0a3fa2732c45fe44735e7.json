@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"user\" (\"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"ssh_key\",\"pgp_key\",\"pgp_cert_id\",\"mfa_enabled\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\",\"recovery_codes\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bytea",
+        "Bytea",
+        {
+          "Custom": {
+            "name": "mfa_method",
+            "kind": {
+              "Enum": [
+                "none",
+                "one_time_password",
+                "webauthn",
+                "web3",
+                "email"
+              ]
+            }
+          }
+        },
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2d5dd580bce091c20151a1cc49ec241f158681185ae0a3fa2732c45fe44735e7"
+}

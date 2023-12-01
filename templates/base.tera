@@ -1,0 +1,553 @@
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <title></title>
+  <!--[if !mso]><!-->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--<![endif]-->
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style type="text/css">
+    #outlook a {
+      padding: 0;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    table,
+    td {
+      border-collapse: collapse;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+
+    img {
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+      -ms-interpolation-mode: bicubic;
+    }
+
+    p {
+      display: block;
+      margin: 13px 0;
+    }
+  </style>
+  <!--[if mso]>
+    <noscript>
+    <xml>
+    <o:OfficeDocumentSettings>
+      <o:AllowPNG/>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+    </xml>
+    </noscript>
+    <![endif]-->
+  <!--[if lte mso 11]>
+    <style type="text/css">
+      .mj-outlook-group-fix { width:100% !important; }
+    </style>
+    <![endif]-->
+  <!--[if !mso]><!-->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;1,400;1,600&display=swap"
+    rel="stylesheet" type="text/css">
+  <style type="text/css">
+    @import url(https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;1,400;1,600&display=swap);
+  </style>
+  <!--<![endif]-->
+  <style type="text/css">
+    @media only screen and (min-width:480px) {
+      .mj-column-per-100 {
+        width: 100% !important;
+        max-width: 100%;
+      }
+    }
+  </style>
+  <style media="screen and (min-width:480px)">
+    .moz-text-html .mj-column-per-100 {
+      width: 100% !important;
+      max-width: 100%;
+    }
+  </style>
+  <style type="text/css">
+    @media only screen and (max-width:479px) {
+      table.mj-full-width-mobile {
+        width: 100% !important;
+      }
+
+      td.mj-full-width-mobile {
+        width: auto !important;
+      }
+    }
+  </style>
+  <style type="text/css">
+  </style>
+</head>
+
+<body style="word-spacing:normal;background-color:#F9F9F9;">
+  <div style="background-color:#F9F9F9;">
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:16px;line-height:16px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0px;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0;line-height:0;text-align:left;display:inline-block;width:100%;direction:ltr;vertical-align:middle;">
+                <!--[if mso | IE]><table border="0" cellpadding="0" cellspacing="0" role="presentation" ><tr><td style="vertical-align:top;width:600px;" ><![endif]-->
+                <div class="mj-column-per-100 mj-outlook-group-fix"
+                  style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                  <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                    <tbody>
+                      <tr>
+                        <td style="vertical-align:top;padding:0;">
+                          <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                            <tbody>
+                              <tr>
+                                <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
+                                  <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                    style="border-collapse:collapse;border-spacing:0px;">
+                                    <tbody>
+                                      <tr>
+                                        <td align="center" style="width:550px;">
+                                          <img width="160" height="64"
+                                            style="border:0;display:block;outline:none;text-decoration:none;height:64px;font-size:13px;"
+                                            alt="Defguard logo" src="https://defguard.net/images/png/logo_nav.png" />
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!--[if mso | IE]></td></tr></table><![endif]-->
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:20px;line-height:20px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><![endif]-->
+    {% block mail_content %}
+    {% endblock %}
+
+    <!-- device info -->
+    <div style="margin: 30px auto 0px; max-width: 600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%">
+        <tbody>
+          <tr>
+            <td style="direction: ltr; font-size: 0px; padding: 0; text-align: center">
+              <div class="mj-column-per-100 mj-outlook-group-fix" style="
+                font-size: 0px;
+                text-align: left;
+                direction: ltr;
+                display: inline-block;
+                vertical-align: top;
+                width: 100%;
+              ">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align: top; padding: 0">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style=""
+                            width="100%">
+                            <tbody>
+                              <tr>
+                                <td align="left" style="
+                                  font-size: 0px;
+                                  padding: 10px 25px;
+                                  word-break: break-word;
+                                ">
+                                  <div style="
+                                    font-family: Roboto, Arial;
+                                    font-size: 12px;
+                                    font-weight: 400;
+                                    line-height: 120%;
+                                    text-align: left;
+                                    color: #222222;
+                                  ">
+                                    {% if date_now %}
+                                      <p style="margin: auto;">
+                                        <span style="font-weight: 700;">Date:</span> {{ date_now | safe }}
+                                      </p>
+                                    {% endif %}
+                                    {% if ip_address %}
+                                      <p style="margin: auto;">
+                                        <span style="font-weight: 700;">IP Address:</span> {{ ip_address | safe }}
+                                      </p>
+                                    {% endif %}
+                                    {% if device_type %}
+                                      <p style="margin: auto;">
+                                        <span style="font-weight: 700;">Device type:</span> {{ device_type | safe }}
+                                      </p>
+                                    {% endif %}
+                                  </div>
+                                </td>
+                              </tr>
+                            </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- footer -->
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:20px;line-height:20px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0px;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0px;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td align="center" style="font-size:0px;padding:0;word-break:break-word;">
+                                <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" ><tr><td><![endif]-->
+                                <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                  style="float:none;display:inline-table;">
+                                  <tbody>
+                                    <tr>
+                                      <td style="padding:4px;vertical-align:middle;">
+                                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                          style="border-radius:3px;width:18px;">
+                                          <tbody>
+                                            <tr>
+                                              <td style="font-size:0;height:18px;vertical-align:middle;width:18px;">
+                                                <a href="https://github.com/defguard/defguard/" target="_blank">
+                                                  <img style="border-radius:3px;display:block;" width="18" height="18"
+                                                    alt="Github"
+                                                    src="https://defguard.net/images/decap/github_black.png" />
+                                                </a>
+                                              </td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if mso | IE]></td><td><![endif]-->
+                                <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                  style="float:none;display:inline-table;">
+                                  <tbody>
+                                    <tr>
+                                      <td style="padding:4px;padding-left:20px;vertical-align:middle;">
+                                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                          style="border-radius:3px;width:18px;">
+                                          <tbody>
+                                            <tr>
+                                              <td style="font-size:0;height:18px;vertical-align:middle;width:18px;">
+                                                <a href="https://matrix.to/#/#defguard:teonite.com" target="_blank">
+                                                  <img alt="Matrix" height="18" style="border-radius:3px;display:block;"
+                                                    width="18"
+                                                    src="https://defguard.net/images/decap/matrix-icon.png" />
+                                                </a>
+                                              </td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if mso | IE]></td><td><![endif]-->
+                                <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                  style="float:none;display:inline-table;">
+                                  <tbody>
+                                    <tr>
+                                      <td style="padding:4px;padding-left:20px;vertical-align:middle;">
+                                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                          style="border-radius:3px;width:18px;">
+                                          <tbody>
+                                            <tr>
+                                              <td style="font-size:0;height:18px;vertical-align:middle;width:18px;">
+                                                <a href="https://floss.social/@defguard" target="_blank">
+                                                  <img alt="Mastodon" style="border-radius:3px;display:block;"
+                                                    width="18" height="18"
+                                                    src="https://defguard.net/images/decap/mastodon.png" />
+                                                </a>
+                                              </td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if mso | IE]></td><td><![endif]-->
+                                <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                  style="float:none;display:inline-table;">
+                                  <tbody>
+                                    <tr>
+                                      <td style="padding:4px;padding-left:20px;vertical-align:middle;">
+                                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"
+                                          style="border-radius:3px;width:18px;">
+                                          <tbody>
+                                            <tr>
+                                              <td style="font-size:0;height:18px;vertical-align:middle;width:18px;">
+                                                <a href="https://twitter.com/defguard_net/" target="_blank">
+                                                  <img alt="Twitter" height="18"
+                                                    style="border-radius:3px;display:block;" width="18"
+                                                    src="https://defguard.net/images/decap/twitter_black.png" />
+                                                </a>
+                                              </td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if mso | IE]></td></tr></table><![endif]-->
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:20px;line-height:20px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td align="center" style="font-size:0px;padding:0;word-break:break-word;">
+                                <div
+                                  style="font-family:Poppins, Arial;font-size:10px;font-weight:300;line-height:120%;text-align:center;color:#899CA8;">
+                                  Copyright © {{ current_year }} <a href="https://teonite.com" target="_blank"
+                                    style="text-decoration: none; color: #899CA8;">teonite</a></br> Sent by Defguard
+                                  v.{{ application_version }}</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    <div style="margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+        <tbody>
+          <tr>
+            <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+              <div class="mj-column-per-100 mj-outlook-group-fix"
+                style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:top;padding:0;">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%">
+                          <tbody>
+                            <tr>
+                              <td style="font-size:0px;word-break:break-word;">
+                                <div style="height:20px;line-height:20px;">&#8202;</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!--[if mso | IE]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!--[if mso | IE]></td></tr></table><![endif]-->
+  </div>
+</body>
+
+</html>

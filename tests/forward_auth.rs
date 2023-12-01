@@ -1,13 +1,11 @@
-use defguard::{db::Wallet, handlers::Auth, SERVER_CONFIG};
-use rocket::{
-    http::{Cookie, Header, Status},
-    local::asynchronous::Client,
-};
-
 mod common;
-use self::common::make_test_client;
 
-async fn make_client() -> Client {
+use axum::http::StatusCode;
+use defguard::{db::Wallet, handlers::Auth, SERVER_CONFIG};
+
+use self::common::{client::TestClient, make_test_client};
+
+async fn make_client() -> TestClient {
     let (client, client_state) = make_test_client().await;
 
     let mut wallet = Wallet::new_for_user(
@@ -22,21 +20,21 @@ async fn make_client() -> Client {
     client
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_forward_auth() {
-    let client = make_client().await;
+    let mut client = make_client().await;
 
     // auth request from reverse proxy
     let response = client
         .get("/api/v1/forward_auth")
-        .header(Header::new("x-forwarded-host", "app.example.com"))
-        .header(Header::new("x-forwarded-uri", "/test"))
-        .dispatch()
+        .header("x-forwarded-host", "app.example.com")
+        .header("x-forwarded-uri", "/test")
+        .send()
         .await;
-    assert_eq!(response.status(), Status::TemporaryRedirect);
+    assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
     let headers = response.headers();
     assert_eq!(
-        headers.get_one("location").unwrap(),
+        headers.get("location").unwrap().to_str().unwrap(),
         format!(
             "{}auth/login?r={}",
             SERVER_CONFIG.get().unwrap().url,
@@ -46,19 +44,22 @@ async fn test_forward_auth() {
 
     // login
     let auth = Auth::new("hpotter".into(), "pass123".into());
-    let response = client.post("/api/v1/auth").json(&auth).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // store auth cookie for later use
-    let auth_cookie = response.cookies().get("defguard_session").unwrap().value();
+    let auth_cookie = response
+        .cookies()
+        .find(|c| c.name() == "defguard_session")
+        .unwrap();
 
     // make another auth request after logging in
+    client.set_cookie(&auth_cookie);
     let response = client
         .get("/api/v1/forward_auth")
-        .cookie(Cookie::new("defguard_session", auth_cookie))
-        .header(Header::new("x-forwarded-host", "app.example.com"))
-        .header(Header::new("x-forwarded-uri", "/test"))
-        .dispatch()
+        .header("x-forwarded-host", "app.example.com")
+        .header("x-forwarded-uri", "/test")
+        .send()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 }

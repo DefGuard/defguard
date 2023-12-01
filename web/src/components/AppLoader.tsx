@@ -29,14 +29,12 @@ export const AppLoader = () => {
   const {
     getAppInfo,
     user: { getMe },
-    settings: { getSettings },
-    license: { getLicense },
+    settings: { getEssentialSettings },
   } = useApi();
   const [userLoading, setUserLoading] = useState(true);
   const { setLocale } = useI18nContext();
   const activeLanguage = useAppStore((state) => state.language);
-  const setAppStore = useAppStore((state) => state.setAppStore);
-  const license = useAppStore((state) => state.license);
+  const setAppStore = useAppStore((state) => state.setState);
   const { LL } = useI18nContext();
 
   useQuery([QueryKeys.FETCH_ME], getMe, {
@@ -69,30 +67,14 @@ export const AppLoader = () => {
     enabled: !isUndefined(currentUser),
   });
 
-  const { isLoading: settingsLoading } = useQuery(
-    [QueryKeys.FETCH_SETTINGS],
-    getSettings,
+  const { isLoading: settingsLoading, data: essentialSettings } = useQuery(
+    [QueryKeys.FETCH_ESSENTAIL_SETTINGS],
+    getEssentialSettings,
     {
-      onSuccess: (settings) => {
-        setAppStore({ settings });
-      },
-      onError: () => {
-        console.clear();
-      },
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
     },
   );
-
-  const { isLoading: licenseLoading } = useQuery([QueryKeys.FETCH_LICENSE], getLicense, {
-    onSuccess: (data) => {
-      setAppStore({ license: data });
-    },
-    onError: () => {
-      toaster.error(LL.messages.errorLicense());
-    },
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
 
   useEffect(() => {
     if (!activeLanguage) {
@@ -114,19 +96,17 @@ export const AppLoader = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLanguage]);
 
+  // setAppSettings
   useEffect(() => {
-    if (appSettings && appSettings.instance_name) {
-      if (document.title !== appSettings.instance_name) {
-        document.title = appSettings.instance_name;
+    if (essentialSettings) {
+      if (document.title !== essentialSettings.instance_name) {
+        document.title = essentialSettings.instance_name;
       }
+      setAppStore({ settings: essentialSettings });
     }
-  }, [appSettings]);
+  }, [essentialSettings, setAppStore]);
 
-  if (
-    userLoading ||
-    (settingsLoading && isUndefined(appSettings)) ||
-    (licenseLoading && isUndefined(license))
-  ) {
+  if (userLoading || (settingsLoading && isUndefined(appSettings))) {
     return <LoaderPage />;
   }
 

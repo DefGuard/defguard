@@ -1,6 +1,6 @@
 target/
 defguard.db*
-.volumes
+.volumes*
 node_modules
 .DS_Store
 dist
@@ -10,3 +10,6 @@ build
 ladle-build
 .idea/
 .vscode/
+.envrc
+.direnv/
+*.pem

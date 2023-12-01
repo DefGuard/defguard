@@ -1,7 +1,6 @@
-import { expect, Page } from '@playwright/test';
-import { BrowserContext } from 'playwright';
+import { Browser, expect, Page } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
+import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { getPageClipboard } from '../getPageClipboard';
 import { waitForBase } from '../waitForBase';
@@ -17,10 +16,10 @@ type EnrollmentResponse = {
 };
 
 export const createUserEnrollment = async (
-  context: BrowserContext,
-  username: string
+  browser: Browser,
+  user: User
 ): Promise<EnrollmentResponse> => {
-  const user: User = { ...testUserTemplate, username };
+  const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
   await page.goto(routes.base + routes.auth.login);
@@ -41,26 +40,18 @@ export const createUserEnrollment = async (
   const enrollmentForm = modalElement.getByTestId('start-enrollment-form');
   await enrollmentForm.locator('.toggle-option').nth(1).click();
   await enrollmentForm.locator('button[type="submit"]').click();
+  waitForPromise(2000);
   // Copy to clipboard
-  await modalElement
-    .locator('.step-content')
-    .locator('#enrollment-token-step')
-    .locator('.expandable-card')
-    .locator('.top')
-    .locator('.actions')
-    .locator('button')
-    .click();
-
-  await modalElement
-    .locator('.step-content')
-    .locator('#enrollment-token-step')
-    .locator('.controls')
-    .locator('button')
-    .click();
+  const tokenStep = modalElement.locator('#enrollment-token-step');
+  await tokenStep.getByTestId('copy-enrollment-token').click();
+  const token = await getPageClipboard(page);
+  expect(token.length).toBeGreaterThan(0);
+  // close modal
+  await modalElement.locator('.controls button.cancel').click();
   await modalElement.waitFor({ state: 'hidden' });
-  const response = (await getPageClipboard(page)).split('\n');
-  const token = response[1].split(' ')[1];
+  // logout
   await logout(page);
+  await context.close();
   return { user, token };
 };
 

@@ -1,0 +1,31 @@
+@use '@scssutils' as *;
+
+#add-device-page {
+  #setup-method-step {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: center;
+    column-gap: 50px;
+    row-gap: 25px;
+
+    @include media-breakpoint-up(lg) {
+      display: grid;
+      grid-template-rows: auto;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 50px;
+      row-gap: 0;
+      align-items: start;
+      justify-content: center;
+    }
+
+    :nth-child(1) {
+      .logo-wrapper {
+        svg {
+          width: 212px;
+          height: auto;
+        }
+      }
+    }
+  }
+}
