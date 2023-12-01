@@ -86,16 +86,24 @@ pub fn enrollment_start_mail(
     mut enrollment_service_url: Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
+
+    // add required context
+    context.insert("enrollment_url", &enrollment_service_url.to_string());
+    context.insert(
+        "defguard_url",
+        &SERVER_CONFIG.get().expect("Server config not found").url,
+    );
+    context.insert("token", enrollment_token);
+
     // prepare enrollment service URL
     enrollment_service_url
         .query_pairs_mut()
         .append_pair("token", enrollment_token);
 
-    let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
+    context.insert("link_url", &enrollment_service_url.to_string());
 
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
-
-    context.insert("url", &enrollment_service_url.to_string());
 
     Ok(tera.render("mail_enrollment_start", &context)?)
 }
@@ -260,6 +268,7 @@ pub fn email_mfa_code_mail(code: u32, session: &Session) -> Result<String, Templ
 
 #[cfg(test)]
 mod test {
+    use crate::config::DefGuardConfig;
     use claims::assert_ok;
 
     use super::*;
@@ -302,6 +311,7 @@ mod test {
 
     #[test]
     fn test_enrollment_start_mail() {
+        SERVER_CONFIG.set(DefGuardConfig::default()).unwrap();
         assert_ok!(enrollment_start_mail(
             Context::new(),
             Url::parse("http://localhost:8080").unwrap(),
