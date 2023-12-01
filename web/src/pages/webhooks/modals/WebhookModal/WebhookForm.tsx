@@ -18,13 +18,7 @@ import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
-import {
-  patternAtLeastOneDigit,
-  patternAtLeastOneLowerCaseChar,
-  patternAtLeastOneSpecialChar,
-  patternAtLeastOneUpperCaseChar,
-  patternValidUrl,
-} from '../../../../shared/patterns';
+import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 import { Webhook } from '../../../../shared/types';
 
@@ -95,10 +89,7 @@ export const WebhookForm = () => {
           token: yup
             .string()
             .required(LL.modals.webhookModal.form.error.tokenRequired())
-            .matches(patternAtLeastOneDigit, LL.form.error.oneDigit())
-            .matches(patternAtLeastOneUpperCaseChar, LL.form.error.oneUppercase())
-            .matches(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
-            .matches(patternAtLeastOneLowerCaseChar, LL.form.error.oneLowercase())
+            .min(3, LL.form.error.minimumLength())
             .max(250, LL.form.error.maximumLength()),
           enabled: yup.boolean(),
           on_user_created: yup.boolean().test({
