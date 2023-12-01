@@ -55,7 +55,7 @@ impl AppState {
                 };
                 for webhook in webhooks {
                     match reqwest_client
-                        .get(&webhook.url)
+                        .post(&webhook.url)
                         .bearer_auth(&webhook.token)
                         .header("x-defguard-event", event)
                         .json(&payload)
