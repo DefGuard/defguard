@@ -53,6 +53,7 @@ export const SmtpSettingsForm = () => {
   const { mutate, isLoading } = useMutation(patchSettings, {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (err) => {
