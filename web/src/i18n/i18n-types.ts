@@ -207,6 +207,10 @@ type RootTranslation = {
 				 * A​c​t​i​v​a​t​e​ ​d​e​s​k​t​o​p
 				 */
 				submitDesktop: string
+				/**
+				 * C​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​t​o​ ​s​e​n​d​ ​t​o​k​e​n​ ​b​y​ ​e​m​a​i​l​.​ ​G​o​ ​t​o​ ​S​e​t​t​i​n​g​s​ ​-​>​ ​S​M​T​P​.
+				 */
+				smtpDisabled: string
 			}
 			tokenCard: {
 				/**
@@ -3724,6 +3728,10 @@ export type TranslationFunctions = {
 				 * Activate desktop
 				 */
 				submitDesktop: () => LocalizedString
+				/**
+				 * Configure SMTP to send token by email. Go to Settings -> SMTP.
+				 */
+				smtpDisabled: () => LocalizedString
 			}
 			tokenCard: {
 				/**

@@ -75,6 +75,7 @@ const en: BaseTranslation = {
         },
         submit: 'Start enrollment',
         submitDesktop: 'Activate desktop',
+        smtpDisabled: 'Configure SMTP to send token by email. Go to Settings -> SMTP.',
       },
       tokenCard: {
         title: 'Activation token',

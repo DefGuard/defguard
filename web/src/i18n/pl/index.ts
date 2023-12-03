@@ -99,6 +99,8 @@ const pl: Translation = {
         },
         submit: 'Rozpocznij rejestrację',
         submitDesktop: 'Aktywacja desktop',
+        smtpDisabled:
+          'Skonfiguruj SMTP, żeby wysłać token emailem. Przejdź do Ustawienia -> SMTP.',
       },
       tokenCard: {
         title: 'Token aktywacji',
