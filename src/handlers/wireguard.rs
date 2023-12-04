@@ -514,13 +514,14 @@ pub async fn add_device(
         })
         .collect();
 
+    // FIXME: remove session info for admin
     send_new_device_added_email(
         &device.name,
         &device.wireguard_pubkey,
         &template_locations,
         &user.email,
         &appstate.mail_tx,
-        session.session.ip_address.clone(),
+        Some(session.session.ip_address.clone()),
         session.session.device_info.clone(),
     )
     .await?;
