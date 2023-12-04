@@ -13,6 +13,10 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:8000/',
         changeOrigin: true,
+        headers: {
+          'X-Forwarded-For': '1.1.1.4',
+          'X-Real-Ip': '1.1.1.3',
+        },
       },
       '/.well-known': {
         target: 'http://127.0.0.1:8000/',

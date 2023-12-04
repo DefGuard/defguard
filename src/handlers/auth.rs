@@ -1,10 +1,10 @@
 use axum::{
     extract::{Json, State},
     headers::UserAgent,
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     TypedHeader,
 };
-use axum_client_ip::InsecureClientIp;
+use axum_client_ip::SecureClientIp;
 use secrecy::ExposeSecret;
 use serde_json::json;
 use sqlx::types::Uuid;
@@ -42,7 +42,7 @@ use crate::{
 pub async fn authenticate(
     cookies: Cookies,
     user_agent: Option<TypedHeader<UserAgent>>,
-    InsecureClientIp(ip): InsecureClientIp,
+    SecureClientIp(ip): SecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
 ) -> ApiResult {
