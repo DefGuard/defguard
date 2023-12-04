@@ -352,7 +352,7 @@ mod test {
             "Test device",
             "TestKey",
             &template_locations,
-            "1.1.1.1".to_string(),
+            Some("1.1.1.1".to_string()),
             None,
         ));
     }
