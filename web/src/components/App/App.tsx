@@ -32,8 +32,22 @@ const App = () => {
       <div id="app">
         <Router>
           <Routes>
-            <Route path="add-device" element={<AddDevicePage />} />
-            <Route path="support/*" element={<SupportPage />} />
+            <Route
+              path="add-device"
+              element={
+                <ProtectedRoute>
+                  <AddDevicePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="support/*"
+              element={
+                <ProtectedRoute>
+                  <SupportPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="auth/*" element={<AuthPage />} />
             <Route path="admin/*">
               <Route index element={<Navigate to="users" />} />
