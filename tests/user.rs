@@ -579,7 +579,26 @@ async fn test_user_add_device() {
     let mut mail_rx = state.mail_rx;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
+    // log in as admin
     let auth = Auth::new("admin".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header)
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&make_network())
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // log in as normal user
+    let auth = Auth::new("hpotter".into(), "pass123".into());
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header)
@@ -591,20 +610,12 @@ async fn test_user_add_device() {
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-
     let device_data = AddDevice {
         name: "TestDevice".into(),
         wireguard_pubkey: "mgVXE8WcfStoD8mRatHcX5aaQ0DlcpjvPXibHEOr9y8=".into(),
     };
     let response = client
-        .post("/api/v1/device/admin")
+        .post("/api/v1/device/hpotter")
         .header(USER_AGENT, user_agent_header)
         .json(&device_data)
         .send()
@@ -612,10 +623,29 @@ async fn test_user_add_device() {
 
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    // First email recevied is regarding the device login
-    mail_rx.try_recv().unwrap();
+    // First email received is regarding admin login
     let mail = mail_rx.try_recv().unwrap();
     assert_eq!(mail.to, "admin@defguard");
+    assert_eq!(
+        mail.subject,
+        "Defguard: new device logged in to your account"
+    );
+
+    // First email received is regarding user login
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "Defguard: new device logged in to your account"
+    );
+    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(mail
+        .content
+        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+
+    // Third email received is regarding new device being added
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
     assert_eq!(mail.subject, "Defguard: new device added to your account");
     assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
     assert!(mail
