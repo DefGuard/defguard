@@ -12,7 +12,6 @@ use axum::{
     routing::{delete, get, patch, post, put},
     Extension, Router, Server,
 };
-use axum_client_ip::SecureClientIpSource;
 use handlers::settings::{get_settings_essentials, patch_settings, test_ldap_settings};
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -316,7 +315,6 @@ pub fn build_webapp(
                 })
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
-        .layer(SecureClientIpSource::XRealIp.into_extension())
 }
 
 /// Runs core web server exposing REST API.

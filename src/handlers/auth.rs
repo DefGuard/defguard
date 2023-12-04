@@ -4,7 +4,7 @@ use axum::{
     http::StatusCode,
     TypedHeader,
 };
-use axum_client_ip::SecureClientIp;
+use axum_client_ip::LeftmostXForwardedFor;
 use secrecy::ExposeSecret;
 use serde_json::json;
 use sqlx::types::Uuid;
@@ -42,7 +42,7 @@ use crate::{
 pub async fn authenticate(
     cookies: Cookies,
     user_agent: Option<TypedHeader<UserAgent>>,
-    SecureClientIp(ip): SecureClientIp,
+    LeftmostXForwardedFor(ip): LeftmostXForwardedFor,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
 ) -> ApiResult {

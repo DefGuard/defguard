@@ -14,8 +14,8 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000/',
         changeOrigin: true,
         headers: {
-          'X-Forwarded-For': '1.1.1.4',
-          'X-Real-Ip': '1.1.1.3',
+          'X-Forwarded-For': '10.0.0.20, 10.1.1.10',
+          'X-Real-Ip': '10.1.1.10',
         },
       },
       '/.well-known': {
