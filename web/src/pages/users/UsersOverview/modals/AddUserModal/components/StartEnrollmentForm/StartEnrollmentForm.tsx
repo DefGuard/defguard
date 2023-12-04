@@ -15,7 +15,10 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { ToggleOption } from '../../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
+import { useAppStore } from '../../../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import { StartEnrollmentRequest } from '../../../../../../../shared/types';
@@ -36,6 +39,8 @@ export const StartEnrollmentForm = () => {
   const {
     user: { startEnrollment, startDesktopActivation },
   } = useApi();
+
+  const smtpEnabled = useAppStore((state) => state.appInfo?.smtp_enabled);
 
   const user = useAddUserModal((state) => state.user);
   const desktop = useAddUserModal((state) => state.desktop);
@@ -77,7 +82,7 @@ export const StartEnrollmentForm = () => {
     mode: 'all',
     defaultValues: {
       email: user?.email ?? '',
-      mode: EnrollmentMode.EMAIL,
+      mode: smtpEnabled ? EnrollmentMode.EMAIL : EnrollmentMode.MANUAL,
     },
   });
 
@@ -143,6 +148,7 @@ export const StartEnrollmentForm = () => {
       {
         text: LL.modals.startEnrollment.form.mode.options.email(),
         value: EnrollmentMode.EMAIL,
+        disabled: !smtpEnabled,
       },
       {
         text: LL.modals.startEnrollment.form.mode.options.manual(),
@@ -150,7 +156,7 @@ export const StartEnrollmentForm = () => {
       },
     ];
     return res;
-  }, [LL.modals.startEnrollment.form.mode.options]);
+  }, [LL.modals.startEnrollment.form.mode.options, smtpEnabled]);
 
   useEffect(() => {
     const sub = watch((_, { name }) => {
@@ -169,6 +175,13 @@ export const StartEnrollmentForm = () => {
       data-testid="start-enrollment-form"
       onSubmit={handleSubmit(onSubmit)}
     >
+      {!smtpEnabled && (
+        <MessageBox
+          style={{ marginBottom: 20 }}
+          type={MessageBoxType.WARNING}
+          message={LL.modals.startEnrollment.form.smtpDisabled()}
+        />
+      )}
       <FormToggle options={toggleOptions} controller={{ control, name: 'mode' }} />
       <FormInput
         label={LL.modals.startEnrollment.form.email.label()}
