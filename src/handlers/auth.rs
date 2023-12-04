@@ -1,11 +1,10 @@
-use std::net::SocketAddr;
-
 use axum::{
-    extract::{ConnectInfo, Json, State},
+    extract::{Json, State},
     headers::UserAgent,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     TypedHeader,
 };
+use axum_client_ip::InsecureClientIp;
 use secrecy::ExposeSecret;
 use serde_json::json;
 use sqlx::types::Uuid;
@@ -43,7 +42,7 @@ use crate::{
 pub async fn authenticate(
     cookies: Cookies,
     user_agent: Option<TypedHeader<UserAgent>>,
-    ConnectInfo(connect_info): ConnectInfo<SocketAddr>,
+    InsecureClientIp(ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
 ) -> ApiResult {
@@ -80,7 +79,7 @@ pub async fn authenticate(
         }
     };
 
-    let ip_address = connect_info.ip().to_string();
+    let ip_address = ip.to_string();
     let user_agent_string = match user_agent {
         Some(value) => value.to_string(),
         None => String::new(),
