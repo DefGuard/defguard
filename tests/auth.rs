@@ -1049,3 +1049,29 @@ async fn test_new_device_login() {
         .content
         .contains("Device type:</span> SM-G930VC, OS: Android 7.0, Chrome Mobile WebView"));
 }
+
+#[tokio::test]
+async fn test_login_ip_headers() {
+    let (client, state) = make_test_client().await;
+    let mut mail_rx = state.mail_rx;
+    let user_agent_header_iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+
+    // Works with X-Forwarded-For header
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client
+        .post("/api/v1/auth")
+        .header(USER_AGENT, user_agent_header_iphone)
+        .header("X-Forwarded-For", "10.0.0.20, 10.1.1.10")
+        .json(&auth)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject,
+        "Defguard: new device logged in to your account"
+    );
+    assert!(mail.content.contains("IP Address:</span> 10.0.0.20"));
+}
