@@ -4,7 +4,7 @@ use axum::{
     http::StatusCode,
     TypedHeader,
 };
-use axum_client_ip::LeftmostXForwardedFor;
+use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
 use secrecy::ExposeSecret;
 use serde_json::json;
 use sqlx::types::Uuid;
@@ -42,7 +42,8 @@ use crate::{
 pub async fn authenticate(
     cookies: Cookies,
     user_agent: Option<TypedHeader<UserAgent>>,
-    LeftmostXForwardedFor(ip): LeftmostXForwardedFor,
+    forwarded_for_ip: Option<LeftmostXForwardedFor>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
 ) -> ApiResult {
@@ -79,7 +80,7 @@ pub async fn authenticate(
         }
     };
 
-    let ip_address = ip.to_string();
+    let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0).to_string();
     let user_agent_string = match user_agent {
         Some(value) => value.to_string(),
         None => String::new(),
