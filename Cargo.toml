@@ -10,6 +10,7 @@ model_derive = { path = "model-derive" }
 anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
 axum = { version = "0.6", features = ["headers"] }
+axum-client-ip = "0.4"
 base64 = "0.21"
 bincode = "1.3"
 chrono = { version = "0.4", default-features = false, features = [
@@ -83,7 +84,6 @@ webauthn-rs = { version = "0.4", features = [
 webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 struct-patch = "0.4"
-axum-client-ip = "0.4.2"
 
 [dev-dependencies]
 bytes = "1.5"
