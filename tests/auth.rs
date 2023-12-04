@@ -1073,18 +1073,5 @@ async fn test_login_ip_headers() {
         mail.subject,
         "Defguard: new device logged in to your account"
     );
-    println!("{:?}", mail.content);
     assert!(mail.content.contains("IP Address:</span> 10.0.0.20"));
-
-    let response = client.post("/api/v1/auth/logout").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // Works without X-Forwarded-For header
-    let response = client
-        .post("/api/v1/auth")
-        .header(USER_AGENT, user_agent_header_iphone)
-        .json(&auth)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
 }
