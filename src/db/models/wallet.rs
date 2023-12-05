@@ -101,7 +101,8 @@ impl Wallet {
         let signature_array = hex_decode(signature).map_err(|_| Web3Error::Decode)?;
         let typed_data: TypedData = serde_json::from_str(message).map_err(|_| Web3Error::Decode)?;
         let hash_msg = typed_data.encode_eip712().map_err(|_| Web3Error::Decode)?;
-        let message = Message::from_slice(&hash_msg).map_err(|_| Web3Error::InvalidMessage)?;
+        let message =
+            Message::from_digest_slice(&hash_msg).map_err(|_| Web3Error::InvalidMessage)?;
         if signature_array.len() != 65 {
             return Err(Web3Error::InvalidMessage);
         }
