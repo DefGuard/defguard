@@ -514,8 +514,8 @@ pub async fn add_device(
         })
         .collect();
 
-    // hide session info if triggered by admin
-    let (session_ip, session_device_info) = if session.is_admin {
+    // hide session info if triggered by admin for other user
+    let (session_ip, session_device_info) = if session.is_admin && session.user != user {
         (None, None)
     } else {
         (
