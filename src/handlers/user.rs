@@ -543,7 +543,7 @@ pub async fn set_wallet(
 }
 
 /// Change wallet.
-/// Currenly only `use_for_mfa` flag can be set or unset.
+/// Currently only `use_for_mfa` flag can be set or unset.
 pub async fn update_wallet(
     session: SessionInfo,
     Path((username, address)): Path<(String, String)>,
