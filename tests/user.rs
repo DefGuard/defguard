@@ -624,9 +624,7 @@ async fn test_user_add_device() {
     assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
     assert_eq!(mail.subject, "Defguard: new device added to your account");
     assert!(!mail.content.contains("IP Address:</span>"));
-    assert!(!mail
-        .content
-        .contains("Device type:</span>"));
+    assert!(!mail.content.contains("Device type:</span>"));
 
     // add device for themselves
     let device_data = AddDevice {
