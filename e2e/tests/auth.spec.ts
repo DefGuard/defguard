@@ -78,7 +78,7 @@ test.describe('Test user authentication', () => {
     await page.goto(routes.base + routes.auth.email);
     const code = totp(secret, {
       digits: 6,
-      period: 60 * 15,
+      period: 60,
     });
     await page.getByTestId('field-code').type(code);
     await page.locator('button[type="submit"]').click();
