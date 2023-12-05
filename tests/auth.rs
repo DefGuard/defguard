@@ -756,7 +756,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
 fn sign_message(message: &str, secp: &Secp256k1<All>, secret_key: SecretKey) -> String {
     let typed_data: TypedData = serde_json::from_str(message).unwrap();
     let hash_msg = typed_data.encode_eip712().unwrap();
-    let message = Message::from_slice(&hash_msg).unwrap();
+    let message = Message::from_digest_slice(&hash_msg).unwrap();
     let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
     let (rec_id, sig) = sig_r.serialize_compact();
 
