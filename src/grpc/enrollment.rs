@@ -354,7 +354,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             &template_locations,
             &user.email,
             &self.mail_tx,
-            ip_address,
+            Some(ip_address),
             device_info,
         )
         .await

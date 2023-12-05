@@ -514,14 +514,23 @@ pub async fn add_device(
         })
         .collect();
 
+    // hide session info if triggered by admin for other user
+    let (session_ip, session_device_info) = if session.is_admin && session.user != user {
+        (None, None)
+    } else {
+        (
+            Some(session.session.ip_address.clone()),
+            session.session.device_info.clone(),
+        )
+    };
     send_new_device_added_email(
         &device.name,
         &device.wireguard_pubkey,
         &template_locations,
         &user.email,
         &appstate.mail_tx,
-        session.session.ip_address.clone(),
-        session.session.device_info.clone(),
+        session_ip,
+        session_device_info,
     )
     .await?;
 

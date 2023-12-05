@@ -180,10 +180,10 @@ pub fn new_device_added_mail(
     device_name: &str,
     public_key: &str,
     template_locations: &Vec<TemplateLocation>,
-    ip_address: String,
+    ip_address: Option<String>,
     device_info: Option<String>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, None, Some(ip_address), device_info)?;
+    let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
     context.insert("device_name", device_name);
     context.insert("public_key", public_key);
     context.insert("locations", template_locations);
@@ -352,7 +352,7 @@ mod test {
             "Test device",
             "TestKey",
             &template_locations,
-            "1.1.1.1".to_string(),
+            Some("1.1.1.1".to_string()),
             None,
         ));
     }
