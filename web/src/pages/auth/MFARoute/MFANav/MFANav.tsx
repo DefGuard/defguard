@@ -17,7 +17,7 @@ export const MFANav = () => {
 
   const totpRoute = useMatch('/auth/mfa/totp');
   const web3Route = useMatch('/auth/mfa/web3');
-  const webAuthNRoute = useMatch('/auth/mfa/webautn');
+  const webAuthNRoute = useMatch('/auth/mfa/webauthn');
   const emailRoute = useMatch('/auth/mfa/email');
   const recoveryRoute = useMatch('/auth/mfa/recovery');
 
@@ -104,7 +104,7 @@ export const MFANav = () => {
           onClick={() => navigate(link.link, { replace: true })}
         />
       ))}
-      {!recoveryRoute !== null && (
+      {!recoveryRoute && (
         <Button
           text={LL.loginPage.mfa.controls.useRecoveryCode()}
           size={ButtonSize.LARGE}
