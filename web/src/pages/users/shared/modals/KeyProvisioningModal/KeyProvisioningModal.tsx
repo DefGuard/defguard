@@ -13,7 +13,10 @@ import SvgIconCancel from '../../../../../shared/components/svg/IconCancel';
 import IconHamburgerClose from '../../../../../shared/components/svg/IconHamburgerClose';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
-import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { LoaderSpinner } from '../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
@@ -175,8 +178,17 @@ export const KeyProvisioningModal = () => {
           </section>
           {isLoading || !workers || (workers && !workers.length) ? (
             <div className="loader">
-              <LoaderSpinner size={80} />
+              <LoaderSpinner size={180} />
               <p>{LL.modals.provisionKeys.noData.workers()}</p>
+              <div className="controls">
+                <Button
+                  styleVariant={ButtonStyleVariant.STANDARD}
+                  className="cancel"
+                  size={ButtonSize.LARGE}
+                  text={LL.common.controls.cancel()}
+                  onClick={() => setModalState({ visible: false })}
+                />
+              </div>
             </div>
           ) : (
             <WorkerSelectionForm
