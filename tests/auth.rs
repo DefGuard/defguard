@@ -1,7 +1,7 @@
 mod common;
 
-use crate::common::ClientState;
-use axum::http::StatusCode;
+use std::{str::FromStr, time::SystemTime};
+
 use claims::assert_err;
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
@@ -12,16 +12,15 @@ use defguard::{
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use otpauth::TOTP;
-use reqwest::header::USER_AGENT;
+use reqwest::{header::USER_AGENT, StatusCode};
 use secp256k1::{rand::rngs::OsRng, All, Message, Secp256k1, SecretKey};
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::query;
-use std::{str::FromStr, time::SystemTime};
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
-use self::common::{client::TestClient, make_test_client};
+use self::common::{client::TestClient, make_test_client, ClientState, X_FORWARDED_FOR};
 
 #[derive(Deserialize)]
 pub struct RecoveryCodes {
@@ -756,7 +755,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
 fn sign_message(message: &str, secp: &Secp256k1<All>, secret_key: SecretKey) -> String {
     let typed_data: TypedData = serde_json::from_str(message).unwrap();
     let hash_msg = typed_data.encode_eip712().unwrap();
-    let message = Message::from_slice(&hash_msg).unwrap();
+    let message = Message::from_digest_slice(&hash_msg).unwrap();
     let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
     let (rec_id, sig) = sig_r.serialize_compact();
 
@@ -1061,7 +1060,7 @@ async fn test_login_ip_headers() {
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header_iphone)
-        .header("X-Forwarded-For", "10.0.0.20, 10.1.1.10")
+        .header(X_FORWARDED_FOR, "10.0.0.20, 10.1.1.10")
         .json(&auth)
         .send()
         .await;

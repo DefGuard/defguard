@@ -9,8 +9,9 @@ edition = "2021"
 model_derive = { path = "model-derive" }
 anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
-axum = { version = "0.6", features = ["headers"] }
-axum-client-ip = "0.4"
+axum = { version = "0.7" }
+axum-client-ip = "0.5"
+axum-extra = { version = "0.9", features = ["typed-header"] }
 base64 = "0.21"
 bincode = "1.3"
 chrono = { version = "0.4", default-features = false, features = [
@@ -24,9 +25,9 @@ ethers-core = "2.0"
 humantime = "2.1"
 # match ipnetwork version from sqlx
 ipnetwork = { version = "0.20", features = ["serde"] }
-jsonwebtoken = "8.3"
+jsonwebtoken = "9.2"
 ldap3 = "0.11"
-lettre = { version = "0.10", features = ["tokio1", "tokio1-native-tls"] }
+lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 md4 = "0.10"
 otpauth = "0.4"
 openidconnect = { version = "3.4", default-features = false, optional = true }
@@ -39,7 +40,7 @@ rand_core = { version = "0.6", default-features = false, features = [
 reqwest = { version = "0.11", features = ["json"] }
 rsa = { version = "0.9", features = ["pem"] }
 rust-ini = "0.20"
-secp256k1 = { version = "0.27", features = [
+secp256k1 = { version = "0.28", features = [
     "recovery",
     "rand-std",
     "global-context",
@@ -71,8 +72,8 @@ tokio = { version = "1", features = [
 ] }
 tokio-stream = "0.1"
 tonic = { version = "0.10", features = ["gzip", "tls", "tls-roots"] }
-tower-cookies = { version = "0.9", features = ["private"] }
-tower-http = { version = "0.4", features = ["fs", "trace"] }
+tower-cookies = { version = "0.10", features = ["private"] }
+tower-http = { version = "0.5", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uaparser = "0.6"

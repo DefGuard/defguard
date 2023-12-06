@@ -31,6 +31,7 @@ pub fn parse_user_agent<'a>(
     }
 }
 
+#[must_use]
 pub fn get_device_info(
     user_agent_parser: &Arc<UserAgentParser>,
     user_agent: &str,

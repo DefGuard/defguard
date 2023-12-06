@@ -2,7 +2,6 @@ mod common;
 
 use std::sync::{Arc, Mutex};
 
-use axum::http::StatusCode;
 use defguard::{
     grpc::{worker::JobStatus, WorkerDetail, WorkerState},
     handlers::{
@@ -10,6 +9,7 @@ use defguard::{
         Auth,
     },
 };
+use reqwest::StatusCode;
 
 use self::common::{client::TestClient, make_test_client};
 

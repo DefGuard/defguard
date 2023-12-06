@@ -1,7 +1,7 @@
 mod common;
 
-use axum::http::StatusCode;
 use defguard::{db::WebHook, handlers::Auth};
+use reqwest::StatusCode;
 
 use self::common::{client::TestClient, make_test_client};
 

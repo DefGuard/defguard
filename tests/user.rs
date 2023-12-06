@@ -1,6 +1,5 @@
 mod common;
 
-use axum::http::StatusCode;
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
@@ -10,7 +9,7 @@ use defguard::{
     hex::to_lower_hex,
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
-use reqwest::header::USER_AGENT;
+use reqwest::{header::USER_AGENT, StatusCode};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde_json::{json, Value};
 use tokio_stream::{self as stream, StreamExt};
@@ -381,7 +380,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
     // Sign message
     let typed_data: TypedData = serde_json::from_str(&message).unwrap();
     let hash_msg = typed_data.encode_eip712().unwrap();
-    let message = Message::from_slice(&hash_msg).unwrap();
+    let message = Message::from_digest_slice(&hash_msg).unwrap();
 
     let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
     let (rec_id, sig) = sig_r.serialize_compact();
