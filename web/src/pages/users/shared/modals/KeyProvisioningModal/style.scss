@@ -95,10 +95,31 @@
         justify-content: center;
         margin-top: auto;
         margin-bottom: auto;
+        row-gap: 24px;
 
-        & > .no-data {
+        & > p {
           width: 100%;
           text-align: center;
+          color: var(--text-body-tertiary);
+        }
+
+        & > .controls {
+          width: 100%;
+          display: flex;
+          flex-flow: nowrap;
+          align-items: center;
+          justify-content: center;
+          box-sizing: border-box;
+          padding: 0 20px;
+
+          .btn {
+            @include media-breakpoint-down(md) {
+              width: 100%;
+            }
+            @include media-breakpoint-up(lg) {
+              min-width: 240px;
+            }
+          }
         }
       }
     }
