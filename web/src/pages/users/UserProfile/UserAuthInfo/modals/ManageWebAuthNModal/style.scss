@@ -1,17 +1,17 @@
 @use '../../../../../../shared/scss/helpers' as *;
 
 #manage-webauthn-modal {
-  padding-bottom: 2.6rem;
+  padding-bottom: 26px;
 
   & > .content {
     & > .message-box {
       box-sizing: border-box;
       min-height: 70px;
-      margin-bottom: 2rem;
+      margin-bottom: 20px;
 
       @include media-breakpoint-up(lg) {
-        width: calc(100% - 6rem);
-        margin: 0 3rem 3.4rem;
+        width: calc(100% - 60px);
+        margin: 0 30px 34px;
       }
     }
 
@@ -21,15 +21,15 @@
       box-sizing: border-box;
 
       @include media-breakpoint-down(lg) {
-        padding: 0 1.5rem;
-        row-gap: 1rem;
-        margin-bottom: 3rem;
+        padding: 0 15px;
+        row-gap: 10px;
+        margin-bottom: 30px;
       }
 
       @include media-breakpoint-up(lg) {
-        padding: 0 3rem;
-        row-gap: 2rem;
-        margin-bottom: 3.4rem;
+        padding: 0 30px;
+        row-gap: 20px;
+        margin-bottom: 34px;
       }
 
       & > .row-box {
@@ -40,10 +40,10 @@
         align-items: center;
         align-content: start;
         justify-content: start;
-        padding: 0;
+        padding: 0 20px;
+        box-sizing: border-box;
 
         & > :nth-child(1) {
-          margin-left: 2rem;
           width: 22px;
           height: 22px;
         }
@@ -55,8 +55,11 @@
           color: #444a4e;
         }
 
-        & > :nth-child(3) {
-          margin-left: 2rem;
+        .btn {
+          padding: 0;
+          width: 40px;
+          height: 40px;
+          justify-self: flex-end;
         }
       }
     }

@@ -3,77 +3,68 @@
 #auth-container {
   #mfa {
     display: flex;
-    flex-flow: column nowrap;
+    flex-flow: column;
     align-content: center;
     justify-content: center;
     align-items: center;
-    gap: 0;
+    gap: 24px;
     height: 100%;
     width: 100%;
     box-sizing: border-box;
-    padding: 3rem 1.5rem;
+    padding: 15px 10px 30px 10px;
 
-    > h1 {
-      @include typography-legacy(28px, 39px, semiBold, var(--text-main), 'Poppins');
-
-      margin-bottom: 1.5rem;
-
-      @include media-breakpoint-up(md) {
-        margin-bottom: 2.7rem;
-      }
+    h1 {
+      @include typography(app-welcome-1);
+      color: var(--text-body-primary);
+      width: 100%;
+      text-align: center;
     }
 
     & > p {
-      @include regular-text;
+      @include typography(welcome-h2);
 
       color: var(--gray-dark);
-      margin-bottom: 1.5rem;
-      line-height: 25px;
-      max-width: 334px;
       text-align: center;
-
-      @include media-breakpoint-up(md) {
-        margin-bottom: 2.7rem;
-      }
+      width: 100%;
+      max-width: 334px;
     }
 
     .btn {
-      width: 284px;
+      min-width: 284px;
+
       height: 50px;
+      min-height: 50px;
 
       span,
       p {
-        font-family: Roboto;
+        @include typography(app-button-l);
       }
     }
 
     nav,
     form {
-      width: 284px;
+      display: flex;
+      flex-flow: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 24px;
+      min-width: 284px;
+
+      & > * {
+        min-width: 284px;
+        padding: 0;
+        margin: 0;
+      }
     }
 
     & > nav {
-      margin-top: 2.4rem;
-
       & > span {
-        @include typography-legacy(12px, 14px, regular, var(--gray-light));
+        @include typography(app-modal-1);
+        color: var(--text-body-tertiary);
 
         display: block;
         width: 100%;
         text-align: center;
-        margin-bottom: 2rem;
-      }
-
-      .btn {
-        margin-bottom: 2rem;
-      }
-    }
-
-    & > form {
-      .btn {
-        &:not(:last-child) {
-          margin-bottom: 2.4rem;
-        }
       }
     }
   }
