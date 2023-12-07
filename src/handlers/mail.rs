@@ -216,8 +216,8 @@ pub async fn send_gateway_disconnected_email(
         .ok_or(WebError::ServerConfigMissing)?
         .admin_groupname;
     let admin_users = User::find_by_group_name(pool, admin_group_name).await?;
-    let gateway_name = gateway_name.unwrap_or("".into());
-    for user in admin_users.into_iter() {
+    let gateway_name = gateway_name.unwrap_or_default();
+    for user in admin_users {
         let mail = Mail {
             to: user.email,
             subject: GATEWAY_DISCONNECTED.to_string(),
@@ -232,7 +232,7 @@ pub async fn send_gateway_disconnected_email(
         let to = mail.to.clone();
 
         match mail_tx.send(mail) {
-            Ok(_) => {
+            Ok(()) => {
                 info!("Sent gateway disconnected notification to {}", &to);
             }
             Err(err) => {

@@ -1,12 +1,12 @@
 mod common;
 
-use axum::http::StatusCode;
 use claims::assert_err;
 use defguard::{
     db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
+use reqwest::StatusCode;
 use serde_json::json;
 
 use self::common::{fetch_user_details, make_test_client};

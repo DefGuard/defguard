@@ -361,7 +361,7 @@ impl WireguardNetwork {
                 .await?;
             Ok(wireguard_network_device)
         } else {
-            error!("Device {} not allowed in network {}", device, self);
+            error!("Device {device} not allowed in network {self}");
             Err(WireguardNetworkError::DeviceNotAllowed(format!(
                 "{}",
                 device

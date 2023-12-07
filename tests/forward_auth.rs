@@ -1,9 +1,9 @@
 mod common;
 
-use axum::http::StatusCode;
 use defguard::{db::Wallet, handlers::Auth, SERVER_CONFIG};
+use reqwest::StatusCode;
 
-use self::common::{client::TestClient, make_test_client};
+use self::common::{client::TestClient, make_test_client, X_FORWARDED_HOST, X_FORWARDED_URI};
 
 async fn make_client() -> TestClient {
     let (client, client_state) = make_test_client().await;
@@ -27,8 +27,8 @@ async fn test_forward_auth() {
     // auth request from reverse proxy
     let response = client
         .get("/api/v1/forward_auth")
-        .header("x-forwarded-host", "app.example.com")
-        .header("x-forwarded-uri", "/test")
+        .header(X_FORWARDED_HOST, "app.example.com")
+        .header(X_FORWARDED_URI, "/test")
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
@@ -57,8 +57,8 @@ async fn test_forward_auth() {
     client.set_cookie(&auth_cookie);
     let response = client
         .get("/api/v1/forward_auth")
-        .header("x-forwarded-host", "app.example.com")
-        .header("x-forwarded-uri", "/test")
+        .header(X_FORWARDED_HOST, "app.example.com")
+        .header(X_FORWARDED_URI, "/test")
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);

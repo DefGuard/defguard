@@ -98,6 +98,7 @@ impl Settings {
     /// Check if all required SMTP options are configured.
     ///
     /// Meant to be used to check if sending emails is enabled in current instance.
+    #[must_use]
     pub fn smtp_configured(&self) -> bool {
         self.smtp_server.is_some()
             && self.smtp_port.is_some()

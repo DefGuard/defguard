@@ -1,11 +1,11 @@
 mod common;
 
-use axum::http::StatusCode;
 use defguard::{
     db::{models::device::UserDevice, Device, GatewayEvent, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
+use reqwest::StatusCode;
 use serde_json::json;
 use tokio::sync::broadcast::error::TryRecvError;
 
