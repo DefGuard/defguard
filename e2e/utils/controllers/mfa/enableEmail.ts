@@ -37,7 +37,7 @@ export const enableEmailMFA = async (
   const secret = await extractEmailSecret(user.username);
   const code = totp(secret, {
     digits: 6,
-    period: 60 * 15,
+    period: 60,
   });
   await page.getByTestId('field-code').type(code);
   await formElement.locator('button[type="submit"]').click();
