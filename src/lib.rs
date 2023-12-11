@@ -13,6 +13,7 @@ use axum::{
     serve, Extension, Router,
 };
 use handlers::settings::{get_settings_essentials, patch_settings, test_ldap_settings};
+use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
 use tokio::{
     net::TcpListener,
@@ -390,14 +391,14 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         info!("Test network exists already, skipping creation...");
         networks.into_iter().next().unwrap()
     } else {
-        info!("Creating test network ");
+        info!("Creating test network");
         let mut network = WireguardNetwork::new(
             "TestNet".to_string(),
-            "10.1.1.1/24".parse().unwrap(),
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap(),
             50051,
             "0.0.0.0".to_string(),
             None,
-            vec!["10.1.1.0/24".parse().unwrap()],
+            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
         )
         .expect("Could not create network");
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();

@@ -739,14 +739,15 @@ impl WireguardNetwork {
             .await?;
         let mut result = Vec::new();
         for device in devices {
-            let latest_stats = self.fetch_latest_stats(conn, device.id.unwrap()).await?;
+            let Some(device_id) = device.id else { continue };
+            let latest_stats = self.fetch_latest_stats(conn, device_id).await?;
             result.push(WireguardDeviceStatsRow {
-                id: device.id.unwrap(),
+                id: device_id,
                 user_id: device.user_id,
                 name: device.name.clone(),
                 wireguard_ip: latest_stats.as_ref().and_then(Self::parse_wireguard_ip),
                 public_ip: latest_stats.as_ref().and_then(Self::parse_public_ip),
-                connected_at: self.connected_at(conn, device.id.unwrap()).await?,
+                connected_at: self.connected_at(conn, device_id).await?,
                 // Filter stats for this device
                 stats: stats
                     .iter()

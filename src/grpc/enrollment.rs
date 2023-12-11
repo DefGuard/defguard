@@ -399,19 +399,19 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             Status::internal(format!("unexpected error: {err}"))
         })?;
 
-        let mut configs: Vec<ProtoDeviceConfig> = vec![];
+        let mut configs: Vec<ProtoDeviceConfig> = Vec::new();
         if let Some(device) = device {
             for network in networks {
-                let wireguard_network_device = WireguardNetworkDevice::find(
-                    &self.pool,
-                    device.id.unwrap(),
-                    network.id.unwrap(),
-                )
-                .await
-                .map_err(|err| {
-                    error!("Invalid failed to get networks {err}");
-                    Status::internal(format!("unexpected error: {err}"))
-                })?;
+                let (Some(device_id), Some(network_id)) = (device.id, network.id) else {
+                    continue;
+                };
+                let wireguard_network_device =
+                    WireguardNetworkDevice::find(&self.pool, device_id, network_id)
+                        .await
+                        .map_err(|err| {
+                            error!("Invalid failed to get networks {err}");
+                            Status::internal(format!("unexpected error: {err}"))
+                        })?;
                 if let Some(wireguard_network_device) = wireguard_network_device {
                     let allowed_ips = network
                         .allowed_ips
@@ -421,7 +421,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                         .join(",");
                     let config = ProtoDeviceConfig {
                         config: device.create_config(&network, &wireguard_network_device),
-                        network_id: network.id.unwrap(),
+                        network_id,
                         network_name: network.name,
                         assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
                         endpoint: network.endpoint,
