@@ -1,5 +1,8 @@
-use super::DbPool;
-use crate::hex::hex_decode;
+use std::{
+    error::Error,
+    fmt::{Display, Formatter, Result as FmtResult},
+};
+
 use chrono::{NaiveDateTime, Utc};
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use model_derive::Model;
@@ -8,12 +11,11 @@ use secp256k1::{
     ecdsa::{RecoverableSignature, RecoveryId},
     Message, Secp256k1,
 };
-use sqlx::{query, query_as, Error as SqlxError};
-use std::{
-    error::Error,
-    fmt::{Display, Formatter, Result as FmtResult},
-};
+use sqlx::{query, query_as, Error as SqlxError, PgExecutor};
 use tiny_keccak::{Hasher, Keccak};
+
+use super::DbPool;
+use crate::hex::hex_decode;
 
 #[derive(Debug)]
 pub enum Web3Error {
@@ -199,12 +201,15 @@ impl Wallet {
         .await
     }
 
-    pub async fn disable_mfa_for_user(pool: &DbPool, user_id: i64) -> Result<(), SqlxError> {
+    pub async fn disable_mfa_for_user<'e, E>(executor: E, user_id: i64) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query!(
             "UPDATE wallet SET use_for_mfa = FALSE WHERE user_id = $1",
             user_id
         )
-        .execute(pool)
+        .execute(executor)
         .await?;
         Ok(())
     }

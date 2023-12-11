@@ -1,3 +1,19 @@
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display, Formatter},
+    net::{IpAddr, Ipv4Addr},
+    str::FromStr,
+};
+
+use base64::prelude::{Engine, BASE64_STANDARD};
+use chrono::{Duration, NaiveDateTime, Utc};
+use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
+use model_derive::Model;
+use rand_core::OsRng;
+use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor};
+use thiserror::Error;
+use x25519_dalek::{PublicKey, StaticSecret};
+
 use super::{
     device::{Device, DeviceError, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
     error::ModelError,
@@ -16,21 +32,6 @@ pub struct MappedDevice {
     pub wireguard_pubkey: String,
     pub wireguard_ip: IpAddr,
 }
-
-use base64::prelude::{Engine, BASE64_STANDARD};
-use chrono::{Duration, NaiveDateTime, Utc};
-use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
-use model_derive::Model;
-use rand_core::OsRng;
-use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection};
-use std::{
-    collections::HashMap,
-    fmt::{Debug, Display, Formatter},
-    net::{IpAddr, Ipv4Addr},
-    str::FromStr,
-};
-use thiserror::Error;
-use x25519_dalek::{PublicKey, StaticSecret};
 
 pub static WIREGUARD_MAX_HANDSHAKE_MINUTES: u32 = 5;
 pub static PEER_STATS_LIMIT: i64 = 6 * 60;
@@ -149,7 +150,7 @@ impl WireguardNetwork {
         name: &str,
     ) -> Result<Option<Vec<Self>>, WireguardNetworkError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         let networks = query_as!(
             WireguardNetwork,
@@ -561,7 +562,7 @@ impl WireguardNetwork {
                 mapped_device.user_id,
             );
             device.save(&mut *transaction).await?;
-            debug!("Saved new device {}", device);
+            debug!("Saved new device {device}");
 
             // get a list of groups user is assigned to
             let groups = match user_groups.get(&device.user_id) {
@@ -570,9 +571,9 @@ impl WireguardNetwork {
                 // fetch user info
                 None => match User::find_by_id(&mut *transaction, device.user_id).await? {
                     Some(user) => {
-                        let groups = user.member_of(&mut *transaction).await?;
+                        let groups = user.member_of_names(&mut *transaction).await?;
                         user_groups.insert(device.user_id, groups);
-                        // ugly workaround to get around `groups` being dropped
+                        // FIXME: ugly workaround to get around `groups` being dropped
                         user_groups.get(&device.user_id).unwrap()
                     }
                     None => return Err(WireguardNetworkError::from(ModelError::NotFound)),

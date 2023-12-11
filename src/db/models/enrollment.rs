@@ -1,3 +1,11 @@
+use chrono::{Duration, NaiveDateTime, Utc};
+use reqwest::Url;
+use sqlx::{query, query_as, Error as SqlxError, PgConnection, PgExecutor};
+use tera::{Context, Tera};
+use thiserror::Error;
+use tokio::sync::mpsc::UnboundedSender;
+use tonic::{Code, Status};
+
 use super::{settings::Settings, DbPool, User};
 use crate::{
     mail::Mail,
@@ -5,13 +13,6 @@ use crate::{
     templates::{self, TemplateError},
     SERVER_CONFIG, VERSION,
 };
-use chrono::{Duration, NaiveDateTime, Utc};
-use reqwest::Url;
-use sqlx::{query, query_as, Error as SqlxError, PgConnection};
-use tera::{Context, Tera};
-use thiserror::Error;
-use tokio::sync::mpsc::UnboundedSender;
-use tonic::{Code, Status};
 
 const ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
 const DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
@@ -197,7 +198,7 @@ impl Enrollment {
 
     pub async fn fetch_user<'e, E>(&self, executor: E) -> Result<User, EnrollmentError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Fetching user for enrollment");
         let Some(user) = User::find_by_id(executor, self.user_id).await? else {
@@ -209,7 +210,7 @@ impl Enrollment {
 
     pub async fn fetch_admin<'e, E>(&self, executor: E) -> Result<User, EnrollmentError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Fetching admin for enrollment");
         let Some(user) = User::find_by_id(executor, self.admin_id).await? else {

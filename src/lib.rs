@@ -22,7 +22,6 @@ use tokio::{
         OnceCell,
     },
 };
-use tower_cookies::CookieManagerLayer;
 use tower_http::{
     services::{ServeDir, ServeFile},
     trace::{DefaultOnResponse, TraceLayer},
@@ -306,7 +305,6 @@ pub fn build_webapp(
             user_agent_parser,
             failed_logins,
         ))
-        .layer(CookieManagerLayer::new())
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {

@@ -9,6 +9,7 @@ use axum::{
     http::{header::LOCATION, request::Parts, HeaderMap, HeaderValue, StatusCode},
     Form,
 };
+use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::Utc;
 use openidconnect::{
@@ -26,18 +27,14 @@ use openidconnect::{
     PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims, StandardErrorResponse,
     StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
-use secrecy::ExposeSecret;
 use serde::{
     de::{Deserialize, Deserializer, Error as DeError, Unexpected, Visitor},
     ser::{Serialize, Serializer},
 };
 use serde_json::json;
-use tower_cookies::{
-    cookie::{time::Duration, SameSite},
-    Cookie, Cookies, Key,
-};
+use time::Duration;
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
     auth::{AccessUserInfo, SessionInfo, SESSION_TIMEOUT},
@@ -224,7 +221,7 @@ impl AuthenticationRequest {
         if self
             .scope
             .split(' ')
-            .all(|scope| !oauth2client.scope.contains(&scope.to_owned()))
+            .all(|scope| !oauth2client.scope.iter().any(|s| s == scope))
         {
             error!(
                 "Invalid scope for client {}: {}",
@@ -247,15 +244,14 @@ impl AuthenticationRequest {
         // check `redirect_uri` matches client config (ignoring trailing slashes)
         let parsed_redirect_uris: Vec<String> = oauth2client
             .redirect_uri
-            .clone()
-            .into_iter()
+            .iter()
             .map(|uri| uri.trim_end_matches('/').into())
             .collect();
         if self
             .redirect_uri
             .split(' ')
             .map(|uri| uri.trim_end_matches('/'))
-            .all(|uri| !parsed_redirect_uris.contains(&uri.to_owned()))
+            .all(|uri| !parsed_redirect_uris.iter().any(|u| u == uri))
         {
             error!(
                 "Invalid redirect_uri for client {}: {} not in [{}]",
@@ -313,22 +309,25 @@ async fn generate_auth_code_redirect(
 }
 
 /// Helper function to return redirection with status code 302.
-fn redirect_to<T: AsRef<str>>(uri: T) -> (StatusCode, HeaderMap) {
+fn redirect_to<T: AsRef<str>>(
+    uri: T,
+    private_cookies: PrivateCookieJar,
+) -> (StatusCode, HeaderMap, PrivateCookieJar) {
     let mut headers = HeaderMap::new();
     headers.insert(
         LOCATION,
         HeaderValue::try_from(uri.as_ref()).expect("URI isn't a valid header value"),
     );
 
-    (StatusCode::FOUND, headers)
+    (StatusCode::FOUND, headers, private_cookies)
 }
 
 /// Helper function to redirect unauthorized user to login page
 /// and store information about OpenID authorize url in cookie to redirect later
 async fn login_redirect(
     data: &AuthenticationRequest,
-    cookies: Cookies,
-) -> Result<(StatusCode, HeaderMap), WebError> {
+    private_cookies: PrivateCookieJar,
+) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
     let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
     let base_url = server_config.url.join("api/v1/oauth/authorize").unwrap();
     let cookie = Cookie::build((
@@ -349,10 +348,7 @@ async fn login_redirect(
     .same_site(SameSite::Lax)
     .http_only(true)
     .max_age(Duration::minutes(10));
-    let key = Key::from(server_config.secret_key.expose_secret().as_bytes());
-    let private_cookies = cookies.private(&key);
-    private_cookies.add(cookie.into());
-    Ok(redirect_to("/login"))
+    Ok(redirect_to("/login", private_cookies.add(cookie)))
 }
 
 /// Authorization Endpoint
@@ -360,8 +356,9 @@ async fn login_redirect(
 pub async fn authorization(
     State(appstate): State<AppState>,
     Query(data): Query<AuthenticationRequest>,
-    cookies: Cookies,
-) -> Result<(StatusCode, HeaderMap), WebError> {
+    cookies: CookieJar,
+    private_cookies: PrivateCookieJar,
+) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
     let error;
     if let Some(oauth2client) =
         OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
@@ -374,17 +371,18 @@ pub async fn authorization(
                             "Redirecting user to consent form - client id {}",
                             data.client_id
                         );
-                        return Ok(redirect_to(format!(
-                            "/consent?{}",
-                            serde_urlencoded::to_string(data).unwrap(),
-                        )));
+                        // FIXME: do not panic
+                        return Ok(redirect_to(
+                            format!("/consent?{}", serde_urlencoded::to_string(data).unwrap(),),
+                            private_cookies,
+                        ));
                     }
                     Some(s) if s == "none" => {
                         error!("'none' prompt in client id {} request", data.client_id);
                         error = CoreAuthErrorResponseType::LoginRequired;
                     }
                     _ => {
-                        return if let Some(session_cookie) = cookies.get("defguard_session") {
+                        return if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
                             if let Ok(Some(session)) =
                                 Session::find_by_id(&appstate.pool, session_cookie.value()).await
                             {
@@ -392,7 +390,7 @@ pub async fn authorization(
                                 if session.expired() {
                                     info!("Session {} for user id {} has expired, redirecting to login", session.id, session.user_id);
                                     let _result = session.delete(&appstate.pool).await;
-                                    login_redirect(&data, cookies).await
+                                    login_redirect(&data, private_cookies).await
                                 } else {
                                     // If session is present check if app is in user authorized apps.
                                     // If yes return auth code and state else redirect to consent form.
@@ -408,28 +406,28 @@ pub async fn authorization(
                                             "OAuth client id {} authorized by user id {}, returning auth code",
                                             app.oauth2client_id, session.user_id
                                         );
-                                        let key = Key::from(
-                                            appstate.config.secret_key.expose_secret().as_bytes(),
-                                        );
-                                        let private_cookies = cookies.private(&key);
-                                        private_cookies.remove(Cookie::from(SIGN_IN_COOKIE_NAME));
+                                        let private_cookies = private_cookies
+                                            .remove(Cookie::from(SIGN_IN_COOKIE_NAME));
                                         let location = generate_auth_code_redirect(
                                             appstate,
                                             data,
                                             Some(session.user_id),
                                         )
                                         .await?;
-                                        Ok(redirect_to(location))
+                                        Ok(redirect_to(location, private_cookies))
                                     } else {
                                         // If authorized app not found redirect to consent form
                                         info!(
                                             "OAuth client id {} not yet authorized by user id {}, redirecting to consent form",
                                             oauth2client.id.unwrap(), session.user_id
                                         );
-                                        Ok(redirect_to(format!(
-                                            "/consent?{}",
-                                            serde_urlencoded::to_string(data).unwrap()
-                                        )))
+                                        Ok(redirect_to(
+                                            format!(
+                                                "/consent?{}",
+                                                serde_urlencoded::to_string(data).unwrap()
+                                            ),
+                                            private_cookies,
+                                        ))
                                     }
                                 }
                             } else {
@@ -438,13 +436,13 @@ pub async fn authorization(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
                                 );
-                                login_redirect(&data, cookies).await
+                                login_redirect(&data, private_cookies).await
                             }
 
                         // If no session cookie provided redirect to login
                         } else {
                             info!("Session cookie not provided, redirecting to login page");
-                            login_redirect(&data, cookies).await
+                            login_redirect(&data, private_cookies).await
                         };
                     }
                 }
@@ -473,7 +471,7 @@ pub async fn authorization(
         };
     };
 
-    Ok(redirect_to(url))
+    Ok(redirect_to(url, private_cookies))
 }
 
 /// Login Authorization Endpoint redirect with authorization code
@@ -481,8 +479,8 @@ pub async fn secure_authorization(
     session_info: SessionInfo,
     State(appstate): State<AppState>,
     Query(data): Query<AuthenticationRequest>,
-    cookies: Cookies,
-) -> Result<(StatusCode, HeaderMap), WebError> {
+    private_cookies: PrivateCookieJar,
+) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
     let mut url =
         Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
     let error;
@@ -518,18 +516,14 @@ pub async fn secure_authorization(
                         "User {} allowed login with client {}",
                         session_info.user.username, oauth2client.name
                     );
-                    let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
-                    let private_cookies = cookies.private(&key);
-                    if let Some(cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
-                        cookies.remove(cookie.clone());
-                    };
+                    let private_cookies = private_cookies.remove(SIGN_IN_COOKIE_NAME);
                     let location =
                         generate_auth_code_redirect(appstate, data, session_info.user.id).await?;
                     info!(
                         "Redirecting user {} to {location}",
                         session_info.user.username
                     );
-                    return Ok(redirect_to(location));
+                    return Ok(redirect_to(location, private_cookies));
                 }
                 Err(err) => {
                     info!(
@@ -562,7 +556,7 @@ pub async fn secure_authorization(
         };
     };
 
-    Ok(redirect_to(url))
+    Ok(redirect_to(url, private_cookies))
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenRequest

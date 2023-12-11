@@ -10,16 +10,17 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
 };
+use axum_extra::extract::cookie::{Cookie, CookieJar};
 use jsonwebtoken::{
     decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
 };
 use serde::{Deserialize, Serialize};
-use tower_cookies::{Cookie, Cookies};
 
 use crate::{
     appstate::AppState,
-    db::{OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
+    db::{Group, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
     error::WebError,
+    handlers::SESSION_COOKIE_NAME,
 };
 
 pub static JWT_ISSUER: &str = "DefGuard";
@@ -123,14 +124,16 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
-        if let Ok(cookies) = Cookies::from_request_parts(parts, state).await {
-            if let Some(session_cookie) = cookies.get("defguard_session") {
+        if let Ok(cookies) = CookieJar::from_request_parts(parts, state).await {
+            if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
                 return {
                     match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
                         Ok(Some(session)) => {
                             if session.expired() {
                                 let _result = session.delete(&appstate.pool).await;
-                                cookies.remove(Cookie::from("defguard_session"));
+                                // FIXME: probably this doesn't work.
+                                let _private_cookies =
+                                    cookies.remove(Cookie::from(SESSION_COOKIE_NAME));
                                 Err(WebError::Authorization("Session expired".into()))
                             } else {
                                 Ok(session)
@@ -152,6 +155,7 @@ pub struct SessionInfo {
     pub session: Session,
     pub user: User,
     pub is_admin: bool,
+    groups: Vec<Group>,
 }
 
 impl SessionInfo {
@@ -161,7 +165,12 @@ impl SessionInfo {
             session,
             user,
             is_admin,
+            groups: Vec::new(),
         }
+    }
+
+    pub fn contains_group(&self, group_name: &str) -> bool {
+        self.groups.iter().any(|group| group.name == group_name)
     }
 }
 
@@ -182,11 +191,17 @@ where
             if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
                 return Err(WebError::Authorization("MFA not verified".into()));
             }
-            let is_admin = match user.member_of(&appstate.pool).await {
-                Ok(groups) => groups.contains(&appstate.config.admin_groupname),
-                _ => false,
+            let Ok(groups) = user.member_of(&appstate.pool).await else {
+                return Err(WebError::DbError("cannot fetch groups".into()));
             };
-            Ok(SessionInfo::new(session, user, is_admin))
+            Ok(SessionInfo {
+                session,
+                user,
+                is_admin: groups
+                    .iter()
+                    .any(|group| group.name == appstate.config.admin_groupname),
+                groups,
+            })
         } else {
             Err(WebError::Authorization("User not found".into()))
         }
