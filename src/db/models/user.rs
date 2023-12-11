@@ -101,10 +101,8 @@ impl User {
         email: String,
         phone: Option<String>,
     ) -> Self {
-        // FIXME: do not panic
-        let password_hash = password.map(|password_hash| {
-            Self::hash_password(password_hash).expect("Failed to hash password")
-        });
+        let password_hash =
+            password.and_then(|password_hash| Self::hash_password(password_hash).ok());
         Self {
             id: None,
             username,
@@ -126,9 +124,8 @@ impl User {
         }
     }
 
-    // FIXME: do not panic
     pub fn set_password(&mut self, password: &str) {
-        self.password_hash = Some(Self::hash_password(password).unwrap());
+        self.password_hash = Self::hash_password(password).ok();
     }
 
     pub fn verify_password(&self, password: &str) -> Result<(), HashError> {

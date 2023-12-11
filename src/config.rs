@@ -58,6 +58,9 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_ADMIN_GROUPNAME", default_value = "admin")]
     pub admin_groupname: String,
 
+    #[arg(long, env = "DEFGUARD_VPN_GROUPNAME", default_value = "vpn")]
+    pub vpn_groupname: String,
+
     #[arg(
         long,
         env = "DEFGUARD_DEFAULT_ADMIN_PASSWORD",
