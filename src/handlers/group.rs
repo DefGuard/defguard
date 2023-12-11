@@ -7,7 +7,7 @@ use serde_json::json;
 use super::{ApiResponse, ApiResult, Username};
 use crate::{
     appstate::AppState,
-    auth::{AdminRole, SessionInfo},
+    auth::{SessionInfo, UserAdminRole},
     db::{Group, User},
     error::WebError,
     ldap::utils::{ldap_add_user_to_group, ldap_remove_user_from_group},
@@ -72,7 +72,7 @@ pub async fn get_group(
 }
 
 pub async fn add_group_member(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
     Json(data): Json<Username>,
@@ -98,7 +98,7 @@ pub async fn add_group_member(
 }
 
 pub async fn remove_group_member(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path((name, username)): Path<(String, String)>,
 ) -> ApiResult {

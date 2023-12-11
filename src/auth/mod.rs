@@ -239,6 +239,7 @@ macro_rules! role {
 }
 
 role!(AdminRole, admin_groupname);
+role!(UserAdminRole, admin_groupname useradmin_groupname);
 role!(VpnRole, admin_groupname vpn_groupname);
 
 // User authenticated by a valid access token

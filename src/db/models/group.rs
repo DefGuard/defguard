@@ -126,7 +126,7 @@ impl WireguardNetwork {
         transaction: &mut PgConnection,
         allowed_groups: Vec<String>,
     ) -> Result<(), ModelError> {
-        info!("Setting allowed groups for network {}", self);
+        info!("Setting allowed groups for network {self}");
         if allowed_groups.is_empty() {
             return self.clear_allowed_groups(transaction).await;
         }
@@ -176,7 +176,7 @@ impl WireguardNetwork {
         transaction: &mut PgConnection,
         groups: Vec<String>,
     ) -> Result<(), ModelError> {
-        info!("Removing allowed groups {:?} for network {}", groups, self);
+        info!("Removing allowed groups {groups:?} for network {self}");
         let result = query!(
             r#"
             DELETE FROM wireguard_network_allowed_group
