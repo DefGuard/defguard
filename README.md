@@ -21,7 +21,7 @@ Read more about this in [our documentation](https://defguard.gitbook.io/defguard
   - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
   - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
   - **import your current WireGuard server configuration (with a wizard!)**
-  - *in-development*: [Desktop Clients!](https://github.com/defguard/client)
+  - **most beautiful [Desktop Client!](https://github.com/defguard/client)** (in our opinion ;-)) for Wireguard
   - automatic IP allocation
   - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard support with [our Rust library](https://github.com/defguard/wireguard-rs)
   - dashboard and statistics overview of connected users/devices for admins
@@ -43,9 +43,22 @@ Read more about this in [our documentation](https://defguard.gitbook.io/defguard
 * **Checked by professional security researchers** (see [comprehensive security report](https://defguard.net/images/decap/isec-defguard.pdf))
 * End2End tests
 
+### Web management
+
 ![](https://github.com/DefGuard/docs/blob/docs/screencasts/defguard.gif?raw=true)
 
 Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
+
+### Desktop Client
+
+![defguard desktop client](https://github.com/DefGuard/docs/blob/docs/releases/0.8/Defguard-Desktop-Client.png?raw=true)
+
+Desktop client supports:
+- Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
+- Onboarding - displaying custom onboarding messages, with templates, links ...
+- Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
+- Live & real-time network charts
+- In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more! 
 
 ## Roadmap
 
