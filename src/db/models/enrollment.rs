@@ -13,6 +13,9 @@ use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
+pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
+pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
+
 const ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
 const DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
 
@@ -218,7 +221,6 @@ impl Token {
 
         let admin_id = self.admin_id.unwrap();
         let user = User::find_by_id(executor, admin_id).await?;
-      
         Ok(user)
     }
 
@@ -295,9 +297,7 @@ impl Token {
         context.insert("defguard_url", &SERVER_CONFIG.get().unwrap().url);
         context.insert("defguard_version", &VERSION);
 
-        if admin.is_some() {
-            // TODO: rewrite...
-            let admin = admin.unwrap();
+        if let Some(admin) = admin {
             context.insert("admin_first_name", &admin.first_name);
             context.insert("admin_last_name", &admin.last_name);
             context.insert("admin_email", &admin.email);
@@ -381,7 +381,7 @@ impl User {
             Some(admin_id),
             email.clone(),
             token_timeout_seconds,
-            Some("ENROLLMENT".to_string()),
+            Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
 
@@ -452,7 +452,7 @@ impl User {
             Some(admin_id),
             email.clone(),
             token_timeout_seconds,
-            Some("ENROLLMENT".to_string()),
+            Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
 

@@ -13,8 +13,9 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::enrollment::Token, AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User,
-        UserDetails, UserInfo, Wallet, WebAuthn, WireguardNetwork,
+        models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+        AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
+        WebAuthn, WireguardNetwork,
     },
     error::WebError,
     handlers::mail::{send_mfa_configured_email, EMAIL_PASSOWRD_RESET_START_SUBJECT},
@@ -487,7 +488,7 @@ pub async fn reset_password(
             Some(session.user.id.expect("Missing admin ID")),
             Some(user.email.clone()),
             appstate.config.password_reset_token_timeout.as_secs(),
-            Some("PASSWORD_RESET".to_string()),
+            Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
 

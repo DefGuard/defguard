@@ -131,12 +131,12 @@ impl From<TokenError> for WebError {
         error!("{}", err);
         match err {
             TokenError::DbError(msg) => WebError::DbError(msg.to_string()),
-            TokenError::NotFound
-            | TokenError::UserNotFound
-            | TokenError::AdminNotFound => WebError::ObjectNotFound(err.to_string()),
-            TokenError::TokenExpired
-            | TokenError::SessionExpired
-            | TokenError::TokenUsed => WebError::Authorization(err.to_string()),
+            TokenError::NotFound | TokenError::UserNotFound | TokenError::AdminNotFound => {
+                WebError::ObjectNotFound(err.to_string())
+            }
+            TokenError::TokenExpired | TokenError::SessionExpired | TokenError::TokenUsed => {
+                WebError::Authorization(err.to_string())
+            }
             TokenError::AlreadyActive => WebError::BadRequest(err.to_string()),
             TokenError::NotificationError(_)
             | TokenError::WelcomeMsgNotConfigured

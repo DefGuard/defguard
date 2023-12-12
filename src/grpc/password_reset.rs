@@ -6,16 +6,18 @@ use uaparser::UserAgentParser;
 
 use crate::{
     config::DefGuardConfig,
-    db::{models::enrollment::Token, DbPool, User},
-    grpc::password_reset::proto::{PasswordResetAdminInfo, PasswordResetInitialUserInfo},
+    db::{
+        models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+        DbPool, User,
+    },
     handlers::{mail::send_password_reset_email, user::check_password_strength},
     ldap::utils::ldap_change_password,
     mail::Mail,
 };
 
 use self::proto::{
-    password_reset_service_server, PasswordResetRequest, PasswordResetStartRequest,
-    PasswordResetStartResponse, PasswordResetVerifyRequest,
+    password_reset_service_server, PasswordResetInitializeRequest, PasswordResetRequest,
+    PasswordResetStartRequest, PasswordResetStartResponse,
 };
 
 #[allow(non_snake_case)]
@@ -80,7 +82,7 @@ impl PasswordResetServer {
 impl password_reset_service_server::PasswordResetService for PasswordResetServer {
     async fn request_password_reset(
         &self,
-        request: Request<PasswordResetStartRequest>,
+        request: Request<PasswordResetInitializeRequest>,
     ) -> Result<Response<()>, Status> {
         debug!("Starting password reset request");
 
@@ -134,7 +136,7 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             None,
             Some(email.clone()),
             self.config.password_reset_token_timeout.as_secs(),
-            Some("PASSWORD_RESET".to_string()),
+            Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
 
@@ -157,7 +159,7 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
 
     async fn start_password_reset(
         &self,
-        request: Request<PasswordResetVerifyRequest>,
+        request: Request<PasswordResetStartRequest>,
     ) -> Result<Response<PasswordResetStartResponse>, Status> {
         debug!("Starting password reset session: {request:?}");
         let request = request.into_inner();
@@ -169,7 +171,10 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
         }
 
         let user = enrollment.fetch_user(&self.pool).await?;
-        let admin = enrollment.fetch_admin(&self.pool).await?;
+
+        if !user.has_password() {
+            return Err(Status::permission_denied("user inactive"));
+        }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");
@@ -183,18 +188,7 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             )
             .await?;
 
-        let user_info = PasswordResetInitialUserInfo::from_user(user)
-            .await
-            .map_err(|_| {
-                error!("Failed to get user info");
-                Status::internal("unexpected error")
-            })?;
-
-        let admin_info = admin.and_then(|v| Some(PasswordResetAdminInfo::from(v)));
-
         let response = PasswordResetStartResponse {
-            admin: admin_info,
-            user: Some(user_info),
             deadline_timestamp: session_deadline.timestamp(),
         };
 
@@ -243,29 +237,5 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
         })?;
 
         Ok(Response::new(()))
-    }
-}
-
-impl From<User> for PasswordResetAdminInfo {
-    fn from(admin: User) -> Self {
-        Self {
-            name: format!("{} {}", admin.first_name, admin.last_name),
-            phone_number: admin.phone,
-            email: admin.email,
-        }
-    }
-}
-
-impl PasswordResetInitialUserInfo {
-    async fn from_user(user: User) -> Result<Self, sqlx::Error> {
-        let is_active = user.has_password();
-        Ok(Self {
-            first_name: user.first_name,
-            last_name: user.last_name,
-            login: user.username,
-            email: user.email,
-            phone_number: user.phone,
-            is_active,
-        })
     }
 }

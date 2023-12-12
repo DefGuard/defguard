@@ -5,7 +5,7 @@ use crate::{
     db::{
         models::{
             device::{DeviceConfig, DeviceInfo, WireguardNetworkDevice},
-            enrollment::{Token, TokenError},
+            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
             wireguard::WireguardNetwork,
         },
         DbPool, Device, GatewayEvent, Settings, User,
@@ -133,61 +133,65 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         // fetch enrollment token
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
-        if enrollment.token_type != Some("ENROLLMENT".to_string()) {
+        if let Some(token_type) = enrollment.clone().token_type {
+            if token_type != ENROLLMENT_TOKEN_TYPE {
+                return Err(Status::permission_denied("invalid token"));
+            }
+
+            // fetch related users
+            let user = enrollment.fetch_user(&self.pool).await?;
+            let admin = enrollment.fetch_admin(&self.pool).await?;
+
+            let mut transaction = self.pool.begin().await.map_err(|_| {
+                error!("Failed to begin transaction");
+                Status::internal("unexpected error")
+            })?;
+
+            // validate token & start session
+            info!("Starting enrollment session for user {}", user.username);
+            let session_deadline = enrollment
+                .start_session(
+                    &mut transaction,
+                    self.config.enrollment_session_timeout.as_secs(),
+                )
+                .await?;
+
+            let settings = Settings::get_settings(&mut *transaction)
+                .await
+                .map_err(|_| {
+                    error!("Failed to get settings");
+                    Status::internal("unexpected error")
+                })?;
+
+            let user_info = InitialUserInfo::from_user(&self.pool, user)
+                .await
+                .map_err(|_| {
+                    error!("Failed to get user info");
+                    Status::internal("unexpected error")
+                })?;
+
+            let admin_info = admin.and_then(|v| Some(AdminInfo::from(v)));
+
+            let response = EnrollmentStartResponse {
+                admin: admin_info,
+                user: Some(user_info),
+                deadline_timestamp: session_deadline.timestamp(),
+                final_page_content: enrollment
+                    .get_welcome_page_content(&mut transaction)
+                    .await?,
+                vpn_setup_optional: settings.enrollment_vpn_step_optional,
+                instance: Some(Instance::new(settings, self.config.url.clone()).into()),
+            };
+
+            transaction.commit().await.map_err(|_| {
+                error!("Failed to commit transaction");
+                Status::internal("unexpected error")
+            })?;
+
+            Ok(Response::new(response))
+        } else {
             return Err(Status::permission_denied("invalid token"));
         }
-
-        // fetch related users
-        let user = enrollment.fetch_user(&self.pool).await?;
-        let admin = enrollment.fetch_admin(&self.pool).await?;
-
-        let mut transaction = self.pool.begin().await.map_err(|_| {
-            error!("Failed to begin transaction");
-            Status::internal("unexpected error")
-        })?;
-
-        // validate token & start session
-        info!("Starting enrollment session for user {}", user.username);
-        let session_deadline = enrollment
-            .start_session(
-                &mut transaction,
-                self.config.enrollment_session_timeout.as_secs(),
-            )
-            .await?;
-
-        let settings = Settings::get_settings(&mut *transaction)
-            .await
-            .map_err(|_| {
-                error!("Failed to get settings");
-                Status::internal("unexpected error")
-            })?;
-
-        let user_info = InitialUserInfo::from_user(&self.pool, user)
-            .await
-            .map_err(|_| {
-                error!("Failed to get user info");
-                Status::internal("unexpected error")
-            })?;
-
-        let admin_info = admin.and_then(|v| Some(AdminInfo::from(v)));
-
-        let response = EnrollmentStartResponse {
-            admin: admin_info,
-            user: Some(user_info),
-            deadline_timestamp: session_deadline.timestamp(),
-            final_page_content: enrollment
-                .get_welcome_page_content(&mut transaction)
-                .await?,
-            vpn_setup_optional: settings.enrollment_vpn_step_optional,
-            instance: Some(Instance::new(settings, self.config.url.clone()).into()),
-        };
-
-        transaction.commit().await.map_err(|_| {
-            error!("Failed to commit transaction");
-            Status::internal("unexpected error")
-        })?;
-
-        Ok(Response::new(response))
     }
 
     async fn activate_user(
@@ -265,14 +269,9 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // send success notification to admin
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
-        if admin.is_some() {
-            Token::send_admin_notification(
-                &self.mail_tx,
-                &admin.unwrap(),
-                &user,
-                ip_address,
-                device_info,
-            )?;
+
+        if let Some(admin) = admin {
+            Token::send_admin_notification(&self.mail_tx, &admin, &user, ip_address, device_info)?;
         }
 
         transaction.commit().await.map_err(|_| {
