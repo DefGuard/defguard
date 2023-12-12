@@ -18,7 +18,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::{models::enrollment::EnrollmentError, MFAMethod, Session, User},
+    db::{models::enrollment::TokenError, MFAMethod, Session, User},
     error::WebError,
     mail::{Attachment, Mail},
     support::dump_config,
@@ -423,7 +423,7 @@ pub fn send_password_reset_email(
     token: String,
     ip_address: Option<String>,
     device_info: Option<String>,
-) -> Result<(), EnrollmentError> {
+) -> Result<(), TokenError> {
     debug!("Sending password reset email to {}", user.email);
 
     let mail = Mail {
@@ -448,7 +448,7 @@ pub fn send_password_reset_email(
         }
         Err(err) => {
             error!("Failed to send password reset email to {to} with error:\n{err}");
-            Err(EnrollmentError::NotificationError(err.to_string()))
+            Err(TokenError::NotificationError(err.to_string()))
         }
     }
 }

@@ -1,7 +1,7 @@
 mod common;
 
 use defguard::{
-    db::{models::enrollment::Enrollment, DbPool},
+    db::{models::enrollment::Token, DbPool},
     handlers::{AddUserData, Auth},
 };
 use reqwest::StatusCode;
@@ -36,7 +36,7 @@ async fn test_initialize_enrollment() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify enrollment token was not created
-    let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
+    let enrollments = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(enrollments.len(), 0);
 
     // try to start enrollment
@@ -64,7 +64,7 @@ async fn test_initialize_enrollment() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify enrollment token was not created
-    let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
+    let enrollments = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(enrollments.len(), 0);
 
     // try to start enrollment
@@ -77,7 +77,7 @@ async fn test_initialize_enrollment() {
     let response: StartEnrollmentResponse = response.json().await;
 
     // verify enrollment token was created
-    let enrollment = Enrollment::find_by_id(&pool, &response.enrollment_token)
+    let enrollment = Token::find_by_id(&pool, &response.enrollment_token)
         .await
         .unwrap();
     assert_eq!(enrollment.user_id, 4);

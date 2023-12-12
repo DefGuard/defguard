@@ -6,7 +6,7 @@ use uaparser::UserAgentParser;
 
 use crate::{
     config::DefGuardConfig,
-    db::{models::enrollment::Enrollment, DbPool, User},
+    db::{models::enrollment::Token, DbPool, User},
     grpc::password_reset::proto::{PasswordResetAdminInfo, PasswordResetInitialUserInfo},
     handlers::{mail::send_password_reset_email, user::check_password_strength},
     ldap::utils::ldap_change_password,
@@ -54,7 +54,7 @@ impl PasswordResetServer {
     async fn validate_session<T: std::fmt::Debug>(
         &self,
         request: &Request<T>,
-    ) -> Result<Enrollment, Status> {
+    ) -> Result<Token, Status> {
         debug!("Validating enrollment session token: {request:?}");
         let token = if let Some(token) = request.metadata().get("authorization") {
             token
@@ -65,7 +65,7 @@ impl PasswordResetServer {
             return Err(Status::unauthenticated("Missing authorization header"));
         };
 
-        let enrollment = Enrollment::find_by_id(&self.pool, token).await?;
+        let enrollment = Token::find_by_id(&self.pool, token).await?;
 
         if enrollment.is_session_valid(self.config.enrollment_session_timeout.as_secs()) {
             Ok(enrollment)
@@ -123,13 +123,13 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             Status::internal("unexpected error")
         })?;
 
-        Enrollment::delete_unused_user_password_reset_tokens(
+        Token::delete_unused_user_password_reset_tokens(
             &mut transaction,
             user.id.expect("Missing user ID"),
         )
         .await?;
 
-        let enrollment = Enrollment::new(
+        let enrollment = Token::new(
             user.id.expect("Missing user ID"),
             None,
             Some(email.clone()),
@@ -162,7 +162,7 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
         debug!("Starting password reset session: {request:?}");
         let request = request.into_inner();
 
-        let mut enrollment = Enrollment::find_by_id(&self.pool, &request.token).await?;
+        let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
         if enrollment.token_type != Some("PASSWORD_RESET".to_string()) {
             return Err(Status::permission_denied("invalid token"));

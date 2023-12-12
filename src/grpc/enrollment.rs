@@ -5,7 +5,7 @@ use crate::{
     db::{
         models::{
             device::{DeviceConfig, DeviceInfo, WireguardNetworkDevice},
-            enrollment::{Enrollment, EnrollmentError},
+            enrollment::{Token, TokenError},
             wireguard::WireguardNetwork,
         },
         DbPool, Device, GatewayEvent, Settings, User,
@@ -93,7 +93,7 @@ impl EnrollmentServer {
     async fn validate_session<T: std::fmt::Debug>(
         &self,
         request: &Request<T>,
-    ) -> Result<Enrollment, Status> {
+    ) -> Result<Token, Status> {
         debug!("Validating enrollment session token: {request:?}");
         let token = if let Some(token) = request.metadata().get("authorization") {
             token
@@ -104,7 +104,7 @@ impl EnrollmentServer {
             return Err(Status::unauthenticated("Missing authorization header"));
         };
 
-        let enrollment = Enrollment::find_by_id(&self.pool, token).await?;
+        let enrollment = Token::find_by_id(&self.pool, token).await?;
 
         if enrollment.is_session_valid(self.config.enrollment_session_timeout.as_secs()) {
             Ok(enrollment)
@@ -131,7 +131,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         debug!("Starting enrollment session: {request:?}");
         let request = request.into_inner();
         // fetch enrollment token
-        let mut enrollment = Enrollment::find_by_id(&self.pool, &request.token).await?;
+        let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
         if enrollment.token_type != Some("ENROLLMENT".to_string()) {
             return Err(Status::permission_denied("invalid token"));
@@ -266,7 +266,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         // send success notification to admin
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
         if admin.is_some() {
-            Enrollment::send_admin_notification(
+            Token::send_admin_notification(
                 &self.mail_tx,
                 &admin.unwrap(),
                 &user,
@@ -520,7 +520,7 @@ impl From<Device> for ProtoDevice {
     }
 }
 
-impl Enrollment {
+impl Token {
     // Send configured welcome email to user after finishing enrollment
     async fn send_welcome_email(
         &self,
@@ -530,7 +530,7 @@ impl Enrollment {
         settings: &Settings,
         ip_address: String,
         device_info: Option<String>,
-    ) -> Result<(), EnrollmentError> {
+    ) -> Result<(), TokenError> {
         debug!("Sending welcome mail to {}", user.username);
         let mail = Mail {
             to: user.email.clone(),
@@ -548,7 +548,7 @@ impl Enrollment {
             }
             Err(err) => {
                 error!("Error sending welcome mail: {err}");
-                Err(EnrollmentError::NotificationError(err.to_string()))
+                Err(TokenError::NotificationError(err.to_string()))
             }
         }
     }
@@ -560,7 +560,7 @@ impl Enrollment {
         user: &User,
         ip_address: String,
         device_info: Option<String>,
-    ) -> Result<(), EnrollmentError> {
+    ) -> Result<(), TokenError> {
         debug!(
             "Sending enrollment success notification for user {} to {}",
             user.username, admin.username
@@ -587,7 +587,7 @@ impl Enrollment {
             }
             Err(err) => {
                 error!("Error sending welcome mail: {err}");
-                Err(EnrollmentError::NotificationError(err.to_string()))
+                Err(TokenError::NotificationError(err.to_string()))
             }
         }
     }

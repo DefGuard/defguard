@@ -17,7 +17,7 @@ const ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
 const DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
 
 #[derive(Error, Debug)]
-pub enum EnrollmentError {
+pub enum TokenError {
     #[error(transparent)]
     DbError(#[from] SqlxError),
     #[error("Enrollment token not found")]
@@ -46,23 +46,23 @@ pub enum EnrollmentError {
     TemplateError(#[from] TemplateError),
 }
 
-impl From<EnrollmentError> for Status {
-    fn from(err: EnrollmentError) -> Self {
+impl From<TokenError> for Status {
+    fn from(err: TokenError) -> Self {
         error!("{}", err);
         let (code, msg) = match err {
-            EnrollmentError::DbError(_)
-            | EnrollmentError::AdminNotFound
-            | EnrollmentError::UserNotFound
-            | EnrollmentError::NotificationError(_)
-            | EnrollmentError::WelcomeMsgNotConfigured
-            | EnrollmentError::WelcomeEmailNotConfigured
-            | EnrollmentError::TemplateError(_)
-            | EnrollmentError::TemplateErrorInternal(_) => (Code::Internal, "unexpected error"),
-            EnrollmentError::NotFound
-            | EnrollmentError::TokenExpired
-            | EnrollmentError::SessionExpired
-            | EnrollmentError::TokenUsed => (Code::Unauthenticated, "invalid token"),
-            EnrollmentError::AlreadyActive => (Code::InvalidArgument, "already active"),
+            TokenError::DbError(_)
+            | TokenError::AdminNotFound
+            | TokenError::UserNotFound
+            | TokenError::NotificationError(_)
+            | TokenError::WelcomeMsgNotConfigured
+            | TokenError::WelcomeEmailNotConfigured
+            | TokenError::TemplateError(_)
+            | TokenError::TemplateErrorInternal(_) => (Code::Internal, "unexpected error"),
+            TokenError::NotFound
+            | TokenError::TokenExpired
+            | TokenError::SessionExpired
+            | TokenError::TokenUsed => (Code::Unauthenticated, "invalid token"),
+            TokenError::AlreadyActive => (Code::InvalidArgument, "already active"),
         };
         Status::new(code, msg)
     }
@@ -70,7 +70,7 @@ impl From<EnrollmentError> for Status {
 
 // Representation of a user enrollment session
 #[derive(Clone)]
-pub struct Enrollment {
+pub struct Token {
     pub id: String,
     pub user_id: i64,
     pub admin_id: Option<i64>,
@@ -81,7 +81,7 @@ pub struct Enrollment {
     pub token_type: Option<String>,
 }
 
-impl Enrollment {
+impl Token {
     #[must_use]
     pub fn new(
         user_id: i64,
@@ -103,7 +103,7 @@ impl Enrollment {
         }
     }
 
-    pub async fn save(&self, transaction: &mut PgConnection) -> Result<(), EnrollmentError> {
+    pub async fn save(&self, transaction: &mut PgConnection) -> Result<(), TokenError> {
         query!(
             "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, token_type) \
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
@@ -151,13 +151,13 @@ impl Enrollment {
         &mut self,
         transaction: &mut PgConnection,
         session_timeout_seconds: u64,
-    ) -> Result<NaiveDateTime, EnrollmentError> {
+    ) -> Result<NaiveDateTime, TokenError> {
         // check if token can be used
         if self.is_expired() {
-            return Err(EnrollmentError::TokenExpired);
+            return Err(TokenError::TokenExpired);
         }
         if self.is_used() {
-            return Err(EnrollmentError::TokenUsed);
+            return Err(TokenError::TokenUsed);
         }
 
         let now = Utc::now().naive_utc();
@@ -169,7 +169,7 @@ impl Enrollment {
         Ok(now + Duration::seconds(session_timeout_seconds as i64))
     }
 
-    pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, EnrollmentError> {
+    pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, TokenError> {
         match query_as!(
             Self,
             "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
@@ -180,34 +180,34 @@ impl Enrollment {
         .await?
         {
             Some(enrollment) => Ok(enrollment),
-            None => Err(EnrollmentError::NotFound),
+            None => Err(TokenError::NotFound),
         }
     }
 
-    pub async fn fetch_all(pool: &DbPool) -> Result<Vec<Self>, EnrollmentError> {
-        let enrollments = query_as!(
+    pub async fn fetch_all(pool: &DbPool) -> Result<Vec<Self>, TokenError> {
+        let tokens = query_as!(
             Self,
             "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
             FROM token",
         )
         .fetch_all(pool)
         .await?;
-        Ok(enrollments)
+        Ok(tokens)
     }
 
-    pub async fn fetch_user<'e, E>(&self, executor: E) -> Result<User, EnrollmentError>
+    pub async fn fetch_user<'e, E>(&self, executor: E) -> Result<User, TokenError>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
         debug!("Fetching user for enrollment");
         let Some(user) = User::find_by_id(executor, self.user_id).await? else {
             error!("User not found for enrollment token {}", self.id);
-            return Err(EnrollmentError::UserNotFound);
+            return Err(TokenError::UserNotFound);
         };
         Ok(user)
     }
 
-    pub async fn fetch_admin<'e, E>(&self, executor: E) -> Result<Option<User>, EnrollmentError>
+    pub async fn fetch_admin<'e, E>(&self, executor: E) -> Result<Option<User>, TokenError>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
@@ -216,27 +216,16 @@ impl Enrollment {
             return Ok(None);
         }
 
-        // TODO: rewrite...
-
         let admin_id = self.admin_id.unwrap();
-
         let user = User::find_by_id(executor, admin_id).await?;
-        //  else {
-        //     error!("Admin not found for enrollment token {}", self.id);
-        //     return Err(EnrollmentError::AdminNotFound);
-        // };
-
-        // let user = User::find_by_id(executor, self.admin_id).await? else {
-        //     error!("Admin not found for enrollment token {}", self.id);
-        //     return Err(EnrollmentError::AdminNotFound);
-        // };
+      
         Ok(user)
     }
 
     pub async fn delete_unused_user_tokens(
         transaction: &mut PgConnection,
         user_id: i64,
-    ) -> Result<(), EnrollmentError> {
+    ) -> Result<(), TokenError> {
         debug!("Deleting unused enrollment tokens for user {user_id}");
         let result = query!(
             r#"DELETE FROM token
@@ -257,7 +246,7 @@ impl Enrollment {
     pub async fn delete_unused_user_password_reset_tokens(
         transaction: &mut PgConnection,
         user_id: i64,
-    ) -> Result<(), EnrollmentError> {
+    ) -> Result<(), TokenError> {
         debug!("Deleting unused password reset tokens for user {user_id}");
         let result = query!(
             r#"DELETE FROM token
@@ -290,7 +279,7 @@ impl Enrollment {
     pub async fn get_welcome_message_context(
         &self,
         transaction: &mut PgConnection,
-    ) -> Result<Context, EnrollmentError> {
+    ) -> Result<Context, TokenError> {
         debug!(
             "Preparing welcome message context for enrollment token {}",
             self.id
@@ -323,7 +312,7 @@ impl Enrollment {
     pub async fn get_welcome_page_content(
         &self,
         transaction: &mut PgConnection,
-    ) -> Result<String, EnrollmentError> {
+    ) -> Result<String, TokenError> {
         let settings = Settings::get_settings(&mut *transaction).await?;
 
         // load configured content as template
@@ -341,7 +330,7 @@ impl Enrollment {
         transaction: &mut PgConnection,
         ip_address: String,
         device_info: Option<String>,
-    ) -> Result<String, EnrollmentError> {
+    ) -> Result<String, TokenError> {
         let settings = Settings::get_settings(&mut *transaction).await?;
 
         // load configured content as template
@@ -372,13 +361,13 @@ impl User {
         enrollment_service_url: Url,
         send_user_notification: bool,
         mail_tx: UnboundedSender<Mail>,
-    ) -> Result<String, EnrollmentError> {
+    ) -> Result<String, TokenError> {
         info!(
             "User {} starting enrollment for user {}, notification enabled: {send_user_notification}",
             admin.username, self.username
         );
         if self.has_password() {
-            return Err(EnrollmentError::AlreadyActive);
+            return Err(TokenError::AlreadyActive);
         }
 
         let user_id = self.id.expect("User without ID");
@@ -387,7 +376,7 @@ impl User {
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
-        let enrollment = Enrollment::new(
+        let enrollment = Token::new(
             user_id,
             Some(admin_id),
             email.clone(),
@@ -413,7 +402,7 @@ impl User {
                         enrollment_service_url,
                         &enrollment.id,
                     )
-                    .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+                    .map_err(|err| TokenError::NotificationError(err.to_string()))?,
                     attachments: Vec::new(),
                     result_tx: None,
                 };
@@ -426,7 +415,7 @@ impl User {
                     }
                     Err(err) => {
                         error!("Error sending mail: {err}");
-                        return Err(EnrollmentError::NotificationError(err.to_string()));
+                        return Err(TokenError::NotificationError(err.to_string()));
                     }
                 }
             }
@@ -446,7 +435,7 @@ impl User {
         enrollment_service_url: Url,
         send_user_notification: bool,
         mail_tx: UnboundedSender<Mail>,
-    ) -> Result<String, EnrollmentError> {
+    ) -> Result<String, TokenError> {
         info!(
             "User {} starting desktop configuration for user {}, notification enabled: {send_user_notification}",
             admin.username, self.username
@@ -458,7 +447,7 @@ impl User {
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
-        let enrollment = Enrollment::new(
+        let enrollment = Token::new(
             user_id,
             Some(admin_id),
             email.clone(),
@@ -484,7 +473,7 @@ impl User {
                         &enrollment_service_url,
                         &enrollment.id,
                     )
-                    .map_err(|err| EnrollmentError::NotificationError(err.to_string()))?,
+                    .map_err(|err| TokenError::NotificationError(err.to_string()))?,
                     attachments: Vec::new(),
                     result_tx: None,
                 };
@@ -509,12 +498,12 @@ impl User {
     async fn clear_unused_enrollment_tokens(
         &self,
         transaction: &mut PgConnection,
-    ) -> Result<(), EnrollmentError> {
+    ) -> Result<(), TokenError> {
         info!(
             "Removing unused enrollment tokens for user {}",
             self.username
         );
-        Enrollment::delete_unused_user_tokens(transaction, self.id.expect("Missing user ID")).await
+        Token::delete_unused_user_tokens(transaction, self.id.expect("Missing user ID")).await
     }
 
     // pub async fn request_password_reset(
@@ -532,20 +521,20 @@ impl User {
 }
 
 impl Settings {
-    pub fn enrollment_welcome_message(&self) -> Result<String, EnrollmentError> {
+    pub fn enrollment_welcome_message(&self) -> Result<String, TokenError> {
         self.enrollment_welcome_message.clone().ok_or_else(|| {
             error!("Enrollment welcome message not configured");
-            EnrollmentError::WelcomeMsgNotConfigured
+            TokenError::WelcomeMsgNotConfigured
         })
     }
 
-    pub fn enrollment_welcome_email(&self) -> Result<String, EnrollmentError> {
+    pub fn enrollment_welcome_email(&self) -> Result<String, TokenError> {
         if self.enrollment_use_welcome_message_as_email {
             return self.enrollment_welcome_message();
         }
         self.enrollment_welcome_email.clone().ok_or_else(|| {
             error!("Enrollment welcome email not configured");
-            EnrollmentError::WelcomeEmailNotConfigured
+            TokenError::WelcomeEmailNotConfigured
         })
     }
 }

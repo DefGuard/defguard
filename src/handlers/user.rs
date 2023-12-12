@@ -13,7 +13,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::enrollment::Enrollment, AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User,
+        models::enrollment::Token, AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User,
         UserDetails, UserInfo, Wallet, WebAuthn, WireguardNetwork,
     },
     error::WebError,
@@ -476,13 +476,13 @@ pub async fn reset_password(
     if let Some(user) = user {
         let mut transaction = appstate.pool.begin().await?;
 
-        Enrollment::delete_unused_user_password_reset_tokens(
+        Token::delete_unused_user_password_reset_tokens(
             &mut transaction,
             user.id.expect("Missing user ID"),
         )
         .await?;
 
-        let enrollment = Enrollment::new(
+        let enrollment = Token::new(
             user.id.expect("Missing user ID"),
             Some(session.user.id.expect("Missing admin ID")),
             Some(user.email.clone()),
