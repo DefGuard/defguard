@@ -469,6 +469,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
     messages: {
       editSuccess: 'Użytkownik zaktualizowany.',
       failedToFetchUserData: 'Błąd pobierania informacji o użtkowniku.',
+      passwordResetEmailSent: 'Email z resetem hasła został wysłany.',
     },
     userDetails: {
       header: 'Szczegóły profilu',
@@ -646,6 +647,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         provision: 'Stwórz klucze na YubiKey',
         delete: 'Usuń konto',
         startEnrollment: 'Rozpocznij rejestrację',
+        resetPassword: 'Resetuj hasło',
       },
     },
   },
