@@ -81,6 +81,6 @@ async fn test_initialize_enrollment() {
         .await
         .unwrap();
     assert_eq!(enrollment.user_id, 4);
-    assert_eq!(enrollment.admin_id, 1);
+    assert_eq!(enrollment.admin_id, Some(1));
     assert_eq!(enrollment.used_at, None);
 }

@@ -133,6 +133,10 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         // fetch enrollment token
         let mut enrollment = Enrollment::find_by_id(&self.pool, &request.token).await?;
 
+        if enrollment.token_type != Some("ENROLLMENT".to_string()) {
+            return Err(Status::permission_denied("invalid token"));
+        }
+
         // fetch related users
         let user = enrollment.fetch_user(&self.pool).await?;
         let admin = enrollment.fetch_admin(&self.pool).await?;
@@ -165,8 +169,10 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
+        let admin_info = admin.and_then(|v| Some(AdminInfo::from(v)));
+
         let response = EnrollmentStartResponse {
-            admin: Some(admin.into()),
+            admin: admin_info,
             user: Some(user_info),
             deadline_timestamp: session_deadline.timestamp(),
             final_page_content: enrollment
@@ -259,7 +265,15 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
         // send success notification to admin
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
-        Enrollment::send_admin_notification(&self.mail_tx, &admin, &user, ip_address, device_info)?;
+        if admin.is_some() {
+            Enrollment::send_admin_notification(
+                &self.mail_tx,
+                &admin.unwrap(),
+                &user,
+                ip_address,
+                device_info,
+            )?;
+        }
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");

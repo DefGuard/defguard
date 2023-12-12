@@ -73,20 +73,22 @@ impl From<EnrollmentError> for Status {
 pub struct Enrollment {
     pub id: String,
     pub user_id: i64,
-    pub admin_id: i64,
+    pub admin_id: Option<i64>,
     pub email: Option<String>,
     pub created_at: NaiveDateTime,
     pub expires_at: NaiveDateTime,
     pub used_at: Option<NaiveDateTime>,
+    pub token_type: Option<String>,
 }
 
 impl Enrollment {
     #[must_use]
     pub fn new(
         user_id: i64,
-        admin_id: i64,
+        admin_id: Option<i64>,
         email: Option<String>,
         token_timeout_seconds: u64,
+        token_type: Option<String>,
     ) -> Self {
         let now = Utc::now();
         Self {
@@ -97,13 +99,14 @@ impl Enrollment {
             created_at: now.naive_utc(),
             expires_at: (now + Duration::seconds(token_timeout_seconds as i64)).naive_utc(),
             used_at: None,
+            token_type,
         }
     }
 
     pub async fn save(&self, transaction: &mut PgConnection) -> Result<(), EnrollmentError> {
         query!(
-            "INSERT INTO enrollment (id, user_id, admin_id, email, created_at, expires_at, used_at) \
-            VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, token_type) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
             self.id,
             self.user_id,
             self.admin_id,
@@ -111,6 +114,7 @@ impl Enrollment {
             self.created_at,
             self.expires_at,
             self.used_at,
+            self.token_type,
         )
         .execute(transaction)
         .await?;
@@ -157,13 +161,9 @@ impl Enrollment {
         }
 
         let now = Utc::now().naive_utc();
-        query!(
-            "UPDATE enrollment SET used_at = $1 WHERE id = $2",
-            now,
-            self.id
-        )
-        .execute(transaction)
-        .await?;
+        query!("UPDATE token SET used_at = $1 WHERE id = $2", now, self.id)
+            .execute(transaction)
+            .await?;
         self.used_at = Some(now);
 
         Ok(now + Duration::seconds(session_timeout_seconds as i64))
@@ -172,8 +172,8 @@ impl Enrollment {
     pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, EnrollmentError> {
         match query_as!(
             Self,
-            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at \
-            FROM enrollment WHERE id = $1",
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
+            FROM token WHERE id = $1",
             id
         )
         .fetch_optional(pool)
@@ -187,8 +187,8 @@ impl Enrollment {
     pub async fn fetch_all(pool: &DbPool) -> Result<Vec<Self>, EnrollmentError> {
         let enrollments = query_as!(
             Self,
-            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at \
-            FROM enrollment",
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
+            FROM token",
         )
         .fetch_all(pool)
         .await?;
@@ -207,15 +207,29 @@ impl Enrollment {
         Ok(user)
     }
 
-    pub async fn fetch_admin<'e, E>(&self, executor: E) -> Result<User, EnrollmentError>
+    pub async fn fetch_admin<'e, E>(&self, executor: E) -> Result<Option<User>, EnrollmentError>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
         debug!("Fetching admin for enrollment");
-        let Some(user) = User::find_by_id(executor, self.admin_id).await? else {
-            error!("Admin not found for enrollment token {}", self.id);
-            return Err(EnrollmentError::AdminNotFound);
-        };
+        if self.admin_id.is_none() {
+            return Ok(None);
+        }
+
+        // TODO: rewrite...
+
+        let admin_id = self.admin_id.unwrap();
+
+        let user = User::find_by_id(executor, admin_id).await?;
+        //  else {
+        //     error!("Admin not found for enrollment token {}", self.id);
+        //     return Err(EnrollmentError::AdminNotFound);
+        // };
+
+        // let user = User::find_by_id(executor, self.admin_id).await? else {
+        //     error!("Admin not found for enrollment token {}", self.id);
+        //     return Err(EnrollmentError::AdminNotFound);
+        // };
         Ok(user)
     }
 
@@ -225,7 +239,7 @@ impl Enrollment {
     ) -> Result<(), EnrollmentError> {
         debug!("Deleting unused enrollment tokens for user {user_id}");
         let result = query!(
-            r#"DELETE FROM enrollment
+            r#"DELETE FROM token
             WHERE user_id = $1
             AND used_at IS NULL"#,
             user_id
@@ -234,6 +248,28 @@ impl Enrollment {
         .await?;
         debug!(
             "Deleted {} unused enrollment tokens for user {user_id}",
+            result.rows_affected()
+        );
+
+        Ok(())
+    }
+
+    pub async fn delete_unused_user_password_reset_tokens(
+        transaction: &mut PgConnection,
+        user_id: i64,
+    ) -> Result<(), EnrollmentError> {
+        debug!("Deleting unused password reset tokens for user {user_id}");
+        let result = query!(
+            r#"DELETE FROM token
+            WHERE user_id = $1
+            AND token_type = 'PASSWORD_RESET'
+            AND used_at IS NULL"#,
+            user_id
+        )
+        .execute(transaction)
+        .await?;
+        debug!(
+            "Deleted {} unused password reset tokens for user {user_id}",
             result.rows_affected()
         );
 
@@ -269,10 +305,15 @@ impl Enrollment {
         context.insert("username", &user.username);
         context.insert("defguard_url", &SERVER_CONFIG.get().unwrap().url);
         context.insert("defguard_version", &VERSION);
-        context.insert("admin_first_name", &admin.first_name);
-        context.insert("admin_last_name", &admin.last_name);
-        context.insert("admin_email", &admin.email);
-        context.insert("admin_phone", &admin.phone);
+
+        if admin.is_some() {
+            // TODO: rewrite...
+            let admin = admin.unwrap();
+            context.insert("admin_first_name", &admin.first_name);
+            context.insert("admin_last_name", &admin.last_name);
+            context.insert("admin_email", &admin.email);
+            context.insert("admin_phone", &admin.phone);
+        }
 
         Ok(context)
     }
@@ -346,7 +387,13 @@ impl User {
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
-        let enrollment = Enrollment::new(user_id, admin_id, email.clone(), token_timeout_seconds);
+        let enrollment = Enrollment::new(
+            user_id,
+            Some(admin_id),
+            email.clone(),
+            token_timeout_seconds,
+            Some("ENROLLMENT".to_string()),
+        );
         enrollment.save(&mut *transaction).await?;
 
         if send_user_notification {
@@ -411,7 +458,13 @@ impl User {
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
-        let enrollment = Enrollment::new(user_id, admin_id, email.clone(), token_timeout_seconds);
+        let enrollment = Enrollment::new(
+            user_id,
+            Some(admin_id),
+            email.clone(),
+            token_timeout_seconds,
+            Some("ENROLLMENT".to_string()),
+        );
         enrollment.save(&mut *transaction).await?;
 
         if send_user_notification {
@@ -463,6 +516,19 @@ impl User {
         );
         Enrollment::delete_unused_user_tokens(transaction, self.id.expect("Missing user ID")).await
     }
+
+    // pub async fn request_password_reset(
+    //     &self,
+    //     transaction: &mut PgConnection,
+    //     admin: &User,
+    //     // email: Option<String>,
+    //     token_timeout_seconds: u64,
+    //     // enrollment_service_url: Url,
+    //     // send_user_notification: bool,
+    //     mail_tx: UnboundedSender<Mail>,
+    // ) -> Result<String, EnrollmentError> {
+
+    // }
 }
 
 impl Settings {
