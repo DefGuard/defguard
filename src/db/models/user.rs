@@ -551,6 +551,19 @@ impl User {
         .await
     }
 
+    pub async fn find_by_email(pool: &DbPool, email: &str) -> Result<Option<Self>, SqlxError> {
+        query_as!(
+            Self,
+            "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
+            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
+            FROM \"user\" WHERE email = $1",
+            email
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
     pub async fn member_of<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,

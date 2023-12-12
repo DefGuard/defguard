@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE enrollment SET used_at = $1 WHERE id = $2",
+  "query": "UPDATE token SET used_at = $1 WHERE id = $2",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "727ed093b693f0f48e83779f9ee58de725cbec807ae286ae5900f426f2492f9d"
+  "hash": "05c7cfa839d4411955c207095336861c744c520880d33815044babe0eff1d644"
 }

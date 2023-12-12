@@ -10,6 +10,7 @@ import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { User } from '../../../../../shared/types';
 import { useAddUserModal } from '../../modals/AddUserModal/hooks/useAddUserModal';
+import { ResetPasswordButton } from './ResetPasswordButton';
 
 type Props = {
   user: User;
@@ -34,6 +35,7 @@ export const UserEditButton = ({ user }: Props) => {
           onClick={() => setChangePasswordModal({ visible: true, user })}
         />
       )}
+      <ResetPasswordButton user={user} />
       <EditButtonOption
         key="edit-user"
         text={LL.usersOverview.list.editButton.edit()}

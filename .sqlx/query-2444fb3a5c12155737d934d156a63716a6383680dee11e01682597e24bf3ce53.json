@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at FROM enrollment",
+  "query": "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type FROM token WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -37,20 +37,28 @@
         "ordinal": 6,
         "name": "used_at",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "token_type",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
       false,
-      false,
+      true,
       true,
       false,
       false,
+      true,
       true
     ]
   },
-  "hash": "49749227cacd46dd9a392d58233a511ee03c0df12cb28ce247d574923fee31a9"
+  "hash": "2444fb3a5c12155737d934d156a63716a6383680dee11e01682597e24bf3ce53"
 }

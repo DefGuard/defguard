@@ -12,7 +12,10 @@ use axum::{
     routing::{delete, get, patch, post, put},
     serve, Extension, Router,
 };
-use handlers::settings::{get_settings_essentials, patch_settings, test_ldap_settings};
+use handlers::{
+    settings::{get_settings_essentials, patch_settings, test_ldap_settings},
+    user::reset_password,
+};
 use secrecy::ExposeSecret;
 use tokio::{
     net::TcpListener,
@@ -183,6 +186,7 @@ pub fn build_webapp(
             // FIXME: username `change_password` is invalid
             .route("/user/change_password", put(change_self_password))
             .route("/user/:username/password", put(change_password))
+            .route("/user/:username/reset_password", post(reset_password))
             .route("/user/:username/challenge", get(wallet_challenge))
             .route("/user/:username/wallet", put(set_wallet))
             .route("/user/:username/wallet/:address", put(update_wallet))
