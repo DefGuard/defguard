@@ -1,10 +1,9 @@
 use axum::{
     extract::{Json, State},
-    headers::UserAgent,
     http::StatusCode,
-    TypedHeader,
 };
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
+use axum_extra::{headers::UserAgent, TypedHeader};
 use secrecy::ExposeSecret;
 use serde_json::json;
 use sqlx::types::Uuid;
@@ -103,7 +102,7 @@ pub async fn authenticate(
     };
 
     let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
-    let auth_cookie = Cookie::build(SESSION_COOKIE_NAME, session.clone().id)
+    let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.clone().id))
         .domain(
             server_config
                 .cookie_domain
@@ -114,9 +113,8 @@ pub async fn authenticate(
         .http_only(true)
         .secure(!server_config.cookie_insecure)
         .same_site(SameSite::Lax)
-        .max_age(max_age)
-        .finish();
-    cookies.add(auth_cookie);
+        .max_age(max_age);
+    cookies.add(auth_cookie.into());
 
     let login_event_type = "AUTHENTICATION".to_string();
 
@@ -187,7 +185,7 @@ pub async fn logout(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     // remove auth cookie
-    cookies.remove(Cookie::named(SESSION_COOKIE_NAME));
+    cookies.remove(Cookie::from(SESSION_COOKIE_NAME));
     // remove stored session
     session.delete(&appstate.pool).await?;
     Ok(ApiResponse::default())
@@ -205,7 +203,7 @@ pub async fn mfa_enable(
     user.enable_mfa(&appstate.pool).await?;
     if user.mfa_enabled {
         info!("Enabled MFA for user {}", user.username);
-        cookies.remove(Cookie::named("defguard_sesssion"));
+        cookies.remove(Cookie::from("defguard_sesssion"));
         session.delete(&appstate.pool).await?;
         debug!(
             "Removed auth session for user {} after enabling MFA",

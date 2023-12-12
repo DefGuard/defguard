@@ -1,6 +1,5 @@
 mod common;
 
-use axum::http::StatusCode;
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
@@ -11,6 +10,7 @@ use defguard::{
     },
     handlers::Auth,
 };
+use reqwest::StatusCode;
 use serde_json::{json, Value};
 
 use self::common::make_test_client;

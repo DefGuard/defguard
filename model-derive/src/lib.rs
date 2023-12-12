@@ -77,13 +77,11 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
     }
 
-    let fields = if let Data::Struct(DataStruct {
+    let Data::Struct(DataStruct {
         fields: Fields::Named(FieldsNamed { named, .. }),
         ..
     }) = ast.data
-    {
-        named
-    } else {
+    else {
         // fail for other but `struct`
         unimplemented!();
     };
@@ -99,7 +97,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
     let mut add_comma = false;
     let mut value_number = 1;
-    fields.iter().for_each(|field| {
+    named.iter().for_each(|field| {
         if let Some(name) = &field.ident {
             if name != "id" {
                 if add_comma {
@@ -144,7 +142,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
     // TODO: handle fields wrapped in Option
     // field arguments for queries
-    let insert_args = fields.iter().filter_map(|field| {
+    let insert_args = named.iter().filter_map(|field| {
         if let Some(name) = &field.ident {
             if name != "id" {
                 if let Some(tokens) = model_attr(field) {

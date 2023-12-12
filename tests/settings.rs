@@ -1,11 +1,11 @@
 mod common;
 
-use axum::http::StatusCode;
 use common::ClientState;
 use defguard::{
     db::models::settings::{Settings, SettingsPatch},
     handlers::Auth,
 };
+use reqwest::StatusCode;
 
 use self::common::{client::TestClient, make_test_client};
 

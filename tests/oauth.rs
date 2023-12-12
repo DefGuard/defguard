@@ -2,7 +2,6 @@ mod common;
 
 use std::borrow::Cow;
 
-use axum::http::StatusCode;
 use defguard::{
     db::{
         models::{
@@ -13,7 +12,7 @@ use defguard::{
     },
     handlers::Auth,
 };
-use reqwest::Url;
+use reqwest::{header::CONTENT_TYPE, StatusCode, Url};
 use serde_json::json;
 
 use self::common::{client::TestClient, make_test_client};
@@ -413,7 +412,7 @@ async fn test_token_client_credentials() {
 
     let response = client
         .post("/api/v1/oauth/token")
-        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body("client_id=WrongClient&client_secret=WrongSecret&grant_type=code")
         .send()
         .await;

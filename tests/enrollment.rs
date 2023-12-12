@@ -1,10 +1,10 @@
 mod common;
 
-use axum::http::StatusCode;
 use defguard::{
     db::{models::enrollment::Enrollment, DbPool},
     handlers::{AddUserData, Auth},
 };
+use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
 

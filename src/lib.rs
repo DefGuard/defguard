@@ -10,17 +10,20 @@ use axum::{
     handler::HandlerWithoutStateExt,
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
-    Extension, Router, Server,
+    serve, Extension, Router,
 };
 use handlers::{
     settings::{get_settings_essentials, patch_settings, test_ldap_settings},
     user::reset_password,
 };
 use secrecy::ExposeSecret;
-use tokio::sync::{
-    broadcast::Sender,
-    mpsc::{UnboundedReceiver, UnboundedSender},
-    OnceCell,
+use tokio::{
+    net::TcpListener,
+    sync::{
+        broadcast::Sender,
+        mpsc::{UnboundedReceiver, UnboundedSender},
+        OnceCell,
+    },
 };
 use tower_cookies::CookieManagerLayer;
 use tower_http::{
@@ -348,11 +351,13 @@ pub async fn run_web_server(
     );
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
-    // TODO: map_err() and remove `hyper` as depenency from Cargo.toml
-    Server::bind(&addr)
-        .serve(webapp.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .map_err(|err| anyhow!("Web server can't be started {}", err))
+    let listener = TcpListener::bind(&addr).await?;
+    serve(
+        listener,
+        webapp.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .map_err(|err| anyhow!("Web server can't be started {err}"))
 }
 
 /// Automates test objects creation to easily setup development environment.

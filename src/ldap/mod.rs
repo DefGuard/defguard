@@ -36,6 +36,7 @@ pub struct LDAPConfig {
 
 impl LDAPConfig {
     /// Constructs user distinguished name.
+    #[must_use]
     pub fn user_dn(&self, username: &str) -> String {
         format!(
             "{}={},{}",
@@ -44,6 +45,7 @@ impl LDAPConfig {
     }
 
     /// Constructs group distinguished name.
+    #[must_use]
     pub fn group_dn(&self, groupname: &str) -> String {
         format!(
             "{}={},{}",

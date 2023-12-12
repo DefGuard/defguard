@@ -331,10 +331,13 @@ async fn login_redirect(
 ) -> Result<(StatusCode, HeaderMap), WebError> {
     let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
     let base_url = server_config.url.join("api/v1/oauth/authorize").unwrap();
-    let cookie = Cookie::build(
+    let cookie = Cookie::build((
         SIGN_IN_COOKIE_NAME,
-        format!("{base_url}?{}", serde_urlencoded::to_string(data).unwrap()),
-    )
+        format!(
+            "{base_url}?{}",
+            serde_urlencoded::to_string(data).unwrap_or_default()
+        ),
+    ))
     .domain(
         server_config
             .cookie_domain
@@ -345,11 +348,10 @@ async fn login_redirect(
     .secure(!server_config.cookie_insecure)
     .same_site(SameSite::Lax)
     .http_only(true)
-    .max_age(Duration::minutes(10))
-    .finish();
+    .max_age(Duration::minutes(10));
     let key = Key::from(server_config.secret_key.expose_secret().as_bytes());
     let private_cookies = cookies.private(&key);
-    private_cookies.add(cookie);
+    private_cookies.add(cookie.into());
     Ok(redirect_to("/login"))
 }
 
@@ -410,7 +412,7 @@ pub async fn authorization(
                                             appstate.config.secret_key.expose_secret().as_bytes(),
                                         );
                                         let private_cookies = cookies.private(&key);
-                                        private_cookies.remove(Cookie::named(SIGN_IN_COOKIE_NAME));
+                                        private_cookies.remove(Cookie::from(SIGN_IN_COOKIE_NAME));
                                         let location = generate_auth_code_redirect(
                                             appstate,
                                             data,

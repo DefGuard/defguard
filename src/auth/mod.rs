@@ -130,7 +130,7 @@ where
                         Ok(Some(session)) => {
                             if session.expired() {
                                 let _result = session.delete(&appstate.pool).await;
-                                cookies.remove(Cookie::named("defguard_session"));
+                                cookies.remove(Cookie::from("defguard_session"));
                                 Err(WebError::Authorization("Session expired".into()))
                             } else {
                                 Ok(session)
