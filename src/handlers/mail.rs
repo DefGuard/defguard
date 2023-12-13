@@ -39,6 +39,7 @@ static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Co
 static GATEWAY_DISCONNECTED: &str = "Defguard: Gateway disconnected";
 
 pub static EMAIL_PASSOWRD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
+pub static EMAIL_PASSOWRD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -449,6 +450,36 @@ pub fn send_password_reset_email(
         Err(err) => {
             error!("Failed to send password reset email to {to} with error:\n{err}");
             Err(TokenError::NotificationError(err.to_string()))
+        }
+    }
+}
+
+pub fn send_password_reset_success_email(
+    user: &User,
+    mail_tx: &UnboundedSender<Mail>,
+    ip_address: Option<String>,
+    device_info: Option<String>,
+) -> Result<(), TokenError> {
+    debug!("Sending password reset success email to {}", user.email);
+
+    let mail = Mail {
+        to: user.email.clone(),
+        subject: EMAIL_PASSOWRD_RESET_SUCCESS_SUBJECT.into(),
+        content: templates::email_password_reset_success_mail(ip_address, device_info)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Password reset email success sent to {to}");
+            Ok(())
+        }
+        Err(err) => {
+            error!("Failed to send password reset success email to {to} with error:\n{err}");
+            Ok(())
         }
     }
 }
