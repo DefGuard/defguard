@@ -10,7 +10,7 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
 };
-use axum_extra::extract::cookie::{Cookie, CookieJar};
+use axum_extra::extract::cookie::CookieJar;
 use jsonwebtoken::{
     decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
 };
@@ -131,9 +131,6 @@ where
                         Ok(Some(session)) => {
                             if session.expired() {
                                 let _result = session.delete(&appstate.pool).await;
-                                // FIXME: this does not do anything
-                                let _private_cookies =
-                                    cookies.remove(Cookie::from(SESSION_COOKIE_NAME));
                                 Err(WebError::Authorization("Session expired".into()))
                             } else {
                                 Ok(session)
