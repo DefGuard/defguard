@@ -17,8 +17,8 @@ use crate::{
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
 
-const ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
-const DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
+static ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
+static DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
 
 #[derive(Error, Debug)]
 pub enum TokenError {
@@ -329,8 +329,8 @@ impl Token {
     pub async fn get_welcome_email_content(
         &self,
         transaction: &mut PgConnection,
-        ip_address: String,
-        device_info: Option<String>,
+        ip_address: &str,
+        device_info: Option<&str>,
     ) -> Result<String, TokenError> {
         let settings = Settings::get_settings(&mut *transaction).await?;
 

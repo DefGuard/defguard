@@ -302,7 +302,7 @@ impl GatewayState {
             // To return result instead of logging
             tokio::spawn(async move {
                 if let Err(e) =
-                    send_gateway_disconnected_email(name, network_name, hostname, &mail_tx, &pool)
+                    send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
                         .await
                 {
                     error!("Sending gateway disconnected notification failed: {}", e);
@@ -338,7 +338,7 @@ pub async fn run_grpc_server(
         pool.clone(),
         wireguard_tx.clone(),
         mail_tx.clone(),
-        user_agent_parser.clone(),
+        user_agent_parser,
         config.clone(),
     ));
     let password_reset_service = PasswordResetServiceServer::new(PasswordResetServer::new(

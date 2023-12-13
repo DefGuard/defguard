@@ -21,17 +21,17 @@ use reqwest::Url;
 use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
+use uaparser::UserAgentParser;
 
-#[allow(non_snake_case)]
 pub mod proto {
     tonic::include_proto!("enrollment");
 }
-use proto::{
+
+use self::proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, Device as ProtoDevice,
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
     EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
 };
-use uaparser::UserAgentParser;
 
 pub struct EnrollmentServer {
     pool: DbPool,
@@ -117,7 +117,7 @@ impl EnrollmentServer {
     /// Sends given `GatewayEvent` to be handled by gateway GRPC server
     pub fn send_wireguard_event(&self, event: GatewayEvent) {
         if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending wireguard event {err}");
+            error!("Error sending WireGuard event {err}");
         }
     }
 }
@@ -262,8 +262,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 &self.mail_tx,
                 &user,
                 &settings,
-                ip_address.clone(),
-                device_info.clone(),
+                &ip_address,
+                device_info.as_deref(),
             )
             .await?;
 
@@ -271,7 +271,13 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
 
         if let Some(admin) = admin {
-            Token::send_admin_notification(&self.mail_tx, &admin, &user, ip_address, device_info)?;
+            Token::send_admin_notification(
+                &self.mail_tx,
+                &admin,
+                &user,
+                &ip_address,
+                device_info.as_deref(),
+            )?;
         }
 
         transaction.commit().await.map_err(|_| {
@@ -367,8 +373,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             &template_locations,
             &user.email,
             &self.mail_tx,
-            Some(ip_address),
-            device_info,
+            Some(&ip_address),
+            device_info.as_deref(),
         )
         .await
         .map_err(|_| Status::internal("Failed to render new device added tempalte"))?;
@@ -527,8 +533,8 @@ impl Token {
         mail_tx: &UnboundedSender<Mail>,
         user: &User,
         settings: &Settings,
-        ip_address: String,
-        device_info: Option<String>,
+        ip_address: &str,
+        device_info: Option<&str>,
     ) -> Result<(), TokenError> {
         debug!("Sending welcome mail to {}", user.username);
         let mail = Mail {
@@ -557,8 +563,8 @@ impl Token {
         mail_tx: &UnboundedSender<Mail>,
         admin: &User,
         user: &User,
-        ip_address: String,
-        device_info: Option<String>,
+        ip_address: &str,
+        device_info: Option<&str>,
     ) -> Result<(), TokenError> {
         debug!(
             "Sending enrollment success notification for user {} to {}",

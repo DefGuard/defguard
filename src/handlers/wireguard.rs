@@ -519,7 +519,7 @@ pub async fn add_device(
         (None, None)
     } else {
         (
-            Some(session.session.ip_address.clone()),
+            Some(session.session.ip_address.as_str()),
             session.session.device_info.clone(),
         )
     };
@@ -530,7 +530,7 @@ pub async fn add_device(
         &user.email,
         &appstate.mail_tx,
         session_ip,
-        session_device_info,
+        session_device_info.as_deref(),
     )
     .await?;
 

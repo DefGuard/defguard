@@ -20,7 +20,6 @@ use self::proto::{
     PasswordResetStartRequest, PasswordResetStartResponse,
 };
 
-#[allow(non_snake_case)]
 pub mod proto {
     tonic::include_proto!("password_reset");
 }
@@ -142,9 +141,9 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             &user,
             &self.mail_tx,
             self.config.enrollment_url.clone(),
-            enrollment.id.clone(),
-            Some(ip_address),
-            Some(user_agent),
+            &enrollment.id,
+            Some(&ip_address),
+            Some(&user_agent),
         )?;
 
         Ok(Response::new(()))
@@ -244,8 +243,8 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
         send_password_reset_success_email(
             &user,
             &self.mail_tx,
-            Some(ip_address),
-            Some(user_agent),
+            Some(&ip_address),
+            Some(&user_agent),
         )?;
 
         Ok(Response::new(()))

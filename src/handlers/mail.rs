@@ -175,8 +175,8 @@ pub async fn send_new_device_added_email(
     template_locations: &Vec<TemplateLocation>,
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
-    ip_address: Option<String>,
-    device_info: Option<String>,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device added mail to {SUPPORT_EMAIL_ADDRESS}");
 
@@ -210,7 +210,7 @@ pub async fn send_new_device_added_email(
 pub async fn send_gateway_disconnected_email(
     gateway_name: Option<String>,
     network_name: String,
-    gateway_adress: String,
+    gateway_adress: &str,
     mail_tx: &UnboundedSender<Mail>,
     pool: &DbPool,
 ) -> Result<(), WebError> {
@@ -227,7 +227,7 @@ pub async fn send_gateway_disconnected_email(
             subject: GATEWAY_DISCONNECTED.to_string(),
             content: templates::gateway_disconnected_mail(
                 &gateway_name,
-                &gateway_adress,
+                gateway_adress,
                 &network_name,
             )?,
             attachments: Vec::new(),
@@ -421,9 +421,9 @@ pub fn send_password_reset_email(
     user: &User,
     mail_tx: &UnboundedSender<Mail>,
     service_url: Url,
-    token: String,
-    ip_address: Option<String>,
-    device_info: Option<String>,
+    token: &str,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
 ) -> Result<(), TokenError> {
     debug!("Sending password reset email to {}", user.email);
 
@@ -432,7 +432,7 @@ pub fn send_password_reset_email(
         subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
         content: templates::email_password_reset_mail(
             service_url.clone(),
-            token.as_str(),
+            token,
             ip_address,
             device_info,
         )?,
@@ -457,8 +457,8 @@ pub fn send_password_reset_email(
 pub fn send_password_reset_success_email(
     user: &User,
     mail_tx: &UnboundedSender<Mail>,
-    ip_address: Option<String>,
-    device_info: Option<String>,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
 ) -> Result<(), TokenError> {
     debug!("Sending password reset success email to {}", user.email);
 
@@ -475,11 +475,10 @@ pub fn send_password_reset_success_email(
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("Password reset email success sent to {to}");
-            Ok(())
         }
         Err(err) => {
             error!("Failed to send password reset success email to {to} with error:\n{err}");
-            Ok(())
         }
     }
+    Ok(())
 }
