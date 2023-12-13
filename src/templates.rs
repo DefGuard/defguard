@@ -29,6 +29,8 @@ static MAIL_EMAIL_MFA_ACTIVATION: &str =
 static MAIL_EMAIL_MFA_CODE: &str = include_str!("../templates/mail_email_mfa_code.tera");
 static MAIL_PASSWORD_RESET_START: &str =
     include_str!("../templates/mail_password_reset_start.tera");
+static MAIL_PASSWORD_RESET_SUCCESS: &str =
+    include_str!("../templates/mail_password_reset_success.tera");
 
 #[allow(dead_code)]
 static MAIL_DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
@@ -293,6 +295,17 @@ pub fn email_password_reset_mail(
     tera.add_raw_template("mail_passowrd_reset_start", MAIL_PASSWORD_RESET_START)?;
 
     Ok(tera.render("mail_passowrd_reset_start", &context)?)
+}
+
+pub fn email_password_reset_success_mail(
+    ip_address: Option<String>,
+    device_info: Option<String>,
+) -> Result<String, TemplateError> {
+    let (mut tera, context) = get_base_tera(None, None, ip_address, device_info)?;
+
+    tera.add_raw_template("mail_passowrd_reset_success", MAIL_PASSWORD_RESET_SUCCESS)?;
+
+    Ok(tera.render("mail_passowrd_reset_success", &context)?)
 }
 
 #[cfg(test)]

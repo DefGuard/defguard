@@ -10,7 +10,10 @@ use crate::{
         models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
         DbPool, User,
     },
-    handlers::{mail::send_password_reset_email, user::check_password_strength},
+    handlers::{
+        mail::{send_password_reset_email, send_password_reset_success_email},
+        user::check_password_strength,
+    },
     ldap::utils::ldap_change_password,
     mail::Mail,
 };
@@ -207,6 +210,18 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
         debug!("Starting password reset: {request:?}");
         let enrollment = self.validate_session(&request).await?;
 
+        let ip_address = request
+            .metadata()
+            .get("ip_address")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
+        let user_agent = request
+            .metadata()
+            .get("user_agent")
+            .and_then(|value| value.to_str().map(ToString::to_string).ok())
+            .unwrap_or_default();
+
         let request = request.into_inner();
         if let Err(err) = check_password_strength(&request.password) {
             error!("Password not strong enough: {err}");
@@ -235,6 +250,13 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
+
+        send_password_reset_success_email(
+            &user,
+            &self.mail_tx,
+            Some(ip_address),
+            Some(user_agent),
+        )?;
 
         Ok(Response::new(()))
     }
