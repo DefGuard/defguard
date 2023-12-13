@@ -6,6 +6,7 @@ use axum::{
 };
 use chrono::{NaiveDateTime, Utc};
 use lettre::message::header::ContentType;
+use reqwest::Url;
 use serde_json::json;
 use tokio::{
     fs::read_to_string,
@@ -17,7 +18,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::{MFAMethod, Session, User},
+    db::{models::enrollment::TokenError, MFAMethod, Session, User},
     error::WebError,
     mail::{Attachment, Mail},
     support::dump_config,
@@ -36,6 +37,8 @@ static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str = "Your Multi-Factor Authenticat
 static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Code for Login";
 
 static GATEWAY_DISCONNECTED: &str = "Defguard: Gateway disconnected";
+
+pub static EMAIL_PASSOWRD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -409,6 +412,43 @@ pub fn send_email_mfa_code_email(
         Err(err) => {
             error!("Failed to send email MFA code mail to {to} with error:\n{err}");
             Ok(())
+        }
+    }
+}
+
+pub fn send_password_reset_email(
+    user: &User,
+    mail_tx: &UnboundedSender<Mail>,
+    service_url: Url,
+    token: String,
+    ip_address: Option<String>,
+    device_info: Option<String>,
+) -> Result<(), TokenError> {
+    debug!("Sending password reset email to {}", user.email);
+
+    let mail = Mail {
+        to: user.email.clone(),
+        subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
+        content: templates::email_password_reset_mail(
+            service_url.clone(),
+            token.as_str(),
+            ip_address,
+            device_info,
+        )?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Password reset email sent to {to}");
+            Ok(())
+        }
+        Err(err) => {
+            error!("Failed to send password reset email to {to} with error:\n{err}");
+            Err(TokenError::NotificationError(err.to_string()))
         }
     }
 }

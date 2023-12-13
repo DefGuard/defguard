@@ -484,6 +484,7 @@ const en: BaseTranslation = {
     messages: {
       editSuccess: 'User updated.',
       failedToFetchUserData: 'Could not get user information.',
+      passwordResetEmailSent: 'Password reset email has been sent.',
     },
     userDetails: {
       header: 'Profile Details',
@@ -661,6 +662,7 @@ const en: BaseTranslation = {
         delete: 'Delete account',
         startEnrollment: 'Start enrollment',
         activateDesktop: 'Remote desktop activation',
+        resetPassword: 'Reset password',
       },
     },
   },

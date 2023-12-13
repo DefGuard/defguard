@@ -29,8 +29,15 @@ use self::{
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
 use crate::{
-    auth::failed_login::FailedLoginMap, config::DefGuardConfig, db::AppEvent,
-    handlers::mail::send_gateway_disconnected_email, mail::Mail, SERVER_CONFIG,
+    auth::failed_login::FailedLoginMap,
+    config::DefGuardConfig,
+    db::AppEvent,
+    grpc::password_reset::{
+        proto::password_reset_service_server::PasswordResetServiceServer, PasswordResetServer,
+    },
+    handlers::mail::send_gateway_disconnected_email,
+    mail::Mail,
+    SERVER_CONFIG,
 };
 #[cfg(feature = "worker")]
 use crate::{
@@ -44,6 +51,7 @@ pub mod enrollment;
 pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
+pub mod password_reset;
 #[cfg(feature = "worker")]
 pub mod worker;
 
@@ -330,6 +338,12 @@ pub async fn run_grpc_server(
         pool.clone(),
         wireguard_tx.clone(),
         mail_tx.clone(),
+        user_agent_parser.clone(),
+        config.clone(),
+    ));
+    let password_reset_service = PasswordResetServiceServer::new(PasswordResetServer::new(
+        pool.clone(),
+        mail_tx.clone(),
         user_agent_parser,
         config.clone(),
     ));
@@ -356,6 +370,7 @@ pub async fn run_grpc_server(
     let mut builder = builder.tcp_keepalive(Some(Duration::from_secs(10)));
     let router = builder.add_service(auth_service);
     let router = router.add_service(enrollment_service);
+    let router = router.add_service(password_reset_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]

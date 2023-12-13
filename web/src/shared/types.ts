@@ -191,6 +191,10 @@ export interface ChangePasswordRequest {
   username: string;
 }
 
+export interface ResetPasswordRequest {
+  username: string;
+}
+
 export interface WalletChallengeRequest {
   name?: string;
   username: string;
@@ -364,6 +368,7 @@ export interface ApiHook {
     deleteUser: (user: User) => EmptyApiResponse;
     usernameAvailable: (username: string) => EmptyApiResponse;
     changePassword: (data: ChangePasswordRequest) => EmptyApiResponse;
+    resetPassword: (data: ResetPasswordRequest) => EmptyApiResponse;
     walletChallenge: (data: WalletChallengeRequest) => Promise<WalletChallenge>;
     setWallet: (data: AddWalletRequest) => EmptyApiResponse;
     deleteWallet: (data: WalletChallengeRequest) => EmptyApiResponse;

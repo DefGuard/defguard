@@ -7,6 +7,7 @@ import {
   createDevice,
   createUserEnrollment,
   password,
+  selectEnrollment,
   setPassword,
   setToken,
   validateData,
@@ -44,6 +45,7 @@ test.describe('Create user with enrollment enabled', () => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);
+    await selectEnrollment(page);
     await setToken(token, page);
     // Welcome page
     await page.getByTestId('enrollment-next').click();

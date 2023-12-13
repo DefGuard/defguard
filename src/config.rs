@@ -109,11 +109,27 @@ pub struct DefGuardConfig {
 
     #[arg(
         long,
+        env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT",
+        default_value = "24h"
+    )]
+    #[serde(skip_serializing)]
+    pub password_reset_token_timeout: Duration,
+
+    #[arg(
+        long,
         env = "DEFGUARD_ENROLLMENT_SESSION_TIMEOUT",
         default_value = "10m"
     )]
     #[serde(skip_serializing)]
     pub enrollment_session_timeout: Duration,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_PASSWORD_RESET_SESSION_TIMEOUT",
+        default_value = "10m"
+    )]
+    #[serde(skip_serializing)]
+    pub password_reset_session_timeout: Duration,
 
     #[arg(long, env = "DEFGUARD_COOKIE_DOMAIN")]
     pub cookie_domain: Option<String>,

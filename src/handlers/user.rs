@@ -5,19 +5,23 @@ use axum::{
 use serde_json::json;
 
 use super::{
-    mail::send_mfa_configured_email, user_for_admin_or_self, AddUserData, ApiResponse, ApiResult,
-    PasswordChange, PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username,
-    WalletChallenge, WalletChange, WalletSignature,
+    mail::{send_mfa_configured_email, EMAIL_PASSOWRD_RESET_START_SUBJECT},
+    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange,
+    PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
+    WalletChange, WalletSignature,
 };
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserAdminRole},
     db::{
+        models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
         AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
         WebAuthn, WireguardNetwork,
     },
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
+    mail::Mail,
+    templates,
 };
 
 /// Verify the given username
@@ -434,6 +438,89 @@ pub async fn change_password(
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
         let _ = ldap_change_password(&appstate.pool, &username, &data.new_password).await;
+        info!(
+            "Admin {} changed password for user {username}",
+            session.user.username
+        );
+        Ok(ApiResponse::default())
+    } else {
+        debug!("User not found");
+        Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::NOT_FOUND,
+        })
+    }
+}
+
+pub async fn reset_password(
+    _role: UserAdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+) -> ApiResult {
+    debug!(
+        "Admin {} changing password for user {username}",
+        session.user.username,
+    );
+
+    if session.user.username == username {
+        debug!("Cannot change own password with this endpoint.");
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::BAD_REQUEST,
+        });
+    }
+
+    let user = User::find_by_username(&appstate.pool, &username).await?;
+
+    if let Some(user) = user {
+        let mut transaction = appstate.pool.begin().await?;
+
+        Token::delete_unused_user_password_reset_tokens(
+            &mut transaction,
+            user.id.expect("Missing user ID"),
+        )
+        .await?;
+
+        let enrollment = Token::new(
+            user.id.expect("Missing user ID"),
+            Some(session.user.id.expect("Missing admin ID")),
+            Some(user.email.clone()),
+            appstate.config.password_reset_token_timeout.as_secs(),
+            Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
+        );
+        enrollment.save(&mut transaction).await?;
+
+        let mail = Mail {
+            to: user.email.clone(),
+            subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
+            content: templates::email_password_reset_mail(
+                appstate.config.enrollment_url.clone(),
+                enrollment.id.clone().as_str(),
+                None,
+                None,
+            )?,
+            attachments: Vec::new(),
+            result_tx: None,
+        };
+
+        let to = mail.to.clone();
+
+        match &appstate.mail_tx.send(mail) {
+            Ok(()) => {
+                info!("Password reset email sent to {to}");
+                Ok(())
+            }
+            Err(err) => {
+                error!("Failed to send password reset email to {to} with error:\n{err}");
+                Err(WebError::Serialization(format!(
+                    "Could not send password reset email to user {username}"
+                )))
+            }
+        }?;
+
+        transaction.commit().await?;
+
         info!(
             "Admin {} changed password for user {username}",
             session.user.username

@@ -1059,6 +1059,10 @@ type RootTranslation = {
 			 * C​o​u​l​d​ ​n​o​t​ ​g​e​t​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​.
 			 */
 			failedToFetchUserData: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​e​m​a​i​l​ ​h​a​s​ ​b​e​e​n​ ​s​e​n​t​.
+			 */
+			passwordResetEmailSent: string
 		}
 		userDetails: {
 			/**
@@ -1512,6 +1516,10 @@ type RootTranslation = {
 				 * R​e​m​o​t​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				activateDesktop: string
+				/**
+				 * R​e​s​e​t​ ​p​a​s​s​w​o​r​d
+				 */
+				resetPassword: string
 			}
 		}
 	}
@@ -4571,6 +4579,10 @@ export type TranslationFunctions = {
 			 * Could not get user information.
 			 */
 			failedToFetchUserData: () => LocalizedString
+			/**
+			 * Password reset email has been sent.
+			 */
+			passwordResetEmailSent: () => LocalizedString
 		}
 		userDetails: {
 			/**
@@ -5024,6 +5036,10 @@ export type TranslationFunctions = {
 				 * Remote desktop activation
 				 */
 				activateDesktop: () => LocalizedString
+				/**
+				 * Reset password
+				 */
+				resetPassword: () => LocalizedString
 			}
 		}
 	}

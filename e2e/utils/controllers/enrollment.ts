@@ -55,10 +55,15 @@ export const createUserEnrollment = async (
   return { user, token };
 };
 
+export const selectEnrollment = async (page: Page) => {
+  const selectButton = page.getByTestId('select-enrollment');
+  selectButton.click();
+};
+
 export const setToken = async (token: string, page: Page) => {
   const formElement = page.getByTestId('enrollment-token-form');
   await formElement.getByTestId('field-token').type(token);
-  await formElement.locator('button[type="submit"]').click();
+  await page.getByTestId('enrollment-token-submit-button').click();
 };
 
 export const validateData = async (user: User, page: Page) => {
