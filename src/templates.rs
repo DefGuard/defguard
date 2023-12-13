@@ -183,7 +183,7 @@ pub struct TemplateLocation {
 pub fn new_device_added_mail(
     device_name: &str,
     public_key: &str,
-    template_locations: &Vec<TemplateLocation>,
+    template_locations: &[TemplateLocation],
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {

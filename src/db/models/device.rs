@@ -491,7 +491,7 @@ impl Device {
     pub async fn add_to_all_networks(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<(Vec<DeviceNetworkInfo>, Vec<DeviceConfig>), DeviceError> {
         info!("Adding device {} to all existing networks", self.name);
         let networks = WireguardNetwork::all(&mut *transaction).await?;
@@ -562,7 +562,7 @@ impl Device {
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork,
-        reserved_ips: Option<&Vec<IpAddr>>,
+        reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
         let Some(network_id) = network.id else {
             return Err(ModelError::CannotCreate);

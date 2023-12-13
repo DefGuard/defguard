@@ -169,10 +169,10 @@ pub async fn send_support_data(
     }
 }
 
-pub async fn send_new_device_added_email(
+pub fn send_new_device_added_email(
     device_name: &str,
     public_key: &str,
-    template_locations: &Vec<TemplateLocation>,
+    template_locations: &[TemplateLocation],
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
     ip_address: Option<&str>,
@@ -207,6 +207,7 @@ pub async fn send_new_device_added_email(
         }
     }
 }
+
 pub async fn send_gateway_disconnected_email(
     gateway_name: Option<String>,
     network_name: String,
@@ -237,12 +238,11 @@ pub async fn send_gateway_disconnected_email(
 
         match mail_tx.send(mail) {
             Ok(()) => {
-                info!("Sent gateway disconnected notification to {}", &to);
+                info!("Sent gateway disconnected notification to {to}");
             }
             Err(err) => {
                 error!(
-                    "Sending gateway disconnected notification to {} failed with error:\n{}",
-                    &to, &err
+                    "Sending gateway disconnected notification to {to} failed with error:\n{err}"
                 );
             }
         }

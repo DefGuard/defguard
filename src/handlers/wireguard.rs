@@ -531,8 +531,7 @@ pub async fn add_device(
         &appstate.mail_tx,
         session_ip,
         session_device_info.as_deref(),
-    )
-    .await?;
+    )?;
 
     info!(
         "User {} added device {device_name} for user {username}",

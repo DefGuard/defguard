@@ -287,7 +287,7 @@ impl WireguardNetwork {
     async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<Vec<Device>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
         let devices = match self
@@ -325,7 +325,7 @@ impl WireguardNetwork {
     pub async fn add_all_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<(), ModelError> {
         info!(
             "Assigning IPs in network {} for all existing devices ",
@@ -347,8 +347,8 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         device: &Device,
-        admin_group_name: &String,
-        reserved_ips: Option<&Vec<IpAddr>>,
+        admin_group_name: &str,
+        reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
         info!("Assigning IP in network {self} for {device}");
         let allowed_devices = self
@@ -376,13 +376,10 @@ impl WireguardNetwork {
     pub async fn sync_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
-        reserved_ips: Option<&Vec<IpAddr>>,
+        admin_group_name: &str,
+        reserved_ips: Option<&[IpAddr]>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        info!(
-            "Synchronizing IPs in network {} for all allowed devices ",
-            self
-        );
+        info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
         let allowed_devices = self
             .get_allowed_devices(&mut *transaction, admin_group_name)
@@ -472,7 +469,7 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
         let network_id = self.get_id()?;
         let allowed_devices = self
@@ -537,7 +534,7 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         mapped_devices: Vec<MappedDevice>,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Mapping user devices for network {}", self);
         let network_id = self.get_id()?;

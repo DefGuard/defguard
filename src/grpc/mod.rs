@@ -305,13 +305,13 @@ impl GatewayState {
                     send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
                         .await
                 {
-                    error!("Sending gateway disconnected notification failed: {}", e);
+                    error!("Sending gateway disconnected notification failed: {e}");
                 }
             });
         } else {
             debug!(
-                "Gateway {} disconnected not sending email. Last notification time was at {:?}",
-                hostname, self.last_email_notification
+                "Gateway {hostname} disconnected not sending email. Last notification time was at {:?}",
+                self.last_email_notification
             );
         };
 

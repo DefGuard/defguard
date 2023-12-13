@@ -79,12 +79,8 @@ impl WireguardNetwork {
     {
         debug!("Fetching all allowed groups for network {self}");
         let groups = query_scalar!(
-            r#"
-            SELECT name
-            FROM wireguard_network_allowed_group wag
-            JOIN "group" g ON wag.group_id = g.id
-            WHERE wag.network_id = $1
-            "#,
+            "SELECT name FROM wireguard_network_allowed_group wag \
+            JOIN \"group\" g ON wag.group_id = g.id WHERE wag.network_id = $1",
             self.id
         )
         .fetch_all(executor)
@@ -101,20 +97,20 @@ impl WireguardNetwork {
     pub async fn get_allowed_groups(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
 
-        // if no allowed groups are set then all group are allowed
+        // if no allowed groups are set then all groups are allowed
         if groups.is_empty() {
             return Ok(None);
         }
 
         // make sure admin group is included
-        if !groups.contains(admin_group_name) {
-            groups.push(admin_group_name.clone());
+        if !groups.iter().any(|name| name == admin_group_name) {
+            groups.push(admin_group_name.to_string());
         }
 
         Ok(Some(groups))
@@ -157,12 +153,8 @@ impl WireguardNetwork {
     ) -> Result<(), ModelError> {
         info!("Adding allowed group {group} for network {self}");
         query!(
-            r#"
-            INSERT INTO wireguard_network_allowed_group (network_id, group_id)
-            SELECT $1, g.id
-            FROM "group" g
-            WHERE g.name = $2
-            "#,
+            "INSERT INTO wireguard_network_allowed_group (network_id, group_id) \
+            SELECT $1, g.id FROM \"group\" g WHERE g.name = $2",
             self.id,
             group
         )
@@ -178,14 +170,11 @@ impl WireguardNetwork {
     ) -> Result<(), ModelError> {
         info!("Removing allowed groups {groups:?} for network {self}");
         let result = query!(
-            r#"
-            DELETE FROM wireguard_network_allowed_group
-            WHERE network_id = $1 AND group_id IN (
-                SELECT id
-                FROM "group"
-                WHERE name IN (SELECT * FROM UNNEST($2::text[]))
-            )
-            "#,
+            "DELETE FROM wireguard_network_allowed_group \
+            WHERE network_id = $1 AND group_id IN ( \
+                SELECT id FROM \"group\" \
+                WHERE name IN (SELECT * FROM UNNEST($2::text[])) \
+            )",
             self.id,
             &groups
         )

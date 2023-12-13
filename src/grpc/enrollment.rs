@@ -376,7 +376,6 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             Some(&ip_address),
             device_info.as_deref(),
         )
-        .await
         .map_err(|_| Status::internal("Failed to render new device added tempalte"))?;
         let response = DeviceConfigResponse {
             device: Some(device.into()),
