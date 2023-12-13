@@ -1,8 +1,5 @@
-use std::sync::Arc;
-
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
-use uaparser::UserAgentParser;
 
 use crate::{
     config::DefGuardConfig,
@@ -28,25 +25,18 @@ pub mod proto {
 pub struct PasswordResetServer {
     pool: DbPool,
     mail_tx: UnboundedSender<Mail>,
-    user_agent_parser: Arc<UserAgentParser>,
     config: DefGuardConfig,
     ldap_feature_active: bool,
 }
 
 impl PasswordResetServer {
     #[must_use]
-    pub fn new(
-        pool: DbPool,
-        mail_tx: UnboundedSender<Mail>,
-        user_agent_parser: Arc<UserAgentParser>,
-        config: DefGuardConfig,
-    ) -> Self {
+    pub fn new(pool: DbPool, mail_tx: UnboundedSender<Mail>, config: DefGuardConfig) -> Self {
         // FIXME: check if LDAP feature is enabled
         let ldap_feature_active = true;
         Self {
             pool,
             mail_tx,
-            user_agent_parser,
             config,
             ldap_feature_active,
         }

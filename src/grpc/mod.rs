@@ -344,7 +344,6 @@ pub async fn run_grpc_server(
     let password_reset_service = PasswordResetServiceServer::new(PasswordResetServer::new(
         pool.clone(),
         mail_tx.clone(),
-        user_agent_parser,
         config.clone(),
     ));
     #[cfg(feature = "worker")]
