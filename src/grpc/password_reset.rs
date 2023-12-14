@@ -1,8 +1,5 @@
-use std::sync::Arc;
-
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
-use uaparser::UserAgentParser;
 
 use crate::{
     config::DefGuardConfig,
@@ -23,7 +20,6 @@ use self::proto::{
     PasswordResetStartRequest, PasswordResetStartResponse,
 };
 
-#[allow(non_snake_case)]
 pub mod proto {
     tonic::include_proto!("password_reset");
 }
@@ -31,25 +27,18 @@ pub mod proto {
 pub struct PasswordResetServer {
     pool: DbPool,
     mail_tx: UnboundedSender<Mail>,
-    user_agent_parser: Arc<UserAgentParser>,
     config: DefGuardConfig,
     ldap_feature_active: bool,
 }
 
 impl PasswordResetServer {
     #[must_use]
-    pub fn new(
-        pool: DbPool,
-        mail_tx: UnboundedSender<Mail>,
-        user_agent_parser: Arc<UserAgentParser>,
-        config: DefGuardConfig,
-    ) -> Self {
+    pub fn new(pool: DbPool, mail_tx: UnboundedSender<Mail>, config: DefGuardConfig) -> Self {
         // FIXME: check if LDAP feature is enabled
         let ldap_feature_active = true;
         Self {
             pool,
             mail_tx,
-            user_agent_parser,
             config,
             ldap_feature_active,
         }
@@ -141,7 +130,7 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             self.config.password_reset_token_timeout.as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
-        enrollment.save(&mut *transaction).await?;
+        enrollment.save(&mut transaction).await?;
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
@@ -152,9 +141,9 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             &user,
             &self.mail_tx,
             self.config.enrollment_url.clone(),
-            enrollment.id.clone(),
-            Some(ip_address),
-            Some(user_agent),
+            &enrollment.id,
+            Some(&ip_address),
+            Some(&user_agent),
         )?;
 
         Ok(Response::new(()))
@@ -254,8 +243,8 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
         send_password_reset_success_email(
             &user,
             &self.mail_tx,
-            Some(ip_address),
-            Some(user_agent),
+            Some(&ip_address),
+            Some(&user_agent),
         )?;
 
         Ok(Response::new(()))

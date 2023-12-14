@@ -1,3 +1,15 @@
+use std::{
+    fmt::{Display, Formatter},
+    net::IpAddr,
+};
+
+use base64::{prelude::BASE64_STANDARD, Engine};
+use chrono::{NaiveDateTime, Utc};
+use ipnetwork::IpNetwork;
+use model_derive::Model;
+use sqlx::{query, query_as, Error as SqlxError, FromRow, PgConnection, PgExecutor};
+use thiserror::Error;
+
 use super::{
     error::ModelError,
     wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE_MINUTES},
@@ -16,17 +28,6 @@ pub struct DeviceConfig {
     pub(crate) dns: Option<String>,
 }
 
-use base64::{prelude::BASE64_STANDARD, Engine};
-use chrono::{NaiveDateTime, Utc};
-use ipnetwork::IpNetwork;
-use model_derive::Model;
-use sqlx::{query, query_as, Error as SqlxError, FromRow, PgConnection};
-use std::{
-    fmt::{Display, Formatter},
-    net::IpAddr,
-};
-use thiserror::Error;
-
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
 pub struct Device {
     pub id: Option<i64>,
@@ -39,7 +40,7 @@ pub struct Device {
 impl Display for Device {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self.id {
-            Some(device_id) => write!(f, "[ID {}] {}", device_id, self.name),
+            Some(device_id) => write!(f, "[ID {device_id}] {}", self.name),
             None => write!(f, "{}", self.name),
         }
     }
@@ -62,9 +63,9 @@ pub struct DeviceNetworkInfo {
 impl DeviceInfo {
     pub async fn from_device<'e, E>(executor: E, device: Device) -> Result<Self, ModelError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
-        debug!("Generating device info for {}", device);
+        debug!("Generating device info for {device}");
         let device_id = device.get_id()?;
         let network_info = query_as!(
             DeviceNetworkInfo,
@@ -193,7 +194,7 @@ impl WireguardNetworkDevice {
 
     pub async fn insert<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         query!(
             "INSERT INTO wireguard_network_device
@@ -212,7 +213,7 @@ impl WireguardNetworkDevice {
 
     pub async fn update<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         query!(
             r#"
@@ -231,7 +232,7 @@ impl WireguardNetworkDevice {
 
     pub async fn delete<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         query!(
             r#"
@@ -252,7 +253,7 @@ impl WireguardNetworkDevice {
         network_id: i64,
     ) -> Result<Option<Self>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         let res = query_as!(
             Self,
@@ -290,7 +291,7 @@ impl WireguardNetworkDevice {
         network_id: i64,
     ) -> Result<Vec<Self>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         let res = query_as!(
             Self,
@@ -387,7 +388,7 @@ impl Device {
         network_id: i64,
     ) -> Result<Option<Self>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         query_as!(
             Self,
@@ -405,7 +406,7 @@ impl Device {
 
     pub async fn find_by_pubkey<'e, E>(executor: E, pubkey: &str) -> Result<Option<Self>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         query_as!(
             Self,
@@ -490,7 +491,7 @@ impl Device {
     pub async fn add_to_all_networks(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<(Vec<DeviceNetworkInfo>, Vec<DeviceConfig>), DeviceError> {
         info!("Adding device {} to all existing networks", self.name);
         let networks = WireguardNetwork::all(&mut *transaction).await?;
@@ -561,7 +562,7 @@ impl Device {
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork,
-        reserved_ips: Option<&Vec<IpAddr>>,
+        reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
         let Some(network_id) = network.id else {
             return Err(ModelError::CannotCreate);

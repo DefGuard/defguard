@@ -1,12 +1,10 @@
-use crate::{
-    auth::failed_login::FailedLoginMap,
-    config::DefGuardConfig,
-    db::{AppEvent, DbPool, GatewayEvent, WebHook},
-    mail::Mail,
-};
-use reqwest::Client;
-use serde_json::json;
 use std::sync::{Arc, Mutex};
+
+use axum::extract::FromRef;
+use axum_extra::extract::cookie::Key;
+use reqwest::Client;
+use secrecy::ExposeSecret;
+use serde_json::json;
 use tokio::{
     sync::{
         broadcast::Sender,
@@ -16,6 +14,13 @@ use tokio::{
 };
 use uaparser::UserAgentParser;
 use webauthn_rs::prelude::*;
+
+use crate::{
+    auth::failed_login::FailedLoginMap,
+    config::DefGuardConfig,
+    db::{AppEvent, DbPool, GatewayEvent, WebHook},
+    mail::Mail,
+};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -27,6 +32,7 @@ pub struct AppState {
     pub webauthn: Arc<Webauthn>,
     pub user_agent_parser: Arc<UserAgentParser>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
+    key: Key,
 }
 
 impl AppState {
@@ -116,6 +122,8 @@ impl AppState {
                 .expect("Invalid WebAuthn configuration"),
         );
 
+        let key = Key::from(config.secret_key.expose_secret().as_bytes());
+
         Self {
             config,
             pool,
@@ -125,6 +133,13 @@ impl AppState {
             webauthn,
             user_agent_parser,
             failed_logins,
+            key,
         }
+    }
+}
+
+impl FromRef<AppState> for Key {
+    fn from_ref(state: &AppState) -> Self {
+        state.key.clone()
     }
 }

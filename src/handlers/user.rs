@@ -5,20 +5,20 @@ use axum::{
 use serde_json::json;
 
 use super::{
+    mail::{send_mfa_configured_email, EMAIL_PASSOWRD_RESET_START_SUBJECT},
     user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange,
     PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
     WalletChange, WalletSignature,
 };
 use crate::{
     appstate::AppState,
-    auth::{AdminRole, SessionInfo},
+    auth::{SessionInfo, UserAdminRole},
     db::{
         models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
         AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
         WebAuthn, WireguardNetwork,
     },
     error::WebError,
-    handlers::mail::{send_mfa_configured_email, EMAIL_PASSOWRD_RESET_START_SUBJECT},
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     mail::Mail,
     templates,
@@ -77,7 +77,7 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
     Ok(())
 }
 
-pub async fn list_users(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) -> ApiResult {
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
     for user in all_users {
@@ -103,7 +103,7 @@ pub async fn get_user(
 }
 
 pub async fn add_user(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(user_data): Json<AddUserData>,
@@ -163,7 +163,7 @@ pub async fn add_user(
 
 // Trigger enrollment process manually
 pub async fn start_enrollment(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -181,12 +181,11 @@ pub async fn start_enrollment(
         ));
     }
 
-    let user = match User::find_by_username(&appstate.pool, &username).await? {
-        Some(user) => Ok(user),
-        None => Err(WebError::ObjectNotFound(format!(
+    let Some(user) = User::find_by_username(&appstate.pool, &username).await? else {
+        return Err(WebError::ObjectNotFound(format!(
             "user {username} not found"
-        ))),
-    }?;
+        )));
+    };
 
     let mut transaction = appstate.pool.begin().await?;
 
@@ -194,7 +193,7 @@ pub async fn start_enrollment(
         .start_enrollment(
             &mut transaction,
             &session.user,
-            data.email.clone(),
+            data.email,
             appstate.config.enrollment_token_timeout.as_secs(),
             appstate.config.enrollment_url.clone(),
             data.send_enrollment_notification,
@@ -252,12 +251,12 @@ pub async fn start_remote_desktop_configuration(
 }
 
 pub async fn username_available(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<Username>,
 ) -> ApiResult {
     if let Err(err) = check_username(&data.username) {
-        debug!("{}", err);
+        debug!("{err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -338,7 +337,7 @@ pub async fn modify_user(
 }
 
 pub async fn delete_user(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     session: SessionInfo,
@@ -399,7 +398,7 @@ pub async fn change_self_password(
 }
 
 pub async fn change_password(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -454,7 +453,7 @@ pub async fn change_password(
 }
 
 pub async fn reset_password(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -490,14 +489,14 @@ pub async fn reset_password(
             appstate.config.password_reset_token_timeout.as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
-        enrollment.save(&mut *transaction).await?;
+        enrollment.save(&mut transaction).await?;
 
         let mail = Mail {
             to: user.email.clone(),
             subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
             content: templates::email_password_reset_mail(
                 appstate.config.enrollment_url.clone(),
-                &enrollment.id.clone().as_str(),
+                enrollment.id.clone().as_str(),
                 None,
                 None,
             )?,

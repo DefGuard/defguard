@@ -1,18 +1,11 @@
-use super::GatewayMap;
-use crate::{
-    db::{
-        models::wireguard::{WireguardNetwork, WireguardPeerStats},
-        DbPool, Device, GatewayEvent,
-    },
-    mail::Mail,
-};
-use chrono::{NaiveDateTime, Utc};
-use sqlx::{query_as, Error as SqlxError};
 use std::{
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
 };
+
+use chrono::{NaiveDateTime, Utc};
+use sqlx::{query_as, Error as SqlxError, PgExecutor};
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
@@ -22,6 +15,15 @@ use tokio::{
 };
 use tokio_stream::Stream;
 use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
+
+use super::GatewayMap;
+use crate::{
+    db::{
+        models::wireguard::{WireguardNetwork, WireguardPeerStats},
+        DbPool, Device, GatewayEvent,
+    },
+    mail::Mail,
+};
 
 tonic::include_proto!("gateway");
 
@@ -36,7 +38,7 @@ impl WireguardNetwork {
     /// Get a list of all peers
     pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Fetching all peers for network {}", self.id.unwrap());
         let result = query_as!(

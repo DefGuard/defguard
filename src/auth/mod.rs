@@ -10,16 +10,17 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
 };
+use axum_extra::extract::cookie::CookieJar;
 use jsonwebtoken::{
     decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
 };
 use serde::{Deserialize, Serialize};
-use tower_cookies::{Cookie, Cookies};
 
 use crate::{
     appstate::AppState,
-    db::{OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
+    db::{Group, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
     error::WebError,
+    handlers::SESSION_COOKIE_NAME,
 };
 
 pub static JWT_ISSUER: &str = "DefGuard";
@@ -123,14 +124,13 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
-        if let Ok(cookies) = Cookies::from_request_parts(parts, state).await {
-            if let Some(session_cookie) = cookies.get("defguard_session") {
+        if let Ok(cookies) = CookieJar::from_request_parts(parts, state).await {
+            if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
                 return {
                     match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
                         Ok(Some(session)) => {
                             if session.expired() {
                                 let _result = session.delete(&appstate.pool).await;
-                                cookies.remove(Cookie::from("defguard_session"));
                                 Err(WebError::Authorization("Session expired".into()))
                             } else {
                                 Ok(session)
@@ -152,6 +152,7 @@ pub struct SessionInfo {
     pub session: Session,
     pub user: User,
     pub is_admin: bool,
+    groups: Vec<Group>,
 }
 
 impl SessionInfo {
@@ -161,7 +162,12 @@ impl SessionInfo {
             session,
             user,
             is_admin,
+            groups: Vec::new(),
         }
+    }
+
+    fn contains_group(&self, group_name: &str) -> bool {
+        self.groups.iter().any(|group| group.name == group_name)
     }
 }
 
@@ -176,42 +182,62 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
         let session = Session::from_request_parts(parts, state).await?;
-        let user = User::find_by_id(&appstate.pool, session.user_id).await;
+        let user = User::find_by_id(&appstate.pool, session.user_id).await?;
 
-        if let Ok(Some(user)) = user {
+        if let Some(user) = user {
             if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
                 return Err(WebError::Authorization("MFA not verified".into()));
             }
-            let is_admin = match user.member_of(&appstate.pool).await {
-                Ok(groups) => groups.contains(&appstate.config.admin_groupname),
-                _ => false,
+            let Ok(groups) = user.member_of(&appstate.pool).await else {
+                return Err(WebError::DbError("cannot fetch groups".into()));
             };
-            Ok(SessionInfo::new(session, user, is_admin))
+            Ok(SessionInfo {
+                session,
+                user,
+                is_admin: groups
+                    .iter()
+                    .any(|group| group.name == appstate.config.admin_groupname),
+                groups,
+            })
         } else {
             Err(WebError::Authorization("User not found".into()))
         }
     }
 }
 
-pub struct AdminRole;
+#[macro_export]
+macro_rules! role {
+    ($name:ident, $($config_field:ident)*) => {
+        pub struct $name;
 
-#[async_trait]
-impl<S> FromRequestParts<S> for AdminRole
-where
-    S: Send + Sync,
-    AppState: FromRef<S>,
-{
-    type Rejection = WebError;
+        #[async_trait]
+        impl<S> FromRequestParts<S> for $name
+        where
+            S: Send + Sync,
+            AppState: FromRef<S>,
+        {
+            type Rejection = WebError;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let session_info = SessionInfo::from_request_parts(parts, state).await?;
-        if session_info.is_admin {
-            Ok(AdminRole {})
-        } else {
-            Err(WebError::Forbidden("access denied".into()))
+            async fn from_request_parts(
+                parts: &mut Parts,
+                state: &S,
+            ) -> Result<Self, Self::Rejection> {
+                let appstate = AppState::from_ref(state);
+                let session_info = SessionInfo::from_request_parts(parts, state).await?;
+                $(
+                if session_info.contains_group(&appstate.config.$config_field) {
+                    return Ok(Self {});
+                }
+                )*
+                Err(WebError::Forbidden("access denied".into()))
+            }
         }
-    }
+    };
 }
+
+role!(AdminRole, admin_groupname);
+role!(UserAdminRole, admin_groupname useradmin_groupname);
+role!(VpnRole, admin_groupname vpn_groupname);
 
 // User authenticated by a valid access token
 pub struct AccessUserInfo(pub(crate) User);

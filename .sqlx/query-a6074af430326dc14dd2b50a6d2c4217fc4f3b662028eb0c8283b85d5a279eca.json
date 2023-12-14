@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO wireguard_network_allowed_group (network_id, group_id) SELECT $1, g.id FROM \"group\" g WHERE g.name = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a6074af430326dc14dd2b50a6d2c4217fc4f3b662028eb0c8283b85d5a279eca"
+}

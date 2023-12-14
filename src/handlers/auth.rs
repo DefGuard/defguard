@@ -3,14 +3,17 @@ use axum::{
     http::StatusCode,
 };
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
-use axum_extra::{headers::UserAgent, TypedHeader};
-use secrecy::ExposeSecret;
+use axum_extra::{
+    extract::{
+        cookie::{Cookie, CookieJar, SameSite},
+        PrivateCookieJar,
+    },
+    headers::UserAgent,
+    TypedHeader,
+};
 use serde_json::json;
 use sqlx::types::Uuid;
-use tower_cookies::{
-    cookie::{time::Duration, SameSite},
-    Cookie, Cookies, Key,
-};
+use time::Duration;
 use webauthn_rs::prelude::PublicKeyCredential;
 use webauthn_rs_proto::options::CollectedClientData;
 
@@ -39,13 +42,14 @@ use crate::{
 /// * 200 with MFA disabled
 /// * 201 with MFA enabled when additional authentication factor is required
 pub async fn authenticate(
-    cookies: Cookies,
+    cookies: CookieJar,
+    private_cookies: PrivateCookieJar,
     user_agent: Option<TypedHeader<UserAgent>>,
     forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
-) -> ApiResult {
+) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
     let lowercase_username = data.username.to_lowercase();
     debug!("Authenticating user {lowercase_username}");
     // check if user can proceed with login
@@ -114,7 +118,7 @@ pub async fn authenticate(
         .secure(!server_config.cookie_insecure)
         .same_site(SameSite::Lax)
         .max_age(max_age);
-    cookies.add(auth_cookie.into());
+    let cookies = cookies.add(auth_cookie);
 
     let login_event_type = "AUTHENTICATION".to_string();
 
@@ -131,17 +135,19 @@ pub async fn authenticate(
                 agent,
             )
             .await?;
-            Ok(ApiResponse {
-                json: json!(mfa_info),
-                status: StatusCode::CREATED,
-            })
+            Ok((
+                cookies,
+                private_cookies,
+                ApiResponse {
+                    json: json!(mfa_info),
+                    status: StatusCode::CREATED,
+                },
+            ))
         } else {
             Err(WebError::DbError("MFA info read error".into()))
         }
     } else {
         let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-        let key = Key::from(server_config.secret_key.expose_secret().as_bytes());
-        let private_cookies = cookies.private(&key);
 
         check_new_device_login(
             &appstate.pool,
@@ -157,59 +163,66 @@ pub async fn authenticate(
         if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
             debug!("Found openid session cookie.");
             let redirect_url = openid_cookie.value().to_string();
-            private_cookies.remove(openid_cookie);
-            Ok(ApiResponse {
-                json: json!(AuthResponse {
-                    user: user_info,
-                    url: Some(redirect_url)
-                }),
-                status: StatusCode::OK,
-            })
+            Ok((
+                cookies,
+                private_cookies.remove(openid_cookie),
+                ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: Some(redirect_url)
+                    }),
+                    status: StatusCode::OK,
+                },
+            ))
         } else {
-            debug!("No openid session found");
-            Ok(ApiResponse {
-                json: json!(AuthResponse {
-                    user: user_info,
-                    url: None,
-                }),
-                status: StatusCode::OK,
-            })
+            debug!("No OpenID session found");
+            Ok((
+                cookies,
+                private_cookies,
+                ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
+                    status: StatusCode::OK,
+                },
+            ))
         }
     }
 }
 
 /// Logout - forget the session cookie.
 pub async fn logout(
-    cookies: Cookies,
+    cookies: CookieJar,
     session: Session,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<(CookieJar, ApiResponse), WebError> {
     // remove auth cookie
-    cookies.remove(Cookie::from(SESSION_COOKIE_NAME));
+    let cookies = cookies.remove(Cookie::from(SESSION_COOKIE_NAME));
     // remove stored session
     session.delete(&appstate.pool).await?;
-    Ok(ApiResponse::default())
+    Ok((cookies, ApiResponse::default()))
 }
 
 /// Enable MFA
 pub async fn mfa_enable(
-    cookies: Cookies,
+    cookies: CookieJar,
     session: Session,
     session_info: SessionInfo,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<(CookieJar, ApiResponse), WebError> {
     let mut user = session_info.user;
     debug!("Enabling MFA for user {}", user.username);
     user.enable_mfa(&appstate.pool).await?;
     if user.mfa_enabled {
         info!("Enabled MFA for user {}", user.username);
-        cookies.remove(Cookie::from("defguard_sesssion"));
+        let cookies = cookies.remove(Cookie::from("defguard_sesssion"));
         session.delete(&appstate.pool).await?;
         debug!(
             "Removed auth session for user {} after enabling MFA",
             user.username
         );
-        Ok(ApiResponse::default())
+        Ok((cookies, ApiResponse::default()))
     } else {
         error!("Error enabling MFA for user {}", user.username);
         Err(WebError::Http(StatusCode::NOT_MODIFIED))
@@ -349,11 +362,11 @@ pub async fn webauthn_start(mut session: Session, State(appstate): State<AppStat
 
 /// Finish WebAuthn authentication
 pub async fn webauthn_end(
-    cookies: Cookies,
+    private_cookies: PrivateCookieJar,
     mut session: Session,
     State(appstate): State<AppState>,
     Json(pubkey): Json<PublicKeyCredential>,
-) -> ApiResult {
+) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(passkey_auth) = session.get_passkey_authentication() {
         if let Ok(auth_result) = appstate
             .webauthn
@@ -372,30 +385,34 @@ pub async fn webauthn_end(
                 .await?;
             return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
                 let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-                let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
-                let private_cookies = cookies.private(&key);
                 if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                     debug!("Found OpenID session cookie.");
                     let redirect_url = openid_cookie.value().to_string();
-                    private_cookies.remove(openid_cookie);
-                    Ok(ApiResponse {
-                        json: json!(AuthResponse {
-                            user: user_info,
-                            url: Some(redirect_url),
-                        }),
-                        status: StatusCode::OK,
-                    })
+                    let private_cookies = private_cookies.remove(openid_cookie);
+                    Ok((
+                        private_cookies,
+                        ApiResponse {
+                            json: json!(AuthResponse {
+                                user: user_info,
+                                url: Some(redirect_url),
+                            }),
+                            status: StatusCode::OK,
+                        },
+                    ))
                 } else {
-                    Ok(ApiResponse {
-                        json: json!(AuthResponse {
-                            user: user_info,
-                            url: None,
-                        }),
-                        status: StatusCode::OK,
-                    })
+                    Ok((
+                        private_cookies,
+                        ApiResponse {
+                            json: json!(AuthResponse {
+                                user: user_info,
+                                url: None,
+                            }),
+                            status: StatusCode::OK,
+                        },
+                    ))
                 }
             } else {
-                Ok(ApiResponse::default())
+                Ok((private_cookies, ApiResponse::default()))
             };
         }
     }
@@ -459,11 +476,11 @@ pub async fn totp_disable(session: SessionInfo, State(appstate): State<AppState>
 
 /// Validate one-time passcode
 pub async fn totp_code(
-    cookies: Cookies,
+    private_cookies: PrivateCookieJar,
     mut session: Session,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
-) -> ApiResult {
+) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying TOTP for user {}", username);
@@ -473,27 +490,31 @@ pub async fn totp_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Verified TOTP for user {username}");
-            let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
-            let private_cookies = cookies.private(&key);
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
-                private_cookies.remove(openid_cookie);
-                Ok(ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: Some(redirect_url),
-                    }),
-                    status: StatusCode::OK,
-                })
+                let private_cookies = private_cookies.remove(openid_cookie);
+                Ok((
+                    private_cookies,
+                    ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: Some(redirect_url),
+                        }),
+                        status: StatusCode::OK,
+                    },
+                ))
             } else {
-                Ok(ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: None,
-                    }),
-                    status: StatusCode::OK,
-                })
+                Ok((
+                    private_cookies,
+                    ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: None,
+                        }),
+                        status: StatusCode::OK,
+                    },
+                ))
             }
         } else {
             Err(WebError::Authorization("Invalid TOTP code".into()))
@@ -590,11 +611,11 @@ pub async fn request_email_mfa_code(
 
 /// Validate email MFA code
 pub async fn email_mfa_code(
-    cookies: Cookies,
+    private_cookies: PrivateCookieJar,
     mut session: Session,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
-) -> ApiResult {
+) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying email MFA code for user {}", username);
@@ -604,27 +625,31 @@ pub async fn email_mfa_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Verified email MFA code for user {username}");
-            let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
-            let private_cookies = cookies.private(&key);
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
-                private_cookies.remove(openid_cookie);
-                Ok(ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: Some(redirect_url),
-                    }),
-                    status: StatusCode::OK,
-                })
+                let private_cookies = private_cookies.remove(openid_cookie);
+                Ok((
+                    private_cookies,
+                    ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: Some(redirect_url),
+                        }),
+                        status: StatusCode::OK,
+                    },
+                ))
             } else {
-                Ok(ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: None,
-                    }),
-                    status: StatusCode::OK,
-                })
+                Ok((
+                    private_cookies,
+                    ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: None,
+                        }),
+                        status: StatusCode::OK,
+                    },
+                ))
             }
         } else {
             Err(WebError::Authorization("Invalid email MFA code".into()))
@@ -659,11 +684,11 @@ pub async fn web3auth_start(
 
 /// Finish Web3 authentication
 pub async fn web3auth_end(
-    cookies: Cookies,
+    private_cookies: PrivateCookieJar,
     mut session: Session,
     State(appstate): State<AppState>,
     Json(signature): Json<WalletSignature>,
-) -> ApiResult {
+) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     debug!(
         "Finishing web3 authentication for wallet {}",
         signature.address
@@ -685,34 +710,37 @@ pub async fn web3auth_end(
                             let username = user.username.clone();
                             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
                             info!(
-                                "User {} authenticated with wallet {}",
-                                username, signature.address
+                                "User {username} authenticated with wallet {}",
+                                signature.address
                             );
-                            let key =
-                                Key::from(appstate.config.secret_key.expose_secret().as_bytes());
-                            let private_cookies = cookies.private(&key);
                             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                                 debug!("Found openid session cookie.");
                                 let redirect_url = openid_cookie.value().to_string();
-                                private_cookies.remove(openid_cookie);
-                                Ok(ApiResponse {
-                                    json: json!(AuthResponse {
-                                        user: user_info,
-                                        url: Some(redirect_url),
-                                    }),
-                                    status: StatusCode::OK,
-                                })
+                                let private_cookies = private_cookies.remove(openid_cookie);
+                                Ok((
+                                    private_cookies,
+                                    ApiResponse {
+                                        json: json!(AuthResponse {
+                                            user: user_info,
+                                            url: Some(redirect_url),
+                                        }),
+                                        status: StatusCode::OK,
+                                    },
+                                ))
                             } else {
-                                Ok(ApiResponse {
-                                    json: json!(AuthResponse {
-                                        user: user_info,
-                                        url: None,
-                                    }),
-                                    status: StatusCode::OK,
-                                })
+                                Ok((
+                                    private_cookies,
+                                    ApiResponse {
+                                        json: json!(AuthResponse {
+                                            user: user_info,
+                                            url: None,
+                                        }),
+                                        status: StatusCode::OK,
+                                    },
+                                ))
                             }
                         } else {
-                            Ok(ApiResponse::default())
+                            Ok((private_cookies, ApiResponse::default()))
                         }
                     }
                     _ => Err(WebError::Authorization("Signature not verified".into())),
@@ -725,11 +753,11 @@ pub async fn web3auth_end(
 
 /// Authenticate with a recovery code.
 pub async fn recovery_code(
-    cookies: Cookies,
+    private_cookies: PrivateCookieJar,
     mut session: Session,
     State(appstate): State<AppState>,
     Json(recovery_code): Json<RecoveryCode>,
-) -> ApiResult {
+) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Authenticating user {} with recovery code", username);
@@ -742,28 +770,32 @@ pub async fn recovery_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Authenticated user {username} with recovery code");
-            let key = Key::from(appstate.config.secret_key.expose_secret().as_bytes());
-            let private_cookies = cookies.private(&key);
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found OpenID session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
-                private_cookies.remove(openid_cookie);
-                return Ok(ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: Some(redirect_url),
-                    }),
-                    status: StatusCode::OK,
-                });
+                let private_cookies = private_cookies.remove(openid_cookie);
+                return Ok((
+                    private_cookies,
+                    ApiResponse {
+                        json: json!(AuthResponse {
+                            user: user_info,
+                            url: Some(redirect_url),
+                        }),
+                        status: StatusCode::OK,
+                    },
+                ));
             }
 
-            return Ok(ApiResponse {
-                json: json!(AuthResponse {
-                    user: user_info,
-                    url: None,
-                }),
-                status: StatusCode::OK,
-            });
+            return Ok((
+                private_cookies,
+                ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
+                    status: StatusCode::OK,
+                },
+            ));
         }
     }
     Err(WebError::Http(StatusCode::UNAUTHORIZED))

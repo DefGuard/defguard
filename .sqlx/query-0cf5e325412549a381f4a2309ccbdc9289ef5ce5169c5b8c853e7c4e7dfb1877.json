@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT name FROM wireguard_network_allowed_group wag JOIN \"group\" g ON wag.group_id = g.id WHERE wag.network_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0cf5e325412549a381f4a2309ccbdc9289ef5ce5169c5b8c853e7c4e7dfb1877"
+}

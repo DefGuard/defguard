@@ -2,6 +2,7 @@ mod common;
 
 use std::{str::FromStr, time::SystemTime};
 
+use chrono::NaiveDateTime;
 use claims::assert_err;
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
@@ -21,6 +22,8 @@ use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, Webauthn
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
 use self::common::{client::TestClient, make_test_client, ClientState, X_FORWARDED_FOR};
+
+static SESSION_COOKIE_NAME: &str = "defguard_session";
 
 #[derive(Deserialize)]
 pub struct RecoveryCodes {
@@ -98,7 +101,7 @@ async fn test_logout() {
     // store auth cookie for later use
     let auth_cookie = response
         .cookies()
-        .find(|c| c.name() == "defguard_session")
+        .find(|c| c.name() == SESSION_COOKIE_NAME)
         .unwrap();
 
     let response = client.get("/api/v1/me").send().await;
@@ -705,13 +708,11 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
         }},
         "primaryType": "ProofOfOwnership",
         "message": {{
-            "wallet": "{}",
-            "content": "{}",
+            "wallet": "{wallet_address}",
+            "content": "{challenge_message}",
             "nonce": {}
         }}}}
         "#,
-        wallet_address,
-        challenge_message,
         parsed_message.get("nonce").unwrap(),
     )
     .chars()
@@ -1073,4 +1074,36 @@ async fn test_login_ip_headers() {
         "Defguard: new device logged in to your account"
     );
     assert!(mail.content.contains("IP Address:</span> 10.0.0.20"));
+}
+
+#[tokio::test]
+async fn test_session_cookie() {
+    let (client, pool) = make_client_with_db().await;
+
+    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let auth_cookie = response
+        .cookies()
+        .find(|c| c.name() == SESSION_COOKIE_NAME)
+        .unwrap();
+
+    let session_id = auth_cookie.value();
+
+    // Forcibly expire the session
+    query!(
+        "UPDATE session SET expires = $1 WHERE id = $2",
+        NaiveDateTime::UNIX_EPOCH,
+        session_id
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    let auth_cookie = response.cookies().find(|c| c.name() == SESSION_COOKIE_NAME);
+    assert!(auth_cookie.is_none());
 }

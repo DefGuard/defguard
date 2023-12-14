@@ -1,7 +1,8 @@
-use super::{error::ModelError, DbPool};
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError};
+use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor};
 use webauthn_rs::prelude::Passkey;
+
+use super::{error::ModelError, DbPool};
 
 #[derive(Model)]
 pub struct WebAuthn {
@@ -55,9 +56,12 @@ impl WebAuthn {
     }
 
     /// Delete all for a given user.
-    pub async fn delete_all_for_user(pool: &DbPool, user_id: i64) -> Result<(), SqlxError> {
+    pub async fn delete_all_for_user<'e, E>(executor: E, user_id: i64) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query!("DELETE FROM webauthn WHERE user_id = $1", user_id)
-            .execute(pool)
+            .execute(executor)
             .await?;
         Ok(())
     }

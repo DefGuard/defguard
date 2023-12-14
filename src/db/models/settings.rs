@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
+use model_derive::Model;
+use sqlx::{query, Error as SqlxError, PgExecutor, Type};
+use struct_patch::Patch;
+
 use super::DbPool;
 use crate::secret::SecretString;
-use model_derive::Model;
-use sqlx::{query, Error as SqlxError, Type};
-use std::collections::HashMap;
-use struct_patch::Patch;
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
@@ -63,9 +65,9 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub async fn get_settings<'e, E>(executor: E) -> Result<Settings, sqlx::Error>
+    pub async fn get_settings<'e, E>(executor: E) -> Result<Settings, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         let settings = Settings::find_by_id(executor, 1).await?;
 
@@ -75,7 +77,7 @@ impl Settings {
     // Set default values for settings if not set yet.
     // This is only relevant to a subset of settings which are nullable
     // and we want to initialize their values.
-    pub async fn init_defaults(pool: &DbPool) -> Result<(), sqlx::Error> {
+    pub async fn init_defaults(pool: &DbPool) -> Result<(), SqlxError> {
         info!("Initializing default settings");
 
         let default_settings = HashMap::from([

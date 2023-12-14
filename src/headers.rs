@@ -38,7 +38,7 @@ pub fn get_device_info(
 ) -> Option<String> {
     let agent = parse_user_agent(user_agent_parser, user_agent);
 
-    agent.clone().map(|v| get_user_agent_device(&v))
+    agent.map(|v| get_user_agent_device(&v))
 }
 
 #[must_use]

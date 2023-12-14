@@ -1,7 +1,7 @@
 use crate::db::{DbPool, WireguardPeerStats};
 use chrono::{DateTime, Duration as ChronoDuration, NaiveDateTime, Utc};
 use humantime::format_duration;
-use sqlx::{query, query_scalar, Error as SqlxError};
+use sqlx::{query, query_scalar, Error as SqlxError, PgExecutor};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -53,7 +53,7 @@ impl WireguardPeerStats {
     // Check how much time has elapsed since last recorded stats purge
     pub async fn time_since_last_purge<'e, E>(executor: E) -> Result<Option<Duration>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Checking time since last stats purge");
 
@@ -83,7 +83,7 @@ impl WireguardPeerStats {
         records_removed: i64,
     ) -> Result<(), SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Recording successful stats purge in DB");
         query!("INSERT INTO wireguard_stats_purge (started_at, finished_at, removal_threshold, records_removed) VALUES ($1, $2, $3, $4)",

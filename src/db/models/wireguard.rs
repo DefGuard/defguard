@@ -1,3 +1,19 @@
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display, Formatter},
+    net::{IpAddr, Ipv4Addr},
+    str::FromStr,
+};
+
+use base64::prelude::{Engine, BASE64_STANDARD};
+use chrono::{Duration, NaiveDateTime, Utc};
+use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
+use model_derive::Model;
+use rand_core::OsRng;
+use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor};
+use thiserror::Error;
+use x25519_dalek::{PublicKey, StaticSecret};
+
 use super::{
     device::{Device, DeviceError, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
     error::ModelError,
@@ -16,21 +32,6 @@ pub struct MappedDevice {
     pub wireguard_pubkey: String,
     pub wireguard_ip: IpAddr,
 }
-
-use base64::prelude::{Engine, BASE64_STANDARD};
-use chrono::{Duration, NaiveDateTime, Utc};
-use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
-use model_derive::Model;
-use rand_core::OsRng;
-use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection};
-use std::{
-    collections::HashMap,
-    fmt::{Debug, Display, Formatter},
-    net::{IpAddr, Ipv4Addr},
-    str::FromStr,
-};
-use thiserror::Error;
-use x25519_dalek::{PublicKey, StaticSecret};
 
 pub static WIREGUARD_MAX_HANDSHAKE_MINUTES: u32 = 5;
 pub static PEER_STATS_LIMIT: i64 = 6 * 60;
@@ -149,7 +150,7 @@ impl WireguardNetwork {
         name: &str,
     ) -> Result<Option<Vec<Self>>, WireguardNetworkError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         let networks = query_as!(
             WireguardNetwork,
@@ -286,7 +287,7 @@ impl WireguardNetwork {
     async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<Vec<Device>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
         let devices = match self
@@ -324,7 +325,7 @@ impl WireguardNetwork {
     pub async fn add_all_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<(), ModelError> {
         info!(
             "Assigning IPs in network {} for all existing devices ",
@@ -346,8 +347,8 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         device: &Device,
-        admin_group_name: &String,
-        reserved_ips: Option<&Vec<IpAddr>>,
+        admin_group_name: &str,
+        reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
         info!("Assigning IP in network {self} for {device}");
         let allowed_devices = self
@@ -375,13 +376,10 @@ impl WireguardNetwork {
     pub async fn sync_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
-        reserved_ips: Option<&Vec<IpAddr>>,
+        admin_group_name: &str,
+        reserved_ips: Option<&[IpAddr]>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        info!(
-            "Synchronizing IPs in network {} for all allowed devices ",
-            self
-        );
+        info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
         let allowed_devices = self
             .get_allowed_devices(&mut *transaction, admin_group_name)
@@ -471,7 +469,7 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
         let network_id = self.get_id()?;
         let allowed_devices = self
@@ -536,7 +534,7 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         mapped_devices: Vec<MappedDevice>,
-        admin_group_name: &String,
+        admin_group_name: &str,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Mapping user devices for network {}", self);
         let network_id = self.get_id()?;
@@ -561,7 +559,7 @@ impl WireguardNetwork {
                 mapped_device.user_id,
             );
             device.save(&mut *transaction).await?;
-            debug!("Saved new device {}", device);
+            debug!("Saved new device {device}");
 
             // get a list of groups user is assigned to
             let groups = match user_groups.get(&device.user_id) {
@@ -570,9 +568,9 @@ impl WireguardNetwork {
                 // fetch user info
                 None => match User::find_by_id(&mut *transaction, device.user_id).await? {
                     Some(user) => {
-                        let groups = user.member_of(&mut *transaction).await?;
+                        let groups = user.member_of_names(&mut *transaction).await?;
                         user_groups.insert(device.user_id, groups);
-                        // ugly workaround to get around `groups` being dropped
+                        // FIXME: ugly workaround to get around `groups` being dropped
                         user_groups.get(&device.user_id).unwrap()
                     }
                     None => return Err(WireguardNetworkError::from(ModelError::NotFound)),
@@ -738,14 +736,15 @@ impl WireguardNetwork {
             .await?;
         let mut result = Vec::new();
         for device in devices {
-            let latest_stats = self.fetch_latest_stats(conn, device.id.unwrap()).await?;
+            let Some(device_id) = device.id else { continue };
+            let latest_stats = self.fetch_latest_stats(conn, device_id).await?;
             result.push(WireguardDeviceStatsRow {
-                id: device.id.unwrap(),
+                id: device_id,
                 user_id: device.user_id,
                 name: device.name.clone(),
                 wireguard_ip: latest_stats.as_ref().and_then(Self::parse_wireguard_ip),
                 public_ip: latest_stats.as_ref().and_then(Self::parse_public_ip),
-                connected_at: self.connected_at(conn, device.id.unwrap()).await?,
+                connected_at: self.connected_at(conn, device_id).await?,
                 // Filter stats for this device
                 stats: stats
                     .iter()

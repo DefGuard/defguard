@@ -1,3 +1,11 @@
+use chrono::{Duration, NaiveDateTime, Utc};
+use reqwest::Url;
+use sqlx::{query, query_as, Error as SqlxError, PgConnection, PgExecutor};
+use tera::{Context, Tera};
+use thiserror::Error;
+use tokio::sync::mpsc::UnboundedSender;
+use tonic::{Code, Status};
+
 use super::{settings::Settings, DbPool, User};
 use crate::{
     mail::Mail,
@@ -5,19 +13,12 @@ use crate::{
     templates::{self, TemplateError},
     SERVER_CONFIG, VERSION,
 };
-use chrono::{Duration, NaiveDateTime, Utc};
-use reqwest::Url;
-use sqlx::{query, query_as, Error as SqlxError, PgConnection};
-use tera::{Context, Tera};
-use thiserror::Error;
-use tokio::sync::mpsc::UnboundedSender;
-use tonic::{Code, Status};
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
 
-const ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
-const DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
+static ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
+static DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
 
 #[derive(Error, Debug)]
 pub enum TokenError {
@@ -200,7 +201,7 @@ impl Token {
 
     pub async fn fetch_user<'e, E>(&self, executor: E) -> Result<User, TokenError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Fetching user for enrollment");
         let Some(user) = User::find_by_id(executor, self.user_id).await? else {
@@ -212,7 +213,7 @@ impl Token {
 
     pub async fn fetch_admin<'e, E>(&self, executor: E) -> Result<Option<User>, TokenError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Fetching admin for enrollment");
         if self.admin_id.is_none() {
@@ -328,8 +329,8 @@ impl Token {
     pub async fn get_welcome_email_content(
         &self,
         transaction: &mut PgConnection,
-        ip_address: String,
-        device_info: Option<String>,
+        ip_address: &str,
+        device_info: Option<&str>,
     ) -> Result<String, TokenError> {
         let settings = Settings::get_settings(&mut *transaction).await?;
 

@@ -19,12 +19,13 @@ pub mod webauthn;
 pub mod webhook;
 pub mod wireguard;
 
+use sqlx::{query_as, Error as SqlxError, PgConnection};
+
 use self::{
     device::UserDevice,
     user::{MFAMethod, User},
 };
 use super::{DbPool, Group};
-use sqlx::{query_as, Error as SqlxError, PgConnection};
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
@@ -80,7 +81,7 @@ pub struct UserInfo {
 
 impl UserInfo {
     pub async fn from_user(pool: &DbPool, user: &User) -> Result<Self, SqlxError> {
-        let groups = user.member_of(pool).await?;
+        let groups = user.member_of_names(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
 
         Ok(Self {
@@ -119,7 +120,10 @@ impl UserInfo {
 
         // add to groups if not already a member
         for groupname in &self.groups {
-            match present_groups.iter().position(|name| name == groupname) {
+            match present_groups
+                .iter()
+                .position(|group| &group.name == groupname)
+            {
                 Some(index) => {
                     present_groups.swap_remove(index);
                 }
@@ -133,11 +137,9 @@ impl UserInfo {
         }
 
         // remove from remaining groups
-        for groupname in present_groups {
-            if let Some(group) = Group::find_by_name(&mut *transaction, &groupname).await? {
-                user.remove_from_group(&mut *transaction, &group).await?;
-                groups_changed = true;
-            }
+        for group in present_groups {
+            user.remove_from_group(&mut *transaction, &group).await?;
+            groups_changed = true;
         }
 
         Ok(groups_changed)

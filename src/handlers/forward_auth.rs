@@ -4,8 +4,8 @@ use axum::{
     http::{header::HeaderValue, request::Parts, StatusCode},
     response::{IntoResponse, Redirect, Response},
 };
+use axum_extra::extract::cookie::CookieJar;
 use reqwest::Url;
-use tower_cookies::Cookies;
 
 use super::SESSION_COOKIE_NAME;
 use crate::{appstate::AppState, db::Session, error::WebError, SERVER_CONFIG};
@@ -61,7 +61,7 @@ impl<S> FromRequestParts<S> for ForwardAuthHeaders {
 
 pub async fn forward_auth(
     State(appstate): State<AppState>,
-    cookies: Cookies,
+    cookies: CookieJar,
     headers: ForwardAuthHeaders,
 ) -> Result<ForwardAuthResponse, WebError> {
     // check if session cookie is present
