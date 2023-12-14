@@ -113,7 +113,7 @@ pub async fn add_user(
 
     // check username
     if let Err(err) = check_username(&username) {
-        debug!("{}", err);
+        debug!("{err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -281,7 +281,7 @@ pub async fn modify_user(
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Err(err) = check_username(&user_info.username) {
-        debug!("{}", err);
+        debug!("Failed to check username {} {err}", user_info.username);
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,

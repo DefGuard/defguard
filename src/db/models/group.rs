@@ -11,7 +11,7 @@ pub struct Group {
 
 impl Group {
     #[must_use]
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: impl Into<String>) -> Self {
         Self {
             id: None,
             name: name.into(),

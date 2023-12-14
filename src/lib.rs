@@ -13,6 +13,7 @@ use axum::{
     serve, Extension, Router,
 };
 use handlers::{
+    group::create_group,
     settings::{get_settings_essentials, patch_settings, test_ldap_settings},
     user::reset_password,
 };
@@ -205,6 +206,7 @@ pub fn build_webapp(
             // group
             .route("/group", get(list_groups))
             .route("/group/:name", get(get_group))
+            .route("/group", post(create_group))
             .route("/group/:name", post(add_group_member))
             .route("/group/:name/user/:username", delete(remove_group_member))
             // mail

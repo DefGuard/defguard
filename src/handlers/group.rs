@@ -4,7 +4,7 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{ApiResponse, ApiResult, Username};
+use super::{ApiResponse, Username};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserAdminRole},
@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[derive(Serialize)]
-pub struct Groups {
+pub(crate) struct Groups {
     groups: Vec<String>,
 }
 
@@ -25,8 +25,8 @@ impl Groups {
     }
 }
 
-#[derive(Serialize)]
-pub struct GroupInfo {
+#[derive(Deserialize, Serialize)]
+pub(crate) struct GroupInfo {
     name: String,
     members: Vec<String>,
 }
@@ -38,7 +38,10 @@ impl GroupInfo {
     }
 }
 
-pub async fn list_groups(_session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub(crate) async fn list_groups(
+    _session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     debug!("Listing groups");
     let groups = Group::all(&appstate.pool)
         .await?
@@ -52,11 +55,12 @@ pub async fn list_groups(_session: SessionInfo, State(appstate): State<AppState>
     })
 }
 
-pub async fn get_group(
+/// GET: Retrieve group with `name`.
+pub(crate) async fn get_group(
     _session: SessionInfo,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("Retrieving group {name}");
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         let members = group.member_usernames(&appstate.pool).await?;
@@ -71,12 +75,45 @@ pub async fn get_group(
     }
 }
 
-pub async fn add_group_member(
+/// POST: Create group with a given name and member list.
+pub(crate) async fn create_group(
+    _role: UserAdminRole,
+    State(appstate): State<AppState>,
+    Json(group_info): Json<GroupInfo>,
+) -> Result<ApiResponse, WebError> {
+    debug!("Creating group {}", group_info.name);
+
+    let mut transaction = appstate.pool.begin().await?;
+
+    let mut group = Group::new(&group_info.name);
+    group.save(&appstate.pool).await?;
+
+    for username in &group_info.members {
+        let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
+            let msg = format!("Failed to find user {username}");
+            error!(msg);
+            return Err(WebError::ObjectNotFound(msg));
+        };
+        user.add_to_group(&mut *transaction, &group).await?;
+        let _result = ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
+    }
+
+    transaction.commit().await?;
+
+    info!("Created group {}", group_info.name);
+    Ok(ApiResponse {
+        json: json!(&group_info),
+        status: StatusCode::CREATED,
+    })
+}
+
+/// POST: Find a group with `name` and add `username` as a member.
+pub(crate) async fn add_group_member(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
     Json(data): Json<Username>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         if let Some(user) = User::find_by_username(&appstate.pool, &data.username).await? {
             debug!("Adding user: {} to group: {}", user.username, group.name);
@@ -97,11 +134,11 @@ pub async fn add_group_member(
     }
 }
 
-pub async fn remove_group_member(
+pub(crate) async fn remove_group_member(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path((name, username)): Path<(String, String)>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         if let Some(user) = User::find_by_username(&appstate.pool, &username).await? {
             debug!(

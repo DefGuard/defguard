@@ -1,6 +1,7 @@
 use self::{error::OriLDAPError, model::Group};
-use crate::db::{DbPool, Settings, User};
+use crate::db::{Settings, User};
 use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
+use sqlx::PgExecutor;
 use std::collections::HashSet;
 
 pub mod error;
@@ -96,8 +97,11 @@ pub struct LDAPConnection {
 }
 
 impl LDAPConnection {
-    pub async fn create(pool: &DbPool) -> Result<LDAPConnection, OriLDAPError> {
-        let settings = Settings::get_settings(pool)
+    pub async fn create<'e, E>(executor: E) -> Result<LDAPConnection, OriLDAPError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let settings = Settings::get_settings(executor)
             .await
             .map_err(|_| OriLDAPError::MissingSettings)?;
         let config = LDAPConfig::try_from(settings.clone())?;
@@ -107,7 +111,7 @@ impl LDAPConnection {
             .ok_or(OriLDAPError::MissingSettings)?;
         let (conn, mut ldap) = LdapConnAsync::new(&url).await?;
         drive!(conn);
-        info!("Connected to LDAP: {}", &url);
+        info!("Connected to LDAP: {url}");
         ldap.simple_bind(&config.ldap_bind_username, password.expose_secret())
             .await?
             .success()?;
@@ -126,7 +130,7 @@ impl LDAPConnection {
             )
             .await?
             .success()?;
-        info!("Performed LDAP user search with filter = {}", filter);
+        info!("Performed LDAP user search with filter = {filter}");
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
 
@@ -145,7 +149,7 @@ impl LDAPConnection {
             )
             .await?
             .success()?;
-        info!("Performed LDAP group search with filter = {}", filter);
+        info!("Performed LDAP group search with filter = {filter}");
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
 

@@ -1,3 +1,5 @@
+use sqlx::PgExecutor;
+
 use super::{error::OriLDAPError, LDAPConnection};
 use crate::db::{DbPool, User};
 
@@ -35,31 +37,40 @@ pub async fn ldap_delete_user(pool: &DbPool, username: &str) -> Result<(), OriLD
     ldap_connection.delete_user(username).await
 }
 
-pub async fn ldap_add_user_to_group(
-    pool: &DbPool,
+pub async fn ldap_add_user_to_group<'e, E>(
+    executor: E,
     username: &str,
     groupname: &str,
-) -> Result<(), OriLDAPError> {
-    let mut ldap_connection = LDAPConnection::create(pool).await?;
+) -> Result<(), OriLDAPError>
+where
+    E: PgExecutor<'e>,
+{
+    let mut ldap_connection = LDAPConnection::create(executor).await?;
     ldap_connection.add_user_to_group(username, groupname).await
 }
 
-pub async fn ldap_remove_user_from_group(
-    pool: &DbPool,
+pub async fn ldap_remove_user_from_group<'e, E>(
+    executor: E,
     username: &str,
     groupname: &str,
-) -> Result<(), OriLDAPError> {
-    let mut ldap_connection = LDAPConnection::create(pool).await?;
+) -> Result<(), OriLDAPError>
+where
+    E: PgExecutor<'e>,
+{
+    let mut ldap_connection = LDAPConnection::create(executor).await?;
     ldap_connection
         .remove_user_from_group(username, groupname)
         .await
 }
 
-pub async fn ldap_change_password(
-    pool: &DbPool,
+pub async fn ldap_change_password<'e, E>(
+    executor: E,
     username: &str,
     password: &str,
-) -> Result<(), OriLDAPError> {
-    let mut ldap_connection = LDAPConnection::create(pool).await?;
+) -> Result<(), OriLDAPError>
+where
+    E: PgExecutor<'e>,
+{
+    let mut ldap_connection = LDAPConnection::create(executor).await?;
     ldap_connection.set_password(username, password).await
 }
