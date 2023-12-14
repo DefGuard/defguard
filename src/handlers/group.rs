@@ -111,6 +111,7 @@ pub(crate) async fn delete_group(
             });
         }
 
+        group.delete(&appstate.pool).await?;
         info!("Deleted group {name}");
         Ok(ApiResponse::default())
     } else {

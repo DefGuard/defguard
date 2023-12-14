@@ -22,4 +22,12 @@ async fn test_create_group() {
     // Try to create the same group again.
     let response = client.post("/api/v1/group").json(&data).send().await;
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+    // Delete the group.
+    let response = client.delete("/api/v1/group/hogwards").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Try to delete again.
+    let response = client.delete("/api/v1/group/hogwards").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
