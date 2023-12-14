@@ -152,7 +152,10 @@ impl User {
     }
 
     /// Generate new TOTP secret, save it, then return it as RFC 4648 base32-encoded string.
-    pub async fn new_totp_secret(&mut self, pool: &DbPool) -> Result<String, SqlxError> {
+    pub async fn new_totp_secret<'e, E>(&mut self, executor: E) -> Result<String, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         let secret = gen_totp_secret();
         if let Some(id) = self.id {
             query!(
@@ -160,7 +163,7 @@ impl User {
                 secret,
                 id
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         let secret_base32 = TOTP::from_bytes(&secret).base32_secret();
@@ -169,7 +172,10 @@ impl User {
     }
 
     /// Generate new email secret, similar to TOTP secret above, but don't return generated value.
-    pub async fn new_email_secret(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn new_email_secret<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         let email_secret = gen_totp_secret();
         if let Some(id) = self.id {
             query!(
@@ -177,7 +183,7 @@ impl User {
                 email_secret,
                 id
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         self.email_mfa_secret = Some(email_secret);
@@ -783,7 +789,7 @@ impl User {
 
         // if new user was created add them to admin group (ID 1)
         if let Some(new_user_id) = result {
-            info!("New admin user was created, adding to Admin group...");
+            info!("New admin user has been created, adding to Admin group...");
             query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
                 .bind(new_user_id)
                 .execute(pool)

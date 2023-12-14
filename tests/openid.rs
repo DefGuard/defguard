@@ -49,7 +49,7 @@ pub struct AuthenticationResponse<'r> {
 async fn test_openid_client() {
     let client = make_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -107,7 +107,7 @@ async fn test_openid_client() {
 #[tokio::test]
 async fn test_openid_flow() {
     let client = make_client().await;
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
@@ -252,7 +252,7 @@ async fn test_openid_flow() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // log back in
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -414,7 +414,7 @@ async fn test_openid_authorization_code() {
     .unwrap();
 
     // create OAuth2 client
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let oauth2client = NewOpenIDClient {
@@ -519,7 +519,7 @@ async fn test_openid_authorization_code_with_pkce() {
     .unwrap();
 
     // create OAuth2 client/application
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let oauth2client = NewOpenIDClient {
@@ -622,7 +622,7 @@ async fn test_openid_flow_new_login_mail() {
     let mut mail_rx = state.mail_rx;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header)

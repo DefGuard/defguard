@@ -430,12 +430,7 @@ pub fn send_password_reset_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
-        content: templates::email_password_reset_mail(
-            service_url.clone(),
-            token,
-            ip_address,
-            device_info,
-        )?,
+        content: templates::email_password_reset_mail(service_url, token, ip_address, device_info)?,
         attachments: Vec::new(),
         result_tx: None,
     };

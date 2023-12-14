@@ -4,7 +4,7 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{ApiResponse, Username};
+use super::{ApiResponse, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserAdminRole},
@@ -22,19 +22,6 @@ impl Groups {
     #[must_use]
     pub fn new(groups: Vec<String>) -> Self {
         Self { groups }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-pub(crate) struct GroupInfo {
-    name: String,
-    members: Vec<String>,
-}
-
-impl GroupInfo {
-    #[must_use]
-    pub fn new(name: String, members: Vec<String>) -> Self {
-        Self { name, members }
     }
 }
 
@@ -86,6 +73,7 @@ pub(crate) async fn create_group(
     let mut transaction = appstate.pool.begin().await?;
 
     let mut group = Group::new(&group_info.name);
+    // FIXME: conflicts must not return interal server error (500).
     group.save(&appstate.pool).await?;
 
     for username in &group_info.members {
@@ -105,6 +93,31 @@ pub(crate) async fn create_group(
         json: json!(&group_info),
         status: StatusCode::CREATED,
     })
+}
+
+/// DELETE: Remove group with `name`.
+pub(crate) async fn delete_group(
+    _session: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(name): Path<String>,
+) -> Result<ApiResponse, WebError> {
+    debug!("Deleting group {name}");
+    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
+        // Group `admin` must not be removed.
+        if group.id == Some(1) {
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+
+        info!("Deleted group {name}");
+        Ok(ApiResponse::default())
+    } else {
+        let msg = format!("Failed to find group {name}");
+        error!(msg);
+        Err(WebError::ObjectNotFound(msg))
+    }
 }
 
 /// POST: Find a group with `name` and add `username` as a member.

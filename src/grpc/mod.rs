@@ -88,31 +88,22 @@ impl GatewayMap {
     pub fn add_gateway(
         &mut self,
         network_id: i64,
-        network_name: String,
+        network_name: &str,
         hostname: String,
         name: Option<String>,
         pool: DbPool,
         mail_tx: UnboundedSender<Mail>,
     ) {
         info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
+        let gateway_state =
+            GatewayState::new(network_id, network_name, &hostname, name, pool, mail_tx);
+
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            network_gateway_map
-                .entry(hostname.clone())
-                .or_insert(GatewayState::new(
-                    network_id,
-                    network_name,
-                    hostname,
-                    name,
-                    pool,
-                    mail_tx,
-                ));
+            network_gateway_map.entry(hostname).or_insert(gateway_state);
         } else {
             // no map for a given network exists yet
             let mut network_gateway_map = HashMap::new();
-            network_gateway_map.insert(
-                hostname.clone(),
-                GatewayState::new(network_id, network_name, hostname, name, pool, mail_tx),
-            );
+            network_gateway_map.insert(hostname, gateway_state);
             self.0.insert(network_id, network_gateway_map);
         }
     }
@@ -255,8 +246,8 @@ impl GatewayState {
     #[must_use]
     pub fn new(
         network_id: i64,
-        network_name: String,
-        hostname: String,
+        network_name: impl Into<String>,
+        hostname: impl Into<String>,
         name: Option<String>,
         pool: DbPool,
         mail_tx: UnboundedSender<Mail>,
@@ -265,9 +256,9 @@ impl GatewayState {
             uid: Uuid::new_v4(),
             connected: false,
             network_id,
-            network_name,
+            network_name: network_name.into(),
             name,
-            hostname,
+            hostname: hostname.into(),
             connected_at: None,
             disconnected_at: None,
             mail_tx,
