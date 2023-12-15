@@ -78,6 +78,7 @@ pub(crate) async fn create_group(
     let mut group = Group::new(&group_info.name);
     // FIXME: conflicts must not return interal server error (500).
     group.save(&appstate.pool).await?;
+    // TODO: create group in LDAP
 
     if let Some(ref members) = group_info.members {
         for username in members {
@@ -176,6 +177,8 @@ pub(crate) async fn delete_group(
         }
 
         group.delete(&appstate.pool).await?;
+        // TODO: delete group from LDAP
+
         info!("Deleted group {name}");
         Ok(ApiResponse::default())
     } else {

@@ -1,4 +1,3 @@
-use chrono::Duration as ChronoDuration;
 use std::{
     collections::hash_map::HashMap,
     time::{Duration, Instant},
@@ -9,7 +8,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use chrono::{NaiveDateTime, Utc};
+use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use serde::Serialize;
 use thiserror::Error;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
@@ -91,12 +90,10 @@ impl GatewayMap {
         network_name: &str,
         hostname: String,
         name: Option<String>,
-        pool: DbPool,
         mail_tx: UnboundedSender<Mail>,
     ) {
         info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
-        let gateway_state =
-            GatewayState::new(network_id, network_name, &hostname, name, pool, mail_tx);
+        let gateway_state = GatewayState::new(network_id, network_name, &hostname, name, mail_tx);
 
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             network_gateway_map.entry(hostname).or_insert(gateway_state);
@@ -168,13 +165,14 @@ impl GatewayMap {
         &mut self,
         network_id: i64,
         hostname: String,
+        pool: &DbPool,
     ) -> Result<(), GatewayMapError> {
         info!("Disconnecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
-                state.send_disconnect_notification()?;
+                state.send_disconnect_notification(pool)?;
                 return Ok(());
             };
         };
@@ -237,8 +235,6 @@ pub struct GatewayState {
     #[serde(skip)]
     pub mail_tx: UnboundedSender<Mail>,
     #[serde(skip)]
-    pub pool: DbPool,
-    #[serde(skip)]
     pub last_email_notification: Option<NaiveDateTime>,
 }
 
@@ -249,7 +245,6 @@ impl GatewayState {
         network_name: S,
         hostname: S,
         name: Option<String>,
-        pool: DbPool,
         mail_tx: UnboundedSender<Mail>,
     ) -> Self {
         Self {
@@ -262,17 +257,17 @@ impl GatewayState {
             connected_at: None,
             disconnected_at: None,
             mail_tx,
-            pool,
             last_email_notification: None,
         }
     }
+
     /// Send gateway disconnected notification
     /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self) -> Result<(), GatewayMapError> {
+    fn send_disconnect_notification(&mut self, pool: &DbPool) -> Result<(), GatewayMapError> {
         // Clone here because self doesn't live long enough
         let name = self.name.clone();
         let mail_tx = self.mail_tx.clone();
-        let pool = self.pool.clone();
+        let pool = pool.clone();
         let hostname = self.hostname.clone();
         let network_name = self.network_name.clone();
         let send_email = if let Some(last_notification_time) = self.last_email_notification {
@@ -296,12 +291,12 @@ impl GatewayState {
                     send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
                         .await
                 {
-                    error!("Sending gateway disconnected notification failed: {e}");
+                    error!("Failed to send gateway disconnect notification: {e}");
                 }
             });
         } else {
             debug!(
-                "Gateway {hostname} disconnected not sending email. Last notification time was at {:?}",
+                "Gateway {hostname} disconnected. Email notification not sent. Last notification was at {:?}",
                 self.last_email_notification
             );
         };

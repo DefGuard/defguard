@@ -36,13 +36,14 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn trigger_action(&self, event: AppEvent) {
+    pub(crate) fn trigger_action(&self, event: AppEvent) {
         let event_name = event.name().to_owned();
         match self.tx.send(event) {
             Ok(()) => info!("Sent trigger {event_name}"),
             Err(err) => error!("Error sending trigger {event_name}: {err}"),
         }
     }
+
     /// Handle webhook events
     async fn handle_triggers(pool: DbPool, mut rx: UnboundedReceiver<AppEvent>) {
         let reqwest_client = Client::builder().user_agent("reqwest").build().unwrap();

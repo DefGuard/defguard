@@ -1,24 +1,20 @@
 use sqlx::PgExecutor;
 
-use super::{error::OriLDAPError, LDAPConnection};
+use super::{error::LdapError, LDAPConnection};
 use crate::db::{DbPool, Group, User};
 
 pub async fn user_from_ldap(
     pool: &DbPool,
     username: &str,
     password: &str,
-) -> Result<User, OriLDAPError> {
+) -> Result<User, LdapError> {
     let mut ldap_connection = LDAPConnection::create(pool).await?;
     let mut user = ldap_connection.get_user(username, password).await?;
     let _result = user.save(pool).await; // FIXME: do not ignore errors
     Ok(user)
 }
 
-pub async fn ldap_add_user<'e, E>(
-    executor: E,
-    user: &User,
-    password: &str,
-) -> Result<(), OriLDAPError>
+pub async fn ldap_add_user<'e, E>(executor: E, user: &User, password: &str) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,
 {
@@ -34,7 +30,7 @@ pub async fn ldap_modify_user<'e, E>(
     executor: E,
     username: &str,
     user: &User,
-) -> Result<(), OriLDAPError>
+) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,
 {
@@ -42,7 +38,7 @@ where
     ldap_connection.modify_user(username, user).await
 }
 
-pub async fn ldap_delete_user<'e, E>(executor: E, username: &str) -> Result<(), OriLDAPError>
+pub async fn ldap_delete_user<'e, E>(executor: E, username: &str) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,
 {
@@ -54,7 +50,7 @@ pub async fn ldap_add_user_to_group<'e, E>(
     executor: E,
     username: &str,
     groupname: &str,
-) -> Result<(), OriLDAPError>
+) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,
 {
@@ -66,7 +62,7 @@ pub async fn ldap_remove_user_from_group<'e, E>(
     executor: E,
     username: &str,
     groupname: &str,
-) -> Result<(), OriLDAPError>
+) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,
 {
@@ -80,7 +76,7 @@ pub async fn ldap_change_password<'e, E>(
     executor: E,
     username: &str,
     password: &str,
-) -> Result<(), OriLDAPError>
+) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,
 {
@@ -92,7 +88,7 @@ pub async fn ldap_modify_group<'e, E>(
     executor: E,
     groupname: &str,
     group: &Group,
-) -> Result<(), OriLDAPError>
+) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,
 {
