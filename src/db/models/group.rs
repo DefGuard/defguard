@@ -48,7 +48,7 @@ impl Group {
         }
     }
 
-    pub async fn fetch_all_members<'e, E>(&self, executor: E) -> Result<Vec<User>, SqlxError>
+    pub async fn members<'e, E>(&self, executor: E) -> Result<Vec<User>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -233,11 +233,11 @@ mod test {
         group.save(&pool).await.unwrap();
 
         let mut user = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         user.save(&pool).await.unwrap();

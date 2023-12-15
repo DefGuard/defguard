@@ -172,13 +172,12 @@ impl AuthCode {
 #[derive(Deserialize, Serialize)]
 pub struct GroupInfo {
     pub name: String,
-    #[serde(default)]
-    pub members: Vec<String>,
+    pub members: Option<Vec<String>>,
 }
 
 impl GroupInfo {
     #[must_use]
-    pub fn new<S: Into<String>>(name: S, members: Vec<String>) -> Self {
+    pub fn new<S: Into<String>>(name: S, members: Option<Vec<String>>) -> Self {
         Self {
             name: name.into(),
             members,

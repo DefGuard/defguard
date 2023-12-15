@@ -410,11 +410,11 @@ mod test {
     #[test]
     fn test_enrollment_admin_notification() {
         let test_user: User = User::new(
-            "test".into(),
-            "1234".into(),
-            "test_last".into(),
-            "test_first".into(),
-            "test@example.com".into(),
+            "test",
+            Some("1234"),
+            "test_last",
+            "test_first",
+            "test@example.com",
             Some("99999".into()),
         );
         assert_ok!(enrollment_admin_notification(

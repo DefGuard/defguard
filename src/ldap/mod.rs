@@ -1,8 +1,10 @@
-use self::{error::OriLDAPError, model::Group};
-use crate::db::{Settings, User};
+use std::collections::HashSet;
+
 use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
 use sqlx::PgExecutor;
-use std::collections::HashSet;
+
+use self::error::OriLDAPError;
+use crate::db::{self, Settings, User};
 
 pub mod error;
 pub mod hash;
@@ -40,8 +42,8 @@ impl LDAPConfig {
     #[must_use]
     pub fn user_dn(&self, username: &str) -> String {
         format!(
-            "{}={},{}",
-            &self.ldap_username_attr, username, &self.ldap_user_search_base,
+            "{}={username},{}",
+            self.ldap_username_attr, self.ldap_user_search_base,
         )
     }
 
@@ -49,8 +51,8 @@ impl LDAPConfig {
     #[must_use]
     pub fn group_dn(&self, groupname: &str) -> String {
         format!(
-            "{}={},{}",
-            &self.ldap_groupname_attr, groupname, &self.ldap_group_search_base,
+            "{}={groupname},{}",
+            self.ldap_groupname_attr, self.ldap_group_search_base,
         )
     }
 }
@@ -135,23 +137,23 @@ impl LDAPConnection {
     }
 
     /// Searches LDAP for groups.
-    async fn search_groups(&mut self, filter: &str) -> Result<Vec<SearchEntry>, OriLDAPError> {
-        let (rs, _res) = self
-            .ldap
-            .search(
-                &self.config.ldap_group_search_base,
-                Scope::Subtree,
-                filter,
-                vec![
-                    &self.config.ldap_username_attr,
-                    &self.config.ldap_group_member_attr,
-                ],
-            )
-            .await?
-            .success()?;
-        info!("Performed LDAP group search with filter = {filter}");
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
-    }
+    // async fn search_groups(&mut self, filter: &str) -> Result<Vec<SearchEntry>, OriLDAPError> {
+    //     let (rs, _res) = self
+    //         .ldap
+    //         .search(
+    //             &self.config.ldap_group_search_base,
+    //             Scope::Subtree,
+    //             filter,
+    //             vec![
+    //                 &self.config.ldap_username_attr,
+    //                 &self.config.ldap_group_member_attr,
+    //             ],
+    //         )
+    //         .await?
+    //         .success()?;
+    //     info!("Performed LDAP group search with filter = {filter}");
+    //     Ok(rs.into_iter().map(SearchEntry::construct).collect())
+    // }
 
     /// Creates LDAP object with specified distinguished name and attributes.
     async fn add(
@@ -159,9 +161,9 @@ impl LDAPConnection {
         dn: &str,
         attrs: Vec<(&str, HashSet<&str>)>,
     ) -> Result<(), OriLDAPError> {
-        debug!("Adding object {}", dn);
+        debug!("Adding object {dn}");
         self.ldap.add(dn, attrs).await?.success()?;
-        info!("Added object {}", dn);
+        info!("Added object {dn}");
         Ok(())
     }
 
@@ -172,22 +174,22 @@ impl LDAPConnection {
         new_dn: &str,
         mods: Vec<Mod<&str>>,
     ) -> Result<(), OriLDAPError> {
-        debug!("Modifying object {}", old_dn);
+        debug!("Modifying LDAP object {old_dn}");
         self.ldap.modify(old_dn, mods).await?;
         if old_dn != new_dn {
             if let Some((new_rdn, _rest)) = new_dn.split_once(',') {
                 self.ldap.modifydn(old_dn, new_rdn, true, None).await?;
             }
         }
-        info!("Modified object {}", old_dn);
+        info!("Modified LDAP object {old_dn}");
         Ok(())
     }
 
     /// Deletes LDAP object with specified distinguished name.
     pub async fn delete(&mut self, dn: &str) -> Result<(), OriLDAPError> {
-        debug!("Deleting object {}", dn);
+        debug!("Deleting LDAP object {dn}");
         self.ldap.delete(dn).await?;
-        info!("Deleted object {}", dn);
+        info!("Deleted LDAP object {dn}");
         Ok(())
     }
 
@@ -195,8 +197,8 @@ impl LDAPConnection {
     pub async fn is_username_available(&mut self, username: &str) -> bool {
         let users = self
             .search_users(&format!(
-                "(&({}={})(|(objectClass={})))",
-                self.config.ldap_username_attr, username, self.config.ldap_user_obj_class
+                "(&({}={username})(|(objectClass={})))",
+                self.config.ldap_username_attr, self.config.ldap_user_obj_class
             ))
             .await;
         match users {
@@ -211,8 +213,8 @@ impl LDAPConnection {
         debug!("Performing LDAP user search: {username}");
         let mut entries = self
             .search_users(&format!(
-                "(&({}={})(objectClass={}))",
-                self.config.ldap_username_attr, username, self.config.ldap_user_obj_class
+                "(&({}={username})(objectClass={}))",
+                self.config.ldap_username_attr, self.config.ldap_user_obj_class
             ))
             .await?;
         if let Some(entry) = entries.pop() {
@@ -281,40 +283,59 @@ impl LDAPConnection {
     }
 
     /// Retrieves group with given groupname from LDAP.
-    pub async fn get_group(&mut self, groupname: &str) -> Result<Group, OriLDAPError> {
-        debug!("Performing LDAP group search: {groupname}");
-        let mut enties = self
-            .search_groups(&format!(
-                "(&({}={})(objectClass={}))",
-                self.config.ldap_groupname_attr, groupname, self.config.ldap_group_obj_class
-            ))
-            .await?;
-        if let Some(entry) = enties.pop() {
-            info!("Performed LDAP user search: {groupname}");
-            Ok(Group::from_searchentry(&entry, &self.config))
-        } else {
-            Err(OriLDAPError::ObjectNotFound(format!(
-                "Group {groupname} not found"
-            )))
-        }
+    // pub async fn get_group(&mut self, groupname: &str) -> Result<Group, OriLDAPError> {
+    //     debug!("Performing LDAP group search: {groupname}");
+    //     let mut enties = self
+    //         .search_groups(&format!(
+    //             "(&({}={})(objectClass={}))",
+    //             self.config.ldap_groupname_attr, groupname, self.config.ldap_group_obj_class
+    //         ))
+    //         .await?;
+    //     if let Some(entry) = enties.pop() {
+    //         info!("Performed LDAP user search: {groupname}");
+    //         Ok(Group::from_searchentry(&entry, &self.config))
+    //     } else {
+    //         Err(OriLDAPError::ObjectNotFound(format!(
+    //             "Group {groupname} not found"
+    //         )))
+    //     }
+    // }
+
+    /// Modifies LDAP group.
+    pub async fn modify_group(
+        &mut self,
+        groupname: &str,
+        group: &db::Group,
+    ) -> Result<(), OriLDAPError> {
+        debug!("Modifying LDAP group {groupname}");
+        let old_dn = self.config.group_dn(groupname);
+        let new_dn = self.config.group_dn(&group.name);
+        self.modify(
+            &old_dn,
+            &new_dn,
+            vec![Mod::Replace("cn", hashset![group.name.as_str()])],
+        )
+        .await?;
+        info!("Modified LDAP group {groupname}");
+        Ok(())
     }
 
-    /// Lists users satisfying specified criteria
-    pub async fn get_groups(&mut self) -> Result<Vec<Group>, OriLDAPError> {
-        debug!("Performing LDAP group search");
-        let mut entries = self
-            .search_groups(&format!(
-                "(objectClass={})",
-                self.config.ldap_group_obj_class
-            ))
-            .await?;
-        let users = entries
-            .drain(..)
-            .map(|entry| Group::from_searchentry(&entry, &self.config))
-            .collect();
-        info!("Performed LDAP group search");
-        Ok(users)
-    }
+    /// Lists groups satisfying specified criteria
+    // pub async fn get_groups(&mut self) -> Result<Vec<Group>, OriLDAPError> {
+    //     debug!("Performing LDAP group search");
+    //     let mut entries = self
+    //         .search_groups(&format!(
+    //             "(objectClass={})",
+    //             self.config.ldap_group_obj_class
+    //         ))
+    //         .await?;
+    //     let users = entries
+    //         .drain(..)
+    //         .map(|entry| Group::from_searchentry(&entry, &self.config))
+    //         .collect();
+    //     info!("Performed LDAP group search");
+    //     Ok(users)
+    // }
 
     /// Add user to a group.
     pub async fn add_user_to_group(

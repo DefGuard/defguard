@@ -68,7 +68,7 @@ pub async fn get_authorized_keys(
                     None => {
                         debug!("Fetching SSH keys for all users in group {group_name}");
                         // fetch all users in group
-                        let users = group.fetch_all_members(&appstate.pool).await?;
+                        let users = group.members(&appstate.pool).await?;
                         for user in users {
                             add_user_keys_to_list(user);
                         }

@@ -93,23 +93,23 @@ impl User {
     }
 
     #[must_use]
-    pub fn new(
-        username: String,
+    pub fn new<S: Into<String>>(
+        username: S,
         password: Option<&str>,
-        last_name: String,
-        first_name: String,
-        email: String,
+        last_name: S,
+        first_name: S,
+        email: S,
         phone: Option<String>,
     ) -> Self {
         let password_hash =
             password.and_then(|password_hash| Self::hash_password(password_hash).ok());
         Self {
             id: None,
-            username,
+            username: username.into(),
             password_hash,
-            last_name,
-            first_name,
-            email,
+            last_name: last_name.into(),
+            first_name: first_name.into(),
+            email: email.into(),
             phone,
             ssh_key: None,
             pgp_key: None,
@@ -807,11 +807,11 @@ mod test {
     #[sqlx::test]
     async fn test_user(pool: DbPool) {
         let mut user = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         user.save(&pool).await.unwrap();
@@ -836,21 +836,21 @@ mod test {
     #[sqlx::test]
     async fn test_all_users(pool: DbPool) {
         let mut harry = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         harry.save(&pool).await.unwrap();
 
         let mut albus = User::new(
-            "adumbledore".into(),
+            "adumbledore",
             Some("magic!"),
-            "Dumbledore".into(),
-            "Albus".into(),
-            "a.dumbledore@hogwart.edu.uk".into(),
+            "Dumbledore",
+            "Albus",
+            "a.dumbledore@hogwart.edu.uk",
             None,
         );
         albus.save(&pool).await.unwrap();
@@ -867,11 +867,11 @@ mod test {
     #[sqlx::test]
     async fn test_recovery_codes(pool: DbPool) {
         let mut harry = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         harry.get_recovery_codes(&pool).await.unwrap();
