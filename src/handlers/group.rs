@@ -25,6 +25,7 @@ impl Groups {
     }
 }
 
+/// GET: Retrieve all groups.
 pub(crate) async fn list_groups(
     _session: SessionInfo,
     State(appstate): State<AppState>,
@@ -57,8 +58,9 @@ pub(crate) async fn get_group(
             status: StatusCode::OK,
         })
     } else {
-        error!("Group {name} not found");
-        Err(WebError::ObjectNotFound(format!("Group {name} not found",)))
+        let msg = format!("Group {name} not found");
+        error!(msg);
+        Err(WebError::ObjectNotFound(msg))
     }
 }
 
@@ -93,6 +95,31 @@ pub(crate) async fn create_group(
         json: json!(&group_info),
         status: StatusCode::CREATED,
     })
+}
+
+/// PUT: Rename group and/or change group members.
+pub(crate) async fn modify_group(
+    _role: UserAdminRole,
+    State(appstate): State<AppState>,
+    Path(name): Path<String>,
+    Json(group_info): Json<GroupInfo>,
+) -> Result<ApiResponse, WebError> {
+    debug!("Modifying group {}", group_info.name);
+    if let Some(mut group) = Group::find_by_name(&appstate.pool, &name).await? {
+        // Rename only when needed.
+        if group.name != group_info.name {
+            group.name = group_info.name;
+            group.save(&appstate.pool).await?;
+        }
+
+        // TODO: Modify members
+
+        Ok(ApiResponse::default())
+    } else {
+        let msg = format!("Group {name} not found");
+        error!(msg);
+        Err(WebError::ObjectNotFound(msg))
+    }
 }
 
 /// DELETE: Remove group with `name`.
@@ -143,11 +170,13 @@ pub(crate) async fn add_group_member(
             )))
         }
     } else {
-        error!("Group {name} not found");
-        Err(WebError::ObjectNotFound(format!("Group {name} not found")))
+        let msg = format!("Group {name} not found");
+        error!(msg);
+        Err(WebError::ObjectNotFound(msg))
     }
 }
 
+/// DELETE: Remove `username` from group with `name`.
 pub(crate) async fn remove_group_member(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
@@ -168,10 +197,9 @@ pub(crate) async fn remove_group_member(
                 status: StatusCode::OK,
             })
         } else {
-            error!("User not found {username}");
-            Err(WebError::ObjectNotFound(format!(
-                "User {username} not found"
-            )))
+            let msg = format!("User {username} not found");
+            error!(msg);
+            Err(WebError::ObjectNotFound(msg))
         }
     } else {
         error!("Group {name} not found");

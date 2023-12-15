@@ -135,7 +135,7 @@ pub struct Auth {
 
 impl Auth {
     #[must_use]
-    pub fn new(username: impl Into<String>, password: impl Into<String>) -> Self {
+    pub fn new<S: Into<String>>(username: S, password: S) -> Self {
         Self {
             username: username.into(),
             password: password.into(),
@@ -150,7 +150,7 @@ pub struct AuthTotp {
 
 impl AuthTotp {
     #[must_use]
-    pub fn new(secret: impl Into<String>) -> Self {
+    pub fn new<S: Into<String>>(secret: S) -> Self {
         Self {
             secret: secret.into(),
         }
@@ -171,13 +171,14 @@ impl AuthCode {
 
 #[derive(Deserialize, Serialize)]
 pub struct GroupInfo {
-    name: String,
-    members: Vec<String>,
+    pub name: String,
+    #[serde(default)]
+    pub members: Vec<String>,
 }
 
 impl GroupInfo {
     #[must_use]
-    pub fn new(name: impl Into<String>, members: Vec<String>) -> Self {
+    pub fn new<S: Into<String>>(name: S, members: Vec<String>) -> Self {
         Self {
             name: name.into(),
             members,

@@ -244,10 +244,10 @@ pub struct GatewayState {
 
 impl GatewayState {
     #[must_use]
-    pub fn new(
+    pub fn new<S: Into<String>>(
         network_id: i64,
-        network_name: impl Into<String>,
-        hostname: impl Into<String>,
+        network_name: S,
+        hostname: S,
         name: Option<String>,
         pool: DbPool,
         mail_tx: UnboundedSender<Mail>,
