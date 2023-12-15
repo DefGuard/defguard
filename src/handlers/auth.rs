@@ -106,7 +106,7 @@ pub async fn authenticate(
     };
 
     let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
-    let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.clone().id))
+    let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .domain(
             server_config
                 .cookie_domain
