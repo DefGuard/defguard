@@ -10,7 +10,7 @@ use crate::{
     auth::{SessionInfo, UserAdminRole},
     db::{Group, User},
     error::WebError,
-    ldap::utils::{ldap_add_user_to_group, ldap_modify_group, ldap_remove_user_from_group},
+    // ldap::utils::{ldap_add_user_to_group, ldap_modify_group, ldap_remove_user_from_group},
 };
 
 #[derive(Serialize)]
@@ -88,7 +88,7 @@ pub(crate) async fn create_group(
                 return Err(WebError::ObjectNotFound(msg));
             };
             user.add_to_group(&mut *transaction, &group).await?;
-            let _result = ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
+            // let _result = ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
         }
     }
 
@@ -122,7 +122,7 @@ pub(crate) async fn modify_group(
     if group.name != group_info.name {
         group.name = group_info.name;
         group.save(&mut *transaction).await?;
-        let _result = ldap_modify_group(&mut *transaction, &group.name, &group).await;
+        // let _result = ldap_modify_group(&mut *transaction, &group.name, &group).await;
     }
 
     // Modify group members.
@@ -141,16 +141,16 @@ pub(crate) async fn modify_group(
             // Add new members to the group.
             if let Some(user) = User::find_by_username(&mut *transaction, username).await? {
                 user.add_to_group(&mut *transaction, &group).await?;
-                let _result =
-                    ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
+                // let _result =
+                //     ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
             }
         }
 
         // Remove outstanding members.
         for user in current_members {
             user.remove_from_group(&mut *transaction, &group).await?;
-            let _result =
-                ldap_remove_user_from_group(&mut *transaction, &user.username, &group.name).await;
+            // let _result =
+            //     ldap_remove_user_from_group(&mut *transaction, &user.username, &group.name).await;
         }
     }
 
@@ -199,7 +199,7 @@ pub(crate) async fn add_group_member(
         if let Some(user) = User::find_by_username(&appstate.pool, &data.username).await? {
             debug!("Adding user: {} to group: {}", user.username, group.name);
             user.add_to_group(&appstate.pool, &group).await?;
-            let _result = ldap_add_user_to_group(&appstate.pool, &user.username, &group.name).await;
+            // let _result = ldap_add_user_to_group(&appstate.pool, &user.username, &group.name).await;
             info!("Added user: {} to group: {}", user.username, group.name);
             Ok(ApiResponse::default())
         } else {
@@ -229,8 +229,8 @@ pub(crate) async fn remove_group_member(
                 user.username, group.name
             );
             user.remove_from_group(&appstate.pool, &group).await?;
-            let _result =
-                ldap_remove_user_from_group(&appstate.pool, &user.username, &group.name).await;
+            // let _result =
+            //     ldap_remove_user_from_group(&appstate.pool, &user.username, &group.name).await;
             info!("Removed user: {} from group: {}", user.username, group.name);
             Ok(ApiResponse {
                 json: json!({}),

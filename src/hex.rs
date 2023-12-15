@@ -73,7 +73,7 @@ pub fn to_lower_hex(bytes: &[u8]) -> String {
 mod tests {
     use super::*;
 
-    #[std::prelude::v1::test]
+    #[test]
     fn test_hex_decode() {
         assert_eq!(hex_decode("deadf00d"), Ok(vec![0xde, 0xad, 0xf0, 0x0d]));
         assert_eq!(hex_decode("0Xdeadf00d"), Ok(vec![0xde, 0xad, 0xf0, 0x0d]));

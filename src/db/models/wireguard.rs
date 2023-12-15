@@ -438,7 +438,7 @@ impl WireguardNetwork {
                     }));
                 } else {
                     let msg = format!("Device {} does not exist", device_network_config.device_id);
-                    error!("{msg}");
+                    error!(msg);
                     return Err(WireguardNetworkError::Unexpected(msg));
                 }
             }

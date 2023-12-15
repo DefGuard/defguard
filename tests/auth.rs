@@ -35,10 +35,10 @@ async fn make_client() -> TestClient {
 
     let mut wallet = Wallet::new_for_user(
         client_state.test_user.id.unwrap(),
-        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
-        "test".into(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
+        "test",
         5,
-        String::new(),
+        "",
     );
     wallet.save(&client_state.pool).await.unwrap();
 
@@ -50,10 +50,10 @@ async fn make_client_with_db() -> (TestClient, DbPool) {
 
     let mut wallet = Wallet::new_for_user(
         client_state.test_user.id.unwrap(),
-        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
-        "test".into(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
+        "test",
         5,
-        String::new(),
+        "",
     );
     wallet.save(&client_state.pool).await.unwrap();
 
@@ -65,26 +65,21 @@ async fn make_client_with_state() -> (TestClient, ClientState) {
 
     let mut wallet = Wallet::new_for_user(
         client_state.test_user.id.unwrap(),
-        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
-        "test".into(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
+        "test",
         5,
-        String::new(),
+        "",
     );
     wallet.save(&client_state.pool).await.unwrap();
 
     (client, client_state)
 }
 
-async fn make_client_with_wallet(address: String) -> TestClient {
+async fn make_client_with_wallet(address: &str) -> TestClient {
     let (client, client_state) = make_test_client().await;
 
-    let mut wallet = Wallet::new_for_user(
-        client_state.test_user.id.unwrap(),
-        address,
-        "test".into(),
-        5,
-        String::new(),
-    );
+    let mut wallet =
+        Wallet::new_for_user(client_state.test_user.id.unwrap(), address, "test", 5, "");
     wallet.save(&client_state.pool).await.unwrap();
 
     client
@@ -780,7 +775,7 @@ async fn test_web3() {
     let wallet_address = to_lower_hex(addr);
 
     // create client
-    let client = make_client_with_wallet(wallet_address.clone()).await;
+    let client = make_client_with_wallet(&wallet_address).await;
 
     // login
     let auth = Auth::new("hpotter", "pass123");

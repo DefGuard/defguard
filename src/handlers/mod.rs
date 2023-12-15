@@ -57,11 +57,11 @@ impl From<WebError> for ApiResponse {
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
             }
             WebError::Authorization(msg) => {
-                error!("{msg}");
+                error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
             }
             WebError::Forbidden(msg) => {
-                error!("{msg}");
+                error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::FORBIDDEN)
             }
             WebError::DbError(_)
@@ -92,7 +92,7 @@ impl From<WebError> for ApiResponse {
             WebError::IncorrectUsername(msg)
             | WebError::PubkeyValidation(msg)
             | WebError::BadRequest(msg) => {
-                error!("{msg}");
+                error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
             }
             WebError::TemplateError(err) => {
