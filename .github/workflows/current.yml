@@ -98,8 +98,9 @@ jobs:
           docker manifest create $GHCR_REPO:${{ github.sha }} \
             $GHCR_REPO:${{ github.sha }}-amd64 \
             $GHCR_REPO:${{ github.sha }}-aarch64
-          docker manifest inspect ${{ github.sha }}
-          docker manifest push ${{ github.sha }}
+      - name: Push manifest
+        run: |
+          docker manifest push $GHCR_REPO:${{ github.sha }}
 
   # trigger-e2e:
   #   needs: docker-manifest
