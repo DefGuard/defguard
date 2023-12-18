@@ -93,23 +93,23 @@ impl User {
     }
 
     #[must_use]
-    pub fn new(
-        username: String,
+    pub fn new<S: Into<String>>(
+        username: S,
         password: Option<&str>,
-        last_name: String,
-        first_name: String,
-        email: String,
+        last_name: S,
+        first_name: S,
+        email: S,
         phone: Option<String>,
     ) -> Self {
         let password_hash =
             password.and_then(|password_hash| Self::hash_password(password_hash).ok());
         Self {
             id: None,
-            username,
+            username: username.into(),
             password_hash,
-            last_name,
-            first_name,
-            email,
+            last_name: last_name.into(),
+            first_name: first_name.into(),
+            email: email.into(),
             phone,
             ssh_key: None,
             pgp_key: None,
@@ -152,7 +152,10 @@ impl User {
     }
 
     /// Generate new TOTP secret, save it, then return it as RFC 4648 base32-encoded string.
-    pub async fn new_totp_secret(&mut self, pool: &DbPool) -> Result<String, SqlxError> {
+    pub async fn new_totp_secret<'e, E>(&mut self, executor: E) -> Result<String, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         let secret = gen_totp_secret();
         if let Some(id) = self.id {
             query!(
@@ -160,7 +163,7 @@ impl User {
                 secret,
                 id
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         let secret_base32 = TOTP::from_bytes(&secret).base32_secret();
@@ -169,7 +172,10 @@ impl User {
     }
 
     /// Generate new email secret, similar to TOTP secret above, but don't return generated value.
-    pub async fn new_email_secret(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn new_email_secret<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         let email_secret = gen_totp_secret();
         if let Some(id) = self.id {
             query!(
@@ -177,7 +183,7 @@ impl User {
                 email_secret,
                 id
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         self.email_mfa_secret = Some(email_secret);
@@ -783,7 +789,7 @@ impl User {
 
         // if new user was created add them to admin group (ID 1)
         if let Some(new_user_id) = result {
-            info!("New admin user was created, adding to Admin group...");
+            info!("New admin user has been created, adding to Admin group...");
             query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
                 .bind(new_user_id)
                 .execute(pool)
@@ -801,11 +807,11 @@ mod test {
     #[sqlx::test]
     async fn test_user(pool: DbPool) {
         let mut user = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         user.save(&pool).await.unwrap();
@@ -830,21 +836,21 @@ mod test {
     #[sqlx::test]
     async fn test_all_users(pool: DbPool) {
         let mut harry = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         harry.save(&pool).await.unwrap();
 
         let mut albus = User::new(
-            "adumbledore".into(),
+            "adumbledore",
             Some("magic!"),
-            "Dumbledore".into(),
-            "Albus".into(),
-            "a.dumbledore@hogwart.edu.uk".into(),
+            "Dumbledore",
+            "Albus",
+            "a.dumbledore@hogwart.edu.uk",
             None,
         );
         albus.save(&pool).await.unwrap();
@@ -861,11 +867,11 @@ mod test {
     #[sqlx::test]
     async fn test_recovery_codes(pool: DbPool) {
         let mut harry = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         harry.get_recovery_codes(&pool).await.unwrap();

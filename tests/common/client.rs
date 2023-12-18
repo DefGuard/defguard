@@ -6,7 +6,7 @@ use reqwest::{
     cookie::{Cookie, Jar},
     header::{HeaderMap, HeaderName},
     redirect::Policy,
-    Client, StatusCode, Url,
+    Body, Client, StatusCode, Url,
 };
 use tokio::net::TcpListener;
 
@@ -121,7 +121,7 @@ impl RequestBuilder {
         }
     }
 
-    pub fn body(mut self, body: impl Into<reqwest::Body>) -> Self {
+    pub fn body<B: Into<Body>>(mut self, body: B) -> Self {
         self.builder = self.builder.body(body);
         self
     }

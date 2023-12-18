@@ -1,3 +1,12 @@
+use std::{
+    fs::read_to_string,
+    sync::{Arc, Mutex},
+};
+
+use secrecy::ExposeSecret;
+use tokio::sync::{broadcast, mpsc::unbounded_channel};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
@@ -10,13 +19,6 @@ use defguard::{
     wireguard_stats_purge::run_periodic_stats_purge,
     SERVER_CONFIG,
 };
-use secrecy::ExposeSecret;
-use std::{
-    fs::read_to_string,
-    sync::{Arc, Mutex},
-};
-use tokio::sync::{broadcast, mpsc::unbounded_channel};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;

@@ -35,10 +35,10 @@ async fn make_client() -> TestClient {
 
     let mut wallet = Wallet::new_for_user(
         client_state.test_user.id.unwrap(),
-        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
-        "test".into(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
+        "test",
         5,
-        String::new(),
+        "",
     );
     wallet.save(&client_state.pool).await.unwrap();
 
@@ -50,10 +50,10 @@ async fn make_client_with_db() -> (TestClient, DbPool) {
 
     let mut wallet = Wallet::new_for_user(
         client_state.test_user.id.unwrap(),
-        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
-        "test".into(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
+        "test",
         5,
-        String::new(),
+        "",
     );
     wallet.save(&client_state.pool).await.unwrap();
 
@@ -65,26 +65,21 @@ async fn make_client_with_state() -> (TestClient, ClientState) {
 
     let mut wallet = Wallet::new_for_user(
         client_state.test_user.id.unwrap(),
-        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
-        "test".into(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
+        "test",
         5,
-        String::new(),
+        "",
     );
     wallet.save(&client_state.pool).await.unwrap();
 
     (client, client_state)
 }
 
-async fn make_client_with_wallet(address: String) -> TestClient {
+async fn make_client_with_wallet(address: &str) -> TestClient {
     let (client, client_state) = make_test_client().await;
 
-    let mut wallet = Wallet::new_for_user(
-        client_state.test_user.id.unwrap(),
-        address,
-        "test".into(),
-        5,
-        String::new(),
-    );
+    let mut wallet =
+        Wallet::new_for_user(client_state.test_user.id.unwrap(), address, "test", 5, "");
     wallet.save(&client_state.pool).await.unwrap();
 
     client
@@ -94,7 +89,7 @@ async fn make_client_with_wallet(address: String) -> TestClient {
 async fn test_logout() {
     let mut client = make_client().await;
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -123,7 +118,7 @@ async fn test_logout() {
 async fn test_login_bruteforce() {
     let client = make_client().await;
 
-    let invalid_auth = Auth::new("hpotter".into(), "invalid".into());
+    let invalid_auth = Auth::new("hpotter", "invalid");
 
     // fail login 5 times in a row
     for i in 0..6 {
@@ -140,7 +135,7 @@ async fn test_login_bruteforce() {
 async fn test_cannot_enable_mfa() {
     let client = make_client().await;
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -163,7 +158,7 @@ async fn test_totp() {
     let client = make_client().await;
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -262,7 +257,7 @@ async fn test_totp() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login again
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 }
@@ -284,7 +279,7 @@ async fn test_email_mfa() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -410,7 +405,7 @@ async fn test_email_mfa() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login again
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 }
@@ -423,7 +418,7 @@ async fn test_webauthn() {
     let origin = Url::parse("http://localhost:8000").unwrap();
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -451,7 +446,7 @@ async fn test_webauthn() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login again
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
@@ -480,7 +475,7 @@ async fn test_webauthn() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login again
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -500,7 +495,7 @@ async fn test_cannot_skip_otp_by_adding_yubikey() {
     let client = make_client().await;
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -535,7 +530,7 @@ async fn test_cannot_skip_security_key_by_adding_yubikey() {
     let origin = Url::parse("http://localhost:8000").unwrap();
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -559,7 +554,7 @@ async fn test_cannot_skip_security_key_by_adding_yubikey() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login again
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
@@ -573,7 +568,7 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     let client = make_client().await;
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -651,7 +646,7 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login again
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
@@ -780,10 +775,10 @@ async fn test_web3() {
     let wallet_address = to_lower_hex(addr);
 
     // create client
-    let client = make_client_with_wallet(wallet_address.clone()).await;
+    let client = make_client_with_wallet(&wallet_address).await;
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -806,7 +801,7 @@ async fn test_web3() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login with wallet
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     wallet_login(&client, wallet_address, &secp, secret_key).await;
@@ -816,7 +811,7 @@ async fn test_web3() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login again
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 }
@@ -836,7 +831,7 @@ async fn test_re_adding_wallet() {
     let client = make_client().await;
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -881,7 +876,7 @@ async fn test_re_adding_wallet() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login with wallet
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     wallet_login(&client, wallet_address.clone(), &secp, secret_key).await;
@@ -898,7 +893,7 @@ async fn test_re_adding_wallet() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login without MFA
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -941,7 +936,7 @@ async fn test_re_adding_wallet() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login with wallet
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     wallet_login(&client, wallet_address.clone(), &secp, secret_key).await;
@@ -954,7 +949,7 @@ async fn test_mfa_method_totp_enabled_mail() {
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header)
@@ -994,7 +989,7 @@ async fn test_new_device_login() {
     let user_agent_header_android = "Mozilla/5.0 (Linux; Android 7.0; SM-G930VC Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/58.0.3029.83 Mobile Safari/537.36";
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header_iphone)
@@ -1018,7 +1013,7 @@ async fn test_new_device_login() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // login using the same device
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header_iphone)
@@ -1030,7 +1025,7 @@ async fn test_new_device_login() {
     assert_err!(mail_rx.try_recv());
 
     // login using a different device
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header_android)
@@ -1057,7 +1052,7 @@ async fn test_login_ip_headers() {
     let user_agent_header_iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
     // Works with X-Forwarded-For header
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header_iphone)
@@ -1080,7 +1075,7 @@ async fn test_login_ip_headers() {
 async fn test_session_cookie() {
     let (client, pool) = make_client_with_db().await;
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

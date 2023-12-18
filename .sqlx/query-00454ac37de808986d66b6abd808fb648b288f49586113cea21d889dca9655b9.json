@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, webhooks_enabled, worker_enabled, openid_enabled FROM settings WHERE id = 1;\n        ",
+  "query": "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, webhooks_enabled, worker_enabled, openid_enabled FROM settings WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "eb982489a09c45fcaec74346f499c657d3018d01be7e095683a40160d533f410"
+  "hash": "00454ac37de808986d66b6abd808fb648b288f49586113cea21d889dca9655b9"
 }

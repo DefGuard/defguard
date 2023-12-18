@@ -79,7 +79,7 @@ async fn test_config_import() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -228,7 +228,7 @@ async fn test_config_import_missing_interface() {
     ";
     let (client, _) = make_test_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -262,7 +262,7 @@ async fn test_config_import_invalid_key() {
     ";
     let (client, _) = make_test_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -321,7 +321,7 @@ async fn test_config_import_invalid_ip() {
     ";
     let (client, _) = make_test_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -354,7 +354,7 @@ async fn test_config_import_nonadmin() {
         PersistentKeepalive = 300
     ";
     let (client, _) = make_test_client().await;
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

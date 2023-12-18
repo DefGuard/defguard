@@ -53,11 +53,11 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
 
     // standard user in other, non-allowed group
     let mut other_user = User::new(
-        "ssnape".into(),
+        "ssnape",
         Some("pass123"),
-        "Snape".into(),
-        "Severus".into(),
-        "s.snape@hogwart.edu.uk".into(),
+        "Snape",
+        "Severus",
+        "s.snape@hogwart.edu.uk",
         None,
     );
     other_user.save(pool).await.unwrap();
@@ -76,11 +76,11 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
 
     // standard user in no groups
     let mut non_group_user = User::new(
-        "dobby".into(),
+        "dobby",
         Some("pass123"),
-        "Elf".into(),
-        "Dobby".into(),
-        "dobby@hogwart.edu.uk".into(),
+        "Elf",
+        "Dobby",
+        "dobby@hogwart.edu.uk",
         None,
     );
     non_group_user.save(pool).await.unwrap();
@@ -103,7 +103,7 @@ async fn test_create_new_network() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -142,7 +142,7 @@ async fn test_modify_network() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -276,7 +276,7 @@ async fn test_import_network_existing_devices() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -364,7 +364,7 @@ async fn test_import_mapping_devices() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -472,7 +472,7 @@ async fn test_modify_user() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

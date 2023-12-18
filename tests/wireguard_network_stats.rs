@@ -32,7 +32,7 @@ async fn test_stats() {
     let (client, client_state) = make_test_client().await;
     let pool = client_state.pool;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

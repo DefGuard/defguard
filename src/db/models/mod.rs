@@ -268,11 +268,11 @@ mod test {
     #[sqlx::test]
     async fn test_user_info(pool: DbPool) {
         let mut user = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         user.save(&pool).await.unwrap();

@@ -28,7 +28,7 @@ async fn test_network() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -96,7 +96,7 @@ async fn test_device() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -261,7 +261,7 @@ async fn test_device() {
 async fn test_device_permissions() {
     let (client, _) = make_test_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -323,7 +323,7 @@ async fn test_device_permissions() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // normal user cannot add devices for other users or import multiple devices
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -385,7 +385,7 @@ async fn test_device_permissions() {
     assert_eq!(user_devices.len(), 3);
 
     // admin can list devices of other users
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -406,7 +406,7 @@ async fn test_device_pubkey() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

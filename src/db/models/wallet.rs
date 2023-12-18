@@ -77,20 +77,20 @@ pub struct Wallet {
 
 impl Wallet {
     #[must_use]
-    pub fn new_for_user(
+    pub fn new_for_user<S: Into<String>>(
         user_id: i64,
-        address: String,
-        name: String,
+        address: S,
+        name: S,
         chain_id: i64,
-        challenge_message: String,
+        challenge_message: S,
     ) -> Self {
         Self {
             id: None,
             user_id,
-            address,
-            name,
+            address: address.into(),
+            name: name.into(),
             chain_id,
-            challenge_message,
+            challenge_message: challenge_message.into(),
             challenge_signature: None,
             creation_timestamp: Utc::now().naive_utc(),
             validation_timestamp: None,
@@ -184,11 +184,14 @@ impl Wallet {
         .collect()
     }
 
-    pub async fn find_by_user_and_address(
-        pool: &DbPool,
+    pub async fn find_by_user_and_address<'e, E>(
+        executor: E,
         user_id: i64,
         address: &str,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query_as!(
             Self,
             "SELECT id \"id?\", user_id, address, name, chain_id, challenge_message, challenge_signature, \
@@ -197,7 +200,7 @@ impl Wallet {
             user_id,
             address
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 
