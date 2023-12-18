@@ -97,6 +97,7 @@ jobs:
 
   docker-manifest:
     runs-on: [self-hosted, Linux]
+    needs: [build-docker-x64, build-docker-arm64]
     steps:
       - name: Docker meta
         id: meta
