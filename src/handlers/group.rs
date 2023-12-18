@@ -163,19 +163,21 @@ pub(crate) async fn modify_group(
 /// DELETE: Remove group with `name`.
 pub(crate) async fn delete_group(
     _session: SessionInfo,
+
     State(appstate): State<AppState>,
     Path(name): Path<String>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Deleting group {name}");
-    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
-        // Group `admin` must not be removed.
-        if group.id == Some(1) {
-            return Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::BAD_REQUEST,
-            });
-        }
+    // Administrative group must not be removed.
+    // Note: Group names are unique, so this condition should be sufficient.
+    if name == appstate.config.admin_groupname {
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::BAD_REQUEST,
+        });
+    }
 
+    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         group.delete(&appstate.pool).await?;
         // TODO: delete group from LDAP
 
