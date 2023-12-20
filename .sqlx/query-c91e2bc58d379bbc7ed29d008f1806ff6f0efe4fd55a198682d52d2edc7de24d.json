@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device\" SET \"name\" = $2,\"wireguard_pubkey\" = $3,\"user_id\" = $4,\"created\" = $5,\"preshared_key\" = $6 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Int8",
+        "Timestamp",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c91e2bc58d379bbc7ed29d008f1806ff6f0efe4fd55a198682d52d2edc7de24d"
+}

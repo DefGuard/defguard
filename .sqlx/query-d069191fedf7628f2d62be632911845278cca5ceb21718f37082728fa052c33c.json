@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE device.id = $1 AND \"user\".id = $2",
+  "query": "SELECT id \"id?\", \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"preshared_key\" FROM \"device\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -27,11 +27,15 @@
         "ordinal": 4,
         "name": "created",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "preshared_key",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Int8"
       ]
     },
@@ -40,8 +44,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "9e3c1c1f52bc1a576012c57c7472f9f7601e1128b15fc0ecc7676cd5aa01c88c"
+  "hash": "d069191fedf7628f2d62be632911845278cca5ceb21718f37082728fa052c33c"
 }
