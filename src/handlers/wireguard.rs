@@ -172,6 +172,7 @@ pub async fn modify_network(
     network.port = data.port;
     network.dns = data.dns;
     network.address = data.address;
+    network.mfa_enabled = data.mfa_enabled;
     network.save(&mut *transaction).await?;
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
