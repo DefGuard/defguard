@@ -15,7 +15,6 @@ use serde_json::{json, Value};
 use uuid::Uuid;
 
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
-use crate::db::models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL};
 use crate::{
     appstate::AppState,
     auth::{Claims, ClaimsType, SessionInfo, VpnRole},
@@ -44,6 +43,8 @@ pub struct WireguardNetworkData {
     pub dns: Option<String>,
     pub allowed_groups: Vec<String>,
     pub mfa_enabled: bool,
+    pub keepalive_interval: i64,
+    pub peer_disconnect_threshold: i64,
 }
 
 impl WireguardNetworkData {
@@ -101,8 +102,8 @@ pub async fn create_network(
         data.dns,
         allowed_ips,
         data.mfa_enabled,
-        DEFAULT_KEEPALIVE_INTERVAL,
-        DEFAULT_DISCONNECT_THRESHOLD,
+        data.keepalive_interval,
+        data.peer_disconnect_threshold,
     )
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
@@ -173,6 +174,9 @@ pub async fn modify_network(
     network.dns = data.dns;
     network.address = data.address;
     network.mfa_enabled = data.mfa_enabled;
+    network.keepalive_interval = data.keepalive_interval;
+    network.peer_disconnect_threshold = data.peer_disconnect_threshold;
+
     network.save(&mut *transaction).await?;
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
