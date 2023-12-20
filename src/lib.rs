@@ -4,7 +4,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::handlers::ssh_authorized_keys::get_authorized_keys;
 use anyhow::anyhow;
 use axum::{
     handler::HandlerWithoutStateExt,
@@ -12,11 +11,7 @@ use axum::{
     routing::{delete, get, patch, post, put},
     serve, Extension, Router,
 };
-use handlers::{
-    group::{create_group, delete_group, modify_group},
-    settings::{get_settings_essentials, patch_settings, test_ldap_settings},
-    user::reset_password,
-};
+
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
 use tokio::{
@@ -38,7 +33,11 @@ use self::{
     appstate::AppState,
     auth::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs},
-    db::{init_db, AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork},
+    db::{
+        init_db,
+        models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork,
+    },
     handlers::{
         auth::{
             authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
@@ -47,15 +46,22 @@ use self::{
             webauthn_finish, webauthn_init, webauthn_start,
         },
         forward_auth::forward_auth,
-        group::{add_group_member, get_group, list_groups, remove_group_member},
+        group::{
+            add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
+            remove_group_member,
+        },
         mail::{send_support_data, test_mail},
-        settings::{get_settings, set_default_branding, update_settings},
+        settings::{
+            get_settings, get_settings_essentials, patch_settings, set_default_branding,
+            test_ldap_settings, update_settings,
+        },
+        ssh_authorized_keys::get_authorized_keys,
         support::{configuration, logs},
         user::{
             add_user, change_password, change_self_password, delete_authorized_app,
             delete_security_key, delete_user, delete_wallet, get_user, list_users, me, modify_user,
-            set_wallet, start_enrollment, start_remote_desktop_configuration, update_wallet,
-            username_available, wallet_challenge,
+            reset_password, set_wallet, start_enrollment, start_remote_desktop_configuration,
+            update_wallet, username_available, wallet_challenge,
         },
         webhooks::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
@@ -407,6 +413,9 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             "0.0.0.0".to_string(),
             None,
             vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
+            false,
+            DEFAULT_KEEPALIVE_INTERVAL,
+            DEFAULT_DISCONNECT_THRESHOLD,
         )
         .expect("Could not create network");
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
@@ -487,6 +496,9 @@ pub async fn init_vpn_location(
         args.endpoint.clone(),
         args.dns.clone(),
         args.allowed_ips.clone(),
+        false,
+        DEFAULT_KEEPALIVE_INTERVAL,
+        DEFAULT_DISCONNECT_THRESHOLD,
     )?;
     network.save(pool).await?;
     let network_id = network.get_id()?;

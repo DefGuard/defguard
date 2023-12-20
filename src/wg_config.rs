@@ -1,3 +1,4 @@
+use crate::db::models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL};
 use crate::db::{models::wireguard::WireguardNetworkError, Device, WireguardNetwork};
 use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
@@ -81,6 +82,9 @@ pub fn parse_wireguard_config(
         String::new(),
         dns,
         vec![allowed_ips],
+        false,
+        DEFAULT_KEEPALIVE_INTERVAL,
+        DEFAULT_DISCONNECT_THRESHOLD,
     )?;
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();

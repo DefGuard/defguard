@@ -24,6 +24,9 @@ use crate::{
     wg_config::ImportedDevice,
 };
 
+pub static DEFAULT_KEEPALIVE_INTERVAL: i64 = 25;
+pub static DEFAULT_DISCONNECT_THRESHOLD: i64 = 25;
+
 // Used in process of importing network from wireguard config
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MappedDevice {
@@ -79,6 +82,9 @@ pub struct WireguardNetwork {
     #[model(ref)]
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
+    pub mfa_enabled: bool,
+    pub keepalive_interval: i64,
+    pub peer_disconnect_threshold: i64,
 }
 
 pub struct WireguardKey {
@@ -123,6 +129,9 @@ impl WireguardNetwork {
         endpoint: String,
         dns: Option<String>,
         allowed_ips: Vec<IpNetwork>,
+        mfa_enabled: bool,
+        keepalive_interval: i64,
+        peer_disconnect_threshold: i64,
     ) -> Result<Self, WireguardNetworkError> {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
@@ -137,6 +146,9 @@ impl WireguardNetwork {
             dns,
             allowed_ips,
             connected_at: None,
+            mfa_enabled,
+            keepalive_interval,
+            peer_disconnect_threshold,
         })
     }
 
@@ -154,7 +166,12 @@ impl WireguardNetwork {
     {
         let networks = query_as!(
             WireguardNetwork,
-            r#"SELECT id as "id?", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at FROM wireguard_network WHERE name = $1"#,
+            r#"
+SELECT
+    id as "id?", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips,
+    connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold
+FROM wireguard_network WHERE name = $1
+            "#,
             name
         )
         .fetch_all(executor)
@@ -923,6 +940,9 @@ impl Default for WireguardNetwork {
             dns: Option::default(),
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
+            mfa_enabled: false,
+            keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+            peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         }
     }
 }
