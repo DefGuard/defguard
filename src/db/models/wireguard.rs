@@ -298,13 +298,13 @@ impl WireguardNetwork {
                 query_as!(
             Device,
             r#"
-            SELECT DISTINCT ON (d.id) d.id as "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
-            FROM device d
-            JOIN "user" u ON d.user_id = u.id
-            JOIN group_user gu ON u.id = gu.user_id
-            JOIN "group" g ON gu.group_id = g.id
-            WHERE g."name" IN (SELECT * FROM UNNEST($1::text[]))
-            ORDER BY d.id ASC
+SELECT DISTINCT ON (d.id) d.id as "id?", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key
+FROM device d
+JOIN "user" u ON d.user_id = u.id
+JOIN group_user gu ON u.id = gu.user_id
+JOIN "group" g ON gu.group_id = g.id
+WHERE g."name" IN (SELECT * FROM UNNEST($1::text[]))
+ORDER BY d.id ASC
             "#,
             &allowed_groups
         )
@@ -556,6 +556,7 @@ impl WireguardNetwork {
             let mut device = Device::new(
                 mapped_device.name.clone(),
                 mapped_device.wireguard_pubkey.clone(),
+                None,
                 mapped_device.user_id,
             );
             device.save(&mut *transaction).await?;
@@ -635,12 +636,12 @@ impl WireguardNetwork {
         let stats = query_as!(
             WireguardPeerStats,
             r#"
-            SELECT id "id?", device_id "device_id!", collected_at "collected_at!", network "network!",
-                endpoint, upload "upload!", download "download!", latest_handshake "latest_handshake!", allowed_ips
-            FROM wireguard_peer_stats
-            WHERE device_id = $1 AND network = $2
-            ORDER BY collected_at DESC
-            LIMIT 1
+SELECT id "id?", device_id "device_id!", collected_at "collected_at!", network "network!",
+    endpoint, upload "upload!", download "download!", latest_handshake "latest_handshake!", allowed_ips
+FROM wireguard_peer_stats
+WHERE device_id = $1 AND network = $2
+ORDER BY collected_at DESC
+LIMIT 1
             "#,
             device_id,
             self.id
@@ -770,16 +771,16 @@ impl WireguardNetwork {
         let devices = query_as!(
             Device,
             r#"
-            WITH s AS (
-                SELECT DISTINCT ON (device_id) *
-                FROM wireguard_peer_stats
-                ORDER BY device_id, latest_handshake DESC
-            )
-            SELECT
-                d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
-            FROM device d
-            JOIN s ON d.id = s.device_id
-            WHERE s.latest_handshake >= $1 AND s.network = $2
+WITH s AS (
+    SELECT DISTINCT ON (device_id) *
+    FROM wireguard_peer_stats
+    ORDER BY device_id, latest_handshake DESC
+)
+SELECT
+    d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key
+FROM device d
+JOIN s ON d.id = s.device_id
+WHERE s.latest_handshake >= $1 AND s.network = $2
             "#,
             oldest_handshake,
             self.id,

@@ -35,6 +35,7 @@ pub struct Device {
     pub wireguard_pubkey: String,
     pub user_id: i64,
     pub created: NaiveDateTime,
+    pub preshared_key: Option<String>,
 }
 
 impl Display for Device {
@@ -320,13 +321,19 @@ pub enum DeviceError {
 
 impl Device {
     #[must_use]
-    pub fn new(name: String, wireguard_pubkey: String, user_id: i64) -> Self {
+    pub fn new(
+        name: String,
+        wireguard_pubkey: String,
+        preshared_key: Option<String>,
+        user_id: i64,
+    ) -> Self {
         Self {
             id: None,
             name,
             wireguard_pubkey,
             user_id,
             created: Utc::now().naive_utc(),
+            preshared_key,
         }
     }
 
@@ -392,7 +399,7 @@ impl Device {
     {
         query_as!(
             Self,
-            r#"SELECT d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
+            r#"SELECT d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key
             FROM device d
             JOIN wireguard_network_device wnd
             ON d.id = wnd.device_id
@@ -410,7 +417,7 @@ impl Device {
     {
         query_as!(
             Self,
-            "SELECT id \"id?\", name, wireguard_pubkey, user_id, created \
+            "SELECT id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
             FROM device WHERE wireguard_pubkey = $1",
             pubkey
         )
@@ -425,7 +432,7 @@ impl Device {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
+            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".username = $2",
             id,
@@ -442,7 +449,7 @@ impl Device {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
+            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".id = $2",
             id,
@@ -478,7 +485,7 @@ impl Device {
     pub async fn all_for_username(pool: &DbPool, username: &str) -> Result<Vec<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
+            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE \"user\".username = $1",
             username
