@@ -119,6 +119,9 @@ export interface Network {
   allowed_ips?: string[];
   allowed_groups?: string[];
   dns?: string;
+  mfa_enabled: boolean;
+  keepalive_interval: number;
+  peer_disconnect_threshold: number;
 }
 
 export type ModifyNetworkRequest = {

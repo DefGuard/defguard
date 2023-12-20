@@ -8,6 +8,7 @@ import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
@@ -130,6 +131,17 @@ export const WizardNetworkConfiguration = () => {
               return validateIpOrDomainList(val, ',', true);
             }),
           allowed_groups: yup.array().optional(),
+          mfa_enabled: yup.boolean().required(LL.form.error.required()),
+          keepalive_interval: yup
+            .number()
+            .positive()
+            .min(1)
+            .required(LL.form.error.required()),
+          peer_disconnect_threshold: yup
+            .number()
+            .positive()
+            .min(1)
+            .required(LL.form.error.required()),
         })
         .required(),
     [LL.form.error],
@@ -216,6 +228,19 @@ export const WizardNetworkConfiguration = () => {
             key: group,
             displayValue: titleCase(group),
           })}
+        />
+        <FormCheckBox
+          controller={{ control, name: 'mfa_enabled' }}
+          label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
+          labelPlacement="left"
+        />
+        <FormInput
+          controller={{ control, name: 'keepalive_interval' }}
+          label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
+        />
+        <FormInput
+          controller={{ control, name: 'peer_disconnect_threshold' }}
+          label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

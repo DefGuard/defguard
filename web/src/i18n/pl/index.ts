@@ -1267,6 +1267,15 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           label: 'Dozwolone grupy',
           placeholder: 'Wszystkie grupy',
         },
+        mfa_enabled: {
+          label: 'Włącz MFA',
+        },
+        keepalive_interval: {
+          label: 'Keepalive interval',
+        },
+        peer_disconnect_threshold: {
+          label: 'Peer disconnect threshold',
+        },
       },
       controls: {
         submit: 'Zapisz zmiany',
