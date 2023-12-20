@@ -1,5 +1,6 @@
 mod common;
 
+use defguard::db::models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL};
 use defguard::{
     db::{models::device::WireguardNetworkDevice, Device, GatewayEvent, WireguardNetwork},
     handlers::{wireguard::WireguardNetworkData, Auth},
@@ -19,6 +20,9 @@ fn make_network() -> Value {
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
         "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 75
     })
 }
 
@@ -54,6 +58,8 @@ async fn test_network() {
         dns: None,
         allowed_groups: vec![],
         mfa_enabled: false,
+        keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+        peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id.unwrap()))
