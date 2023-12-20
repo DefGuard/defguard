@@ -53,6 +53,7 @@ async fn test_network() {
         allowed_ips: Some("10.1.1.0/24".into()),
         dns: None,
         allowed_groups: vec![],
+        mfa_enabled: false,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id.unwrap()))

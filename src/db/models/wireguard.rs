@@ -1123,7 +1123,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
+        let mut device = Device::new(String::new(), String::new(), None, user.id.unwrap());
         device.save(&pool).await.unwrap();
 
         // insert stats
@@ -1173,7 +1173,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
+        let mut device = Device::new(String::new(), String::new(), None, user.id.unwrap());
         device.save(&pool).await.unwrap();
 
         // insert stats

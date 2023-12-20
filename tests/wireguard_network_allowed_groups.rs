@@ -30,6 +30,7 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
     let mut admin_device = Device::new(
         "admin device".into(),
         "nst4lmZz9kPTq6OdeQq2G2th3n+QneHKmG1wJJ3Jrq0=".into(),
+        None,
         admin_user.id.unwrap(),
     );
     admin_device.save(pool).await.unwrap();
@@ -45,6 +46,7 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
     let mut test_device = Device::new(
         "test device".into(),
         "wYOt6ImBaQ3BEMQ3Xf5P5fTnbqwOvjcqYkkSBt+1xOg=".into(),
+        None,
         test_user.id.unwrap(),
     );
     test_device.save(pool).await.unwrap();
@@ -68,6 +70,7 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
     let mut other_device = Device::new(
         "other device".into(),
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
+        None,
         other_user.id.unwrap(),
     );
     other_device.save(pool).await.unwrap();
@@ -87,6 +90,7 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
     let mut non_group_device = Device::new(
         "non group device".into(),
         "6xmL/jRuxmzQ3J2/kVZnKnh+6dwODcEEczmmkIKU4sM=".into(),
+        None,
         non_group_user.id.unwrap(),
     );
     non_group_device.save(pool).await.unwrap();
