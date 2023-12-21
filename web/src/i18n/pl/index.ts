@@ -1271,7 +1271,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           label: 'Wymagaj MFA dla tej lokalizacji',
         },
         keepalive_interval: {
-          label: 'Keepalive interval',
+          label: 'Utrzymanie połączenia',
         },
         peer_disconnect_threshold: {
           label: 'Peer disconnect threshold',
