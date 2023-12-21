@@ -381,7 +381,7 @@ impl GatewayUpdatesHandler {
                     pubkey: peer_pubkey.into(),
                     allowed_ips: Vec::new(),
                     preshared_key: None,
-                    keepalive_interval: Some(0),
+                    keepalive_interval: None,
                 })),
             }))
             .await
