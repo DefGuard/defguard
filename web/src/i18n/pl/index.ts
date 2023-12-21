@@ -1268,7 +1268,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           placeholder: 'Wszystkie grupy',
         },
         mfa_enabled: {
-          label: 'Włącz MFA',
+          label: 'Wymagaj MFA dla tej lokalizacji',
         },
         keepalive_interval: {
           label: 'Keepalive interval',

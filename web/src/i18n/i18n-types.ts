@@ -3001,7 +3001,7 @@ type RootTranslation = {
 				}
 				mfa_enabled: {
 					/**
-					 * M​F​A​ ​e​n​a​b​l​e​d
+					 * R​e​q​u​i​r​e​ ​M​F​A​ ​f​o​r​ ​t​h​i​s​ ​L​o​c​a​t​i​o​n
 					 */
 					label: string
 				}
@@ -6527,7 +6527,7 @@ export type TranslationFunctions = {
 				}
 				mfa_enabled: {
 					/**
-					 * MFA enabled
+					 * Require MFA for this Location
 					 */
 					label: () => LocalizedString
 				}

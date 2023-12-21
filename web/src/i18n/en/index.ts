@@ -1283,7 +1283,7 @@ const en: BaseTranslation = {
           placeholder: 'All groups',
         },
         mfa_enabled: {
-          label: 'MFA enabled',
+          label: 'Require MFA for this Location',
         },
         keepalive_interval: {
           label: 'Keepalive interval',

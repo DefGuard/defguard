@@ -232,7 +232,7 @@ export const WizardNetworkConfiguration = () => {
         <FormCheckBox
           controller={{ control, name: 'mfa_enabled' }}
           label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
-          labelPlacement="left"
+          labelPlacement="right"
         />
         <FormInput
           controller={{ control, name: 'keepalive_interval' }}
