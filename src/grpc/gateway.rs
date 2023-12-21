@@ -43,7 +43,8 @@ impl WireguardNetwork {
         debug!("Fetching all peers for network {}", self.id.unwrap());
         let result = query_as!(
             Peer,
-            "SELECT d.wireguard_pubkey as pubkey, array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
+            "SELECT d.wireguard_pubkey as pubkey, preshared_key, \
+                array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
             WHERE wireguard_network_id = $1 \
@@ -218,6 +219,7 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    preshared_key: device.device.preshared_key,
                                 },
                                 0,
                             )
@@ -238,6 +240,7 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    preshared_key: device.device.preshared_key,
                                 },
                                 1,
                             )
@@ -360,6 +363,7 @@ impl GatewayUpdatesHandler {
                 update: Some(update::Update::Peer(Peer {
                     pubkey: peer_pubkey.into(),
                     allowed_ips: Vec::new(),
+                    preshared_key: None,
                 })),
             }))
             .await
