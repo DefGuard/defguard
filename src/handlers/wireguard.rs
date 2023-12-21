@@ -43,8 +43,8 @@ pub struct WireguardNetworkData {
     pub dns: Option<String>,
     pub allowed_groups: Vec<String>,
     pub mfa_enabled: bool,
-    pub keepalive_interval: i64,
-    pub peer_disconnect_threshold: i64,
+    pub keepalive_interval: i32,
+    pub peer_disconnect_threshold: i32,
 }
 
 impl WireguardNetworkData {

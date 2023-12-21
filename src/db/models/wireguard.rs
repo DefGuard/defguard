@@ -24,8 +24,8 @@ use crate::{
     wg_config::ImportedDevice,
 };
 
-pub static DEFAULT_KEEPALIVE_INTERVAL: i64 = 25;
-pub static DEFAULT_DISCONNECT_THRESHOLD: i64 = 25;
+pub static DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
+pub static DEFAULT_DISCONNECT_THRESHOLD: i32 = 25;
 
 // Used in process of importing network from wireguard config
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -83,8 +83,8 @@ pub struct WireguardNetwork {
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
     pub mfa_enabled: bool,
-    pub keepalive_interval: i64,
-    pub peer_disconnect_threshold: i64,
+    pub keepalive_interval: i32,
+    pub peer_disconnect_threshold: i32,
 }
 
 pub struct WireguardKey {
@@ -130,8 +130,8 @@ impl WireguardNetwork {
         dns: Option<String>,
         allowed_ips: Vec<IpNetwork>,
         mfa_enabled: bool,
-        keepalive_interval: i64,
-        peer_disconnect_threshold: i64,
+        keepalive_interval: i32,
+        peer_disconnect_threshold: i32,
     ) -> Result<Self, WireguardNetworkError> {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
