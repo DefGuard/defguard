@@ -61,12 +61,12 @@
       {
         "ordinal": 11,
         "name": "keepalive_interval",
-        "type_info": "Int8"
+        "type_info": "Int4"
       },
       {
         "ordinal": 12,
         "name": "peer_disconnect_threshold",
-        "type_info": "Int8"
+        "type_info": "Int4"
       }
     ],
     "parameters": {
