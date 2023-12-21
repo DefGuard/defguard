@@ -2999,6 +2999,24 @@ type RootTranslation = {
 					 */
 					placeholder: string
 				}
+				mfa_enabled: {
+					/**
+					 * R​e​q​u​i​r​e​ ​M​F​A​ ​f​o​r​ ​t​h​i​s​ ​L​o​c​a​t​i​o​n
+					 */
+					label: string
+				}
+				keepalive_interval: {
+					/**
+					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l
+					 */
+					label: string
+				}
+				peer_disconnect_threshold: {
+					/**
+					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d
+					 */
+					label: string
+				}
 			}
 			controls: {
 				/**
@@ -6506,6 +6524,24 @@ export type TranslationFunctions = {
 					 * All groups
 					 */
 					placeholder: () => LocalizedString
+				}
+				mfa_enabled: {
+					/**
+					 * Require MFA for this Location
+					 */
+					label: () => LocalizedString
+				}
+				keepalive_interval: {
+					/**
+					 * Keepalive interval
+					 */
+					label: () => LocalizedString
+				}
+				peer_disconnect_threshold: {
+					/**
+					 * Peer disconnect threshold
+					 */
+					label: () => LocalizedString
 				}
 			}
 			controls: {

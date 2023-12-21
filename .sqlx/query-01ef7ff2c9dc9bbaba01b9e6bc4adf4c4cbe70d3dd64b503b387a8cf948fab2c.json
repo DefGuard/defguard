@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM wireguard_network_device WHERE device_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "wireguard_network_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "wireguard_ip: IpAddr",
+        "type_info": "Inet"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "01ef7ff2c9dc9bbaba01b9e6bc4adf4c4cbe70d3dd64b503b387a8cf948fab2c"
+}

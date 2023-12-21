@@ -1282,6 +1282,15 @@ const en: BaseTranslation = {
           label: 'Allowed groups',
           placeholder: 'All groups',
         },
+        mfa_enabled: {
+          label: 'Require MFA for this Location',
+        },
+        keepalive_interval: {
+          label: 'Keepalive interval',
+        },
+        peer_disconnect_threshold: {
+          label: 'Peer disconnect threshold',
+        },
       },
       controls: {
         submit: 'Save changes',

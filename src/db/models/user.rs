@@ -451,9 +451,9 @@ impl User {
         pool: &DbPool,
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
-            r#"
-            SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, mfa_method as "mfa_method: MFAMethod", password_hash FROM "user"
-        "#
+            "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+                mfa_method as \"mfa_method: MFAMethod\", password_hash \
+            FROM \"user\""
         )
         .fetch_all(pool)
         .await?;
@@ -633,10 +633,8 @@ impl User {
         if let Some(id) = self.id {
             let devices = query_as!(
                 Device,
-                r#"
-                SELECT device.id "id?", name, wireguard_pubkey, user_id, created
-                FROM device WHERE user_id = $1
-                "#,
+                "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
+                FROM device WHERE user_id = $1",
                 id
             )
             .fetch_all(pool)

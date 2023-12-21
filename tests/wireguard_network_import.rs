@@ -1,7 +1,13 @@
 mod common;
 
 use defguard::{
-    db::{models::device::UserDevice, Device, GatewayEvent, WireguardNetwork},
+    db::{
+        models::{
+            device::UserDevice,
+            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        },
+        Device, GatewayEvent, WireguardNetwork,
+    },
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
@@ -46,6 +52,9 @@ async fn test_config_import() {
         String::new(),
         None,
         vec![],
+        false,
+        DEFAULT_KEEPALIVE_INTERVAL,
+        DEFAULT_DISCONNECT_THRESHOLD,
     )
     .unwrap();
     initial_network.save(&pool).await.unwrap();
@@ -56,6 +65,7 @@ async fn test_config_import() {
     let mut device_1 = Device::new(
         "test device".into(),
         "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=".into(),
+        None,
         1,
     );
     device_1.save(&mut *transaction).await.unwrap();
@@ -67,6 +77,7 @@ async fn test_config_import() {
     let mut device_2 = Device::new(
         "another test device".into(),
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
+        None,
         1,
     );
     device_2.save(&mut *transaction).await.unwrap();

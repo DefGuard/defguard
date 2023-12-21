@@ -5,7 +5,7 @@ use std::{
 };
 
 use chrono::{NaiveDateTime, Utc};
-use sqlx::{query_as, Error as SqlxError, PgExecutor};
+use sqlx::{query, Error as SqlxError, PgExecutor};
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
@@ -41,17 +41,29 @@ impl WireguardNetwork {
         E: PgExecutor<'e>,
     {
         debug!("Fetching all peers for network {}", self.id.unwrap());
-        let result = query_as!(
-            Peer,
-            "SELECT d.wireguard_pubkey as pubkey, array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
+        let rows = query!(
+            "SELECT d.wireguard_pubkey as pubkey, preshared_key, \
+                array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
             WHERE wireguard_network_id = $1 \
             ORDER BY d.id ASC",
-            self.id
+            self.id,
         )
         .fetch_all(executor)
         .await?;
+
+        // keepalive has to be added manually because Postgres
+        // doesn't support unsigned integers
+        let result = rows
+            .into_iter()
+            .map(|row| Peer {
+                pubkey: row.pubkey,
+                allowed_ips: row.allowed_ips,
+                preshared_key: row.preshared_key,
+                keepalive_interval: Some(self.keepalive_interval as u32),
+            })
+            .collect();
 
         Ok(result)
     }
@@ -218,6 +230,10 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    preshared_key: device.device.preshared_key,
+                                    keepalive_interval: Some(
+                                        self.network.keepalive_interval as u32,
+                                    ),
                                 },
                                 0,
                             )
@@ -238,6 +254,10 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    preshared_key: device.device.preshared_key,
+                                    keepalive_interval: Some(
+                                        self.network.keepalive_interval as u32,
+                                    ),
                                 },
                                 1,
                             )
@@ -360,6 +380,8 @@ impl GatewayUpdatesHandler {
                 update: Some(update::Update::Peer(Peer {
                     pubkey: peer_pubkey.into(),
                     allowed_ips: Vec::new(),
+                    preshared_key: None,
+                    keepalive_interval: None,
                 })),
             }))
             .await

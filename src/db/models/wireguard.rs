@@ -24,6 +24,9 @@ use crate::{
     wg_config::ImportedDevice,
 };
 
+pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
+pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 25;
+
 // Used in process of importing network from wireguard config
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MappedDevice {
@@ -79,6 +82,9 @@ pub struct WireguardNetwork {
     #[model(ref)]
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
+    pub mfa_enabled: bool,
+    pub keepalive_interval: i32,
+    pub peer_disconnect_threshold: i32,
 }
 
 pub struct WireguardKey {
@@ -123,6 +129,9 @@ impl WireguardNetwork {
         endpoint: String,
         dns: Option<String>,
         allowed_ips: Vec<IpNetwork>,
+        mfa_enabled: bool,
+        keepalive_interval: i32,
+        peer_disconnect_threshold: i32,
     ) -> Result<Self, WireguardNetworkError> {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
@@ -137,6 +146,9 @@ impl WireguardNetwork {
             dns,
             allowed_ips,
             connected_at: None,
+            mfa_enabled,
+            keepalive_interval,
+            peer_disconnect_threshold,
         })
     }
 
@@ -154,7 +166,10 @@ impl WireguardNetwork {
     {
         let networks = query_as!(
             WireguardNetwork,
-            r#"SELECT id as "id?", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at FROM wireguard_network WHERE name = $1"#,
+            "SELECT \
+                id as \"id?\", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            FROM wireguard_network WHERE name = $1",
             name
         )
         .fetch_all(executor)
@@ -297,15 +312,13 @@ impl WireguardNetwork {
             Some(allowed_groups) => {
                 query_as!(
             Device,
-            r#"
-            SELECT DISTINCT ON (d.id) d.id as "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
-            FROM device d
-            JOIN "user" u ON d.user_id = u.id
-            JOIN group_user gu ON u.id = gu.user_id
-            JOIN "group" g ON gu.group_id = g.id
-            WHERE g."name" IN (SELECT * FROM UNNEST($1::text[]))
-            ORDER BY d.id ASC
-            "#,
+            "SELECT DISTINCT ON (d.id) d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key \
+            FROM device d \
+            JOIN \"user\" u ON d.user_id = u.id \
+            JOIN group_user gu ON u.id = gu.user_id \
+            JOIN \"group\" g ON gu.group_id = g.id \
+            WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[]))
+            ORDER BY d.id ASC",
             &allowed_groups
         )
         .fetch_all(&mut *transaction)
@@ -556,6 +569,7 @@ impl WireguardNetwork {
             let mut device = Device::new(
                 mapped_device.name.clone(),
                 mapped_device.wireguard_pubkey.clone(),
+                None,
                 mapped_device.user_id,
             );
             device.save(&mut *transaction).await?;
@@ -634,14 +648,12 @@ impl WireguardNetwork {
     ) -> Result<Option<WireguardPeerStats>, SqlxError> {
         let stats = query_as!(
             WireguardPeerStats,
-            r#"
-            SELECT id "id?", device_id "device_id!", collected_at "collected_at!", network "network!",
-                endpoint, upload "upload!", download "download!", latest_handshake "latest_handshake!", allowed_ips
-            FROM wireguard_peer_stats
-            WHERE device_id = $1 AND network = $2
-            ORDER BY collected_at DESC
-            LIMIT 1
-            "#,
+            "SELECT id \"id?\", device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\", \
+                endpoint, upload \"upload!\", download \"download!\", latest_handshake \"latest_handshake!\", allowed_ips \
+            FROM wireguard_peer_stats \
+            WHERE device_id = $1 AND network = $2 \
+            ORDER BY collected_at DESC \
+            LIMIT 1",
             device_id,
             self.id
         )
@@ -673,17 +685,15 @@ impl WireguardNetwork {
         device_id: i64,
     ) -> Result<Option<NaiveDateTime>, SqlxError> {
         let connected_at = query_scalar!(
-            r#"
-            SELECT
-                latest_handshake "latest_handshake: NaiveDateTime"
-            FROM wireguard_peer_stats_view
-            WHERE device_id = $1
-                AND latest_handshake IS NOT NULL
-                AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL)
-                AND network = $3
-            ORDER BY collected_at DESC
-            LIMIT 1
-            "#,
+            "SELECT \
+                latest_handshake \"latest_handshake: NaiveDateTime\" \
+            FROM wireguard_peer_stats_view \
+            WHERE device_id = $1 \
+                AND latest_handshake IS NOT NULL \
+                AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL) \
+                AND network = $3 \
+            ORDER BY collected_at DESC \
+            LIMIT 1",
             device_id,
             WIREGUARD_MAX_HANDSHAKE_MINUTES as f64,
             self.id
@@ -714,19 +724,17 @@ impl WireguardNetwork {
             .collect::<Vec<String>>()
             .join(",");
         let query = format!(
-            r#"
-            SELECT
-                device_id,
-                date_trunc($1, collected_at) as collected_at,
-                cast(sum(download) as bigint) as download,
-                cast(sum(upload) as bigint) as upload
-            FROM wireguard_peer_stats_view
-            WHERE device_id IN ({device_ids})
-            AND collected_at >= $2
-            AND network = $3
-            GROUP BY 1, 2
-            ORDER BY 1, 2
-            "#
+            "SELECT \
+                device_id, \
+                date_trunc($1, collected_at) as collected_at, \
+                cast(sum(download) as bigint) as download, \
+                cast(sum(upload) as bigint) as upload \
+            FROM wireguard_peer_stats_view \
+            WHERE device_id IN ({device_ids}) \
+            AND collected_at >= $2 \
+            AND network = $3 \
+            GROUP BY 1, 2 \
+            ORDER BY 1, 2"
         );
         let stats: Vec<WireguardDeviceTransferRow> = query_as(&query)
             .bind(aggregation.fstring())
@@ -769,18 +777,16 @@ impl WireguardNetwork {
         // Retrieve connected devices from database
         let devices = query_as!(
             Device,
-            r#"
-            WITH s AS (
-                SELECT DISTINCT ON (device_id) *
-                FROM wireguard_peer_stats
-                ORDER BY device_id, latest_handshake DESC
-            )
-            SELECT
-                d.id "id?", d.name, d.wireguard_pubkey, d.user_id, d.created
-            FROM device d
-            JOIN s ON d.id = s.device_id
-            WHERE s.latest_handshake >= $1 AND s.network = $2
-            "#,
+            "WITH s AS ( \
+                SELECT DISTINCT ON (device_id) * \
+                FROM wireguard_peer_stats \
+                ORDER BY device_id, latest_handshake DESC \
+            ) \
+            SELECT \
+                d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key \
+            FROM device d \
+            JOIN s ON d.id = s.device_id \
+            WHERE s.latest_handshake >= $1 AND s.network = $2",
             oldest_handshake,
             self.id,
         )
@@ -813,15 +819,13 @@ impl WireguardNetwork {
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
-            r#"
-            SELECT
-                COALESCE(COUNT(DISTINCT(u.id)), 0) as "active_users!",
-                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as "active_devices!"
-            FROM "user" u
-                JOIN device d ON d.user_id = u.id
-                JOIN wireguard_peer_stats s ON s.device_id = d.id
-                WHERE latest_handshake >= $1 AND s.network = $2
-            "#,
+            "SELECT \
+                COALESCE(COUNT(DISTINCT(u.id)), 0) as \"active_users!\", \
+                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as \"active_devices!\" \
+            FROM \"user\" u \
+                JOIN device d ON d.user_id = u.id \
+                JOIN wireguard_peer_stats s ON s.device_id = d.id \
+                WHERE latest_handshake >= $1 AND s.network = $2",
             from,
             self.id,
         )
@@ -839,15 +843,13 @@ impl WireguardNetwork {
             (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES.into())).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
-            r#"
-            SELECT
-                COALESCE(COUNT(DISTINCT(u.id)), 0) as "active_users!",
-                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as "active_devices!"
-            FROM "user" u
-                JOIN device d ON d.user_id = u.id
-                JOIN wireguard_peer_stats s ON s.device_id = d.id
-                WHERE latest_handshake >= $1 AND s.network = $2
-            "#,
+            "SELECT \
+                COALESCE(COUNT(DISTINCT(u.id)), 0) as \"active_users!\", \
+                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as \"active_devices!\" \
+            FROM \"user\" u \
+                JOIN device d ON d.user_id = u.id \
+                JOIN wireguard_peer_stats s ON s.device_id = d.id \
+                WHERE latest_handshake >= $1 AND s.network = $2",
             from,
             self.id
         )
@@ -866,16 +868,14 @@ impl WireguardNetwork {
     ) -> Result<Vec<WireguardStatsRow>, SqlxError> {
         let stats = query_as!(
             WireguardStatsRow,
-            r#"
-            SELECT
-                date_trunc($1, collected_at) "collected_at: NaiveDateTime",
-                cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download
-            FROM wireguard_peer_stats_view
-            WHERE collected_at >= $2 AND network = $3
-            GROUP BY 1
-            ORDER BY 1
-            LIMIT $4
-            "#,
+            "SELECT \
+                date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
+                cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download \
+            FROM wireguard_peer_stats_view \
+            WHERE collected_at >= $2 AND network = $3 \
+            GROUP BY 1 \
+            ORDER BY 1 \
+            LIMIT $4",
             aggregation.fstring(),
             from,
             self.id,
@@ -922,6 +922,9 @@ impl Default for WireguardNetwork {
             dns: Option::default(),
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
+            mfa_enabled: false,
+            keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+            peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         }
     }
 }
@@ -1102,7 +1105,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
+        let mut device = Device::new(String::new(), String::new(), None, user.id.unwrap());
         device.save(&pool).await.unwrap();
 
         // insert stats
@@ -1152,7 +1155,7 @@ mod test {
             None,
         );
         user.save(&pool).await.unwrap();
-        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
+        let mut device = Device::new(String::new(), String::new(), None, user.id.unwrap());
         device.save(&pool).await.unwrap();
 
         // insert stats

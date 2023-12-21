@@ -1267,6 +1267,15 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           label: 'Dozwolone grupy',
           placeholder: 'Wszystkie grupy',
         },
+        mfa_enabled: {
+          label: 'Wymagaj MFA dla tej lokalizacji',
+        },
+        keepalive_interval: {
+          label: 'Utrzymanie połączenia',
+        },
+        peer_disconnect_threshold: {
+          label: 'Peer disconnect threshold',
+        },
       },
       controls: {
         submit: 'Zapisz zmiany',

@@ -42,6 +42,9 @@ pub struct WireguardNetworkData {
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
     pub allowed_groups: Vec<String>,
+    pub mfa_enabled: bool,
+    pub keepalive_interval: i32,
+    pub peer_disconnect_threshold: i32,
 }
 
 impl WireguardNetworkData {
@@ -98,6 +101,9 @@ pub async fn create_network(
         data.endpoint,
         data.dns,
         allowed_ips,
+        data.mfa_enabled,
+        data.keepalive_interval,
+        data.peer_disconnect_threshold,
     )
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
@@ -167,6 +173,10 @@ pub async fn modify_network(
     network.port = data.port;
     network.dns = data.dns;
     network.address = data.address;
+    network.mfa_enabled = data.mfa_enabled;
+    network.keepalive_interval = data.keepalive_interval;
+    network.peer_disconnect_threshold = data.peer_disconnect_threshold;
+
     network.save(&mut *transaction).await?;
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
@@ -478,7 +488,7 @@ pub async fn add_device(
     let Some(user_id) = user.id else {
         return Err(WebError::ModelError("User has no id".to_string()));
     };
-    let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, user_id);
+    let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, None, user_id);
 
     let mut transaction = appstate.pool.begin().await?;
     device.save(&mut *transaction).await?;
