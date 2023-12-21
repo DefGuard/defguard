@@ -27,13 +27,12 @@ impl WireguardPeerStats {
             - ChronoDuration::from_std(stats_purge_threshold).expect("Failed to parse duration"))
         .naive_utc();
         let result = query!(
-            r#"DELETE FROM wireguard_peer_stats
-            WHERE collected_at < $1
-            AND (device_id, network, collected_at) NOT IN (
-                SELECT device_id, network, MAX(collected_at)
-                FROM wireguard_peer_stats
-                GROUP BY device_id, network
-            )"#,
+            "DELETE FROM wireguard_peer_stats \
+            WHERE collected_at < $1 \
+            AND (device_id, network, collected_at) NOT IN ( \
+                SELECT device_id, network, MAX(collected_at) \
+                FROM wireguard_peer_stats \
+                GROUP BY device_id, network)",
             threshold
         )
         .execute(pool)

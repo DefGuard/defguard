@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT latest_handshake \"latest_handshake: NaiveDateTime\" FROM wireguard_peer_stats_view WHERE device_id = $1 AND latest_handshake IS NOT NULL AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL) AND network = $3 ORDER BY collected_at DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "latest_handshake: NaiveDateTime",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "06d1ac982dc99c5dae010089cfb73a044397c5cb6bb9654dc5df420bf00d2955"
+}

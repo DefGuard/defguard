@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM\n            wireguard_network_device\n            WHERE wireguard_network_id = $1",
+  "query": "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM wireguard_network_device WHERE device_id = $1 AND wireguard_network_id = $2",
   "describe": {
     "columns": [
       {
@@ -21,6 +21,7 @@
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8"
       ]
     },
@@ -30,5 +31,5 @@
       false
     ]
   },
-  "hash": "18e96b44b04c6ed00424ac497889e5952c877f1d14216f5b083fd7fa7c927bb7"
+  "hash": "8ae08ad03e745e8f3d65707bb8637a9277805ca9c7a22faeb66230ce0fa87ea9"
 }

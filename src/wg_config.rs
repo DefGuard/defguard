@@ -1,10 +1,15 @@
-use crate::db::models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL};
-use crate::db::{models::wireguard::WireguardNetworkError, Device, WireguardNetwork};
 use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
 use std::{array::TryFromSliceError, net::IpAddr};
 use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
+
+use crate::db::{
+    models::wireguard::{
+        WireguardNetworkError, DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL,
+    },
+    Device, WireguardNetwork,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImportedDevice {

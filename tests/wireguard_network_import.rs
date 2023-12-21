@@ -1,8 +1,13 @@
 mod common;
 
-use defguard::db::models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL};
 use defguard::{
-    db::{models::device::UserDevice, Device, GatewayEvent, WireguardNetwork},
+    db::{
+        models::{
+            device::UserDevice,
+            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        },
+        Device, GatewayEvent, WireguardNetwork,
+    },
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;

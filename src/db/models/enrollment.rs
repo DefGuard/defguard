@@ -231,9 +231,9 @@ impl Token {
     ) -> Result<(), TokenError> {
         debug!("Deleting unused enrollment tokens for user {user_id}");
         let result = query!(
-            r#"DELETE FROM token
-            WHERE user_id = $1
-            AND used_at IS NULL"#,
+            "DELETE FROM token \
+            WHERE user_id = $1 \
+            AND used_at IS NULL",
             user_id
         )
         .execute(transaction)
@@ -252,10 +252,10 @@ impl Token {
     ) -> Result<(), TokenError> {
         debug!("Deleting unused password reset tokens for user {user_id}");
         let result = query!(
-            r#"DELETE FROM token
-            WHERE user_id = $1
-            AND token_type = 'PASSWORD_RESET'
-            AND used_at IS NULL"#,
+            "DELETE FROM token \
+            WHERE user_id = $1 \
+            AND token_type = 'PASSWORD_RESET' \
+            AND used_at IS NULL",
             user_id
         )
         .execute(transaction)

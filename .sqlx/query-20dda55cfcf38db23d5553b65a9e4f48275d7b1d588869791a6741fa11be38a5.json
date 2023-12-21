@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT id \"id?\", device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\",\n    endpoint, upload \"upload!\", download \"download!\", latest_handshake \"latest_handshake!\", allowed_ips\nFROM wireguard_peer_stats\nWHERE device_id = $1 AND network = $2\nORDER BY collected_at DESC\nLIMIT 1\n            ",
+  "query": "SELECT id \"id?\", device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\", endpoint, upload \"upload!\", download \"download!\", latest_handshake \"latest_handshake!\", allowed_ips FROM wireguard_peer_stats WHERE device_id = $1 AND network = $2 ORDER BY collected_at DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -67,5 +67,5 @@
       true
     ]
   },
-  "hash": "610062fa4d152070801515ac50686ff7eabe665f1534f618866c8dc6ed92c823"
+  "hash": "20dda55cfcf38db23d5553b65a9e4f48275d7b1d588869791a6741fa11be38a5"
 }
