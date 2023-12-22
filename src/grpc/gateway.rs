@@ -35,7 +35,7 @@ pub struct GatewayServer {
 }
 
 impl WireguardNetwork {
-    /// Get a list of all peers
+    /// Get a list of all allowed peers
     pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
     where
         E: PgExecutor<'e>,
@@ -46,7 +46,7 @@ impl WireguardNetwork {
                 array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
-            WHERE wireguard_network_id = $1 \
+            WHERE wireguard_network_id = $1 AND is_allowed = true \
             ORDER BY d.id ASC",
             self.id,
         )
@@ -515,6 +515,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         info!("Sending configuration to gateway client, network {network}.");
 
+        // store connected gateway in memory
         {
             let mut state = self.state.lock().unwrap();
             state.add_gateway(

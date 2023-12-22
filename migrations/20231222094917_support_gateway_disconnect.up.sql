@@ -1,0 +1,1 @@
+ALTER TABLE wireguard_network_device ADD COLUMN is_allowed bool NOT NULL DEFAULT true;
