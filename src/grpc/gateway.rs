@@ -49,7 +49,7 @@ impl WireguardNetwork {
                 array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
-            WHERE wireguard_network_id = $1 AND is_allowed = true \
+            WHERE wireguard_network_id = $1 AND is_authorized = true \
             ORDER BY d.id ASC",
             self.id,
         )

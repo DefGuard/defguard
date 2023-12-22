@@ -115,6 +115,7 @@ pub mod secret;
 pub mod support;
 pub mod templates;
 pub mod wg_config;
+pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;
 
 #[macro_use]

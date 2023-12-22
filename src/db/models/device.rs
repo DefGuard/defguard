@@ -165,6 +165,7 @@ pub struct WireguardNetworkDevice {
     pub wireguard_network_id: i64,
     pub wireguard_ip: IpAddr,
     pub device_id: i64,
+    pub is_authorized: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -195,13 +196,14 @@ impl WireguardNetworkDevice {
     {
         query!(
             "INSERT INTO wireguard_network_device \
-                (device_id, wireguard_network_id, wireguard_ip) \
-                VALUES ($1, $2, $3) \
+                (device_id, wireguard_network_id, wireguard_ip, is_authorized) \
+                VALUES ($1, $2, $3, $4) \
                 ON CONFLICT ON CONSTRAINT device_network \
-                DO UPDATE SET wireguard_ip = $3",
+                DO UPDATE SET wireguard_ip = $3, is_authorized = $4",
             self.device_id,
             self.wireguard_network_id,
             IpNetwork::from(self.wireguard_ip.clone()),
+            self.is_authorized,
         )
         .execute(executor)
         .await?;
@@ -214,11 +216,12 @@ impl WireguardNetworkDevice {
     {
         query!(
             "UPDATE wireguard_network_device \
-            SET wireguard_ip = $3 \
+            SET wireguard_ip = $3, is_authorized = $4 \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             self.device_id,
             self.wireguard_network_id,
-            IpNetwork::from(self.wireguard_ip.clone())
+            IpNetwork::from(self.wireguard_ip.clone()),
+            self.is_authorized,
         )
         .execute(executor)
         .await?;
@@ -250,8 +253,8 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM \
-            wireguard_network_device \
+            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", is_authorized \
+            FROM wireguard_network_device \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             device_id,
             network_id
@@ -267,7 +270,7 @@ impl WireguardNetworkDevice {
     ) -> Result<Option<Vec<Self>>, SqlxError> {
         let result = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" \
+            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", is_authorized \
             FROM wireguard_network_device WHERE device_id = $1",
             device_id
         )
@@ -288,8 +291,8 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM \
-            wireguard_network_device \
+            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", is_authorized \
+            FROM wireguard_network_device \
             WHERE wireguard_network_id = $1",
             network_id
         )
