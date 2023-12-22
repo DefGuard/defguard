@@ -36,6 +36,9 @@ pub struct GatewayServer {
 
 impl WireguardNetwork {
     /// Get a list of all allowed peers
+    ///
+    /// Each device is marked as allowed or not allowed in a given network,
+    /// which enables enforcing peer disconnect in MFA-protected networks.
     pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
     where
         E: PgExecutor<'e>,
