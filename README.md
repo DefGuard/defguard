@@ -53,7 +53,7 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 
 ![defguard desktop client](https://github.com/DefGuard/docs/blob/docs/releases/0.8/Defguard-Desktop-Client.png?raw=true)
 
-Desktop client supports:
+[Desktop client](https://github.com/DefGuard/client) supports:
 - Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
 - Onboarding - displaying custom onboarding messages, with templates, links ...
 - Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
