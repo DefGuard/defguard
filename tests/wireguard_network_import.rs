@@ -65,7 +65,6 @@ async fn test_config_import() {
     let mut device_1 = Device::new(
         "test device".into(),
         "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=".into(),
-        None,
         1,
     );
     device_1.save(&mut *transaction).await.unwrap();
@@ -77,7 +76,6 @@ async fn test_config_import() {
     let mut device_2 = Device::new(
         "another test device".into(),
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
-        None,
         1,
     );
     device_2.save(&mut *transaction).await.unwrap();

@@ -4,10 +4,9 @@
 //! it should be removed from gateway configuration and marked as "not allowed",
 //! which enforces an authentication requirement to connect again.
 
-use crate::db::models::device::DeviceNetworkInfo;
 use crate::db::{
     models::{
-        device::{DeviceInfo, WireguardNetworkDevice},
+        device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
         error::ModelError,
         wireguard::WireguardNetworkError,
     },
@@ -92,8 +91,7 @@ pub async fn run_periodic_peer_disconnect(
                     info!("Marking device {device} as not authorized to connect to location {location}");
                     // change `is_authorized` value for device
                     device_network_config.is_authorized = false;
-                    // replace `preshared_key` with a new random value
-                    todo!();
+                    // clear `preshared_key` value
                     device_network_config.preshared_key = None;
                     device_network_config.update(&mut *transaction).await?;
 

@@ -632,7 +632,7 @@ mod test {
                 }
                 // Break loop if IP is unassigned and return device
                 if Self::find_by_ip(pool, ip, network_id).await?.is_none() {
-                    let mut device = Self::new(name.clone(), pubkey, None, user_id);
+                    let mut device = Self::new(name.clone(), pubkey, user_id);
                     device.save(pool).await?;
                     info!("Created device: {}", device.name);
                     debug!("For user: {}", device.user_id);
