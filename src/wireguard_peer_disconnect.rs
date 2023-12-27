@@ -44,9 +44,6 @@ pub async fn run_periodic_peer_disconnect(
     loop {
         debug!("Starting periodic inactive device disconnect");
 
-        // start transaction
-        let mut transaction = pool.begin().await?;
-
         // get all MFA-protected locations
         let locations = query_as!(
             WireguardNetwork,
@@ -55,7 +52,7 @@ pub async fn run_periodic_peer_disconnect(
                 connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE mfa_enabled = true",
         )
-        .fetch_all(&mut *transaction)
+        .fetch_all(&pool)
         .await?;
 
         // loop over all locations
@@ -78,12 +75,15 @@ pub async fn run_periodic_peer_disconnect(
             location_id,
                 location.peer_disconnect_threshold as f64
         )
-                .fetch_all(&mut *transaction)
+                .fetch_all(&pool)
                 .await?;
 
             for device in devices {
                 debug!("Processing inactive device {device}");
                 let device_id = device.get_id()?;
+
+                // start transaction
+                let mut transaction = pool.begin().await?;
 
                 // get network config for device
                 if let Some(mut device_network_config) =
@@ -111,11 +111,11 @@ pub async fn run_periodic_peer_disconnect(
                     error!("Network config for device {device} in location {location} not found. Skipping device...");
                     continue;
                 }
+
+                // commit transaction
+                transaction.commit().await?;
             }
         }
-
-        // commit transaction
-        transaction.commit().await?;
 
         // wait till next iteration
         debug!("Sleeping until next iteration");
