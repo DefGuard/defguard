@@ -106,7 +106,7 @@ pub async fn run_periodic_peer_disconnect(
                     };
                     let event = GatewayEvent::DeviceDeleted(device_info);
                     wireguard_tx.send(event).map_err(|err| {
-                        error!("Error sending Wireguard event: {err}");
+                        error!("Error sending WireGuard event: {err}");
                         PeerDisconnectError::EventError(err.to_string())
                     })?;
                 } else {
