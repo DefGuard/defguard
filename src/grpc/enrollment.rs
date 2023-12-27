@@ -320,7 +320,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             error!("Invalid pubkey {}", request.pubkey);
             Status::invalid_argument("invalid pubkey")
         })?;
-        let mut device = Device::new(request.name, request.pubkey, None, enrollment.user_id);
+        let mut device = Device::new(request.name, request.pubkey, enrollment.user_id);
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");

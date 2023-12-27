@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"preshared_key\" FROM \"device\" WHERE id = $1",
+  "query": "SELECT id \"id?\", \"name\",\"wireguard_pubkey\",\"user_id\",\"created\" FROM \"device\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -27,11 +27,6 @@
         "ordinal": 4,
         "name": "created",
         "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 5,
-        "name": "preshared_key",
-        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -44,9 +39,8 @@
       false,
       false,
       false,
-      false,
-      true
+      false
     ]
   },
-  "hash": "d069191fedf7628f2d62be632911845278cca5ceb21718f37082728fa052c33c"
+  "hash": "c64f247f81e332689e35c224656847b246deb6f92a5790a4fdd0d5733defbb57"
 }

@@ -35,7 +35,10 @@ pub struct GatewayServer {
 }
 
 impl WireguardNetwork {
-    /// Get a list of all peers
+    /// Get a list of all allowed peers
+    ///
+    /// Each device is marked as allowed or not allowed in a given network,
+    /// which enables enforcing peer disconnect in MFA-protected networks.
     pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
     where
         E: PgExecutor<'e>,
@@ -46,9 +49,10 @@ impl WireguardNetwork {
                 array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
-            WHERE wireguard_network_id = $1 \
+            WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
             ORDER BY d.id ASC",
             self.id,
+            self.mfa_enabled
         )
         .fetch_all(executor)
         .await?;
@@ -230,7 +234,7 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
-                                    preshared_key: device.device.preshared_key,
+                                    preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
                                         self.network.keepalive_interval as u32,
                                     ),
@@ -254,7 +258,7 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
-                                    preshared_key: device.device.preshared_key,
+                                    preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
                                         self.network.keepalive_interval as u32,
                                     ),
@@ -515,6 +519,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         info!("Sending configuration to gateway client, network {network}.");
 
+        // store connected gateway in memory
         {
             let mut state = self.state.lock().unwrap();
             state.add_gateway(

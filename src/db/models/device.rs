@@ -35,7 +35,6 @@ pub struct Device {
     pub wireguard_pubkey: String,
     pub user_id: i64,
     pub created: NaiveDateTime,
-    pub preshared_key: Option<String>,
 }
 
 impl Display for Device {
@@ -59,6 +58,8 @@ pub struct DeviceInfo {
 pub struct DeviceNetworkInfo {
     pub network_id: i64,
     pub device_wireguard_ip: IpAddr,
+    #[serde(skip_serializing)]
+    pub preshared_key: Option<String>,
 }
 
 impl DeviceInfo {
@@ -70,7 +71,7 @@ impl DeviceInfo {
         let device_id = device.get_id()?;
         let network_info = query_as!(
             DeviceNetworkInfo,
-            "SELECT wireguard_network_id as network_id, wireguard_ip as \"device_wireguard_ip: IpAddr\" \
+            "SELECT wireguard_network_id as network_id, wireguard_ip as \"device_wireguard_ip: IpAddr\", preshared_key \
             FROM wireguard_network_device \
             WHERE device_id = $1",
             device_id
@@ -165,6 +166,8 @@ pub struct WireguardNetworkDevice {
     pub wireguard_network_id: i64,
     pub wireguard_ip: IpAddr,
     pub device_id: i64,
+    pub preshared_key: Option<String>,
+    pub is_authorized: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -186,6 +189,8 @@ impl WireguardNetworkDevice {
             wireguard_network_id: network_id,
             wireguard_ip,
             device_id,
+            preshared_key: None,
+            is_authorized: false,
         }
     }
 
@@ -195,13 +200,14 @@ impl WireguardNetworkDevice {
     {
         query!(
             "INSERT INTO wireguard_network_device \
-                (device_id, wireguard_network_id, wireguard_ip) \
-                VALUES ($1, $2, $3) \
+                (device_id, wireguard_network_id, wireguard_ip, is_authorized) \
+                VALUES ($1, $2, $3, $4) \
                 ON CONFLICT ON CONSTRAINT device_network \
-                DO UPDATE SET wireguard_ip = $3",
+                DO UPDATE SET wireguard_ip = $3, is_authorized = $4",
             self.device_id,
             self.wireguard_network_id,
             IpNetwork::from(self.wireguard_ip.clone()),
+            self.is_authorized,
         )
         .execute(executor)
         .await?;
@@ -214,11 +220,12 @@ impl WireguardNetworkDevice {
     {
         query!(
             "UPDATE wireguard_network_device \
-            SET wireguard_ip = $3 \
+            SET wireguard_ip = $3, is_authorized = $4 \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             self.device_id,
             self.wireguard_network_id,
-            IpNetwork::from(self.wireguard_ip.clone())
+            IpNetwork::from(self.wireguard_ip.clone()),
+            self.is_authorized,
         )
         .execute(executor)
         .await?;
@@ -250,8 +257,8 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM \
-            wireguard_network_device \
+            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", preshared_key, is_authorized \
+            FROM wireguard_network_device \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             device_id,
             network_id
@@ -267,7 +274,7 @@ impl WireguardNetworkDevice {
     ) -> Result<Option<Vec<Self>>, SqlxError> {
         let result = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" \
+            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", preshared_key, is_authorized \
             FROM wireguard_network_device WHERE device_id = $1",
             device_id
         )
@@ -288,8 +295,8 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\" FROM \
-            wireguard_network_device \
+            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", preshared_key, is_authorized \
+            FROM wireguard_network_device \
             WHERE wireguard_network_id = $1",
             network_id
         )
@@ -313,19 +320,13 @@ pub enum DeviceError {
 
 impl Device {
     #[must_use]
-    pub fn new(
-        name: String,
-        wireguard_pubkey: String,
-        preshared_key: Option<String>,
-        user_id: i64,
-    ) -> Self {
+    pub fn new(name: String, wireguard_pubkey: String, user_id: i64) -> Self {
         Self {
             id: None,
             name,
             wireguard_pubkey,
             user_id,
             created: Utc::now().naive_utc(),
-            preshared_key,
         }
     }
 
@@ -391,7 +392,7 @@ impl Device {
     {
         query_as!(
             Self,
-            "SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key \
+            "SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
             FROM device d \
             JOIN wireguard_network_device wnd \
             ON d.id = wnd.device_id \
@@ -409,7 +410,7 @@ impl Device {
     {
         query_as!(
             Self,
-            "SELECT id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
+            "SELECT id \"id?\", name, wireguard_pubkey, user_id, created \
             FROM device WHERE wireguard_pubkey = $1",
             pubkey
         )
@@ -424,7 +425,7 @@ impl Device {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
+            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".username = $2",
             id,
@@ -441,7 +442,7 @@ impl Device {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
+            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".id = $2",
             id,
@@ -475,7 +476,7 @@ impl Device {
     pub async fn all_for_username(pool: &DbPool, username: &str) -> Result<Vec<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
+            "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE \"user\".username = $1",
             username
@@ -535,6 +536,7 @@ impl Device {
                 let device_network_info = DeviceNetworkInfo {
                     network_id,
                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                    preshared_key: wireguard_network_device.preshared_key.clone(),
                 };
                 network_info.push(device_network_info);
 
@@ -630,7 +632,7 @@ mod test {
                 }
                 // Break loop if IP is unassigned and return device
                 if Self::find_by_ip(pool, ip, network_id).await?.is_none() {
-                    let mut device = Self::new(name.clone(), pubkey, None, user_id);
+                    let mut device = Self::new(name.clone(), pubkey, user_id);
                     device.save(pool).await?;
                     info!("Created device: {}", device.name);
                     debug!("For user: {}", device.user_id);
