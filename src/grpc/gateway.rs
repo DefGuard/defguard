@@ -49,9 +49,10 @@ impl WireguardNetwork {
                 array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
-            WHERE wireguard_network_id = $1 AND is_authorized = true \
+            WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
             ORDER BY d.id ASC",
             self.id,
+            self.mfa_enabled
         )
         .fetch_all(executor)
         .await?;

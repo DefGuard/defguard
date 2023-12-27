@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.wireguard_pubkey as pubkey, preshared_key, array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd JOIN device d ON wnd.device_id = d.id WHERE wireguard_network_id = $1 AND is_authorized = true ORDER BY d.id ASC",
+  "query": "SELECT d.wireguard_pubkey as pubkey, preshared_key, array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd JOIN device d ON wnd.device_id = d.id WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) ORDER BY d.id ASC",
   "describe": {
     "columns": [
       {
@@ -21,7 +21,8 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8",
+        "Bool"
       ]
     },
     "nullable": [
@@ -30,5 +31,5 @@
       null
     ]
   },
-  "hash": "5d52d4479f6e926fe6f15e61054190179d30683ba857829d7b4c40efa90f034e"
+  "hash": "caf97c3a058eac0f9deb4e474b0d76a2d14a75d04f4ea5474e06adc9466a544d"
 }
