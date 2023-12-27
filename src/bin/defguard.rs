@@ -7,7 +7,6 @@ use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use defguard::wireguard_peer_disconnect::run_periodic_peer_disconnect;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
@@ -17,6 +16,7 @@ use defguard::{
     init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
     run_web_server,
+    wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
     SERVER_CONFIG,
 };
