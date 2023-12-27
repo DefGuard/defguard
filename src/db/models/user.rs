@@ -633,7 +633,7 @@ impl User {
         if let Some(id) = self.id {
             let devices = query_as!(
                 Device,
-                "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created, preshared_key \
+                "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
                 FROM device WHERE user_id = $1",
                 id
             )

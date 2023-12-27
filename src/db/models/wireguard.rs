@@ -312,7 +312,7 @@ impl WireguardNetwork {
             Some(allowed_groups) => {
                 query_as!(
                     Device,
-                    "SELECT DISTINCT ON (d.id) d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key \
+                    "SELECT DISTINCT ON (d.id) d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     JOIN group_user gu ON u.id = gu.user_id \
@@ -429,6 +429,7 @@ impl WireguardNetwork {
                         network_info: vec![DeviceNetworkInfo {
                             network_id,
                             device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                            preshared_key: wireguard_network_device.preshared_key,
                         }],
                     }));
                 }
@@ -447,6 +448,7 @@ impl WireguardNetwork {
                         network_info: vec![DeviceNetworkInfo {
                             network_id,
                             device_wireguard_ip: device_network_config.wireguard_ip,
+                            preshared_key: device_network_config.preshared_key,
                         }],
                     }));
                 } else {
@@ -467,6 +469,7 @@ impl WireguardNetwork {
                 network_info: vec![DeviceNetworkInfo {
                     network_id,
                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                    preshared_key: wireguard_network_device.preshared_key,
                 }],
             }));
         }
@@ -525,6 +528,7 @@ impl WireguardNetwork {
                                 network_info: vec![DeviceNetworkInfo {
                                     network_id,
                                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                                    preshared_key: wireguard_network_device.preshared_key,
                                 }],
                             }));
                         }
@@ -569,7 +573,6 @@ impl WireguardNetwork {
             let mut device = Device::new(
                 mapped_device.name.clone(),
                 mapped_device.wireguard_pubkey.clone(),
-                None,
                 mapped_device.user_id,
             );
             device.save(&mut *transaction).await?;
@@ -603,6 +606,7 @@ impl WireguardNetwork {
                     network_info.push(DeviceNetworkInfo {
                         network_id,
                         device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                        preshared_key: wireguard_network_device.preshared_key,
                     });
                 }
                 Some(allowed) => {
@@ -618,6 +622,7 @@ impl WireguardNetwork {
                         network_info.push(DeviceNetworkInfo {
                             network_id,
                             device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                            preshared_key: wireguard_network_device.preshared_key,
                         });
                     }
                 }
@@ -783,7 +788,7 @@ impl WireguardNetwork {
                 ORDER BY device_id, latest_handshake DESC \
             ) \
             SELECT \
-                d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key \
+                d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
             FROM device d \
             JOIN s ON d.id = s.device_id \
             WHERE s.latest_handshake >= $1 AND s.network = $2",

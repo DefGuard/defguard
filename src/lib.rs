@@ -442,7 +442,6 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         let mut device = Device::new(
             "TestDevice".to_string(),
             "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
-            None,
             1,
         );
         device

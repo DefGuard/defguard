@@ -67,7 +67,7 @@ pub async fn run_periodic_peer_disconnect(
                     WHERE network = $1 \
                     ORDER BY device_id, collected_at DESC \
                 ) \
-            SELECT d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key \
+            SELECT d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \
@@ -92,6 +92,9 @@ pub async fn run_periodic_peer_disconnect(
                     info!("Marking device {device} as not authorized to connect to location {location}");
                     // change `is_authorized` value for device
                     device_network_config.is_authorized = false;
+                    // replace `preshared_key` with a new random value
+                    todo!();
+                    device_network_config.preshared_key = None;
                     device_network_config.update(&mut *transaction).await?;
 
                     debug!("Sending `peer_delete` message to gateway");
@@ -100,6 +103,7 @@ pub async fn run_periodic_peer_disconnect(
                         network_info: vec![DeviceNetworkInfo {
                             network_id: location_id,
                             device_wireguard_ip: device_network_config.wireguard_ip,
+                            preshared_key: device_network_config.preshared_key,
                         }],
                     };
                     let event = GatewayEvent::DeviceDeleted(device_info);

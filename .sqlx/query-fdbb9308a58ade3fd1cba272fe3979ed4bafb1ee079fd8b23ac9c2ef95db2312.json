@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"preshared_key\" FROM \"device\"",
+  "query": "SELECT DISTINCT ON (d.id) d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created FROM device d JOIN \"user\" u ON d.user_id = u.id JOIN group_user gu ON u.id = gu.user_id JOIN \"group\" g ON gu.group_id = g.id WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[]))\n                    ORDER BY d.id ASC",
   "describe": {
     "columns": [
       {
@@ -27,24 +27,20 @@
         "ordinal": 4,
         "name": "created",
         "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 5,
-        "name": "preshared_key",
-        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "TextArray"
+      ]
     },
     "nullable": [
       false,
       false,
       false,
       false,
-      false,
-      true
+      false
     ]
   },
-  "hash": "5d629b503d4d9f76b4e9b8981139753077bf164f59900f29d54ff35bc294c9b4"
+  "hash": "fdbb9308a58ade3fd1cba272fe3979ed4bafb1ee079fd8b23ac9c2ef95db2312"
 }

@@ -488,7 +488,7 @@ pub async fn add_device(
     let Some(user_id) = user.id else {
         return Err(WebError::ModelError("User has no id".to_string()));
     };
-    let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, None, user_id);
+    let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, user_id);
 
     let mut transaction = appstate.pool.begin().await?;
     device.save(&mut *transaction).await?;
@@ -599,6 +599,7 @@ pub async fn modify_device(
                     let device_network_info = DeviceNetworkInfo {
                         network_id,
                         device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                        preshared_key: wireguard_network_device.preshared_key,
                     };
                     network_info.push(device_network_info);
                 }

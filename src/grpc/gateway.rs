@@ -234,7 +234,7 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
-                                    preshared_key: device.device.preshared_key,
+                                    preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
                                         self.network.keepalive_interval as u32,
                                     ),
@@ -258,7 +258,7 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
-                                    preshared_key: device.device.preshared_key,
+                                    preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
                                         self.network.keepalive_interval as u32,
                                     ),

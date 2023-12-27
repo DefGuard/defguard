@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH s AS ( SELECT DISTINCT ON (device_id) * FROM wireguard_peer_stats ORDER BY device_id, latest_handshake DESC ) SELECT d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created, d.preshared_key FROM device d JOIN s ON d.id = s.device_id WHERE s.latest_handshake >= $1 AND s.network = $2",
+  "query": "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE \"user\".username = $1",
   "describe": {
     "columns": [
       {
@@ -27,17 +27,11 @@
         "ordinal": 4,
         "name": "created",
         "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 5,
-        "name": "preshared_key",
-        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Timestamp",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -45,9 +39,8 @@
       false,
       false,
       false,
-      false,
-      true
+      false
     ]
   },
-  "hash": "dba6275f3895b8725bdce57c4617956773817874aeccc8c9f73527018e5d10cb"
+  "hash": "33a1e2f1904757c775d389fa99d67916b7b220d6aa1fe8bb6690f85ed1cd5666"
 }
