@@ -1,1 +1,1 @@
-ALTER TABLE wireguard_network_device ADD COLUMN is_authorized bool NOT NULL DEFAULT true;
+ALTER TABLE wireguard_network_device ADD COLUMN is_authorized bool NOT NULL DEFAULT false;

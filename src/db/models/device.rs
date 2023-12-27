@@ -190,7 +190,7 @@ impl WireguardNetworkDevice {
             wireguard_ip,
             device_id,
             preshared_key: None,
-            is_authorized: true,
+            is_authorized: false,
         }
     }
 
