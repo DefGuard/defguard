@@ -187,6 +187,7 @@ impl WireguardNetworkDevice {
             wireguard_network_id: network_id,
             wireguard_ip,
             device_id,
+            is_authorized: true,
         }
     }
 
