@@ -15,6 +15,7 @@ use crate::{
     ldap::utils::ldap_add_user,
     mail::Mail,
     templates::{self, TemplateLocation},
+    SERVER_CONFIG,
 };
 use ipnetwork::IpNetwork;
 use reqwest::Url;
@@ -42,28 +43,35 @@ pub struct EnrollmentServer {
     ldap_feature_active: bool,
 }
 
-struct Instance {
+struct InstanceInfo {
     id: uuid::Uuid,
     name: String,
     url: Url,
+    proxy_url: Url,
+    username: String,
 }
 
-impl Instance {
-    pub fn new(settings: Settings, url: Url) -> Self {
-        Instance {
+impl InstanceInfo {
+    pub fn new<S: Into<String>>(settings: Settings, username: S) -> Self {
+        let config = SERVER_CONFIG.get().expect("defguard config not found");
+        InstanceInfo {
             id: settings.uuid,
             name: settings.instance_name,
-            url,
+            url: config.url.clone(),
+            proxy_url: config.enrollment_url.clone(),
+            username: username.into(),
         }
     }
 }
 
-impl From<Instance> for proto::InstanceInfo {
-    fn from(instance: Instance) -> Self {
+impl From<InstanceInfo> for proto::InstanceInfo {
+    fn from(instance: InstanceInfo) -> Self {
         Self {
             name: instance.name,
             id: instance.id.to_string(),
             url: instance.url.to_string(),
+            proxy_url: instance.proxy_url.to_string(),
+            username: instance.username,
         }
     }
 }
@@ -163,6 +171,9 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                     Status::internal("unexpected error")
                 })?;
 
+            let vpn_setup_optional = settings.enrollment_vpn_step_optional;
+            let instance_info = InstanceInfo::new(settings, &user.username);
+
             let user_info = InitialUserInfo::from_user(&self.pool, user)
                 .await
                 .map_err(|_| {
@@ -179,8 +190,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 final_page_content: enrollment
                     .get_welcome_page_content(&mut transaction)
                     .await?,
-                vpn_setup_optional: settings.enrollment_vpn_step_optional,
-                instance: Some(Instance::new(settings, self.config.url.clone()).into()),
+                vpn_setup_optional,
+                instance: Some(instance_info.into()),
             };
 
             transaction.commit().await.map_err(|_| {
@@ -380,7 +391,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
-            instance: Some(Instance::new(settings, self.config.url.clone()).into()),
+            instance: Some(InstanceInfo::new(settings, self.config.url.clone()).into()),
         };
 
         Ok(Response::new(response))
@@ -446,6 +457,8 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                         pubkey: network.pubkey,
                         allowed_ips,
                         dns: network.dns,
+                        mfa_enabled: network.mfa_enabled,
+                        keepalive_interval: network.keepalive_interval,
                     };
                     configs.push(config);
                 }
@@ -454,7 +467,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let response = DeviceConfigResponse {
                 device: Some(device.into()),
                 configs,
-                instance: Some(Instance::new(settings, self.config.url.clone()).into()),
+                instance: Some(InstanceInfo::new(settings, self.config.url.clone()).into()),
             };
 
             Ok(Response::new(response))
@@ -508,6 +521,8 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
             pubkey: config.pubkey,
             allowed_ips,
             dns: config.dns,
+            mfa_enabled: config.mfa_enabled,
+            keepalive_interval: config.keepalive_interval,
         }
     }
 }
