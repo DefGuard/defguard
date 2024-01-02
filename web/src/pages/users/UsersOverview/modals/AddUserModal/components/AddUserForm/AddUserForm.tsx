@@ -19,8 +19,7 @@ import {
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import {
-  patternDigitOrLowercase,
-  patternNoSpecialChars,
+  patternSafeUsernameCharacters,
   patternStartsWithDigit,
   patternValidEmail,
   patternValidPhoneNumber,
@@ -57,8 +56,7 @@ export const AddUserForm = () => {
           username: yup
             .string()
             .required(LL.form.error.required())
-            .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
-            .matches(patternDigitOrLowercase, LL.form.error.invalid())
+            .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
             .min(3, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
             .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {

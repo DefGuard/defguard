@@ -1670,7 +1670,11 @@ type RootTranslation = {
 		}
 		error: {
 			/**
-			 * U​s​e​r​n​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e
+			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
+			 */
+			forbiddenCharacter: string
+			/**
+			 * U​s​e​r​n​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
 			 */
 			usernameTaken: string
 			/**
@@ -1738,11 +1742,11 @@ type RootTranslation = {
 			 */
 			allowedIps: string
 			/**
-			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r
+			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r​.
 			 */
 			startFromNumber: string
 			/**
-			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h
+			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h​.
 			 */
 			repeat: string
 		}
@@ -5206,7 +5210,11 @@ export type TranslationFunctions = {
 		}
 		error: {
 			/**
-			 * Username is already in use
+			 * Field contain forbidden characters.
+			 */
+			forbiddenCharacter: () => LocalizedString
+			/**
+			 * Username is already in use.
 			 */
 			usernameTaken: () => LocalizedString
 			/**
@@ -5274,11 +5282,11 @@ export type TranslationFunctions = {
 			 */
 			allowedIps: () => LocalizedString
 			/**
-			 * Cannot start from number
+			 * Cannot start from number.
 			 */
 			startFromNumber: () => LocalizedString
 			/**
-			 * Fields don't match
+			 * Fields don't match.
 			 */
 			repeat: () => LocalizedString
 		}
