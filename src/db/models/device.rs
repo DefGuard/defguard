@@ -26,6 +26,8 @@ pub struct DeviceConfig {
     pub(crate) allowed_ips: Vec<IpNetwork>,
     pub(crate) pubkey: String,
     pub(crate) dns: Option<String>,
+    pub(crate) mfa_enabled: bool,
+    pub(crate) keepalive_interval: i32,
 }
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
@@ -550,6 +552,8 @@ impl Device {
                     allowed_ips: network.allowed_ips,
                     pubkey: network.pubkey,
                     dns: network.dns,
+                    mfa_enabled: network.mfa_enabled,
+                    keepalive_interval: network.keepalive_interval,
                 });
             }
         }
