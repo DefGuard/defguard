@@ -391,7 +391,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
-            instance: Some(InstanceInfo::new(settings, self.config.url.clone()).into()),
+            instance: Some(InstanceInfo::new(settings, &user.username).into()),
         };
 
         Ok(Response::new(response))
@@ -403,7 +403,10 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         &self,
         request: Request<ExistingDevice>,
     ) -> Result<Response<DeviceConfigResponse>, Status> {
-        let _enrollment = self.validate_session(&request).await?;
+        let enrollment = self.validate_session(&request).await?;
+
+        // get enrollment user
+        let user = enrollment.fetch_user(&self.pool).await?;
 
         let request = request.into_inner();
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
@@ -467,7 +470,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let response = DeviceConfigResponse {
                 device: Some(device.into()),
                 configs,
-                instance: Some(InstanceInfo::new(settings, self.config.url.clone()).into()),
+                instance: Some(InstanceInfo::new(settings, &user.username).into()),
             };
 
             Ok(Response::new(response))
