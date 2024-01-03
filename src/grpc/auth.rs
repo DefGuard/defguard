@@ -1,3 +1,8 @@
+use std::sync::{Arc, Mutex};
+
+use jsonwebtoken::errors::Error as JWTError;
+use tonic::{Request, Response, Status};
+
 use crate::{
     auth::{
         failed_login::{check_username, log_failed_login_attempt, FailedLoginMap},
@@ -5,9 +10,6 @@ use crate::{
     },
     db::{DbPool, User},
 };
-use jsonwebtoken::errors::Error as JWTError;
-use std::sync::{Arc, Mutex};
-use tonic::{Request, Response, Status};
 
 tonic::include_proto!("auth");
 

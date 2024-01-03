@@ -1,6 +1,7 @@
 use std::{
     collections::hash_map::HashMap,
     fs::read_to_string,
+    thread::sleep,
     time::{Duration, Instant},
 };
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -320,14 +321,13 @@ impl GatewayState {
 
 const TEN_SECS: Duration = Duration::from_secs(10);
 
-// TODO: re-connect loop
 pub async fn run_grpc_stream(pool: DbPool) -> Result<(), anyhow::Error> {
     let config = SERVER_CONFIG.get().unwrap();
 
-    let endpoint = Endpoint::from_shared(config.proxy_url.clone())?;
+    let endpoint = Endpoint::from_shared(config.proxy_url.as_str())?;
     let endpoint = endpoint.http2_keep_alive_interval(TEN_SECS);
     let endpoint = endpoint.tcp_keepalive(Some(TEN_SECS));
-    let endpoint = if let Some(ca) = config.grpc_cert.clone() {
+    let endpoint = if let Some(ca) = &config.grpc_cert {
         let ca = read_to_string(ca)?;
         let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
         endpoint.tls_config(tls)?
@@ -335,30 +335,52 @@ pub async fn run_grpc_stream(pool: DbPool) -> Result<(), anyhow::Error> {
         endpoint
     };
 
-    let mut client = ProxyClient::new(endpoint.connect_lazy());
-    let (tx, rx) = mpsc::unbounded_channel();
-    let response = client.bidi(UnboundedReceiverStream::new(rx)).await.unwrap();
-    let mut resp_stream = response.into_inner();
-    while let Some(received) = resp_stream.next().await {
-        let received = received.unwrap();
-        info!("received message");
-        if let Some(payload) = received.payload {
-            info!("request {payload:?}");
-            match payload {
-                proxy_response::Payload::EnrollmentStart(request) => {
-                    // TODO: get rid of unwrap() - send errors?
-                    let response_payload = start_enrollment(&pool, &config, request).await.unwrap();
+    loop {
+        info!("Connecting to proxy");
+        let mut client = ProxyClient::new(endpoint.connect_lazy());
+        let (tx, rx) = mpsc::unbounded_channel();
+        let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
+            info!("Failed to connect to proxy, retrying in 10s");
+            sleep(TEN_SECS);
+            continue;
+        };
+        let mut resp_stream = response.into_inner();
+        while let Some(received) = resp_stream.next().await {
+            info!("received message");
+            match received {
+                Ok(received) => {
+                    let payload = match received.payload {
+                        Some(proxy_response::Payload::EnrollmentStart(request)) => {
+                            match start_enrollment(&pool, &config, request).await {
+                                Ok(response_payload) => {
+                                    Some(proxy_request::Payload::EnrollmentStart(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("start enrollment error {err}");
+                                    None
+                                }
+                            }
+                        }
+                        // TODO: not yet implemented
+                        Some(proxy_response::Payload::ActivateUser(request)) => None,
+                        Some(proxy_response::Payload::NewDevice(request)) => None,
+                        Some(proxy_response::Payload::ExistingDevice(request)) => None,
+                        Some(proxy_response::Payload::PasswordResetInit(request)) => None,
+                        Some(proxy_response::Payload::PasswordResetStart(request)) => None,
+                        Some(proxy_response::Payload::PasswordReset(request)) => None,
+                        // Reply without payload.
+                        None => None,
+                    };
                     let req = ProxyRequest {
                         id: received.id,
-                        payload: Some(proxy_request::Payload::EnrollmentStart(response_payload)),
+                        payload,
                     };
                     tx.send(req).unwrap();
                 }
+                Err(err) => error!("stream error {err}"),
             }
         }
     }
-
-    Ok(())
 }
 
 /// Runs gRPC server with core services.
