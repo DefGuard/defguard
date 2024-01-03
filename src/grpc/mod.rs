@@ -1,5 +1,6 @@
 use std::{
     collections::hash_map::HashMap,
+    fs::read_to_string,
     time::{Duration, Instant},
 };
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -11,8 +12,12 @@ use std::{
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use serde::Serialize;
 use thiserror::Error;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::transport::{Identity, Server, ServerTlsConfig};
+use tokio::sync::{
+    broadcast::Sender,
+    mpsc::{self, UnboundedSender},
+};
+use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
+use tonic::transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig};
 use uaparser::UserAgentParser;
 use uuid::Uuid;
 
@@ -20,7 +25,11 @@ use uuid::Uuid;
 use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
 use self::{
     auth::{auth_service_server::AuthServiceServer, AuthServer},
-    enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer},
+    enrollment::EnrollmentServer,
+    proto::{
+        enrollment_service_server::EnrollmentServiceServer,
+        password_reset_service_server::PasswordResetServiceServer, proxy_request,
+    },
 };
 #[cfg(feature = "worker")]
 use self::{
@@ -31,9 +40,7 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     config::DefGuardConfig,
     db::AppEvent,
-    grpc::password_reset::{
-        proto::password_reset_service_server::PasswordResetServiceServer, PasswordResetServer,
-    },
+    grpc::{enrollment::start_enrollment, password_reset::PasswordResetServer},
     handlers::mail::send_gateway_disconnected_email,
     mail::Mail,
     SERVER_CONFIG,
@@ -53,6 +60,12 @@ mod interceptor;
 pub mod password_reset;
 #[cfg(feature = "worker")]
 pub mod worker;
+
+pub(crate) mod proto {
+    tonic::include_proto!("defguard.proxy");
+}
+
+use proto::{proxy_client::ProxyClient, proxy_response, ProxyRequest};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -303,6 +316,49 @@ impl GatewayState {
 
         Ok(())
     }
+}
+
+const TEN_SECS: Duration = Duration::from_secs(10);
+
+// TODO: re-connect loop
+pub async fn run_grpc_stream(pool: DbPool) -> Result<(), anyhow::Error> {
+    let config = SERVER_CONFIG.get().unwrap();
+
+    let endpoint = Endpoint::from_shared(config.proxy_url.clone())?;
+    let endpoint = endpoint.http2_keep_alive_interval(TEN_SECS);
+    let endpoint = endpoint.tcp_keepalive(Some(TEN_SECS));
+    let endpoint = if let Some(ca) = config.grpc_cert.clone() {
+        let ca = read_to_string(ca)?;
+        let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
+        endpoint.tls_config(tls)?
+    } else {
+        endpoint
+    };
+
+    let mut client = ProxyClient::new(endpoint.connect_lazy());
+    let (tx, rx) = mpsc::unbounded_channel();
+    let response = client.bidi(UnboundedReceiverStream::new(rx)).await.unwrap();
+    let mut resp_stream = response.into_inner();
+    while let Some(received) = resp_stream.next().await {
+        let received = received.unwrap();
+        info!("received message");
+        if let Some(payload) = received.payload {
+            info!("request {payload:?}");
+            match payload {
+                proxy_response::Payload::EnrollmentStart(request) => {
+                    // TODO: get rid of unwrap() - send errors?
+                    let response_payload = start_enrollment(&pool, &config, request).await.unwrap();
+                    let req = ProxyRequest {
+                        id: received.id,
+                        payload: Some(proxy_request::Payload::EnrollmentStart(response_payload)),
+                    };
+                    tx.send(req).unwrap();
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Runs gRPC server with core services.

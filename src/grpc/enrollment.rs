@@ -24,17 +24,13 @@ use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::{Request, Response, Status};
 use uaparser::UserAgentParser;
 
-pub mod proto {
-    tonic::include_proto!("enrollment");
-}
-
-use self::proto::{
+use super::proto::{
     enrollment_service_server, ActivateUserRequest, AdminInfo, Device as ProtoDevice,
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
     EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
 };
 
-pub struct EnrollmentServer {
+pub(super) struct EnrollmentServer {
     pool: DbPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -64,7 +60,7 @@ impl InstanceInfo {
     }
 }
 
-impl From<InstanceInfo> for proto::InstanceInfo {
+impl From<InstanceInfo> for super::proto::InstanceInfo {
     fn from(instance: InstanceInfo) -> Self {
         Self {
             name: instance.name,
@@ -130,6 +126,76 @@ impl EnrollmentServer {
     }
 }
 
+pub(super) async fn start_enrollment(
+    pool: &DbPool,
+    config: &DefGuardConfig,
+    request: super::proto::EnrollmentStartRequest,
+) -> Result<super::proto::EnrollmentStartResponse, Status> {
+    // fetch enrollment token
+    let mut enrollment = Token::find_by_id(pool, &request.token).await?;
+
+    if let Some(token_type) = &enrollment.token_type {
+        if token_type != ENROLLMENT_TOKEN_TYPE {
+            return Err(Status::permission_denied("invalid token"));
+        }
+
+        // fetch related users
+        let user = enrollment.fetch_user(pool).await?;
+        let admin = enrollment.fetch_admin(pool).await?;
+
+        let mut transaction = pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        // validate token & start session
+        info!("Starting enrollment session for user {}", user.username);
+        let session_deadline = enrollment
+            .start_session(
+                &mut transaction,
+                config.enrollment_session_timeout.as_secs(),
+            )
+            .await?;
+
+        let settings = Settings::get_settings(&mut *transaction)
+            .await
+            .map_err(|_| {
+                error!("Failed to get settings");
+                Status::internal("unexpected error")
+            })?;
+
+        let vpn_setup_optional = settings.enrollment_vpn_step_optional;
+        let instance_info = InstanceInfo::new(settings, &user.username);
+
+        let user_info = InitialUserInfo::from_user(pool, user).await.map_err(|_| {
+            error!("Failed to get user info");
+            Status::internal("unexpected error")
+        })?;
+
+        let admin_info = admin.map(AdminInfo::from);
+
+        let response = super::proto::EnrollmentStartResponse {
+            admin: admin_info,
+            user: Some(user_info),
+            deadline_timestamp: session_deadline.timestamp(),
+            final_page_content: enrollment
+                .get_welcome_page_content(&mut transaction)
+                .await?,
+            vpn_setup_optional,
+            instance: Some(instance_info.into()),
+        };
+
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        Ok(response)
+    } else {
+        return Err(Status::permission_denied("invalid token"));
+    }
+}
+
 #[tonic::async_trait]
 impl enrollment_service_server::EnrollmentService for EnrollmentServer {
     async fn start_enrollment(
@@ -141,7 +207,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         // fetch enrollment token
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
-        if let Some(token_type) = enrollment.clone().token_type {
+        if let Some(token_type) = &enrollment.token_type {
             if token_type != ENROLLMENT_TOKEN_TYPE {
                 return Err(Status::permission_denied("invalid token"));
             }

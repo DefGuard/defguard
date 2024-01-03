@@ -15,14 +15,10 @@ use crate::{
     mail::Mail,
 };
 
-use self::proto::{
+use super::proto::{
     password_reset_service_server, PasswordResetInitializeRequest, PasswordResetRequest,
     PasswordResetStartRequest, PasswordResetStartResponse,
 };
-
-pub mod proto {
-    tonic::include_proto!("password_reset");
-}
 
 pub struct PasswordResetServer {
     pool: DbPool,

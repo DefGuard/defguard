@@ -137,6 +137,14 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
     pub cookie_insecure: bool,
 
+    // TODO: allow multiple values
+    #[arg(
+        long,
+        env = "DEFGUARD_PROXY_URL",
+        default_value = "http://localhost:50051"
+    )]
+    pub proxy_url: String,
+
     #[arg(
         long,
         env = "DEFGUARD_GATEWAY_DISCONNECTION_NOTIFICATION_TIMEOUT",
