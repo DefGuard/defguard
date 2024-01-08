@@ -27,10 +27,8 @@ use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer}
 use self::{
     auth::{auth_service_server::AuthServiceServer, AuthServer},
     enrollment::EnrollmentServer,
-    proto::{
-        enrollment_service_server::EnrollmentServiceServer,
-        password_reset_service_server::PasswordResetServiceServer, proxy_request,
-    },
+    password_reset::PasswordResetServer,
+    proto::proxy_request,
 };
 #[cfg(feature = "worker")]
 use self::{
@@ -38,13 +36,8 @@ use self::{
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
 use crate::{
-    auth::failed_login::FailedLoginMap,
-    config::DefGuardConfig,
-    db::AppEvent,
-    grpc::{enrollment::start_enrollment, password_reset::PasswordResetServer},
-    handlers::mail::send_gateway_disconnected_email,
-    mail::Mail,
-    SERVER_CONFIG,
+    auth::failed_login::FailedLoginMap, config::DefGuardConfig, db::AppEvent,
+    handlers::mail::send_gateway_disconnected_email, mail::Mail, SERVER_CONFIG,
 };
 #[cfg(feature = "worker")]
 use crate::{
@@ -214,6 +207,7 @@ impl GatewayMap {
             None => Vec::new(),
         }
     }
+
     // return gateway name
     #[must_use]
     pub fn get_network_gateway_name(&self, network_id: i64, hostname: &str) -> Option<String> {
@@ -321,8 +315,22 @@ impl GatewayState {
 
 const TEN_SECS: Duration = Duration::from_secs(10);
 
-pub async fn run_grpc_stream(pool: DbPool) -> Result<(), anyhow::Error> {
+pub async fn run_grpc_stream(
+    pool: DbPool,
+    wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
+    user_agent_parser: Arc<UserAgentParser>,
+) -> Result<(), anyhow::Error> {
     let config = SERVER_CONFIG.get().unwrap();
+
+    // TODO: merge the two
+    let enrollment_server = EnrollmentServer::new(
+        pool.clone(),
+        wireguard_tx.clone(),
+        mail_tx.clone(),
+        user_agent_parser,
+    );
+    let password_reset_server = PasswordResetServer::new(pool, mail_tx);
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_str())?;
     let endpoint = endpoint.http2_keep_alive_interval(TEN_SECS);
@@ -350,8 +358,9 @@ pub async fn run_grpc_stream(pool: DbPool) -> Result<(), anyhow::Error> {
             match received {
                 Ok(received) => {
                     let payload = match received.payload {
+                        // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(proxy_response::Payload::EnrollmentStart(request)) => {
-                            match start_enrollment(&pool, &config, request).await {
+                            match enrollment_server.start_enrollment(request).await {
                                 Ok(response_payload) => {
                                     Some(proxy_request::Payload::EnrollmentStart(response_payload))
                                 }
@@ -361,13 +370,72 @@ pub async fn run_grpc_stream(pool: DbPool) -> Result<(), anyhow::Error> {
                                 }
                             }
                         }
-                        // TODO: not yet implemented
-                        Some(proxy_response::Payload::ActivateUser(request)) => None,
-                        Some(proxy_response::Payload::NewDevice(request)) => None,
-                        Some(proxy_response::Payload::ExistingDevice(request)) => None,
-                        Some(proxy_response::Payload::PasswordResetInit(request)) => None,
-                        Some(proxy_response::Payload::PasswordResetStart(request)) => None,
-                        Some(proxy_response::Payload::PasswordReset(request)) => None,
+                        // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
+                        Some(proxy_response::Payload::ActivateUser(request)) => {
+                            match enrollment_server.activate_user(request).await {
+                                Ok(()) => Some(proxy_request::Payload::Empty(())),
+                                Err(err) => {
+                                    error!("activate user error {err}");
+                                    None
+                                }
+                            }
+                        }
+                        // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
+                        Some(proxy_response::Payload::NewDevice(request)) => {
+                            match enrollment_server.create_device(request).await {
+                                Ok(response_payload) => {
+                                    Some(proxy_request::Payload::DeviceConfig(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("create device error {err}");
+                                    None
+                                }
+                            }
+                        }
+                        // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
+                        Some(proxy_response::Payload::ExistingDevice(request)) => {
+                            match enrollment_server.get_network_info(request).await {
+                                Ok(response_payload) => {
+                                    Some(proxy_request::Payload::DeviceConfig(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("get network info error {err}");
+                                    None
+                                }
+                            }
+                        }
+                        // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
+                        Some(proxy_response::Payload::PasswordResetInit(request)) => {
+                            match password_reset_server.request_password_reset(request).await {
+                                Ok(()) => Some(proxy_request::Payload::Empty(())),
+                                Err(err) => {
+                                    error!("password reset init error {err}");
+                                    None
+                                }
+                            }
+                        }
+                        // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
+                        Some(proxy_response::Payload::PasswordResetStart(request)) => {
+                            match password_reset_server.start_password_reset(request).await {
+                                Ok(response_payload) => Some(
+                                    proxy_request::Payload::PasswordResetStart(response_payload),
+                                ),
+                                Err(err) => {
+                                    error!("password reset start error {err}");
+                                    None
+                                }
+                            }
+                        }
+                        // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
+                        Some(proxy_response::Payload::PasswordReset(request)) => {
+                            match password_reset_server.reset_password(request).await {
+                                Ok(()) => Some(proxy_request::Payload::Empty(())),
+                                Err(err) => {
+                                    error!("password reset error {err}");
+                                    None
+                                }
+                            }
+                        }
                         // Reply without payload.
                         None => None,
                     };
@@ -393,23 +461,10 @@ pub async fn run_grpc_server(
     mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
-    user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
-    let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(
-        pool.clone(),
-        wireguard_tx.clone(),
-        mail_tx.clone(),
-        user_agent_parser,
-        config.clone(),
-    ));
-    let password_reset_service = PasswordResetServiceServer::new(PasswordResetServer::new(
-        pool.clone(),
-        mail_tx.clone(),
-        config.clone(),
-    ));
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
@@ -432,8 +487,6 @@ pub async fn run_grpc_server(
     let builder = builder.http2_keepalive_interval(Some(Duration::from_secs(10)));
     let mut builder = builder.tcp_keepalive(Some(Duration::from_secs(10)));
     let router = builder.add_service(auth_service);
-    let router = router.add_service(enrollment_service);
-    let router = router.add_service(password_reset_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]
