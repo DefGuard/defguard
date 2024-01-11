@@ -143,7 +143,7 @@ pub struct DefGuardConfig {
         env = "DEFGUARD_PROXY_URL",
         default_value = "http://localhost:50051"
     )]
-    pub proxy_url: String,
+    pub proxy_url: Option<String>,
 
     #[arg(
         long,

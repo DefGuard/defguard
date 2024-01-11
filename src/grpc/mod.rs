@@ -28,7 +28,7 @@ use self::{
     auth::{auth_service_server::AuthServiceServer, AuthServer},
     enrollment::EnrollmentServer,
     password_reset::PasswordResetServer,
-    proto::proxy_request,
+    proto::core_response,
 };
 #[cfg(feature = "worker")]
 use self::{
@@ -59,7 +59,7 @@ pub(crate) mod proto {
     tonic::include_proto!("defguard.proxy");
 }
 
-use proto::{proxy_client::ProxyClient, proxy_response, ProxyRequest};
+use proto::{core_request, proxy_client::ProxyClient, CoreResponse};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -315,7 +315,8 @@ impl GatewayState {
 
 const TEN_SECS: Duration = Duration::from_secs(10);
 
-pub async fn run_grpc_stream(
+/// Bi-directional gRPC stream for comminication with Defguard proxy.
+pub async fn run_grpc_bidi_stream(
     pool: DbPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -332,7 +333,7 @@ pub async fn run_grpc_stream(
     );
     let password_reset_server = PasswordResetServer::new(pool, mail_tx);
 
-    let endpoint = Endpoint::from_shared(config.proxy_url.as_str())?;
+    let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
     let endpoint = endpoint.http2_keep_alive_interval(TEN_SECS);
     let endpoint = endpoint.tcp_keepalive(Some(TEN_SECS));
     let endpoint = if let Some(ca) = &config.grpc_cert {
@@ -359,10 +360,10 @@ pub async fn run_grpc_stream(
                 Ok(received) => {
                     let payload = match received.payload {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
-                        Some(proxy_response::Payload::EnrollmentStart(request)) => {
+                        Some(core_request::Payload::EnrollmentStart(request)) => {
                             match enrollment_server.start_enrollment(request).await {
                                 Ok(response_payload) => {
-                                    Some(proxy_request::Payload::EnrollmentStart(response_payload))
+                                    Some(core_response::Payload::EnrollmentStart(response_payload))
                                 }
                                 Err(err) => {
                                     error!("start enrollment error {err}");
@@ -371,9 +372,12 @@ pub async fn run_grpc_stream(
                             }
                         }
                         // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
-                        Some(proxy_response::Payload::ActivateUser(request)) => {
-                            match enrollment_server.activate_user(request).await {
-                                Ok(()) => Some(proxy_request::Payload::Empty(())),
+                        Some(core_request::Payload::ActivateUser(request)) => {
+                            match enrollment_server
+                                .activate_user(request, received.device_info)
+                                .await
+                            {
+                                Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("activate user error {err}");
                                     None
@@ -381,10 +385,13 @@ pub async fn run_grpc_stream(
                             }
                         }
                         // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
-                        Some(proxy_response::Payload::NewDevice(request)) => {
-                            match enrollment_server.create_device(request).await {
+                        Some(core_request::Payload::NewDevice(request)) => {
+                            match enrollment_server
+                                .create_device(request, received.device_info)
+                                .await
+                            {
                                 Ok(response_payload) => {
-                                    Some(proxy_request::Payload::DeviceConfig(response_payload))
+                                    Some(core_response::Payload::DeviceConfig(response_payload))
                                 }
                                 Err(err) => {
                                     error!("create device error {err}");
@@ -393,10 +400,10 @@ pub async fn run_grpc_stream(
                             }
                         }
                         // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
-                        Some(proxy_response::Payload::ExistingDevice(request)) => {
+                        Some(core_request::Payload::ExistingDevice(request)) => {
                             match enrollment_server.get_network_info(request).await {
                                 Ok(response_payload) => {
-                                    Some(proxy_request::Payload::DeviceConfig(response_payload))
+                                    Some(core_response::Payload::DeviceConfig(response_payload))
                                 }
                                 Err(err) => {
                                     error!("get network info error {err}");
@@ -405,9 +412,12 @@ pub async fn run_grpc_stream(
                             }
                         }
                         // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
-                        Some(proxy_response::Payload::PasswordResetInit(request)) => {
-                            match password_reset_server.request_password_reset(request).await {
-                                Ok(()) => Some(proxy_request::Payload::Empty(())),
+                        Some(core_request::Payload::PasswordResetInit(request)) => {
+                            match password_reset_server
+                                .request_password_reset(request, received.device_info)
+                                .await
+                            {
+                                Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("password reset init error {err}");
                                     None
@@ -415,10 +425,10 @@ pub async fn run_grpc_stream(
                             }
                         }
                         // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
-                        Some(proxy_response::Payload::PasswordResetStart(request)) => {
+                        Some(core_request::Payload::PasswordResetStart(request)) => {
                             match password_reset_server.start_password_reset(request).await {
                                 Ok(response_payload) => Some(
-                                    proxy_request::Payload::PasswordResetStart(response_payload),
+                                    core_response::Payload::PasswordResetStart(response_payload),
                                 ),
                                 Err(err) => {
                                     error!("password reset start error {err}");
@@ -427,9 +437,12 @@ pub async fn run_grpc_stream(
                             }
                         }
                         // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
-                        Some(proxy_response::Payload::PasswordReset(request)) => {
-                            match password_reset_server.reset_password(request).await {
-                                Ok(()) => Some(proxy_request::Payload::Empty(())),
+                        Some(core_request::Payload::PasswordReset(request)) => {
+                            match password_reset_server
+                                .reset_password(request, received.device_info)
+                                .await
+                            {
+                                Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("password reset error {err}");
                                     None
@@ -439,7 +452,7 @@ pub async fn run_grpc_stream(
                         // Reply without payload.
                         None => None,
                     };
-                    let req = ProxyRequest {
+                    let req = CoreResponse {
                         id: received.id,
                         payload,
                     };

@@ -187,15 +187,24 @@ impl EnrollmentServer {
         }
     }
 
-    pub async fn activate_user(&self, request: ActivateUserRequest) -> Result<(), Status> {
+    pub async fn activate_user(
+        &self,
+        request: ActivateUserRequest,
+        req_device_info: Option<super::proto::DeviceInfo>,
+    ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
-        // FIXME: token is currently not transmitted
         let enrollment = self.validate_session(request.token.as_deref()).await?;
 
-        let ip_address = request.ip_address.unwrap_or_default();
-        let user_agent = request.user_agent.unwrap_or_default();
-
-        let device_info = get_device_info(&self.user_agent_parser, &user_agent);
+        let ip_address;
+        let device_info;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            let user_agent = info.user_agent.unwrap_or_default();
+            device_info = get_device_info(&self.user_agent_parser, &user_agent);
+        } else {
+            ip_address = String::new();
+            device_info = None;
+        }
 
         // check if password is strong enough
         if let Err(err) = check_password_strength(&request.password) {
@@ -269,7 +278,11 @@ impl EnrollmentServer {
         Ok(())
     }
 
-    pub async fn create_device(&self, request: NewDevice) -> Result<DeviceConfigResponse, Status> {
+    pub async fn create_device(
+        &self,
+        request: NewDevice,
+        req_device_info: Option<super::proto::DeviceInfo>,
+    ) -> Result<DeviceConfigResponse, Status> {
         let config = SERVER_CONFIG.get().expect("defguard config not found");
         debug!("Adding new user device: {request:?}");
         let enrollment = self.validate_session(request.token.as_deref()).await?;
@@ -280,10 +293,16 @@ impl EnrollmentServer {
         // add device
         info!("Adding new device for user {}", user.username);
 
-        let ip_address = request.ip_address.unwrap_or_default();
-        let user_agent = request.user_agent.unwrap_or_default();
-
-        let device_info = get_device_info(&self.user_agent_parser, &user_agent);
+        let ip_address;
+        let device_info;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            let user_agent = info.user_agent.unwrap_or_default();
+            device_info = get_device_info(&self.user_agent_parser, &user_agent);
+        } else {
+            ip_address = String::new();
+            device_info = None;
+        }
 
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", request.pubkey);

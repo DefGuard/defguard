@@ -60,12 +60,21 @@ impl PasswordResetServer {
     pub async fn request_password_reset(
         &self,
         request: PasswordResetInitializeRequest,
+        req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<(), Status> {
         let config = SERVER_CONFIG.get().expect("defguard config not found");
         debug!("Starting password reset request");
 
-        let ip_address = request.ip_address.unwrap_or_default();
-        let user_agent = request.user_agent.unwrap_or_default();
+        let ip_address;
+        let user_agent;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            user_agent = info.user_agent.unwrap_or_default();
+        } else {
+            ip_address = String::new();
+            user_agent = String::new();
+        }
+
         let email = request.email;
 
         let user = User::find_by_email(&self.pool, email.to_string().as_str())
@@ -165,12 +174,23 @@ impl PasswordResetServer {
         Ok(response)
     }
 
-    pub async fn reset_password(&self, request: PasswordResetRequest) -> Result<(), Status> {
+    pub async fn reset_password(
+        &self,
+        request: PasswordResetRequest,
+        req_device_info: Option<super::proto::DeviceInfo>,
+    ) -> Result<(), Status> {
         debug!("Starting password reset: {request:?}");
         let enrollment = self.validate_session(request.token.as_deref()).await?;
 
-        let ip_address = request.ip_address.unwrap_or_default();
-        let user_agent = request.user_agent.unwrap_or_default();
+        let ip_address;
+        let user_agent;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            user_agent = info.user_agent.unwrap_or_default();
+        } else {
+            ip_address = String::new();
+            user_agent = String::new();
+        }
 
         if let Err(err) = check_password_strength(&request.password) {
             error!("Password not strong enough: {err}");

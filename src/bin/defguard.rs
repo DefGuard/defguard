@@ -11,7 +11,7 @@ use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
-    grpc::{run_grpc_server, run_grpc_stream, GatewayMap, WorkerState},
+    grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
     headers::create_user_agent_parser,
     init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
@@ -107,7 +107,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
-        _ = run_grpc_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), user_agent_parser.clone()) => (),
+        _ = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), user_agent_parser.clone()), if config.proxy_url.is_some() => (),
         _ = run_grpc_server(&config, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => (),
         _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx, pool.clone(), user_agent_parser, failed_logins) => (),
         () = run_mail_handler(mail_rx, pool.clone()) => (),
