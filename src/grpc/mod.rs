@@ -336,7 +336,7 @@ pub async fn run_grpc_bidi_stream(
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
     let endpoint = endpoint.http2_keep_alive_interval(TEN_SECS);
     let endpoint = endpoint.tcp_keepalive(Some(TEN_SECS));
-    let endpoint = if let Some(ca) = &config.grpc_cert {
+    let endpoint = if let Some(ca) = &config.proxy_grpc_ca {
         let ca = read_to_string(ca)?;
         let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
         endpoint.tls_config(tls)?
