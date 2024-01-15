@@ -503,7 +503,7 @@ pub async fn run_grpc_server(
     );
     // Run gRPC server
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.grpc_port);
-    info!("Started gRPC services");
+    info!("Starting gRPC services");
     let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
         let identity = Identity::from_pem(cert, key);
         Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
