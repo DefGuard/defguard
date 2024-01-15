@@ -1,7 +1,6 @@
 use std::{
     collections::hash_map::HashMap,
     fs::read_to_string,
-    thread::sleep,
     time::{Duration, Instant},
 };
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -13,9 +12,12 @@ use std::{
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use serde::Serialize;
 use thiserror::Error;
-use tokio::sync::{
-    broadcast::Sender,
-    mpsc::{self, UnboundedSender},
+use tokio::{
+    sync::{
+        broadcast::Sender,
+        mpsc::{self, UnboundedSender},
+    },
+    time::sleep,
 };
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
 use tonic::transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig};
@@ -350,7 +352,7 @@ pub async fn run_grpc_bidi_stream(
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
             info!("Failed to connect to proxy, retrying in 10s");
-            sleep(TEN_SECS);
+            sleep(TEN_SECS).await;
             continue;
         };
         let mut resp_stream = response.into_inner();
