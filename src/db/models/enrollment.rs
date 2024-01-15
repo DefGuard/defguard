@@ -52,7 +52,7 @@ pub enum TokenError {
 
 impl From<TokenError> for Status {
     fn from(err: TokenError) -> Self {
-        error!("{}", err);
+        error!("{err}");
         let (code, msg) = match err {
             TokenError::DbError(_)
             | TokenError::AdminNotFound

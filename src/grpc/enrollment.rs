@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::{
-    config::DefGuardConfig,
     db::{
         models::{
             device::{DeviceConfig, DeviceInfo, WireguardNetworkDevice},
@@ -21,25 +20,20 @@ use ipnetwork::IpNetwork;
 use reqwest::Url;
 use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::{Request, Response, Status};
+use tonic::Status;
 use uaparser::UserAgentParser;
 
-pub mod proto {
-    tonic::include_proto!("enrollment");
-}
-
-use self::proto::{
-    enrollment_service_server, ActivateUserRequest, AdminInfo, Device as ProtoDevice,
-    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
-    EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
+use super::proto::{
+    ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
+    DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
+    InitialUserInfo, NewDevice,
 };
 
-pub struct EnrollmentServer {
+pub(super) struct EnrollmentServer {
     pool: DbPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     user_agent_parser: Arc<UserAgentParser>,
-    config: DefGuardConfig,
     ldap_feature_active: bool,
 }
 
@@ -64,7 +58,7 @@ impl InstanceInfo {
     }
 }
 
-impl From<InstanceInfo> for proto::InstanceInfo {
+impl From<InstanceInfo> for super::proto::InstanceInfo {
     fn from(instance: InstanceInfo) -> Self {
         Self {
             name: instance.name,
@@ -83,7 +77,6 @@ impl EnrollmentServer {
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
         user_agent_parser: Arc<UserAgentParser>,
-        config: DefGuardConfig,
     ) -> Self {
         // FIXME: check if LDAP feature is enabled
         let ldap_feature_active = true;
@@ -92,29 +85,22 @@ impl EnrollmentServer {
             wireguard_tx,
             mail_tx,
             user_agent_parser,
-            config,
             ldap_feature_active,
         }
     }
 
     // check if token provided with request corresponds to a valid enrollment session
-    async fn validate_session<T: std::fmt::Debug>(
-        &self,
-        request: &Request<T>,
-    ) -> Result<Token, Status> {
-        debug!("Validating enrollment session token: {request:?}");
-        let token = if let Some(token) = request.metadata().get("authorization") {
-            token
-                .to_str()
-                .map_err(|_| Status::unauthenticated("Invalid token"))?
-        } else {
+    async fn validate_session(&self, token: Option<&str>) -> Result<Token, Status> {
+        let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
         };
+        debug!("Validating enrollment session token: {token}");
 
         let enrollment = Token::find_by_id(&self.pool, token).await?;
+        let config = SERVER_CONFIG.get().expect("defguard config not found");
 
-        if enrollment.is_session_valid(self.config.enrollment_session_timeout.as_secs()) {
+        if enrollment.is_session_valid(config.enrollment_session_timeout.as_secs()) {
             Ok(enrollment)
         } else {
             error!("Enrollment session expired");
@@ -128,20 +114,16 @@ impl EnrollmentServer {
             error!("Error sending WireGuard event {err}");
         }
     }
-}
 
-#[tonic::async_trait]
-impl enrollment_service_server::EnrollmentService for EnrollmentServer {
-    async fn start_enrollment(
+    pub async fn start_enrollment(
         &self,
-        request: Request<EnrollmentStartRequest>,
-    ) -> Result<Response<EnrollmentStartResponse>, Status> {
-        debug!("Starting enrollment session: {request:?}");
-        let request = request.into_inner();
+        request: EnrollmentStartRequest,
+    ) -> Result<EnrollmentStartResponse, Status> {
+        let config = SERVER_CONFIG.get().expect("defguard config not found");
         // fetch enrollment token
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
-        if let Some(token_type) = enrollment.clone().token_type {
+        if let Some(token_type) = &enrollment.token_type {
             if token_type != ENROLLMENT_TOKEN_TYPE {
                 return Err(Status::permission_denied("invalid token"));
             }
@@ -160,7 +142,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             let session_deadline = enrollment
                 .start_session(
                     &mut transaction,
-                    self.config.enrollment_session_timeout.as_secs(),
+                    config.enrollment_session_timeout.as_secs(),
                 )
                 .await?;
 
@@ -183,7 +165,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
 
             let admin_info = admin.map(AdminInfo::from);
 
-            let response = EnrollmentStartResponse {
+            let response = super::proto::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
                 deadline_timestamp: session_deadline.timestamp(),
@@ -199,35 +181,32 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
-            Ok(Response::new(response))
+            Ok(response)
         } else {
-            return Err(Status::permission_denied("invalid token"));
+            Err(Status::permission_denied("invalid token"))
         }
     }
 
-    async fn activate_user(
+    pub async fn activate_user(
         &self,
-        request: Request<ActivateUserRequest>,
-    ) -> Result<Response<()>, Status> {
+        request: ActivateUserRequest,
+        req_device_info: Option<super::proto::DeviceInfo>,
+    ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
-        let enrollment = self.validate_session(&request).await?;
+        let enrollment = self.validate_session(request.token.as_deref()).await?;
 
-        let ip_address = request
-            .metadata()
-            .get("ip_address")
-            .and_then(|value| value.to_str().map(ToString::to_string).ok())
-            .unwrap_or_default();
-
-        let user_agent = request
-            .metadata()
-            .get("user_agent")
-            .and_then(|value| value.to_str().map(ToString::to_string).ok())
-            .unwrap_or_default();
-
-        let device_info = get_device_info(&self.user_agent_parser, &user_agent);
+        let ip_address;
+        let device_info;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            let user_agent = info.user_agent.unwrap_or_default();
+            device_info = get_device_info(&self.user_agent_parser, &user_agent);
+        } else {
+            ip_address = String::new();
+            device_info = None;
+        }
 
         // check if password is strong enough
-        let request = request.into_inner();
         if let Err(err) = check_password_strength(&request.password) {
             error!("Password not strong enough: {err}");
             return Err(Status::invalid_argument("password not strong enough"));
@@ -296,15 +275,17 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
-        Ok(Response::new(()))
+        Ok(())
     }
 
-    async fn create_device(
+    pub async fn create_device(
         &self,
-        request: Request<NewDevice>,
-    ) -> Result<Response<DeviceConfigResponse>, Status> {
+        request: NewDevice,
+        req_device_info: Option<super::proto::DeviceInfo>,
+    ) -> Result<DeviceConfigResponse, Status> {
+        let config = SERVER_CONFIG.get().expect("defguard config not found");
         debug!("Adding new user device: {request:?}");
-        let enrollment = self.validate_session(&request).await?;
+        let enrollment = self.validate_session(request.token.as_deref()).await?;
 
         // fetch related users
         let user = enrollment.fetch_user(&self.pool).await?;
@@ -312,21 +293,17 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         // add device
         info!("Adding new device for user {}", user.username);
 
-        let ip_address = request
-            .metadata()
-            .get("ip_address")
-            .and_then(|value| value.to_str().map(ToString::to_string).ok())
-            .unwrap_or_default();
+        let ip_address;
+        let device_info;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            let user_agent = info.user_agent.unwrap_or_default();
+            device_info = get_device_info(&self.user_agent_parser, &user_agent);
+        } else {
+            ip_address = String::new();
+            device_info = None;
+        }
 
-        let user_agent = request
-            .metadata()
-            .get("user_agent")
-            .and_then(|value| value.to_str().map(ToString::to_string).ok())
-            .unwrap_or_default();
-
-        let device_info = get_device_info(&self.user_agent_parser, &user_agent);
-
-        let request = request.into_inner();
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", request.pubkey);
             Status::invalid_argument("invalid pubkey")
@@ -343,7 +320,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
         })?;
 
         let (network_info, configs) = device
-            .add_to_all_networks(&mut transaction, &self.config.admin_groupname)
+            .add_to_all_networks(&mut transaction, &config.admin_groupname)
             .await
             .map_err(|err| {
                 error!(
@@ -394,21 +371,20 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
             instance: Some(InstanceInfo::new(settings, &user.username).into()),
         };
 
-        Ok(Response::new(response))
+        Ok(response)
     }
 
     /// Get all information needed
     /// to update instance information for desktop client
-    async fn get_network_info(
+    pub async fn get_network_info(
         &self,
-        request: Request<ExistingDevice>,
-    ) -> Result<Response<DeviceConfigResponse>, Status> {
-        let enrollment = self.validate_session(&request).await?;
+        request: ExistingDevice,
+    ) -> Result<DeviceConfigResponse, Status> {
+        let enrollment = self.validate_session(request.token.as_deref()).await?;
 
         // get enrollment user
         let user = enrollment.fetch_user(&self.pool).await?;
 
-        let request = request.into_inner();
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", request.pubkey);
             Status::invalid_argument("invalid pubkey")
@@ -473,7 +449,7 @@ impl enrollment_service_server::EnrollmentService for EnrollmentServer {
                 instance: Some(InstanceInfo::new(settings, &user.username).into()),
             };
 
-            Ok(Response::new(response))
+            Ok(response)
         } else {
             Err(Status::internal("device not found error"))
         }

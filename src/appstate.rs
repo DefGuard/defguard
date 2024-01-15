@@ -84,7 +84,7 @@ impl AppState {
     /// Sends given `GatewayEvent` to be handled by gateway GRPC server
     pub fn send_wireguard_event(&self, event: GatewayEvent) {
         if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending wireguard event {err}");
+            error!("Error sending WireGuard event {err}");
         }
     }
 

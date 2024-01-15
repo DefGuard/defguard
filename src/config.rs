@@ -137,6 +137,14 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
     pub cookie_insecure: bool,
 
+    // TODO: allow multiple values
+    #[arg(long, env = "DEFGUARD_PROXY_URL")]
+    pub proxy_url: Option<String>,
+
+    // path to certificate `.pem` file used if connecting to proxy over HTTPS
+    #[arg(long, env = "DEFGUARD_PROXY_GRPC_CA")]
+    pub proxy_grpc_ca: Option<String>,
+
     #[arg(
         long,
         env = "DEFGUARD_GATEWAY_DISCONNECTION_NOTIFICATION_TIMEOUT",
