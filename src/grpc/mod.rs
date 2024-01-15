@@ -322,7 +322,7 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 impl From<Status> for CoreError {
     fn from(status: Status) -> Self {
         Self {
-            status: status.code().into(),
+            status_code: status.code().into(),
             message: status.message().into(),
         }
     }
