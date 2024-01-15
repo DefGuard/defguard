@@ -21,6 +21,7 @@ use tokio::{
 };
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
 use tonic::transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig};
+use tonic::Status;
 use uaparser::UserAgentParser;
 use uuid::Uuid;
 
@@ -61,6 +62,7 @@ pub(crate) mod proto {
     tonic::include_proto!("defguard.proxy");
 }
 
+use crate::grpc::proto::CoreError;
 use proto::{core_request, proxy_client::ProxyClient, CoreResponse};
 
 // Helper struct used to handle gateway state
@@ -317,6 +319,15 @@ impl GatewayState {
 
 const TEN_SECS: Duration = Duration::from_secs(10);
 
+impl From<Status> for CoreError {
+    fn from(status: Status) -> Self {
+        Self {
+            status: status.code().into(),
+            message: status.message().into(),
+        }
+    }
+}
+
 /// Bi-directional gRPC stream for comminication with Defguard proxy.
 pub async fn run_grpc_bidi_stream(
     pool: DbPool,
@@ -369,7 +380,7 @@ pub async fn run_grpc_bidi_stream(
                                 }
                                 Err(err) => {
                                     error!("start enrollment error {err}");
-                                    None
+                                    Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
                         }
@@ -382,7 +393,7 @@ pub async fn run_grpc_bidi_stream(
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("activate user error {err}");
-                                    None
+                                    Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
                         }
@@ -397,7 +408,7 @@ pub async fn run_grpc_bidi_stream(
                                 }
                                 Err(err) => {
                                     error!("create device error {err}");
-                                    None
+                                    Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
                         }
@@ -409,7 +420,7 @@ pub async fn run_grpc_bidi_stream(
                                 }
                                 Err(err) => {
                                     error!("get network info error {err}");
-                                    None
+                                    Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
                         }
@@ -422,7 +433,7 @@ pub async fn run_grpc_bidi_stream(
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("password reset init error {err}");
-                                    None
+                                    Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
                         }
@@ -434,7 +445,7 @@ pub async fn run_grpc_bidi_stream(
                                 ),
                                 Err(err) => {
                                     error!("password reset start error {err}");
-                                    None
+                                    Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
                         }
@@ -447,7 +458,7 @@ pub async fn run_grpc_bidi_stream(
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("password reset error {err}");
-                                    None
+                                    Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
                         }
