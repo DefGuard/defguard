@@ -1,8 +1,13 @@
-use crate::db::{DbPool, Device, User, UserInfo, WireguardNetwork};
-use crate::handlers::mail::send_email_mfa_code_email;
-use crate::mail::Mail;
+use crate::{
+    db::{
+        models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+        DbPool, Device, GatewayEvent, User, UserInfo, WireguardNetwork,
+    },
+    handlers::mail::send_email_mfa_code_email,
+    mail::Mail,
+};
 use std::collections::HashMap;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 use uuid::Uuid;
 
@@ -11,18 +16,30 @@ use super::proto::{
     MfaMethod,
 };
 
+struct ClientLoginSession {
+    pub location: WireguardNetwork,
+    pub device: Device,
+    pub user: User,
+}
+
 pub(super) struct ClientMfaServer {
     pool: DbPool,
     mail_tx: UnboundedSender<Mail>,
-    sessions: HashMap<String, Device>,
+    wireguard_tx: Sender<GatewayEvent>,
+    sessions: HashMap<String, ClientLoginSession>,
 }
 
 impl ClientMfaServer {
     #[must_use]
-    pub fn new(pool: DbPool, mail_tx: UnboundedSender<Mail>) -> Self {
+    pub fn new(
+        pool: DbPool,
+        mail_tx: UnboundedSender<Mail>,
+        wireguard_tx: Sender<GatewayEvent>,
+    ) -> Self {
         Self {
             pool,
             mail_tx,
+            wireguard_tx,
             sessions: HashMap::new(),
         }
     }
@@ -118,15 +135,96 @@ impl ClientMfaServer {
         let token = Uuid::new_v4().to_string();
 
         // store login session
-        self.sessions.insert(token.clone(), device);
+        self.sessions.insert(
+            token.clone(),
+            ClientLoginSession {
+                location,
+                device,
+                user,
+            },
+        );
 
         Ok(ClientMfaStartResponse { token })
     }
 
     pub async fn finish_client_mfa_login(
-        &self,
+        &mut self,
         request: ClientMfaFinishRequest,
     ) -> Result<ClientMfaFinishResponse, Status> {
-        todo!()
+        info!("Finishing desktop client login: {request:?}");
+        // fetch login session
+        let Some(session) = self.sessions.remove(&request.token) else {
+            error!("Client login session not found");
+            return Err(Status::invalid_argument("login session not found"));
+        };
+        let device = session.device;
+        let location = session.location;
+        let user = session.user;
+
+        // validate email code
+        if !user.verify_email_mfa_code(request.code) {
+            error!("Provided email code is not valid");
+            return Err(Status::unauthenticated("unauthorized"));
+        };
+
+        // begin transaction
+        let mut transaction = self.pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        // fetch device config for the location
+        let Ok(Some(mut network_device)) = WireguardNetworkDevice::find(
+            &mut *transaction,
+            device.id.expect("Missing device ID"),
+            location.id.expect("Missing location ID"),
+        )
+        .await
+        else {
+            error!("Failed to fetch network config for device {device} and location {location}");
+            return Err(Status::internal("unexpected error"));
+        };
+
+        // generate PSK
+        let key = WireguardNetwork::genkey();
+        network_device.preshared_key = Some(key.public.clone());
+
+        // authorize device for given location
+        network_device.is_authorized = true;
+
+        // save updated network config
+        network_device
+            .update(&mut *transaction)
+            .await
+            .map_err(|err| {
+                error!("Failed to update device network config {network_device:?}: {err:?}");
+                Status::internal("unexpected error")
+            })?;
+
+        // send gateway event
+        debug!("Sending `peer_create` message to gateway");
+        let device_info = DeviceInfo {
+            device,
+            network_info: vec![DeviceNetworkInfo {
+                network_id: location.id.expect("Missing location ID"),
+                device_wireguard_ip: network_device.wireguard_ip,
+                preshared_key: network_device.preshared_key,
+            }],
+        };
+        let event = GatewayEvent::DeviceCreated(device_info);
+        self.wireguard_tx.send(event).map_err(|err| {
+            error!("Error sending WireGuard event: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        // commit transaction
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        Ok(ClientMfaFinishResponse {
+            preshared_key: key.public,
+        })
     }
 }
