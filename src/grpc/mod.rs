@@ -464,10 +464,12 @@ pub async fn run_grpc_bidi_stream(
                                 }
                             }
                         }
-                        // rpc ClientMfaStart (ClientMfaStartRequest) returns (google.protobuf.Empty)
+                        // rpc ClientMfaStart (ClientMfaStartRequest) returns (ClientMfaStartResponse)
                         Some(core_request::Payload::ClientMfaStart(request)) => {
                             match client_mfa_server.start_client_mfa_login(request).await {
-                                Ok(()) => Some(core_response::Payload::Empty(())),
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::ClientMfaStart(response_payload))
+                                }
                                 Err(err) => {
                                     error!("client mfa start error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))

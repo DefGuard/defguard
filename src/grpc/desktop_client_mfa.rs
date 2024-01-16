@@ -1,7 +1,9 @@
 use crate::db::DbPool;
 use tonic::Status;
 
-use super::proto::{ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest};
+use super::proto::{
+    ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
+};
 
 pub(super) struct ClientMfaServer {
     pool: DbPool,
@@ -16,7 +18,7 @@ impl ClientMfaServer {
     pub async fn start_client_mfa_login(
         &self,
         request: ClientMfaStartRequest,
-    ) -> Result<(), Status> {
+    ) -> Result<ClientMfaStartResponse, Status> {
         todo!()
     }
 
