@@ -1,6 +1,7 @@
 use crate::db::{DbPool, Device, User, UserInfo, WireguardNetwork};
 use crate::handlers::mail::send_email_mfa_code_email;
 use crate::mail::Mail;
+use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 use uuid::Uuid;
@@ -13,16 +14,21 @@ use super::proto::{
 pub(super) struct ClientMfaServer {
     pool: DbPool,
     mail_tx: UnboundedSender<Mail>,
+    sessions: HashMap<String, Device>,
 }
 
 impl ClientMfaServer {
     #[must_use]
     pub fn new(pool: DbPool, mail_tx: UnboundedSender<Mail>) -> Self {
-        Self { pool, mail_tx }
+        Self {
+            pool,
+            mail_tx,
+            sessions: HashMap::new(),
+        }
     }
 
     pub async fn start_client_mfa_login(
-        &self,
+        &mut self,
         request: ClientMfaStartRequest,
     ) -> Result<ClientMfaStartResponse, Status> {
         info!("Starting desktop client login: {request:?}");
@@ -109,10 +115,10 @@ impl ClientMfaServer {
         }
 
         // generate auth token
-        let token = Uuid::new_v4().into();
+        let token = Uuid::new_v4().to_string();
 
         // store login session
-        todo!();
+        self.sessions.insert(token.clone(), device);
 
         Ok(ClientMfaStartResponse { token })
     }

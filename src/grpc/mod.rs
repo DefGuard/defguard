@@ -346,7 +346,7 @@ pub async fn run_grpc_bidi_stream(
         user_agent_parser,
     );
     let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
-    let client_mfa_server = ClientMfaServer::new(pool, mail_tx);
+    let mut client_mfa_server = ClientMfaServer::new(pool, mail_tx);
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
     let endpoint = endpoint.http2_keep_alive_interval(TEN_SECS);
