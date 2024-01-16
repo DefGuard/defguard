@@ -29,6 +29,7 @@ use uuid::Uuid;
 use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
 use self::{
     auth::{auth_service_server::AuthServiceServer, AuthServer},
+    desktop_client_mfa::ClientMfaServer,
     enrollment::EnrollmentServer,
     password_reset::PasswordResetServer,
     proto::core_response,
@@ -49,6 +50,7 @@ use crate::{
 };
 
 mod auth;
+mod desktop_client_mfa;
 pub mod enrollment;
 #[cfg(feature = "wireguard")]
 pub(crate) mod gateway;
@@ -62,8 +64,7 @@ pub(crate) mod proto {
     tonic::include_proto!("defguard.proxy");
 }
 
-use crate::grpc::proto::CoreError;
-use proto::{core_request, proxy_client::ProxyClient, CoreResponse};
+use proto::{core_request, proxy_client::ProxyClient, CoreError, CoreResponse};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -344,7 +345,8 @@ pub async fn run_grpc_bidi_stream(
         mail_tx.clone(),
         user_agent_parser,
     );
-    let password_reset_server = PasswordResetServer::new(pool, mail_tx);
+    let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx);
+    let client_mfa_server = ClientMfaServer::new(pool);
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
     let endpoint = endpoint.http2_keep_alive_interval(TEN_SECS);
@@ -458,6 +460,28 @@ pub async fn run_grpc_bidi_stream(
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("password reset error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc ClientMfaStart (ClientMfaStartRequest) returns (google.protobuf.Empty)
+                        Some(core_request::Payload::ClientMfaStart(request)) => {
+                            match client_mfa_server.start_client_mfa_login(request).await {
+                                Ok(()) => Some(core_response::Payload::Empty(())),
+                                Err(err) => {
+                                    error!("client mfa start error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
+                        Some(core_request::Payload::ClientMfaFinish(request)) => {
+                            match client_mfa_server.finish_client_mfa_login(request).await {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::ClientMfaFinish(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("client mfa start error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
