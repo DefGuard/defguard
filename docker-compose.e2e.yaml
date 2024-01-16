@@ -20,12 +20,12 @@ services:
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
       DEFGUARD_URL: http://localhost:8000
-      DEFGUARD_PROXY_URL: http://localhost:50051
+      DEFGUARD_PROXY_URL: http://localhost:50052
       RUST_BACKTRACE: 1
     ports:
-      # rest api
+      # REST API
       - "8000:8000"
-      # grpc
+      # gRPC
       - "50055:50055"
     depends_on:
       - db
@@ -57,6 +57,9 @@ services:
   proxy:
     image: ghcr.io/defguard/defguard-proxy:current
     ports:
+      # REST API
       - "8080:8080"
+      # gRPC
+      - "50052:50052"
     environment:
-      DEFGUARD_PROXY_GRPC_PORT: 50051
+      DEFGUARD_PROXY_GRPC_PORT: 50052
