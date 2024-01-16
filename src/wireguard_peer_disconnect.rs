@@ -70,7 +70,8 @@ pub async fn run_periodic_peer_disconnect(
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \
-            WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND (NOW() - stats.latest_handshake) > $2 * interval '1 second'",
+            WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND \
+            (stats.latest_handshake IS NULL OR (NOW() - stats.latest_handshake) > $2 * interval '1 second')",
             location_id,
                 location.peer_disconnect_threshold as f64
         )
