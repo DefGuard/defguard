@@ -283,7 +283,6 @@ impl EnrollmentServer {
         request: NewDevice,
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
-        let config = SERVER_CONFIG.get().expect("defguard config not found");
         debug!("Adding new user device: {request:?}");
         let enrollment = self.validate_session(request.token.as_deref()).await?;
 
@@ -319,16 +318,17 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
-        let (network_info, configs) = device
-            .add_to_all_networks(&mut transaction, &config.admin_groupname)
-            .await
-            .map_err(|err| {
-                error!(
-                    "Failed to add device {} to existing networks: {err}",
-                    device.name
-                );
-                Status::internal("unexpected error")
-            })?;
+        let (network_info, configs) =
+            device
+                .add_to_all_networks(&mut transaction)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to add device {} to existing networks: {err}",
+                        device.name
+                    );
+                    Status::internal("unexpected error")
+                })?;
 
         self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
             device: device.clone(),

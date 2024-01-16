@@ -491,7 +491,6 @@ impl Device {
     pub async fn add_to_all_networks(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &str,
     ) -> Result<(Vec<DeviceNetworkInfo>, Vec<DeviceConfig>), DeviceError> {
         info!("Adding device {} to all existing networks", self.name);
         let networks = WireguardNetwork::all(&mut *transaction).await?;
@@ -528,7 +527,7 @@ impl Device {
             }
 
             if let Ok(wireguard_network_device) = network
-                .add_device_to_network(&mut *transaction, self, admin_group_name, None)
+                .add_device_to_network(&mut *transaction, self, None)
                 .await
             {
                 debug!(

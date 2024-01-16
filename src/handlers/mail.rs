@@ -385,7 +385,7 @@ pub fn send_email_mfa_activation_email(
 pub fn send_email_mfa_code_email(
     user: &User,
     mail_tx: &UnboundedSender<Mail>,
-    session: &Session,
+    session: Option<&Session>,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA code mail to {}", user.email);
 
