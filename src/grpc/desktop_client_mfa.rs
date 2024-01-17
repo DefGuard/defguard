@@ -17,9 +17,9 @@ use super::proto::{
 };
 
 struct ClientLoginSession {
-    pub location: WireguardNetwork,
-    pub device: Device,
-    pub user: User,
+    location: WireguardNetwork,
+    device: Device,
+    user: User,
 }
 
 pub(super) struct ClientMfaServer {
@@ -157,9 +157,11 @@ impl ClientMfaServer {
             error!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
         };
-        let device = session.device;
-        let location = session.location;
-        let user = session.user;
+        let ClientLoginSession {
+            device,
+            location,
+            user,
+        } = session;
 
         // validate email code
         if !user.verify_email_mfa_code(request.code) {

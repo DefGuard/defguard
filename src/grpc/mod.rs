@@ -471,7 +471,7 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::ClientMfaStart(response_payload))
                                 }
                                 Err(err) => {
-                                    error!("client mfa start error {err}");
+                                    error!("client MFA start error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
@@ -483,7 +483,7 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::ClientMfaFinish(response_payload))
                                 }
                                 Err(err) => {
-                                    error!("client mfa start error {err}");
+                                    error!("client MFA start error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }

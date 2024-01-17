@@ -1,8 +1,10 @@
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgExecutor};
 
-use crate::db::{models::error::ModelError, User, WireguardNetwork};
-use crate::SERVER_CONFIG;
+use crate::{
+    db::{models::error::ModelError, User, WireguardNetwork},
+    SERVER_CONFIG,
+};
 
 #[derive(Model)]
 pub struct Group {
