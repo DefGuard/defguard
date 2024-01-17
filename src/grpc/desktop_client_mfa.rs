@@ -18,6 +18,7 @@ use tonic::Status;
 const SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
 
 struct ClientLoginSession {
+    method: MfaMethod,
     location: WireguardNetwork,
     device: Device,
     user: User,
@@ -123,8 +124,12 @@ impl ClientMfaServer {
         }
 
         // check if selected method is enabled
-        match MfaMethod::try_from(request.method) {
-            Ok(MfaMethod::Totp) => {
+        let method = MfaMethod::try_from(request.method).map_err(|err| {
+            error!("Invalid MFA method selected: {err}");
+            Status::invalid_argument("invalid MFA method selected")
+        })?;
+        match method {
+            MfaMethod::Totp => {
                 if !user.totp_enabled {
                     error!("TOTP not enabled for user {}", user.username);
                     return Err(Status::invalid_argument(
@@ -132,7 +137,7 @@ impl ClientMfaServer {
                     ));
                 }
             }
-            Ok(MfaMethod::Email) => {
+            MfaMethod::Email => {
                 if !user.email_mfa_enabled {
                     error!("Email MFA not enabled for user {}", user.username);
                     return Err(Status::invalid_argument(
@@ -148,11 +153,7 @@ impl ClientMfaServer {
                     Status::internal("unexpected error")
                 })?;
             }
-            Err(err) => {
-                error!("Invalid MFA method selected: {err}");
-                return Err(Status::invalid_argument("invalid MFA method selected"));
-            }
-        }
+        };
 
         // generate auth token
         let token = self.generate_token(&request.pubkey)?;
@@ -161,12 +162,13 @@ impl ClientMfaServer {
         self.sessions.insert(
             request.pubkey,
             ClientLoginSession {
+                method,
                 location,
                 device,
                 user,
             },
         );
-        
+
         Ok(ClientMfaStartResponse { token })
     }
 
@@ -184,15 +186,26 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("login session not found"));
         };
         let ClientLoginSession {
+            method,
             device,
             location,
             user,
         } = session;
 
-        // validate email code
-        if !user.verify_email_mfa_code(request.code) {
-            error!("Provided email code is not valid");
-            return Err(Status::unauthenticated("unauthorized"));
+        // validate code
+        match method {
+            MfaMethod::Totp => {
+                if !user.verify_totp_code(request.code) {
+                    error!("Provided TOTP code is not valid");
+                    return Err(Status::unauthenticated("unauthorized"));
+                }
+            }
+            MfaMethod::Email => {
+                if !user.verify_email_mfa_code(request.code) {
+                    error!("Provided email code is not valid");
+                    return Err(Status::unauthenticated("unauthorized"));
+                }
+            }
         };
 
         // begin transaction
