@@ -302,11 +302,10 @@ impl WireguardNetwork {
     async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &str,
     ) -> Result<Vec<Device>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
         let devices = match self
-            .get_allowed_groups(&mut *transaction, admin_group_name)
+            .get_allowed_groups(&mut *transaction)
             .await? {
             // devices need to be filtered by allowed group
             Some(allowed_groups) => {
@@ -338,15 +337,12 @@ impl WireguardNetwork {
     pub async fn add_all_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &str,
     ) -> Result<(), ModelError> {
         info!(
             "Assigning IPs in network {} for all existing devices ",
             self
         );
-        let devices = self
-            .get_allowed_devices(&mut *transaction, admin_group_name)
-            .await?;
+        let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
             device
                 .assign_network_ip(&mut *transaction, self, None)
@@ -360,13 +356,10 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         device: &Device,
-        admin_group_name: &str,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
         info!("Assigning IP in network {self} for {device}");
-        let allowed_devices = self
-            .get_allowed_devices(&mut *transaction, admin_group_name)
-            .await?;
+        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         let allowed_device_ids: Vec<i64> =
             allowed_devices.iter().filter_map(|dev| dev.id).collect();
         if allowed_device_ids.contains(&device.get_id()?) {
@@ -389,14 +382,11 @@ impl WireguardNetwork {
     pub async fn sync_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &str,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
-        let allowed_devices = self
-            .get_allowed_devices(&mut *transaction, admin_group_name)
-            .await?;
+        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
         let mut allowed_devices: HashMap<i64, Device> = allowed_devices
             .into_iter()
@@ -485,12 +475,9 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
-        admin_group_name: &str,
     ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
         let network_id = self.get_id()?;
-        let allowed_devices = self
-            .get_allowed_devices(&mut *transaction, admin_group_name)
-            .await?;
+        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
         let allowed_devices: HashMap<i64, Device> = allowed_devices
             .into_iter()
@@ -551,14 +538,11 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         mapped_devices: Vec<MappedDevice>,
-        admin_group_name: &str,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Mapping user devices for network {}", self);
         let network_id = self.get_id()?;
         // get allowed groups for network
-        let allowed_groups = self
-            .get_allowed_groups(&mut *transaction, admin_group_name)
-            .await?;
+        let allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
 
         let mut events = Vec::new();
         // use a helper hashmap to avoid repeated queries
@@ -629,9 +613,8 @@ impl WireguardNetwork {
             }
 
             // assign IPs in other networks
-            let (mut all_network_info, _configs) = device
-                .add_to_all_networks(&mut *transaction, admin_group_name)
-                .await?;
+            let (mut all_network_info, _configs) =
+                device.add_to_all_networks(&mut *transaction).await?;
 
             network_info.append(&mut all_network_info);
 

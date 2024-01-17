@@ -314,9 +314,7 @@ pub async fn modify_user(
         {
             let networks = WireguardNetwork::all(&mut *transaction).await?;
             for network in networks {
-                let gateway_events = network
-                    .sync_allowed_devices(&mut transaction, &appstate.config.admin_groupname, None)
-                    .await?;
+                let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
                 appstate.send_multiple_wireguard_events(gateway_events);
             }
         };

@@ -37,6 +37,7 @@ pub enum ClaimsType {
     Auth,
     Gateway,
     YubiBridge,
+    DesktopClient,
 }
 
 /// Standard claims: https://www.iana.org/assignments/jwt/jwt.xhtml
@@ -85,6 +86,7 @@ impl Claims {
             ClaimsType::Auth => AUTH_SECRET_ENV,
             ClaimsType::Gateway => GATEWAY_SECRET_ENV,
             ClaimsType::YubiBridge => YUBIBRIDGE_SECRET_ENV,
+            ClaimsType::DesktopClient => AUTH_SECRET_ENV,
         };
         env::var(env_var).unwrap_or_default()
     }
