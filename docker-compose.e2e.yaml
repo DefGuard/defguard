@@ -20,7 +20,7 @@ services:
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
       DEFGUARD_URL: http://localhost:8000
-      DEFGUARD_PROXY_URL: http://localhost:50052
+      DEFGUARD_PROXY_URL: http://proxy:50052
       RUST_BACKTRACE: 1
     ports:
       # REST API
