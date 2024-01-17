@@ -1,4 +1,9 @@
+use super::proto::{
+    ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
+    MfaMethod,
+};
 use crate::{
+    auth::{Claims, ClaimsType},
     db::{
         models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
         DbPool, Device, GatewayEvent, User, UserInfo, WireguardNetwork,
@@ -9,12 +14,8 @@ use crate::{
 use std::collections::HashMap;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
-use uuid::Uuid;
 
-use super::proto::{
-    ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
-    MfaMethod,
-};
+const SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
 
 struct ClientLoginSession {
     location: WireguardNetwork,
@@ -42,6 +43,28 @@ impl ClientMfaServer {
             wireguard_tx,
             sessions: HashMap::new(),
         }
+    }
+    fn generate_token(&self, pubkey: &str) -> Result<String, Status> {
+        Claims::new(
+            ClaimsType::DesktopClient,
+            String::new(),
+            pubkey.into(),
+            SESSION_TIMEOUT,
+        )
+        .to_jwt()
+        .map_err(|err| {
+            error!("Failed to generate JWT token: {err:?}");
+            Status::internal("unexpected error")
+        })
+    }
+
+    /// Validate JWT and extract client pubkey
+    fn parse_token(&self, token: &str) -> Result<String, Status> {
+        let claims = Claims::from_jwt(ClaimsType::DesktopClient, token).map_err(|err| {
+            error!("Failed to parse JWT token: {err:?}");
+            Status::invalid_argument("invalid token")
+        })?;
+        Ok(claims.client_id)
     }
 
     pub async fn start_client_mfa_login(
@@ -132,18 +155,18 @@ impl ClientMfaServer {
         }
 
         // generate auth token
-        let token = Uuid::new_v4().to_string();
+        let token = self.generate_token(&request.pubkey)?;
 
         // store login session
         self.sessions.insert(
-            token.clone(),
+            request.pubkey,
             ClientLoginSession {
                 location,
                 device,
                 user,
             },
         );
-
+        
         Ok(ClientMfaStartResponse { token })
     }
 
@@ -152,8 +175,11 @@ impl ClientMfaServer {
         request: ClientMfaFinishRequest,
     ) -> Result<ClientMfaFinishResponse, Status> {
         info!("Finishing desktop client login: {request:?}");
+        // get pubkey from token
+        let pubkey = self.parse_token(&request.token)?;
+
         // fetch login session
-        let Some(session) = self.sessions.remove(&request.token) else {
+        let Some(session) = self.sessions.remove(&pubkey) else {
             error!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
         };
