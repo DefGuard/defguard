@@ -32,6 +32,7 @@ use crate::{
 /// - 3 - 64 characters long
 /// - lowercase or uppercase latin alphabet letters (A-Z, a-z)
 /// - digits (0-9)
+/// - starts with non-special character
 /// - special characters: . - _
 /// - no whitespaces
 fn check_username(username: &str) -> Result<(), WebError> {
@@ -806,6 +807,8 @@ mod test {
         assert_err!(check_username("__zenek"));
         assert_err!(check_username("zenek?"));
         assert_err!(check_username("MeMeMe!"));
-        assert_err!(check_username("averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"));
+        assert_err!(check_username(
+            "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        ));
     }
 }
