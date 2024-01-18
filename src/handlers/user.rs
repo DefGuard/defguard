@@ -2,7 +2,6 @@ use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
 };
-use lazy_regex::regex;
 use serde_json::json;
 
 use super::{
@@ -44,10 +43,23 @@ fn check_username(username: &str) -> Result<(), WebError> {
         )));
     }
 
-    // check if username matches regex
-    let username_regex = regex!(r"^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]+$");
-    if !username_regex.is_match(username) {
-        return Err(WebError::Serialization("Username is not valid".into()));
+    // check first character is a letter or digit
+    if let Some(first_char) = username.chars().next() {
+        if !first_char.is_ascii_alphanumeric() {
+            return Err(WebError::Serialization(
+                "Username must not start with a special character".into(),
+            ));
+        }
+    }
+
+    // check if username contains only valid characters
+    if !username
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
+    {
+        return Err(WebError::Serialization(
+            "Username contains invalid characters".into(),
+        ));
     }
 
     Ok(())

@@ -30,7 +30,6 @@ humantime = "2.1"
 # match ipnetwork version from sqlx
 ipnetwork = { version = "0.20", features = ["serde"] }
 jsonwebtoken = "9.2"
-lazy-regex = "3.1"
 ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
 lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 md4 = "0.10"
