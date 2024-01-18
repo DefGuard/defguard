@@ -20,7 +20,6 @@ import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import {
   patternSafeUsernameCharacters,
-  patternStartsWithDigit,
   patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../../../shared/patterns';
@@ -59,12 +58,6 @@ export const AddUserForm = () => {
             .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
             .min(3, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
-            .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {
-              if (value && value.length) {
-                return !patternStartsWithDigit.test(value);
-              }
-              return false;
-            })
             .test(
               'username-available',
               LL.form.error.usernameTaken(),
