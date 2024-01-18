@@ -15,9 +15,9 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import {
-    patternSafeUsernameCharacters,
-    patternValidEmail,
-    patternValidPhoneNumber,
+  patternSafeUsernameCharacters,
+  patternValidEmail,
+  patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
 import { OAuth2AuthorizedApps } from '../../../../../shared/types';
