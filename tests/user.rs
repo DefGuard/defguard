@@ -224,7 +224,7 @@ async fn test_username_available() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let avail = Username {
-        username: "CrashTestDummy".into(),
+        username: "_CrashTestDummy".into(),
     };
     let response = client
         .post("/api/v1/user/available")
@@ -234,7 +234,7 @@ async fn test_username_available() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let avail = Username {
-        username: "crashtestdummy".into(),
+        username: "crashtestdummy42".into(),
     };
     let response = client
         .post("/api/v1/user/available")
@@ -431,8 +431,8 @@ async fn test_check_username() {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let invalid_usernames = ["ADumbledore", "1user"];
-    let valid_usernames = ["user1", "use2r3", "notwrong"];
+    let invalid_usernames = ["ADumble dore", ".1user"];
+    let valid_usernames = ["user1", "use2r3", "not_wrong"];
 
     for username in invalid_usernames {
         let new_user = AddUserData {
