@@ -2,6 +2,7 @@ use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
 };
+use lazy_regex::regex;
 use serde_json::json;
 
 use super::{
@@ -25,7 +26,16 @@ use crate::{
 };
 
 /// Verify the given username
+///
+/// To enable LDAP sync usernames need to avoid reserved characters.
+/// Username requirements:
+/// - 3 - 64 characters long
+/// - lowercase or uppercase latin alphabet letters (A-Z, a-z)
+/// - digits (0-9)
+/// - special characters: . - _
+/// - no whitespaces
 fn check_username(username: &str) -> Result<(), WebError> {
+    // check length
     let length = username.len();
     if !(3..64).contains(&length) {
         return Err(WebError::Serialization(format!(
@@ -33,22 +43,12 @@ fn check_username(username: &str) -> Result<(), WebError> {
         )));
     }
 
-    if let Some(first_char) = username.chars().next() {
-        if first_char.is_ascii_digit() {
-            return Err(WebError::Serialization(
-                "Username must not start with a digit".into(),
-            ));
-        }
+    // check if username matches regex
+    let username_regex = regex!(r"^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]+$");
+    if !username_regex.is_match(username) {
+        return Err(WebError::Serialization("Username is not valid".into()));
     }
 
-    if !username
-        .chars()
-        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
-    {
-        return Err(WebError::Serialization(
-            "Username is not in lowercase".into(),
-        ));
-    }
     Ok(())
 }
 
@@ -781,5 +781,31 @@ pub async fn delete_authorized_app(
         }
     } else {
         Err(WebError::ObjectNotFound("Authorized app not found".into()))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn test_username_validation() {
+        // valid usernames
+        assert_ok!(check_username("zenek34"));
+        assert_ok!(check_username("zenekXXX__"));
+        assert_ok!(check_username("first.last"));
+        assert_ok!(check_username("First_Last"));
+        assert_ok!(check_username("32zenek"));
+        assert_ok!(check_username("32-zenek"));
+
+        // invalid usernames
+        assert_err!(check_username("a"));
+        assert_err!(check_username("32"));
+        assert_err!(check_username("a4"));
+        assert_err!(check_username("__zenek"));
+        assert_err!(check_username("zenek?"));
+        assert_err!(check_username("MeMeMe!"));
+        assert_err!(check_username("averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"));
     }
 }
