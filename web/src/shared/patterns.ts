@@ -14,8 +14,6 @@ export const patternAtLeastOneLowerCaseChar = /(?=.*?[a-z])/g;
 
 export const patternAtLeastOneDigit = /(?=.*?[0-9])/g;
 
-export const patternStartsWithDigit = /^\d/;
-
 export const patternAtLeastOneSpecialChar = /(?=.*?[#?!@$%^&*-])/g;
 
 export const patternValidPhoneNumber =
@@ -73,7 +71,7 @@ export const patternValidDomain =
 export const patternValidIp =
   /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
-export const patternSafeUsernameCharacters =
-  /^[a-zA-Z0-9.!@#$%^&*()_+\-=\[\]{}|,<>\/?~]+$/;
+export const patternSafeUsernameCharacters = /^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]+$/;
 
-export const patternSafePasswordCharacters = patternSafeUsernameCharacters;
+export const patternSafePasswordCharacters =
+  /^[a-zA-Z0-9.!@#$%^&*()_+\-=\[\]{}|,<>\/?~]+$/;

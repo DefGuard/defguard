@@ -15,8 +15,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import {
-  patternNoSpecialChars,
-  patternStartsWithDigit,
+  patternSafeUsernameCharacters,
   patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
@@ -68,15 +67,9 @@ export const ProfileDetailsForm = () => {
           username: yup
             .string()
             .required(LL.form.error.required())
-            .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
+            .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
             .min(3, LL.form.error.minimumLength())
-            .max(64, LL.form.error.maximumLength())
-            .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {
-              if (value && value.length) {
-                return !patternStartsWithDigit.test(value);
-              }
-              return false;
-            }),
+            .max(64, LL.form.error.maximumLength()),
           first_name: yup.string().required(LL.form.error.required()),
           last_name: yup.string().required(LL.form.error.required()),
           phone: yup
