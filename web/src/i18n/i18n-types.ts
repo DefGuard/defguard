@@ -1670,7 +1670,7 @@ type RootTranslation = {
 		}
 		error: {
 			/**
-			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
+			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​s​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
 			 */
 			forbiddenCharacter: string
 			/**
@@ -5210,7 +5210,7 @@ export type TranslationFunctions = {
 		}
 		error: {
 			/**
-			 * Field contain forbidden characters.
+			 * Field contains forbidden characters.
 			 */
 			forbiddenCharacter: () => LocalizedString
 			/**

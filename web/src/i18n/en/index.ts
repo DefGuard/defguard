@@ -711,7 +711,7 @@ const en: BaseTranslation = {
       username: 'Username',
     },
     error: {
-      forbiddenCharacter: 'Field contain forbidden characters.',
+      forbiddenCharacter: 'Field contains forbidden characters.',
       usernameTaken: 'Username is already in use.',
       invalidKey: 'Key is invalid.',
       invalid: 'Field is invalid.',
