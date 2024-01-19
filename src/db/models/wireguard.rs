@@ -420,6 +420,7 @@ impl WireguardNetwork {
                             network_id,
                             device_wireguard_ip: wireguard_network_device.wireguard_ip,
                             preshared_key: wireguard_network_device.preshared_key,
+                            is_authorized: wireguard_network_device.is_authorized,
                         }],
                     }));
                 }
@@ -439,6 +440,7 @@ impl WireguardNetwork {
                             network_id,
                             device_wireguard_ip: device_network_config.wireguard_ip,
                             preshared_key: device_network_config.preshared_key,
+                            is_authorized: device_network_config.is_authorized,
                         }],
                     }));
                 } else {
@@ -460,6 +462,7 @@ impl WireguardNetwork {
                     network_id,
                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
                     preshared_key: wireguard_network_device.preshared_key,
+                    is_authorized: wireguard_network_device.is_authorized,
                 }],
             }));
         }
@@ -516,6 +519,7 @@ impl WireguardNetwork {
                                     network_id,
                                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
                                     preshared_key: wireguard_network_device.preshared_key,
+                                    is_authorized: wireguard_network_device.is_authorized,
                                 }],
                             }));
                         }
@@ -591,6 +595,7 @@ impl WireguardNetwork {
                         network_id,
                         device_wireguard_ip: wireguard_network_device.wireguard_ip,
                         preshared_key: wireguard_network_device.preshared_key,
+                        is_authorized: wireguard_network_device.is_authorized,
                     });
                 }
                 Some(allowed) => {
@@ -607,6 +612,7 @@ impl WireguardNetwork {
                             network_id,
                             device_wireguard_ip: wireguard_network_device.wireguard_ip,
                             preshared_key: wireguard_network_device.preshared_key,
+                            is_authorized: wireguard_network_device.is_authorized,
                         });
                     }
                 }

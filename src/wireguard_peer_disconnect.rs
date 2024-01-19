@@ -103,6 +103,7 @@ pub async fn run_periodic_peer_disconnect(
                             network_id: location_id,
                             device_wireguard_ip: device_network_config.wireguard_ip,
                             preshared_key: device_network_config.preshared_key,
+                            is_authorized: device_network_config.is_authorized,
                         }],
                     };
                     let event = GatewayEvent::DeviceDeleted(device_info);

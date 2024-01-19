@@ -582,6 +582,7 @@ pub async fn modify_device(
                         network_id,
                         device_wireguard_ip: wireguard_network_device.wireguard_ip,
                         preshared_key: wireguard_network_device.preshared_key,
+                        is_authorized: wireguard_network_device.is_authorized,
                     };
                     network_info.push(device_network_info);
                 }

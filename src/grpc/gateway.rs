@@ -210,7 +210,10 @@ impl GatewayUpdatesHandler {
                 }
                 GatewayEvent::NetworkModified(network_id, network, peers) => {
                     if network_id == self.network_id {
-                        self.send_network_update(&network, peers, 1).await
+                        let result = self.send_network_update(&network, peers, 1).await;
+                        // update stored network data
+                        self.network = network;
+                        result
                     } else {
                         Ok(())
                     }
@@ -230,6 +233,10 @@ impl GatewayUpdatesHandler {
                         .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
+                            if self.network.mfa_enabled && !network_info.is_authorized {
+                                debug!("Created WireGuard device is not authorized to connect to MFA enabled location");
+                                continue;
+                            };
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
