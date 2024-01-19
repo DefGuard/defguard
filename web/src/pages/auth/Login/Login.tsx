@@ -17,7 +17,7 @@ import {
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
-import { patternNoSpecialChars } from '../../../shared/patterns';
+import { patternSafeUsernameCharacters } from '../../../shared/patterns';
 import { LoginData } from '../../../shared/types';
 
 type Inputs = {
@@ -34,7 +34,9 @@ export const Login = () => {
           username: yup
             .string()
             .required(LL.form.error.required())
-            .matches(patternNoSpecialChars, LL.form.error.noSpecialChars()),
+            .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
+            .min(3, LL.form.error.minimumLength())
+            .max(64, LL.form.error.maximumLength()),
           password: yup
             .string()
             .required(LL.form.error.required())
