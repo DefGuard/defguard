@@ -250,6 +250,7 @@ impl ClientMfaServer {
                 network_id: location.id.expect("Missing location ID"),
                 device_wireguard_ip: network_device.wireguard_ip,
                 preshared_key: network_device.preshared_key,
+                is_authorized: network_device.is_authorized,
             }],
         };
         let event = GatewayEvent::DeviceCreated(device_info);

@@ -62,6 +62,7 @@ pub struct DeviceNetworkInfo {
     pub device_wireguard_ip: IpAddr,
     #[serde(skip_serializing)]
     pub preshared_key: Option<String>,
+    pub is_authorized: bool,
 }
 
 impl DeviceInfo {
@@ -73,7 +74,7 @@ impl DeviceInfo {
         let device_id = device.get_id()?;
         let network_info = query_as!(
             DeviceNetworkInfo,
-            "SELECT wireguard_network_id as network_id, wireguard_ip as \"device_wireguard_ip: IpAddr\", preshared_key \
+            "SELECT wireguard_network_id as network_id, wireguard_ip as \"device_wireguard_ip: IpAddr\", preshared_key, is_authorized \
             FROM wireguard_network_device \
             WHERE device_id = $1",
             device_id
@@ -538,6 +539,7 @@ impl Device {
                     network_id,
                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
                     preshared_key: wireguard_network_device.preshared_key.clone(),
+                    is_authorized: wireguard_network_device.is_authorized,
                 };
                 network_info.push(device_network_info);
 
