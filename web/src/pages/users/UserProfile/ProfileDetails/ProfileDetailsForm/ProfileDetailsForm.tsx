@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -59,6 +60,8 @@ export const ProfileDetailsForm = () => {
     user: { editUser },
     groups: { getGroups },
   } = useApi();
+  const { username: paramsUsername } = useParams();
+  const navigate = useNavigate();
 
   const schema = useMemo(
     () =>
@@ -123,11 +126,16 @@ export const ProfileDetailsForm = () => {
     [MutationKeys.EDIT_USER],
     editUser,
     {
-      onSuccess: () => {
+      onSuccess: (_data, variables) => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
         queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         toaster.success(LL.userPage.messages.editSuccess());
         setUserProfile({ editMode: false, loading: false });
+        // if username was changed redirect to new profile page
+        const newUsername = variables.data.username;
+        if (paramsUsername !== newUsername) {
+          navigate(`/admin/users/${variables.data.username}`, { replace: true });
+        }
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
