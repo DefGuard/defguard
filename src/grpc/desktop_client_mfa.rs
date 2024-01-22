@@ -181,7 +181,7 @@ impl ClientMfaServer {
         let pubkey = self.parse_token(&request.token)?;
 
         // fetch login session
-        let Some(session) = self.sessions.remove(&pubkey) else {
+        let Some(session) = self.sessions.get(&pubkey) else {
             error!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
         };
@@ -245,7 +245,7 @@ impl ClientMfaServer {
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
         let device_info = DeviceInfo {
-            device,
+            device: device.clone(),
             network_info: vec![DeviceNetworkInfo {
                 network_id: location.id.expect("Missing location ID"),
                 device_wireguard_ip: network_device.wireguard_ip,
@@ -258,6 +258,9 @@ impl ClientMfaServer {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
         })?;
+
+        // remove login session from map
+        self.sessions.remove(&pubkey);
 
         // commit transaction
         transaction.commit().await.map_err(|_| {
