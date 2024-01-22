@@ -65,7 +65,7 @@ pub enum GatewayEvent {
     DeviceDeleted(DeviceInfo),
 }
 
-/// Stores configuration required to setup a wireguard network
+/// Stores configuration required to setup a WireGuard network
 #[derive(Clone, Debug, Model, Deserialize, Serialize, PartialEq)]
 #[table(wireguard_network)]
 pub struct WireguardNetwork {
@@ -215,7 +215,7 @@ impl WireguardNetwork {
         Ok(())
     }
 
-    /// Utility method to create wireguard keypair
+    /// Utility method to create WireGuard keypair
     #[must_use]
     pub fn genkey() -> WireguardKey {
         let private = StaticSecret::random_from_rng(OsRng);
@@ -473,7 +473,7 @@ impl WireguardNetwork {
     /// Check if devices found in an imported config file exist already,
     /// if they do assign a specified IP.
     /// Return a list of imported devices which need to be manually mapped to a user
-    /// and a list of wireguard events to be sent out.
+    /// and a list of WireGuard events to be sent out.
     pub async fn handle_imported_devices(
         &self,
         transaction: &mut PgConnection,
