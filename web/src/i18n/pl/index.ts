@@ -443,7 +443,7 @@ const pl: Translation = {
         qrInfo:
           'Użyj poniższych konfiguracji aby połączyć się z wybranymi lokalizacjami.',
         helpers: {
-          qrHelper: `<p>Możesz skonfigurować Wireguard na telefonie skanując QR kod przez aplikację Wireguard.</p>`,
+          qrHelper: `<p>Możesz skonfigurować WireGuard na telefonie skanując QR kod przez aplikację Wireguard.</p>`,
           warningAutoMode: `
 <p>Uwaga, Defguard nie przechowuje twojego klucza prywatnego. Gdy opuścisz obecną stronę <strong> nie będziesz mógł</strong> pobrać ponownie konfiguracji z kluczem prywatnym.</p>
 `,

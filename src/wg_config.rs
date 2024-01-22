@@ -35,7 +35,7 @@ pub enum WireguardConfigParseError {
     InvalidKey(String),
     #[error("Invalid port: {0}")]
     InvalidPort(String),
-    #[error("Wireguard network error")]
+    #[error("WireGuard network error")]
     NetworkError(#[from] WireguardNetworkError),
 }
 
@@ -55,7 +55,7 @@ pub fn parse_wireguard_config(
     config: &str,
 ) -> Result<(WireguardNetwork, Vec<ImportedDevice>), WireguardConfigParseError> {
     let config = ini::Ini::load_from_str(config)?;
-    // Parse WireguardNetwork
+    // Parse WireGuardNetwork
     let interface_section = config
         .section(Some("Interface"))
         .ok_or_else(|| WireguardConfigParseError::SectionNotFound("Interface".to_string()))?;
