@@ -432,7 +432,7 @@ impl EnrollmentServer {
                         network_id,
                         network_name: network.name,
                         assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
-                        endpoint: network.endpoint,
+                        endpoint: format!("{}:{}", network.endpoint, network.port),
                         pubkey: network.pubkey,
                         allowed_ips,
                         dns: network.dns,
