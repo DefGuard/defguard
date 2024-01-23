@@ -1,12 +1,10 @@
-use crate::{
-    auth::failed_login::FailedLoginMap,
-    config::DefGuardConfig,
-    db::{AppEvent, DbPool, GatewayEvent, WebHook},
-    mail::Mail,
-};
-use reqwest::Client;
-use serde_json::json;
 use std::sync::{Arc, Mutex};
+
+use axum::extract::FromRef;
+use axum_extra::extract::cookie::Key;
+use reqwest::Client;
+use secrecy::ExposeSecret;
+use serde_json::json;
 use tokio::{
     sync::{
         broadcast::Sender,
@@ -16,6 +14,13 @@ use tokio::{
 };
 use uaparser::UserAgentParser;
 use webauthn_rs::prelude::*;
+
+use crate::{
+    auth::failed_login::FailedLoginMap,
+    config::DefGuardConfig,
+    db::{AppEvent, DbPool, GatewayEvent, WebHook},
+    mail::Mail,
+};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -27,16 +32,18 @@ pub struct AppState {
     pub webauthn: Arc<Webauthn>,
     pub user_agent_parser: Arc<UserAgentParser>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
+    key: Key,
 }
 
 impl AppState {
-    pub fn trigger_action(&self, event: AppEvent) {
+    pub(crate) fn trigger_action(&self, event: AppEvent) {
         let event_name = event.name().to_owned();
         match self.tx.send(event) {
             Ok(()) => info!("Sent trigger {event_name}"),
             Err(err) => error!("Error sending trigger {event_name}: {err}"),
         }
     }
+
     /// Handle webhook events
     async fn handle_triggers(pool: DbPool, mut rx: UnboundedReceiver<AppEvent>) {
         let reqwest_client = Client::builder().user_agent("reqwest").build().unwrap();
@@ -77,7 +84,7 @@ impl AppState {
     /// Sends given `GatewayEvent` to be handled by gateway GRPC server
     pub fn send_wireguard_event(&self, event: GatewayEvent) {
         if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending wireguard event {err}");
+            error!("Error sending WireGuard event {err}");
         }
     }
 
@@ -116,6 +123,8 @@ impl AppState {
                 .expect("Invalid WebAuthn configuration"),
         );
 
+        let key = Key::from(config.secret_key.expose_secret().as_bytes());
+
         Self {
             config,
             pool,
@@ -125,6 +134,13 @@ impl AppState {
             webauthn,
             user_agent_parser,
             failed_logins,
+            key,
         }
+    }
+}
+
+impl FromRef<AppState> for Key {
+    fn from_ref(state: &AppState) -> Self {
+        state.key.clone()
     }
 }

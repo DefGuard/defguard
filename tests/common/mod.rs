@@ -2,7 +2,6 @@ pub(crate) mod client;
 
 use std::sync::{Arc, Mutex};
 
-use axum::http::StatusCode;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
@@ -13,15 +12,22 @@ use defguard::{
     mail::Mail,
     SERVER_CONFIG,
 };
+use reqwest::{header::HeaderName, StatusCode};
 use secrecy::ExposeSecret;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
-use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::{
     broadcast::{self, Receiver},
-    mpsc::unbounded_channel,
+    mpsc::{unbounded_channel, UnboundedReceiver},
 };
 
 use self::client::TestClient;
+
+#[allow(dead_code)]
+pub const X_FORWARDED_HOST: HeaderName = HeaderName::from_static("x-forwarded-host");
+#[allow(dead_code)]
+pub const X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
+#[allow(dead_code)]
+pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri");
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     let config = DefGuardConfig::new_test_config();
@@ -60,11 +66,11 @@ async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
         .unwrap();
 
     let mut test_user = User::new(
-        "hpotter".into(),
+        "hpotter",
         Some("pass123"),
-        "Potter".into(),
-        "Harry".into(),
-        "h.potter@hogwart.edu.uk".into(),
+        "Potter",
+        "Harry",
+        "h.potter@hogwart.edu.uk",
         None,
     );
     test_user.save(pool).await.unwrap();
@@ -150,7 +156,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
         user_agent_parser,
         failed_logins,
     );
-    (TestClient::new(webapp), client_state)
+    (TestClient::new(webapp).await, client_state)
 }
 
 #[allow(dead_code)]

@@ -9,6 +9,7 @@ import * as yup from 'yup';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
+import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
@@ -34,6 +35,9 @@ type FormFields = {
   allowed_groups: string[];
   name: string;
   dns: string;
+  mfa_enabled: boolean;
+  keepalive_interval: number;
+  peer_disconnect_threshold: number;
 };
 
 const defaultValues: FormFields = {
@@ -44,6 +48,9 @@ const defaultValues: FormFields = {
   allowed_ips: '',
   allowed_groups: [],
   dns: '',
+  mfa_enabled: false,
+  keepalive_interval: 25,
+  peer_disconnect_threshold: 75,
 };
 
 const networkToForm = (data?: Network): FormFields => {
@@ -181,6 +188,17 @@ export const NetworkEditForm = () => {
           }
           return validateIpOrDomainList(val, ',', true);
         }),
+      mfa_enabled: yup.boolean().required(LL.form.error.required()),
+      keepalive_interval: yup
+        .number()
+        .positive()
+        .min(1)
+        .required(LL.form.error.required()),
+      peer_disconnect_threshold: yup
+        .number()
+        .positive()
+        .min(1)
+        .required(LL.form.error.required()),
     })
     .required();
 
@@ -274,6 +292,19 @@ export const NetworkEditForm = () => {
             key: val,
             displayValue: titleCase(val),
           })}
+        />
+        <FormCheckBox
+          controller={{ control, name: 'mfa_enabled' }}
+          label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
+          labelPlacement="right"
+        />
+        <FormInput
+          controller={{ control, name: 'keepalive_interval' }}
+          label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
+        />
+        <FormInput
+          controller={{ control, name: 'peer_disconnect_threshold' }}
+          label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
         />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>

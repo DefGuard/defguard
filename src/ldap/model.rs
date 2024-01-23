@@ -1,8 +1,9 @@
-use crate::{db::User, hashset};
-use ldap3::{Mod, SearchEntry};
 use std::collections::HashSet;
 
+use ldap3::{Mod, SearchEntry};
+
 use super::LDAPConfig;
+use crate::{db::User, hashset};
 
 impl User {
     #[must_use]
@@ -67,26 +68,27 @@ impl User {
     }
 }
 
-pub struct Group {
-    pub name: String,
-    pub members: Vec<String>,
-}
+// TODO: This struct is similar to `GroupInfo`, so maybe use one?
+// pub(crate) struct Group {
+//     pub name: String,
+//     pub members: Vec<String>,
+// }
 
-impl Group {
-    #[must_use]
-    pub fn from_searchentry(entry: &SearchEntry, config: &LDAPConfig) -> Self {
-        Self {
-            name: get_value_or_default(entry, &config.ldap_groupname_attr),
-            members: match entry.attrs.get(&config.ldap_group_member_attr) {
-                Some(members) => members
-                    .iter()
-                    .filter_map(|member| extract_dn_value(member))
-                    .collect(),
-                None => Vec::new(),
-            },
-        }
-    }
-}
+// impl Group {
+//     #[must_use]
+//     pub(crate) fn from_searchentry(entry: &SearchEntry, config: &LDAPConfig) -> Self {
+//         Self {
+//             name: get_value_or_default(entry, &config.ldap_groupname_attr),
+//             members: match entry.attrs.get(&config.ldap_group_member_attr) {
+//                 Some(members) => members
+//                     .iter()
+//                     .filter_map(|member| extract_dn_value(member))
+//                     .collect(),
+//                 None => Vec::new(),
+//             },
+//         }
+//     }
+// }
 
 fn get_value_or_default(entry: &SearchEntry, key: &str) -> String {
     match entry.attrs.get(key) {

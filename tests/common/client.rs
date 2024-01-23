@@ -1,22 +1,14 @@
-use axum::{
-    http::{
-        self,
-        header::{HeaderMap, HeaderName, HeaderValue},
-        StatusCode,
-    },
-    Router, Server,
-};
+use std::{net::SocketAddr, sync::Arc};
+
+use axum::{serve, Router};
 use bytes::Bytes;
 use reqwest::{
     cookie::{Cookie, Jar},
+    header::{HeaderMap, HeaderName},
     redirect::Policy,
-    Client, Url,
+    Body, Client, StatusCode, Url,
 };
-use std::{
-    convert::TryFrom,
-    net::{SocketAddr, TcpListener},
-    sync::Arc,
-};
+use tokio::net::TcpListener;
 
 pub struct TestClient {
     client: Client,
@@ -27,14 +19,17 @@ pub struct TestClient {
 #[allow(dead_code)]
 impl TestClient {
     #[must_use]
-    pub fn new(app: Router) -> Self {
-        let listener = TcpListener::bind("127.0.0.1:0").expect("Could not bind ephemeral socket");
+    pub async fn new(app: Router) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("Could not bind ephemeral socket");
         let port = listener.local_addr().unwrap().port();
 
         tokio::spawn(async move {
-            let server = Server::from_tcp(listener)
-                .unwrap()
-                .serve(app.into_make_service_with_connect_info::<SocketAddr>());
+            let server = serve(
+                listener,
+                app.into_make_service_with_connect_info::<SocketAddr>(),
+            );
             server.await.expect("server error");
         });
 
@@ -126,7 +121,7 @@ impl RequestBuilder {
         }
     }
 
-    pub fn body(mut self, body: impl Into<reqwest::Body>) -> Self {
+    pub fn body<B: Into<Body>>(mut self, body: B) -> Self {
         self.builder = self.builder.body(body);
         self
     }
@@ -144,13 +139,7 @@ impl RequestBuilder {
         self
     }
 
-    pub fn header<K, V>(mut self, key: K, value: V) -> Self
-    where
-        HeaderName: TryFrom<K>,
-        <HeaderName as TryFrom<K>>::Error: Into<http::Error>,
-        HeaderValue: TryFrom<V>,
-        <HeaderValue as TryFrom<V>>::Error: Into<http::Error>,
-    {
+    pub fn header(mut self, key: HeaderName, value: &str) -> Self {
         self.builder = self.builder.header(key, value);
         self
     }

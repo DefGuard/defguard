@@ -1,7 +1,7 @@
 use crate::db::{DbPool, WireguardPeerStats};
 use chrono::{DateTime, Duration as ChronoDuration, NaiveDateTime, Utc};
 use humantime::format_duration;
-use sqlx::{query, query_scalar, Error as SqlxError};
+use sqlx::{query, query_scalar, Error as SqlxError, PgExecutor};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -27,13 +27,12 @@ impl WireguardPeerStats {
             - ChronoDuration::from_std(stats_purge_threshold).expect("Failed to parse duration"))
         .naive_utc();
         let result = query!(
-            r#"DELETE FROM wireguard_peer_stats
-            WHERE collected_at < $1
-            AND (device_id, network, collected_at) NOT IN (
-                SELECT device_id, network, MAX(collected_at)
-                FROM wireguard_peer_stats
-                GROUP BY device_id, network
-            )"#,
+            "DELETE FROM wireguard_peer_stats \
+            WHERE collected_at < $1 \
+            AND (device_id, network, collected_at) NOT IN ( \
+                SELECT device_id, network, MAX(collected_at) \
+                FROM wireguard_peer_stats \
+                GROUP BY device_id, network)",
             threshold
         )
         .execute(pool)
@@ -53,7 +52,7 @@ impl WireguardPeerStats {
     // Check how much time has elapsed since last recorded stats purge
     pub async fn time_since_last_purge<'e, E>(executor: E) -> Result<Option<Duration>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Checking time since last stats purge");
 
@@ -83,7 +82,7 @@ impl WireguardPeerStats {
         records_removed: i64,
     ) -> Result<(), SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Recording successful stats purge in DB");
         query!("INSERT INTO wireguard_stats_purge (started_at, finished_at, removal_threshold, records_removed) VALUES ($1, $2, $3, $4)",

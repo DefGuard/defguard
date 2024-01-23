@@ -1,11 +1,17 @@
 mod common;
 
-use axum::http::StatusCode;
 use defguard::{
-    db::{models::device::WireguardNetworkDevice, Device, GatewayEvent, WireguardNetwork},
+    db::{
+        models::{
+            device::WireguardNetworkDevice,
+            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        },
+        Device, GatewayEvent, WireguardNetwork,
+    },
     handlers::{wireguard::WireguardNetworkData, Auth},
 };
 use matches::assert_matches;
+use reqwest::StatusCode;
 use serde_json::{json, Value};
 
 use self::common::make_test_client;
@@ -19,6 +25,9 @@ fn make_network() -> Value {
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
         "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 75
     })
 }
 
@@ -28,7 +37,7 @@ async fn test_network() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -53,6 +62,9 @@ async fn test_network() {
         allowed_ips: Some("10.1.1.0/24".into()),
         dns: None,
         allowed_groups: vec![],
+        mfa_enabled: false,
+        keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+        peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id.unwrap()))
@@ -96,7 +108,7 @@ async fn test_device() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -261,7 +273,7 @@ async fn test_device() {
 async fn test_device_permissions() {
     let (client, _) = make_test_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -323,7 +335,7 @@ async fn test_device_permissions() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // normal user cannot add devices for other users or import multiple devices
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -385,7 +397,7 @@ async fn test_device_permissions() {
     assert_eq!(user_devices.len(), 3);
 
     // admin can list devices of other users
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -406,7 +418,7 @@ async fn test_device_pubkey() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

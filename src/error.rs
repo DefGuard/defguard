@@ -5,11 +5,11 @@ use thiserror::Error;
 use crate::{
     auth::failed_login::FailedLoginError,
     db::models::{
-        device::DeviceError, enrollment::EnrollmentError, error::ModelError,
+        device::DeviceError, enrollment::TokenError, error::ModelError,
         wireguard::WireguardNetworkError,
     },
     grpc::GatewayMapError,
-    ldap::error::OriLDAPError,
+    ldap::error::LdapError,
     templates::TemplateError,
 };
 
@@ -64,12 +64,12 @@ impl From<StatusCode> for WebError {
     }
 }
 
-impl From<OriLDAPError> for WebError {
-    fn from(error: OriLDAPError) -> Self {
+impl From<LdapError> for WebError {
+    fn from(error: LdapError) -> Self {
         match error {
-            OriLDAPError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
-            OriLDAPError::Ldap(msg) => Self::Ldap(msg),
-            OriLDAPError::MissingSettings => Self::Ldap("LDAP settings are missing".to_string()),
+            LdapError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
+            LdapError::Ldap(msg) => Self::Ldap(msg),
+            LdapError::MissingSettings => Self::Ldap("LDAP settings are missing".to_string()),
         }
     }
 }
@@ -126,23 +126,23 @@ impl From<WireguardNetworkError> for WebError {
     }
 }
 
-impl From<EnrollmentError> for WebError {
-    fn from(err: EnrollmentError) -> Self {
+impl From<TokenError> for WebError {
+    fn from(err: TokenError) -> Self {
         error!("{}", err);
         match err {
-            EnrollmentError::DbError(msg) => WebError::DbError(msg.to_string()),
-            EnrollmentError::NotFound
-            | EnrollmentError::UserNotFound
-            | EnrollmentError::AdminNotFound => WebError::ObjectNotFound(err.to_string()),
-            EnrollmentError::TokenExpired
-            | EnrollmentError::SessionExpired
-            | EnrollmentError::TokenUsed => WebError::Authorization(err.to_string()),
-            EnrollmentError::AlreadyActive => WebError::BadRequest(err.to_string()),
-            EnrollmentError::NotificationError(_)
-            | EnrollmentError::WelcomeMsgNotConfigured
-            | EnrollmentError::WelcomeEmailNotConfigured
-            | EnrollmentError::TemplateError(_)
-            | EnrollmentError::TemplateErrorInternal(_) => {
+            TokenError::DbError(msg) => WebError::DbError(msg.to_string()),
+            TokenError::NotFound | TokenError::UserNotFound | TokenError::AdminNotFound => {
+                WebError::ObjectNotFound(err.to_string())
+            }
+            TokenError::TokenExpired | TokenError::SessionExpired | TokenError::TokenUsed => {
+                WebError::Authorization(err.to_string())
+            }
+            TokenError::AlreadyActive => WebError::BadRequest(err.to_string()),
+            TokenError::NotificationError(_)
+            | TokenError::WelcomeMsgNotConfigured
+            | TokenError::WelcomeEmailNotConfigured
+            | TokenError::TemplateError(_)
+            | TokenError::TemplateErrorInternal(_) => {
                 WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }

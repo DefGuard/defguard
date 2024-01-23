@@ -2,7 +2,7 @@
     <img src="docs/header.png" alt="defguard">
  </p>
 
-defguard is a **single binary! SSO & VPN Server** based on **OpenID and Wireguard VPN** with unique secure&private architecture for **building secure and privacy-aware organizations**.
+defguard is a **single binary! SSO & VPN Server** based on **OpenID and WireGuard VPN** with unique secure&private architecture for **building secure and privacy-aware organizations**.
 
 **It's secure by design**, and can be deployed like all other typical VPNs/SSO (any server/network segment) or **defguard core can be deployed in your secure network segments** (available only from an internal network or by VPN) and operations that require **public access** (like user onboarding, enrollment, password reset, etc.) are done using a **secure proxy** (deployed in the DMZ segmenet with Internet access).
 
@@ -16,8 +16,8 @@ Read more about this in [our documentation](https://defguard.gitbook.io/defguard
   - LDAP (tested on [OpenLDAP](https://www.openldap.org/)) synchronization
   - [forward auth](https://defguard.gitbook.io/defguard/features/forward-auth) for reverse proxies (tested with Traefik and Caddy)
   - nice UI to manage users
-  - Users **self-service** (besides typical data management, users can revoke access to granted apps, MFA, Wireguard, etc.)
-* [Wireguard:tm:](https://www.wireguard.com/) VPN management with:
+  - Users **self-service** (besides typical data management, users can revoke access to granted apps, MFA, WireGuard, etc.)
+* [WireGuard:tm:](https://www.wireguard.com/) VPN management with:
   - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
   - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
   - **import your current WireGuard server configuration (with a wizard!)**

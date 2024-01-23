@@ -1,5 +1,8 @@
-use super::DbPool;
-use crate::hex::hex_decode;
+use std::{
+    error::Error,
+    fmt::{Display, Formatter, Result as FmtResult},
+};
+
 use chrono::{NaiveDateTime, Utc};
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use model_derive::Model;
@@ -8,12 +11,11 @@ use secp256k1::{
     ecdsa::{RecoverableSignature, RecoveryId},
     Message, Secp256k1,
 };
-use sqlx::{query, query_as, Error as SqlxError};
-use std::{
-    error::Error,
-    fmt::{Display, Formatter, Result as FmtResult},
-};
+use sqlx::{query, query_as, Error as SqlxError, PgExecutor};
 use tiny_keccak::{Hasher, Keccak};
+
+use super::DbPool;
+use crate::hex::hex_decode;
 
 #[derive(Debug)]
 pub enum Web3Error {
@@ -75,20 +77,20 @@ pub struct Wallet {
 
 impl Wallet {
     #[must_use]
-    pub fn new_for_user(
+    pub fn new_for_user<S: Into<String>>(
         user_id: i64,
-        address: String,
-        name: String,
+        address: S,
+        name: S,
         chain_id: i64,
-        challenge_message: String,
+        challenge_message: S,
     ) -> Self {
         Self {
             id: None,
             user_id,
-            address,
-            name,
+            address: address.into(),
+            name: name.into(),
             chain_id,
-            challenge_message,
+            challenge_message: challenge_message.into(),
             challenge_signature: None,
             creation_timestamp: Utc::now().naive_utc(),
             validation_timestamp: None,
@@ -182,11 +184,14 @@ impl Wallet {
         .collect()
     }
 
-    pub async fn find_by_user_and_address(
-        pool: &DbPool,
+    pub async fn find_by_user_and_address<'e, E>(
+        executor: E,
         user_id: i64,
         address: &str,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query_as!(
             Self,
             "SELECT id \"id?\", user_id, address, name, chain_id, challenge_message, challenge_signature, \
@@ -195,16 +200,19 @@ impl Wallet {
             user_id,
             address
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 
-    pub async fn disable_mfa_for_user(pool: &DbPool, user_id: i64) -> Result<(), SqlxError> {
+    pub async fn disable_mfa_for_user<'e, E>(executor: E, user_id: i64) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query!(
             "UPDATE wallet SET use_for_mfa = FALSE WHERE user_id = $1",
             user_id
         )
-        .execute(pool)
+        .execute(executor)
         .await?;
         Ok(())
     }

@@ -16,7 +16,7 @@ env:
 jobs:
   rustdoc:
     runs-on: [self-hosted, Linux]
-    container: rust:1.74
+    container: rust:1.75
     services:
       postgres:
         image: postgres:15-alpine

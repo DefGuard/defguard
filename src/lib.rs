@@ -4,22 +4,24 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::handlers::ssh_authorized_keys::get_authorized_keys;
 use anyhow::anyhow;
 use axum::{
     handler::HandlerWithoutStateExt,
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
-    Extension, Router, Server,
+    serve, Extension, Router,
 };
-use handlers::settings::{get_settings_essentials, patch_settings, test_ldap_settings};
+
+use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
-use tokio::sync::{
-    broadcast::Sender,
-    mpsc::{UnboundedReceiver, UnboundedSender},
-    OnceCell,
+use tokio::{
+    net::TcpListener,
+    sync::{
+        broadcast::Sender,
+        mpsc::{UnboundedReceiver, UnboundedSender},
+        OnceCell,
+    },
 };
-use tower_cookies::CookieManagerLayer;
 use tower_http::{
     services::{ServeDir, ServeFile},
     trace::{DefaultOnResponse, TraceLayer},
@@ -31,7 +33,11 @@ use self::{
     appstate::AppState,
     auth::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs},
-    db::{init_db, AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork},
+    db::{
+        init_db,
+        models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork,
+    },
     handlers::{
         auth::{
             authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
@@ -40,15 +46,22 @@ use self::{
             webauthn_finish, webauthn_init, webauthn_start,
         },
         forward_auth::forward_auth,
-        group::{add_group_member, get_group, list_groups, remove_group_member},
+        group::{
+            add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
+            remove_group_member,
+        },
         mail::{send_support_data, test_mail},
-        settings::{get_settings, set_default_branding, update_settings},
+        settings::{
+            get_settings, get_settings_essentials, patch_settings, set_default_branding,
+            test_ldap_settings, update_settings,
+        },
+        ssh_authorized_keys::get_authorized_keys,
         support::{configuration, logs},
         user::{
             add_user, change_password, change_self_password, delete_authorized_app,
             delete_security_key, delete_user, delete_wallet, get_user, list_users, me, modify_user,
-            set_wallet, start_enrollment, start_remote_desktop_configuration, update_wallet,
-            username_available, wallet_challenge,
+            reset_password, set_wallet, start_enrollment, start_remote_desktop_configuration,
+            update_wallet, username_available, wallet_challenge,
         },
         webhooks::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
@@ -102,6 +115,7 @@ pub mod secret;
 pub mod support;
 pub mod templates;
 pub mod wg_config;
+pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;
 
 #[macro_use]
@@ -180,6 +194,7 @@ pub fn build_webapp(
             // FIXME: username `change_password` is invalid
             .route("/user/change_password", put(change_self_password))
             .route("/user/:username/password", put(change_password))
+            .route("/user/:username/reset_password", post(reset_password))
             .route("/user/:username/challenge", get(wallet_challenge))
             .route("/user/:username/wallet", put(set_wallet))
             .route("/user/:username/wallet/:address", put(update_wallet))
@@ -198,6 +213,9 @@ pub fn build_webapp(
             // group
             .route("/group", get(list_groups))
             .route("/group/:name", get(get_group))
+            .route("/group", post(create_group))
+            .route("/group/:name", put(modify_group))
+            .route("/group/:name", delete(delete_group))
             .route("/group/:name", post(add_group_member))
             .route("/group/:name/user/:username", delete(remove_group_member))
             // mail
@@ -303,7 +321,6 @@ pub fn build_webapp(
             user_agent_parser,
             failed_logins,
         ))
-        .layer(CookieManagerLayer::new())
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
@@ -344,11 +361,13 @@ pub async fn run_web_server(
     );
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
-    // TODO: map_err() and remove `hyper` as depenency from Cargo.toml
-    Server::bind(&addr)
-        .serve(webapp.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .map_err(|err| anyhow!("Web server can't be started {}", err))
+    let listener = TcpListener::bind(&addr).await?;
+    serve(
+        listener,
+        webapp.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .map_err(|err| anyhow!("Web server can't be started {err}"))
 }
 
 /// Automates test objects creation to easily setup development environment.
@@ -387,14 +406,17 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         info!("Test network exists already, skipping creation...");
         networks.into_iter().next().unwrap()
     } else {
-        info!("Creating test network ");
+        info!("Creating test network");
         let mut network = WireguardNetwork::new(
             "TestNet".to_string(),
-            "10.1.1.1/24".parse().unwrap(),
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap(),
             50051,
             "0.0.0.0".to_string(),
             None,
-            vec!["10.1.1.0/24".parse().unwrap()],
+            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
+            false,
+            DEFAULT_KEEPALIVE_INTERVAL,
+            DEFAULT_DISCONNECT_THRESHOLD,
         )
         .expect("Could not create network");
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
@@ -474,6 +496,9 @@ pub async fn init_vpn_location(
         args.endpoint.clone(),
         args.dns.clone(),
         args.allowed_ips.clone(),
+        false,
+        DEFAULT_KEEPALIVE_INTERVAL,
+        DEFAULT_DISCONNECT_THRESHOLD,
     )?;
     network.save(pool).await?;
     let network_id = network.get_id()?;

@@ -25,6 +25,9 @@ const defaultValues: StoreFields = {
     allowed_ips: '',
     allowed_groups: [],
     dns: '',
+    mfa_enabled: false,
+    keepalive_interval: 25,
+    peer_disconnect_threshold: 75,
   },
 };
 
@@ -76,6 +79,9 @@ type StoreFields = {
     allowed_ips: string;
     allowed_groups: string[];
     dns?: string;
+    mfa_enabled: boolean;
+    keepalive_interval: number;
+    peer_disconnect_threshold: number;
   };
 };
 

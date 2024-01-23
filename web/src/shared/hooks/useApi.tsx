@@ -23,6 +23,7 @@ import {
   NetworkUserStats,
   OpenidClient,
   RemoveUserClientRequest,
+  ResetPasswordRequest,
   Settings,
   StartEnrollmentRequest,
   StartEnrollmentResponse,
@@ -163,6 +164,9 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const changePassword = ({ username, ...rest }: ChangePasswordRequest) =>
     client.put<EmptyApiResponse>(`/user/${username}/password`, rest);
+
+  const resetPassword = ({ username }: ResetPasswordRequest) =>
+    client.post<EmptyApiResponse>(`/user/${username}/reset_password`);
 
   const startEnrollment = ({ username, ...rest }: StartEnrollmentRequest) =>
     client
@@ -427,6 +431,7 @@ const useApi = (props?: HookProps): ApiHook => {
       deleteUser,
       usernameAvailable,
       changePassword,
+      resetPassword,
       walletChallenge,
       setWallet,
       deleteWallet,

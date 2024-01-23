@@ -2,7 +2,6 @@ mod common;
 
 use std::sync::{Arc, Mutex};
 
-use axum::http::StatusCode;
 use defguard::{
     grpc::{worker::JobStatus, WorkerDetail, WorkerState},
     handlers::{
@@ -10,6 +9,7 @@ use defguard::{
         Auth,
     },
 };
+use reqwest::StatusCode;
 
 use self::common::{client::TestClient, make_test_client};
 
@@ -29,7 +29,7 @@ async fn test_scheduling_worker_jobs() {
     };
 
     // normal user can only provision keys for themselves
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -57,7 +57,7 @@ async fn test_scheduling_worker_jobs() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // admin user can provision keys for other users
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -146,7 +146,7 @@ async fn test_scheduling_worker_jobs() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // // normal user can only fetch status of their own jobs
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -182,7 +182,7 @@ async fn test_worker_management_permissions() {
     }
 
     // admin can create worker tokens
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -203,7 +203,7 @@ async fn test_worker_management_permissions() {
     assert_eq!(workers.len(), 2);
 
     // normal user cannot create worker tokens
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

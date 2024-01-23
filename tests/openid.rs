@@ -1,4 +1,6 @@
-use axum::http::{header::ToStrError, StatusCode};
+use std::str::FromStr;
+
+use axum::http::header::ToStrError;
 use claims::assert_err;
 use defguard::{
     config::DefGuardConfig,
@@ -17,7 +19,10 @@ use openidconnect::{
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
     PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
 };
-use reqwest::header::USER_AGENT;
+use reqwest::{
+    header::{HeaderName, AUTHORIZATION, CONTENT_TYPE, USER_AGENT},
+    StatusCode,
+};
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 
@@ -44,7 +49,7 @@ pub struct AuthenticationResponse<'r> {
 async fn test_openid_client() {
     let client = make_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -102,7 +107,7 @@ async fn test_openid_client() {
 #[tokio::test]
 async fn test_openid_flow() {
     let client = make_client().await;
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
@@ -200,7 +205,7 @@ async fn test_openid_flow() {
     // exchange wrong code for token should fail
     let response = client
         .post("/api/v1/oauth/token")
-        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(format!(
             "grant_type=authorization_code&\
             code=ncuoew2323&\
@@ -216,7 +221,7 @@ async fn test_openid_flow() {
     // exchange correct code for token
     let response = client
         .post("/api/v1/oauth/token")
-        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(format!(
             "grant_type=authorization_code&\
             code={}&\
@@ -232,34 +237,29 @@ async fn test_openid_flow() {
     // make sure access token cannot be used to manage defguard server itself
     client.post("/api/v1/auth/logout").send().await;
     let token_response: CoreTokenResponse = response.json().await;
+    let bearer = format!("Bearer {}", token_response.access_token().secret());
     let response = client
         .get("/api/v1/network")
-        .header(
-            "Authorization",
-            format!("Bearer {}", token_response.access_token().secret()),
-        )
+        .header(AUTHORIZATION, &bearer)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     let response = client
         .get("/api/v1/user")
-        .header(
-            "Authorization",
-            format!("Bearer {}", token_response.access_token().secret()),
-        )
+        .header(AUTHORIZATION, &bearer)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // log back in
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // check code cannot be reused
     let response = client
         .post("/api/v1/oauth/token")
-        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(format!(
             "grant_type=authorization_code&\
             code={}&\
@@ -383,7 +383,10 @@ async fn http_client(
         _ => unimplemented!(),
     };
     for (key, value) in &request.headers {
-        test_request = test_request.header(key.as_str(), value.to_str()?);
+        test_request = test_request.header(
+            HeaderName::from_str(key.as_str()).unwrap(),
+            value.to_str().unwrap(),
+        );
     }
     let response = test_request.body(request.body).send().await;
 
@@ -411,7 +414,7 @@ async fn test_openid_authorization_code() {
     .unwrap();
 
     // create OAuth2 client
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let oauth2client = NewOpenIDClient {
@@ -516,7 +519,7 @@ async fn test_openid_authorization_code_with_pkce() {
     .unwrap();
 
     // create OAuth2 client/application
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let oauth2client = NewOpenIDClient {
@@ -619,7 +622,7 @@ async fn test_openid_flow_new_login_mail() {
     let mut mail_rx = state.mail_rx;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header)

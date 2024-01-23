@@ -1,11 +1,11 @@
 mod common;
 
-use axum::http::StatusCode;
 use common::ClientState;
 use defguard::{
     db::models::settings::{Settings, SettingsPatch},
     handlers::Auth,
 };
+use reqwest::StatusCode;
 
 use self::common::{client::TestClient, make_test_client};
 
@@ -17,7 +17,7 @@ async fn make_client() -> (TestClient, ClientState) {
 #[tokio::test]
 async fn test_settings() {
     let (client, _client_state) = make_client().await;
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     // get settings

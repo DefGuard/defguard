@@ -5,24 +5,37 @@ use axum::{
 use serde_json::json;
 
 use super::{
+    mail::{send_mfa_configured_email, EMAIL_PASSOWRD_RESET_START_SUBJECT},
     user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange,
     PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
     WalletChange, WalletSignature,
 };
 use crate::{
     appstate::AppState,
-    auth::{AdminRole, SessionInfo},
+    auth::{SessionInfo, UserAdminRole},
     db::{
+        models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
         AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
         WebAuthn, WireguardNetwork,
     },
     error::WebError,
-    handlers::mail::send_mfa_configured_email,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
+    mail::Mail,
+    templates,
 };
 
 /// Verify the given username
+///
+/// To enable LDAP sync usernames need to avoid reserved characters.
+/// Username requirements:
+/// - 3 - 64 characters long
+/// - lowercase or uppercase latin alphabet letters (A-Z, a-z)
+/// - digits (0-9)
+/// - starts with non-special character
+/// - special characters: . - _
+/// - no whitespaces
 fn check_username(username: &str) -> Result<(), WebError> {
+    // check length
     let length = username.len();
     if !(3..64).contains(&length) {
         return Err(WebError::Serialization(format!(
@@ -30,22 +43,25 @@ fn check_username(username: &str) -> Result<(), WebError> {
         )));
     }
 
+    // check first character is a letter or digit
     if let Some(first_char) = username.chars().next() {
-        if first_char.is_ascii_digit() {
+        if !first_char.is_ascii_alphanumeric() {
             return Err(WebError::Serialization(
-                "Username must not start with a digit".into(),
+                "Username must not start with a special character".into(),
             ));
         }
     }
 
+    // check if username contains only valid characters
     if !username
         .chars()
-        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+        .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
     {
         return Err(WebError::Serialization(
-            "Username is not in lowercase".into(),
+            "Username contains invalid characters".into(),
         ));
     }
+
     Ok(())
 }
 
@@ -74,7 +90,7 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
     Ok(())
 }
 
-pub async fn list_users(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) -> ApiResult {
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
     for user in all_users {
@@ -100,7 +116,7 @@ pub async fn get_user(
 }
 
 pub async fn add_user(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(user_data): Json<AddUserData>,
@@ -110,7 +126,7 @@ pub async fn add_user(
 
     // check username
     if let Err(err) = check_username(&username) {
-        debug!("{}", err);
+        debug!("{err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -160,7 +176,7 @@ pub async fn add_user(
 
 // Trigger enrollment process manually
 pub async fn start_enrollment(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -178,12 +194,11 @@ pub async fn start_enrollment(
         ));
     }
 
-    let user = match User::find_by_username(&appstate.pool, &username).await? {
-        Some(user) => Ok(user),
-        None => Err(WebError::ObjectNotFound(format!(
+    let Some(user) = User::find_by_username(&appstate.pool, &username).await? else {
+        return Err(WebError::ObjectNotFound(format!(
             "user {username} not found"
-        ))),
-    }?;
+        )));
+    };
 
     let mut transaction = appstate.pool.begin().await?;
 
@@ -191,7 +206,7 @@ pub async fn start_enrollment(
         .start_enrollment(
             &mut transaction,
             &session.user,
-            data.email.clone(),
+            data.email,
             appstate.config.enrollment_token_timeout.as_secs(),
             appstate.config.enrollment_url.clone(),
             data.send_enrollment_notification,
@@ -249,12 +264,12 @@ pub async fn start_remote_desktop_configuration(
 }
 
 pub async fn username_available(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<Username>,
 ) -> ApiResult {
     if let Err(err) = check_username(&data.username) {
-        debug!("{}", err);
+        debug!("{err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -279,7 +294,7 @@ pub async fn modify_user(
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Err(err) = check_username(&user_info.username) {
-        debug!("{}", err);
+        debug!("Failed to check username {} {err}", user_info.username);
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -312,9 +327,7 @@ pub async fn modify_user(
         {
             let networks = WireguardNetwork::all(&mut *transaction).await?;
             for network in networks {
-                let gateway_events = network
-                    .sync_allowed_devices(&mut transaction, &appstate.config.admin_groupname, None)
-                    .await?;
+                let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
                 appstate.send_multiple_wireguard_events(gateway_events);
             }
         };
@@ -335,7 +348,7 @@ pub async fn modify_user(
 }
 
 pub async fn delete_user(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     session: SessionInfo,
@@ -396,7 +409,7 @@ pub async fn change_self_password(
 }
 
 pub async fn change_password(
-    _admin: AdminRole,
+    _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -436,6 +449,89 @@ pub async fn change_password(
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
         let _ = ldap_change_password(&appstate.pool, &username, &data.new_password).await;
+        info!(
+            "Admin {} changed password for user {username}",
+            session.user.username
+        );
+        Ok(ApiResponse::default())
+    } else {
+        debug!("User not found");
+        Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::NOT_FOUND,
+        })
+    }
+}
+
+pub async fn reset_password(
+    _role: UserAdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+) -> ApiResult {
+    debug!(
+        "Admin {} changing password for user {username}",
+        session.user.username,
+    );
+
+    if session.user.username == username {
+        debug!("Cannot change own password with this endpoint.");
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::BAD_REQUEST,
+        });
+    }
+
+    let user = User::find_by_username(&appstate.pool, &username).await?;
+
+    if let Some(user) = user {
+        let mut transaction = appstate.pool.begin().await?;
+
+        Token::delete_unused_user_password_reset_tokens(
+            &mut transaction,
+            user.id.expect("Missing user ID"),
+        )
+        .await?;
+
+        let enrollment = Token::new(
+            user.id.expect("Missing user ID"),
+            Some(session.user.id.expect("Missing admin ID")),
+            Some(user.email.clone()),
+            appstate.config.password_reset_token_timeout.as_secs(),
+            Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
+        );
+        enrollment.save(&mut transaction).await?;
+
+        let mail = Mail {
+            to: user.email.clone(),
+            subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
+            content: templates::email_password_reset_mail(
+                appstate.config.enrollment_url.clone(),
+                enrollment.id.clone().as_str(),
+                None,
+                None,
+            )?,
+            attachments: Vec::new(),
+            result_tx: None,
+        };
+
+        let to = mail.to.clone();
+
+        match &appstate.mail_tx.send(mail) {
+            Ok(()) => {
+                info!("Password reset email sent to {to}");
+                Ok(())
+            }
+            Err(err) => {
+                error!("Failed to send password reset email to {to} with error:\n{err}");
+                Err(WebError::Serialization(format!(
+                    "Could not send password reset email to user {username}"
+                )))
+            }
+        }?;
+
+        transaction.commit().await?;
+
         info!(
             "Admin {} changed password for user {username}",
             session.user.username
@@ -698,5 +794,33 @@ pub async fn delete_authorized_app(
         }
     } else {
         Err(WebError::ObjectNotFound("Authorized app not found".into()))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn test_username_validation() {
+        // valid usernames
+        assert_ok!(check_username("zenek34"));
+        assert_ok!(check_username("zenekXXX__"));
+        assert_ok!(check_username("first.last"));
+        assert_ok!(check_username("First_Last"));
+        assert_ok!(check_username("32zenek"));
+        assert_ok!(check_username("32-zenek"));
+
+        // invalid usernames
+        assert_err!(check_username("a"));
+        assert_err!(check_username("32"));
+        assert_err!(check_username("a4"));
+        assert_err!(check_username("__zenek"));
+        assert_err!(check_username("zenek?"));
+        assert_err!(check_username("MeMeMe!"));
+        assert_err!(check_username(
+            "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        ));
     }
 }

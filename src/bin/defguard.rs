@@ -1,22 +1,25 @@
-use defguard::{
-    auth::failed_login::FailedLoginMap,
-    config::{Command, DefGuardConfig},
-    db::{init_db, AppEvent, GatewayEvent, Settings, User},
-    grpc::{run_grpc_server, GatewayMap, WorkerState},
-    headers::create_user_agent_parser,
-    init_dev_env, init_vpn_location,
-    mail::{run_mail_handler, Mail},
-    run_web_server,
-    wireguard_stats_purge::run_periodic_stats_purge,
-    SERVER_CONFIG,
-};
-use secrecy::ExposeSecret;
 use std::{
     fs::read_to_string,
     sync::{Arc, Mutex},
 };
+
+use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+use defguard::{
+    auth::failed_login::FailedLoginMap,
+    config::{Command, DefGuardConfig},
+    db::{init_db, AppEvent, GatewayEvent, Settings, User},
+    grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
+    headers::create_user_agent_parser,
+    init_dev_env, init_vpn_location,
+    mail::{run_mail_handler, Mail},
+    run_web_server,
+    wireguard_peer_disconnect::run_periodic_peer_disconnect,
+    wireguard_stats_purge::run_periodic_stats_purge,
+    SERVER_CONFIG,
+};
 
 #[macro_use]
 extern crate tracing;
@@ -42,6 +45,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .init();
     SERVER_CONFIG.set(config.clone())?;
 
+    info!("Starting defguard");
+    debug!("Using config: {config:?}");
+
     let pool = init_db(
         &config.database_host,
         config.database_port,
@@ -66,8 +72,6 @@ async fn main() -> Result<(), anyhow::Error> {
         // return early
         return Ok(());
     }
-
-    debug!("Starting defguard server with config: {config:?}");
 
     if config.openid_signing_key.is_some() {
         info!("Using RSA OpenID signing key");
@@ -104,10 +108,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
-        _ = run_grpc_server(&config, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, user_agent_parser.clone(), failed_logins.clone()) => (),
-        _ = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx, mail_tx, pool.clone(), user_agent_parser, failed_logins) => (),
-        () = run_mail_handler(mail_rx, pool.clone()) => (),
-        _ = run_periodic_stats_purge(pool, config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => (),
+        res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), user_agent_parser.clone()), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:#?}"),
+        res = run_grpc_server(&config, Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => error!("gRPC server returned early: {res:#?}"),
+        res = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx, pool.clone(), user_agent_parser, failed_logins) => error!("Web server returned early: {res:#?}"),
+        res = run_mail_handler(mail_rx, pool.clone()) => error!("Mail handler returned early: {res:#?}"),
+        res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx) => error!("Periodic peer disconnect task returned early: {res:#?}"),
+        res = run_periodic_stats_purge(pool, config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:#?}"),
     }
     Ok(())
 }

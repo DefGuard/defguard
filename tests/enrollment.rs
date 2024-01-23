@@ -1,10 +1,10 @@
 mod common;
 
-use axum::http::StatusCode;
 use defguard::{
-    db::{models::enrollment::Enrollment, DbPool},
+    db::{models::enrollment::Token, DbPool},
     handlers::{AddUserData, Auth},
 };
+use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -19,7 +19,7 @@ async fn make_client() -> (TestClient, DbPool) {
 async fn test_initialize_enrollment() {
     let (client, pool) = make_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -36,7 +36,7 @@ async fn test_initialize_enrollment() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify enrollment token was not created
-    let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
+    let enrollments = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(enrollments.len(), 0);
 
     // try to start enrollment
@@ -64,7 +64,7 @@ async fn test_initialize_enrollment() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify enrollment token was not created
-    let enrollments = Enrollment::fetch_all(&pool).await.unwrap();
+    let enrollments = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(enrollments.len(), 0);
 
     // try to start enrollment
@@ -77,10 +77,10 @@ async fn test_initialize_enrollment() {
     let response: StartEnrollmentResponse = response.json().await;
 
     // verify enrollment token was created
-    let enrollment = Enrollment::find_by_id(&pool, &response.enrollment_token)
+    let enrollment = Token::find_by_id(&pool, &response.enrollment_token)
         .await
         .unwrap();
     assert_eq!(enrollment.user_id, 4);
-    assert_eq!(enrollment.admin_id, 1);
+    assert_eq!(enrollment.admin_id, Some(1));
     assert_eq!(enrollment.used_at, None);
 }

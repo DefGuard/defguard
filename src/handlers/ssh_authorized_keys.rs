@@ -62,20 +62,20 @@ pub async fn get_authorized_keys(
                                 debug!("User {username} is not a member of group {group_name}",);
                             }
                         } else {
-                            debug!("Specified user does not exist")
+                            debug!("Specified user does not exist");
                         }
                     }
                     None => {
                         debug!("Fetching SSH keys for all users in group {group_name}");
                         // fetch all users in group
-                        let users = group.fetch_all_members(&appstate.pool).await?;
+                        let users = group.members(&appstate.pool).await?;
                         for user in users {
-                            add_user_keys_to_list(user)
+                            add_user_keys_to_list(user);
                         }
                     }
                 }
             } else {
-                debug!("Specified group does not exist")
+                debug!("Specified group does not exist");
             }
         }
         None => {
@@ -86,7 +86,7 @@ pub async fn get_authorized_keys(
                 if let Some(user) = User::find_by_username(&appstate.pool, username).await? {
                     add_user_keys_to_list(user);
                 } else {
-                    debug!("Specified user does not exist")
+                    debug!("Specified user does not exist");
                 }
             }
         }

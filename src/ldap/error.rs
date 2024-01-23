@@ -1,29 +1,28 @@
-use ldap3::LdapError;
 use std::{error::Error, fmt};
 
 #[derive(Debug)]
-pub enum OriLDAPError {
+pub enum LdapError {
     Ldap(String),
     ObjectNotFound(String),
     MissingSettings,
 }
 
-impl fmt::Display for OriLDAPError {
+impl fmt::Display for LdapError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            OriLDAPError::Ldap(msg) => write!(f, "LDAP error: {msg}"),
-            OriLDAPError::ObjectNotFound(msg) => write!(f, "Object not found: {msg}"),
-            OriLDAPError::MissingSettings => {
+            LdapError::Ldap(msg) => write!(f, "LDAP error: {msg}"),
+            LdapError::ObjectNotFound(msg) => write!(f, "Object not found: {msg}"),
+            LdapError::MissingSettings => {
                 write!(f, "LDAP settings are missing.")
             }
         }
     }
 }
 
-impl Error for OriLDAPError {}
+impl Error for LdapError {}
 
-impl From<LdapError> for OriLDAPError {
-    fn from(error: LdapError) -> Self {
+impl From<ldap3::LdapError> for LdapError {
+    fn from(error: ldap3::LdapError) -> Self {
         Self::Ldap(error.to_string())
     }
 }

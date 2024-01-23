@@ -119,6 +119,9 @@ export interface Network {
   allowed_ips?: string[];
   allowed_groups?: string[];
   dns?: string;
+  mfa_enabled: boolean;
+  keepalive_interval: number;
+  peer_disconnect_threshold: number;
 }
 
 export type ModifyNetworkRequest = {
@@ -188,6 +191,10 @@ export interface GenericApiResponse {
 
 export interface ChangePasswordRequest {
   new_password: string;
+  username: string;
+}
+
+export interface ResetPasswordRequest {
   username: string;
 }
 
@@ -364,6 +371,7 @@ export interface ApiHook {
     deleteUser: (user: User) => EmptyApiResponse;
     usernameAvailable: (username: string) => EmptyApiResponse;
     changePassword: (data: ChangePasswordRequest) => EmptyApiResponse;
+    resetPassword: (data: ResetPasswordRequest) => EmptyApiResponse;
     walletChallenge: (data: WalletChallengeRequest) => Promise<WalletChallenge>;
     setWallet: (data: AddWalletRequest) => EmptyApiResponse;
     deleteWallet: (data: WalletChallengeRequest) => EmptyApiResponse;

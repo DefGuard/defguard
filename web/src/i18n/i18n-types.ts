@@ -1059,6 +1059,10 @@ type RootTranslation = {
 			 * C​o​u​l​d​ ​n​o​t​ ​g​e​t​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​.
 			 */
 			failedToFetchUserData: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​e​m​a​i​l​ ​h​a​s​ ​b​e​e​n​ ​s​e​n​t​.
+			 */
+			passwordResetEmailSent: string
 		}
 		userDetails: {
 			/**
@@ -1512,6 +1516,10 @@ type RootTranslation = {
 				 * R​e​m​o​t​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				activateDesktop: string
+				/**
+				 * R​e​s​e​t​ ​p​a​s​s​w​o​r​d
+				 */
+				resetPassword: string
 			}
 		}
 	}
@@ -1662,7 +1670,11 @@ type RootTranslation = {
 		}
 		error: {
 			/**
-			 * U​s​e​r​n​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e
+			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​s​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
+			 */
+			forbiddenCharacter: string
+			/**
+			 * U​s​e​r​n​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
 			 */
 			usernameTaken: string
 			/**
@@ -1730,11 +1742,11 @@ type RootTranslation = {
 			 */
 			allowedIps: string
 			/**
-			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r
+			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r​.
 			 */
 			startFromNumber: string
 			/**
-			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h
+			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h​.
 			 */
 			repeat: string
 		}
@@ -2990,6 +3002,24 @@ type RootTranslation = {
 					 * A​l​l​ ​g​r​o​u​p​s
 					 */
 					placeholder: string
+				}
+				mfa_enabled: {
+					/**
+					 * R​e​q​u​i​r​e​ ​M​F​A​ ​f​o​r​ ​t​h​i​s​ ​L​o​c​a​t​i​o​n
+					 */
+					label: string
+				}
+				keepalive_interval: {
+					/**
+					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l
+					 */
+					label: string
+				}
+				peer_disconnect_threshold: {
+					/**
+					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d
+					 */
+					label: string
 				}
 			}
 			controls: {
@@ -4571,6 +4601,10 @@ export type TranslationFunctions = {
 			 * Could not get user information.
 			 */
 			failedToFetchUserData: () => LocalizedString
+			/**
+			 * Password reset email has been sent.
+			 */
+			passwordResetEmailSent: () => LocalizedString
 		}
 		userDetails: {
 			/**
@@ -5024,6 +5058,10 @@ export type TranslationFunctions = {
 				 * Remote desktop activation
 				 */
 				activateDesktop: () => LocalizedString
+				/**
+				 * Reset password
+				 */
+				resetPassword: () => LocalizedString
 			}
 		}
 	}
@@ -5172,7 +5210,11 @@ export type TranslationFunctions = {
 		}
 		error: {
 			/**
-			 * Username is already in use
+			 * Field contains forbidden characters.
+			 */
+			forbiddenCharacter: () => LocalizedString
+			/**
+			 * Username is already in use.
 			 */
 			usernameTaken: () => LocalizedString
 			/**
@@ -5240,11 +5282,11 @@ export type TranslationFunctions = {
 			 */
 			allowedIps: () => LocalizedString
 			/**
-			 * Cannot start from number
+			 * Cannot start from number.
 			 */
 			startFromNumber: () => LocalizedString
 			/**
-			 * Fields don't match
+			 * Fields don't match.
 			 */
 			repeat: () => LocalizedString
 		}
@@ -6490,6 +6532,24 @@ export type TranslationFunctions = {
 					 * All groups
 					 */
 					placeholder: () => LocalizedString
+				}
+				mfa_enabled: {
+					/**
+					 * Require MFA for this Location
+					 */
+					label: () => LocalizedString
+				}
+				keepalive_interval: {
+					/**
+					 * Keepalive interval
+					 */
+					label: () => LocalizedString
+				}
+				peer_disconnect_threshold: {
+					/**
+					 * Peer disconnect threshold
+					 */
+					label: () => LocalizedString
 				}
 			}
 			controls: {

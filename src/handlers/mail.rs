@@ -6,6 +6,7 @@ use axum::{
 };
 use chrono::{NaiveDateTime, Utc};
 use lettre::message::header::ContentType;
+use reqwest::Url;
 use serde_json::json;
 use tokio::{
     fs::read_to_string,
@@ -17,7 +18,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     config::DefGuardConfig,
-    db::{MFAMethod, Session, User},
+    db::{models::enrollment::TokenError, MFAMethod, Session, User},
     error::WebError,
     mail::{Attachment, Mail},
     support::dump_config,
@@ -36,6 +37,9 @@ static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str = "Your Multi-Factor Authenticat
 static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Code for Login";
 
 static GATEWAY_DISCONNECTED: &str = "Defguard: Gateway disconnected";
+
+pub static EMAIL_PASSOWRD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
+pub static EMAIL_PASSOWRD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -165,14 +169,14 @@ pub async fn send_support_data(
     }
 }
 
-pub async fn send_new_device_added_email(
+pub fn send_new_device_added_email(
     device_name: &str,
     public_key: &str,
-    template_locations: &Vec<TemplateLocation>,
+    template_locations: &[TemplateLocation],
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
-    ip_address: Option<String>,
-    device_info: Option<String>,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device added mail to {SUPPORT_EMAIL_ADDRESS}");
 
@@ -203,10 +207,11 @@ pub async fn send_new_device_added_email(
         }
     }
 }
+
 pub async fn send_gateway_disconnected_email(
     gateway_name: Option<String>,
     network_name: String,
-    gateway_adress: String,
+    gateway_adress: &str,
     mail_tx: &UnboundedSender<Mail>,
     pool: &DbPool,
 ) -> Result<(), WebError> {
@@ -216,14 +221,14 @@ pub async fn send_gateway_disconnected_email(
         .ok_or(WebError::ServerConfigMissing)?
         .admin_groupname;
     let admin_users = User::find_by_group_name(pool, admin_group_name).await?;
-    let gateway_name = gateway_name.unwrap_or("".into());
-    for user in admin_users.into_iter() {
+    let gateway_name = gateway_name.unwrap_or_default();
+    for user in admin_users {
         let mail = Mail {
             to: user.email,
             subject: GATEWAY_DISCONNECTED.to_string(),
             content: templates::gateway_disconnected_mail(
                 &gateway_name,
-                &gateway_adress,
+                gateway_adress,
                 &network_name,
             )?,
             attachments: Vec::new(),
@@ -232,13 +237,12 @@ pub async fn send_gateway_disconnected_email(
         let to = mail.to.clone();
 
         match mail_tx.send(mail) {
-            Ok(_) => {
-                info!("Sent gateway disconnected notification to {}", &to);
+            Ok(()) => {
+                info!("Sent gateway disconnected notification to {to}");
             }
             Err(err) => {
                 error!(
-                    "Sending gateway disconnected notification to {} failed with error:\n{}",
-                    &to, &err
+                    "Sending gateway disconnected notification to {to} failed with error:\n{err}"
                 );
             }
         }
@@ -381,7 +385,7 @@ pub fn send_email_mfa_activation_email(
 pub fn send_email_mfa_code_email(
     user: &User,
     mail_tx: &UnboundedSender<Mail>,
-    session: &Session,
+    session: Option<&Session>,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA code mail to {}", user.email);
 
@@ -411,4 +415,65 @@ pub fn send_email_mfa_code_email(
             Ok(())
         }
     }
+}
+
+pub fn send_password_reset_email(
+    user: &User,
+    mail_tx: &UnboundedSender<Mail>,
+    service_url: Url,
+    token: &str,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
+) -> Result<(), TokenError> {
+    debug!("Sending password reset email to {}", user.email);
+
+    let mail = Mail {
+        to: user.email.clone(),
+        subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
+        content: templates::email_password_reset_mail(service_url, token, ip_address, device_info)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Password reset email sent to {to}");
+            Ok(())
+        }
+        Err(err) => {
+            error!("Failed to send password reset email to {to} with error:\n{err}");
+            Err(TokenError::NotificationError(err.to_string()))
+        }
+    }
+}
+
+pub fn send_password_reset_success_email(
+    user: &User,
+    mail_tx: &UnboundedSender<Mail>,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
+) -> Result<(), TokenError> {
+    debug!("Sending password reset success email to {}", user.email);
+
+    let mail = Mail {
+        to: user.email.clone(),
+        subject: EMAIL_PASSOWRD_RESET_SUCCESS_SUBJECT.into(),
+        content: templates::email_password_reset_success_mail(ip_address, device_info)?,
+        attachments: Vec::new(),
+        result_tx: None,
+    };
+
+    let to = mail.to.clone();
+
+    match mail_tx.send(mail) {
+        Ok(()) => {
+            info!("Password reset email success sent to {to}");
+        }
+        Err(err) => {
+            error!("Failed to send password reset success email to {to} with error:\n{err}");
+        }
+    }
+    Ok(())
 }

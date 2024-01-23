@@ -1,8 +1,9 @@
+use chrono::{Duration, NaiveDateTime, Utc};
+use sqlx::{query, query_as, Error as SqlxError, PgExecutor, Type};
+use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
+
 use super::DbPool;
 use crate::{auth::SESSION_TIMEOUT, random::gen_alphanumeric};
-use chrono::{Duration, NaiveDateTime, Utc};
-use sqlx::{query, query_as, Error as SqlxError, Type};
-use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
 #[derive(Clone, PartialEq, Type)]
 #[repr(i16)]
@@ -110,66 +111,83 @@ impl Session {
             .and_then(|challenge| serde_cbor::from_slice(challenge).ok())
     }
 
-    pub async fn set_passkey_authentication(
+    pub async fn set_passkey_authentication<'e, E>(
         &mut self,
-        pool: &DbPool,
+        executor: E,
         passkey_auth: &PasskeyAuthentication,
-    ) -> Result<(), SqlxError> {
-        let webauthn_challenge = serde_cbor::to_vec(passkey_auth).unwrap();
-        query!(
-            "UPDATE session SET webauthn_challenge = $1 WHERE id = $2",
-            webauthn_challenge,
-            self.id
-        )
-        .execute(pool)
-        .await?;
-        self.webauthn_challenge = Some(webauthn_challenge);
+    ) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if let Ok(webauthn_challenge) = serde_cbor::to_vec(passkey_auth) {
+            query!(
+                "UPDATE session SET webauthn_challenge = $1 WHERE id = $2",
+                webauthn_challenge,
+                self.id
+            )
+            .execute(executor)
+            .await?;
+            self.webauthn_challenge = Some(webauthn_challenge);
+        }
         Ok(())
     }
 
-    pub async fn set_passkey_registration(
+    pub async fn set_passkey_registration<'e, E>(
         &mut self,
-        pool: &DbPool,
+        executor: E,
         passkey_reg: &PasskeyRegistration,
-    ) -> Result<(), SqlxError> {
-        let webauthn_challenge = serde_cbor::to_vec(passkey_reg).unwrap();
-        query!(
-            "UPDATE session SET webauthn_challenge = $1 WHERE id = $2",
-            webauthn_challenge,
-            self.id
-        )
-        .execute(pool)
-        .await?;
-        self.webauthn_challenge = Some(webauthn_challenge);
+    ) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if let Ok(webauthn_challenge) = serde_cbor::to_vec(passkey_reg) {
+            query!(
+                "UPDATE session SET webauthn_challenge = $1 WHERE id = $2",
+                webauthn_challenge,
+                self.id
+            )
+            .execute(executor)
+            .await?;
+            self.webauthn_challenge = Some(webauthn_challenge);
+        }
         Ok(())
     }
 
-    pub async fn set_web3_challenge(
+    pub async fn set_web3_challenge<'e, E>(
         &mut self,
-        pool: &DbPool,
+        executor: E,
         web3_challenge: String,
-    ) -> Result<(), SqlxError> {
+    ) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query!(
             "UPDATE session SET web3_challenge = $1 WHERE id = $2",
             web3_challenge,
             self.id
         )
-        .execute(pool)
+        .execute(executor)
         .await?;
         self.web3_challenge = Some(web3_challenge);
         Ok(())
     }
 
-    pub async fn delete(self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn delete<'e, E>(self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query!("DELETE FROM session WHERE id = $1", self.id)
-            .execute(pool)
+            .execute(executor)
             .await?;
         Ok(())
     }
 
-    pub async fn delete_expired(pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn delete_expired<'e, E>(executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query!("DELETE FROM session WHERE expires < now()",)
-            .execute(pool)
+            .execute(executor)
             .await?;
         Ok(())
     }

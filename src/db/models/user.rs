@@ -1,12 +1,5 @@
-use super::{
-    device::{Device, UserDevice},
-    group::Group,
-    wallet::Wallet,
-    webauthn::WebAuthn,
-    DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
-};
-use crate::auth::EMAIL_CODE_VALIDITY_PERIOD;
-use crate::{auth::TOTP_CODE_VALIDITY_PERIOD, error::WebError, random::gen_alphanumeric};
+use std::{string::ToString, time::SystemTime};
+
 use argon2::{
     password_hash::{
         errors::Error as HashError, rand_core::OsRng, PasswordHash, PasswordHasher,
@@ -17,9 +10,20 @@ use argon2::{
 use axum::http::StatusCode;
 use model_derive::Model;
 use otpauth::TOTP;
-use rand::{thread_rng, Rng};
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, Type};
-use std::time::SystemTime;
+use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, Type};
+
+use super::{
+    device::{Device, UserDevice},
+    group::Group,
+    wallet::Wallet,
+    webauthn::WebAuthn,
+    DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
+};
+use crate::{
+    auth::{EMAIL_CODE_VALIDITY_PERIOD, TOTP_CODE_VALIDITY_PERIOD},
+    error::WebError,
+    random::{gen_alphanumeric, gen_totp_secret},
+};
 
 const RECOVERY_CODES_COUNT: usize = 8;
 
@@ -33,7 +37,7 @@ pub enum MFAMethod {
     Email,
 }
 
-impl std::string::ToString for MFAMethod {
+impl ToString for MFAMethod {
     fn to_string(&self) -> String {
         match self {
             MFAMethod::None => "None".into(),
@@ -46,7 +50,7 @@ impl std::string::ToString for MFAMethod {
 }
 
 // User information ready to be sent as part of diagnostic data.
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub struct UserDiagnostic {
     pub id: i64,
     pub mfa_enabled: bool,
@@ -89,24 +93,23 @@ impl User {
     }
 
     #[must_use]
-    pub fn new(
-        username: String,
+    pub fn new<S: Into<String>>(
+        username: S,
         password: Option<&str>,
-        last_name: String,
-        first_name: String,
-        email: String,
+        last_name: S,
+        first_name: S,
+        email: S,
         phone: Option<String>,
     ) -> Self {
-        let password_hash = password.map(|password_hash| {
-            Self::hash_password(password_hash).expect("Failed to hash password")
-        });
+        let password_hash =
+            password.and_then(|password_hash| Self::hash_password(password_hash).ok());
         Self {
             id: None,
-            username,
+            username: username.into(),
             password_hash,
-            last_name,
-            first_name,
-            email,
+            last_name: last_name.into(),
+            first_name: first_name.into(),
+            email: email.into(),
             phone,
             ssh_key: None,
             pgp_key: None,
@@ -122,7 +125,7 @@ impl User {
     }
 
     pub fn set_password(&mut self, password: &str) {
-        self.password_hash = Some(Self::hash_password(password).unwrap());
+        self.password_hash = Self::hash_password(password).ok();
     }
 
     pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
@@ -148,16 +151,19 @@ impl User {
         format!("{} {}", self.first_name, self.last_name)
     }
 
-    /// Generate new `secret`, save it, then return it as RFC 4648 base32-encoded string.
-    pub async fn new_totp_secret(&mut self, pool: &DbPool) -> Result<String, SqlxError> {
-        let secret = thread_rng().gen::<[u8; 20]>().to_vec();
+    /// Generate new TOTP secret, save it, then return it as RFC 4648 base32-encoded string.
+    pub async fn new_totp_secret<'e, E>(&mut self, executor: E) -> Result<String, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let secret = gen_totp_secret();
         if let Some(id) = self.id {
             query!(
                 "UPDATE \"user\" SET totp_secret = $1 WHERE id = $2",
                 secret,
                 id
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         let secret_base32 = TOTP::from_bytes(&secret).base32_secret();
@@ -165,30 +171,36 @@ impl User {
         Ok(secret_base32)
     }
 
-    /// Generate new `secret` similar to TOTP secret above, but don't return generated value.
-    pub async fn new_email_secret(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
-        let email_secret = thread_rng().gen::<[u8; 20]>().to_vec();
+    /// Generate new email secret, similar to TOTP secret above, but don't return generated value.
+    pub async fn new_email_secret<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let email_secret = gen_totp_secret();
         if let Some(id) = self.id {
             query!(
                 "UPDATE \"user\" SET email_mfa_secret = $1 WHERE id = $2",
                 email_secret,
                 id
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         self.email_mfa_secret = Some(email_secret);
         Ok(())
     }
 
-    pub async fn set_mfa_method(
+    pub async fn set_mfa_method<'e, E>(
         &mut self,
-        pool: &DbPool,
+        executor: E,
         mfa_method: MFAMethod,
-    ) -> Result<(), SqlxError> {
+    ) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         info!(
-            "Setting MFA method for user {} to {:?}",
-            self.username, mfa_method
+            "Setting MFA method for user {} to {mfa_method:?}",
+            self.username
         );
         if let Some(id) = self.id {
             query!(
@@ -196,7 +208,7 @@ impl User {
                 id,
                 &mfa_method as &MFAMethod
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
         self.mfa_method = mfa_method;
@@ -208,7 +220,10 @@ impl User {
     /// - TOTP is enabled
     /// - a [`Wallet`] flagged `use_for_mfa`
     /// - a security key for Webauthn
-    async fn check_mfa_enabled(&self, pool: &DbPool) -> Result<bool, SqlxError> {
+    async fn check_mfa_enabled<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         // short-cut
         if self.totp_enabled || self.email_mfa_enabled {
             return Ok(true);
@@ -223,7 +238,7 @@ impl User {
                 WHERE \"user\".id = $1 GROUP BY totp_enabled, email_mfa_enabled;",
                 id
             )
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
         } else {
             Ok(false)
@@ -274,12 +289,12 @@ impl User {
                     }
                     Some(methods) => {
                         info!(
-                            "Checking if {:?} in in available methods {:?}, {}",
+                            "Checking if {:?} in in available methods {methods:?}, {}",
                             info.mfa_method,
-                            methods,
                             methods.contains(&info.mfa_method)
                         );
                         if !methods.contains(&info.mfa_method) {
+                            // FIXME: do not panic
                             self.set_mfa_method(pool, methods.into_iter().next().unwrap())
                                 .await?;
                         }
@@ -300,10 +315,13 @@ impl User {
 
     /// Get recovery codes. If recovery codes exist, this function returns `None`.
     /// That way recovery codes are returned only once - when MFA is turned on.
-    pub async fn get_recovery_codes(
+    pub async fn get_recovery_codes<'e, E>(
         &mut self,
-        pool: &DbPool,
-    ) -> Result<Option<Vec<String>>, SqlxError> {
+        executor: E,
+    ) -> Result<Option<Vec<String>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         if !self.recovery_codes.is_empty() {
             return Ok(None);
         }
@@ -318,7 +336,7 @@ impl User {
                 id,
                 &self.recovery_codes
             )
-            .execute(pool)
+            .execute(executor)
             .await?;
         }
 
@@ -348,11 +366,14 @@ impl User {
     }
 
     /// Enable TOTP
-    pub async fn enable_totp(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn enable_totp<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         if !self.totp_enabled {
             if let Some(id) = self.id {
                 query!("UPDATE \"user\" SET totp_enabled = TRUE WHERE id = $1", id)
-                    .execute(pool)
+                    .execute(executor)
                     .await?;
             }
             self.totp_enabled = true;
@@ -384,14 +405,17 @@ impl User {
     }
 
     /// Enable email MFA
-    pub async fn enable_email_mfa(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn enable_email_mfa<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         if !self.email_mfa_enabled {
             if let Some(id) = self.id {
                 query!(
                     "UPDATE \"user\" SET email_mfa_enabled = TRUE WHERE id = $1",
                     id
                 )
-                .execute(pool)
+                .execute(executor)
                 .await?;
             }
             self.email_mfa_enabled = true;
@@ -427,9 +451,9 @@ impl User {
         pool: &DbPool,
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
-            r#"
-            SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, mfa_method as "mfa_method: MFAMethod", password_hash FROM "user"
-        "#
+            "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+                mfa_method as \"mfa_method: MFAMethod\", password_hash \
+            FROM \"user\""
         )
         .fetch_all(pool)
         .await?;
@@ -535,10 +559,13 @@ impl User {
         }
     }
 
-    pub async fn find_by_username(
-        pool: &DbPool,
+    pub async fn find_by_username<'e, E>(
+        executor: E,
         username: &str,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
@@ -547,13 +574,29 @@ impl User {
             FROM \"user\" WHERE username = $1",
             username
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 
-    pub async fn member_of<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    pub async fn find_by_email<'e, E>(executor: E, email: &str) -> Result<Option<Self>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
+            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
+            FROM \"user\" WHERE email = $1",
+            email
+        )
+        .fetch_optional(executor)
+        .await
+    }
+
+    pub async fn member_of_names<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    where
+        E: PgExecutor<'e>,
     {
         if let Some(id) = self.id {
             query_scalar!(
@@ -568,14 +611,30 @@ impl User {
         }
     }
 
+    pub async fn member_of<'e, E>(&self, executor: E) -> Result<Vec<Group>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if let Some(id) = self.id {
+            query_as!(
+                Group,
+                "SELECT id \"id?\", name FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
+                WHERE group_user.user_id = $1",
+                id
+            )
+            .fetch_all(executor)
+            .await
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
     pub async fn devices(&self, pool: &DbPool) -> Result<Vec<UserDevice>, SqlxError> {
         if let Some(id) = self.id {
             let devices = query_as!(
                 Device,
-                r#"
-                SELECT device.id "id?", name, wireguard_pubkey, user_id, created
-                FROM device WHERE user_id = $1
-                "#,
+                "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
+                FROM device WHERE user_id = $1",
                 id
             )
             .fetch_all(pool)
@@ -593,7 +652,10 @@ impl User {
         }
     }
 
-    pub async fn wallets(&self, pool: &DbPool) -> Result<Vec<WalletInfo>, SqlxError> {
+    pub async fn wallets<'e, E>(&self, executor: E) -> Result<Vec<WalletInfo>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         if let Some(id) = self.id {
             query_as!(
                 WalletInfo,
@@ -601,7 +663,7 @@ impl User {
                 FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL",
                 id
             )
-            .fetch_all(pool)
+            .fetch_all(executor)
             .await
         } else {
             Ok(Vec::new())
@@ -613,7 +675,7 @@ impl User {
         executor: E,
     ) -> Result<Vec<OAuth2AuthorizedAppInfo>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         if let Some(id) = self.id {
             query_as!(
@@ -648,7 +710,7 @@ impl User {
 
     pub async fn add_to_group<'e, E>(&self, executor: E, group: &Group) -> Result<(), SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         if let (Some(id), Some(group_id)) = (self.id, group.id) {
             query!(
@@ -669,7 +731,7 @@ impl User {
         group: &Group,
     ) -> Result<(), SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         if let (Some(id), Some(group_id)) = (self.id, group.id) {
             query!(
@@ -683,14 +745,14 @@ impl User {
         Ok(())
     }
 
-    // Remove authoirzed apps by their client id's from user
+    /// Remove authorized apps by their client id's from user
     pub async fn remove_oauth2_authorized_apps<'e, E>(
         &self,
         executor: E,
-        app_client_ids: &Vec<i64>,
+        app_client_ids: &[i64],
     ) -> Result<(), SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         if let Some(id) = self.id {
             query!(
@@ -725,7 +787,7 @@ impl User {
 
         // if new user was created add them to admin group (ID 1)
         if let Some(new_user_id) = result {
-            info!("New admin user was created, adding to Admin group...");
+            info!("New admin user has been created, adding to Admin group...");
             query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
                 .bind(new_user_id)
                 .execute(pool)
@@ -743,11 +805,11 @@ mod test {
     #[sqlx::test]
     async fn test_user(pool: DbPool) {
         let mut user = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         user.save(&pool).await.unwrap();
@@ -772,21 +834,21 @@ mod test {
     #[sqlx::test]
     async fn test_all_users(pool: DbPool) {
         let mut harry = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         harry.save(&pool).await.unwrap();
 
         let mut albus = User::new(
-            "adumbledore".into(),
+            "adumbledore",
             Some("magic!"),
-            "Dumbledore".into(),
-            "Albus".into(),
-            "a.dumbledore@hogwart.edu.uk".into(),
+            "Dumbledore",
+            "Albus",
+            "a.dumbledore@hogwart.edu.uk",
             None,
         );
         albus.save(&pool).await.unwrap();
@@ -803,11 +865,11 @@ mod test {
     #[sqlx::test]
     async fn test_recovery_codes(pool: DbPool) {
         let mut harry = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         harry.get_recovery_codes(&pool).await.unwrap();

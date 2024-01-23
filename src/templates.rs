@@ -1,4 +1,4 @@
-use chrono::{Datelike, NaiveDateTime};
+use chrono::{Datelike, NaiveDateTime, Utc};
 use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
@@ -27,6 +27,10 @@ static MAIL_NEW_DEVICE_OCID_LOGIN: &str =
 static MAIL_EMAIL_MFA_ACTIVATION: &str =
     include_str!("../templates/mail_email_mfa_activation.tera");
 static MAIL_EMAIL_MFA_CODE: &str = include_str!("../templates/mail_email_mfa_code.tera");
+static MAIL_PASSWORD_RESET_START: &str =
+    include_str!("../templates/mail_password_reset_start.tera");
+static MAIL_PASSWORD_RESET_SUCCESS: &str =
+    include_str!("../templates/mail_password_reset_success.tera");
 
 #[allow(dead_code)]
 static MAIL_DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
@@ -42,8 +46,8 @@ pub enum TemplateError {
 pub fn get_base_tera(
     external_context: Option<Context>,
     session: Option<&Session>,
-    ip_address: Option<String>,
-    device_info: Option<String>,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
 ) -> Result<(Tera, Context), TemplateError> {
     let mut tera = Tera::default();
     let mut context = external_context.unwrap_or_default();
@@ -51,23 +55,23 @@ pub fn get_base_tera(
     tera.add_raw_template("macros.tera", MAIL_MACROS)?;
     // supply context required by base
     context.insert("application_version", &VERSION);
-    let now = chrono::Utc::now();
+    let now = Utc::now();
     let current_year = format!("{:04}", &now.year());
     context.insert("current_year", &current_year);
     context.insert("date_now", &now.format("%A, %B %d, %Y at %r").to_string());
 
     if let Some(current_session) = session {
-        let device_info = current_session.device_info.clone();
+        let device_info = &current_session.device_info;
         context.insert("device_type", &device_info);
         context.insert("ip_address", &current_session.ip_address);
     }
 
     if let Some(ip) = ip_address {
-        context.insert("ip_address", &ip);
+        context.insert("ip_address", ip);
     }
 
     if let Some(device_info) = device_info {
-        context.insert("device_type", &device_info);
+        context.insert("device_type", device_info);
     }
 
     Ok((tera, context))
@@ -127,8 +131,8 @@ pub fn desktop_start_mail(
 // content is stored in markdown, so it's parsed into HTML
 pub fn enrollment_welcome_mail(
     content: &str,
-    ip_address: Option<String>,
-    device_info: Option<String>,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
     tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
@@ -147,8 +151,8 @@ pub fn enrollment_welcome_mail(
 pub fn enrollment_admin_notification(
     user: &User,
     admin: &User,
-    ip_address: String,
-    device_info: Option<String>,
+    ip_address: &str,
+    device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, None, Some(ip_address), device_info)?;
 
@@ -179,9 +183,9 @@ pub struct TemplateLocation {
 pub fn new_device_added_mail(
     device_name: &str,
     public_key: &str,
-    template_locations: &Vec<TemplateLocation>,
-    ip_address: Option<String>,
-    device_info: Option<String>,
+    template_locations: &[TemplateLocation],
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
     context.insert("device_name", device_name);
@@ -257,13 +261,51 @@ pub fn email_mfa_activation_mail(code: u32, session: &Session) -> Result<String,
     Ok(tera.render("mail_email_mfa_activation", &context)?)
 }
 
-pub fn email_mfa_code_mail(code: u32, session: &Session) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
+pub fn email_mfa_code_mail(code: u32, session: Option<&Session>) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));
     tera.add_raw_template("mail_email_mfa_code", MAIL_EMAIL_MFA_CODE)?;
 
     Ok(tera.render("mail_email_mfa_code", &context)?)
+}
+
+pub fn email_password_reset_mail(
+    mut service_url: Url,
+    password_reset_token: &str,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
+) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
+
+    context.insert("enrollment_url", &service_url.to_string());
+    context.insert(
+        "defguard_url",
+        &SERVER_CONFIG.get().expect("Server config not found").url,
+    );
+    context.insert("token", password_reset_token);
+
+    service_url.set_path("/password-reset");
+    service_url
+        .query_pairs_mut()
+        .append_pair("token", password_reset_token);
+
+    context.insert("link_url", &service_url.to_string());
+
+    tera.add_raw_template("mail_passowrd_reset_start", MAIL_PASSWORD_RESET_START)?;
+
+    Ok(tera.render("mail_passowrd_reset_start", &context)?)
+}
+
+pub fn email_password_reset_success_mail(
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
+) -> Result<String, TemplateError> {
+    let (mut tera, context) = get_base_tera(None, None, ip_address, device_info)?;
+
+    tera.add_raw_template("mail_passowrd_reset_success", MAIL_PASSWORD_RESET_SUCCESS)?;
+
+    Ok(tera.render("mail_passowrd_reset_success", &context)?)
 }
 
 #[cfg(test)]
@@ -352,7 +394,7 @@ mod test {
             "Test device",
             "TestKey",
             &template_locations,
-            Some("1.1.1.1".to_string()),
+            Some("1.1.1.1"),
             None,
         ));
     }
@@ -368,17 +410,17 @@ mod test {
     #[test]
     fn test_enrollment_admin_notification() {
         let test_user: User = User::new(
-            "test".into(),
-            "1234".into(),
-            "test_last".into(),
-            "test_first".into(),
-            "test@example.com".into(),
+            "test",
+            Some("1234"),
+            "test_last",
+            "test_first",
+            "test@example.com",
             Some("99999".into()),
         );
         assert_ok!(enrollment_admin_notification(
             &test_user,
             &test_user,
-            "11.11.11.11".to_string(),
+            "11.11.11.11",
             None
         ));
     }
