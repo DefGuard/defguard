@@ -6,6 +6,7 @@ pub type DbPool = sqlx::postgres::PgPool;
 
 /// Initializes and migrates postgres database. Returns DB pool object.
 pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &str) -> DbPool {
+    info!("Initializing DB pool");
     let opts = PgConnectOptions::new()
         .host(host)
         .port(port)

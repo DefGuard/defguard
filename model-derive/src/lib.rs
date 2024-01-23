@@ -177,7 +177,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         impl #name {
             pub async fn find_by_id<'e, E>(executor: E, id: i64) -> Result<Option<Self>, sqlx::Error>
             where
-                E: sqlx::Executor<'e, Database = sqlx::Postgres>
+                E: sqlx::PgExecutor<'e>
             {
                 sqlx::query_as!(Self, #find_by_id_query, id).fetch_optional(executor).await
             }
@@ -185,14 +185,14 @@ pub fn derive(input: TokenStream) -> TokenStream {
             // TODO: add limit and offset
             pub async fn all<'e, E>(executor: E) -> Result<Vec<Self>, sqlx::Error>
             where
-                E: sqlx::Executor<'e, Database = sqlx::Postgres>
+                E: sqlx::PgExecutor<'e>
             {
                 sqlx::query_as!(Self, #all_query).fetch_all(executor).await
             }
 
             pub async fn delete<'e, E>(self, executor: E) -> Result<(), sqlx::Error>
             where
-                E: sqlx::Executor<'e, Database = sqlx::Postgres>
+                E: sqlx::PgExecutor<'e>
             {
                 if let Some(id) = self.id {
                     sqlx::query!(#delete_query, id).execute(executor).await?;
@@ -202,7 +202,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
             pub async fn save<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
             where
-                E: sqlx::Executor<'e, Database = sqlx::Postgres>
+                E: sqlx::PgExecutor<'e>
             {
                 match self.id {
                     None => {

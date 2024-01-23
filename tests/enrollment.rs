@@ -19,7 +19,7 @@ async fn make_client() -> (TestClient, DbPool) {
 async fn test_initialize_enrollment() {
     let (client, pool) = make_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

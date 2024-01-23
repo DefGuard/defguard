@@ -2,6 +2,9 @@
 name = "defguard"
 version = "0.8.0"
 edition = "2021"
+license = "Apache-2.0"
+homepage = "https://defguard.net/"
+repository = "https://github.com/DefGuard/defguard"
 
 [workspace]
 
@@ -11,9 +14,12 @@ anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
 axum = { version = "0.7" }
 axum-client-ip = "0.5"
-axum-extra = { version = "0.9", features = ["typed-header"] }
+axum-extra = { version = "0.9", features = [
+    "cookie",
+    "cookie-private",
+    "typed-header",
+] }
 base64 = "0.21"
-bincode = "1.3"
 chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "serde",
@@ -26,7 +32,7 @@ humantime = "2.1"
 # match ipnetwork version from sqlx
 ipnetwork = { version = "0.20", features = ["serde"] }
 jsonwebtoken = "9.2"
-ldap3 = "0.11"
+ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
 lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 md4 = "0.10"
 otpauth = "0.4"
@@ -59,8 +65,11 @@ sqlx = { version = "0.7", features = [
     "postgres",
     "uuid",
 ] }
+struct-patch = "0.4"
 tera = "1.19"
 thiserror = "1.0"
+# match axum-extra -> cookies
+time = { version = "0.3", default-features = false }
 tiny-keccak = { version = "2.0", features = ["keccak"] }
 tokio = { version = "1", features = [
     "macros",
@@ -72,7 +81,6 @@ tokio = { version = "1", features = [
 ] }
 tokio-stream = "0.1"
 tonic = { version = "0.10", features = ["gzip", "tls", "tls-roots"] }
-tower-cookies = { version = "0.10", features = ["private"] }
 tower-http = { version = "0.5", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -84,7 +92,6 @@ webauthn-rs = { version = "0.4", features = [
 ] }
 webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-struct-patch = "0.4"
 
 [dev-dependencies]
 bytes = "1.5"

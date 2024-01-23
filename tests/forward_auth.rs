@@ -10,10 +10,10 @@ async fn make_client() -> TestClient {
 
     let mut wallet = Wallet::new_for_user(
         client_state.test_user.id.unwrap(),
-        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e".into(),
-        "test".into(),
+        "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
+        "test",
         5,
-        String::new(),
+        "",
     );
     wallet.save(&client_state.pool).await.unwrap();
 
@@ -43,7 +43,7 @@ async fn test_forward_auth() {
     );
 
     // login
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

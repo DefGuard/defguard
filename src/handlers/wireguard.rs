@@ -17,7 +17,7 @@ use uuid::Uuid;
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
 use crate::{
     appstate::AppState,
-    auth::{AdminRole, Claims, ClaimsType, SessionInfo},
+    auth::{Claims, ClaimsType, SessionInfo, VpnRole},
     db::{
         models::{
             device::{
@@ -42,6 +42,9 @@ pub struct WireguardNetworkData {
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
     pub allowed_groups: Vec<String>,
+    pub mfa_enabled: bool,
+    pub keepalive_interval: i32,
+    pub peer_disconnect_threshold: i32,
 }
 
 impl WireguardNetworkData {
@@ -54,7 +57,7 @@ impl WireguardNetworkData {
     }
 }
 
-// Used in process of importing network from wireguard config
+// Used in process of importing network from WireGuard config
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MappedDevices {
     pub devices: Vec<MappedDevice>,
@@ -80,15 +83,15 @@ pub struct ImportedNetworkData {
 }
 
 pub async fn create_network(
-    _admin: AdminRole,
+    _role: VpnRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Json(data): Json<WireguardNetworkData>,
 ) -> ApiResult {
     let network_name = data.name.clone();
     debug!(
-        "User {} creating WireGuard network {}",
-        session.user.username, network_name
+        "User {} creating WireGuard network {network_name}",
+        session.user.username
     );
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -98,6 +101,9 @@ pub async fn create_network(
         data.endpoint,
         data.dns,
         allowed_ips,
+        data.mfa_enabled,
+        data.keepalive_interval,
+        data.peer_disconnect_threshold,
     )
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
@@ -108,9 +114,7 @@ pub async fn create_network(
         .await?;
 
     // generate IP addresses for existing devices
-    network
-        .add_all_allowed_devices(&mut transaction, &appstate.config.admin_groupname)
-        .await?;
+    network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
     match &network.id {
@@ -119,7 +123,7 @@ pub async fn create_network(
                 .send_wireguard_event(GatewayEvent::NetworkCreated(*network_id, network.clone()));
         }
         None => {
-            error!("Network {} ID was not created during network creation, gateway event was not send!", &network.name);
+            error!("Network {} ID was not created during network creation, gateway event was not send!", network.name);
             return Ok(ApiResponse {
                 json: json!({}),
                 status: StatusCode::INTERNAL_SERVER_ERROR,
@@ -130,8 +134,8 @@ pub async fn create_network(
     transaction.commit().await?;
 
     info!(
-        "User {} created WireGuard network {}",
-        session.user.username, network_name
+        "User {} created WireGuard network {network_name}",
+        session.user.username
     );
     Ok(ApiResponse {
         json: json!(network),
@@ -146,7 +150,7 @@ async fn find_network(id: i64, pool: &DbPool) -> Result<WireguardNetwork, WebErr
 }
 
 pub async fn modify_network(
-    _admin: AdminRole,
+    _role: VpnRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -167,13 +171,15 @@ pub async fn modify_network(
     network.port = data.port;
     network.dns = data.dns;
     network.address = data.address;
+    network.mfa_enabled = data.mfa_enabled;
+    network.keepalive_interval = data.keepalive_interval;
+    network.peer_disconnect_threshold = data.peer_disconnect_threshold;
+
     network.save(&mut *transaction).await?;
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
         .await?;
-    let _events = network
-        .sync_allowed_devices(&mut transaction, &appstate.config.admin_groupname, None)
-        .await?;
+    let _events = network.sync_allowed_devices(&mut transaction, None).await?;
 
     match &network.id {
         Some(network_id) => {
@@ -206,7 +212,7 @@ pub async fn modify_network(
 }
 
 pub async fn delete_network(
-    _admin: AdminRole,
+    _role: VpnRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -227,7 +233,7 @@ pub async fn delete_network(
 }
 
 pub async fn list_networks(
-    _admin: AdminRole,
+    _role: VpnRole,
     State(appstate): State<AppState>,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
@@ -260,7 +266,7 @@ pub async fn list_networks(
 
 pub async fn network_details(
     Path(network_id): Path<i64>,
-    _admin: AdminRole,
+    _role: VpnRole,
     State(appstate): State<AppState>,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
@@ -295,7 +301,7 @@ pub async fn network_details(
 
 pub async fn gateway_status(
     Path(network_id): Path<i64>,
-    _admin: AdminRole,
+    _role: VpnRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Displaying gateway status for network {network_id}");
@@ -311,7 +317,7 @@ pub async fn gateway_status(
 
 pub async fn remove_gateway(
     Path((network_id, gateway_id)): Path<(i64, String)>,
-    _admin: AdminRole,
+    _role: VpnRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     info!("Removing gateway {gateway_id} in network {network_id}");
@@ -332,7 +338,7 @@ pub async fn remove_gateway(
 }
 
 pub async fn import_network(
-    _admin: AdminRole,
+    _role: VpnRole,
     State(appstate): State<AppState>,
     Json(data): Json<ImportNetworkData>,
 ) -> ApiResult {
@@ -367,22 +373,14 @@ pub async fn import_network(
         .map(|dev| dev.wireguard_ip)
         .collect();
     let (devices, gateway_events) = network
-        .handle_imported_devices(
-            &mut transaction,
-            imported_devices,
-            &appstate.config.admin_groupname,
-        )
+        .handle_imported_devices(&mut transaction, imported_devices)
         .await?;
     appstate.send_multiple_wireguard_events(gateway_events);
 
     // assign IPs for other existing devices
     info!("Assigning IPs in imported network for remaining existing devices");
     let gateway_events = network
-        .sync_allowed_devices(
-            &mut transaction,
-            &appstate.config.admin_groupname,
-            Some(&reserved_ips),
-        )
+        .sync_allowed_devices(&mut transaction, Some(&reserved_ips))
         .await?;
     appstate.send_multiple_wireguard_events(gateway_events);
 
@@ -396,7 +394,7 @@ pub async fn import_network(
 
 // This is used exclusively for the wizard to map imported devices to users.
 pub async fn add_user_devices(
-    _admin: AdminRole,
+    _role: VpnRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
@@ -424,11 +422,7 @@ pub async fn add_user_devices(
             // wrap loop in transaction to abort if a device is invalid
             let mut transaction = appstate.pool.begin().await?;
             let events = network
-                .handle_mapped_devices(
-                    &mut transaction,
-                    mapped_devices,
-                    &appstate.config.admin_groupname,
-                )
+                .handle_mapped_devices(&mut transaction, mapped_devices)
                 .await?;
             appstate.send_multiple_wireguard_events(events);
             transaction.commit().await?;
@@ -490,9 +484,7 @@ pub async fn add_device(
         device: Device,
     }
 
-    let (network_info, configs) = device
-        .add_to_all_networks(&mut transaction, &appstate.config.admin_groupname)
-        .await?;
+    let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
     let mut network_ips: Vec<String> = Vec::new();
     for network_info_item in network_info.clone() {
@@ -519,7 +511,7 @@ pub async fn add_device(
         (None, None)
     } else {
         (
-            Some(session.session.ip_address.clone()),
+            Some(session.session.ip_address.as_str()),
             session.session.device_info.clone(),
         )
     };
@@ -530,9 +522,8 @@ pub async fn add_device(
         &user.email,
         &appstate.mail_tx,
         session_ip,
-        session_device_info,
-    )
-    .await?;
+        session_device_info.as_deref(),
+    )?;
 
     info!(
         "User {} added device {device_name} for user {username}",
@@ -590,6 +581,8 @@ pub async fn modify_device(
                     let device_network_info = DeviceNetworkInfo {
                         network_id,
                         device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                        preshared_key: wireguard_network_device.preshared_key,
+                        is_authorized: wireguard_network_device.is_authorized,
                     };
                     network_info.push(device_network_info);
                 }
@@ -636,7 +629,7 @@ pub async fn delete_device(
     Ok(ApiResponse::default())
 }
 
-pub async fn list_devices(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn list_devices(_role: VpnRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing devices");
     let devices = Device::all(&appstate.pool).await?;
     info!("Listed devices");
@@ -683,14 +676,14 @@ pub async fn download_config(
             String::new()
         };
         Err(WebError::ObjectNotFound(format!(
-            "No ip found for device: {}({device_id})",
+            "No IP address found for device: {}({device_id})",
             device.name
         )))
     }
 }
 
 pub async fn create_network_token(
-    _admin: AdminRole,
+    _role: VpnRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
 ) -> ApiResult {
@@ -744,7 +737,7 @@ impl QueryFrom {
 }
 
 pub async fn user_stats(
-    _admin: AdminRole,
+    _role: VpnRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
     Query(query_from): Query<QueryFrom>,
@@ -769,7 +762,7 @@ pub async fn user_stats(
 }
 
 pub async fn network_stats(
-    _admin: AdminRole,
+    _role: VpnRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
     Query(query_from): Query<QueryFrom>,

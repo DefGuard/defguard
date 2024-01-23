@@ -6,6 +6,7 @@ import {
   patternAtLeastOneLowerCaseChar,
   patternAtLeastOneSpecialChar,
   patternAtLeastOneUpperCaseChar,
+  patternSafePasswordCharacters,
 } from '../patterns';
 
 export const passwordValidator = (LL: TranslationFunctions) =>
@@ -17,4 +18,5 @@ export const passwordValidator = (LL: TranslationFunctions) =>
     .matches(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
     .matches(patternAtLeastOneUpperCaseChar, LL.form.error.oneUppercase())
     .matches(patternAtLeastOneLowerCaseChar, LL.form.error.oneLowercase())
+    .matches(patternSafePasswordCharacters, LL.form.error.forbiddenCharacter())
     .required(LL.form.error.required());

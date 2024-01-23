@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
+use model_derive::Model;
+use sqlx::{query, query_as, Error as SqlxError, PgExecutor, Type};
+use struct_patch::Patch;
+
 use super::DbPool;
 use crate::secret::SecretString;
-use model_derive::Model;
-use sqlx::{query, Error as SqlxError, Type};
-use std::collections::HashMap;
-use struct_patch::Patch;
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
@@ -44,7 +46,7 @@ pub struct Settings {
     pub enrollment_welcome_email: Option<String>,
     pub enrollment_welcome_email_subject: Option<String>,
     pub enrollment_use_welcome_message_as_email: bool,
-    // Instance uuid needed for desktop client
+    // Instance UUID needed for desktop client
     #[serde(skip)]
     pub uuid: uuid::Uuid,
     // LDAP
@@ -63,9 +65,9 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub async fn get_settings<'e, E>(executor: E) -> Result<Settings, sqlx::Error>
+    pub async fn get_settings<'e, E>(executor: E) -> Result<Settings, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         let settings = Settings::find_by_id(executor, 1).await?;
 
@@ -75,7 +77,7 @@ impl Settings {
     // Set default values for settings if not set yet.
     // This is only relevant to a subset of settings which are nullable
     // and we want to initialize their values.
-    pub async fn init_defaults(pool: &DbPool) -> Result<(), sqlx::Error> {
+    pub async fn init_defaults(pool: &DbPool) -> Result<(), SqlxError> {
         info!("Initializing default settings");
 
         let default_settings = HashMap::from([
@@ -108,14 +110,7 @@ impl Settings {
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
-pub struct SettingsBranding {
-    pub instance_name: String,
-    pub main_logo_url: String,
-    pub nav_logo_url: String,
-}
-
-#[derive(Debug, Serialize, Clone)]
+#[derive(Serialize)]
 pub struct SettingsEssentials {
     pub instance_name: String,
     pub main_logo_url: String,
@@ -127,11 +122,18 @@ pub struct SettingsEssentials {
 }
 
 impl SettingsEssentials {
-    pub async fn get_settings_essentials(pool: &DbPool) -> Result<Self, SqlxError> {
-        let res = sqlx::query_as!(SettingsEssentials, r#"
-            SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, webhooks_enabled, worker_enabled, openid_enabled FROM settings WHERE id = 1;
-        "#).fetch_one(pool).await?;
-        Ok(res)
+    pub(crate) async fn get_settings_essentials<'e, E>(executor: E) -> Result<Self, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            SettingsEssentials,
+            "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, \
+            webhooks_enabled, worker_enabled, openid_enabled \
+            FROM settings WHERE id = 1"
+        )
+        .fetch_one(executor)
+        .await
     }
 }
 
@@ -150,7 +152,7 @@ impl From<Settings> for SettingsEssentials {
 }
 
 mod defaults {
-    pub const WELCOME_MESSAGE: &str = "Dear {{ first_name }} {{ last_name }},
+    pub static WELCOME_MESSAGE: &str = "Dear {{ first_name }} {{ last_name }},
 
 By completing the enrollment process, you now have now access to all company systems.
 
@@ -185,5 +187,5 @@ Sent by defguard {{ defguard_version }}
 Star us on GitHub! https://github.com/defguard/defguard\
 ";
 
-    pub const WELCOME_EMAIL_SUBJECT: &str = "[defguard] Welcome message after enrollment";
+    pub static WELCOME_EMAIL_SUBJECT: &str = "[defguard] Welcome message after enrollment";
 }

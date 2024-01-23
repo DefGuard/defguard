@@ -6,6 +6,8 @@ use sha1::{
     Digest, Sha1,
 };
 
+use crate::hex::to_lower_hex;
+
 /// Calculate salted SHA1 hash from given password in SSHA password storage scheme.
 #[must_use]
 pub fn salted_sha1_hash(password: &str) -> String {
@@ -32,14 +34,14 @@ pub fn nthash(password: &str) -> String {
         .encode_utf16()
         .flat_map(|c| IntoIterator::into_iter(c.to_le_bytes()))
         .collect();
-    format!("{:x}", Md4::digest(password_utf16_le))
+    to_lower_hex(&Md4::digest(password_utf16_le))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[std::prelude::v1::test]
+    #[test]
     fn test_hash() {
         assert_eq!(nthash("password"), "8846f7eaee8fb117ad06bdd830b7586c");
         assert_eq!(

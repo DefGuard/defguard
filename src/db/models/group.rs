@@ -1,9 +1,9 @@
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection};
+use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgExecutor};
 
 use crate::{
     db::{models::error::ModelError, User, WireguardNetwork},
-    DbPool,
+    SERVER_CONFIG,
 };
 
 #[derive(Model)]
@@ -14,7 +14,7 @@ pub struct Group {
 
 impl Group {
     #[must_use]
-    pub fn new(name: &str) -> Self {
+    pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             id: None,
             name: name.into(),
@@ -23,7 +23,7 @@ impl Group {
 
     pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         query_as!(
             Self,
@@ -34,21 +34,27 @@ impl Group {
         .await
     }
 
-    pub async fn member_usernames(&self, pool: &DbPool) -> Result<Vec<String>, SqlxError> {
+    pub async fn member_usernames<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         if let Some(id) = self.id {
             query_scalar!(
                 "SELECT \"user\".username FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id \
                 WHERE group_user.group_id = $1",
                 id
             )
-            .fetch_all(pool)
+            .fetch_all(executor)
             .await
         } else {
             Ok(Vec::new())
         }
     }
 
-    pub async fn fetch_all_members(&self, pool: &DbPool) -> Result<Vec<User>, SqlxError> {
+    pub async fn members<'e, E>(&self, executor: E) -> Result<Vec<User>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         if let Some(id) = self.id {
             query_as!(
                 User,
@@ -60,7 +66,7 @@ impl Group {
                 WHERE group_user.group_id = $1",
                 id
             )
-            .fetch_all(pool)
+            .fetch_all(executor)
             .await
         } else {
             Ok(Vec::new())
@@ -72,16 +78,12 @@ impl WireguardNetwork {
     /// Fetch a list of all allowed groups for a given network from DB
     pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
-        debug!("Fetching all allowed groups for network {}", self);
+        debug!("Fetching all allowed groups for network {self}");
         let groups = query_scalar!(
-            r#"
-            SELECT name
-            FROM wireguard_network_allowed_group wag
-            JOIN "group" g ON wag.group_id = g.id
-            WHERE wag.network_id = $1
-            "#,
+            "SELECT name FROM wireguard_network_allowed_group wag \
+            JOIN \"group\" g ON wag.group_id = g.id WHERE wag.network_id = $1",
             self.id
         )
         .fetch_all(executor)
@@ -98,20 +100,23 @@ impl WireguardNetwork {
     pub async fn get_allowed_groups(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &String,
     ) -> Result<Option<Vec<String>>, ModelError> {
-        debug!("Returning a list of allowed groups for network {}", self);
+        debug!("Returning a list of allowed groups for network {self}");
+        let admin_group_name = &SERVER_CONFIG
+            .get()
+            .expect("defguard config not found")
+            .admin_groupname;
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
 
-        // if no allowed groups are set then all group are allowed
+        // if no allowed groups are set then all groups are allowed
         if groups.is_empty() {
             return Ok(None);
         }
 
         // make sure admin group is included
-        if !groups.contains(admin_group_name) {
-            groups.push(admin_group_name.clone());
+        if !groups.iter().any(|name| name == admin_group_name) {
+            groups.push(admin_group_name.to_string());
         }
 
         Ok(Some(groups))
@@ -123,7 +128,7 @@ impl WireguardNetwork {
         transaction: &mut PgConnection,
         allowed_groups: Vec<String>,
     ) -> Result<(), ModelError> {
-        info!("Setting allowed groups for network {}", self);
+        info!("Setting allowed groups for network {self}");
         if allowed_groups.is_empty() {
             return self.clear_allowed_groups(transaction).await;
         }
@@ -152,14 +157,10 @@ impl WireguardNetwork {
         transaction: &mut PgConnection,
         group: &str,
     ) -> Result<(), ModelError> {
-        info!("Adding allowed group {} for network {}", group, self);
+        info!("Adding allowed group {group} for network {self}");
         query!(
-            r#"
-            INSERT INTO wireguard_network_allowed_group (network_id, group_id)
-            SELECT $1, g.id
-            FROM "group" g
-            WHERE g.name = $2
-            "#,
+            "INSERT INTO wireguard_network_allowed_group (network_id, group_id) \
+            SELECT $1, g.id FROM \"group\" g WHERE g.name = $2",
             self.id,
             group
         )
@@ -173,32 +174,28 @@ impl WireguardNetwork {
         transaction: &mut PgConnection,
         groups: Vec<String>,
     ) -> Result<(), ModelError> {
-        info!("Removing allowed groups {:?} for network {}", groups, self);
+        info!("Removing allowed groups {groups:?} for network {self}");
         let result = query!(
-            r#"
-            DELETE FROM wireguard_network_allowed_group
-            WHERE network_id = $1 AND group_id IN (
-                SELECT id
-                FROM "group"
-                WHERE name IN (SELECT * FROM UNNEST($2::text[]))
-            )
-            "#,
+            "DELETE FROM wireguard_network_allowed_group \
+            WHERE network_id = $1 AND group_id IN ( \
+                SELECT id FROM \"group\" \
+                WHERE name IN (SELECT * FROM UNNEST($2::text[])) \
+            )",
             self.id,
             &groups
         )
         .execute(transaction)
         .await?;
         info!(
-            "Removed {} allowed groups for network {}",
+            "Removed {} allowed groups for network {self}",
             result.rows_affected(),
-            self
         );
         Ok(())
     }
 
     /// Remove all allowed groups for a given network
     async fn clear_allowed_groups(&self, transaction: &mut PgConnection) -> Result<(), ModelError> {
-        info!("Removing all allowed groups for network {}", self);
+        info!("Removing all allowed groups for network {self}");
         let result = query!(
             "DELETE FROM wireguard_network_allowed_group WHERE network_id=$1",
             self.id
@@ -206,9 +203,8 @@ impl WireguardNetwork {
         .execute(transaction)
         .await?;
         info!(
-            "Removed {} allowed groups for network {}",
+            "Removed {} allowed groups for network {self}",
             result.rows_affected(),
-            self
         );
         Ok(())
     }
@@ -217,7 +213,7 @@ impl WireguardNetwork {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::db::User;
+    use crate::db::{DbPool, User};
 
     #[sqlx::test]
     async fn test_group(pool: DbPool) {
@@ -243,11 +239,11 @@ mod test {
         group.save(&pool).await.unwrap();
 
         let mut user = User::new(
-            "hpotter".into(),
+            "hpotter",
             Some("pass123"),
-            "Potter".into(),
-            "Harry".into(),
-            "h.potter@hogwart.edu.uk".into(),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
             None,
         );
         user.save(&pool).await.unwrap();

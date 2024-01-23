@@ -19,9 +19,7 @@ import {
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import {
-  patternDigitOrLowercase,
-  patternNoSpecialChars,
-  patternStartsWithDigit,
+  patternSafeUsernameCharacters,
   patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../../../shared/patterns';
@@ -57,16 +55,9 @@ export const AddUserForm = () => {
           username: yup
             .string()
             .required(LL.form.error.required())
-            .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
-            .matches(patternDigitOrLowercase, LL.form.error.invalid())
+            .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
             .min(3, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
-            .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {
-              if (value && value.length) {
-                return !patternStartsWithDigit.test(value);
-              }
-              return false;
-            })
             .test(
               'username-available',
               LL.form.error.usernameTaken(),

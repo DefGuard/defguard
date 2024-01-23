@@ -1,18 +1,11 @@
-use super::GatewayMap;
-use crate::{
-    db::{
-        models::wireguard::{WireguardNetwork, WireguardPeerStats},
-        DbPool, Device, GatewayEvent,
-    },
-    mail::Mail,
-};
-use chrono::{NaiveDateTime, Utc};
-use sqlx::{query_as, Error as SqlxError};
 use std::{
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
 };
+
+use chrono::{NaiveDateTime, Utc};
+use sqlx::{query, Error as SqlxError, PgExecutor};
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
@@ -22,6 +15,15 @@ use tokio::{
 };
 use tokio_stream::Stream;
 use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
+
+use super::GatewayMap;
+use crate::{
+    db::{
+        models::wireguard::{WireguardNetwork, WireguardPeerStats},
+        DbPool, Device, GatewayEvent,
+    },
+    mail::Mail,
+};
 
 tonic::include_proto!("gateway");
 
@@ -33,25 +35,39 @@ pub struct GatewayServer {
 }
 
 impl WireguardNetwork {
-    /// Get a list of all peers
+    /// Get a list of all allowed peers
+    ///
+    /// Each device is marked as allowed or not allowed in a given network,
+    /// which enables enforcing peer disconnect in MFA-protected networks.
     pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
     where
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        E: PgExecutor<'e>,
     {
         debug!("Fetching all peers for network {}", self.id.unwrap());
-        let result = query_as!(
-            Peer,
-            r#"
-            SELECT d.wireguard_pubkey as pubkey, array[host(wnd.wireguard_ip)] as "allowed_ips!: Vec<String>" FROM wireguard_network_device wnd
-            JOIN device d
-            ON wnd.device_id = d.id
-            WHERE wireguard_network_id = $1
-            ORDER BY d.id ASC
-        "#,
-            self.id
+        let rows = query!(
+            "SELECT d.wireguard_pubkey as pubkey, preshared_key, \
+                array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
+            FROM wireguard_network_device wnd \
+            JOIN device d ON wnd.device_id = d.id \
+            WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
+            ORDER BY d.id ASC",
+            self.id,
+            self.mfa_enabled
         )
         .fetch_all(executor)
         .await?;
+
+        // keepalive has to be added manually because Postgres
+        // doesn't support unsigned integers
+        let result = rows
+            .into_iter()
+            .map(|row| Peer {
+                pubkey: row.pubkey,
+                allowed_ips: row.allowed_ips,
+                preshared_key: row.preshared_key,
+                keepalive_interval: Some(self.keepalive_interval as u32),
+            })
+            .collect();
 
         Ok(result)
     }
@@ -183,7 +199,7 @@ impl GatewayUpdatesHandler {
             self.gateway_hostname, self.network
         );
         while let Ok(update) = self.events_rx.recv().await {
-            debug!("Received wireguard update: {:?}", update);
+            debug!("Received wireguard update: {update:?}");
             let result = match update {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if network_id == self.network_id {
@@ -194,7 +210,10 @@ impl GatewayUpdatesHandler {
                 }
                 GatewayEvent::NetworkModified(network_id, network, peers) => {
                     if network_id == self.network_id {
-                        self.send_network_update(&network, peers, 1).await
+                        let result = self.send_network_update(&network, peers, 1).await;
+                        // update stored network data
+                        self.network = network;
+                        result
                     } else {
                         Ok(())
                     }
@@ -214,10 +233,18 @@ impl GatewayUpdatesHandler {
                         .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
+                            if self.network.mfa_enabled && !network_info.is_authorized {
+                                debug!("Created WireGuard device is not authorized to connect to MFA enabled location");
+                                continue;
+                            };
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    preshared_key: network_info.preshared_key.clone(),
+                                    keepalive_interval: Some(
+                                        self.network.keepalive_interval as u32,
+                                    ),
                                 },
                                 0,
                             )
@@ -238,6 +265,10 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    preshared_key: network_info.preshared_key.clone(),
+                                    keepalive_interval: Some(
+                                        self.network.keepalive_interval as u32,
+                                    ),
                                 },
                                 1,
                             )
@@ -275,7 +306,7 @@ impl GatewayUpdatesHandler {
         peers: Vec<Peer>,
         update_type: i32,
     ) -> Result<(), Status> {
-        debug!("Sending network update for network {}", network);
+        debug!("Sending network update for network {network}");
         if let Err(err) = self
             .tx
             .send(Ok(Update {
@@ -293,8 +324,8 @@ impl GatewayUpdatesHandler {
             let msg = format!(
                 "Failed to send network update, network {network}, update type: {update_type}, error: {err}",
             );
-            error!("{msg}");
-            return Err(Status::new(tonic::Code::Internal, msg));
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
         }
         Ok(())
     }
@@ -320,11 +351,11 @@ impl GatewayUpdatesHandler {
             .await
         {
             let msg = format!(
-                "Failed to send network update, network {}, update type: {}, error: {}",
-                self.network, 2, err,
+                "Failed to send network update, network {}, update type: 2, error: {err}",
+                self.network,
             );
-            error!("{}", msg);
-            return Err(Status::new(tonic::Code::Internal, msg));
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
         }
         Ok(())
     }
@@ -341,11 +372,11 @@ impl GatewayUpdatesHandler {
             .await
         {
             let msg = format!(
-                "Failed to send peer update for network {}, update type: {}, error: {}",
-                self.network, update_type, err,
+                "Failed to send peer update for network {}, update type: {update_type}, error: {err}",
+                self.network
             );
-            error!("{}", msg);
-            return Err(Status::new(tonic::Code::Internal, msg));
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
         }
         Ok(())
     }
@@ -360,16 +391,18 @@ impl GatewayUpdatesHandler {
                 update: Some(update::Update::Peer(Peer {
                     pubkey: peer_pubkey.into(),
                     allowed_ips: Vec::new(),
+                    preshared_key: None,
+                    keepalive_interval: None,
                 })),
             }))
             .await
         {
             let msg = format!(
-                "Failed to send peer update for network {}, peer {}, update type: 2, error: {}",
-                self.network, peer_pubkey, err,
+                "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 2, error: {err}",
+                self.network,
             );
-            error!("{}", msg);
-            return Err(Status::new(tonic::Code::Internal, msg));
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
         }
         Ok(())
     }
@@ -381,6 +414,7 @@ pub struct GatewayUpdatesStream {
     network_id: i64,
     gateway_hostname: String,
     gateway_state: Arc<Mutex<GatewayMap>>,
+    pool: DbPool,
 }
 
 impl GatewayUpdatesStream {
@@ -391,6 +425,7 @@ impl GatewayUpdatesStream {
         network_id: i64,
         gateway_hostname: String,
         gateway_state: Arc<Mutex<GatewayMap>>,
+        pool: DbPool,
     ) -> Self {
         Self {
             task_handle,
@@ -398,6 +433,7 @@ impl GatewayUpdatesStream {
             network_id,
             gateway_hostname,
             gateway_state,
+            pool,
         }
     }
 }
@@ -419,7 +455,7 @@ impl Drop for GatewayUpdatesStream {
         self.gateway_state
             .lock()
             .unwrap()
-            .disconnect_gateway(self.network_id, self.gateway_hostname.clone())
+            .disconnect_gateway(self.network_id, self.gateway_hostname.clone(), &self.pool)
             .expect("Unable to disconnect gateway.");
     }
 }
@@ -443,25 +479,19 @@ impl gateway_service_server::GatewayService for GatewayServer {
             stats.device_id = match Device::find_by_pubkey(&self.pool, &public_key).await {
                 Ok(Some(device)) => device
                     .id
-                    .ok_or_else(|| Status::new(tonic::Code::Internal, "Device has no id"))?,
+                    .ok_or_else(|| Status::new(Code::Internal, "Device has no ID"))?,
                 Ok(None) => {
-                    error!("Device with public key {} not found", &public_key);
+                    error!("Device with public key {public_key} not found");
                     return Err(Status::new(
-                        tonic::Code::Internal,
-                        format!("Device with public key {} not found", &public_key),
+                        Code::Internal,
+                        format!("Device with public key {public_key} not found"),
                     ));
                 }
                 Err(err) => {
-                    error!(
-                        "Failed to retrieve device with public key {}: {err}",
-                        &public_key
-                    );
+                    error!("Failed to retrieve device with public key {public_key}: {err}",);
                     return Err(Status::new(
-                        tonic::Code::Internal,
-                        format!(
-                            "Failed to retrieve device with public key {}: {err}",
-                            &public_key
-                        ),
+                        Code::Internal,
+                        format!("Failed to retrieve device with public key {public_key}: {err}",),
                     ));
                 }
             };
@@ -469,7 +499,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             if let Err(err) = stats.save(&self.pool).await {
                 error!("Saving WireGuard peer stats to db failed: {err}");
                 return Err(Status::new(
-                    tonic::Code::Internal,
+                    Code::Internal,
                     format!("Saving WireGuard peer stats to db failed: {err}"),
                 ));
             }
@@ -486,41 +516,37 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let network_id = Self::get_network_id(request.metadata())?;
         let hostname = Self::get_gateway_hostname(request.metadata())?;
 
-        let pool = self.pool.clone();
-        let mut network = WireguardNetwork::find_by_id(&pool, network_id)
+        let mut network = WireguardNetwork::find_by_id(&self.pool, network_id)
             .await
             .map_err(|e| {
-                error!("Network {} not found", network_id);
-                Status::new(
-                    tonic::Code::Internal,
-                    format!("Failed to retrieve network: {e}"),
-                )
+                error!("Network {network_id} not found");
+                Status::new(Code::Internal, format!("Failed to retrieve network: {e}"))
             })?
-            .ok_or_else(|| Status::new(tonic::Code::Internal, "Network not found"))?;
+            .ok_or_else(|| Status::new(Code::Internal, "Network not found"))?;
 
         info!("Sending configuration to gateway client, network {network}.");
 
+        // store connected gateway in memory
         {
             let mut state = self.state.lock().unwrap();
             state.add_gateway(
                 network_id,
-                network.name.clone(),
+                &network.name,
                 hostname,
                 request.into_inner().name,
-                self.pool.clone(),
                 self.mail_tx.clone(),
             );
         }
 
         network.connected_at = Some(Utc::now().naive_utc());
-        if let Err(err) = network.save(&pool).await {
+        if let Err(err) = network.save(&self.pool).await {
             error!("Failed to update network {network_id} status: {err}");
         }
 
-        let peers = network.get_peers(&pool).await.map_err(|error| {
+        let peers = network.get_peers(&self.pool).await.map_err(|error| {
             error!("Failed to fetch peers for network {network_id}: {error}",);
             Status::new(
-                tonic::Code::Internal,
+                Code::Internal,
                 format!("Failed to retrieve peers for network: {network_id}"),
             )
         })?;
@@ -537,7 +563,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             .map_err(|_| {
                 error!("Failed to fetch network {gateway_network_id}");
                 Status::new(
-                    tonic::Code::Internal,
+                    Code::Internal,
                     format!("Failed to retrieve network {gateway_network_id}"),
                 )
             })?
@@ -554,7 +580,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             .connect_gateway(gateway_network_id, &hostname)
             .map_err(|err| {
                 error!("Failed to connect gateway: {err}");
-                Status::new(tonic::Code::Internal, "Failed to connect gateway ")
+                Status::new(Code::Internal, "Failed to connect gateway")
             })?;
 
         // clone here before moving into a closure
@@ -576,6 +602,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             gateway_network_id,
             hostname,
             Arc::clone(&self.state),
+            self.pool.clone(),
         )))
     }
 }

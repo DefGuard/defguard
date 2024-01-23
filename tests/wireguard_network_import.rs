@@ -1,7 +1,13 @@
 mod common;
 
 use defguard::{
-    db::{models::device::UserDevice, Device, GatewayEvent, WireguardNetwork},
+    db::{
+        models::{
+            device::UserDevice,
+            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        },
+        Device, GatewayEvent, WireguardNetwork,
+    },
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
@@ -46,6 +52,9 @@ async fn test_config_import() {
         String::new(),
         None,
         vec![],
+        false,
+        DEFAULT_KEEPALIVE_INTERVAL,
+        DEFAULT_DISCONNECT_THRESHOLD,
     )
     .unwrap();
     initial_network.save(&pool).await.unwrap();
@@ -60,7 +69,7 @@ async fn test_config_import() {
     );
     device_1.save(&mut *transaction).await.unwrap();
     device_1
-        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
+        .add_to_all_networks(&mut transaction)
         .await
         .unwrap();
 
@@ -71,7 +80,7 @@ async fn test_config_import() {
     );
     device_2.save(&mut *transaction).await.unwrap();
     device_2
-        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
+        .add_to_all_networks(&mut transaction)
         .await
         .unwrap();
 
@@ -79,7 +88,7 @@ async fn test_config_import() {
 
     let mut wg_rx = client_state.wireguard_rx;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -228,7 +237,7 @@ async fn test_config_import_missing_interface() {
     ";
     let (client, _) = make_test_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -262,7 +271,7 @@ async fn test_config_import_invalid_key() {
     ";
     let (client, _) = make_test_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -321,7 +330,7 @@ async fn test_config_import_invalid_ip() {
     ";
     let (client, _) = make_test_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -354,7 +363,7 @@ async fn test_config_import_nonadmin() {
         PersistentKeepalive = 300
     ";
     let (client, _) = make_test_client().await;
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 

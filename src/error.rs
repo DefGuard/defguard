@@ -9,7 +9,7 @@ use crate::{
         wireguard::WireguardNetworkError,
     },
     grpc::GatewayMapError,
-    ldap::error::OriLDAPError,
+    ldap::error::LdapError,
     templates::TemplateError,
 };
 
@@ -64,12 +64,12 @@ impl From<StatusCode> for WebError {
     }
 }
 
-impl From<OriLDAPError> for WebError {
-    fn from(error: OriLDAPError) -> Self {
+impl From<LdapError> for WebError {
+    fn from(error: LdapError) -> Self {
         match error {
-            OriLDAPError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
-            OriLDAPError::Ldap(msg) => Self::Ldap(msg),
-            OriLDAPError::MissingSettings => Self::Ldap("LDAP settings are missing".to_string()),
+            LdapError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
+            LdapError::Ldap(msg) => Self::Ldap(msg),
+            LdapError::MissingSettings => Self::Ldap("LDAP settings are missing".to_string()),
         }
     }
 }

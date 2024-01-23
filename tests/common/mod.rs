@@ -66,11 +66,11 @@ async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
         .unwrap();
 
     let mut test_user = User::new(
-        "hpotter".into(),
+        "hpotter",
         Some("pass123"),
-        "Potter".into(),
-        "Harry".into(),
-        "h.potter@hogwart.edu.uk".into(),
+        "Potter",
+        "Harry",
+        "h.potter@hogwart.edu.uk",
         None,
     );
     test_user.save(pool).await.unwrap();

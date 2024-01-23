@@ -34,7 +34,7 @@ pub mod wireguard;
 #[cfg(feature = "worker")]
 pub mod worker;
 
-static SESSION_COOKIE_NAME: &str = "defguard_session";
+pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
 #[derive(Default)]
@@ -57,11 +57,11 @@ impl From<WebError> for ApiResponse {
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
             }
             WebError::Authorization(msg) => {
-                error!("{msg}");
+                error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
             }
             WebError::Forbidden(msg) => {
-                error!("{msg}");
+                error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::FORBIDDEN)
             }
             WebError::DbError(_)
@@ -92,7 +92,7 @@ impl From<WebError> for ApiResponse {
             WebError::IncorrectUsername(msg)
             | WebError::PubkeyValidation(msg)
             | WebError::BadRequest(msg) => {
-                error!("{msg}");
+                error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
             }
             WebError::TemplateError(err) => {
@@ -135,8 +135,11 @@ pub struct Auth {
 
 impl Auth {
     #[must_use]
-    pub fn new(username: String, password: String) -> Self {
-        Self { username, password }
+    pub fn new<S: Into<String>>(username: S, password: S) -> Self {
+        Self {
+            username: username.into(),
+            password: password.into(),
+        }
     }
 }
 
@@ -147,8 +150,10 @@ pub struct AuthTotp {
 
 impl AuthTotp {
     #[must_use]
-    pub fn new(secret: String) -> Self {
-        Self { secret }
+    pub fn new<S: Into<String>>(secret: S) -> Self {
+        Self {
+            secret: secret.into(),
+        }
     }
 }
 
@@ -161,6 +166,22 @@ impl AuthCode {
     #[must_use]
     pub fn new(code: u32) -> Self {
         Self { code }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct GroupInfo {
+    pub name: String,
+    pub members: Option<Vec<String>>,
+}
+
+impl GroupInfo {
+    #[must_use]
+    pub fn new<S: Into<String>>(name: S, members: Option<Vec<String>>) -> Self {
+        Self {
+            name: name.into(),
+            members,
+        }
     }
 }
 

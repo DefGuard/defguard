@@ -60,6 +60,16 @@ pub struct DefGuardConfig {
 
     #[arg(
         long,
+        env = "DEFGUARD_USERADMIN_GROUPNAME",
+        default_value = "useradmin"
+    )]
+    pub useradmin_groupname: String,
+
+    #[arg(long, env = "DEFGUARD_VPN_GROUPNAME", default_value = "vpn")]
+    pub vpn_groupname: String,
+
+    #[arg(
+        long,
         env = "DEFGUARD_DEFAULT_ADMIN_PASSWORD",
         default_value = "pass123"
     )]
@@ -126,6 +136,14 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
     pub cookie_insecure: bool,
+
+    // TODO: allow multiple values
+    #[arg(long, env = "DEFGUARD_PROXY_URL")]
+    pub proxy_url: Option<String>,
+
+    // path to certificate `.pem` file used if connecting to proxy over HTTPS
+    #[arg(long, env = "DEFGUARD_PROXY_GRPC_CA")]
+    pub proxy_grpc_ca: Option<String>,
 
     #[arg(
         long,

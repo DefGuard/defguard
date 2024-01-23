@@ -711,7 +711,8 @@ const en: BaseTranslation = {
       username: 'Username',
     },
     error: {
-      usernameTaken: 'Username is already in use',
+      forbiddenCharacter: 'Field contains forbidden characters.',
+      usernameTaken: 'Username is already in use.',
       invalidKey: 'Key is invalid.',
       invalid: 'Field is invalid.',
       required: 'Field is required.',
@@ -728,8 +729,8 @@ const en: BaseTranslation = {
       validPort: 'Enter a valid port.',
       validCode: 'Code should have 6 digits.',
       allowedIps: 'Only valid IP or domain is allowed.',
-      startFromNumber: 'Cannot start from number',
-      repeat: `Fields don't match`,
+      startFromNumber: 'Cannot start from number.',
+      repeat: `Fields don't match.`,
     },
     floatingErrors: {
       title: 'Please correct the following:',
@@ -1281,6 +1282,15 @@ const en: BaseTranslation = {
         allowedGroups: {
           label: 'Allowed groups',
           placeholder: 'All groups',
+        },
+        mfa_enabled: {
+          label: 'Require MFA for this Location',
+        },
+        keepalive_interval: {
+          label: 'Keepalive interval',
+        },
+        peer_disconnect_threshold: {
+          label: 'Peer disconnect threshold',
         },
       },
       controls: {

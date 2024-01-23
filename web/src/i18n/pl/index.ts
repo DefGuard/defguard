@@ -443,7 +443,7 @@ const pl: Translation = {
         qrInfo:
           'Użyj poniższych konfiguracji aby połączyć się z wybranymi lokalizacjami.',
         helpers: {
-          qrHelper: `<p>Możesz skonfigurować Wireguard na telefonie skanując QR kod przez aplikację Wireguard.</p>`,
+          qrHelper: `<p>Możesz skonfigurować WireGuard na telefonie skanując QR kod przez aplikację Wireguard.</p>`,
           warningAutoMode: `
 <p>Uwaga, Defguard nie przechowuje twojego klucza prywatnego. Gdy opuścisz obecną stronę <strong> nie będziesz mógł</strong> pobrać ponownie konfiguracji z kluczem prywatnym.</p>
 `,
@@ -696,12 +696,13 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       username: 'Nazwa użytkownika',
     },
     error: {
-      usernameTaken: 'Nazwa użytkownika jest już w użyciu',
+      forbiddenCharacter: 'Pole zawiera niedozwolone znaki.',
+      usernameTaken: 'Nazwa użytkownika jest już w użyciu.',
       invalidKey: 'Klucz jest nieprawidłowy.',
       invalid: 'Pole jest nieprawidłowe.',
       required: 'Pole jest wymagane.',
       maximumLength: 'Maksymalna długość przekroczona.',
-      minimumLength: 'Minimalna długość nie została osiągnięta',
+      minimumLength: 'Minimalna długość nie została osiągnięta.',
       noSpecialChars: 'Nie wolno używać znaków specjalnych.',
       oneDigit: 'Wymagana jedna cyfra.',
       oneSpecial: 'Wymagany jest znak specjalny.',
@@ -713,8 +714,8 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       validPort: 'Wprowadź prawidłowy port.',
       validCode: 'Kod powinien mieć 6 cyfr.',
       allowedIps: 'Tylko poprawne adresy IP oraz domeny.',
-      startFromNumber: 'Nie może zaczynać się od liczby',
-      repeat: 'Wartości się nie pokrywają',
+      startFromNumber: 'Nie może zaczynać się od liczby.',
+      repeat: 'Wartości się nie pokrywają.',
     },
     floatingErrors: {
       title: 'Popraw następujące błędy:',
@@ -1266,6 +1267,15 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         allowedGroups: {
           label: 'Dozwolone grupy',
           placeholder: 'Wszystkie grupy',
+        },
+        mfa_enabled: {
+          label: 'Wymagaj MFA dla tej lokalizacji',
+        },
+        keepalive_interval: {
+          label: 'Utrzymanie połączenia',
+        },
+        peer_disconnect_threshold: {
+          label: 'Peer disconnect threshold',
         },
       },
       controls: {

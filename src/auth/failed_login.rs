@@ -1,9 +1,6 @@
+use std::{collections::HashMap, sync::Mutex};
+
 use chrono::{DateTime, Duration, Local};
-use std::{
-    collections::HashMap,
-    ops::DerefMut,
-    sync::{Arc, Mutex},
-};
 use thiserror::Error;
 
 // Time window in seconds
@@ -67,14 +64,9 @@ impl FailedLogin {
     // Counter can be reset after enough time has passed since the initial attempt.
     // If user was blocked we also check if enough time (timeout) has passed since last attempt.
     fn should_reset_counter(&self) -> bool {
-        if self.time_since_first_attempt() > Duration::seconds(FAILED_LOGIN_WINDOW)
+        self.time_since_first_attempt() > Duration::seconds(FAILED_LOGIN_WINDOW)
             && self.attempt_count < FAILED_LOGIN_COUNT
             || self.time_since_last_attempt() > Duration::seconds(FAILED_LOGIN_TIMEOUT)
-        {
-            return true;
-        }
-
-        false
     }
 }
 
@@ -124,19 +116,19 @@ impl FailedLoginMap {
 
 // Check if auth request with a given username can proceed
 pub fn check_username(
-    failed_logins: &Arc<Mutex<FailedLoginMap>>,
+    failed_logins: &Mutex<FailedLoginMap>,
     username: &str,
 ) -> Result<(), FailedLoginError> {
     let mut failed_logins = failed_logins
         .lock()
         .expect("Failed to get a lock on failed login map.");
-    failed_logins.deref_mut().verify_username(username)
+    failed_logins.verify_username(username)
 }
 
 // Helper to log failed login attempt
-pub fn log_failed_login_attempt(failed_logins: &Arc<Mutex<FailedLoginMap>>, username: &str) {
+pub fn log_failed_login_attempt(failed_logins: &Mutex<FailedLoginMap>, username: &str) {
     let mut failed_logins = failed_logins
         .lock()
         .expect("Failed to get a lock on failed login map.");
-    failed_logins.deref_mut().log_failed_attempt(username);
+    failed_logins.log_failed_attempt(username);
 }

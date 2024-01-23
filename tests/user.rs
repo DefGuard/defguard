@@ -25,15 +25,15 @@ async fn make_client() -> TestClient {
 async fn test_authenticate() {
     let client = make_client().await;
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let auth = Auth::new("hpotter".into(), "-wrong-".into());
+    let auth = Auth::new("hpotter", "-wrong-");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-    let auth = Auth::new("adumbledore".into(), "pass123".into());
+    let auth = Auth::new("adumbledore", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
@@ -42,7 +42,7 @@ async fn test_authenticate() {
 async fn test_me() {
     let client = make_client().await;
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -57,7 +57,7 @@ async fn test_me() {
 async fn test_change_self_password() {
     let client = make_client().await;
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
 
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -106,7 +106,7 @@ async fn test_change_self_password() {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-    let new_auth = Auth::new("hpotter".into(), new_password.into());
+    let new_auth = Auth::new("hpotter", new_password);
 
     let response = client.post("/api/v1/auth").json(&new_auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -116,7 +116,7 @@ async fn test_change_self_password() {
 async fn test_change_password() {
     let client = make_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
 
     assert_eq!(response.status(), StatusCode::OK);
@@ -146,7 +146,7 @@ async fn test_change_password() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let auth = Auth::new("hpotter".into(), new_password.to_string());
+    let auth = Auth::new("hpotter", new_password);
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -167,7 +167,7 @@ async fn test_list_users() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // normal user cannot list users
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -175,7 +175,7 @@ async fn test_list_users() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // admin can list users
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -190,7 +190,7 @@ async fn test_get_user() {
     let response = client.get("/api/v1/user/hpotter").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -204,7 +204,7 @@ async fn test_username_available() {
     let client = make_client().await;
 
     // standard user cannot check username availability
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -219,12 +219,12 @@ async fn test_username_available() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // log in as admin
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let avail = Username {
-        username: "CrashTestDummy".into(),
+        username: "_CrashTestDummy".into(),
     };
     let response = client
         .post("/api/v1/user/available")
@@ -234,7 +234,7 @@ async fn test_username_available() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let avail = Username {
-        username: "crashtestdummy".into(),
+        username: "crashtestdummy42".into(),
     };
     let response = client
         .post("/api/v1/user/available")
@@ -258,7 +258,7 @@ async fn test_username_available() {
 async fn test_crud_user() {
     let client = make_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -296,7 +296,7 @@ async fn test_crud_user() {
 async fn test_admin_group() {
     let client = make_client().await;
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -313,7 +313,7 @@ async fn test_admin_group() {
 async fn test_wallet() {
     let client = make_client().await;
 
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -427,12 +427,12 @@ This request will not trigger a blockchain transaction or cost any gas fees.";
 async fn test_check_username() {
     let client = make_client().await;
 
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let invalid_usernames = ["ADumbledore", "1user"];
-    let valid_usernames = ["user1", "use2r3", "notwrong"];
+    let invalid_usernames = ["ADumble dore", ".1user"];
+    let valid_usernames = ["user1", "use2r3", "not_wrong"];
 
     for username in invalid_usernames {
         let new_user = AddUserData {
@@ -466,7 +466,7 @@ async fn test_check_password_strength() {
     let client = make_client().await;
 
     // auth session with admin
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -513,7 +513,7 @@ async fn test_check_password_strength() {
 #[tokio::test]
 async fn test_user_unregister_authorized_app() {
     let client = make_client().await;
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
@@ -569,6 +569,9 @@ fn make_network() -> Value {
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
         "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 75
     })
 }
 
@@ -579,7 +582,7 @@ async fn test_user_add_device() {
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
     // log in as admin
-    let auth = Auth::new("admin".into(), "pass123".into());
+    let auth = Auth::new("admin", "pass123");
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header)
@@ -649,7 +652,7 @@ async fn test_user_add_device() {
         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
 
     // log in as normal user
-    let auth = Auth::new("hpotter".into(), "pass123".into());
+    let auth = Auth::new("hpotter", "pass123");
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header)

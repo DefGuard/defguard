@@ -1,9 +1,15 @@
-use crate::db::{models::wireguard::WireguardNetworkError, Device, WireguardNetwork};
 use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
 use std::{array::TryFromSliceError, net::IpAddr};
 use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
+
+use crate::db::{
+    models::wireguard::{
+        WireguardNetworkError, DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL,
+    },
+    Device, WireguardNetwork,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImportedDevice {
@@ -29,7 +35,7 @@ pub enum WireguardConfigParseError {
     InvalidKey(String),
     #[error("Invalid port: {0}")]
     InvalidPort(String),
-    #[error("Wireguard network error")]
+    #[error("WireGuard network error")]
     NetworkError(#[from] WireguardNetworkError),
 }
 
@@ -49,7 +55,7 @@ pub fn parse_wireguard_config(
     config: &str,
 ) -> Result<(WireguardNetwork, Vec<ImportedDevice>), WireguardConfigParseError> {
     let config = ini::Ini::load_from_str(config)?;
-    // Parse WireguardNetwork
+    // Parse WireGuardNetwork
     let interface_section = config
         .section(Some("Interface"))
         .ok_or_else(|| WireguardConfigParseError::SectionNotFound("Interface".to_string()))?;
@@ -81,6 +87,9 @@ pub fn parse_wireguard_config(
         String::new(),
         dns,
         vec![allowed_ips],
+        false,
+        DEFAULT_KEEPALIVE_INTERVAL,
+        DEFAULT_DISCONNECT_THRESHOLD,
     )?;
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();
