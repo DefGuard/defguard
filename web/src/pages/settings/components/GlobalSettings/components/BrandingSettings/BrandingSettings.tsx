@@ -39,6 +39,21 @@ const defaultSettings: FormFields = {
   nav_logo_url: '/svg/defguard-nav-logo.svg',
 };
 
+const mergeWithDefaults = (values: FormFields): FormFields => ({
+  instance_name:
+    values.instance_name && values.instance_name.length > 0
+      ? values.instance_name
+      : defaultSettings.instance_name,
+  main_logo_url:
+    values.main_logo_url && values.main_logo_url.length > 0
+      ? values.main_logo_url
+      : defaultSettings.main_logo_url,
+  nav_logo_url:
+    values.nav_logo_url && values.nav_logo_url.length > 0
+      ? values.nav_logo_url
+      : defaultSettings.nav_logo_url,
+});
+
 export const BrandingSettings = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
@@ -53,7 +68,7 @@ export const BrandingSettings = () => {
 
   const { mutate, isLoading } = useMutation(patchSettings, {
     onSuccess: () => {
-      const keys = [QueryKeys.FETCH_SETTINGS, QueryKeys.FETCH_ESSENTAIL_SETTINGS];
+      const keys = [QueryKeys.FETCH_SETTINGS, QueryKeys.FETCH_ESSENTIAL_SETTINGS];
       keys.forEach((key) => {
         queryClient.invalidateQueries([key]);
       });
@@ -116,16 +131,8 @@ export const BrandingSettings = () => {
     reset();
   }, [reset, defaultValues]);
 
-  const onSubmit: SubmitHandler<FormFields> = ({
-    instance_name,
-    main_logo_url,
-    nav_logo_url,
-  }) => {
-    mutate({
-      instance_name,
-      main_logo_url,
-      nav_logo_url,
-    });
+  const onSubmit: SubmitHandler<FormFields> = (submitted) => {
+    mutate(mergeWithDefaults(submitted));
   };
 
   return (
