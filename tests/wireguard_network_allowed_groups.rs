@@ -120,7 +120,7 @@ async fn test_create_new_network() {
             "allowed_groups": ["allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 75
+            "peer_disconnect_threshold": 180
         }))
         .send()
         .await;
@@ -162,7 +162,7 @@ async fn test_modify_network() {
             "allowed_groups": [],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 75
+            "peer_disconnect_threshold": 180
         }))
         .send()
         .await;
@@ -193,7 +193,7 @@ async fn test_modify_network() {
             "allowed_groups": ["allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 75
+            "peer_disconnect_threshold": 180
         }))
         .send()
         .await;
@@ -218,7 +218,7 @@ async fn test_modify_network() {
             "allowed_groups": ["allowed group", "not allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 75
+            "peer_disconnect_threshold": 180
         }))
         .send()
         .await;
@@ -244,7 +244,7 @@ async fn test_modify_network() {
             "allowed_groups": ["not allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 75
+            "peer_disconnect_threshold": 180
         }))
         .send()
         .await;
@@ -269,7 +269,7 @@ async fn test_modify_network() {
             "allowed_groups": [],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 75
+            "peer_disconnect_threshold": 180
         }))
         .send()
         .await;
@@ -507,7 +507,7 @@ async fn test_modify_user() {
             "allowed_groups": ["allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 75
+            "peer_disconnect_threshold": 180
         }))
         .send()
         .await;

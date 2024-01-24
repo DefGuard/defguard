@@ -26,7 +26,7 @@ fn make_network() -> Value {
         "allowed_groups": [],
         "mfa_enabled": false,
         "keepalive_interval": 25,
-        "peer_disconnect_threshold": 75
+        "peer_disconnect_threshold": 180
     })
 }
 

@@ -1287,10 +1287,10 @@ const en: BaseTranslation = {
           label: 'Require MFA for this Location',
         },
         keepalive_interval: {
-          label: 'Keepalive interval',
+          label: 'Keepalive interval [seconds]',
         },
         peer_disconnect_threshold: {
-          label: 'Peer disconnect threshold',
+          label: 'Peer disconnect threshold [seconds]',
         },
       },
       controls: {
