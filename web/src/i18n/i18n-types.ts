@@ -3011,13 +3011,13 @@ type RootTranslation = {
 				}
 				keepalive_interval: {
 					/**
-					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l
+					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d
+					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
@@ -6541,13 +6541,13 @@ export type TranslationFunctions = {
 				}
 				keepalive_interval: {
 					/**
-					 * Keepalive interval
+					 * Keepalive interval [seconds]
 					 */
 					label: () => LocalizedString
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * Peer disconnect threshold
+					 * Peer disconnect threshold [seconds]
 					 */
 					label: () => LocalizedString
 				}
