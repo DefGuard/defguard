@@ -17,14 +17,17 @@ use crate::{
     AppState,
 };
 
+static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
+static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
+
 pub async fn get_settings(State(appstate): State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
     if let Some(mut settings) = Settings::find_by_id(&appstate.pool, 1).await? {
-        if settings.nav_logo_url == "" {
-            settings.nav_logo_url = "/svg/defguard-nav-logo.svg".into();
+        if settings.nav_logo_url.is_empty() {
+            settings.nav_logo_url = DEFAULT_NAV_LOGO_URL.into();
         }
-        if settings.main_logo_url == "" {
-            settings.main_logo_url = "/svg/logo-defguard-white.svg".into();
+        if settings.main_logo_url.is_empty() {
+            settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
         }
         return Ok(ApiResponse {
             json: json!(settings),
@@ -54,11 +57,11 @@ pub async fn update_settings(
 pub async fn get_settings_essentials(State(appstate): State<AppState>) -> ApiResult {
     debug!("Retrieving essential settings");
     let mut settings = SettingsEssentials::get_settings_essentials(&appstate.pool).await?;
-    if settings.nav_logo_url == "" {
-        settings.nav_logo_url = "/svg/defguard-nav-logo.svg".into();
+    if settings.nav_logo_url.is_empty() {
+        settings.nav_logo_url = DEFAULT_NAV_LOGO_URL.into();
     }
-    if settings.main_logo_url == "" {
-        settings.main_logo_url = "/svg/logo-defguard-white.svg".into();
+    if settings.main_logo_url.is_empty() {
+        settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
     }
     info!("Retrieved essential settings");
     Ok(ApiResponse {
@@ -81,8 +84,8 @@ pub async fn set_default_branding(
     match settings {
         Some(mut settings) => {
             settings.instance_name = "Defguard".into();
-            settings.nav_logo_url = "/svg/defguard-nav-logo.svg".into();
-            settings.main_logo_url = "/svg/logo-defguard-white.svg".into();
+            settings.nav_logo_url = DEFAULT_NAV_LOGO_URL.into();
+            settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
             settings.save(&appstate.pool).await?;
             info!(
                 "User {} restored default branding settings",
