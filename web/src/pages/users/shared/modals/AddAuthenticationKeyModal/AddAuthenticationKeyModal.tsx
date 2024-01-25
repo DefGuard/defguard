@@ -188,7 +188,11 @@ export const AddAuthenticationKeyModal = () => {
             {LL.userPage.authenticationKeys.addModal.keyLabel()}
           </Label>
           <AuthenticationKeyFormTextField
-            placeholder={LL.userPage.authenticationKeys.addModal.keyPlaceholder()}
+            placeholder={
+              keyTypeValue === AuthenticationKeyType.SSH
+                ? LL.userPage.authenticationKeys.addModal.sshKeyPlaceholder()
+                : LL.userPage.authenticationKeys.addModal.gpgKeyPlaceholder()
+            }
             controller={{ control, name: 'key' }}
           />
           <div className="add-authentication-key-buttons-container">

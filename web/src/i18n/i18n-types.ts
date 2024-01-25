@@ -1497,7 +1497,11 @@ type RootTranslation = {
 				/**
 				 * B​e​g​i​n​s​ ​w​i​t​h​ ​‘​s​s​h​-​r​s​a​’​,​ ​‘​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​’​,​ ​.​.​.
 				 */
-				keyPlaceholder: string
+				sshKeyPlaceholder: string
+				/**
+				 * B​e​g​i​n​s​ ​w​i​t​h​ ​‘​-​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-​‘
+				 */
+				gpgKeyPlaceholder: string
 				/**
 				 * A​d​d​ ​k​e​y
 				 */
@@ -5123,7 +5127,11 @@ export type TranslationFunctions = {
 				/**
 				 * Begins with ‘ssh-rsa’, ‘ecdsa-sha2-nistp256’, ...
 				 */
-				keyPlaceholder: () => LocalizedString
+				sshKeyPlaceholder: () => LocalizedString
+				/**
+				 * Begins with ‘-----BEGIN PGP PUBLIC KEY BLOCK-----‘
+				 */
+				gpgKeyPlaceholder: () => LocalizedString
 				/**
 				 * Add key
 				 */

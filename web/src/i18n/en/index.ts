@@ -652,7 +652,8 @@ const en: BaseTranslation = {
         keyNameLabel: 'Title',
         keyLabel: 'Key',
         keyNamePlaceholder: 'Key title',
-        keyPlaceholder: 'Begins with ‘ssh-rsa’, ‘ecdsa-sha2-nistp256’, ...',
+        sshKeyPlaceholder: 'Begins with ‘ssh-rsa’, ‘ecdsa-sha2-nistp256’, ...',
+        gpgKeyPlaceholder: 'Begins with ‘-----BEGIN PGP PUBLIC KEY BLOCK-----‘',
         addKey: 'Add key',
         messages: {
           keyAdded: 'Key added.',

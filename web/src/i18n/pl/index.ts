@@ -637,7 +637,8 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         keyNameLabel: 'Tytuł',
         keyLabel: 'Klucz',
         keyNamePlaceholder: 'Tytuł klucza',
-        keyPlaceholder: 'Rozpoczyna się z ‘ssh-rsa’, ‘ecdsa-sha2-nistp256’, ...',
+        sshKeyPlaceholder: 'Rozpoczyna się z ‘ssh-rsa’, ‘ecdsa-sha2-nistp256’, ...',
+        gpgKeyPlaceholder: 'Rozpoczyna się z ‘-----BEGIN PGP PUBLIC KEY BLOCK-----‘',
         addKey: 'Dodaj klucz',
         messages: {
           keyAdded: 'Klucz dodany.',
