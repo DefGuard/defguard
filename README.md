@@ -48,9 +48,9 @@ Read more about this in [our documentation](https://defguard.gitbook.io/defguard
 
 Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
 
-### Desktop Client
+### Desktop Client with Multi-Factor Authentication
 
-![defguard desktop client](https://github.com/DefGuard/docs/blob/docs/releases/0.8/Defguard-Desktop-Client.png?raw=true)
+![defguard WireGuard MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
 
 [Desktop client](https://github.com/DefGuard/client) supports:
 - Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
