@@ -1670,7 +1670,7 @@ type RootTranslation = {
 		}
 		error: {
 			/**
-			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
+			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​s​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
 			 */
 			forbiddenCharacter: string
 			/**
@@ -3021,13 +3021,13 @@ type RootTranslation = {
 				}
 				keepalive_interval: {
 					/**
-					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l
+					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d
+					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
@@ -5220,7 +5220,7 @@ export type TranslationFunctions = {
 		}
 		error: {
 			/**
-			 * Field contain forbidden characters.
+			 * Field contains forbidden characters.
 			 */
 			forbiddenCharacter: () => LocalizedString
 			/**
@@ -6561,13 +6561,13 @@ export type TranslationFunctions = {
 				}
 				keepalive_interval: {
 					/**
-					 * Keepalive interval
+					 * Keepalive interval [seconds]
 					 */
 					label: () => LocalizedString
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * Peer disconnect threshold
+					 * Peer disconnect threshold [seconds]
 					 */
 					label: () => LocalizedString
 				}

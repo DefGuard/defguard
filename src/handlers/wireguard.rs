@@ -114,9 +114,7 @@ pub async fn create_network(
         .await?;
 
     // generate IP addresses for existing devices
-    network
-        .add_all_allowed_devices(&mut transaction, &appstate.config.admin_groupname)
-        .await?;
+    network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
     match &network.id {
@@ -181,9 +179,7 @@ pub async fn modify_network(
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
         .await?;
-    let _events = network
-        .sync_allowed_devices(&mut transaction, &appstate.config.admin_groupname, None)
-        .await?;
+    let _events = network.sync_allowed_devices(&mut transaction, None).await?;
 
     match &network.id {
         Some(network_id) => {
@@ -377,22 +373,14 @@ pub async fn import_network(
         .map(|dev| dev.wireguard_ip)
         .collect();
     let (devices, gateway_events) = network
-        .handle_imported_devices(
-            &mut transaction,
-            imported_devices,
-            &appstate.config.admin_groupname,
-        )
+        .handle_imported_devices(&mut transaction, imported_devices)
         .await?;
     appstate.send_multiple_wireguard_events(gateway_events);
 
     // assign IPs for other existing devices
     info!("Assigning IPs in imported network for remaining existing devices");
     let gateway_events = network
-        .sync_allowed_devices(
-            &mut transaction,
-            &appstate.config.admin_groupname,
-            Some(&reserved_ips),
-        )
+        .sync_allowed_devices(&mut transaction, Some(&reserved_ips))
         .await?;
     appstate.send_multiple_wireguard_events(gateway_events);
 
@@ -434,11 +422,7 @@ pub async fn add_user_devices(
             // wrap loop in transaction to abort if a device is invalid
             let mut transaction = appstate.pool.begin().await?;
             let events = network
-                .handle_mapped_devices(
-                    &mut transaction,
-                    mapped_devices,
-                    &appstate.config.admin_groupname,
-                )
+                .handle_mapped_devices(&mut transaction, mapped_devices)
                 .await?;
             appstate.send_multiple_wireguard_events(events);
             transaction.commit().await?;
@@ -500,9 +484,7 @@ pub async fn add_device(
         device: Device,
     }
 
-    let (network_info, configs) = device
-        .add_to_all_networks(&mut transaction, &appstate.config.admin_groupname)
-        .await?;
+    let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
     let mut network_ips: Vec<String> = Vec::new();
     for network_info_item in network_info.clone() {
@@ -600,6 +582,7 @@ pub async fn modify_device(
                         network_id,
                         device_wireguard_ip: wireguard_network_device.wireguard_ip,
                         preshared_key: wireguard_network_device.preshared_key,
+                        is_authorized: wireguard_network_device.is_authorized,
                     };
                     network_info.push(device_network_info);
                 }

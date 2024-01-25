@@ -25,7 +25,7 @@ use crate::{
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
-pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 25;
+pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 180;
 
 // Used in process of importing network from wireguard config
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -65,7 +65,7 @@ pub enum GatewayEvent {
     DeviceDeleted(DeviceInfo),
 }
 
-/// Stores configuration required to setup a wireguard network
+/// Stores configuration required to setup a WireGuard network
 #[derive(Clone, Debug, Model, Deserialize, Serialize, PartialEq)]
 #[table(wireguard_network)]
 pub struct WireguardNetwork {
@@ -215,7 +215,7 @@ impl WireguardNetwork {
         Ok(())
     }
 
-    /// Utility method to create wireguard keypair
+    /// Utility method to create WireGuard keypair
     #[must_use]
     pub fn genkey() -> WireguardKey {
         let private = StaticSecret::random_from_rng(OsRng);
@@ -302,11 +302,10 @@ impl WireguardNetwork {
     async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &str,
     ) -> Result<Vec<Device>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
         let devices = match self
-            .get_allowed_groups(&mut *transaction, admin_group_name)
+            .get_allowed_groups(&mut *transaction)
             .await? {
             // devices need to be filtered by allowed group
             Some(allowed_groups) => {
@@ -338,15 +337,12 @@ impl WireguardNetwork {
     pub async fn add_all_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &str,
     ) -> Result<(), ModelError> {
         info!(
             "Assigning IPs in network {} for all existing devices ",
             self
         );
-        let devices = self
-            .get_allowed_devices(&mut *transaction, admin_group_name)
-            .await?;
+        let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
             device
                 .assign_network_ip(&mut *transaction, self, None)
@@ -360,13 +356,10 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         device: &Device,
-        admin_group_name: &str,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
         info!("Assigning IP in network {self} for {device}");
-        let allowed_devices = self
-            .get_allowed_devices(&mut *transaction, admin_group_name)
-            .await?;
+        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         let allowed_device_ids: Vec<i64> =
             allowed_devices.iter().filter_map(|dev| dev.id).collect();
         if allowed_device_ids.contains(&device.get_id()?) {
@@ -389,14 +382,11 @@ impl WireguardNetwork {
     pub async fn sync_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &str,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
-        let allowed_devices = self
-            .get_allowed_devices(&mut *transaction, admin_group_name)
-            .await?;
+        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
         let mut allowed_devices: HashMap<i64, Device> = allowed_devices
             .into_iter()
@@ -430,6 +420,7 @@ impl WireguardNetwork {
                             network_id,
                             device_wireguard_ip: wireguard_network_device.wireguard_ip,
                             preshared_key: wireguard_network_device.preshared_key,
+                            is_authorized: wireguard_network_device.is_authorized,
                         }],
                     }));
                 }
@@ -449,6 +440,7 @@ impl WireguardNetwork {
                             network_id,
                             device_wireguard_ip: device_network_config.wireguard_ip,
                             preshared_key: device_network_config.preshared_key,
+                            is_authorized: device_network_config.is_authorized,
                         }],
                     }));
                 } else {
@@ -470,6 +462,7 @@ impl WireguardNetwork {
                     network_id,
                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
                     preshared_key: wireguard_network_device.preshared_key,
+                    is_authorized: wireguard_network_device.is_authorized,
                 }],
             }));
         }
@@ -480,17 +473,14 @@ impl WireguardNetwork {
     /// Check if devices found in an imported config file exist already,
     /// if they do assign a specified IP.
     /// Return a list of imported devices which need to be manually mapped to a user
-    /// and a list of wireguard events to be sent out.
+    /// and a list of WireGuard events to be sent out.
     pub async fn handle_imported_devices(
         &self,
         transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
-        admin_group_name: &str,
     ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
         let network_id = self.get_id()?;
-        let allowed_devices = self
-            .get_allowed_devices(&mut *transaction, admin_group_name)
-            .await?;
+        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
         let allowed_devices: HashMap<i64, Device> = allowed_devices
             .into_iter()
@@ -529,6 +519,7 @@ impl WireguardNetwork {
                                     network_id,
                                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
                                     preshared_key: wireguard_network_device.preshared_key,
+                                    is_authorized: wireguard_network_device.is_authorized,
                                 }],
                             }));
                         }
@@ -551,14 +542,11 @@ impl WireguardNetwork {
         &self,
         transaction: &mut PgConnection,
         mapped_devices: Vec<MappedDevice>,
-        admin_group_name: &str,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Mapping user devices for network {}", self);
         let network_id = self.get_id()?;
         // get allowed groups for network
-        let allowed_groups = self
-            .get_allowed_groups(&mut *transaction, admin_group_name)
-            .await?;
+        let allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
 
         let mut events = Vec::new();
         // use a helper hashmap to avoid repeated queries
@@ -607,6 +595,7 @@ impl WireguardNetwork {
                         network_id,
                         device_wireguard_ip: wireguard_network_device.wireguard_ip,
                         preshared_key: wireguard_network_device.preshared_key,
+                        is_authorized: wireguard_network_device.is_authorized,
                     });
                 }
                 Some(allowed) => {
@@ -623,15 +612,15 @@ impl WireguardNetwork {
                             network_id,
                             device_wireguard_ip: wireguard_network_device.wireguard_ip,
                             preshared_key: wireguard_network_device.preshared_key,
+                            is_authorized: wireguard_network_device.is_authorized,
                         });
                     }
                 }
             }
 
             // assign IPs in other networks
-            let (mut all_network_info, _configs) = device
-                .add_to_all_networks(&mut *transaction, admin_group_name)
-                .await?;
+            let (mut all_network_info, _configs) =
+                device.add_to_all_networks(&mut *transaction).await?;
 
             network_info.append(&mut all_network_info);
 

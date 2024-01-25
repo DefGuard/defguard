@@ -262,8 +262,9 @@ async fn test_totp() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+static EMAIL_CODE_REGEX: &str = r"<b>(?<code>\d{6})</b>";
 fn extract_email_code(content: &str) -> u32 {
-    let re = regex::Regex::new(r"<b>(?<code>\d{6})</b>").unwrap();
+    let re = regex::Regex::new(EMAIL_CODE_REGEX).unwrap();
     let code = re.captures(content).unwrap().name("code").unwrap().as_str();
     code.parse().unwrap()
 }

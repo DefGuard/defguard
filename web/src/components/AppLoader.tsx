@@ -68,7 +68,7 @@ export const AppLoader = () => {
   });
 
   const { isLoading: settingsLoading, data: essentialSettings } = useQuery(
-    [QueryKeys.FETCH_ESSENTAIL_SETTINGS],
+    [QueryKeys.FETCH_ESSENTIAL_SETTINGS],
     getEssentialSettings,
     {
       refetchOnWindowFocus: true,

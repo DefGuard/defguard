@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router';
 import * as yup from 'yup';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -15,8 +16,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import {
-  patternNoSpecialChars,
-  patternStartsWithDigit,
+  patternSafeUsernameCharacters,
   patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
@@ -60,6 +60,8 @@ export const ProfileDetailsForm = () => {
     user: { editUser },
     groups: { getGroups },
   } = useApi();
+  const { username: paramsUsername } = useParams();
+  const navigate = useNavigate();
 
   const schema = useMemo(
     () =>
@@ -68,15 +70,9 @@ export const ProfileDetailsForm = () => {
           username: yup
             .string()
             .required(LL.form.error.required())
-            .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
+            .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
             .min(3, LL.form.error.minimumLength())
-            .max(64, LL.form.error.maximumLength())
-            .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {
-              if (value && value.length) {
-                return !patternStartsWithDigit.test(value);
-              }
-              return false;
-            }),
+            .max(64, LL.form.error.maximumLength()),
           first_name: yup.string().required(LL.form.error.required()),
           last_name: yup.string().required(LL.form.error.required()),
           phone: yup
@@ -130,11 +126,16 @@ export const ProfileDetailsForm = () => {
     [MutationKeys.EDIT_USER],
     editUser,
     {
-      onSuccess: () => {
+      onSuccess: (_data, variables) => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
         queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         toaster.success(LL.userPage.messages.editSuccess());
         setUserProfile({ editMode: false, loading: false });
+        // if username was changed redirect to new profile page
+        const newUsername = variables.data.username;
+        if (paramsUsername !== newUsername) {
+          navigate(`/admin/users/${variables.data.username}`, { replace: true });
+        }
       },
       onError: (err) => {
         toaster.error(LL.messages.error());

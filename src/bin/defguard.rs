@@ -45,6 +45,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .init();
     SERVER_CONFIG.set(config.clone())?;
 
+    info!("Starting defguard");
+    debug!("Using config: {config:?}");
+
     let pool = init_db(
         &config.database_host,
         config.database_port,
@@ -69,8 +72,6 @@ async fn main() -> Result<(), anyhow::Error> {
         // return early
         return Ok(());
     }
-
-    debug!("Starting defguard server with config: {config:?}");
 
     if config.openid_signing_key.is_some() {
         info!("Using RSA OpenID signing key");
