@@ -383,6 +383,16 @@ const useApi = (props?: HookProps): ApiHook => {
   const startDesktopActivation: ApiHook['user']['startDesktopActivation'] = (data) =>
     client.post(`/user/${data.username}/start_desktop`, data).then(unpackRequest);
 
+  const fetchAuthenticationKeys: ApiHook['user']['fetchAuthenticationKeys'] = () =>
+    client.get(`/authentication_keys`).then(unpackRequest);
+
+  const addAuthenticationKey: ApiHook['user']['addAuthenticationKey'] = (data) =>
+    client.post(`/authentication_keys`, data).then(unpackRequest);
+
+  const deleteAuthenticationKey: ApiHook['user']['deleteAuthenticationKey'] = (
+    id: number,
+  ) => client.delete(`/authentication_keys/${id}`).then(unpackRequest);
+
   const patchSettings: ApiHook['settings']['patchSettings'] = (data) =>
     client.patch('/settings', data).then(unpackRequest);
 
@@ -439,6 +449,9 @@ const useApi = (props?: HookProps): ApiHook => {
       removeFromGroup,
       startEnrollment,
       startDesktopActivation,
+      fetchAuthenticationKeys,
+      addAuthenticationKey,
+      deleteAuthenticationKey,
     },
     device: {
       addDevice: addDevice,

@@ -20,6 +20,11 @@ export enum UserMFAMethod {
   WEB3 = 'Web3',
 }
 
+export enum AuthenticationKeyType {
+  SSH = 'SSH',
+  GPG = 'GPG',
+}
+
 export type User = {
   id: number;
   username: string;
@@ -171,6 +176,16 @@ export interface DeleteUserModal {
 export interface ProvisionKeyModal {
   visible: boolean;
   user?: User;
+}
+
+export interface AddAuthenticationKeyModal {
+  visible: boolean;
+  user?: User;
+}
+
+export interface DeleteAuthenticationKeyModal {
+  visible: boolean;
+  authenticationKey?: AuthenticationKey;
 }
 
 export interface DeleteOpenidClientModal {
@@ -352,6 +367,20 @@ export type AuthCodeRequsest = {
   code: number;
 };
 
+export interface AddAuthenticationKeyRequest {
+  name: string;
+  key: string;
+  key_type: string;
+}
+
+export interface AuthenticationKey {
+  id: number;
+  user_id: number;
+  name: string;
+  key: string;
+  key_type: string;
+}
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
@@ -380,6 +409,9 @@ export interface ApiHook {
     startDesktopActivation: (
       data: StartEnrollmentRequest,
     ) => Promise<StartEnrollmentResponse>;
+    fetchAuthenticationKeys: () => Promise<AuthenticationKey[]>;
+    addAuthenticationKey: (data: AddAuthenticationKeyRequest) => EmptyApiResponse;
+    deleteAuthenticationKey: (id: number) => EmptyApiResponse;
   };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
@@ -631,6 +663,8 @@ export interface UseModalStore {
   changePasswordModal: ChangePasswordModal;
   changeWalletModal: ChangeWalletModal;
   provisionKeyModal: ProvisionKeyModal;
+  addAuthenticationKeyModal: AddAuthenticationKeyModal;
+  deleteAuthenticationKeyModal: DeleteAuthenticationKeyModal;
   // DO NOT EXTEND THIS STORE
   webhookModal: WebhookModal;
   addOpenidClientModal: StandardModalState;
@@ -659,6 +693,9 @@ export interface UseModalStore {
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   // DO NOT EXTEND THIS STORE
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
+  // DO NOT EXTEND THIS STORE
+  setAddAuthenticationKeyModal: ModalSetter<AddAuthenticationKeyModal>;
+  setDeleteAuthenticationKeyModal: ModalSetter<DeleteAuthenticationKeyModal>;
 }
 
 export interface UseOpenIDStore {

@@ -74,6 +74,10 @@ type RootTranslation = {
 			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
 			 */
 			RestoreDefault: string
+			/**
+			 * D​e​l​e​t​e
+			 */
+			'delete': string
 		}
 	}
 	messages: {
@@ -1436,6 +1440,86 @@ type RootTranslation = {
 				 * m​a​n​a​g​e​m​e​n​t​ ​a​n​d​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
 				 */
 				line2: string
+			}
+		}
+		authenticationKeys: {
+			/**
+			 * U​s​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y​s
+			 */
+			header: string
+			/**
+			 * A​d​d​ ​n​e​w​ ​K​e​y
+			 */
+			addKey: string
+			keyCard: {
+				/**
+				 * K​e​y
+				 */
+				keyLabel: string
+				/**
+				 * C​o​p​y​ ​t​o​ ​C​l​i​p​b​o​a​r​d
+				 */
+				copyToClipboard: string
+				/**
+				 * D​o​w​n​l​o​a​d​ ​K​e​y​ ​F​i​l​e
+				 */
+				downloadKey: string
+				/**
+				 * D​e​l​e​t​e​ ​K​e​y
+				 */
+				deleteKey: string
+				/**
+				 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​d​e​l​e​t​e​d​.
+				 */
+				keyDeleted: string
+				/**
+				 * A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​k​e​y​?
+				 */
+				confirmDelete: string
+			}
+			addModal: {
+				/**
+				 * A​d​d​ ​n​e​w​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
+				 */
+				header: string
+				/**
+				 * T​i​t​l​e
+				 */
+				keyNameLabel: string
+				/**
+				 * K​e​y
+				 */
+				keyLabel: string
+				/**
+				 * K​e​y​ ​t​i​t​l​e
+				 */
+				keyNamePlaceholder: string
+				/**
+				 * B​e​g​i​n​s​ ​w​i​t​h​ ​‘​s​s​h​-​r​s​a​’​,​ ​‘​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​’​,​ ​.​.​.
+				 */
+				keyPlaceholder: string
+				/**
+				 * A​d​d​ ​k​e​y
+				 */
+				addKey: string
+				messages: {
+					/**
+					 * K​e​y​ ​a​d​d​e​d​.
+					 */
+					keyAdded: string
+					/**
+					 * K​e​y​ ​h​a​s​ ​a​l​r​e​a​d​y​ ​b​e​e​n​ ​a​d​d​e​d​.
+					 */
+					keyExists: string
+					/**
+					 * U​n​s​u​p​p​o​r​t​e​d​ ​k​e​y​ ​f​o​r​m​a​t​.
+					 */
+					unsupportedKeyFormat: string
+					/**
+					 * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​t​h​e​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
+					 */
+					genericError: string
+				}
 			}
 		}
 	}
@@ -3625,6 +3709,10 @@ export type TranslationFunctions = {
 			 * Restore default
 			 */
 			RestoreDefault: () => LocalizedString
+			/**
+			 * Delete
+			 */
+			'delete': () => LocalizedString
 		}
 	}
 	messages: {
@@ -4978,6 +5066,86 @@ export type TranslationFunctions = {
 				 * management and provisioning.
 				 */
 				line2: () => LocalizedString
+			}
+		}
+		authenticationKeys: {
+			/**
+			 * User Authentication Keys
+			 */
+			header: () => LocalizedString
+			/**
+			 * Add new Key
+			 */
+			addKey: () => LocalizedString
+			keyCard: {
+				/**
+				 * Key
+				 */
+				keyLabel: () => LocalizedString
+				/**
+				 * Copy to Clipboard
+				 */
+				copyToClipboard: () => LocalizedString
+				/**
+				 * Download Key File
+				 */
+				downloadKey: () => LocalizedString
+				/**
+				 * Delete Key
+				 */
+				deleteKey: () => LocalizedString
+				/**
+				 * Authentication key deleted.
+				 */
+				keyDeleted: () => LocalizedString
+				/**
+				 * Are you sure you want to delete this key?
+				 */
+				confirmDelete: () => LocalizedString
+			}
+			addModal: {
+				/**
+				 * Add new Authentication Key
+				 */
+				header: () => LocalizedString
+				/**
+				 * Title
+				 */
+				keyNameLabel: () => LocalizedString
+				/**
+				 * Key
+				 */
+				keyLabel: () => LocalizedString
+				/**
+				 * Key title
+				 */
+				keyNamePlaceholder: () => LocalizedString
+				/**
+				 * Begins with ‘ssh-rsa’, ‘ecdsa-sha2-nistp256’, ...
+				 */
+				keyPlaceholder: () => LocalizedString
+				/**
+				 * Add key
+				 */
+				addKey: () => LocalizedString
+				messages: {
+					/**
+					 * Key added.
+					 */
+					keyAdded: () => LocalizedString
+					/**
+					 * Key has already been added.
+					 */
+					keyExists: () => LocalizedString
+					/**
+					 * Unsupported key format.
+					 */
+					unsupportedKeyFormat: () => LocalizedString
+					/**
+					 * Could not add the key. Please try again later.
+					 */
+					genericError: () => LocalizedString
+				}
 			}
 		}
 	}

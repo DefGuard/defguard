@@ -12,6 +12,9 @@ use axum::{
     serve, Extension, Router,
 };
 
+use handlers::ssh_authorized_keys::{
+    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+};
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
 use tokio::{
@@ -158,6 +161,12 @@ pub fn build_webapp(
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
+            .route("/authentication_keys", get(fetch_authentication_keys))
+            .route("/authentication_keys", post(add_authentication_key))
+            .route(
+                "/authentication_keys/:id",
+                delete(delete_authentication_key),
+            )
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))

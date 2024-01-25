@@ -1,5 +1,6 @@
 #[cfg(feature = "openid")]
 pub mod auth_code;
+pub mod authentication_key;
 pub mod device;
 pub mod device_login;
 pub mod enrollment;
