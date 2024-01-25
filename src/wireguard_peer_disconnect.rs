@@ -18,7 +18,7 @@ use thiserror::Error;
 use tokio::{sync::broadcast::Sender, time::sleep};
 
 // How long to sleep between loop iterations
-const DISCONNECT_LOOP_SLEEP_SECONDS: u64 = 180; // 3 minutes
+const DISCONNECT_LOOP_SLEEP_SECONDS: u64 = 60; // 1 minute
 
 #[derive(Debug, Error)]
 pub enum PeerDisconnectError {
