@@ -443,7 +443,7 @@ const pl: Translation = {
         qrInfo:
           'Użyj poniższych konfiguracji aby połączyć się z wybranymi lokalizacjami.',
         helpers: {
-          qrHelper: `<p>Możesz skonfigurować Wireguard na telefonie skanując QR kod przez aplikację Wireguard.</p>`,
+          qrHelper: `<p>Możesz skonfigurować WireGuard na telefonie skanując QR kod przez aplikację Wireguard.</p>`,
           warningAutoMode: `
 <p>Uwaga, Defguard nie przechowuje twojego klucza prywatnego. Gdy opuścisz obecną stronę <strong> nie będziesz mógł</strong> pobrać ponownie konfiguracji z kluczem prywatnym.</p>
 `,
@@ -1276,10 +1276,10 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           label: 'Wymagaj MFA dla tej lokalizacji',
         },
         keepalive_interval: {
-          label: 'Utrzymanie połączenia',
+          label: 'Utrzymanie połączenia [sekundy]',
         },
         peer_disconnect_threshold: {
-          label: 'Peer disconnect threshold',
+          label: 'Peer disconnect threshold [sekundy]',
         },
       },
       controls: {

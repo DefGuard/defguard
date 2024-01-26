@@ -711,7 +711,7 @@ const en: BaseTranslation = {
       username: 'Username',
     },
     error: {
-      forbiddenCharacter: 'Field contain forbidden characters.',
+      forbiddenCharacter: 'Field contains forbidden characters.',
       usernameTaken: 'Username is already in use.',
       invalidKey: 'Key is invalid.',
       invalid: 'Field is invalid.',
@@ -1291,10 +1291,10 @@ const en: BaseTranslation = {
           label: 'Require MFA for this Location',
         },
         keepalive_interval: {
-          label: 'Keepalive interval',
+          label: 'Keepalive interval [seconds]',
         },
         peer_disconnect_threshold: {
-          label: 'Peer disconnect threshold',
+          label: 'Peer disconnect threshold [seconds]',
         },
       },
       controls: {

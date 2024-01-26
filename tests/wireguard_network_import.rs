@@ -69,7 +69,7 @@ async fn test_config_import() {
     );
     device_1.save(&mut *transaction).await.unwrap();
     device_1
-        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
+        .add_to_all_networks(&mut transaction)
         .await
         .unwrap();
 
@@ -80,7 +80,7 @@ async fn test_config_import() {
     );
     device_2.save(&mut *transaction).await.unwrap();
     device_2
-        .add_to_all_networks(&mut transaction, &client_state.config.admin_groupname)
+        .add_to_all_networks(&mut transaction)
         .await
         .unwrap();
 

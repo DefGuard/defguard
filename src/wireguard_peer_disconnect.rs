@@ -18,7 +18,7 @@ use thiserror::Error;
 use tokio::{sync::broadcast::Sender, time::sleep};
 
 // How long to sleep between loop iterations
-const DISCONNECT_LOOP_SLEEP_SECONDS: u64 = 180; // 3 minutes
+const DISCONNECT_LOOP_SLEEP_SECONDS: u64 = 60; // 1 minute
 
 #[derive(Debug, Error)]
 pub enum PeerDisconnectError {
@@ -70,7 +70,8 @@ pub async fn run_periodic_peer_disconnect(
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \
-            WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND (NOW() - stats.latest_handshake) > $2 * interval '1 second'",
+            WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND \
+            (stats.latest_handshake IS NULL OR (NOW() - stats.latest_handshake) > $2 * interval '1 second')",
             location_id,
                 location.peer_disconnect_threshold as f64
         )
@@ -102,6 +103,7 @@ pub async fn run_periodic_peer_disconnect(
                             network_id: location_id,
                             device_wireguard_ip: device_network_config.wireguard_ip,
                             preshared_key: device_network_config.preshared_key,
+                            is_authorized: device_network_config.is_authorized,
                         }],
                     };
                     let event = GatewayEvent::DeviceDeleted(device_info);

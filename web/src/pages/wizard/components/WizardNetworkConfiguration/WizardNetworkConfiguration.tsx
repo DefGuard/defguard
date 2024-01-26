@@ -140,7 +140,7 @@ export const WizardNetworkConfiguration = () => {
           peer_disconnect_threshold: yup
             .number()
             .positive()
-            .min(1)
+            .min(120)
             .required(LL.form.error.required()),
         })
         .required(),

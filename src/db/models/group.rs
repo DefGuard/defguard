@@ -1,7 +1,10 @@
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgExecutor};
 
-use crate::db::{models::error::ModelError, User, WireguardNetwork};
+use crate::{
+    db::{models::error::ModelError, User, WireguardNetwork},
+    SERVER_CONFIG,
+};
 
 #[derive(Model)]
 pub struct Group {
@@ -97,9 +100,12 @@ impl WireguardNetwork {
     pub async fn get_allowed_groups(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &str,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
+        let admin_group_name = &SERVER_CONFIG
+            .get()
+            .expect("defguard config not found")
+            .admin_groupname;
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
 

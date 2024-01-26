@@ -1,22 +1,26 @@
 import { test } from '@playwright/test';
 
 import { testsConfig, testUserTemplate } from '../config';
+import { User } from '../types';
+import { createUser } from '../utils/controllers/createUser';
 import { loginBasic } from '../utils/controllers/login';
+import { logout } from '../utils/controllers/logout';
+import {
+  selectPasswordReset,
+  setEmail,
+  setPassword,
+} from '../utils/controllers/passwordReset';
+import { getPasswordResetToken } from '../utils/db/getPasswordResetToken';
 import { dockerDown, dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
-import { selectPasswordReset, setEmail, setPassword } from '../utils/controllers/passwordReset';
-import { getPasswordResetToken } from '../utils/db/getPasswordResetToken';
-import { createUser } from '../utils/controllers/createUser';
-import { logout } from '../utils/controllers/logout';
-import { User } from '../types';
 
 const newPassword = '!7(8o3aN8RoF';
 
 test.describe('Reset password', () => {
   const user: User = { ...testUserTemplate, username: 'test' };
 
-  test.beforeEach(async ({ browser, page }) => {
+  test.beforeEach(async ({ browser }) => {
     dockerRestart();
     await createUser(browser, user);
   });
