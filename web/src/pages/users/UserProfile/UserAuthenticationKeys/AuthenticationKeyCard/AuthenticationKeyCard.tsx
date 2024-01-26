@@ -21,13 +21,13 @@ import { AuthenticationKey } from '../../../../../shared/types';
 import { useDeleteAuthenticationKeyModal } from '../../../shared/modals/DeleteAuthenticationKeyModal/useDeleteAuthenticationKeyModal';
 
 interface Props {
-  authentication_key: AuthenticationKey;
+  authenticationKey: AuthenticationKey;
 }
 
-export const AuthenticationKeyCard = ({ authentication_key }: Props) => {
+export const AuthenticationKeyCard = ({ authenticationKey }: Props) => {
   const [hovered, setHovered] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, _setExpanded] = useState(false);
 
   const { LL } = useI18nContext();
   // const toaster = useToaster();
@@ -64,53 +64,50 @@ export const AuthenticationKeyCard = ({ authentication_key }: Props) => {
     >
       <section className="main-info">
         <header>
-          <DeviceAvatar deviceId={Number(authentication_key.id)} active={false} />
-          <h3 data-testid="device-name">{authentication_key.name}</h3>
+          <DeviceAvatar deviceId={Number(authenticationKey.id)} active={false} />
+          <h3 data-testid="authentication-key-name">{authenticationKey.name}</h3>
         </header>
         <div className="section-content">
           <div>
             <Label>{LL.userPage.authenticationKeys.keyCard.keyLabel()}</Label>
             <p
-              data-testid="authentication-key-value"
+              data-testid="card-authentication-key-value"
               className="authentication-key-value"
             >
-              {authentication_key.key}
+              {authenticationKey.key}
             </p>
           </div>
         </div>
       </section>
 
-      <div className="locations">
-        {/* {orderedLocations.map((n) => (
-          <DeviceLocation key={n.network_id} network_info={n} />
-        ))} */}
-      </div>
+      <div className="locations"></div>
       <div className="card-controls">
-        <EditButton visible={true}>
+        <EditButton visible data-testid="authentication-key-settings-button">
           <EditButtonOption
             text={LL.userPage.authenticationKeys.keyCard.copyToClipboard()}
             onClick={() => {
-              writeToClipboard(authentication_key.key);
+              writeToClipboard(authenticationKey.key);
             }}
           />
           <EditButtonOption
             styleVariant={EditButtonOptionStyleVariant.STANDARD}
             text={LL.userPage.authenticationKeys.keyCard.downloadKey()}
             onClick={() => {
-              const blob = new Blob([authentication_key.key], {
+              const blob = new Blob([authenticationKey.key], {
                 type: 'text/plain;charset=utf-8',
               });
               saveAs(
                 blob,
-                `${authentication_key.name.replace(' ', '_').toLocaleLowerCase()}.txt`,
+                `${authenticationKey.name.replace(' ', '_').toLocaleLowerCase()}.txt`,
               );
             }}
           />
           <EditButtonOption
+            data-testid="authentication-key-settings-delete"
             styleVariant={EditButtonOptionStyleVariant.WARNING}
             text={LL.userPage.authenticationKeys.keyCard.deleteKey()}
             onClick={() => {
-              openModal({ visible: true, authenticationKey: authentication_key });
+              openModal({ visible: true, authenticationKey });
             }}
           />
         </EditButton>

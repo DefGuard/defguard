@@ -91,12 +91,12 @@ export const AddAuthenticationKeyModal = () => {
       yup
         .object()
         .shape({
-          name: yup.string().required(),
-          key: yup.string().required(),
-          key_type: yup.string().required(),
+          name: yup.string().required(LL.form.error.required()),
+          key: yup.string().required(LL.form.error.required()),
+          key_type: yup.string().required(LL.form.error.required()),
         })
         .required(),
-    [],
+    [LL],
   );
 
   const submitHandler: SubmitHandler<FormValues> = async (values) => {
@@ -133,7 +133,6 @@ export const AddAuthenticationKeyModal = () => {
     >
       <div className="add-authentication-key-content">
         <div className="authentication-keys-container">
-          {/* TODO: loop */}
           <Button
             styleVariant={
               keyTypeValue === AuthenticationKeyType.SSH
@@ -188,6 +187,7 @@ export const AddAuthenticationKeyModal = () => {
             {LL.userPage.authenticationKeys.addModal.keyLabel()}
           </Label>
           <AuthenticationKeyFormTextField
+            data-testid="authentication-key-value"
             placeholder={
               keyTypeValue === AuthenticationKeyType.SSH
                 ? LL.userPage.authenticationKeys.addModal.sshKeyPlaceholder()

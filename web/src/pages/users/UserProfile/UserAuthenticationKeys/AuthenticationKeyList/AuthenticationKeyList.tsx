@@ -21,7 +21,7 @@ export const AuthenticationKeyList = () => {
   return (
     <div className="authentication-key-list">
       {authenticationKeys?.map((item) => {
-        return <AuthenticationKeyCard key={item.id} authentication_key={item} />;
+        return <AuthenticationKeyCard key={item.id} authenticationKey={item} />;
       })}
     </div>
   );

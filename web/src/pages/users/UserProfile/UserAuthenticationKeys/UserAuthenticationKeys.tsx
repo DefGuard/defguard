@@ -25,6 +25,7 @@ export const UserAuthenticationKeys = () => {
       <AuthenticationKeyList />
       {user && isAdmin && (
         <AddComponentBox
+          data-testid="add-authentication-key-button"
           callback={() => {
             if (user) {
               setAddAuthenticationKeyModal({ visible: true, user: user });
