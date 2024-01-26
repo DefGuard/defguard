@@ -7,8 +7,6 @@ import { useMemo, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-// import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
-// import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
 import { ColorsRGB } from '../../../../../shared/constants';
 import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { DeviceAvatar } from '../../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
@@ -30,8 +28,6 @@ export const AuthenticationKeyCard = ({ authenticationKey }: Props) => {
   const [expanded, _setExpanded] = useState(false);
 
   const { LL } = useI18nContext();
-  // const toaster = useToaster();
-  // const queryClient = useQueryClient();
   const { writeToClipboard } = useClipboard();
 
   const cn = useMemo(
@@ -111,24 +107,7 @@ export const AuthenticationKeyCard = ({ authenticationKey }: Props) => {
             }}
           />
         </EditButton>
-        {/* <ExpandButton
-          expanded={expanded}
-          onClick={() => setExpanded((state) => !state)}
-        /> */}
       </div>
     </Card>
   );
 };
-
-// type ExpandButtonProps = {
-//   expanded: boolean;
-//   onClick: () => void;
-// };
-
-// const ExpandButton = ({ expanded, onClick }: ExpandButtonProps) => {
-//   return (
-//     <button className="device-card-expand" onClick={onClick}>
-//       {expanded ? <SvgIconCollapse /> : <SvgIconExpand />}
-//     </button>
-//   );
-// };
