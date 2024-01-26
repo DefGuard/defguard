@@ -667,7 +667,6 @@ impl TokenRequest {
                 )
                 .set_nonce(auth_code.nonce.clone().map(Nonce::new));
 
-                print!("claims: {id_token_claims:#?}");
                 let id_token = match rsa_key {
                     Some(key) => IdToken::new(
                         id_token_claims,
