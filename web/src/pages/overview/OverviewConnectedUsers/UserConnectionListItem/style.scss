@@ -1,5 +1,4 @@
 @use '../../../../shared/scss/base/variables/' as v;
-@use '../../../../shared/scss/helpers/mixins' as mix;
 
 .user-connection-list-item {
   background-color: v.$white;
@@ -11,7 +10,7 @@
   padding-bottom: 1rem;
   position: relative;
 
-  & > .user-row {
+  &>.user-row {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -19,7 +18,7 @@
     justify-content: flex-start;
     width: 100%;
 
-    & > .user-name {
+    &>.user-name {
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -28,19 +27,19 @@
       column-gap: 1rem;
       padding-left: 52px;
 
-      & > .full-name {
-        @include mix.typography-legacy(15px, 18px, medium);
+      &>.full-name {
+        @include typography-legacy(15px, 18px, medium);
       }
     }
 
-    & > .active-time {
-      & > .time {
-        @include mix.typography-legacy(15px, 18px, medium, v.$text-main);
+    &>.active-time {
+      &>.time {
+        @include typography-legacy(15px, 18px, medium, v.$text-main);
       }
     }
   }
 
-  & > .device-row {
+  &>.device-row {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -59,7 +58,7 @@
       padding-bottom: 0.5rem;
     }
 
-    & > .device-name {
+    &>.device-name {
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -68,23 +67,23 @@
       column-gap: 1rem;
       padding-left: 52px;
 
-      & > svg {
+      &>svg {
         margin-left: 1.2rem;
       }
 
-      & > .name {
-        @include mix.typography-legacy(12px, 14px, medium, v.$text-main);
+      &>.name {
+        @include typography-legacy(12px, 14px, medium, v.$text-main);
       }
     }
 
-    & > .active-time {
-      & > .time {
-        @include mix.typography-legacy(12px, 14px, medium, v.$text-main);
+    &>.active-time {
+      &>.time {
+        @include typography-legacy(12px, 14px, medium, v.$text-main);
       }
     }
   }
 
-  & > .expand-devices {
+  &>.expand-devices {
     position: absolute;
     width: 22px;
     height: 22px;
@@ -100,7 +99,7 @@
     justify-content: flex-start;
     column-gap: 0.8rem;
 
-    & > .count-box {
+    &>.count-box {
       width: 30px;
       height: 30px;
       display: flex;
@@ -110,7 +109,7 @@
       justify-content: center;
 
       span {
-        @include mix.typography-legacy(12px, 14px, medium, v.$gray-light);
+        @include typography-legacy(12px, 14px, medium, v.$gray-light);
       }
     }
   }
@@ -164,9 +163,9 @@
   }
 
   &.expanded {
-    @include mix.elevate;
+    @include elevate;
 
-    & > .user-row {
+    &>.user-row {
       padding-bottom: 1rem;
     }
   }

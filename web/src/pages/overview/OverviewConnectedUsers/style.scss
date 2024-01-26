@@ -1,20 +1,18 @@
 @use '../../../shared/scss/base/variables/' as v;
-@use '../../../shared/scss/helpers/mixins' as mix;
-@use '../../../shared/scss/helpers/bootstrap' as bs;
 @use 'sass:list';
 
 $column-widths: 250px, 167px, 136px, 168px, 200px;
 
 @mixin set-list-column-widths() {
   @for $i from 1 through length($column-widths) {
-    & > :nth-child(#{$i}) {
+    &> :nth-child(#{$i}) {
       width: nth($column-widths, $i);
     }
   }
 }
 
 .overview-connected-users {
-  & > header {
+  &>header {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -25,7 +23,7 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
     box-sizing: border-box;
   }
 
-  & > .connected-users {
+  &>.connected-users {
     min-height: calc(100% - 94px);
     max-height: calc(100% - 94px);
 
@@ -37,15 +35,17 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
       justify-content: flex-start;
       box-sizing: border-box;
       padding-left: 0 !important;
-      @include bs.media-breakpoint-down(xl) {
+
+      @include media-breakpoint-down(xl) {
         overflow: auto;
       }
-      @include bs.media-breakpoint-up(xl) {
+
+      @include media-breakpoint-up(xl) {
         overflow: hidden;
         padding-right: 1rem;
       }
 
-      & > .headers {
+      &>.headers {
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -53,17 +53,19 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
         justify-content: flex-start;
         box-sizing: border-box;
         height: 22px;
-        @include bs.media-breakpoint-down(xl) {
+
+        @include media-breakpoint-down(xl) {
           padding-left: calc(52px + 1.5rem);
           padding-right: 1.5rem;
         }
-        @include bs.media-breakpoint-up(xl) {
+
+        @include media-breakpoint-up(xl) {
           padding-left: calc(52px + 6rem);
           padding-right: 34px;
           width: 100%;
         }
 
-        & > .header {
+        &>.header {
           display: flex;
           flex-direction: row;
           align-items: center;
@@ -71,38 +73,42 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
           justify-content: flex-start;
           column-gap: 0.6rem;
 
-          & > span {
-            @include mix.typography-legacy(12px, 14px, medium, v.$gray-light);
+          &>span {
+            @include typography-legacy(12px, 14px, medium, v.$gray-light);
           }
 
           &.active {
-            & > span {
+            &>span {
               color: v.$text-main;
             }
           }
         }
+
         @include set-list-column-widths;
       }
 
-      & > .users-list {
+      &>.users-list {
         box-sizing: border-box;
         overflow: auto;
         padding-right: 1.5rem;
         padding-top: 1.5rem;
         padding-bottom: 1.5rem;
-        @include bs.media-breakpoint-down(xl) {
+
+        @include media-breakpoint-down(xl) {
           max-height: calc(50vh);
           padding-left: 1.5rem;
         }
-        @include bs.media-breakpoint-up(xl) {
+
+        @include media-breakpoint-up(xl) {
           min-height: calc(100% - 28px);
           max-height: calc(100% - 28px);
           padding-left: 6rem;
           width: 100%;
         }
 
-        & > .user-connection-list-item {
-          & > .user-row,
+        &>.user-connection-list-item {
+
+          &>.user-row,
           .device-row {
             @include set-list-column-widths;
           }
@@ -127,11 +133,11 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
       grid-template-rows: min-content;
       grid-template-columns: 1fr;
 
-      @include bs.media-breakpoint-down(md) {
+      @include media-breakpoint-down(md) {
         justify-content: center;
       }
 
-      @include bs.media-breakpoint-up(xl) {
+      @include media-breakpoint-up(xl) {
         padding-top: 1rem;
         padding-bottom: 4rem;
         grid-template-columns: repeat(auto-fit, 370px);
@@ -144,7 +150,7 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
   margin-left: 6rem;
   margin-top: 1rem;
 
-  @include bs.media-breakpoint-down(md) {
+  @include media-breakpoint-down(md) {
     margin-left: 0;
     text-align: center;
   }

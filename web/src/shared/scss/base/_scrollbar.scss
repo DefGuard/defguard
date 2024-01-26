@@ -1,5 +1,5 @@
 @use './variables/colors' as c;
-@use '../helpers/mixins' as mix;
+@use '../global/mixins' as *;
 
 ::-webkit-scrollbar {
   width: 4px;
@@ -7,11 +7,11 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @include mix.bg-opacity(c.$gray-light, 0.4);
+  @include bg-opacity(c.$gray-light, 0.4);
 
   border-radius: 15px;
 
   &:hover {
-    @include mix.bg-opacity(c.$gray-light, 1);
+    @include bg-opacity(c.$gray-light, 1);
   }
 }
