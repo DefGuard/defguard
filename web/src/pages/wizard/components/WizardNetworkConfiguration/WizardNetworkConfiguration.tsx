@@ -1,10 +1,10 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -22,7 +22,6 @@ import { titleCase } from '../../../../shared/utils/titleCase';
 import {
   validateIp,
   validateIpList,
-  validateIpOrDomain,
   validateIpOrDomainList,
 } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
@@ -83,67 +82,58 @@ export const WizardNetworkConfiguration = () => {
     refetchOnReconnect: 'always',
   });
 
-  const schema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object({
-          name: yup.string().required(LL.form.error.required()),
-          address: yup
-            .string()
-            .required(LL.form.error.required())
-            .test(LL.form.error.address(), (value: string) => {
-              const netmaskPresent = value.split('/').length == 2;
-              if (!netmaskPresent) {
-                return false;
-              }
-              const ipValid = validateIp(value, true);
-              if (ipValid) {
-                const host = value.split('.')[3].split('/')[0];
-                if (host === '0') return false;
-              }
-              return ipValid;
-            }),
-          endpoint: yup
-            .string()
-            .required(LL.form.error.required())
-            .test(LL.form.error.endpoint(), (val: string) => validateIpOrDomain(val)),
-          port: yup
-            .number()
-            .max(65535, LL.form.error.portMax())
-            .typeError(LL.form.error.validPort())
-            .required(LL.form.error.required()),
-          allowed_ips: yup
-            .string()
-            .optional()
-            .test(LL.form.error.allowedIps(), (val?: string) => {
-              if (val === '' || !val) {
-                return true;
-              }
-              return validateIpList(val, ',', true);
-            }),
-          dns: yup
-            .string()
-            .optional()
-            .test(LL.form.error.allowedIps(), (val?: string) => {
-              if (val === '' || !val) {
-                return true;
-              }
-              return validateIpOrDomainList(val, ',', true);
-            }),
-          allowed_groups: yup.array().optional(),
-          mfa_enabled: yup.boolean().required(LL.form.error.required()),
-          keepalive_interval: yup
-            .number()
-            .positive()
-            .min(1)
-            .required(LL.form.error.required()),
-          peer_disconnect_threshold: yup
-            .number()
-            .positive()
-            .min(1)
-            .required(LL.form.error.required()),
-        })
-        .required(),
+      z.object({
+        name: z.string().min(1, LL.form.error.required()),
+        address: z
+          .string()
+          .min(1, LL.form.error.required())
+          .refine((value) => {
+            const netmaskPresent = value.split('/').length == 2;
+            if (!netmaskPresent) {
+              return false;
+            }
+            const ipValid = validateIp(value, true);
+            if (ipValid) {
+              const host = value.split('.')[3].split('/')[0];
+              if (host === '0') return false;
+            }
+            return ipValid;
+          }),
+        endpoint: z.string().min(1, LL.form.error.required()),
+        port: z
+          .number()
+          .max(65535, LL.form.error.portMax())
+          .min(1, LL.form.error.required())
+          .nonnegative(),
+        allowed_ips: z
+          .string()
+          .optional()
+          .refine((val) => {
+            if (val === '' || !val) {
+              return true;
+            }
+            return validateIpList(val, ',', true);
+          }, LL.form.error.allowedIps()),
+        dns: z
+          .string()
+          .optional()
+          .refine((val) => {
+            if (val === '' || !val) {
+              return true;
+            }
+            return validateIpOrDomainList(val, ',', true);
+          }, LL.form.error.allowedIps()),
+        allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
+        mfa_enabled: z.boolean(),
+        keepalive_interval: z.number().positive().min(1, LL.form.error.required()),
+        peer_disconnect_threshold: z
+          .number()
+          .positive()
+          .min(1, LL.form.error.required())
+          .nonnegative(),
+      }),
     [LL.form.error],
   );
 
@@ -154,7 +144,7 @@ export const WizardNetworkConfiguration = () => {
   const { handleSubmit, control } = useForm<FormInputs>({
     mode: 'all',
     defaultValues: getDefaultValues,
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
   });
 
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {

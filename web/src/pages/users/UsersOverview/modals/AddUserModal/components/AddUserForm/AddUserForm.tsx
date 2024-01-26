@@ -1,11 +1,11 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { omit } from 'lodash-es';
 import { useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
@@ -24,7 +24,6 @@ import {
   patternValidPhoneNumber,
 } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
-import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 
 interface Inputs {
@@ -48,44 +47,53 @@ export const AddUserForm = () => {
 
   const [checkingUsername, setCheckingUsername] = useState(false);
 
-  const formSchema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
+      z
         .object({
-          username: yup
+          username: z
             .string()
-            .required(LL.form.error.required())
-            .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
             .min(3, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
-            .test(
-              'username-available',
-              LL.form.error.usernameTaken(),
-              (value?: string) =>
-                value ? !reservedUserNames.current.includes(value) : false,
-            ),
-          password: yup
-            .string()
-            .when('enable_enrollment', { is: false, then: () => passwordValidator(LL) }),
-          email: yup
-            .string()
-            .required(LL.form.error.required())
-            .matches(patternValidEmail, LL.form.error.invalid()),
-          last_name: yup.string().required(LL.form.error.required()),
-          first_name: yup.string().required(LL.form.error.required()),
-          phone: yup
+            .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
+          password: z.string().optional(),
+          email: z.string().min(1, LL.form.error.required()),
+          last_name: z.string().min(1, LL.form.error.required()),
+          first_name: z.string().min(1, LL.form.error.required()),
+          phone: z
             .string()
             .optional()
-            .test('is-valid', LL.form.error.invalid(), (value) => {
-              if (value && value.length) {
-                return patternValidPhoneNumber.test(value);
+            .refine((val) => {
+              if (val && val.length) {
+                return patternValidPhoneNumber.test(val);
               }
               return true;
-            }),
-          enable_enrollment: yup.boolean(),
+            }, LL.form.error.invalid()),
+          enable_enrollment: z.boolean(),
         })
-        .required(),
-    [LL],
+        .superRefine((val, ctx) => {
+          if (val.phone && val.phone.length) {
+            const phoneRes = z
+              .string()
+              .regex(patternValidEmail, LL.form.error.invalid())
+              .safeParse(val.phone);
+            if (!phoneRes.success) {
+              ctx.addIssue({
+                code: 'custom',
+                path: ['phone'],
+                message: phoneRes.error.message,
+              });
+            }
+            if (reservedUserNames.current.includes(val.username)) {
+              ctx.addIssue({
+                code: 'custom',
+                path: ['username'],
+                message: LL.form.error.usernameTaken(),
+              });
+            }
+          }
+        }),
+    [LL.form.error],
   );
 
   const {
@@ -94,7 +102,7 @@ export const AddUserForm = () => {
     formState: { isValid },
     trigger,
   } = useForm<Inputs>({
-    resolver: yupResolver(formSchema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     criteriaMode: 'all',
     defaultValues: {

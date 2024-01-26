@@ -1,8 +1,8 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -29,21 +29,24 @@ export const ChangePasswordForm = () => {
   const modalState = useModalStore((state) => state.changePasswordModal);
   const toaster = useToaster();
   const { LL } = useI18nContext();
-  const schema = useMemo(
+
+  const zodSchema = useMemo(
     () =>
-      yup
+      z
         .object({
           new_password: passwordValidator(LL),
-          repeat: yup
-            .string()
-            .required(LL.form.error.required())
-            .test(
-              'password-match',
-              LL.form.error.repeat(),
-              (value, context) => value === context.parent.new_password,
-            ),
+          repeat: z.string().min(1, LL.form.error.required()),
         })
-        .required(),
+        .superRefine((val, ctx) => {
+          const { new_password, repeat } = val;
+          if (new_password !== repeat) {
+            ctx.addIssue({
+              path: ['repeat'],
+              code: 'custom',
+              message: LL.form.error.repeat(),
+            });
+          }
+        }),
     [LL],
   );
 
@@ -80,7 +83,7 @@ export const ChangePasswordForm = () => {
       repeat: '',
     },
     criteriaMode: 'all',
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
   });
 

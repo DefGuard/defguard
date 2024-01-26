@@ -1,8 +1,8 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -34,29 +34,26 @@ const defaultFormValues: Inputs = {
 export const EditUserDeviceForm = () => {
   const device = useEditDeviceModal((state) => state.device);
   const closeModal = useEditDeviceModal((state) => state.close);
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
 
-  const schema = useMemo(() => {
-    return yup
-      .object({
-        name: yup
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        name: z
           .string()
           .min(4, LL.form.error.minimumLength())
-          .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
-          .required(LL.form.error.required()),
-        wireguard_pubkey: yup
+          .regex(patternNoSpecialChars, LL.form.error.noSpecialChars()),
+        wireguard_pubkey: z
           .string()
           .min(44, LL.form.error.invalidKey())
           .max(44, LL.form.error.invalidKey())
-          .required(LL.form.error.required())
-          .matches(patternValidWireguardKey, LL.form.error.invalidKey()),
-      })
-      .required();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+          .regex(patternValidWireguardKey, LL.form.error.invalidKey()),
+      }),
+    [LL.form.error],
+  );
 
   const { control, handleSubmit } = useForm<Inputs>({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     defaultValues: {
       name: device?.name ?? defaultFormValues.name,
       wireguard_pubkey: device?.wireguard_pubkey ?? defaultFormValues.wireguard_pubkey,

@@ -1,9 +1,9 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
-import * as yup from 'yup';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -49,15 +49,16 @@ export const MFARecovery = () => {
     },
   });
 
-  const schema = yup
-    .object()
-    .shape({
-      code: yup.string().required(LL.form.error.required()),
-    })
-    .required();
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        code: z.string().min(1, LL.form.error.required()),
+      }),
+    [LL.form.error],
+  );
 
   const { handleSubmit, control } = useForm<RecoveryLoginRequest>({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     defaultValues: {
       code: '',
     },
