@@ -693,7 +693,6 @@ export interface UseModalStore {
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   // DO NOT EXTEND THIS STORE
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
-  // DO NOT EXTEND THIS STORE
   setAddAuthenticationKeyModal: ModalSetter<AddAuthenticationKeyModal>;
   setDeleteAuthenticationKeyModal: ModalSetter<DeleteAuthenticationKeyModal>;
 }

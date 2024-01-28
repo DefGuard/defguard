@@ -41,12 +41,10 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
       visible: false,
       user: undefined,
     },
-    // DO NOT EXTEND THIS STORE
     addAuthenticationKeyModal: {
       visible: false,
       user: undefined,
     },
-    // DO NOT EXTEND THIS STORE
     deleteAuthenticationKeyModal: {
       visible: false,
       authenticationKey: undefined,

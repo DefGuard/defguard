@@ -1,10 +1,10 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm, useWatch } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -88,14 +88,11 @@ export const AddAuthenticationKeyModal = () => {
 
   const schema = useMemo(
     () =>
-      yup
-        .object()
-        .shape({
-          name: yup.string().required(LL.form.error.required()),
-          key: yup.string().required(LL.form.error.required()),
-          key_type: yup.string().required(LL.form.error.required()),
-        })
-        .required(),
+      z.object({
+        name: z.string().min(1, LL.form.error.required()),
+        key: z.string().min(1, LL.form.error.required()),
+        key_type: z.string().min(1, LL.form.error.required()),
+      }),
     [LL],
   );
 
@@ -114,7 +111,7 @@ export const AddAuthenticationKeyModal = () => {
       key_type: AuthenticationKeyType.SSH,
       key: '',
     },
-    resolver: yupResolver(schema),
+    resolver: zodResolver(schema),
     mode: 'all',
   });
 

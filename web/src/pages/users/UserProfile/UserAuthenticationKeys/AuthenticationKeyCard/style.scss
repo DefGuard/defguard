@@ -1,11 +1,11 @@
 @use '@scssutils' as *;
 
 .card {
-  &.device-card {
+  &.authentication-key-card {
     overflow: hidden;
     display: block;
     position: relative;
-    display: grid;
+    display: block;
     grid-template-rows: auto 0;
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -155,12 +155,10 @@
   }
 }
 
+.authentication-key-value-container {
+  max-width: 100%;
+}
+
 .authentication-key-value {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  // display: block;
-  // max-width: 438px; 
-  max-width: 380px; 
-  // height: 1.2em; 
-  white-space: nowrap;
+  @include text-overflow-dots;
 }

@@ -32,7 +32,7 @@ export const AuthenticationKeyCard = ({ authenticationKey }: Props) => {
 
   const cn = useMemo(
     () =>
-      classNames('device-card', {
+      classNames('authentication-key-card', {
         expanded,
       }),
     [expanded],
@@ -64,7 +64,7 @@ export const AuthenticationKeyCard = ({ authenticationKey }: Props) => {
           <h3 data-testid="authentication-key-name">{authenticationKey.name}</h3>
         </header>
         <div className="section-content">
-          <div>
+          <div className="authentication-key-value-container">
             <Label>{LL.userPage.authenticationKeys.keyCard.keyLabel()}</Label>
             <p
               data-testid="card-authentication-key-value"
