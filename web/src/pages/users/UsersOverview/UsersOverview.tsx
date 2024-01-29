@@ -28,6 +28,8 @@ import { User } from '../../../shared/types';
 import { UsersList } from './components/UsersList/UsersList';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
 import { useAddUserModal } from './modals/AddUserModal/hooks/useAddUserModal';
+import { AssignGroupsModal } from './modals/AssignGroupsModal/AssignGroupsModal';
+import { useAssignGroupsModal } from './modals/AssignGroupsModal/store';
 
 enum FilterOptions {
   ALL = 'all',
@@ -38,6 +40,8 @@ enum FilterOptions {
 export const UsersOverview = () => {
   const { LL, locale } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const openGroupsAssign = useAssignGroupsModal((s) => s.open);
 
   const filterSelectOptions = useMemo(() => {
     const res: SelectOption<FilterOptions>[] = [
@@ -119,6 +123,27 @@ export const UsersOverview = () => {
     return searched;
   }, [selectedFilter, users, usersSearchValue]);
 
+  const handleUserSelect = useCallback(
+    (id: number) => {
+      if (selectedUsers.includes(id)) {
+        setSelectedUsers((selected) => selected.filter((i) => i !== id));
+      } else {
+        setSelectedUsers((s) => [...s, id]);
+      }
+    },
+    [selectedUsers],
+  );
+
+  const handleSelectAll = useCallback(() => {
+    if (users) {
+      if (users.length !== selectedUsers.length) {
+        setSelectedUsers(users.map((u) => u.id));
+      } else {
+        setSelectedUsers([]);
+      }
+    }
+  }, [users, selectedUsers, setSelectedUsers]);
+
   useEffect(() => {
     if (breakpoint !== 'desktop' && selectedFilter !== FilterOptions.ALL) {
       setSelectedFilter(FilterOptions.ALL);
@@ -148,6 +173,14 @@ export const UsersOverview = () => {
           </div>
         </div>
         <div className="controls">
+          {selectedUsers.length > 0 && (
+            <Button
+              size={ButtonSize.SMALL}
+              styleVariant={ButtonStyleVariant.PRIMARY}
+              text="Assign group to selected users"
+              onClick={() => openGroupsAssign(selectedUsers)}
+            />
+          )}
           {breakpoint === 'desktop' && (
             <Select
               sizeVariant={SelectSizeVariant.SMALL}
@@ -179,7 +212,13 @@ export const UsersOverview = () => {
         ) : null}
       </motion.section>
       {!isLoading && filteredUsers && filteredUsers.length > 0 && (
-        <UsersList users={filteredUsers} />
+        <UsersList
+          users={filteredUsers}
+          selectedUsers={selectedUsers}
+          allSelected={users && selectedUsers.length === users.length}
+          onSelectAll={handleSelectAll}
+          onUserSelect={handleUserSelect}
+        />
       )}
       {isLoading && (
         <div className="list-loader">
@@ -187,6 +226,7 @@ export const UsersOverview = () => {
         </div>
       )}
       <AddUserModal />
+      <AssignGroupsModal />
     </section>
   );
 };

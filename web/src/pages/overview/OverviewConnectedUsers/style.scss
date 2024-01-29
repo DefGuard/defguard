@@ -5,14 +5,14 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
 
 @mixin set-list-column-widths() {
   @for $i from 1 through length($column-widths) {
-    &> :nth-child(#{$i}) {
+    & > :nth-child(#{$i}) {
       width: nth($column-widths, $i);
     }
   }
 }
 
 .overview-connected-users {
-  &>header {
+  & > header {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -23,7 +23,7 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
     box-sizing: border-box;
   }
 
-  &>.connected-users {
+  & > .connected-users {
     min-height: calc(100% - 94px);
     max-height: calc(100% - 94px);
 
@@ -45,7 +45,7 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
         padding-right: 1rem;
       }
 
-      &>.headers {
+      & > .headers {
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -65,7 +65,7 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
           width: 100%;
         }
 
-        &>.header {
+        & > .header {
           display: flex;
           flex-direction: row;
           align-items: center;
@@ -73,12 +73,12 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
           justify-content: flex-start;
           column-gap: 0.6rem;
 
-          &>span {
+          & > span {
             @include typography-legacy(12px, 14px, medium, v.$gray-light);
           }
 
           &.active {
-            &>span {
+            & > span {
               color: v.$text-main;
             }
           }
@@ -87,7 +87,7 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
         @include set-list-column-widths;
       }
 
-      &>.users-list {
+      & > .users-list {
         box-sizing: border-box;
         overflow: auto;
         padding-right: 1.5rem;
@@ -106,9 +106,8 @@ $column-widths: 250px, 167px, 136px, 168px, 200px;
           width: 100%;
         }
 
-        &>.user-connection-list-item {
-
-          &>.user-row,
+        & > .user-connection-list-item {
+          & > .user-row,
           .device-row {
             @include set-list-column-widths;
           }
