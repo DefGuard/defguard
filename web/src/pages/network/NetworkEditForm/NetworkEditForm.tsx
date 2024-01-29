@@ -188,10 +188,10 @@ export const NetworkEditForm = () => {
         mfa_enabled: z.boolean(),
         keepalive_interval: z.number().nonnegative().min(1, LL.form.error.required()),
         peer_disconnect_threshold: z
-          .number()
-          .nonnegative()
-          .minValue(120, LL.form.error.invalid())
-          .min(1, LL.form.error.required()),
+          .number({
+            required_error: LL.form.error.required(),
+          })
+          .min(120, LL.form.error.invalid()),
       }),
     [LL.form.error],
   );

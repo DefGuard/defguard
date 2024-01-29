@@ -103,9 +103,10 @@ export const WizardNetworkConfiguration = () => {
           }),
         endpoint: z.string().min(1, LL.form.error.required()),
         port: z
-          .number()
+          .number({
+            required_error: LL.form.error.required(),
+          })
           .max(65535, LL.form.error.portMax())
-          .min(1, LL.form.error.required())
           .nonnegative(),
         allowed_ips: z
           .string()
@@ -127,13 +128,16 @@ export const WizardNetworkConfiguration = () => {
           }, LL.form.error.allowedIps()),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
         mfa_enabled: z.boolean(),
-        keepalive_interval: z.number().positive().min(1, LL.form.error.required()),
+        keepalive_interval: z
+          .number({
+            required_error: LL.form.error.required(),
+          })
+          .positive(),
         peer_disconnect_threshold: z
-          .number()
-          .positive()
-          .min(1, LL.form.error.required())
-          .minValue(120, LL.form.error.invalid())
-          .nonnegative(),
+          .number({
+            required_error: LL.form.error.required(),
+          })
+          .refine((v) => v >= 120, LL.form.error.invalid()),
       }),
     [LL.form.error],
   );
