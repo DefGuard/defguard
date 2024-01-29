@@ -2523,6 +2523,12 @@ type RootTranslation = {
 							 */
 							label: string
 						}
+						groups: {
+							/**
+							 * G​r​o​u​p​s
+							 */
+							label: string
+						}
 					}
 					controls: {
 						/**
@@ -2761,6 +2767,10 @@ type RootTranslation = {
 			 * K​n​o​w​ ​y​o​u​r​ ​p​h​o​n​e​ ​n​u​m​b​e​r​.
 			 */
 			phone: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​g​r​o​u​p​s​ ​m​e​m​b​e​r​s​h​i​p​.
+			 */
+			groups: string
 		}
 		controls: {
 			/**
@@ -6057,6 +6067,12 @@ export type TranslationFunctions = {
 							 */
 							label: () => LocalizedString
 						}
+						groups: {
+							/**
+							 * Groups
+							 */
+							label: () => LocalizedString
+						}
 					}
 					controls: {
 						/**
@@ -6294,6 +6310,10 @@ export type TranslationFunctions = {
 			 * Know your phone number.
 			 */
 			phone: () => LocalizedString
+			/**
+			 * Know your groups membership.
+			 */
+			groups: () => LocalizedString
 		}
 		controls: {
 			/**

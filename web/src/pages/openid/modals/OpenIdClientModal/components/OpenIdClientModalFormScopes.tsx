@@ -60,6 +60,13 @@ export const OpenIdClientModalFormScopes = ({ control, disabled = false }: Props
         value={value.includes(OpenIdClientScope.PHONE)}
         onChange={() => handleChange(OpenIdClientScope.PHONE, value)}
       />
+      <LabeledCheckbox
+        data-testid="field-scope-groups"
+        label={LL.openidOverview.modals.openidClientModal.form.fields.groups.label()}
+        disabled={disabled}
+        value={value.includes(OpenIdClientScope.GROUPS)}
+        onChange={() => handleChange(OpenIdClientScope.GROUPS, value)}
+      />
     </div>
   );
 };

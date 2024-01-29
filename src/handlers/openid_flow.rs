@@ -15,17 +15,17 @@ use chrono::Utc;
 use openidconnect::{
     core::{
         CoreAuthErrorResponseType, CoreClaimName, CoreErrorResponseType, CoreGenderClaim,
-        CoreGrantType, CoreHmacKey, CoreIdToken, CoreIdTokenClaims, CoreIdTokenFields,
-        CoreJsonWebKeySet, CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
-        CoreRsaPrivateSigningKey, CoreSubjectIdentifierType, CoreTokenResponse, CoreTokenType,
+        CoreGrantType, CoreHmacKey, CoreJsonWebKeySet, CoreJsonWebKeyType,
+        CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm, CoreProviderMetadata,
+        CoreResponseType, CoreRsaPrivateSigningKey, CoreSubjectIdentifierType, CoreTokenType,
     },
     url::Url,
-    AccessToken, Audience, AuthUrl, AuthorizationCode, EmptyAdditionalClaims,
+    AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
-    EndUserGivenName, EndUserName, EndUserPhoneNumber, EndUserUsername, IssuerUrl,
-    JsonWebKeySetUrl, LocalizedClaim, Nonce, PkceCodeChallenge, PkceCodeVerifier,
-    PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims, StandardErrorResponse,
-    StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
+    EndUserGivenName, EndUserName, EndUserPhoneNumber, EndUserUsername, IdToken, IdTokenClaims,
+    IdTokenFields, IssuerUrl, JsonWebKeySetUrl, LocalizedClaim, Nonce, PkceCodeChallenge,
+    PkceCodeVerifier, PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims,
+    StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
 use serde::{
     de::{Deserialize, Deserializer, Error as DeError, Unexpected, Visitor},
@@ -83,6 +83,16 @@ pub async fn discovery_keys(State(appstate): State<AppState>) -> ApiResult {
         status: StatusCode::OK,
     })
 }
+pub type DefguardIdTokenFields = IdTokenFields<
+    GroupClaims,
+    EmptyExtraTokenFields,
+    CoreGenderClaim,
+    CoreJweContentEncryptionAlgorithm,
+    CoreJwsSigningAlgorithm,
+    CoreJsonWebKeyType,
+>;
+
+pub type DefguardTokenResponse = StandardTokenResponse<DefguardIdTokenFields, CoreTokenType>;
 
 /// Provide `OAuth2Client` when Basic Authorization header contains `client_id` and `client_secret`.
 #[async_trait]
@@ -474,6 +484,21 @@ pub async fn authorization(
     Ok(redirect_to(url, private_cookies))
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Default)]
+pub struct GroupClaims {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    groups: Option<Vec<String>>,
+}
+
+impl AdditionalClaims for GroupClaims {}
+
+pub async fn get_group_claims(pool: &DbPool, user: &User) -> Result<GroupClaims, WebError> {
+    let groups = user.member_of_names(pool).await?;
+    Ok(GroupClaims {
+        groups: Some(groups),
+    })
+}
+
 /// Login Authorization Endpoint redirect with authorization code
 pub async fn secure_authorization(
     session_info: SessionInfo,
@@ -601,7 +626,8 @@ impl TokenRequest {
         base_url: &Url,
         secret: T,
         rsa_key: Option<CoreRsaPrivateSigningKey>,
-    ) -> Result<CoreTokenResponse, CoreErrorResponseType>
+        group_claims: GroupClaims,
+    ) -> Result<DefguardTokenResponse, CoreErrorResponseType>
     where
         T: Into<Vec<u8>>,
     {
@@ -631,24 +657,25 @@ impl TokenRequest {
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
                 let expiration = issue_time + chrono::Duration::seconds(SESSION_TIMEOUT as i64);
-                let id_token_claims = CoreIdTokenClaims::new(
+                let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],
                     expiration,
                     issue_time,
                     claims,
-                    EmptyAdditionalClaims {},
+                    group_claims,
                 )
                 .set_nonce(auth_code.nonce.clone().map(Nonce::new));
+
                 let id_token = match rsa_key {
-                    Some(key) => CoreIdToken::new(
+                    Some(key) => IdToken::new(
                         id_token_claims,
                         &key,
                         CoreJwsSigningAlgorithm::RsaSsaPkcs1V15Sha256,
                         Some(&access_token),
                         Some(&authorization_code),
                     ),
-                    None => CoreIdToken::new(
+                    None => IdToken::new(
                         id_token_claims,
                         &CoreHmacKey::new(secret),
                         CoreJwsSigningAlgorithm::HmacSha256,
@@ -661,10 +688,10 @@ impl TokenRequest {
                 None
             };
 
-            let mut token_response = CoreTokenResponse::new(
+            let mut token_response = DefguardTokenResponse::new(
                 access_token,
                 CoreTokenType::Bearer,
-                CoreIdTokenFields::new(id_token, EmptyExtraTokenFields {}),
+                IdTokenFields::new(id_token, EmptyExtraTokenFields {}),
             );
             token_response.set_refresh_token(Some(RefreshToken::new(token.refresh_token.clone())));
             Ok(token_response)
@@ -767,6 +794,11 @@ pub async fn token(
                                     auth_code.redirect_uri.clone(),
                                     auth_code.scope.clone(),
                                 );
+                                let group_claims = if auth_code.scope.contains("groups") {
+                                    get_group_claims(&appstate.pool, &user).await?
+                                } else {
+                                    GroupClaims { groups: None }
+                                };
                                 match form.authorization_code_flow(
                                     &auth_code,
                                     &token,
@@ -774,6 +806,7 @@ pub async fn token(
                                     &appstate.config.url,
                                     client.client_secret,
                                     appstate.config.openid_key(),
+                                    group_claims,
                                 ) {
                                     Ok(response) => {
                                         token.save(&appstate.pool).await?;
@@ -879,6 +912,7 @@ pub async fn openid_configuration(State(appstate): State<AppState>) -> ApiResult
         Scope::new("profile".into()),
         Scope::new("email".into()),
         Scope::new("phone".into()),
+        Scope::new("groups".into()),
     ]))
     .set_claims_supported(Some(vec![
         CoreClaimName::new("iss".into()),
@@ -891,6 +925,7 @@ pub async fn openid_configuration(State(appstate): State<AppState>) -> ApiResult
         CoreClaimName::new("family_name".into()),
         CoreClaimName::new("email".into()),
         CoreClaimName::new("phone_number".into()),
+        CoreClaimName::new("groups".into()),
     ]))
     .set_grant_types_supported(Some(vec![
         CoreGrantType::AuthorizationCode,

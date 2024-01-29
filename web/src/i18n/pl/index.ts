@@ -1070,6 +1070,9 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
             phone: {
               label: 'Telefon',
             },
+            groups: {
+              label: 'Grupy',
+            },
           },
           controls: {
             addUrl: 'Dodaj URL',
@@ -1167,6 +1170,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         'Poznać podstawowe informacje z twojego profilu, takie jak login, imię itp',
       email: 'Poznać twój adres e-mail.',
       phone: 'Poznać twój numer telefonu.',
+      groups: 'Poznać twoje grupy.',
     },
     controls: {
       accept: 'Akceptuj',
