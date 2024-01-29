@@ -50,7 +50,7 @@ const defaultValues: FormFields = {
   dns: '',
   mfa_enabled: false,
   keepalive_interval: 25,
-  peer_disconnect_threshold: 75,
+  peer_disconnect_threshold: 180,
 };
 
 const networkToForm = (data?: Network): FormFields => {
@@ -190,6 +190,7 @@ export const NetworkEditForm = () => {
         peer_disconnect_threshold: z
           .number()
           .nonnegative()
+          .minValue(120, LL.form.error.invalid())
           .min(1, LL.form.error.required()),
       }),
     [LL.form.error],

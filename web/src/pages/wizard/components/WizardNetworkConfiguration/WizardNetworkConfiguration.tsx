@@ -132,6 +132,7 @@ export const WizardNetworkConfiguration = () => {
           .number()
           .positive()
           .min(1, LL.form.error.required())
+          .minValue(120, LL.form.error.invalid())
           .nonnegative(),
       }),
     [LL.form.error],
