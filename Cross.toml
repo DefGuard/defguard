@@ -1,0 +1,23 @@
+[target.x86_64-unknown-linux-gnu]
+pre-build = ["apt-get update && apt-get install --assume-yes unzip ",
+"PB_REL='https://github.com/protocolbuffers/protobuf/releases'",
+"PB_VERSION='3.20.0' && curl -LO $PB_REL/download/v$PB_VERSION/protoc-$PB_VERSION-linux-x86_64.zip",
+"unzip protoc-$PB_VERSION-linux-x86_64.zip bin/protoc include/google/* -d /usr"]
+
+[target.armv7-unknown-linux-gnueabihf]
+pre-build = ["apt-get update && apt-get install --assume-yes unzip ",
+"PB_REL='https://github.com/protocolbuffers/protobuf/releases'",
+"PB_VERSION='3.20.0' && curl -LO $PB_REL/download/v$PB_VERSION/protoc-$PB_VERSION-linux-x86_64.zip",
+"unzip protoc-$PB_VERSION-linux-x86_64.zip bin/protoc include/google/* -d /usr"]
+
+[target.aarch64-unknown-linux-gnu]
+pre-build = ["apt-get update && apt-get install --assume-yes unzip ",
+"PB_REL='https://github.com/protocolbuffers/protobuf/releases'",
+"PB_VERSION='3.20.0' && curl -LO $PB_REL/download/v$PB_VERSION/protoc-$PB_VERSION-linux-x86_64.zip",
+"unzip protoc-$PB_VERSION-linux-x86_64.zip bin/protoc include/google/* -d /usr"]
+
+[target.x86_64-unknown-freebsd]
+pre-build = ["apt-get update && apt-get install --assume-yes unzip ",
+"PB_REL='https://github.com/protocolbuffers/protobuf/releases'",
+"PB_VERSION='3.20.0' && curl -LO $PB_REL/download/v$PB_VERSION/protoc-$PB_VERSION-linux-x86_64.zip",
+"unzip protoc-$PB_VERSION-linux-x86_64.zip bin/protoc include/google/* -d /usr"]
