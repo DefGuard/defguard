@@ -107,6 +107,13 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
+      - name: Set up Docker BuildX
+        uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."docker.io"]
+              mirrors = ["dockerhub-proxy.teonite.net"]
+
       - name: Build release binary
         uses: actions-rs/cargo@v1
         with:
