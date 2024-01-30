@@ -87,14 +87,6 @@ jobs:
             os: Linux
             asset_name: defguard-freebsd-x86_64
             target: x86_64-unknown-freebsd
-          - build: macos-x86
-            os: macOS
-            asset_name: defguard-macos-x86_64
-            target: x86_64-apple-darwin
-          - build: macos-arm
-            os: macOS
-            asset_name: defguard-macos-arm64
-            target: aarch64-apple-darwin
     steps:
       # Store the version, stripping any v-prefix
       - name: Write release version
