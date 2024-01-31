@@ -75,19 +75,15 @@ jobs:
         include:
           - build: linux
             os: Linux
-            asset_name: defguard-linux-x86_64
             target: x86_64-unknown-linux-gnu
           - build: linux-arm
             os: Linux
-            asset_name: defguard-linux-armv7
             target: armv7-unknown-linux-gnueabihf
           - build: linux-arm64
             os: Linux
-            asset_name: defguard-linux-arm64
             target: aarch64-unknown-linux-gnu
           - build: freebsd
             os: Linux
-            asset_name: defguard-freebsd-x86_64
             target: x86_64-unknown-freebsd
     steps:
       # Store the version, stripping any v-prefix
@@ -124,15 +120,15 @@ jobs:
           args: --locked --release --target ${{ matrix.target }}
 
       - name: Rename binary
-        run: mv target/${{ matrix.target }}/release/defguard ${{ matrix.asset_name }}-${{ github.ref_name }}
+        run: mv target/${{ matrix.target }}/release/defguard defguard-${{ github.ref_name }}-${{ matrix.target }}
 
       - name: Tar
         uses: a7ul/tar-action@v1.1.0
         with:
           command: c
           files: |
-            ${{ matrix.asset_name }}-${{ github.ref_name }}
-          outPath: ${{ matrix.asset_name }}-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+            defguard-${{ github.ref_name }}-${{ matrix.target }}
+          outPath: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
 
       - name: Upload release archive
         uses: actions/upload-release-asset@v1.0.2
@@ -140,6 +136,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ matrix.asset_name }}-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
-          asset_name: ${{ matrix.asset_name }}-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+          asset_path: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+          asset_name: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
           asset_content_type: application/octet-stream
