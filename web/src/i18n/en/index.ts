@@ -678,8 +678,10 @@ const en: BaseTranslation = {
       logOut: 'Log out',
       enrollment: 'Enrollment',
       support: 'Support',
+      groups: 'Groups',
     },
     mobileTitles: {
+      groups: 'Groups',
       wizard: 'Create location',
       users: 'Users',
       settings: 'Settings',

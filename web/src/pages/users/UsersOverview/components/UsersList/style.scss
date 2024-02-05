@@ -30,6 +30,11 @@
           justify-content: center;
         }
       }
+
+      span,
+      p {
+        @include typography(app-wizard-1);
+      }
     }
 
     .scroll-container {
@@ -62,9 +67,10 @@
         border-color: var(--border-primary);
       }
 
-      & > * {
-        & > p,
-        & > span {
+      &>* {
+
+        &>p,
+        &>span {
           @include typography(app-button-xl);
         }
       }
@@ -104,7 +110,7 @@
           background-color: var(--surface-default-modal);
           width: max-content;
 
-          & > span {
+          &>span {
             @include typography(app-input);
             display: block;
           }

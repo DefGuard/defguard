@@ -203,6 +203,12 @@ const useApi = (props?: HookProps): ApiHook => {
   const removeFromGroup = ({ group, username }: UserGroupRequest) =>
     client.delete(`/group/${group}/user/${username}`);
 
+  const createGroup: ApiHook['groups']['createGroup'] = async (data) =>
+    client.post(`/group/`, data).then(unpackRequest);
+
+  const editGroup: ApiHook['groups']['editGroup'] = async ({ originalName, ...rest }) =>
+    client.put(`/group/${originalName}`, rest).then(unpackRequest);
+
   const deleteWorker = (id: string) =>
     client.delete<EmptyApiResponse>(`/worker/${id}`).then((res) => res.data);
 
@@ -392,6 +398,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const testLdapSettings: ApiHook['settings']['testLdapSettings'] = () =>
     client.get('/ldap/test').then(unpackRequest);
 
+  const getGroupsInfo: ApiHook['groups']['getGroupsInfo'] = () =>
+    client.get('/group-info').then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -420,7 +429,10 @@ const useApi = (props?: HookProps): ApiHook => {
       consent: oAuthConsent,
     },
     groups: {
+      getGroupsInfo,
       getGroups,
+      createGroup,
+      editGroup,
     },
     user: {
       getMe,

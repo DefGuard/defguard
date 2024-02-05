@@ -12,6 +12,7 @@ use axum::{
     serve, Extension, Router,
 };
 
+use handlers::group::list_groups_info;
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
 use tokio::{
@@ -212,12 +213,13 @@ pub fn build_webapp(
             .route("/forward_auth", get(forward_auth))
             // group
             .route("/group", get(list_groups))
-            .route("/group/:name", get(get_group))
             .route("/group", post(create_group))
+            .route("/group/:name", get(get_group))
             .route("/group/:name", put(modify_group))
             .route("/group/:name", delete(delete_group))
             .route("/group/:name", post(add_group_member))
             .route("/group/:name/user/:username", delete(remove_group_member))
+            .route("/group-info", get(list_groups_info))
             // mail
             .route("/mail/test", post(test_mail))
             .route("/mail/support", post(send_support_data))

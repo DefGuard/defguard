@@ -41,6 +41,8 @@ const ModalContent = () => {
     groups: { getGroups },
   } = useApi();
 
+  const closeModal = useAssignGroupsModal((s) => s.close);
+
   const { data: groups } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
     queryFn: async () => getGroups().then((res) => res.groups),
@@ -58,7 +60,7 @@ const ModalContent = () => {
 
   const handleSelect = useCallback(
     (group: string) => {
-      const isSelected = isUndefined(selected.find((g) => g === group));
+      const isSelected = !isUndefined(selected.find((g) => g === group));
       if (isSelected) {
         setSelected((state) => state.filter((g) => g !== group));
       } else {
@@ -92,7 +94,7 @@ const ModalContent = () => {
         <div className="padding-wrapper">
           <SelectRow
             selected={selected.length === groups?.length}
-            onClick={handleSelectAll}
+            onClick={() => handleSelectAll()}
           >
             <p>Select All</p>
           </SelectRow>
@@ -104,7 +106,7 @@ const ModalContent = () => {
               <SelectRow
                 key={g}
                 onClick={() => handleSelect(g)}
-                selected={isUndefined(selected.find((group) => g === group))}
+                selected={!isUndefined(selected.find((group) => g === group))}
               >
                 <p>{g}</p>
               </SelectRow>
@@ -113,7 +115,7 @@ const ModalContent = () => {
         </div>
       </div>
       <div className="controls">
-        <Button size={ButtonSize.LARGE} text="Cancel" />
+        <Button size={ButtonSize.LARGE} text="Cancel" onClick={() => closeModal()} />
         <Button
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}

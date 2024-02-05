@@ -1,0 +1,67 @@
+@mixin list-layout {
+  display: grid;
+  grid-template-columns: 1fr 40px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#groups-list {
+  row-gap: 10px;
+  width: 100%;
+
+  .headers {
+    @include list-layout;
+
+    :nth-child(2) {
+      justify-content: center
+    }
+
+    p,
+    span {
+      @include typography(app-wizard-1);
+    }
+  }
+
+  .groups-list-row {
+    @include list-layout;
+    width: 100%;
+    height: 60px;
+    box-sizing: border-box;
+    padding: 0 15px;
+    background-color: var(--surface-default-modal);
+    border-radius: 15px;
+    border: 1px solid transparent;
+    transition-property: border;
+    transition-duration: 100ms;
+    transition-timing-function: ease-in-out;
+
+    &:hover {
+      border-color: var(--border-primary);
+    }
+
+    p,
+    span {
+      @include typography(app-strap);
+    }
+
+    &>* {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+
+      &.center {
+        justify-content: center;
+      }
+
+      &.left {
+        justify-content: flex-start;
+      }
+
+      &.right {
+        justify-content: flex-end;
+      }
+    }
+
+  }
+
+}

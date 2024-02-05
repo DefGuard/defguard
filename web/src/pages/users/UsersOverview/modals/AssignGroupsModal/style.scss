@@ -1,11 +1,11 @@
 #assign-groups-modal {
   background-color: var(--surface-frame-bg);
 
-  & > .content {
+  &>.content {
     --modal-padding-side: 40px;
     padding-bottom: 27px;
 
-    & > header {
+    &>header {
       display: flex;
       flex-flow: row nowrap;
       align-items: center;
@@ -15,7 +15,7 @@
       padding-left: var(--modal-padding-side);
       padding-right: var(--modal-padding-side);
 
-      & > p {
+      &>p {
         @include typography(input-label);
         box-sizing: border-box;
         padding-left: 15px;
@@ -28,16 +28,16 @@
       }
     }
 
-    & > .content {
+    &>.content {
       display: flex;
       flex-flow: column;
       row-gap: 10px;
 
-      & > .divider {
+      &>.divider {
         margin: 4px 0;
       }
 
-      & > .padding-wrapper {
+      &>.padding-wrapper {
         display: flex;
         flex-flow: column;
         row-gap: 10px;
@@ -45,13 +45,13 @@
         padding: 0 var(--modal-padding-side);
       }
 
-      & > .groups-container {
+      &>.groups-container {
         display: block;
         box-sizing: border-box;
         padding: 0 calc(var(--modal-padding-side) - 9px - 4px) 0 var(--modal-padding-side);
         padding-bottom: 40px;
 
-        & > .scroll-wrapper {
+        &>.scroll-wrapper {
           display: flex;
           flex-flow: column;
           row-gap: 10px;
@@ -64,7 +64,7 @@
       }
     }
 
-    & > .controls {
+    &>.controls {
       display: flex;
       flex-flow: row;
       align-items: center;
@@ -72,7 +72,7 @@
       box-sizing: border-box;
       padding: 0 var(--modal-padding-side);
 
-      & > .btn {
+      &>.btn {
         height: 47px;
 
         span,

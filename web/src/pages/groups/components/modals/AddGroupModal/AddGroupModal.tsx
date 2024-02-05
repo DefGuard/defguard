@@ -1,0 +1,164 @@
+import './style.scss';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { isUndefined } from 'lodash-es';
+import { useMemo } from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Divider } from '../../../../../shared/defguard-ui/components/Layout/Divider/Divider';
+import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
+import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { QueryKeys } from '../../../../../shared/queries';
+import { ModifyGroupsRequest } from '../../../../../shared/types';
+import { GroupFormSelectAll } from './components/GroupFormSelectAll/GroupFormSelectAll';
+import { UserSelect } from './components/UserSelect/UserSelect';
+import { useAddGroupModal } from './useAddGroupModal';
+
+export const AddGroupModal = () => {
+  const isOpen = useAddGroupModal((s) => s.visible);
+  const close = useAddGroupModal((s) => s.close);
+
+  return (
+    <ModalWithTitle
+      id="modify-group-modal"
+      title="Add group"
+      isOpen={isOpen}
+      onClose={close}
+    >
+      <ModalContent />
+    </ModalWithTitle>
+  );
+};
+
+export type ModifyGroupFormFields = {
+  name: string;
+  members: string[];
+};
+
+const ModalContent = () => {
+  const {
+    groups: { getGroups, createGroup, editGroup },
+    user: { getUsers },
+  } = useApi();
+  const { LL } = useI18nContext();
+  const groupInfo = useAddGroupModal((s) => s.groupInfo);
+  const closeModal = useAddGroupModal((s) => s.close);
+  const toaster = useToaster();
+
+  const { data: groups } = useQuery({
+    queryKey: [QueryKeys.FETCH_GROUPS],
+    queryFn: async () => getGroups().then((d) => d.groups),
+  });
+
+  const { data: users } = useQuery({
+    queryKey: [QueryKeys.FETCH_USERS_LIST],
+    queryFn: getUsers,
+  });
+
+  const { mutate: createGroupMutation, isLoading: isCreating } = useMutation({
+    mutationFn: createGroup,
+    onSuccess: () => {
+      toaster.success(LL.messages.success());
+    },
+  });
+
+  const { mutate: editGroupMutation, isLoading: isEditing } = useMutation({
+    mutationFn: editGroup,
+    onSuccess: () => {
+      toaster.success(LL.messages.success());
+    },
+  });
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        name: z
+          .string({
+            required_error: LL.form.error.required(),
+          })
+          .min(4, LL.form.error.minimumLength())
+          .refine(
+            (name) => isUndefined(groups?.find((n) => n === name)),
+            LL.form.error.invalid(),
+          ),
+      }),
+    [LL.form.error, groups],
+  );
+
+  const defaults = useMemo((): ModifyGroupFormFields => {
+    if (groupInfo) {
+      return {
+        name: groupInfo.name,
+        members: groupInfo.members ?? [],
+      };
+    }
+    return {
+      name: '',
+      members: [],
+    };
+  }, [groupInfo]);
+
+  const {
+    handleSubmit,
+    control,
+    formState: { isValidating, isSubmitting },
+  } = useForm<ModifyGroupFormFields>({
+    defaultValues: defaults,
+    resolver: zodResolver(schema),
+    mode: 'all',
+  });
+
+  const handleValidSubmit: SubmitHandler<ModifyGroupFormFields> = (values) => {
+    const sendValues: ModifyGroupsRequest = {
+      name: values.name,
+      members: values.members,
+    };
+    if (groupInfo) {
+      editGroupMutation({ ...sendValues, originalName: groupInfo.name });
+    } else {
+      createGroupMutation(sendValues);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(handleValidSubmit)}>
+      <FormInput controller={{ control, name: 'name' }} label="Group name" />
+      <Divider />
+      {users && <GroupFormSelectAll users={users} control={control} />}
+      <Divider />
+      <div className="users">
+        <div className="scroll-wrapper">
+          {users &&
+            users.length > 0 &&
+            users.map((user) => (
+              <UserSelect user={user} key={user.id} control={control} />
+            ))}
+        </div>
+      </div>
+      <div className="controls">
+        <Button
+          size={ButtonSize.LARGE}
+          onClick={() => closeModal()}
+          text={LL.common.controls.cancel()}
+        />
+        <Button
+          size={ButtonSize.LARGE}
+          disabled={isUndefined(groups)}
+          loading={isCreating || isEditing || isValidating || isSubmitting}
+          text={LL.common.controls.submit()}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+        />
+      </div>
+    </form>
+  );
+};

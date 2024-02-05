@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
 };
 use serde_json::json;
+use sqlx::query_as;
 
 use super::{ApiResponse, GroupInfo, Username};
 use crate::{
@@ -23,6 +24,28 @@ impl Groups {
     pub fn new(groups: Vec<String>) -> Self {
         Self { groups }
     }
+}
+
+/// GET: Retrieve all groups info
+pub(crate) async fn list_groups_info(
+    _role: UserAdminRole,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
+    debug!("Listing groups info");
+    let q_result = query_as!(
+        GroupInfo,
+        "SELECT g.name as name, ARRAY_AGG(u.username) as members \
+    FROM \"group\" g \
+    JOIN \"group_user\" gu ON gu.group_id = g.id \
+    JOIN \"user\" u ON u.id = gu.user_id \
+    GROUP BY g.name"
+    )
+    .fetch_all(&appstate.pool)
+    .await?;
+    Ok(ApiResponse {
+        json: json!(q_result),
+        status: StatusCode::OK,
+    })
 }
 
 /// GET: Retrieve all groups.
@@ -76,7 +99,7 @@ pub(crate) async fn create_group(
     let mut transaction = appstate.pool.begin().await?;
 
     let mut group = Group::new(&group_info.name);
-    // FIXME: conflicts must not return interal server error (500).
+    // FIXME: conflicts must not return internal server error (500).
     group.save(&appstate.pool).await?;
     // TODO: create group in LDAP
 
