@@ -286,7 +286,7 @@ impl GatewayState {
         let send_email = if let Some(last_notification_time) = self.last_email_notification {
             Utc::now().naive_utc() - last_notification_time
                 > ChronoDuration::from_std(
-                    *SERVER_CONFIG
+                    SERVER_CONFIG
                         .get()
                         .ok_or(GatewayMapError::ConfigError)?
                         .gateway_disconnection_notification_timeout,

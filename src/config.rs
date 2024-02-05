@@ -1,5 +1,5 @@
 use clap::{Args, Parser, Subcommand};
-use humantime::Duration;
+use humantime::{parse_duration, DurationError};
 use ipnetwork::IpNetwork;
 use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
@@ -10,8 +10,10 @@ use rsa::{
     RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, Secret};
+use serde::{Deserialize, Deserializer};
+use std::{fs, time::Duration};
 
-#[derive(Clone, Parser, Serialize, Debug)]
+#[derive(Clone, Parser, Serialize, Deserialize, Debug)]
 #[command(version)]
 pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
@@ -78,6 +80,7 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     #[serde(skip_serializing)]
+    #[serde(deserialize_with = "DefGuardConfig::deserialize_openid_key")]
     pub openid_signing_key: Option<RsaPrivateKey>,
 
     // relying party id and relying party origin for WebAuthn
@@ -92,43 +95,52 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
     pub disable_stats_purge: bool,
 
-    #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY", default_value = "24h")]
+    #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY", default_value = "24h", value_parser = Self::parse_humantime)]
     #[serde(skip_serializing)]
+    #[serde(deserialize_with = "DefGuardConfig::deserialize_humantime")]
     pub stats_purge_frequency: Duration,
 
-    #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD", default_value = "30d")]
+    #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD", default_value = "30d", value_parser = Self::parse_humantime)]
     #[serde(skip_serializing)]
+    #[serde(deserialize_with = "DefGuardConfig::deserialize_humantime")]
     pub stats_purge_threshold: Duration,
 
     #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
     pub enrollment_url: Url,
 
-    #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT", default_value = "24h")]
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT", default_value = "24h", value_parser = Self::parse_humantime)]
     #[serde(skip_serializing)]
+    #[serde(deserialize_with = "DefGuardConfig::deserialize_humantime")]
     pub enrollment_token_timeout: Duration,
 
     #[arg(
         long,
         env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT",
-        default_value = "24h"
+        default_value = "24h",
+        value_parser = Self::parse_humantime
     )]
     #[serde(skip_serializing)]
+    #[serde(deserialize_with = "DefGuardConfig::deserialize_humantime")]
     pub password_reset_token_timeout: Duration,
 
     #[arg(
         long,
         env = "DEFGUARD_ENROLLMENT_SESSION_TIMEOUT",
-        default_value = "10m"
+        default_value = "10m",
+        value_parser = Self::parse_humantime
     )]
     #[serde(skip_serializing)]
+    #[serde(deserialize_with = "DefGuardConfig::deserialize_humantime")]
     pub enrollment_session_timeout: Duration,
 
     #[arg(
         long,
         env = "DEFGUARD_PASSWORD_RESET_SESSION_TIMEOUT",
-        default_value = "10m"
+        default_value = "10m",
+        value_parser = Self::parse_humantime
     )]
     #[serde(skip_serializing)]
+    #[serde(deserialize_with = "DefGuardConfig::deserialize_humantime")]
     pub password_reset_session_timeout: Duration,
 
     #[arg(long, env = "DEFGUARD_COOKIE_DOMAIN")]
@@ -148,14 +160,21 @@ pub struct DefGuardConfig {
     #[arg(
         long,
         env = "DEFGUARD_GATEWAY_DISCONNECTION_NOTIFICATION_TIMEOUT",
-        default_value = "10m"
+        default_value = "10m",
+        value_parser = Self::parse_humantime
     )]
     #[serde(skip_serializing)]
+    #[serde(deserialize_with = "DefGuardConfig::deserialize_humantime")]
     pub gateway_disconnection_notification_timeout: Duration,
 
     #[command(subcommand)]
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub cmd: Option<Command>,
+
+    /// Configuration file path
+    #[arg(long = "config", short)]
+    #[serde(skip)]
+    config_path: Option<std::path::PathBuf>,
 }
 
 #[derive(Clone, Debug, Subcommand)]
@@ -199,7 +218,17 @@ impl DefGuardConfig {
     // this is an ugly workaround to avoid `cargo test` args being captured by `clap`
     #[must_use]
     pub fn new_test_config() -> Self {
-        let mut config = Self::parse_from::<[_; 0], String>([]);
+        let cli_config = Self::parse_from::<[_; 0], String>([]);
+
+        // load config from file if one was specified
+        let mut config = if let Some(config_path) = cli_config.config_path {
+            info!("Reading configuration from config file: {config_path:?}");
+            let config_toml = fs::read_to_string(config_path).expect("Failed to read config file");
+            toml::from_str(&config_toml).expect("Failed to parse config file")
+        } else {
+            cli_config
+        };
+
         config.validate_rp_id();
         config.validate_cookie_domain();
         config
@@ -252,6 +281,37 @@ impl DefGuardConfig {
         } else {
             RsaPrivateKey::read_pkcs8_pem_file(path)
         }
+    }
+
+    /// helper to manually deserialize RSA kwy from config file
+    fn deserialize_openid_key<'de, D>(deserializer: D) -> Result<Option<RsaPrivateKey>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let buf: Option<String> = Option::deserialize(deserializer)?;
+
+        if let Some(path) = buf {
+            return Ok(Some(
+                Self::parse_openid_key(&path).map_err(serde::de::Error::custom)?,
+            ));
+        }
+
+        Ok(None)
+    }
+
+    /// helper to parse time-related `clap` args
+    fn parse_humantime(value: &str) -> Result<Duration, DurationError> {
+        parse_duration(value)
+    }
+
+    /// helper to manually deserialize humantime values in config file
+    fn deserialize_humantime<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let buf = String::deserialize(deserializer)?;
+
+        parse_duration(&buf).map_err(serde::de::Error::custom)
     }
 
     #[must_use]

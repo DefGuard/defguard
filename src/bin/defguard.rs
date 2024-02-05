@@ -113,7 +113,7 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_web_server(&config, worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx, pool.clone(), user_agent_parser, failed_logins) => error!("Web server returned early: {res:#?}"),
         res = run_mail_handler(mail_rx, pool.clone()) => error!("Mail handler returned early: {res:#?}"),
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx) => error!("Periodic peer disconnect task returned early: {res:#?}"),
-        res = run_periodic_stats_purge(pool, config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:#?}"),
+        res = run_periodic_stats_purge(pool, config.stats_purge_frequency, config.stats_purge_threshold), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:#?}"),
     }
     Ok(())
 }
