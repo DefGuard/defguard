@@ -208,7 +208,17 @@ pub struct InitVpnLocationArgs {
 impl DefGuardConfig {
     #[must_use]
     pub fn new() -> Self {
-        let mut config = Self::parse();
+        let cli_config = Self::parse();
+
+        // load config from file if one was specified
+        let mut config = if let Some(config_path) = cli_config.config_path {
+            println!("Reading configuration from config file: {config_path:?}");
+            let config_toml = fs::read_to_string(config_path).expect("Failed to read config file");
+            toml::from_str(&config_toml).expect("Failed to parse config file")
+        } else {
+            cli_config
+        };
+
         config.validate_rp_id();
         config.validate_cookie_domain();
         config.validate_secret_key();
@@ -218,16 +228,7 @@ impl DefGuardConfig {
     // this is an ugly workaround to avoid `cargo test` args being captured by `clap`
     #[must_use]
     pub fn new_test_config() -> Self {
-        let cli_config = Self::parse_from::<[_; 0], String>([]);
-
-        // load config from file if one was specified
-        let mut config = if let Some(config_path) = cli_config.config_path {
-            info!("Reading configuration from config file: {config_path:?}");
-            let config_toml = fs::read_to_string(config_path).expect("Failed to read config file");
-            toml::from_str(&config_toml).expect("Failed to parse config file")
-        } else {
-            cli_config
-        };
+        let mut config = Self::parse_from::<[_; 0], String>([]);
 
         config.validate_rp_id();
         config.validate_cookie_domain();
