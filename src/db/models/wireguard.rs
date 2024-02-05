@@ -36,7 +36,7 @@ pub struct MappedDevice {
     pub wireguard_ip: IpAddr,
 }
 
-pub static WIREGUARD_MAX_HANDSHAKE_MINUTES: u32 = 5;
+pub static WIREGUARD_MAX_HANDSHAKE_MINUTES: i64 = 5;
 pub static PEER_STATS_LIMIT: i64 = 6 * 60;
 
 /// Defines datetime aggregation levels
@@ -194,10 +194,7 @@ impl WireguardNetwork {
     }
 
     pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
-        debug!(
-            "Checking if {} devices can fit in network {}",
-            device_count, self
-        );
+        debug!("Checking if {device_count} devices can fit in network {self}");
         let network_size = self.address.size();
         // include address, network, and broadcast in the calculation
         match network_size {
@@ -241,8 +238,8 @@ impl WireguardNetwork {
         new_address: IpNetwork,
     ) -> Result<(), WireguardNetworkError> {
         info!(
-            "Changing network address for {} from {} to {}",
-            self, self.address, new_address
+            "Changing network address for {self} from {} to {new_address}",
+            self.address
         );
         let network_id = self.get_id()?;
         let old_address = self.address;
@@ -501,8 +498,8 @@ impl WireguardNetwork {
                     match allowed_devices.get(&device_id) {
                         Some(_) => {
                             info!(
-                        "Device with pubkey {} exists already, assigning IP {} for new network: {}",
-                        existing_device.wireguard_pubkey, imported_device.wireguard_ip, self
+                        "Device with pubkey {} exists already, assigning IP {} for new network: {self}",
+                        existing_device.wireguard_pubkey, imported_device.wireguard_ip
                     );
                             let wireguard_network_device = WireguardNetworkDevice::new(
                                 network_id,
@@ -525,8 +522,8 @@ impl WireguardNetwork {
                         }
                         None => {
                             warn!(
-                        "Device with pubkey {} exists already, but is not allowed in network {}. Skipping...",
-                        existing_device.wireguard_pubkey, self
+                        "Device with pubkey {} exists already, but is not allowed in network {self}. Skipping...",
+                        existing_device.wireguard_pubkey
                     );
                         }
                     }
@@ -767,7 +764,7 @@ impl WireguardNetwork {
     ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
         let mut user_map: HashMap<i64, Vec<WireguardDeviceStatsRow>> = HashMap::new();
         let oldest_handshake =
-            (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES.into())).naive_utc();
+            (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
         // Retrieve connected devices from database
         let devices = query_as!(
             Device,
@@ -833,8 +830,7 @@ impl WireguardNetwork {
         &self,
         conn: &DbPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        let from =
-            (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES.into())).naive_utc();
+        let from = (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
