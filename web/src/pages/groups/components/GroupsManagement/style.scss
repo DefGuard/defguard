@@ -1,6 +1,6 @@
 #groups-page {
   .content-wrapper {
-    &>header {
+    & > header {
       display: flex;
       min-height: 62px;
       flex-flow: row wrap;
@@ -54,7 +54,7 @@
         }
       }
 
-      &>.btn {
+      & > .btn {
         margin-left: auto;
         height: 40px;
 
@@ -65,7 +65,5 @@
         }
       }
     }
-
-
   }
 }

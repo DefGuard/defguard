@@ -7,18 +7,16 @@
     max-width: clamp(260px, 750px, 85vw);
   }
 
-  &>.content {
+  & > .content {
     padding: 0 0 40px 0;
 
-
-    &>form {
-      &>.divider {
+    & > form {
+      & > .divider {
         margin-bottom: 10px;
       }
     }
 
     .select-row {
-
       p,
       span {
         @include typography(app-strap);

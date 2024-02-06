@@ -51,8 +51,8 @@
       padding-top: 90px;
     }
 
-    &>.bottom,
-    &>.middle {
+    & > .bottom,
+    & > .middle {
       display: flex;
       flex-flow: column;
       align-items: center;
@@ -63,7 +63,7 @@
       flex-grow: 0;
     }
 
-    &>.bottom {
+    & > .bottom {
       margin-top: auto;
     }
 
@@ -89,7 +89,7 @@
       @include typography-legacy(15px, 1.2, medium, var(--gray-light), 'Poppins');
       cursor: pointer;
 
-      &>span {
+      & > span {
         color: inherit;
         overflow: hidden;
         max-width: 100%;
@@ -99,8 +99,7 @@
       &.active {
         color: var(--text-main);
 
-        &>svg {
-
+        & > svg {
           g,
           path {
             fill: var(--primary);
@@ -108,7 +107,7 @@
         }
       }
 
-      &>.active-line {
+      & > .active-line {
         content: ' ';
         display: block;
         height: 100%;

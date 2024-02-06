@@ -1,7 +1,6 @@
 #groups-page {
-
   .page-content {
-    &>.content-wrapper {
+    & > .content-wrapper {
       @include media-breakpoint-up(lg) {
         display: flex;
         flex-flow: column;
@@ -10,7 +9,7 @@
         box-sizing: border-box;
         padding: 64px 10px;
 
-        &>* {
+        & > * {
           width: 100%;
           max-width: 1650px;
         }
