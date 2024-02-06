@@ -12,7 +12,7 @@ use axum::{
     serve, Extension, Router,
 };
 
-use handlers::group::list_groups_info;
+use handlers::group::{bulk_assign_to_groups, list_groups_info};
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
 use tokio::{
@@ -220,6 +220,7 @@ pub fn build_webapp(
             .route("/group/:name", post(add_group_member))
             .route("/group/:name/user/:username", delete(remove_group_member))
             .route("/group-info", get(list_groups_info))
+            .route("/groups-assign", post(bulk_assign_to_groups))
             // mail
             .route("/mail/test", post(test_mail))
             .route("/mail/support", post(send_support_data))

@@ -1,4 +1,5 @@
-import { Control, useWatch } from 'react-hook-form';
+import { useCallback } from 'react';
+import { Control, useController, useWatch } from 'react-hook-form';
 
 import { SelectRow } from '../../../../../../../shared/defguard-ui/components/Layout/SelectRow/SelectRow';
 import { User } from '../../../../../../../shared/types';
@@ -11,11 +12,25 @@ type Props = {
 };
 
 export const GroupFormSelectAll = ({ users, control }: Props) => {
-  const membersValue = useWatch({ control, name: 'members', defaultValue: [] });
+  const {
+    field: { value, onChange },
+  } = useController({ control, name: 'members' });
+
+  const membersValue = useWatch({ control, name: 'members' });
+
+  const handleSelect = useCallback(() => {
+    if (value.length !== users.length) {
+      onChange(users.map((u) => u.username));
+      return;
+    }
+    onChange([]);
+  }, [onChange, users, value.length]);
+
   return (
     <SelectRow
       selected={(membersValue?.length ?? 0) === users.length}
       className="select-all"
+      onClick={() => handleSelect()}
     >
       <p>Select all users</p>
     </SelectRow>

@@ -204,7 +204,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.delete(`/group/${group}/user/${username}`);
 
   const createGroup: ApiHook['groups']['createGroup'] = async (data) =>
-    client.post(`/group/`, data).then(unpackRequest);
+    client.post(`/group`, data).then(unpackRequest);
 
   const editGroup: ApiHook['groups']['editGroup'] = async ({ originalName, ...rest }) =>
     client.put(`/group/${originalName}`, rest).then(unpackRequest);
@@ -401,6 +401,12 @@ const useApi = (props?: HookProps): ApiHook => {
   const getGroupsInfo: ApiHook['groups']['getGroupsInfo'] = () =>
     client.get('/group-info').then(unpackRequest);
 
+  const deleteGroup: ApiHook['groups']['deleteGroup'] = (group) =>
+    client.delete(`/group/${group}`);
+
+  const addUsersToGroups: ApiHook['groups']['addUsersToGroups'] = (data) =>
+    client.post('/groups-assign', data).then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -429,10 +435,12 @@ const useApi = (props?: HookProps): ApiHook => {
       consent: oAuthConsent,
     },
     groups: {
+      deleteGroup,
       getGroupsInfo,
       getGroups,
       createGroup,
       editGroup,
+      addUsersToGroups,
     },
     user: {
       getMe,

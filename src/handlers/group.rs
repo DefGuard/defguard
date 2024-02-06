@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
 };
 use serde_json::json;
-use sqlx::query_as;
+use sqlx::{query, query_as};
 
 use super::{ApiResponse, GroupInfo, Username};
 use crate::{
@@ -26,6 +26,104 @@ impl Groups {
     }
 }
 
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct BulkAssignToGroupsRequest {
+    // groups by name
+    groups: Vec<String>,
+    // users by id
+    users: Vec<i64>,
+}
+
+// POST bulk assign users to one group for users overview
+// assign many users to many groups at once
+pub(crate) async fn bulk_assign_to_groups(
+    _role: UserAdminRole,
+    State(appstate): State<AppState>,
+    Json(data): Json<BulkAssignToGroupsRequest>,
+) -> Result<ApiResponse, WebError> {
+    debug!("Assigning groups to users.");
+
+    let bad_response = Ok(ApiResponse {
+        json: json!({}),
+        status: StatusCode::BAD_REQUEST,
+    });
+
+    // check if request is valid
+
+    let groups_count = match query!(
+        "SELECT COUNT(*) FROM \"group\" WHERE name = ANY($1)",
+        &data.groups
+    )
+    .fetch_one(&appstate.pool)
+    .await?
+    .count
+    {
+        Some(res) => res,
+        None => {
+            return bad_response;
+        }
+    };
+    if groups_count as usize != data.groups.len() {
+        debug!("Request contained groups that don't exist");
+        return bad_response;
+    }
+    let users_count = match query!(
+        "SELECT COUNT(*) FROM \"user\" WHERE id = ANY($1)",
+        &data.users
+    )
+    .fetch_one(&appstate.pool)
+    .await?
+    .count
+    {
+        Some(res) => res,
+        None => {
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+            });
+        }
+    };
+    if users_count as usize != data.users.len() {
+        debug!("Request contained users that don't exist.");
+        return bad_response;
+    }
+
+    let mut transaction = appstate.pool.begin().await?;
+    for group_name in data.groups.iter() {
+        if let Some(group) = Group::find_by_name(&mut *transaction, group_name).await? {
+            // get users that need to be added into the group
+            let users_to_add = query!(
+                "SELECT u.username FROM \"user\" u \
+            WHERE u.id = ANY($1) \
+            AND NOT EXISTS (\
+                SELECT 1 FROM \"group_user\" gu \
+                JOIN \"group\" g ON gu.group_id = g.id \
+                WHERE gu.user_id = u.id \
+                AND g.name = $2 \
+            );",
+                &data.users,
+                group_name
+            )
+            .fetch_all(&mut *transaction)
+            .await?;
+
+            // assign users to groups in a transaction
+            for record in users_to_add.iter() {
+                if let Some(user) =
+                    User::find_by_username(&mut *transaction, &record.username).await?
+                {
+                    user.add_to_group(&mut *transaction, &group).await?;
+                }
+            }
+        }
+    }
+    transaction.commit().await?;
+    Ok(ApiResponse {
+        json: json!({}),
+        status: StatusCode::OK,
+    })
+}
+
 /// GET: Retrieve all groups info
 pub(crate) async fn list_groups_info(
     _role: UserAdminRole,
@@ -34,11 +132,12 @@ pub(crate) async fn list_groups_info(
     debug!("Listing groups info");
     let q_result = query_as!(
         GroupInfo,
-        "SELECT g.name as name, ARRAY_AGG(u.username) as members \
-    FROM \"group\" g \
-    JOIN \"group_user\" gu ON gu.group_id = g.id \
-    JOIN \"user\" u ON u.id = gu.user_id \
-    GROUP BY g.name"
+        "SELECT g.name as name, \
+        COALESCE(ARRAY_AGG(u.username) FILTER (WHERE u.username IS NOT NULL), '{}') as members \
+        FROM \"group\" g \
+        LEFT JOIN \"group_user\" gu ON gu.group_id = g.id \
+        LEFT JOIN \"user\" u ON u.id = gu.user_id \
+        GROUP BY g.name"
     )
     .fetch_all(&appstate.pool)
     .await?;

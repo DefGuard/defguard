@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { orderBy } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import SvgIconUserAddNew from '../../../shared/components/svg/IconUserAddNew';
@@ -42,6 +43,7 @@ export const UsersOverview = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const openGroupsAssign = useAssignGroupsModal((s) => s.open);
+  const successSubject = useAssignGroupsModal((s) => s.successSubject, shallow);
 
   const filterSelectOptions = useMemo(() => {
     const res: SelectOption<FilterOptions>[] = [
@@ -150,6 +152,15 @@ export const UsersOverview = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [breakpoint]);
+
+  useEffect(() => {
+    const sub = successSubject.subscribe(() => {
+      setSelectedUsers([]);
+    });
+    return () => {
+      sub?.unsubscribe();
+    };
+  }, [successSubject]);
 
   return (
     <section id="users-overview">

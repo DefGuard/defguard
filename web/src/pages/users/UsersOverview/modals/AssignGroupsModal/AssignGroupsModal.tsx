@@ -1,10 +1,16 @@
 import './style.scss';
 
-import { useQuery } from '@tanstack/react-query';
+import {
+  QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -15,6 +21,7 @@ import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Lay
 import { Search } from '../../../../../shared/defguard-ui/components/Layout/Search/Search';
 import { SelectRow } from '../../../../../shared/defguard-ui/components/Layout/SelectRow/SelectRow';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { useAssignGroupsModal } from './store';
 
@@ -34,18 +41,47 @@ export const AssignGroupsModal = () => {
   );
 };
 
+const toInvalidate = [
+  QueryKeys.FETCH_GROUPS,
+  QueryKeys.FETCH_GROUPS_INFO,
+  QueryKeys.FETCH_USERS_LIST,
+];
+
+const invalidateQueries = (client: QueryClient, queries: string[]) => {
+  queries.forEach((q) =>
+    client.invalidateQueries({
+      queryKey: [q],
+    }),
+  );
+};
+
 const ModalContent = () => {
   const [search, setSearch] = useState<string>('');
   const [selected, setSelected] = useState<string[]>([]);
   const {
-    groups: { getGroups },
+    groups: { getGroups, addUsersToGroups: addUsersToGroup },
   } = useApi();
 
+  const successSubject = useAssignGroupsModal((s) => s.successSubject);
   const closeModal = useAssignGroupsModal((s) => s.close);
+  const users = useAssignGroupsModal((s) => s.usersToAssign);
+  const queryClient = useQueryClient();
+  const toaster = useToaster();
+  const { LL } = useI18nContext();
 
   const { data: groups } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
     queryFn: async () => getGroups().then((res) => res.groups),
+  });
+
+  const { mutate, isLoading } = useMutation({
+    mutationFn: addUsersToGroup,
+    onSuccess: () => {
+      invalidateQueries(queryClient, toInvalidate);
+      toaster.success(LL.messages.success());
+      successSubject.next();
+      closeModal();
+    },
   });
 
   const filteredGroups = useMemo(() => {
@@ -79,6 +115,15 @@ const ModalContent = () => {
       }
     }
   }, [groups, selected.length]);
+
+  const handleSubmit = useCallback(() => {
+    if (!isLoading) {
+      mutate({
+        groups: selected,
+        users,
+      });
+    }
+  }, [isLoading, mutate, selected, users]);
 
   return (
     <>
@@ -121,6 +166,8 @@ const ModalContent = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           text="Assign groups"
           disabled={selected.length === 0}
+          loading={isLoading}
+          onClick={() => handleSubmit()}
         />
       </div>
     </>

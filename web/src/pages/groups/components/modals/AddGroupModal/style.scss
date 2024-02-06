@@ -4,7 +4,7 @@
   background-color: var(--surface-frame-bg);
 
   @include media-breakpoint-up(lg) {
-    max-width: clamp(260px, 1300px, 85vw);
+    max-width: clamp(260px, 750px, 85vw);
   }
 
   &>.content {
@@ -26,6 +26,7 @@
     }
 
     .select-all {
+      cursor: pointer;
       height: 60px;
       margin-bottom: 10px;
     }
@@ -47,6 +48,7 @@
 
       .select-row {
         height: 60px;
+        cursor: pointer;
 
         .content {
           display: flex;

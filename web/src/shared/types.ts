@@ -358,6 +358,11 @@ export type ModifyGroupsRequest = {
   members?: string[];
 };
 
+export type AddUsersToGroupsRequest = {
+  groups: string[];
+  users: number[];
+};
+
 export type EditGroupRequest = ModifyGroupsRequest & {
   originalName: string;
 };
@@ -373,6 +378,8 @@ export interface ApiHook {
     getGroups: () => Promise<GroupsResponse>;
     createGroup: (data: ModifyGroupsRequest) => Promise<EmptyApiResponse>;
     editGroup: (data: EditGroupRequest) => Promise<EmptyApiResponse>;
+    deleteGroup: (groupName: string) => Promise<EmptyApiResponse>;
+    addUsersToGroups: (data: AddUsersToGroupsRequest) => Promise<EmptyApiResponse>;
   };
   user: {
     getMe: () => Promise<User>;

@@ -1,7 +1,12 @@
 import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -40,6 +45,13 @@ export const AddGroupModal = () => {
   );
 };
 
+const toInvalidate = [QueryKeys.FETCH_GROUPS, QueryKeys.FETCH_GROUPS_INFO];
+
+const invalidateQueries = (client: QueryClient, key: string) =>
+  client.invalidateQueries({
+    queryKey: [key],
+  });
+
 export type ModifyGroupFormFields = {
   name: string;
   members: string[];
@@ -50,6 +62,7 @@ const ModalContent = () => {
     groups: { getGroups, createGroup, editGroup },
     user: { getUsers },
   } = useApi();
+  const queryClient = useQueryClient();
   const { LL } = useI18nContext();
   const groupInfo = useAddGroupModal((s) => s.groupInfo);
   const closeModal = useAddGroupModal((s) => s.close);
@@ -69,6 +82,8 @@ const ModalContent = () => {
     mutationFn: createGroup,
     onSuccess: () => {
       toaster.success(LL.messages.success());
+      toInvalidate.forEach((k) => invalidateQueries(queryClient, k));
+      closeModal();
     },
   });
 
@@ -76,6 +91,8 @@ const ModalContent = () => {
     mutationFn: editGroup,
     onSuccess: () => {
       toaster.success(LL.messages.success());
+      toInvalidate.forEach((k) => invalidateQueries(queryClient, k));
+      closeModal();
     },
   });
 
@@ -87,12 +104,17 @@ const ModalContent = () => {
             required_error: LL.form.error.required(),
           })
           .min(4, LL.form.error.minimumLength())
-          .refine(
-            (name) => isUndefined(groups?.find((n) => n === name)),
-            LL.form.error.invalid(),
-          ),
+          .refine((name) => {
+            // if in edit mode ignore self name
+            let names = groups;
+            if (!isUndefined(groupInfo)) {
+              names = names?.filter((n) => n !== groupInfo.name);
+            }
+            return isUndefined(names?.find((n) => n === name));
+          }, LL.form.error.invalid()),
+        members: z.array(z.string()),
       }),
-    [LL.form.error, groups],
+    [LL.form.error, groupInfo, groups],
   );
 
   const defaults = useMemo((): ModifyGroupFormFields => {
@@ -150,6 +172,7 @@ const ModalContent = () => {
           size={ButtonSize.LARGE}
           onClick={() => closeModal()}
           text={LL.common.controls.cancel()}
+          type="button"
         />
         <Button
           size={ButtonSize.LARGE}
@@ -157,6 +180,7 @@ const ModalContent = () => {
           loading={isCreating || isEditing || isValidating || isSubmitting}
           text={LL.common.controls.submit()}
           styleVariant={ButtonStyleVariant.PRIMARY}
+          type="submit"
         />
       </div>
     </form>
