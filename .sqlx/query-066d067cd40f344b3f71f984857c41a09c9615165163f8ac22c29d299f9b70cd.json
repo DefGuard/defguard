@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.username FROM \"user\" u WHERE u.id = ANY($1) AND NOT EXISTS (SELECT 1 FROM \"group_user\" gu JOIN \"group\" g ON gu.group_id = g.id WHERE gu.user_id = u.id AND g.name = $2 );",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "066d067cd40f344b3f71f984857c41a09c9615165163f8ac22c29d299f9b70cd"
+}
