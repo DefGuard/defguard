@@ -5,7 +5,6 @@ use std::{
     str::FromStr,
 };
 
-
 use base64::prelude::{Engine, BASE64_STANDARD};
 use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
@@ -189,9 +188,7 @@ impl WireguardNetwork {
         let mut transaction = app.pool.begin().await?;
         let networks = Self::all(&mut *transaction).await?;
         for network in networks {
-            let gateway_events = network
-                .sync_allowed_devices(&mut transaction, None)
-                .await?;
+            let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
             app.send_multiple_wireguard_events(gateway_events);
         }
         Ok(())
