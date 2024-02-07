@@ -89,7 +89,7 @@ const ModalContent = () => {
       if (search.length > 0 && groups) {
         return groups?.filter((g) => g.toLowerCase().includes(search.toLowerCase()));
       }
-      return groups;
+      return groups ?? [];
     }
     return [];
   }, [groups, search]);
@@ -147,15 +147,16 @@ const ModalContent = () => {
         </div>
         <div className="groups-container">
           <div className="scroll-wrapper">
-            {filteredGroups.map((g) => (
-              <SelectRow
-                key={g}
-                onClick={() => handleSelect(g)}
-                selected={!isUndefined(selected.find((group) => g === group))}
-              >
-                <p>{g}</p>
-              </SelectRow>
-            ))}
+            {filteredGroups &&
+              filteredGroups?.map((g) => (
+                <SelectRow
+                  key={g}
+                  onClick={() => handleSelect(g)}
+                  selected={!isUndefined(selected.find((group) => g === group))}
+                >
+                  <p>{g}</p>
+                </SelectRow>
+              ))}
           </div>
         </div>
       </div>
