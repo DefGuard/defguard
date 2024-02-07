@@ -1,14 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use humantime::{parse_duration, DurationError};
 use ipnetwork::IpNetwork;
-use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
-use rsa::{
-    pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
-    pkcs8::{DecodePrivateKey, LineEnding},
-    traits::PublicKeyParts,
-    RsaPrivateKey,
-};
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Deserializer};
 use std::{fs, time::Duration};
@@ -78,10 +71,9 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub default_admin_password: Secret<String>,
 
-    #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
+    #[arg(long, env = "DEFGUARD_OPENID_KEY")]
     #[serde(skip_serializing)]
-    #[serde(deserialize_with = "DefGuardConfig::deserialize_openid_key")]
-    pub openid_signing_key: Option<RsaPrivateKey>,
+    pub openid_signing_key: Option<String>,
 
     // relying party id and relying party origin for WebAuthn
     #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
@@ -275,31 +267,6 @@ impl DefGuardConfig {
         }
     }
 
-    /// Try PKCS#1 and PKCS#8 PEM formats.
-    fn parse_openid_key(path: &str) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
-        if let Ok(key) = RsaPrivateKey::read_pkcs1_pem_file(path) {
-            Ok(key)
-        } else {
-            RsaPrivateKey::read_pkcs8_pem_file(path)
-        }
-    }
-
-    /// helper to manually deserialize RSA kwy from config file
-    fn deserialize_openid_key<'de, D>(deserializer: D) -> Result<Option<RsaPrivateKey>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let buf: Option<String> = Option::deserialize(deserializer)?;
-
-        if let Some(path) = buf {
-            return Ok(Some(
-                Self::parse_openid_key(&path).map_err(serde::de::Error::custom)?,
-            ));
-        }
-
-        Ok(None)
-    }
-
     /// helper to parse time-related `clap` args
     fn parse_humantime(value: &str) -> Result<Duration, DurationError> {
         parse_duration(value)
@@ -313,17 +280,6 @@ impl DefGuardConfig {
         let buf = String::deserialize(deserializer)?;
 
         parse_duration(&buf).map_err(serde::de::Error::custom)
-    }
-
-    #[must_use]
-    pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
-        let key = self.openid_signing_key.as_ref()?;
-        if let Ok(pem) = key.to_pkcs1_pem(LineEnding::default()) {
-            let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
-            CoreRsaPrivateSigningKey::from_pem(pem.as_ref(), Some(key_id)).ok()
-        } else {
-            None
-        }
     }
 }
 

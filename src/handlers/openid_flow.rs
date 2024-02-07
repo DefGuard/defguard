@@ -74,7 +74,7 @@ impl From<&User> for StandardClaims<CoreGenderClaim> {
 
 pub async fn discovery_keys(State(appstate): State<AppState>) -> ApiResult {
     let mut keys = Vec::new();
-    if let Some(openid_key) = appstate.config.openid_key() {
+    if let Some(openid_key) = appstate.openid_key() {
         keys.push(openid_key.as_verification_key());
     };
 
@@ -805,7 +805,7 @@ pub async fn token(
                                     (&user).into(),
                                     &appstate.config.url,
                                     client.client_secret,
-                                    appstate.config.openid_key(),
+                                    appstate.openid_key(),
                                     group_claims,
                                 ) {
                                     Ok(response) => {

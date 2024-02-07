@@ -14,20 +14,12 @@ use axum::{
 
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
-use tokio::{
-    net::TcpListener,
-    sync::{
-        broadcast::Sender,
-        mpsc::{UnboundedReceiver, UnboundedSender},
-        OnceCell,
-    },
-};
+use tokio::{net::TcpListener, sync::OnceCell};
 use tower_http::{
     services::{ServeDir, ServeFile},
     trace::{DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
-use uaparser::UserAgentParser;
 
 use self::{
     appstate::AppState,
@@ -36,7 +28,7 @@ use self::{
     db::{
         init_db,
         models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
-        AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork,
+        DbPool, Device, User, WireguardNetwork,
     },
     handlers::{
         auth::{
@@ -67,7 +59,6 @@ use self::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
     },
-    mail::Mail,
 };
 
 #[cfg(feature = "wireguard")]
@@ -93,7 +84,6 @@ use self::handlers::{
 };
 #[cfg(any(feature = "openid", feature = "worker"))]
 use self::{
-    auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
     grpc::{GatewayMap, WorkerState},
     handlers::app_info::get_app_info,
@@ -138,16 +128,9 @@ async fn handle_404() -> (StatusCode, &'static str) {
 }
 
 pub fn build_webapp(
-    config: DefGuardConfig,
-    webhook_tx: UnboundedSender<AppEvent>,
-    webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
-    pool: DbPool,
-    user_agent_parser: Arc<UserAgentParser>,
-    failed_logins: Arc<Mutex<FailedLoginMap>>,
+    app_state: AppState,
 ) -> Router {
     let serve_web_dir = ServeDir::new("web/dist").fallback(ServeFile::new("web/dist/index.html"));
     let serve_images =
@@ -311,16 +294,7 @@ pub fn build_webapp(
     webapp
         .nest_service("/svg", serve_images)
         .nest_service("/", serve_web_dir)
-        .with_state(AppState::new(
-            config,
-            pool,
-            webhook_tx,
-            webhook_rx,
-            wireguard_tx,
-            mail_tx,
-            user_agent_parser,
-            failed_logins,
-        ))
+        .with_state(app_state)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
@@ -339,26 +313,9 @@ pub async fn run_web_server(
     config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
-    webhook_tx: UnboundedSender<AppEvent>,
-    webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
-    pool: DbPool,
-    user_agent_parser: Arc<UserAgentParser>,
-    failed_logins: Arc<Mutex<FailedLoginMap>>,
+    app_state: AppState,
 ) -> Result<(), anyhow::Error> {
-    let webapp = build_webapp(
-        config.clone(),
-        webhook_tx,
-        webhook_rx,
-        wireguard_tx,
-        mail_tx,
-        worker_state,
-        gateway_state,
-        pool,
-        user_agent_parser,
-        failed_logins,
-    );
+    let webapp = build_webapp(worker_state, gateway_state, app_state);
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
     let listener = TcpListener::bind(&addr).await?;

@@ -2,7 +2,14 @@ use std::sync::{Arc, Mutex};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
+use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Client;
+use rsa::{
+    pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
+    pkcs8::{DecodePrivateKey, LineEnding},
+    traits::PublicKeyParts,
+    RsaPrivateKey,
+};
 use secrecy::ExposeSecret;
 use serde_json::json;
 use tokio::{
@@ -33,6 +40,7 @@ pub struct AppState {
     pub user_agent_parser: Arc<UserAgentParser>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
+    pub rsa_key: Option<RsaPrivateKey>,
 }
 
 impl AppState {
@@ -107,7 +115,27 @@ impl AppState {
         user_agent_parser: Arc<UserAgentParser>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
     ) -> Self {
+        // spawn webhook handler task
         spawn(Self::handle_triggers(pool.clone(), rx));
+
+        // read RSA key if configured
+        let rsa_key = match config.openid_signing_key.as_ref() {
+            Some(path) => {
+                info!("Using RSA OpenID signing key");
+                let key = if let Ok(key) = RsaPrivateKey::read_pkcs1_pem_file(path) {
+                    Ok(key)
+                } else {
+                    RsaPrivateKey::read_pkcs8_pem_file(path)
+                }
+                .expect("Failed to read RSA key from file");
+
+                Some(key)
+            }
+            None => {
+                info!("Using HMAC OpenID signing key");
+                None
+            }
+        };
 
         let webauthn_builder = WebauthnBuilder::new(
             config
@@ -135,6 +163,18 @@ impl AppState {
             user_agent_parser,
             failed_logins,
             key,
+            rsa_key,
+        }
+    }
+
+    #[must_use]
+    pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
+        let key = self.rsa_key.as_ref()?;
+        if let Ok(pem) = key.to_pkcs1_pem(LineEnding::default()) {
+            let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
+            CoreRsaPrivateSigningKey::from_pem(pem.as_ref(), Some(key_id)).ok()
+        } else {
+            None
         }
     }
 }
