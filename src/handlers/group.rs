@@ -3,13 +3,13 @@ use axum::{
     http::StatusCode,
 };
 use serde_json::json;
-use sqlx::{query_as};
+use sqlx::query_as;
 
 use super::{ApiResponse, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserAdminRole},
-    db::{Group, User},
+    db::{Group, User, WireguardNetwork},
     error::WebError,
     // ldap::utils::{ldap_add_user_to_group, ldap_modify_group, ldap_remove_user_from_group},
 };
@@ -61,6 +61,18 @@ pub(crate) async fn bulk_assign_to_groups(
     .fetch_all(&appstate.pool)
     .await?;
 
+    if users.len() != data.users.len() {
+        return Err(WebError::BadRequest(
+            "Request contained users that doesn't exists in db.".into(),
+        ));
+    }
+
+    if groups.len() != data.groups.len() {
+        return Err(WebError::BadRequest(
+            "Request contained groups that doesn't exists in db.".into(),
+        ));
+    }
+
     let mut transaction = appstate.pool.begin().await?;
     for group in groups.iter() {
         for user in users.iter() {
@@ -68,6 +80,7 @@ pub(crate) async fn bulk_assign_to_groups(
         }
     }
     transaction.commit().await?;
+    WireguardNetwork::sync_all_networks(&appstate).await?;
     info!("Assigned {} groups to {} users.", groups.len(), users.len());
     Ok(ApiResponse {
         json: json!({}),
@@ -167,6 +180,8 @@ pub(crate) async fn create_group(
 
     transaction.commit().await?;
 
+    WireguardNetwork::sync_all_networks(&appstate).await?;
+
     info!("Created group {}", group_info.name);
     Ok(ApiResponse {
         json: json!(group_info),
@@ -229,6 +244,8 @@ pub(crate) async fn modify_group(
 
     transaction.commit().await?;
 
+    WireguardNetwork::sync_all_networks(&appstate).await?;
+
     info!("Modified group {}", group.name);
     Ok(ApiResponse::default())
 }
@@ -254,6 +271,8 @@ pub(crate) async fn delete_group(
         group.delete(&appstate.pool).await?;
         // TODO: delete group from LDAP
 
+        WireguardNetwork::sync_all_networks(&appstate).await?;
+
         info!("Deleted group {name}");
         Ok(ApiResponse::default())
     } else {
@@ -275,6 +294,7 @@ pub(crate) async fn add_group_member(
             debug!("Adding user: {} to group: {}", user.username, group.name);
             user.add_to_group(&appstate.pool, &group).await?;
             // let _result = ldap_add_user_to_group(&appstate.pool, &user.username, &group.name).await;
+            WireguardNetwork::sync_all_networks(&appstate).await?;
             info!("Added user: {} to group: {}", user.username, group.name);
             Ok(ApiResponse::default())
         } else {
@@ -306,6 +326,7 @@ pub(crate) async fn remove_group_member(
             user.remove_from_group(&appstate.pool, &group).await?;
             // let _result =
             //     ldap_remove_user_from_group(&appstate.pool, &user.username, &group.name).await;
+            WireguardNetwork::sync_all_networks(&appstate).await?;
             info!("Removed user: {} from group: {}", user.username, group.name);
             Ok(ApiResponse {
                 json: json!({}),
