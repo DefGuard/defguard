@@ -148,7 +148,7 @@ pub async fn add_authentication_key(
         user.email
     );
 
-    if ![SSH_KEY_TYPE, GPG_KEY_TYPE].contains(&&data.key_type.as_str()) {
+    if ![SSH_KEY_TYPE, GPG_KEY_TYPE].contains(&data.key_type.as_str()) {
         return Err(WebError::BadRequest(
             "unsupported authentication key type".into(),
         ));

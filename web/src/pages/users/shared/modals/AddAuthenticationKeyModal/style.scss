@@ -1,7 +1,6 @@
 @use '../../../../../shared/scss/helpers' as *;
 
 #add-authentication-key-modal {
-
   & > .add-authentication-key-content {
     padding: 30px;
   }
@@ -39,7 +38,7 @@
   background-color: var(--surface-frame-bg);
   border-radius: 10px;
   width: 100%;
-  padding: 10px 20px;  
+  padding: 10px 20px;
   border: 1px solid var(--border-primary);
 
   &.invalid {
