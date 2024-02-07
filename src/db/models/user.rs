@@ -60,7 +60,7 @@ pub struct UserDiagnostic {
     pub is_active: bool,
 }
 
-#[derive(Model, PartialEq, Serialize, Clone)]
+#[derive(Model, PartialEq, Serialize, Clone, Debug)]
 pub struct User {
     pub id: Option<i64>,
     pub username: String,

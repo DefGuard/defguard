@@ -1,12 +1,12 @@
 import './styles.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';
@@ -90,20 +90,16 @@ export const BrandingSettings = () => {
     },
   );
 
-  const formSchema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object()
-        .shape({
-          main_logo_url: yup.string(),
-          nav_logo_url: yup.string(),
-          instance_name: yup
-            .string()
-            .min(3, LL.form.error.minimumLength())
-            .max(12, LL.form.error.maximumLength())
-            .required(LL.form.error.required()),
-        })
-        .required(),
+      z.object({
+        main_logo_url: z.string(),
+        nav_logo_url: z.string(),
+        instance_name: z
+          .string()
+          .min(3, LL.form.error.minimumLength())
+          .max(12, LL.form.error.maximumLength()),
+      }),
     [LL.form.error],
   );
 
@@ -124,7 +120,7 @@ export const BrandingSettings = () => {
   const { control, handleSubmit, reset } = useForm<Settings>({
     defaultValues,
     mode: 'all',
-    resolver: yupResolver(formSchema),
+    resolver: zodResolver(zodSchema),
   });
 
   useEffect(() => {

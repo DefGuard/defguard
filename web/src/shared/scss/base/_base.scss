@@ -1,6 +1,6 @@
 @use './variables' as v;
+@use '../global/' as *;
 @use './scrollbar';
-@use '../helpers/' as *;
 
 html,
 body,

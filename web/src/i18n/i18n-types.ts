@@ -1565,8 +1565,16 @@ type RootTranslation = {
 			 * S​u​p​p​o​r​t
 			 */
 			support: string
+			/**
+			 * G​r​o​u​p​s
+			 */
+			groups: string
 		}
 		mobileTitles: {
+			/**
+			 * G​r​o​u​p​s
+			 */
+			groups: string
 			/**
 			 * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
 			 */
@@ -5117,8 +5125,16 @@ export type TranslationFunctions = {
 			 * Support
 			 */
 			support: () => LocalizedString
+			/**
+			 * Groups
+			 */
+			groups: () => LocalizedString
 		}
 		mobileTitles: {
+			/**
+			 * Groups
+			 */
+			groups: () => LocalizedString
 			/**
 			 * Create location
 			 */

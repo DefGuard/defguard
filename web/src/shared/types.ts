@@ -348,8 +348,23 @@ export type ChangePasswordSelfRequest = {
   new_password: string;
 };
 
-export type AuthCodeRequsest = {
+export type AuthCodeRequest = {
   code: number;
+};
+
+export type ModifyGroupsRequest = {
+  name: string;
+  // array of usernames
+  members?: string[];
+};
+
+export type AddUsersToGroupsRequest = {
+  groups: string[];
+  users: number[];
+};
+
+export type EditGroupRequest = ModifyGroupsRequest & {
+  originalName: string;
 };
 
 export interface ApiHook {
@@ -359,7 +374,12 @@ export interface ApiHook {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
   groups: {
+    getGroupsInfo: () => Promise<GroupInfo[]>;
     getGroups: () => Promise<GroupsResponse>;
+    createGroup: (data: ModifyGroupsRequest) => Promise<EmptyApiResponse>;
+    editGroup: (data: EditGroupRequest) => Promise<EmptyApiResponse>;
+    deleteGroup: (groupName: string) => Promise<EmptyApiResponse>;
+    addUsersToGroups: (data: AddUsersToGroupsRequest) => Promise<EmptyApiResponse>;
   };
   user: {
     getMe: () => Promise<User>;
@@ -414,11 +434,11 @@ export interface ApiHook {
       email: {
         register: {
           start: () => EmptyApiResponse;
-          finish: (data: AuthCodeRequsest) => MFARecoveryCodesResponse;
+          finish: (data: AuthCodeRequest) => MFARecoveryCodesResponse;
         };
         disable: () => EmptyApiResponse;
         sendCode: () => EmptyApiResponse;
-        verify: (data: AuthCodeRequsest) => Promise<MFAFinishResponse>;
+        verify: (data: AuthCodeRequest) => Promise<MFAFinishResponse>;
       };
       webauthn: {
         register: {
@@ -873,3 +893,10 @@ export interface TestMail {
 }
 
 export type SMTPError = AxiosError<{ error: string }>;
+
+export type Group = string;
+
+export type GroupInfo = {
+  name: string;
+  members?: string[];
+};

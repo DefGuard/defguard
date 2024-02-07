@@ -1,4 +1,3 @@
-@use '@scssutils' as *;
 .nav-bar {
   display: grid;
   grid-template-rows: 108px 1fr 70px;
@@ -17,6 +16,7 @@
   &::-webkit-scrollbar {
     display: none;
   }
+
   -ms-overflow-style: none;
   scrollbar-width: none;
 
@@ -98,6 +98,7 @@
       &:hover,
       &.active {
         color: var(--text-main);
+
         & > svg {
           g,
           path {
@@ -105,6 +106,7 @@
           }
         }
       }
+
       & > .active-line {
         content: ' ';
         display: block;

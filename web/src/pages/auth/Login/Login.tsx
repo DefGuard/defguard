@@ -1,11 +1,11 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -26,25 +26,19 @@ type Inputs = {
 };
 
 export const Login = () => {
-  const { LL, locale } = useI18nContext();
-  const schema = useMemo(
+  const { LL } = useI18nContext();
+
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object({
-          username: yup
-            .string()
-            .required(LL.form.error.required())
-            .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
-            .min(3, LL.form.error.minimumLength())
-            .max(64, LL.form.error.maximumLength()),
-          password: yup
-            .string()
-            .required(LL.form.error.required())
-            .max(32, LL.form.error.maximumLength()),
-        })
-        .required(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale],
+      z.object({
+        username: z
+          .string()
+          .min(3)
+          .max(64)
+          .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
+        password: z.string().max(32, LL.form.error.maximumLength()),
+      }),
+    [LL.form.error],
   );
 
   const {
@@ -52,7 +46,7 @@ export const Login = () => {
   } = useApi();
 
   const { handleSubmit, control, setError } = useForm<Inputs>({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     defaultValues: {
       password: '',

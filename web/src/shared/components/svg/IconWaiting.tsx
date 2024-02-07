@@ -12,8 +12,8 @@ const SvgIconWaiting = (props: SVGProps<SVGSVGElement>) => (
         <path
           d="M0 0h22v22H0z"
           style={{
-            opacity: 0,
             fill: '#899ca8',
+            opacity: 0,
           }}
         />
       </clipPath>
@@ -30,7 +30,7 @@ const SvgIconWaiting = (props: SVGProps<SVGSVGElement>) => (
         className="icon-waiting_svg__c"
       />
       <path
-        d="M20 11a9 9 0 1 0-9 9 9.01 9.01 0 0 0 9-9ZM3.394 11A7.606 7.606 0 1 1 11 18.606 7.615 7.615 0 0 1 3.394 11Z"
+        d="M20 11a9 9 0 1 0-9 9 9.01 9.01 0 0 0 9-9M3.394 11A7.606 7.606 0 1 1 11 18.606 7.615 7.615 0 0 1 3.394 11"
         className="icon-waiting_svg__c"
       />
     </g>

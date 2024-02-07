@@ -12,8 +12,8 @@ const SvgIconCloseGray = (props: SVGProps<SVGSVGElement>) => (
         <path
           d="M0 0h22v22H0z"
           style={{
-            opacity: 0,
             fill: '#cbd3d8',
+            opacity: 0,
           }}
         />
       </clipPath>

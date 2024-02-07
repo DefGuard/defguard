@@ -1,9 +1,10 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -40,9 +41,13 @@ export const WorkerSelectionForm = ({ setIsOpen, afterSubmit, workers }: Props) 
     },
   });
 
-  const formSchema = yup.object({
-    worker: yup.string().required(),
-  });
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        worker: z.string().min(1, LL.form.error.required()),
+      }),
+    [LL.form.error],
+  );
 
   const {
     control,
@@ -50,8 +55,8 @@ export const WorkerSelectionForm = ({ setIsOpen, afterSubmit, workers }: Props) 
     formState: { isValid },
     resetField,
   } = useForm<FormValues>({
-    resolver: yupResolver(formSchema),
-    mode: 'onChange',
+    resolver: zodResolver(zodSchema),
+    mode: 'all',
   });
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {

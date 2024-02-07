@@ -24,17 +24,17 @@ const SvgIconActivityRemoved = (props: SVGProps<SVGSVGElement>) => (
         }}
       >
         <path
-          d="M6 0a6 6 0 1 1-6 6 6 6 0 0 1 6-6Z"
+          d="M6 0a6 6 0 1 1-6 6 6 6 0 0 1 6-6"
           style={{
             stroke: 'none',
           }}
           transform="rotate(90 6 8)"
         />
         <path
-          d="M6 2C3.794 2 2 3.794 2 6s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4m0-2a6 6 0 1 1 0 12A6 6 0 0 1 6 0Z"
+          d="M6 2C3.794 2 2 3.794 2 6s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4m0-2a6 6 0 1 1 0 12A6 6 0 0 1 6 0"
           style={{
-            fill: '#cb3f3f',
             stroke: 'none',
+            fill: '#cb3f3f',
           }}
           transform="rotate(90 6 8)"
         />
