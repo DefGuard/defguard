@@ -691,6 +691,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       logOut: 'Wyloguj się',
       enrollment: 'Rejestracja',
       support: 'Wsparcie',
+      groups: 'Grupy',
     },
     mobileTitles: {
       wizard: 'Konfiguracja VPN',
@@ -704,6 +705,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       networkSettings: 'Edycja lokalizacji',
       enrollment: 'Rejestracja',
       support: 'Wsparcie',
+      groups: 'Grupy',
     },
     copyright: 'Copyright \u00A9 2023',
     version: {

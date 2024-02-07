@@ -21,7 +21,7 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
       }}
     />
     <path
-      d="M20.591 12.146h-2.116c0-4.311-3.507-7.806-7.833-7.806-4.273 0-7.747 3.41-7.832 7.647-.088 4.38 4.036 8.183 8.432 8.183h.553c3.876 0 9.07-3.023 9.882-6.707.15-.679-.388-1.317-1.086-1.317Zm-13.093.192a1.052 1.052 0 0 1-2.103 0v-1.695a1.052 1.052 0 0 1 2.103 0v1.695Zm3.652 0a1.052 1.052 0 0 1-2.103 0v-1.695a1.052 1.052 0 0 1 2.103 0v1.695Z"
+      d="M20.591 12.146h-2.116c0-4.311-3.507-7.806-7.833-7.806-4.273 0-7.747 3.41-7.832 7.647-.088 4.38 4.036 8.183 8.432 8.183h.553c3.876 0 9.07-3.023 9.882-6.707.15-.679-.388-1.317-1.086-1.317m-13.093.192a1.052 1.052 0 0 1-2.103 0v-1.695a1.052 1.052 0 0 1 2.103 0zm3.652 0a1.052 1.052 0 0 1-2.103 0v-1.695a1.052 1.052 0 0 1 2.103 0z"
       style={{
         fill: 'url(#phantom-icon_svg__b)',
         fillRule: 'nonzero',
@@ -34,7 +34,7 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
         x2={1}
         y1={0}
         y2={0}
-        gradientTransform="matrix(0 24 -24 0 12 0)"
+        gradientTransform="rotate(90 6 6)scale(24)"
         gradientUnits="userSpaceOnUse"
       >
         <stop
@@ -58,7 +58,7 @@ const SvgPhantomIcon = (props: SVGProps<SVGSVGElement>) => (
         x2={1}
         y1={0}
         y2={0}
-        gradientTransform="rotate(90 3.957 8.298) scale(15.8298)"
+        gradientTransform="rotate(90 3.957 8.298)scale(15.8298)"
         gradientUnits="userSpaceOnUse"
       >
         <stop

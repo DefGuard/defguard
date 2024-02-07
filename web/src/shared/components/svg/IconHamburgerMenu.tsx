@@ -12,8 +12,8 @@ const SvgIconHamburgerMenu = (props: SVGProps<SVGSVGElement>) => (
         <path
           d="M0 0h30v30H0z"
           style={{
-            opacity: 0,
             fill: '#899ca8',
+            opacity: 0,
           }}
           transform="translate(-4 -4)"
         />

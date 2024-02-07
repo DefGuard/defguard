@@ -3,7 +3,7 @@ import './style.scss';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { saveAs } from 'file-saver';
 import { useState } from 'react';
-import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
+import ReactMarkdown from 'react-markdown';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import SvgIconDownload from '../../../../shared/components/svg/IconDownload';

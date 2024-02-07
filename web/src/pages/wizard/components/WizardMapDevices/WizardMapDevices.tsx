@@ -1,10 +1,10 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -44,18 +44,20 @@ export const WizardMapDevices = () => {
     user: { getUsers },
   } = useApi();
 
-  const schema = useMemo(() => {
-    return yup.object().shape({
-      devices: yup.array().of(
-        yup.object().shape({
-          wireguard_ip: yup.string().required(),
-          user_id: yup.number().required().min(1),
-          wireguard_pubkey: yup.string().required(),
-          name: yup.string().required(),
-        }),
-      ),
-    });
-  }, []);
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        devices: z.array(
+          z.object({
+            wireguard_ip: z.string().min(1, LL.form.error.required()),
+            user_id: z.number().min(1, LL.form.error.required()),
+            wireguard_pubkey: z.string().min(1, LL.form.error.required()),
+            name: z.string().min(1, LL.form.error.required()),
+          }),
+        ),
+      }),
+    [LL.form.error],
+  );
 
   const { isLoading, data: users } = useQuery([QueryKeys.FETCH_USERS_LIST], getUsers, {
     refetchOnWindowFocus: false,
@@ -77,8 +79,8 @@ export const WizardMapDevices = () => {
 
   const { handleSubmit, control, reset, getValues } = useForm<WizardMapFormValues>({
     defaultValues: { devices: importedDevices ?? [] },
-    resolver: yupResolver(schema),
     mode: 'onSubmit',
+    resolver: zodResolver(zodSchema),
   });
 
   const getUsersOptions = useMemo(

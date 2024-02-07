@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
@@ -18,31 +18,10 @@ import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
-import { patternValidUrl } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 import { Webhook } from '../../../../shared/types';
 
 type FormInputs = Omit<Webhook, 'id' | 'enabled'>;
-
-const triggerTest = (value: Partial<FormInputs>): boolean => {
-  const keys: (keyof FormInputs)[] = [
-    'on_user_modified',
-    'on_user_deleted',
-    'on_user_created',
-    'on_hwkey_provision',
-  ];
-  let pass = false;
-  keys.forEach((key) => {
-    if (value[key] === true) {
-      pass = true;
-    }
-  });
-
-  if (!pass) {
-    return true;
-  }
-  return false;
-};
 
 const defaultValues: FormInputs = {
   url: '',
@@ -72,55 +51,49 @@ export const WebhookForm = () => {
 
   const queryClient = useQueryClient();
 
-  const formSchema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object()
-        .shape({
-          url: yup
+      z
+        .object({
+          url: z.string().min(1, LL.modals.webhookModal.form.error.urlRequired()),
+          description: z
             .string()
-            .required(LL.modals.webhookModal.form.error.urlRequired)
-            .matches(patternValidUrl, LL.modals.webhookModal.form.error.validUrl),
-          description: yup
+            .min(1, LL.form.error.required())
+            .min(4, LL.form.error.minimumLength())
+            .max(65, LL.form.error.maximumLength()),
+          token: z
             .string()
-            .min(4, LL.form.error.minimumLength)
-            .max(65, LL.form.error.maximumLength)
-            .required(),
-          token: yup
-            .string()
-            .required(LL.modals.webhookModal.form.error.tokenRequired())
+            .min(1, LL.form.error.required())
             .min(3, LL.form.error.minimumLength())
             .max(250, LL.form.error.maximumLength()),
-          enabled: yup.boolean(),
-          on_user_created: yup.boolean().test({
-            message: '',
-            //@ts-ignore
-            test: (_, parent) => triggerTest(parent as FormInputs),
-          }),
-          on_user_deleted: yup.boolean().test({
-            message: '',
-            //@ts-ignore
-            test: (_, parent) => triggerTest(parent as FormInputs),
-          }),
-          on_user_modified: yup.boolean().test({
-            message: '',
-            //@ts-ignore
-            test: (_, parent) => triggerTest(parent as FormInputs),
-          }),
-          on_hwkey_provision: yup.boolean().test({
-            message: '',
-            //@ts-ignore
-            test: (_, parent) => triggerTest(parent as FormInputs),
-          }),
+          enabled: z.boolean(),
+          on_user_created: z.boolean(),
+          on_user_deleted: z.boolean(),
+          on_user_modified: z.boolean(),
+          on_hwkey_provision: z.boolean(),
         })
-        .required(),
+        .superRefine((val, ctx) => {
+          if (val.enabled) {
+            if (
+              !val.on_hwkey_provision &&
+              !val.on_user_created &&
+              !val.on_user_deleted &&
+              !val.on_user_modified
+            ) {
+              ctx.addIssue({
+                code: 'custom',
+                message: 'At least one event needs to be present',
+              });
+            }
+          }
+        }),
     [LL.form.error, LL.modals.webhookModal.form.error],
   );
 
   const { control, handleSubmit } = useForm<FormInputs>({
     defaultValues: defaultFormState,
-    resolver: yupResolver(formSchema),
     mode: 'all',
+    resolver: zodResolver(zodSchema),
   });
 
   const { mutate: addWebhookMutation, isLoading: addWebhookIsLoading } = useMutation(

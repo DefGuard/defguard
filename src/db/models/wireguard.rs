@@ -20,6 +20,7 @@ use super::{
     DbPool, User, UserInfo,
 };
 use crate::{
+    appstate::AppState,
     grpc::{gateway::Peer, GatewayState},
     wg_config::ImportedDevice,
 };
@@ -180,6 +181,17 @@ impl WireguardNetwork {
         }
 
         Ok(Some(networks))
+    }
+
+    // run sync_allowed_devices on all wireguard networks
+    pub async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
+        let mut transaction = app.pool.begin().await?;
+        let networks = Self::all(&mut *transaction).await?;
+        for network in networks {
+            let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
+            app.send_multiple_wireguard_events(gateway_events);
+        }
+        Ok(())
     }
 
     /// Return number of devices that use this network.

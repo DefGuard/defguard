@@ -1,5 +1,3 @@
-@use '@scss/helpers' as *;
-
 @mixin list-layout {
   display: inline-grid;
   grid-template-columns: 175px 1fr 60px;
