@@ -2611,6 +2611,12 @@ type RootTranslation = {
 							 */
 							label: string
 						}
+						groups: {
+							/**
+							 * G​r​o​u​p​s
+							 */
+							label: string
+						}
 					}
 					controls: {
 						/**
@@ -2849,6 +2855,10 @@ type RootTranslation = {
 			 * K​n​o​w​ ​y​o​u​r​ ​p​h​o​n​e​ ​n​u​m​b​e​r​.
 			 */
 			phone: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​g​r​o​u​p​s​ ​m​e​m​b​e​r​s​h​i​p​.
+			 */
+			groups: string
 		}
 		controls: {
 			/**
@@ -3099,13 +3109,13 @@ type RootTranslation = {
 				}
 				keepalive_interval: {
 					/**
-					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l
+					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d
+					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
@@ -6233,6 +6243,12 @@ export type TranslationFunctions = {
 							 */
 							label: () => LocalizedString
 						}
+						groups: {
+							/**
+							 * Groups
+							 */
+							label: () => LocalizedString
+						}
 					}
 					controls: {
 						/**
@@ -6470,6 +6486,10 @@ export type TranslationFunctions = {
 			 * Know your phone number.
 			 */
 			phone: () => LocalizedString
+			/**
+			 * Know your groups membership.
+			 */
+			groups: () => LocalizedString
 		}
 		controls: {
 			/**
@@ -6717,13 +6737,13 @@ export type TranslationFunctions = {
 				}
 				keepalive_interval: {
 					/**
-					 * Keepalive interval
+					 * Keepalive interval [seconds]
 					 */
 					label: () => LocalizedString
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * Peer disconnect threshold
+					 * Peer disconnect threshold [seconds]
 					 */
 					label: () => LocalizedString
 				}

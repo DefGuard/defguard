@@ -20,7 +20,7 @@ const newPassword = '!7(8o3aN8RoF';
 test.describe('Reset password', () => {
   const user: User = { ...testUserTemplate, username: 'test' };
 
-  test.beforeEach(async ({ browser, page }) => {
+  test.beforeEach(async ({ browser }) => {
     dockerRestart();
     await createUser(browser, user);
   });

@@ -1114,6 +1114,9 @@ const en: BaseTranslation = {
             phone: {
               label: 'Phone',
             },
+            groups: {
+              label: 'Groups',
+            },
           },
           controls: {
             addUrl: 'Add URL',
@@ -1210,6 +1213,7 @@ const en: BaseTranslation = {
       profile: 'Know basic information from your profile like name, profile picture etc.',
       email: 'Know your email address.',
       phone: 'Know your phone number.',
+      groups: 'Know your groups membership.',
     },
     controls: {
       accept: 'Accept',
@@ -1315,10 +1319,10 @@ const en: BaseTranslation = {
           label: 'Require MFA for this Location',
         },
         keepalive_interval: {
-          label: 'Keepalive interval',
+          label: 'Keepalive interval [seconds]',
         },
         peer_disconnect_threshold: {
-          label: 'Peer disconnect threshold',
+          label: 'Peer disconnect threshold [seconds]',
         },
       },
       controls: {

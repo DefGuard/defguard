@@ -23,7 +23,9 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
-      - name: Set up Docker Buildx
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker BuildX
         uses: docker/setup-buildx-action@v3
         with:
           config-inline: |
@@ -40,21 +42,100 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  release:
-    runs-on: [self-hosted, Linux]
+  create-release:
+    name: create-release
+    runs-on: self-hosted
+    outputs:
+      upload_url: ${{ steps.release.outputs.upload_url }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Create release
+      - name: Create GitHub release
+        id: release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           draft: true
           generate_release_notes: true
+
+  build-binaries:
+    needs: [ "create-release" ]
+    runs-on:
+      - self-hosted
+      - ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [ linux, linux-arm, linux-arm64, freebsd ]
+        include:
+          - build: linux
+            os: Linux
+            target: x86_64-unknown-linux-gnu
+          - build: linux-arm
+            os: Linux
+            target: armv7-unknown-linux-gnueabihf
+          - build: linux-arm64
+            os: Linux
+            target: aarch64-unknown-linux-gnu
+          - build: freebsd
+            os: Linux
+            target: x86_64-unknown-freebsd
+    steps:
+      # Store the version, stripping any v-prefix
+      - name: Write release version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo Version: $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Set up Docker BuildX
+        uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."docker.io"]
+              mirrors = ["dockerhub-proxy.teonite.net"]
+
+      - name: Build release binary
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --locked --release --target ${{ matrix.target }}
+
+      - name: Rename binary
+        run: mv target/${{ matrix.target }}/release/defguard defguard-${{ github.ref_name }}-${{ matrix.target }}
+
+      - name: Tar
+        uses: a7ul/tar-action@v1.1.0
+        with:
+          command: c
+          files: |
+            defguard-${{ github.ref_name }}-${{ matrix.target }}
+          outPath: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+
+      - name: Upload release archive
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+          asset_name: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+          asset_content_type: application/octet-stream

@@ -1098,6 +1098,9 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
             phone: {
               label: 'Telefon',
             },
+            groups: {
+              label: 'Grupy',
+            },
           },
           controls: {
             addUrl: 'Dodaj URL',
@@ -1195,6 +1198,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         'Poznać podstawowe informacje z twojego profilu, takie jak login, imię itp',
       email: 'Poznać twój adres e-mail.',
       phone: 'Poznać twój numer telefonu.',
+      groups: 'Poznać twoje grupy.',
     },
     controls: {
       accept: 'Akceptuj',
@@ -1300,10 +1304,10 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           label: 'Wymagaj MFA dla tej lokalizacji',
         },
         keepalive_interval: {
-          label: 'Utrzymanie połączenia',
+          label: 'Utrzymanie połączenia [sekundy]',
         },
         peer_disconnect_threshold: {
-          label: 'Peer disconnect threshold',
+          label: 'Peer disconnect threshold [sekundy]',
         },
       },
       controls: {

@@ -1,5 +1,4 @@
-import { Page } from "playwright";
-
+import { Page } from 'playwright';
 
 export const selectPasswordReset = async (page: Page) => {
   const selectButton = page.getByTestId('select-password-reset');
