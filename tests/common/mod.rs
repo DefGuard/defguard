@@ -2,6 +2,7 @@ pub(crate) mod client;
 
 use std::sync::{Arc, Mutex};
 
+use defguard::appstate::AppState;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
@@ -144,18 +145,18 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
     //     .with(tracing_subscriber::fmt::layer())
     //     .init();
 
-    let webapp = build_webapp(
-        config,
+    let app_state = AppState::new(
+        config.clone(),
+        pool,
         tx,
         rx,
         wg_tx,
         mail_tx,
-        worker_state,
-        gateway_state,
-        pool,
-        user_agent_parser,
-        failed_logins,
+        user_agent_parser.clone(),
+        failed_logins.clone(),
     );
+
+    let webapp = build_webapp(worker_state, gateway_state, app_state);
     (TestClient::new(webapp).await, client_state)
 }
 

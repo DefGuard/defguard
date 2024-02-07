@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fs::File, io::Write, str::FromStr};
 
 use axum::http::header::ToStrError;
 use claims::assert_err;
@@ -23,8 +23,12 @@ use reqwest::{
     header::{HeaderName, AUTHORIZATION, CONTENT_TYPE, USER_AGENT},
     StatusCode,
 };
-use rsa::RsaPrivateKey;
+use rsa::{
+    pkcs8::{EncodePrivateKey, LineEnding},
+    RsaPrivateKey,
+};
 use serde::Deserialize;
+use tokio::fs::remove_file;
 
 mod common;
 use self::common::{client::TestClient, init_test_db, make_base_client, make_test_client};
@@ -503,8 +507,18 @@ async fn test_openid_authorization_code() {
 #[tokio::test]
 async fn test_openid_authorization_code_with_pkce() {
     let (pool, mut config) = init_test_db().await;
+
+    // create RSA key file
+    let mut key_file = File::create("./test_rsa_key.pem").expect("Failed to create file");
     let mut rng = rand::thread_rng();
-    config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
+    let rsa_key = RsaPrivateKey::new(&mut rng, 2048).expect("Failed to generate RSA key");
+    let pem_bytes = rsa_key
+        .to_pkcs8_pem(LineEnding::LF)
+        .expect("Failed to encode RSA key");
+    key_file
+        .write_all((&pem_bytes).as_ref())
+        .expect("Failed to write RSA key to file");
+    config.openid_signing_key = Some("./test_rsa_key.pem".into());
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
@@ -614,6 +628,11 @@ async fn test_openid_authorization_code_with_pkce() {
         .request_async(move |r| http_client(r, pool, config))
         .await
         .unwrap();
+
+    // remove RSA key file
+    remove_file("./test_rsa_key.pem")
+        .await
+        .expect("Failed to remove key file");
 }
 
 #[tokio::test]
