@@ -129,6 +129,9 @@ pub static VERSION: &str = env!("CARGO_PKG_VERSION");
 // TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
+// WireGuard key length in bytes.
+pub(crate) const KEY_LENGTH: usize = 32;
+
 /// Simple health-check.
 async fn health_check() -> &'static str {
     "alive"
