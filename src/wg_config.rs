@@ -1,14 +1,18 @@
+use std::{array::TryFromSliceError, net::IpAddr};
+
 use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
-use std::{array::TryFromSliceError, net::IpAddr};
 use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
 
-use crate::db::{
-    models::wireguard::{
-        WireguardNetworkError, DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL,
+use crate::{
+    db::{
+        models::wireguard::{
+            WireguardNetworkError, DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL,
+        },
+        Device, WireguardNetwork,
     },
-    Device, WireguardNetwork,
+    KEY_LENGTH,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,9 +28,9 @@ pub enum WireguardConfigParseError {
     #[error(transparent)]
     ParseError(#[from] ini::ParseError),
     #[error("Config section not found: {0}")]
-    SectionNotFound(String),
+    SectionNotFound(&'static str),
     #[error("Config key not found: {0}")]
-    KeyNotFound(String),
+    KeyNotFound(&'static str),
     #[error("Invalid IP error")]
     InvalidIp(#[from] IpNetworkError),
     #[error("Invalid peer IP: {0}")]
@@ -58,11 +62,11 @@ pub fn parse_wireguard_config(
     // Parse WireGuardNetwork
     let interface_section = config
         .section(Some("Interface"))
-        .ok_or_else(|| WireguardConfigParseError::SectionNotFound("Interface".to_string()))?;
+        .ok_or_else(|| WireguardConfigParseError::SectionNotFound("Interface"))?;
     let prvkey = interface_section
         .get("PrivateKey")
-        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PrivateKey".to_string()))?;
-    let prvkey_bytes: [u8; 32] = BASE64_STANDARD
+        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PrivateKey"))?;
+    let prvkey_bytes: [u8; KEY_LENGTH] = BASE64_STANDARD
         .decode(prvkey.as_bytes())?
         .try_into()
         .map_err(|_| WireguardConfigParseError::InvalidKey(prvkey.to_string()))?;
@@ -70,10 +74,10 @@ pub fn parse_wireguard_config(
         BASE64_STANDARD.encode(PublicKey::from(&StaticSecret::from(prvkey_bytes)).to_bytes());
     let address = interface_section
         .get("Address")
-        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("Address".to_string()))?;
+        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("Address"))?;
     let port = interface_section
         .get("ListenPort")
-        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("ListenPort".to_string()))?;
+        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("ListenPort"))?;
     let port = port
         .parse()
         .map_err(|_| WireguardConfigParseError::InvalidPort(port.to_string()))?;
@@ -101,7 +105,7 @@ pub fn parse_wireguard_config(
     for peer in peer_sections {
         let ip = peer
             .get("AllowedIPs")
-            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("AllowedIPs".to_string()))?;
+            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("AllowedIPs"))?;
         let ip_network: IpNetwork = ip.parse()?;
         let ip = ip_network.ip();
 
@@ -115,7 +119,7 @@ pub fn parse_wireguard_config(
 
         let pubkey = peer
             .get("PublicKey")
-            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PublicKey".to_string()))?;
+            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PublicKey"))?;
         Device::validate_pubkey(pubkey).map_err(WireguardConfigParseError::InvalidKey)?;
 
         // check if device pubkey collides with network pubkey
