@@ -1,9 +1,9 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -42,19 +42,20 @@ export const MFATOTPAuth = () => {
       setError('code', { message: 'Enter a valid code' });
     },
   });
-  const schema = yup
-    .object()
-    .shape({
-      code: yup
-        .string()
-        .required(LL.form.error.required())
-        .min(6, LL.form.error.validCode())
-        .max(6, LL.form.error.validCode()),
-    })
-    .required();
+
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        code: z
+          .string()
+          .min(6, LL.form.error.validCode())
+          .max(6, LL.form.error.validCode()),
+      }),
+    [LL.form.error],
+  );
 
   const { handleSubmit, control, setError, setValue } = useForm<Inputs>({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     defaultValues: {
       code: '',

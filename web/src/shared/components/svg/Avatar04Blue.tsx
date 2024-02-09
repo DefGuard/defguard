@@ -9,7 +9,7 @@ const SvgAvatar04Blue = (props: SVGProps<SVGSVGElement>) => (
   >
     <path
       fill="#0c8ce0"
-      d="m21.003 15.089-2 1.154v4.616l2-1.154v-4.616Z"
+      d="m21.003 15.089-2 1.154v4.616l2-1.154z"
       data-name="Path 4727"
     />
   </svg>

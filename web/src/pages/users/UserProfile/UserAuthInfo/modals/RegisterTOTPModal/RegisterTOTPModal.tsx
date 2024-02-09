@@ -1,13 +1,13 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import QRCode from 'react-qr-code';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCopy from '../../../../../../shared/components/svg/IconCopy';
@@ -124,19 +124,14 @@ const TOTPRegisterForm = () => {
   } = useApi();
   const setModalsState = useModalStore((state) => state.setState);
   const queryClient = useQueryClient();
-  const { LL, locale } = useI18nContext();
-  const schema = useMemo(() => {
-    return yup
-      .object()
-      .shape({
-        code: yup
-          .string()
-          .required(LL.form.error.required())
-          .min(6, LL.form.error.minimumLength()),
-      })
-      .required();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+  const { LL } = useI18nContext();
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        code: z.string().min(6, LL.form.error.minimumLength()),
+      }),
+    [LL.form.error],
+  );
   const { mutate, isLoading } = useMutation([MutationKeys.ENABLE_TOTP_FINISH], enable, {
     onSuccess: (data) => {
       toaster.success(LL.modals.registerTOTP.messages.success());
@@ -156,7 +151,7 @@ const TOTPRegisterForm = () => {
     },
   });
   const { handleSubmit, control, setError, setValue } = useForm({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     defaultValues: {
       code: '',

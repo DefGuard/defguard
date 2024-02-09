@@ -12,8 +12,8 @@ const SvgIconDeactivated = (props: SVGProps<SVGSVGElement>) => (
         <path
           d="M0 0h22v22H0z"
           style={{
-            opacity: 0,
             fill: '#899ca8',
+            opacity: 0,
           }}
         />
       </clipPath>
@@ -27,9 +27,9 @@ const SvgIconDeactivated = (props: SVGProps<SVGSVGElement>) => (
     >
       <g
         style={{
+          fill: 'none',
           stroke: '#899ca8',
           strokeWidth: 2,
-          fill: 'none',
         }}
         transform="translate(3 3)"
       >

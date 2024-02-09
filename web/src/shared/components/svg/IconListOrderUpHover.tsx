@@ -12,8 +12,8 @@ const SvgIconListOrderUpHover = (props: SVGProps<SVGSVGElement>) => (
         <path
           d="M0 0h22v22H0z"
           style={{
-            opacity: 0,
             fill: '#899ca8',
+            opacity: 0,
           }}
         />
       </clipPath>
@@ -56,17 +56,17 @@ const SvgIconListOrderUpHover = (props: SVGProps<SVGSVGElement>) => (
           }}
         >
           <path
-            d="M4.234 4H1.766L3 1.944 4.234 4Z"
+            d="M4.234 4H1.766L3 1.944z"
             style={{
               stroke: 'none',
             }}
             transform="rotate(90 5.5 5.5)"
           />
           <path
-            d="M3 .944c.332 0 .663.161.857.485l1.234 2.057A1 1 0 0 1 4.234 5H1.766A1 1 0 0 1 .91 3.486l1.234-2.057A.991.991 0 0 1 3 .944Z"
+            d="M3 .944c.332 0 .663.161.857.485l1.234 2.057A1 1 0 0 1 4.234 5H1.766A1 1 0 0 1 .91 3.486l1.234-2.057A.99.99 0 0 1 3 .944"
             style={{
-              fill: '#899ca8',
               stroke: 'none',
+              fill: '#899ca8',
             }}
             transform="rotate(90 5.5 5.5)"
           />

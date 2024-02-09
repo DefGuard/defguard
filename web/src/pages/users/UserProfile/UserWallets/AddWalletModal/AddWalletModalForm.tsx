@@ -1,9 +1,9 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isUndefined, omit } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -38,7 +38,7 @@ export const AddWalletModalForm = () => {
   const {
     user: { walletChallenge, setWallet },
   } = useApi();
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
 
   const queryClient = useQueryClient();
 
@@ -87,15 +87,14 @@ export const AddWalletModalForm = () => {
     },
   });
 
-  const schema = useMemo(() => {
-    return yup
-      .object({
-        name: yup.string().required(LL.form.error.required()),
-        address: yup.string().required(LL.form.error.required()),
-      })
-      .required();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().min(1, LL.form.error.required()),
+        address: z.string().min(1, LL.form.error.required()),
+      }),
+    [LL.form.error],
+  );
 
   const defaultFormValues = useMemo((): FormValues => {
     if (address && chainId) {
@@ -109,7 +108,7 @@ export const AddWalletModalForm = () => {
   }, [address, chainId]);
 
   const { handleSubmit, control, reset } = useForm<FormValues>({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     defaultValues: defaultFormValues,
   });

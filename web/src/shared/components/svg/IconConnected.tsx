@@ -24,9 +24,9 @@ const SvgIconConnected = (props: SVGProps<SVGSVGElement>) => (
     >
       <g
         style={{
+          fill: 'none',
           stroke: '#14bc6e',
           strokeWidth: 2,
-          fill: 'none',
         }}
         transform="translate(4 4)"
       >

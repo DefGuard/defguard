@@ -1,10 +1,10 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -89,34 +89,34 @@ export const OpenIdClientModalForm = () => {
       },
     },
   );
-  const schema = yup
-    .object()
-    .shape({
-      name: yup
-        .string()
-        .required()
-        .min(4, LL.form.error.minimumLength())
-        .max(16, LL.form.error.maximumLength()),
-      redirect_uri: yup.array().of(
-        yup
-          .object()
-          .shape({
-            url: yup
+
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        name: z
+          .string()
+          .min(4, LL.form.error.minimumLength())
+          .max(16, LL.form.error.maximumLength())
+          .min(1, LL.form.error.required()),
+        redirect_uri: z.array(
+          z.object({
+            url: z
               .string()
-              .required(
+              .min(
+                1,
                 LL.openidOverview.modals.openidClientModal.form.error.urlRequired(),
               ),
-          })
-          .required(),
-      ),
-      scope: yup.array(yup.string()),
-    })
-    .required();
+          }),
+        ),
+        scope: z.array(z.string()).optional(),
+      }),
+    [LL.form.error, LL.openidOverview.modals.openidClientModal.form.error],
+  );
 
   const { handleSubmit, control } = useForm<OpenIdClientFormFields>({
     defaultValues: defaultFormValues,
     mode: 'all',
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
   });
 
   const { fields, remove, append } = useFieldArray({

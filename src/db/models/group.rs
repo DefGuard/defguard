@@ -6,7 +6,7 @@ use crate::{
     SERVER_CONFIG,
 };
 
-#[derive(Model)]
+#[derive(Model, Debug)]
 pub struct Group {
     pub(crate) id: Option<i64>,
     pub name: String,

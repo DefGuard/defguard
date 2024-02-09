@@ -19,11 +19,11 @@ const SvgIconArrowSingle2 = (props: SVGProps<SVGSVGElement>) => (
         maskType: 'luminance',
       }}
     >
-      <path fill="#fff" d="M22 .5H0v22h22V.5Z" />
+      <path fill="#fff" d="M22 .5H0v22h22z" />
     </mask>
     <g fill="#899CA8" mask="url(#icon-arrow-single-2_svg__a)">
-      <path d="m11.878 6.55-4.243 4.243a1 1 0 1 0 1.414 1.414l4.243-4.243a1 1 0 1 0-1.414-1.414Z" />
-      <path d="m7.636 12.55 4.243 4.243a1 1 0 0 0 1.414-1.414L9.05 11.136a1 1 0 0 0-1.414 1.414Z" />
+      <path d="m11.878 6.55-4.243 4.243a1 1 0 1 0 1.414 1.414l4.243-4.243a1 1 0 1 0-1.414-1.414" />
+      <path d="m7.636 12.55 4.243 4.243a1 1 0 0 0 1.414-1.414L9.05 11.136a1 1 0 0 0-1.414 1.414" />
     </g>
   </svg>
 );

@@ -12,8 +12,8 @@ const SvgIconPlusWhite = (props: SVGProps<SVGSVGElement>) => (
         <path
           d="M0 0h22v22H0z"
           style={{
-            opacity: 0,
             fill: '#617684',
+            opacity: 0,
           }}
         />
       </clipPath>

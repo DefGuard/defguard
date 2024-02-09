@@ -1,11 +1,11 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmark from '../../../../../../shared/components/svg/IconCheckmark';
@@ -42,14 +42,12 @@ export const SmtpTest = () => {
       console.error(err);
     },
   });
-  const testFormSchema = useMemo(
+
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object()
-        .shape({
-          to: yup.string().matches(patternValidEmail, LL.form.error.invalid()),
-        })
-        .required(),
+      z.object({
+        to: z.string().regex(patternValidEmail, LL.form.error.invalid()),
+      }),
     [LL.form.error],
   );
 
@@ -57,7 +55,7 @@ export const SmtpTest = () => {
     defaultValues: {
       to: '',
     },
-    resolver: yupResolver(testFormSchema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
   });
 

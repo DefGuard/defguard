@@ -1,5 +1,3 @@
-@use '@scss/helpers' as *;
-
 @mixin list-layout {
   @include media-breakpoint-down(lg) {
     grid-template-columns: 250px 1fr 60px;
