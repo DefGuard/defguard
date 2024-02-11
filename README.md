@@ -59,10 +59,6 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 - Live & real-time network charts
 - In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more! 
 
-## Roadmap & Development
-
-[A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5).
-
 ## Quick start
 
 The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
@@ -75,10 +71,18 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/DefGua
 
 To learn more about the script and available options please see the [documentation](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
 
+### Setup a VPN server under 5min!?
+
+Just follow [this tutorial](http://bit.ly/defguard-setup)
+
 ## Manual deployment examples
 
 * Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
 * Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
+
+## Roadmap & Development
+
+[A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5).
 
 ## Why?
 
