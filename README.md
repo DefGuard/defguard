@@ -59,9 +59,9 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 - Live & real-time network charts
 - In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more! 
 
-## Roadmap
+## Roadmap & Development
 
-[A detailed product roadmap can be found here](https://defguard.gitbook.io/defguard/features/roadmap).
+[A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5).
 
 ## Quick start
 
