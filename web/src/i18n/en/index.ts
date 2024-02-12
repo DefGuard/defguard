@@ -649,12 +649,36 @@ const en: BaseTranslation = {
       },
       addModal: {
         header: 'Add new Authentication Key',
-        keyNameLabel: 'Title',
-        keyLabel: 'Key',
-        keyNamePlaceholder: 'Key title',
-        sshKeyPlaceholder: 'Begins with ‘ssh-rsa’, ‘ecdsa-sha2-nistp256’, ...',
-        gpgKeyPlaceholder: 'Begins with ‘-----BEGIN PGP PUBLIC KEY BLOCK-----‘',
-        addKey: 'Add key',
+        keyType: 'Key Type',
+        keyForm: {
+          placeholders: {
+            title: 'Key title',
+            key: {
+              ssh: 'Begins with ssh-rsa, ecdsa-sha2-nistp256, ...',
+              gpg: 'Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----',
+            },
+          },
+          labels: {
+            title: 'Title',
+            key: 'Key',
+          },
+          submit: 'Add {name: string} key',
+        },
+        yubikeyForm: {
+          selectWorker: {
+            info: 'Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.',
+            selectLabel: 'Select on of the following provisioners to provision a YubiKey',
+            noData: 'No workers are registered right now.',
+            available: 'Available',
+            unavailable: 'Unavailable',
+          },
+          provisioning: {
+            inProgress: 'Provisioning in progress, please wait.',
+            error: 'Provisioning failed !',
+            success: 'Yubikey provisioned successfully',
+          },
+          submit: 'Provision Yubikey',
+        },
         messages: {
           keyAdded: 'Key added.',
           keyExists: 'Key has already been added.',
@@ -686,7 +710,9 @@ const en: BaseTranslation = {
       editButton: {
         changePassword: 'Change password',
         edit: 'Edit account',
-        provision: 'Provision YubiKey',
+        addYubikey: 'Add YubiKey',
+        addSSH: 'Add SHH Key',
+        addGPG: 'Add GPG Key',
         delete: 'Delete account',
         startEnrollment: 'Start enrollment',
         activateDesktop: 'Remote desktop activation',

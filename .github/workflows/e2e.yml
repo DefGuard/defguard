@@ -23,7 +23,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version-file: './e2e/.nvmrc'
+          node-version-file: "./e2e/.nvmrc"
       - name: Install pnpm
         id: pnpm-install
         uses: pnpm/action-setup@v2

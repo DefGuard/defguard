@@ -162,12 +162,6 @@ pub fn build_webapp(
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
-            .route("/authentication_keys", get(fetch_authentication_keys))
-            .route("/authentication_keys", post(add_authentication_key))
-            .route(
-                "/authentication_keys/:id",
-                delete(delete_authentication_key),
-            )
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -206,6 +200,9 @@ pub fn build_webapp(
             .route("/user/:username/password", put(change_password))
             .route("/user/:username/reset_password", post(reset_password))
             .route("/user/:username/challenge", get(wallet_challenge))
+            // auth keys
+            .route("/user/:username/auth_keys", get(fetch_authentication_keys))
+            .route("/user/:username/auth_keys", post(add_authentication_key))
             .route("/user/:username/wallet", put(set_wallet))
             .route("/user/:username/wallet/:address", put(update_wallet))
             .route("/user/:username/wallet/:address", delete(delete_wallet))

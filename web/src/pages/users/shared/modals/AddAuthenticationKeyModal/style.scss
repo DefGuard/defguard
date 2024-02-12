@@ -1,96 +1,60 @@
-@use '../../../../../shared/scss/helpers' as *;
-
 #add-authentication-key-modal {
-  & > .add-authentication-key-content {
-    padding: 30px;
-  }
-}
-
-.add-authentication-key-content {
-  padding-left: 30px;
-  padding-right: 30px;
-}
-
-.authentication-keys-container {
-  display: flex;
-  column-gap: 10px;
-  margin-bottom: 30px;
-}
-
-.add-authentication-key-buttons-container {
-  display: flex;
-  column-gap: 10px;
-  margin-top: 40px;
-
-  & > button {
-    width: 130px;
-  }
-}
-
-.authentication-key-textarea-container {
-  display: flex;
-  height: 150px;
-  margin-bottom: 5px;
-}
-
-.authentication-key-textarea {
-  max-height: 150px;
-  background-color: var(--surface-frame-bg);
-  border-radius: 10px;
   width: 100%;
-  padding: 10px 20px;
-  border: 1px solid var(--border-primary);
+  max-width: 700px;
 
-  &.invalid {
-    border-color: var(--border-alert);
-  }
+  --modal-content-gap: 20px;
 
-  &.disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
+  & > .content {
+    padding: 0 30px 30px;
 
-  &.disposable {
-    & > .icon-container {
-      cursor: pointer;
+    .type-selection {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--modal-content-gap);
+      padding-bottom: var(--modal-content-gap);
+
+      & > .buttons {
+        display: flex;
+        flex-flow: row;
+        column-gap: 10px;
+        row-gap: var(--modal-content-gap);
+
+        .btn {
+          height: 40px;
+          min-width: 110px;
+
+          span,
+          p {
+            @include typography(button-s);
+          }
+
+          svg {
+            height: 18px;
+            width: 18px;
+
+            path {
+              fill: var(--surface-icon-primary);
+            }
+          }
+
+          &.active {
+            svg {
+              path {
+                fill: var(--surface-icon-secondary);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    & > form {
+      margin: 0;
+      padding: 0;
+
+      .controls {
+        padding-top: var(--modal-content-gap);
+      }
     }
   }
-}
-
-.errors {
-  display: flex;
-  flex-flow: column;
-  row-gap: 10px;
-
-  & > .error {
-    display: flex;
-    flex-flow: row nowrap;
-    overflow: hidden;
-    column-gap: 5px;
-    align-items: center;
-    justify-content: flex-start;
-
-    svg {
-      transform: scale(66.67%);
-    }
-
-    & > p {
-      white-space: nowrap;
-      color: var(--text-body-primary);
-
-      @include typography(app-modal-2);
-    }
-  }
-}
-
-.error-message {
-  position: absolute;
-  @include typography(app-wizard-1);
-  @include text-overflow-dots;
-  white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  bottom: 5px;
-
-  color: var(--text-alert);
 }

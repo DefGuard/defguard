@@ -41,14 +41,6 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
       visible: false,
       user: undefined,
     },
-    addAuthenticationKeyModal: {
-      visible: false,
-      user: undefined,
-    },
-    deleteAuthenticationKeyModal: {
-      visible: false,
-      authenticationKey: undefined,
-    },
     // DO NOT EXTEND THIS STORE
     deleteUserModal: {
       visible: false,
@@ -157,16 +149,6 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
     setEnableOpenidClientModal: (data) =>
       set((state) => ({
         enableOpenidClientModal: { ...state.enableOpenidClientModal, ...data },
-      })),
-    // DO NOT EXTEND THIS STORE
-    setAddAuthenticationKeyModal: (data) =>
-      set((state) => ({
-        addAuthenticationKeyModal: { ...state.addAuthenticationKeyModal, ...data },
-      })),
-    // DO NOT EXTEND THIS STORE
-    setDeleteAuthenticationKeyModal: (data) =>
-      set((state) => ({
-        deleteAuthenticationKeyModal: { ...state.deleteAuthenticationKeyModal, ...data },
       })),
   }),
   Object.is,

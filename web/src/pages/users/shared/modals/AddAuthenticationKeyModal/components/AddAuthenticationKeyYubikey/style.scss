@@ -1,0 +1,86 @@
+#add-authentication-key-modal {
+  .add-yubikey-wrapper {
+    .loader-wrapper {
+      width: 100%;
+      display: flex;
+      flex-flow: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 10px;
+      row-gap: 20px;
+      box-sizing: border-box;
+    }
+
+    .provisioners-list {
+      display: flex;
+      flex-direction: column;
+      row-gap: 10px;
+
+      .no-data {
+        width: 100%;
+        text-align: center;
+        padding: 100px 10px;
+        box-sizing: border-box;
+      }
+
+      .select-row {
+        width: 100%;
+        padding: 5px 10px;
+        height: 50px;
+        user-select: none;
+        cursor: pointer;
+
+        & > .content {
+          display: flex;
+          flex-flow: row nowrap;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .availability {
+          display: flex;
+          flex-flow: row;
+          align-items: center;
+          justify-content: center;
+          margin-left: auto;
+
+          p {
+            @include typography(app-button-s);
+            color: var(--text-body-tertiary);
+          }
+
+          &.available {
+            p {
+              color: var(--text-positive);
+            }
+          }
+
+          .icon-wrapper {
+            display: flex;
+            flex-flow: row;
+            align-items: center;
+            justify-content: center;
+            height: 16px;
+            width: 16px;
+            user-select: none;
+          }
+        }
+      }
+    }
+
+    .controls {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: 10px;
+      padding-top: 40px;
+
+      .btn {
+        width: max-content;
+        min-width: 100px;
+        max-width: 200px;
+      }
+    }
+  }
+}

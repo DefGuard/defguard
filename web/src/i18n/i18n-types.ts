@@ -1483,29 +1483,84 @@ type RootTranslation = {
 				 */
 				header: string
 				/**
-				 * T​i​t​l​e
+				 * K​e​y​ ​T​y​p​e
 				 */
-				keyNameLabel: string
-				/**
-				 * K​e​y
-				 */
-				keyLabel: string
-				/**
-				 * K​e​y​ ​t​i​t​l​e
-				 */
-				keyNamePlaceholder: string
-				/**
-				 * B​e​g​i​n​s​ ​w​i​t​h​ ​‘​s​s​h​-​r​s​a​’​,​ ​‘​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​’​,​ ​.​.​.
-				 */
-				sshKeyPlaceholder: string
-				/**
-				 * B​e​g​i​n​s​ ​w​i​t​h​ ​‘​-​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-​‘
-				 */
-				gpgKeyPlaceholder: string
-				/**
-				 * A​d​d​ ​k​e​y
-				 */
-				addKey: string
+				keyType: string
+				keyForm: {
+					placeholders: {
+						/**
+						 * K​e​y​ ​t​i​t​l​e
+						 */
+						title: string
+						key: {
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​s​s​h​-​r​s​a​,​ ​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​,​ ​.​.​.
+							 */
+							ssh: string
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​-​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-
+							 */
+							gpg: string
+						}
+					}
+					labels: {
+						/**
+						 * T​i​t​l​e
+						 */
+						title: string
+						/**
+						 * K​e​y
+						 */
+						key: string
+					}
+					/**
+					 * A​d​d​ ​{​n​a​m​e​}​ ​k​e​y
+					 * @param {string} name
+					 */
+					submit: RequiredParams<'name'>
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​i​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​Y​u​b​i​K​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
+						 */
+						info: string
+						/**
+						 * S​e​l​e​c​t​ ​o​n​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
+						 */
+						selectLabel: string
+						/**
+						 * N​o​ ​w​o​r​k​e​r​s​ ​a​r​e​ ​r​e​g​i​s​t​e​r​e​d​ ​r​i​g​h​t​ ​n​o​w​.
+						 */
+						noData: string
+						/**
+						 * A​v​a​i​l​a​b​l​e
+						 */
+						available: string
+						/**
+						 * U​n​a​v​a​i​l​a​b​l​e
+						 */
+						unavailable: string
+					}
+					provisioning: {
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​i​n​ ​p​r​o​g​r​e​s​s​,​ ​p​l​e​a​s​e​ ​w​a​i​t​.
+						 */
+						inProgress: string
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​f​a​i​l​e​d​ ​!
+						 */
+						error: string
+						/**
+						 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
+						 */
+						success: string
+					}
+					/**
+					 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​k​e​y
+					 */
+					submit: string
+				}
 				messages: {
 					/**
 					 * K​e​y​ ​a​d​d​e​d​.
@@ -1589,9 +1644,17 @@ type RootTranslation = {
 				 */
 				edit: string
 				/**
-				 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​K​e​y
+				 * A​d​d​ ​Y​u​b​i​K​e​y
 				 */
-				provision: string
+				addYubikey: string
+				/**
+				 * A​d​d​ ​S​H​H​ ​K​e​y
+				 */
+				addSSH: string
+				/**
+				 * A​d​d​ ​G​P​G​ ​K​e​y
+				 */
+				addGPG: string
 				/**
 				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
 				 */
@@ -5131,29 +5194,83 @@ export type TranslationFunctions = {
 				 */
 				header: () => LocalizedString
 				/**
-				 * Title
+				 * Key Type
 				 */
-				keyNameLabel: () => LocalizedString
-				/**
-				 * Key
-				 */
-				keyLabel: () => LocalizedString
-				/**
-				 * Key title
-				 */
-				keyNamePlaceholder: () => LocalizedString
-				/**
-				 * Begins with ‘ssh-rsa’, ‘ecdsa-sha2-nistp256’, ...
-				 */
-				sshKeyPlaceholder: () => LocalizedString
-				/**
-				 * Begins with ‘-----BEGIN PGP PUBLIC KEY BLOCK-----‘
-				 */
-				gpgKeyPlaceholder: () => LocalizedString
-				/**
-				 * Add key
-				 */
-				addKey: () => LocalizedString
+				keyType: () => LocalizedString
+				keyForm: {
+					placeholders: {
+						/**
+						 * Key title
+						 */
+						title: () => LocalizedString
+						key: {
+							/**
+							 * Begins with ssh-rsa, ecdsa-sha2-nistp256, ...
+							 */
+							ssh: () => LocalizedString
+							/**
+							 * Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----
+							 */
+							gpg: () => LocalizedString
+						}
+					}
+					labels: {
+						/**
+						 * Title
+						 */
+						title: () => LocalizedString
+						/**
+						 * Key
+						 */
+						key: () => LocalizedString
+					}
+					/**
+					 * Add {name} key
+					 */
+					submit: (arg: { name: string }) => LocalizedString
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.
+						 */
+						info: () => LocalizedString
+						/**
+						 * Select on of the following provisioners to provision a YubiKey
+						 */
+						selectLabel: () => LocalizedString
+						/**
+						 * No workers are registered right now.
+						 */
+						noData: () => LocalizedString
+						/**
+						 * Available
+						 */
+						available: () => LocalizedString
+						/**
+						 * Unavailable
+						 */
+						unavailable: () => LocalizedString
+					}
+					provisioning: {
+						/**
+						 * Provisioning in progress, please wait.
+						 */
+						inProgress: () => LocalizedString
+						/**
+						 * Provisioning failed !
+						 */
+						error: () => LocalizedString
+						/**
+						 * Yubikey provisioned successfully
+						 */
+						success: () => LocalizedString
+					}
+					/**
+					 * Provision Yubikey
+					 */
+					submit: () => LocalizedString
+				}
 				messages: {
 					/**
 					 * Key added.
@@ -5237,9 +5354,17 @@ export type TranslationFunctions = {
 				 */
 				edit: () => LocalizedString
 				/**
-				 * Provision YubiKey
+				 * Add YubiKey
 				 */
-				provision: () => LocalizedString
+				addYubikey: () => LocalizedString
+				/**
+				 * Add SHH Key
+				 */
+				addSSH: () => LocalizedString
+				/**
+				 * Add GPG Key
+				 */
+				addGPG: () => LocalizedString
 				/**
 				 * Delete account
 				 */

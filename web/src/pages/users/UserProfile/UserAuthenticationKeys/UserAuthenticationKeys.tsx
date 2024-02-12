@@ -1,21 +1,23 @@
 import './style.scss';
 
+import { shallow } from 'zustand/shallow';
+
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
-import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
-import { AddAuthenticationKeyModal } from '../../shared/modals/AddAuthenticationKeyModal/AddAuthenticationKeyModal';
+import { useAddAuthorizationKeyModal } from '../../shared/modals/AddAuthenticationKeyModal/useAddAuthorizationKeyModal';
 import { DeleteAuthenticationKeyModal } from '../../shared/modals/DeleteAuthenticationKeyModal/DeleteAuthenticationKeyModal';
 import { AuthenticationKeyList } from './AuthenticationKeyList/AuthenticationKeyList';
 
 export const UserAuthenticationKeys = () => {
   const { LL } = useI18nContext();
   const user = useUserProfileStore((state) => state.userProfile?.user);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
-  const setAddAuthenticationKeyModal = useModalStore(
-    (state) => state.setAddAuthenticationKeyModal,
+  const openAddAuthenticationKeyModal = useAddAuthorizationKeyModal(
+    (s) => s.open,
+    shallow,
   );
+  const isAdmin = useAuthStore((state) => state.isAdmin);
 
   return (
     <section id="user-yubikeys">
@@ -28,13 +30,15 @@ export const UserAuthenticationKeys = () => {
           data-testid="add-authentication-key-button"
           callback={() => {
             if (user) {
-              setAddAuthenticationKeyModal({ visible: true, user: user });
+              openAddAuthenticationKeyModal({
+                user,
+                selectedMode: 'yubikey',
+              });
             }
           }}
           text={LL.userPage.authenticationKeys.addKey()}
         />
       )}
-      <AddAuthenticationKeyModal />
       <DeleteAuthenticationKeyModal />
     </section>
   );

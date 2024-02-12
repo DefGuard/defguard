@@ -69,9 +69,6 @@ pub struct User {
     pub first_name: String,
     pub email: String,
     pub phone: Option<String>,
-    pub ssh_key: Option<String>,
-    pub pgp_key: Option<String>,
-    pub pgp_cert_id: Option<String>,
     pub mfa_enabled: bool,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
@@ -111,9 +108,6 @@ impl User {
             first_name: first_name.into(),
             email: email.into(),
             phone,
-            ssh_key: None,
-            pgp_key: None,
-            pgp_cert_id: None,
             mfa_enabled: false,
             totp_enabled: false,
             email_mfa_enabled: false,
@@ -479,7 +473,7 @@ impl User {
         let users = query_as!(
             User,
             "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
+            phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\"
@@ -569,7 +563,7 @@ impl User {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\" WHERE username = $1",
             username
@@ -585,7 +579,7 @@ impl User {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\" WHERE email = $1",
             email

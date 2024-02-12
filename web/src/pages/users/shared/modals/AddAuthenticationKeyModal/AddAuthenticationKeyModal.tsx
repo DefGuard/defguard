@@ -1,221 +1,118 @@
 import './style.scss';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
-import { SubmitHandler, useForm, useWatch } from 'react-hook-form';
-import { z } from 'zod';
+import classNames from 'classnames';
+import { useMemo, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconAuthenticationKey from '../../../../../shared/components/svg/IconAuthenticationKey';
-import SvgIconCheckmark from '../../../../../shared/components/svg/IconCheckmark';
-import { ColorsRGB } from '../../../../../shared/constants';
-import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import SvgIconNavYubikey from '../../../../../shared/components/svg/IconNavYubikey';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
-import { useTheme } from '../../../../../shared/defguard-ui/hooks/theme/useTheme';
-import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
-import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { QueryKeys } from '../../../../../shared/queries';
 import { AuthenticationKeyType } from '../../../../../shared/types';
-import { AuthenticationKeyFormTextField } from './AuthenticationKeyFormTextField';
-
-interface FormValues {
-  name: string;
-  key_type: string;
-  key: string;
-}
+import { AddAuthenticationKeyForm } from './components/AddAuthenticationKeyForm/AddAuthenticationKeyForm';
+import { AddAuthenticationKeyYubikey } from './components/AddAuthenticationKeyYubikey/AddAuthenticationKeyYubikey';
+import { AuthenticationKeyModalKeyType } from './types';
+import { useAddAuthorizationKeyModal } from './useAddAuthorizationKeyModal';
 
 export const AddAuthenticationKeyModal = () => {
   const { LL } = useI18nContext();
-  const toaster = useToaster();
 
-  const [{ visible: isOpen }, setModalState] = useModalStore(
-    (state) => [state.addAuthenticationKeyModal, state.setAddAuthenticationKeyModal],
-    shallow,
-  );
+  const [close, reset] = useAddAuthorizationKeyModal((s) => [s.close, s.reset], shallow);
 
-  const {
-    user: { addAuthenticationKey },
-  } = useApi();
+  const isProvisioning = useAddAuthorizationKeyModal((s) => s.provisioningInProgress);
 
-  const queryClient = useQueryClient();
-  const { colors } = useTheme();
-
-  const {
-    mutate: addAuthenticationKeyMutation,
-    isLoading: isAddAuthenticationKeyLoading,
-  } = useMutation(addAuthenticationKey, {
-    onSuccess: () => {
-      setModalState({ visible: false });
-      reset();
-      queryClient.invalidateQueries([QueryKeys.FETCH_AUTHENTICATION_KEYS]);
-      toaster.success(LL.userPage.authenticationKeys.addModal.messages.keyAdded());
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (error: any) => {
-      console.error(error);
-
-      if (error.code === 'ERR_BAD_REQUEST') {
-        if (error.response.data.msg === 'invalid key format') {
-          setError('key', {
-            message:
-              LL.userPage.authenticationKeys.addModal.messages.unsupportedKeyFormat(),
-            type: 'value',
-          });
-          return;
-        }
-
-        if (error.response.data.msg === 'key already exists') {
-          setError('key', {
-            message: LL.userPage.authenticationKeys.addModal.messages.keyExists(),
-            type: 'value',
-          });
-          return;
-        }
-      }
-
-      toaster.error(LL.userPage.authenticationKeys.addModal.messages.genericError());
-    },
-  });
-
-  const schema = useMemo(
-    () =>
-      z.object({
-        name: z.string().min(1, LL.form.error.required()),
-        key: z.string().min(1, LL.form.error.required()),
-        key_type: z.string().min(1, LL.form.error.required()),
-      }),
-    [LL],
-  );
-
-  const submitHandler: SubmitHandler<FormValues> = async (values) => {
-    const data = {
-      key_type: values.key_type,
-      name: values.name.trim(),
-      key: values.key.trim(),
-    } as FormValues;
-    addAuthenticationKeyMutation(data);
-  };
-
-  const { handleSubmit, control, reset, setValue, setError } = useForm<FormValues>({
-    defaultValues: {
-      name: '',
-      key_type: AuthenticationKeyType.SSH,
-      key: '',
-    },
-    resolver: zodResolver(schema),
-    mode: 'all',
-  });
-
-  const keyTypeValue = useWatch({ control, name: 'key_type' });
+  const isOpen = useAddAuthorizationKeyModal((s) => s.visible);
 
   return (
     <ModalWithTitle
       id="add-authentication-key-modal"
-      title={LL.userPage.authenticationKeys.addModal.header()}
-      isOpen={isOpen}
-      setIsOpen={(visibility) => setModalState({ visible: visibility })}
-      onClose={() => {
-        reset();
-      }}
       backdrop
+      title={LL.userPage.authenticationKeys.addModal.header()}
+      onClose={close}
+      afterClose={reset}
+      isOpen={isOpen}
+      disableClose={isProvisioning}
     >
-      <div className="add-authentication-key-content">
-        <div className="authentication-keys-container">
+      <ModalContent />
+    </ModalWithTitle>
+  );
+};
+
+const ModalContent = () => {
+  const { LL } = useI18nContext();
+  const locaLL = LL.userPage.authenticationKeys.addModal;
+  const initSelection = useAddAuthorizationKeyModal((s) => s.selectedMode);
+  const [selectedType, setSelectedType] =
+    useState<AuthenticationKeyModalKeyType>(initSelection);
+
+  const mappedFormKeyType = useMemo(() => {
+    switch (selectedType) {
+      case 'gpg':
+        return AuthenticationKeyType.GPG;
+      case 'ssh':
+        return AuthenticationKeyType.SSH;
+      case 'yubikey':
+        return undefined;
+    }
+  }, [selectedType]);
+
+  return (
+    <>
+      <div className="type-selection">
+        <Label>{locaLL.keyType()}</Label>
+        <div className="buttons">
           <Button
+            text="SSH"
+            icon={<IconAuthenticationKey />}
             styleVariant={
-              keyTypeValue === AuthenticationKeyType.SSH
+              selectedType === 'ssh'
                 ? ButtonStyleVariant.PRIMARY
-                : ButtonStyleVariant.STANDARD
+                : ButtonStyleVariant.LINK
             }
-            size={ButtonSize.SMALL}
-            text={AuthenticationKeyType.SSH}
             onClick={() => {
-              setValue('key_type', AuthenticationKeyType.SSH);
+              setSelectedType('ssh');
             }}
-            icon={
-              <IconAuthenticationKey
-                fill={
-                  keyTypeValue === AuthenticationKeyType.SSH
-                    ? ColorsRGB.White
-                    : colors.textBodyTertiary
-                }
-              />
-            }
+            className={classNames({
+              active: selectedType === 'ssh',
+            })}
           />
           <Button
+            text="GPG"
+            icon={<IconAuthenticationKey />}
             styleVariant={
-              keyTypeValue === AuthenticationKeyType.GPG
+              selectedType === 'gpg'
                 ? ButtonStyleVariant.PRIMARY
-                : ButtonStyleVariant.STANDARD
+                : ButtonStyleVariant.LINK
             }
-            size={ButtonSize.SMALL}
-            text={AuthenticationKeyType.GPG}
             onClick={() => {
-              setValue('key_type', AuthenticationKeyType.GPG);
+              setSelectedType('gpg');
             }}
-            icon={
-              <IconAuthenticationKey
-                fill={
-                  keyTypeValue === AuthenticationKeyType.GPG
-                    ? ColorsRGB.White
-                    : colors.textBodyTertiary
-                }
-              />
+            className={classNames({
+              active: selectedType === 'gpg',
+            })}
+          />
+          <Button
+            text="YubiKey"
+            icon={<SvgIconNavYubikey />}
+            styleVariant={
+              selectedType === 'yubikey'
+                ? ButtonStyleVariant.PRIMARY
+                : ButtonStyleVariant.LINK
             }
+            onClick={() => {
+              setSelectedType('yubikey');
+            }}
+            className={classNames({
+              active: selectedType === 'yubikey',
+            })}
           />
         </div>
-        <form onSubmit={handleSubmit(submitHandler)}>
-          <FormInput
-            label={LL.userPage.authenticationKeys.addModal.keyNameLabel()}
-            placeholder={LL.userPage.authenticationKeys.addModal.keyNamePlaceholder()}
-            controller={{ control, name: 'name' }}
-          />
-
-          <Label style={{ marginBottom: 10 }}>
-            {LL.userPage.authenticationKeys.addModal.keyLabel()}
-          </Label>
-          <AuthenticationKeyFormTextField
-            data-testid="authentication-key-value"
-            placeholder={
-              keyTypeValue === AuthenticationKeyType.SSH
-                ? LL.userPage.authenticationKeys.addModal.sshKeyPlaceholder()
-                : LL.userPage.authenticationKeys.addModal.gpgKeyPlaceholder()
-            }
-            controller={{ control, name: 'key' }}
-          />
-          <div className="add-authentication-key-buttons-container">
-            <Button
-              data-testid="submit-add-authentication-key"
-              type="submit"
-              styleVariant={ButtonStyleVariant.PRIMARY}
-              icon={isAddAuthenticationKeyLoading ? null : <SvgIconCheckmark />}
-              text={
-                isAddAuthenticationKeyLoading
-                  ? ''
-                  : LL.userPage.authenticationKeys.addKey()
-              }
-              loading={isAddAuthenticationKeyLoading}
-            />
-            <Button
-              text={LL.common.controls.cancel()}
-              styleVariant={ButtonStyleVariant.STANDARD}
-              onClick={() => {
-                setModalState({ visible: false });
-                reset();
-              }}
-            />
-          </div>
-        </form>
       </div>
-    </ModalWithTitle>
+      {mappedFormKeyType && <AddAuthenticationKeyForm keyType={mappedFormKeyType} />}
+      {selectedType === 'yubikey' && <AddAuthenticationKeyYubikey />}
+    </>
   );
 };

@@ -1,8 +1,11 @@
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{models::authentication_key::AuthenticationKey, DbPool, Group, User},
-    error::WebError,
+    db::{
+        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
+        DbPool, Group, User
+    },
+    error::WebError, handlers::user_for_admin_or_self,
 };
 use axum::{
     extract::{Path, Query, State},
@@ -10,12 +13,45 @@ use axum::{
     Json,
 };
 use serde_json::json;
+use sqlx::{query, PgExecutor, Error as SqlxError};
 use ssh_key::PublicKey;
 
 use super::{ApiResponse, ApiResult};
 
-static SSH_KEY_TYPE: &str = "SSH";
-static GPG_KEY_TYPE: &str = "GPG";
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(crate) struct AuthenticationKeyInfo {
+    pub id: i64,
+    pub name: Option<String>,
+    pub key_type: AuthenticationKeyType,
+    pub key: String,
+    pub yubikey_serial: Option<String>,
+    pub yubikey_id: Option<i64>,
+    pub yubikey_name: Option<String>
+}
+
+impl AuthenticationKeyInfo {
+    pub async fn find_by_user_id<'e, E>(executor: E, user_id: i64) -> Result<Vec<Self>, SqlxError> where E: PgExecutor<'e> {
+        let q_res = query!("SELECT \
+            k.id as key_id, k.name, k.key_type \"key_type: AuthenticationKeyType\", \
+            k.key, k.yubikey_id \"yubikey_id: Option<i64>\", \
+            y.name \"yubikey_name: Option<String>\", y.serial \"serial: Option<String>\" \
+            FROM \"authentication_key\" k \
+            LEFT JOIN \"yubikey\" y ON k.yubikey_id = y.id \
+            WHERE k.user_id = $1", user_id).fetch_all(executor).await?;
+        let res: Vec<Self> = q_res.iter().map(|q| {
+            Self {
+                id: q.key_id,
+                key: q.key.clone(),
+                key_type: q.key_type,
+                name: q.name.clone(),
+                yubikey_id: q.yubikey_id,
+                yubikey_name: q.yubikey_name.clone(),
+                yubikey_serial: q.serial.clone(),
+            }
+        }).collect();
+        Ok(res)
+    }
+}
 
 /// Trim optional newline
 fn trim_newline(s: &mut String) {
@@ -30,7 +66,7 @@ fn trim_newline(s: &mut String) {
 async fn add_user_ssh_keys_to_list(pool: &DbPool, user: &User, ssh_keys: &mut Vec<String>) {
     if let Some(user_id) = user.id {
         let keys_result =
-            AuthenticationKey::fetch_user_authentication_keys_by_type(pool, user_id, SSH_KEY_TYPE)
+            AuthenticationKey::find_by_user_id(pool, user_id, Some(AuthenticationKeyType::SSH))
                 .await;
 
         if let Ok(authentication_keys) = keys_result {
@@ -62,15 +98,6 @@ pub async fn get_authorized_keys(
     info!("Fetching public SSH keys for {:?}", params);
     let mut ssh_keys: Vec<String> = Vec::new();
 
-    // TODO: should be obsolete once YubiKeys are moved to a new table
-    let add_user_keys_to_list = |user: User, ssh_keys: &mut Vec<String>| {
-        // add key to list if user has an assigned SSH key
-        if let Some(mut key) = user.ssh_key {
-            trim_newline(&mut key);
-            ssh_keys.push(key);
-        }
-    };
-
     // check if group filter was specified
     match &params.group {
         Some(group_name) => {
@@ -86,7 +113,6 @@ pub async fn get_authorized_keys(
                             // check if user belongs to specified group
                             let members = group.member_usernames(&appstate.pool).await?;
                             if members.contains(&user.username) {
-                                add_user_keys_to_list(user.clone(), &mut ssh_keys);
                                 add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys)
                                     .await;
                             } else {
@@ -101,7 +127,6 @@ pub async fn get_authorized_keys(
                         // fetch all users in group
                         let users = group.members(&appstate.pool).await?;
                         for user in users {
-                            add_user_keys_to_list(user.clone(), &mut ssh_keys);
                             add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
                         }
                     }
@@ -116,7 +141,6 @@ pub async fn get_authorized_keys(
                 debug!("Fetching SSH keys for user {username}");
                 // fetch user
                 if let Some(user) = User::find_by_username(&appstate.pool, username).await? {
-                    add_user_keys_to_list(user.clone(), &mut ssh_keys);
                     add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
                 } else {
                     debug!("Specified user does not exist");
@@ -133,76 +157,68 @@ pub async fn get_authorized_keys(
 pub struct AddAuthenticationKeyData {
     pub key: String,
     pub name: String,
-    pub key_type: String,
+    pub key_type: AuthenticationKeyType,
+    pub user_id: String,
 }
 
 pub async fn add_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
     Json(data): Json<AddAuthenticationKeyData>,
-) -> Result<(), WebError> {
-    let user = session.user;
+    Path(username): Path<String>,
+) -> Result<ApiResponse, WebError> {
 
-    info!(
-        "Adding an authentication key {data:?} to user {}",
-        user.email
-    );
+    debug!("Adding authentication key of type {} for user {}", data.key_type.as_ref(), username);
 
-    if ![SSH_KEY_TYPE, GPG_KEY_TYPE].contains(&data.key_type.as_str()) {
-        return Err(WebError::BadRequest(
-            "unsupported authentication key type".into(),
-        ));
-    }
-
-    let public_key = data.key.parse::<PublicKey>();
-
-    if data.key_type == "SSH" && public_key.is_err() {
-        return Err(WebError::BadRequest("invalid key format".into()));
-    }
-
-    // TODO: verify GPG key
-
-    let user_id = if let Some(user_id) = user.id {
-        user_id
-    } else {
-        return Err(WebError::BadRequest("invalid user".into()));
+    // authorize request
+    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    let user_id = match user.id {
+        Some(id) => id,
+        None => return Err(WebError::ModelError("Model returned without ID".into()))
     };
 
-    let existing_key =
-        AuthenticationKey::find_by_user(&appstate.pool, user_id, data.key.clone()).await?;
-
-    if existing_key.is_some() {
-        return Err(WebError::BadRequest("key already exists".into()));
+    // verify key
+    match data.key_type {
+        AuthenticationKeyType::SSH => {
+            let parsed = data.key.parse::<PublicKey>();
+            if parsed.is_err() {
+                return Err(WebError::BadRequest("SSH key failed verification.".into()));
+            }
+        },
+        // FIXME: verify GPG key
+        AuthenticationKeyType::GPG => {}
     }
 
-    let key = data.key.clone();
-
-    AuthenticationKey::new(user_id, data.key, data.name, data.key_type)
-        .save(&appstate.pool)
-        .await?;
-
-    info!("Added authentication key {key} to user {}", user.email);
-
-    Ok(())
-}
-
-pub async fn fetch_authentication_keys(
-    State(appstate): State<AppState>,
-    session: SessionInfo,
-) -> ApiResult {
-    let user = session.user;
-
-    let user_id = if let Some(user_id) = user.id {
-        user_id
-    } else {
-        return Err(WebError::BadRequest("invalid user".into()));
-    };
-
-    let authentication_keys =
-        AuthenticationKey::fetch_user_authentication_keys(&appstate.pool, user_id).await?;
+    // check if exists
+    let exists_res = query!("SELECT COUNT(*) FROM \"authentication_key\" WHERE key = $1", data.key).fetch_one(&appstate.pool).await?;
+    if exists_res.count.is_some_and(|res| res > 0) {
+        return Err(WebError::BadRequest("Key already exists.".into()))
+    }
+    let mut new_key = AuthenticationKey::new(user_id, data.key, Some(data.name), data.key_type, None);
+    new_key.save(&appstate.pool).await?;
 
     Ok(ApiResponse {
-        json: json!(authentication_keys),
+        json: json!({}),
+        status: StatusCode::CREATED
+    })
+}
+
+// GET on user, returns AuthenticationKeyInfo vector in JSON
+pub async fn fetch_authentication_keys(
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+    session: SessionInfo,
+) -> ApiResult {
+    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    let user_id = match user.id {
+        Some(id) => id,
+        None => return Err(WebError::ModelError("Model returned user without ID".into()))
+    };
+
+    let keys_info = AuthenticationKeyInfo::find_by_user_id(&appstate.pool, user_id).await?;
+    
+    Ok(ApiResponse {
+        json: json!(keys_info),
         status: StatusCode::OK,
     })
 }
@@ -233,8 +249,8 @@ pub async fn delete_authentication_key(
             return Err(WebError::Forbidden("access denied".into()));
         }
 
-        let key = authentication_key.clone().key;
-        authentication_key.delete(&appstate.pool).await?;
+        let key = AuthenticationKey::delete(, id);
+
         info!("Authentication key {} deleted by {}", key, user.email);
     } else {
         return Err(WebError::ObjectNotFound(

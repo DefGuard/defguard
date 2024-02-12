@@ -36,9 +36,6 @@ export type User = {
   email_mfa_enabled: boolean;
   email: string;
   phone?: string;
-  pgp_cert_id?: string;
-  pgp_key?: string;
-  ssh_key?: string;
   groups: string[];
   authorized_apps?: OAuth2AuthorizedApps[];
   is_active: boolean;
@@ -561,9 +558,6 @@ export interface Workers {
 }
 
 export interface WorkerJobStatus {
-  pgp_cert_id?: string;
-  pgp_key?: string;
-  ssh_key?: string;
   success?: boolean;
   errorMessage?: string;
 }
@@ -677,44 +671,58 @@ export interface UseModalStore {
   addWalletModal: StandardModalState;
   // DO NOT EXTEND THIS STORE
   keyDetailModal: KeyDetailModal;
+  // DO NOT EXTEND THIS STORE
   keyDeleteModal: KeyDeleteModal;
+  // DO NOT EXTEND THIS STORE
   deleteUserModal: DeleteUserModal;
   // DO NOT EXTEND THIS STORE
   changePasswordModal: ChangePasswordModal;
+  // DO NOT EXTEND THIS STORE
   changeWalletModal: ChangeWalletModal;
+  // DO NOT EXTEND THIS STORE
   provisionKeyModal: ProvisionKeyModal;
-  addAuthenticationKeyModal: AddAuthenticationKeyModal;
-  deleteAuthenticationKeyModal: DeleteAuthenticationKeyModal;
   // DO NOT EXTEND THIS STORE
   webhookModal: WebhookModal;
+  // DO NOT EXTEND THIS STORE
   addOpenidClientModal: StandardModalState;
   // DO NOT EXTEND THIS STORE
   deleteOpenidClientModal: DeleteOpenidClientModal;
+  // DO NOT EXTEND THIS STORE
   enableOpenidClientModal: EnableOpenidClientModal;
+  // DO NOT EXTEND THIS STORE
   manageWebAuthNKeysModal: StandardModalState;
   // DO NOT EXTEND THIS STORE
   addSecurityKeyModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   registerTOTP: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   connectWalletModal: ConnectWalletModal;
+  // DO NOT EXTEND THIS STORE
   recoveryCodesModal: RecoveryCodesModal;
+  // DO NOT EXTEND THIS STORE
   setState: (data: Partial<UseModalStore>) => void;
+  // DO NOT EXTEND THIS STORE
   setWebhookModal: ModalSetter<WebhookModal>;
+  // DO NOT EXTEND THIS STORE
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
   // DO NOT EXTEND THIS STORE
   setKeyDetailModal: ModalSetter<KeyDetailModal>;
+  // DO NOT EXTEND THIS STORE
   setKeyDeleteModal: ModalSetter<KeyDeleteModal>;
+  // DO NOT EXTEND THIS STORE
   setDeleteUserModal: ModalSetter<DeleteUserModal>;
   // DO NOT EXTEND THIS STORE
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
+  // DO NOT EXTEND THIS STORE
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
   // DO NOT EXTEND THIS STORE
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
+  // DO NOT EXTEND THIS STORE
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
+  // DO NOT EXTEND THIS STORE
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   // DO NOT EXTEND THIS STORE
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
-  setAddAuthenticationKeyModal: ModalSetter<AddAuthenticationKeyModal>;
-  setDeleteAuthenticationKeyModal: ModalSetter<DeleteAuthenticationKeyModal>;
 }
 
 export interface UseOpenIDStore {
