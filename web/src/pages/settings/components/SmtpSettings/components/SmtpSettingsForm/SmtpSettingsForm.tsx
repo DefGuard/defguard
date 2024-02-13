@@ -105,7 +105,11 @@ export const SmtpSettingsForm = () => {
             (val) => (!val ? true : validateIpOrDomain(val)),
             LL.form.error.endpoint(),
           ),
-        smtp_port: z.number().max(65535, LL.form.error.portMax()),
+        smtp_port: z
+          .number({
+            invalid_type_error: LL.form.error.required(),
+          })
+          .max(65535, LL.form.error.portMax()),
         smtp_password: z.string().min(1, LL.form.error.required()),
         smtp_sender: z
           .string()
@@ -166,6 +170,7 @@ export const SmtpSettingsForm = () => {
           label={LL.settingsPage.smtp.form.fields.port.label()}
           controller={{ control, name: 'smtp_port' }}
           placeholder={LL.settingsPage.smtp.form.fields.port.placeholder()}
+          type="number"
           required
         />
         <FormInput

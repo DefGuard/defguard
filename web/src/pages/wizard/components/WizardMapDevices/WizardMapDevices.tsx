@@ -50,7 +50,11 @@ export const WizardMapDevices = () => {
         devices: z.array(
           z.object({
             wireguard_ip: z.string().min(1, LL.form.error.required()),
-            user_id: z.number().min(1, LL.form.error.required()),
+            user_id: z
+              .number({
+                invalid_type_error: LL.form.error.required(),
+              })
+              .min(1, LL.form.error.required()),
             wireguard_pubkey: z.string().min(1, LL.form.error.required()),
             name: z.string().min(1, LL.form.error.required()),
           }),
