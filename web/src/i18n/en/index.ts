@@ -733,6 +733,9 @@ const en: BaseTranslation = {
       allowedIps: 'Only valid IP or domain is allowed.',
       startFromNumber: 'Cannot start from number.',
       repeat: `Fields don't match.`,
+      number: 'Expected a valid number.',
+      minimumValue: `Minimum value of {value: number} not reached.`,
+      maximumValue: 'Maximum value of {value: number} exceeded.',
     },
     floatingErrors: {
       title: 'Please correct the following:',

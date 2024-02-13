@@ -1757,6 +1757,20 @@ type RootTranslation = {
 			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h​.
 			 */
 			repeat: string
+			/**
+			 * E​x​p​e​c​t​e​d​ ​a​ ​v​a​l​i​d​ ​n​u​m​b​e​r​.
+			 */
+			number: string
+			/**
+			 * M​i​n​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
+			 * @param {number} value
+			 */
+			minimumValue: RequiredParams<'value'>
+			/**
+			 * M​a​x​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​e​x​c​e​e​d​e​d​.
+			 * @param {number} value
+			 */
+			maximumValue: RequiredParams<'value'>
 		}
 		floatingErrors: {
 			/**
@@ -5315,6 +5329,18 @@ export type TranslationFunctions = {
 			 * Fields don't match.
 			 */
 			repeat: () => LocalizedString
+			/**
+			 * Expected a valid number.
+			 */
+			number: () => LocalizedString
+			/**
+			 * Minimum value of {value} not reached.
+			 */
+			minimumValue: (arg: { value: number }) => LocalizedString
+			/**
+			 * Maximum value of {value} exceeded.
+			 */
+			maximumValue: (arg: { value: number }) => LocalizedString
 		}
 		floatingErrors: {
 			/**
