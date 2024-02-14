@@ -57,7 +57,7 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 - Onboarding - displaying custom onboarding messages, with templates, links ...
 - Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
 - Live & real-time network charts
-- In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more! 
+- In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more!
 
 ## Quick start
 
@@ -102,4 +102,3 @@ Please review the [Contributing guide](https://defguard.gitbook.io/defguard/for-
 
 # Legal
 WireGuard is [registered trademarks](https://www.wireguard.com/trademark-policy/) of Jason A. Donenfeld.
-
