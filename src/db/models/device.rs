@@ -206,14 +206,16 @@ impl WireguardNetworkDevice {
     {
         query!(
             "INSERT INTO wireguard_network_device \
-                (device_id, wireguard_network_id, wireguard_ip, is_authorized) \
-                VALUES ($1, $2, $3, $4) \
+                (device_id, wireguard_network_id, wireguard_ip, is_authorized, authorized_at, preshared_key) \
+                VALUES ($1, $2, $3, $4, $5, $6) \
                 ON CONFLICT ON CONSTRAINT device_network \
                 DO UPDATE SET wireguard_ip = $3, is_authorized = $4",
             self.device_id,
             self.wireguard_network_id,
             IpNetwork::from(self.wireguard_ip.clone()),
             self.is_authorized,
+            self.authorized_at,
+            self.preshared_key
         )
         .execute(executor)
         .await?;
@@ -226,12 +228,14 @@ impl WireguardNetworkDevice {
     {
         query!(
             "UPDATE wireguard_network_device \
-            SET wireguard_ip = $3, is_authorized = $4 \
+            SET wireguard_ip = $3, is_authorized = $4, authorized_at = $5, preshared_key = $6 \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             self.device_id,
             self.wireguard_network_id,
             IpNetwork::from(self.wireguard_ip.clone()),
             self.is_authorized,
+            self.authorized_at,
+            self.preshared_key,
         )
         .execute(executor)
         .await?;
