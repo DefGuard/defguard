@@ -255,7 +255,7 @@ impl worker_service_server::WorkerService for WorkerServer {
             if message.success {
                 match User::find_by_username(&self.pool, &username).await {
                     // TODO: Create respectable Authentication KEYS and Add yubikey entry to DB table "yubikey"
-                    Ok(Some(mut user)) => {
+                    Ok(Some(user)) => {
                         // create yubikey
                         // FIXME: pass name from user input this is temporary solution
                         if let Some(user_id) = user.id {
@@ -273,20 +273,20 @@ impl worker_service_server::WorkerService for WorkerServer {
                                 }
                                 None => "YubiKey".to_string(),
                             };
-                            let new_yubi = YubiKey::new(name, message.yubikey_serial, user_id);
+                            let mut new_yubi = YubiKey::new(name, message.yubikey_serial, user_id);
                             new_yubi
                                 .save(&self.pool)
                                 .await
                                 .map_err(|_| Status::internal("Failed to save yubikey"))?;
                             if let Some(key_id) = new_yubi.id {
-                                let ssh = AuthenticationKey::new(
+                                let mut ssh = AuthenticationKey::new(
                                     user_id,
                                     message.ssh_key,
                                     None,
                                     AuthenticationKeyType::SSH,
                                     Some(key_id),
                                 );
-                                let gpg = AuthenticationKey::new(
+                                let mut gpg = AuthenticationKey::new(
                                     user_id,
                                     message.public_key,
                                     None,

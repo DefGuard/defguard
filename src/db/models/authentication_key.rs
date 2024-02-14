@@ -77,7 +77,10 @@ impl AuthenticationKey {
             }
             None => {
                 let res = query!(
-                    "INSERT INTO authentication_key (yubikey_id, name, user_id, key, key_type, created) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id;",
+                    "INSERT INTO \
+                    authentication_key (yubikey_id, name, user_id, key, key_type, created) \
+                    VALUES ($1,$2,$3,$4,$5,$6) \
+                    RETURNING id;",
                     self.yubikey_id,
                     self.name,
                     self.user_id,
@@ -104,19 +107,21 @@ impl AuthenticationKey {
         match key_type {
             Some(key_type) => {
                 query_as(
-                    "SELECT id \"id?\", user_id, yubikey_id \"yubikey_id?\", key, name, key_type \"key_type: AuthenticationKeyType\", created \
+                    "SELECT id \"id?\", user_id, yubikey_id \"yubikey_id?\", \
+                    key, name, key_type \"key_type: AuthenticationKeyType\", created \
                     FROM \"authentication_key\"
                     WHERE user_id = $1 AND key_type = $2",
                 )
-                    .bind(user_id)
-                    .bind(key_type.as_ref())
-                    .fetch_all(executor)
-                    .await
+                .bind(user_id)
+                .bind(key_type.as_ref())
+                .fetch_all(executor)
+                .await
             }
             None => {
                 query_as!(
                     Self,
-                    "SELECT id \"id?\", user_id, yubikey_id \"yubikey_id?\", key, name, key_type \"key_type: AuthenticationKeyType\", created \
+                    "SELECT id \"id?\", user_id, yubikey_id \"yubikey_id?\", key, name, \
+                    key_type \"key_type: AuthenticationKeyType\", created \
                     FROM \"authentication_key\"
                     WHERE user_id = $1",
                     user_id
@@ -156,13 +161,23 @@ impl AuthenticationKey {
         .await?)
     }
 
-    pub async fn delete<'e, E>(executor: E, id: i64) -> Result<(), SqlxError>
+    pub async fn delete_by_id<'e, E>(executor: E, id: i64) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query!("DELETE FROM \"authentication_key\" WHERE id = $1", id)
             .execute(executor)
-            .await;
+            .await?;
         Ok(())
+    }
+
+    pub async fn delete<'e, E>(self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        match self.id {
+            Some(id) => Self::delete_by_id(executor, id).await,
+            None => Err(SqlxError::RowNotFound),
+        }
     }
 }

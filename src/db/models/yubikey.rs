@@ -58,6 +58,15 @@ impl YubiKey {
         }
     }
 
+    pub async fn find_by_id<'e, E>(executor: E, id: i64) -> Result<Self, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(Self, "SELECT * FROM \"yubikey\" WHERE id = $1", id)
+            .fetch_one(executor)
+            .await
+    }
+
     pub async fn find_by_user_id<'e, E>(executor: E, user_id: i64) -> Result<Vec<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
@@ -71,13 +80,23 @@ impl YubiKey {
         .await
     }
 
-    pub async fn delete<'e, E>(executor: E, id: i64) -> Result<(), SqlxError>
+    pub async fn delete_by_id<'e, E>(executor: E, id: i64) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query!("DELETE FROM \"yubikey\" WHERE id = $1", id)
             .execute(executor)
-            .await;
+            .await?;
         Ok(())
+    }
+
+    pub async fn delete<'e, E>(self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        match self.id {
+            Some(id) => Self::delete_by_id(executor, id).await,
+            None => Err(SqlxError::RowNotFound),
+        }
     }
 }

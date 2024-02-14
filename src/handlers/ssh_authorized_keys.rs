@@ -3,9 +3,10 @@ use crate::{
     auth::SessionInfo,
     db::{
         models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-        DbPool, Group, User
+        DbPool, Group, User,
     },
-    error::WebError, handlers::user_for_admin_or_self,
+    error::WebError,
+    handlers::user_for_admin_or_self,
 };
 use axum::{
     extract::{Path, Query, State},
@@ -13,7 +14,7 @@ use axum::{
     Json,
 };
 use serde_json::json;
-use sqlx::{query, PgExecutor, Error as SqlxError};
+use sqlx::{query, Error as SqlxError, PgExecutor};
 use ssh_key::PublicKey;
 
 use super::{ApiResponse, ApiResult};
@@ -26,20 +27,29 @@ pub(crate) struct AuthenticationKeyInfo {
     pub key: String,
     pub yubikey_serial: Option<String>,
     pub yubikey_id: Option<i64>,
-    pub yubikey_name: Option<String>
+    pub yubikey_name: Option<String>,
 }
 
 impl AuthenticationKeyInfo {
-    pub async fn find_by_user_id<'e, E>(executor: E, user_id: i64) -> Result<Vec<Self>, SqlxError> where E: PgExecutor<'e> {
-        let q_res = query!("SELECT \
+    pub async fn find_by_user_id<'e, E>(executor: E, user_id: i64) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let q_res = query!(
+            "SELECT \
             k.id as key_id, k.name, k.key_type \"key_type: AuthenticationKeyType\", \
             k.key, k.yubikey_id \"yubikey_id: Option<i64>\", \
             y.name \"yubikey_name: Option<String>\", y.serial \"serial: Option<String>\" \
             FROM \"authentication_key\" k \
             LEFT JOIN \"yubikey\" y ON k.yubikey_id = y.id \
-            WHERE k.user_id = $1", user_id).fetch_all(executor).await?;
-        let res: Vec<Self> = q_res.iter().map(|q| {
-            Self {
+            WHERE k.user_id = $1",
+            user_id
+        )
+        .fetch_all(executor)
+        .await?;
+        let res: Vec<Self> = q_res
+            .iter()
+            .map(|q| Self {
                 id: q.key_id,
                 key: q.key.clone(),
                 key_type: q.key_type,
@@ -47,19 +57,9 @@ impl AuthenticationKeyInfo {
                 yubikey_id: q.yubikey_id,
                 yubikey_name: q.yubikey_name.clone(),
                 yubikey_serial: q.serial.clone(),
-            }
-        }).collect();
+            })
+            .collect();
         Ok(res)
-    }
-}
-
-/// Trim optional newline
-fn trim_newline(s: &mut String) {
-    if s.ends_with('\n') {
-        s.pop();
-        if s.ends_with('\r') {
-            s.pop();
-        }
     }
 }
 
@@ -164,42 +164,58 @@ pub struct AddAuthenticationKeyData {
 pub async fn add_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Json(data): Json<AddAuthenticationKeyData>,
     Path(username): Path<String>,
-) -> Result<ApiResponse, WebError> {
-
-    debug!("Adding authentication key of type {} for user {}", data.key_type.as_ref(), username);
+    Json(data): Json<AddAuthenticationKeyData>,
+) -> ApiResult {
+    debug!(
+        "Adding authentication key of type {} for user {}",
+        data.key_type.as_ref(),
+        username
+    );
 
     // authorize request
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let user_id = match user.id {
         Some(id) => id,
-        None => return Err(WebError::ModelError("Model returned without ID".into()))
+        None => return Err(WebError::ModelError("Model returned without ID".into())),
     };
+
+    let trimmed_key = data.key.trim_end_matches(|c| c == '\n' || c == '\r');
 
     // verify key
     match data.key_type {
         AuthenticationKeyType::SSH => {
-            let parsed = data.key.parse::<PublicKey>();
+            let parsed = trimmed_key.parse::<PublicKey>();
             if parsed.is_err() {
                 return Err(WebError::BadRequest("SSH key failed verification.".into()));
             }
-        },
+        }
         // FIXME: verify GPG key
         AuthenticationKeyType::GPG => {}
     }
 
     // check if exists
-    let exists_res = query!("SELECT COUNT(*) FROM \"authentication_key\" WHERE key = $1", data.key).fetch_one(&appstate.pool).await?;
+    let exists_res = query!(
+        "SELECT COUNT(*) FROM \"authentication_key\" WHERE key = $1",
+        trimmed_key
+    )
+    .fetch_one(&appstate.pool)
+    .await?;
     if exists_res.count.is_some_and(|res| res > 0) {
-        return Err(WebError::BadRequest("Key already exists.".into()))
+        return Err(WebError::BadRequest("Key already exists.".into()));
     }
-    let mut new_key = AuthenticationKey::new(user_id, data.key, Some(data.name), data.key_type, None);
+    let mut new_key = AuthenticationKey::new(
+        user_id,
+        trimmed_key.to_string(),
+        Some(data.name),
+        data.key_type,
+        None,
+    );
     new_key.save(&appstate.pool).await?;
 
     Ok(ApiResponse {
         json: json!({}),
-        status: StatusCode::CREATED
+        status: StatusCode::CREATED,
     })
 }
 
@@ -212,11 +228,15 @@ pub async fn fetch_authentication_keys(
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let user_id = match user.id {
         Some(id) => id,
-        None => return Err(WebError::ModelError("Model returned user without ID".into()))
+        None => {
+            return Err(WebError::ModelError(
+                "Model returned user without ID".into(),
+            ))
+        }
     };
 
     let keys_info = AuthenticationKeyInfo::find_by_user_id(&appstate.pool, user_id).await?;
-    
+
     Ok(ApiResponse {
         json: json!(keys_info),
         status: StatusCode::OK,
@@ -226,37 +246,56 @@ pub async fn fetch_authentication_keys(
 pub async fn delete_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Path(id): Path<i64>,
-) -> Result<(), WebError> {
-    let user = session.user;
-
-    info!(
-        "Attempting to delete authentication key with ID of {id} by user {}",
-        user.email
-    );
-
-    let user_id = if let Some(user_id) = user.id {
-        user_id
-    } else {
-        return Err(WebError::BadRequest("invalid user".into()));
-    };
-
-    let exisiting_key = AuthenticationKey::find_by_id(&appstate.pool, id).await?;
-
-    if let Some(authentication_key) = exisiting_key {
-        // Check whether key belongs to authenticated user
-        if authentication_key.user_id != user_id {
-            return Err(WebError::Forbidden("access denied".into()));
+    Path((username, key_id)): Path<(String, i64)>,
+) -> ApiResult {
+    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    let user_id = user
+        .id
+        .ok_or(WebError::DbError("Returned user had no ID".into()))?;
+    if let Some(key) = AuthenticationKey::find_by_id(&appstate.pool, key_id).await? {
+        if !session.is_admin && user_id != key.user_id {
+            return Err(WebError::Forbidden("".into()));
         }
-
-        let key = AuthenticationKey::delete(, id);
-
-        info!("Authentication key {} deleted by {}", key, user.email);
+        key.delete(&appstate.pool).await?;
     } else {
-        return Err(WebError::ObjectNotFound(
-            "authentication key not found".into(),
-        ));
+        return Err(WebError::BadRequest("Key not found".into()));
+    }
+    Ok(ApiResponse {
+        json: json!({}),
+        status: StatusCode::OK,
+    })
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct RenameRequest {
+    name: String,
+}
+
+pub async fn rename_authentication_key(
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Path((username, key_id)): Path<(String, i64)>,
+    Json(data): Json<RenameRequest>,
+) -> ApiResult {
+    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    let user_id = user
+        .id
+        .ok_or(WebError::DbError("Returned user had no ID".into()))?;
+    if let Some(mut key) = AuthenticationKey::find_by_id(&appstate.pool, key_id).await? {
+        if key.yubikey_id.is_some() {
+            return Err(WebError::BadRequest("Rename yubikey instead.".into()));
+        }
+        if !session.is_admin && user_id != key.user_id {
+            return Err(WebError::Forbidden("".into()));
+        }
+        key.name = Some(data.name);
+        key.save(&appstate.pool).await?;
+    } else {
+        return Err(WebError::ObjectNotFound("".into()));
     }
 
-    Ok(())
+    Ok(ApiResponse {
+        json: json!({}),
+        status: StatusCode::OK,
+    })
 }
