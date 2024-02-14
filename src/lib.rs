@@ -216,9 +216,9 @@ pub fn build_webapp(
                 post(rename_authentication_key),
             )
             // yubi keys
-            .route("/user/:username/yubi_key/:key_id", delete(delete_yubikey))
+            .route("/user/:username/yubikey/:key_id", delete(delete_yubikey))
             .route(
-                "/user/:username/yubi_key/:key_id/rename",
+                "/user/:username/yubikey/:key_id/rename",
                 post(rename_yubikey),
             )
             .route("/user/:username/wallet", put(set_wallet))

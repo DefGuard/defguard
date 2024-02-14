@@ -1,16 +1,6 @@
 @use '@scssutils' as *;
 
 .authentication-key-list {
-  margin-bottom: 1rem;
-  display: flex;
-  flex-flow: column nowrap;
-  row-gap: 1rem;
-
-  @include media-breakpoint-up(md) {
-    row-gap: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
   & > .device-card {
     width: 100%;
   }

@@ -389,15 +389,34 @@ const useApi = (props?: HookProps): ApiHook => {
   const startDesktopActivation: ApiHook['user']['startDesktopActivation'] = (data) =>
     client.post(`/user/${data.username}/start_desktop`, data).then(unpackRequest);
 
-  const fetchAuthenticationKeys: ApiHook['user']['fetchAuthenticationKeys'] = () =>
-    client.get(`/authentication_keys`).then(unpackRequest);
+  const getAuthenticationKeysInfo: ApiHook['user']['getAuthenticationKeysInfo'] = (
+    data,
+  ) => client.get(`/user/${data.username}authentication_key`).then(unpackRequest);
 
   const addAuthenticationKey: ApiHook['user']['addAuthenticationKey'] = (data) =>
-    client.post(`/authentication_keys`, data).then(unpackRequest);
+    client.post(`/user/${data.username}/authentication_key`, data).then(unpackRequest);
 
-  const deleteAuthenticationKey: ApiHook['user']['deleteAuthenticationKey'] = (
-    id: number,
-  ) => client.delete(`/authentication_keys/${id}`).then(unpackRequest);
+  const renameAuthenticationKey: ApiHook['user']['renameAuthenticationKey'] = (data) =>
+    client
+      .post(`/user/${data.username}/authentication_key/${data.id}/rename`, {
+        name: data.name,
+      })
+      .then(unpackRequest);
+
+  const deleteAuthenticationKey: ApiHook['user']['deleteAuthenticationKey'] = (data) =>
+    client
+      .delete(`/user/${data.username}/authentication_key/${data.id}`)
+      .then(unpackRequest);
+
+  const renameYubikey: ApiHook['user']['renameYubikey'] = (data) =>
+    client
+      .post(`/user/${data.username}/yubikey/${data.id}/rename`, {
+        name: data.name,
+      })
+      .then(unpackRequest);
+
+  const deleteYubiKey: ApiHook['user']['deleteYubiKey'] = (data) =>
+    client.delete(`/user/${data.username}/yubikey/${data.id}`).then(unpackRequest);
 
   const patchSettings: ApiHook['settings']['patchSettings'] = (data) =>
     client.patch('/settings', data).then(unpackRequest);
@@ -469,9 +488,12 @@ const useApi = (props?: HookProps): ApiHook => {
       removeFromGroup,
       startEnrollment,
       startDesktopActivation,
-      fetchAuthenticationKeys,
+      getAuthenticationKeysInfo: getAuthenticationKeysInfo,
       addAuthenticationKey,
       deleteAuthenticationKey,
+      renameAuthenticationKey,
+      deleteYubiKey,
+      renameYubikey,
     },
     device: {
       addDevice: addDevice,

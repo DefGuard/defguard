@@ -1,1 +1,7 @@
 @use '@scssutils' as *;
+
+#user-authentication-keys {
+  .add-component {
+    height: 80px;
+  }
+}

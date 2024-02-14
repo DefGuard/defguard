@@ -25,6 +25,7 @@ pub(crate) struct AuthenticationKeyInfo {
     pub name: Option<String>,
     pub key_type: AuthenticationKeyType,
     pub key: String,
+    pub user_id: i64,
     pub yubikey_serial: Option<String>,
     pub yubikey_id: Option<i64>,
     pub yubikey_name: Option<String>,
@@ -38,7 +39,7 @@ impl AuthenticationKeyInfo {
         let q_res = query!(
             "SELECT \
             k.id as key_id, k.name, k.key_type \"key_type: AuthenticationKeyType\", \
-            k.key, k.yubikey_id \"yubikey_id: Option<i64>\", \
+            k.key, k.user_id, k.yubikey_id \"yubikey_id: Option<i64>\", \
             y.name \"yubikey_name: Option<String>\", y.serial \"serial: Option<String>\" \
             FROM \"authentication_key\" k \
             LEFT JOIN \"yubikey\" y ON k.yubikey_id = y.id \
@@ -53,6 +54,7 @@ impl AuthenticationKeyInfo {
                 id: q.key_id,
                 key: q.key.clone(),
                 key_type: q.key_type,
+                user_id: q.user_id,
                 name: q.name.clone(),
                 yubikey_id: q.yubikey_id,
                 yubikey_name: q.yubikey_name.clone(),

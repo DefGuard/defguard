@@ -364,19 +364,30 @@ export type AuthCodeRequest = {
   code: number;
 };
 
-export interface AddAuthenticationKeyRequest {
-  name: string;
-  key: string;
-  key_type: string;
-}
-
-export interface AuthenticationKey {
+export type AuthenticationKeyInfo = {
   id: number;
-  user_id: number;
+  name?: string;
+  key_type: AuthenticationKeyType;
+  key: string;
+  yubikey_serial?: string;
+  yubikey_id?: number;
+  yubikey_name?: string;
+};
+
+export type AuthenticationKeyRequestBase = {
+  username: string;
+};
+
+export type RenameAuthenticationKeyRequest = {
+  id: number;
+  name: string;
+} & AuthenticationKeyRequestBase;
+
+export type AddAuthenticationKeyRequest = {
   name: string;
   key: string;
   key_type: string;
-}
+} & AuthenticationKeyRequestBase;
 
 export type ModifyGroupsRequest = {
   name: string;
@@ -391,6 +402,13 @@ export type AddUsersToGroupsRequest = {
 
 export type EditGroupRequest = ModifyGroupsRequest & {
   originalName: string;
+};
+
+export type AuthenticationKey = {
+  id: number;
+  name: string;
+  key_type: AuthenticationKeyType;
+  key: string;
 };
 
 export interface ApiHook {
@@ -426,9 +444,22 @@ export interface ApiHook {
     startDesktopActivation: (
       data: StartEnrollmentRequest,
     ) => Promise<StartEnrollmentResponse>;
-    fetchAuthenticationKeys: () => Promise<AuthenticationKey[]>;
+    getAuthenticationKeysInfo: (
+      data: AuthenticationKeyRequestBase,
+    ) => Promise<AuthenticationKeyInfo[]>;
     addAuthenticationKey: (data: AddAuthenticationKeyRequest) => EmptyApiResponse;
-    deleteAuthenticationKey: (id: number) => EmptyApiResponse;
+    deleteAuthenticationKey: (data: { id: number; username: string }) => EmptyApiResponse;
+    renameAuthenticationKey: (data: {
+      id: number;
+      username: string;
+      name: string;
+    }) => EmptyApiResponse;
+    renameYubikey: (data: {
+      id: number;
+      username: string;
+      name: string;
+    }) => EmptyApiResponse;
+    deleteYubiKey: (data: { id: number; username: string }) => EmptyApiResponse;
   };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;

@@ -3,11 +3,11 @@ import './style.scss';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { useAddAuthorizationKeyModal } from '../../shared/modals/AddAuthenticationKeyModal/useAddAuthorizationKeyModal';
 import { DeleteAuthenticationKeyModal } from '../../shared/modals/DeleteAuthenticationKeyModal/DeleteAuthenticationKeyModal';
+import { RenameAuthenticationKeyModal } from '../../shared/modals/RenameAuthenticationKeyModal/RenameAuthenticationKeyModal';
 import { AuthenticationKeyList } from './AuthenticationKeyList/AuthenticationKeyList';
 
 export const UserAuthenticationKeys = () => {
@@ -17,15 +17,14 @@ export const UserAuthenticationKeys = () => {
     (s) => s.open,
     shallow,
   );
-  const isAdmin = useAuthStore((state) => state.isAdmin);
 
   return (
-    <section id="user-yubikeys">
+    <section id="user-authentication-keys">
       <header>
         <h2>{LL.userPage.authenticationKeys.header()}</h2>
       </header>
       <AuthenticationKeyList />
-      {user && isAdmin && (
+      {user && (
         <AddComponentBox
           data-testid="add-authentication-key-button"
           callback={() => {
@@ -40,6 +39,7 @@ export const UserAuthenticationKeys = () => {
         />
       )}
       <DeleteAuthenticationKeyModal />
+      <RenameAuthenticationKeyModal />
     </section>
   );
 };
