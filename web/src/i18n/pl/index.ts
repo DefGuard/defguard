@@ -49,7 +49,7 @@ const pl: Translation = {
       },
       infoMessage: `
       <p>
-        Aby zakończyć konfigurację, wpisz kod, który został wysłany na email: <strong>{email}</strong> 
+        Aby zakończyć konfigurację, wpisz kod, który został wysłany na email: <strong>{email}</strong>
       </p>
       `,
       messages: {
