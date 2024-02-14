@@ -11,6 +11,7 @@ use crate::{
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
+use chrono::Utc;
 use std::collections::HashMap;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
@@ -232,6 +233,7 @@ impl ClientMfaServer {
 
         // authorize device for given location
         network_device.is_authorized = true;
+        network_device.authorized_at = Some(Utc::now().naive_utc());
 
         // save updated network config
         network_device
