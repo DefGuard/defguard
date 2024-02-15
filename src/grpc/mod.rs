@@ -349,8 +349,10 @@ pub async fn run_grpc_bidi_stream(
     let mut client_mfa_server = ClientMfaServer::new(pool, mail_tx, wireguard_tx);
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
-    let endpoint = endpoint.http2_keep_alive_interval(TEN_SECS);
-    let endpoint = endpoint.tcp_keepalive(Some(TEN_SECS));
+    let endpoint = endpoint
+        .http2_keep_alive_interval(TEN_SECS)
+        .tcp_keepalive(Some(TEN_SECS))
+        .keep_alive_while_idle(true);
     let endpoint = if let Some(ca) = &config.proxy_grpc_ca {
         let ca = read_to_string(ca)?;
         let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
@@ -536,9 +538,10 @@ pub async fn run_grpc_server(
     } else {
         Server::builder()
     };
-    let builder = builder.http2_keepalive_interval(Some(Duration::from_secs(10)));
-    let mut builder = builder.tcp_keepalive(Some(Duration::from_secs(10)));
-    let router = builder.add_service(auth_service);
+    let router = builder
+        .http2_keepalive_interval(Some(TEN_SECS))
+        .tcp_keepalive(Some(TEN_SECS))
+        .add_service(auth_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]
