@@ -21,8 +21,8 @@ export enum UserMFAMethod {
 }
 
 export enum AuthenticationKeyType {
-  SSH = 'SSH',
-  GPG = 'GPG',
+  SSH = 'ssh',
+  GPG = 'gpg',
 }
 
 export type User = {

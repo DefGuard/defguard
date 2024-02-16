@@ -18,6 +18,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
 import { chainName } from '../../../../../shared/utils/chainName';
+import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
 import { useWeb3Account } from '../../../../../shared/web3/hooks/useWeb3Account';
 import { useWeb3Connection } from '../../../../../shared/web3/hooks/useWeb3Connection';
 import { useWeb3Signer } from '../../../../../shared/web3/hooks/useWeb3Signer';
@@ -114,11 +115,12 @@ export const AddWalletModalForm = () => {
   });
 
   const onSubmit: SubmitHandler<FormValues> = async (values) => {
+    const trimmed = trimObjectStrings(values);
     if (user?.username && chainId) {
       WalletChallengeMutation.mutate({
-        name: values.name,
+        name: trimmed.name,
         username: user.username,
-        address: values.address,
+        address: trimmed.address,
         chainId,
       });
     }

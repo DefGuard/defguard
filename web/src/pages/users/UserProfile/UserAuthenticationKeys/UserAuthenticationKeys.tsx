@@ -6,9 +6,9 @@ import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { useAddAuthorizationKeyModal } from '../../shared/modals/AddAuthenticationKeyModal/useAddAuthorizationKeyModal';
-import { DeleteAuthenticationKeyModal } from '../../shared/modals/DeleteAuthenticationKeyModal/DeleteAuthenticationKeyModal';
 import { RenameAuthenticationKeyModal } from '../../shared/modals/RenameAuthenticationKeyModal/RenameAuthenticationKeyModal';
 import { AuthenticationKeyList } from './AuthenticationKeyList/AuthenticationKeyList';
+import { DeleteAuthenticationKeyModal } from './DeleteAuthenticationKeyModal/DeleteAuthenticationKeyModal';
 
 export const UserAuthenticationKeys = () => {
   const { LL } = useI18nContext();

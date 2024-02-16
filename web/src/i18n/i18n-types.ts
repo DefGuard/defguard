@@ -78,7 +78,23 @@ type RootTranslation = {
 			 * D​e​l​e​t​e
 			 */
 			'delete': string
+			/**
+			 * R​e​n​a​m​e
+			 */
+			rename: string
+			/**
+			 * C​o​p​y
+			 */
+			copy: string
 		}
+		/**
+		 * K​e​y
+		 */
+		key: string
+		/**
+		 * N​a​m​e
+		 */
+		name: string
 	}
 	messages: {
 		/**
@@ -1451,31 +1467,44 @@ type RootTranslation = {
 			 * A​d​d​ ​n​e​w​ ​K​e​y
 			 */
 			addKey: string
-			keyCard: {
+			keysList: {
+				common: {
+					/**
+					 * R​e​n​a​m​e
+					 */
+					rename: string
+					/**
+					 * K​e​y
+					 */
+					key: string
+					/**
+					 * D​o​w​n​l​o​a​d
+					 */
+					download: string
+					/**
+					 * C​o​p​y
+					 */
+					copy: string
+					/**
+					 * S​e​r​i​a​l​ ​N​u​m​b​e​r
+					 */
+					serialNumber: string
+					/**
+					 * D​e​l​e​t​e
+					 */
+					'delete': string
+				}
+			}
+			deleteModal: {
 				/**
-				 * K​e​y
+				 * D​e​l​e​t​e​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
 				 */
-				keyLabel: string
+				title: string
 				/**
-				 * C​o​p​y​ ​t​o​ ​C​l​i​p​b​o​a​r​d
+				 * K​e​y​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
+				 * @param {string} name
 				 */
-				copyToClipboard: string
-				/**
-				 * D​o​w​n​l​o​a​d​ ​K​e​y​ ​F​i​l​e
-				 */
-				downloadKey: string
-				/**
-				 * D​e​l​e​t​e​ ​K​e​y
-				 */
-				deleteKey: string
-				/**
-				 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​d​e​l​e​t​e​d​.
-				 */
-				keyDeleted: string
-				/**
-				 * A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​k​e​y​?
-				 */
-				confirmDelete: string
+				confirmMessage: RequiredParams<'name'>
 			}
 			addModal: {
 				/**
@@ -3798,7 +3827,23 @@ export type TranslationFunctions = {
 			 * Delete
 			 */
 			'delete': () => LocalizedString
+			/**
+			 * Rename
+			 */
+			rename: () => LocalizedString
+			/**
+			 * Copy
+			 */
+			copy: () => LocalizedString
 		}
+		/**
+		 * Key
+		 */
+		key: () => LocalizedString
+		/**
+		 * Name
+		 */
+		name: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -5162,31 +5207,43 @@ export type TranslationFunctions = {
 			 * Add new Key
 			 */
 			addKey: () => LocalizedString
-			keyCard: {
+			keysList: {
+				common: {
+					/**
+					 * Rename
+					 */
+					rename: () => LocalizedString
+					/**
+					 * Key
+					 */
+					key: () => LocalizedString
+					/**
+					 * Download
+					 */
+					download: () => LocalizedString
+					/**
+					 * Copy
+					 */
+					copy: () => LocalizedString
+					/**
+					 * Serial Number
+					 */
+					serialNumber: () => LocalizedString
+					/**
+					 * Delete
+					 */
+					'delete': () => LocalizedString
+				}
+			}
+			deleteModal: {
 				/**
-				 * Key
+				 * Delete Authentication Key
 				 */
-				keyLabel: () => LocalizedString
+				title: () => LocalizedString
 				/**
-				 * Copy to Clipboard
+				 * Key {name} will be deleted permanently.
 				 */
-				copyToClipboard: () => LocalizedString
-				/**
-				 * Download Key File
-				 */
-				downloadKey: () => LocalizedString
-				/**
-				 * Delete Key
-				 */
-				deleteKey: () => LocalizedString
-				/**
-				 * Authentication key deleted.
-				 */
-				keyDeleted: () => LocalizedString
-				/**
-				 * Are you sure you want to delete this key?
-				 */
-				confirmDelete: () => LocalizedString
+				confirmMessage: (arg: { name: string }) => LocalizedString
 			}
 			addModal: {
 				/**

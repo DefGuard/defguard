@@ -391,22 +391,20 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const getAuthenticationKeysInfo: ApiHook['user']['getAuthenticationKeysInfo'] = (
     data,
-  ) => client.get(`/user/${data.username}authentication_key`).then(unpackRequest);
+  ) => client.get(`/user/${data.username}/auth_key`).then(unpackRequest);
 
   const addAuthenticationKey: ApiHook['user']['addAuthenticationKey'] = (data) =>
-    client.post(`/user/${data.username}/authentication_key`, data).then(unpackRequest);
+    client.post(`/user/${data.username}/auth_key`, data).then(unpackRequest);
 
   const renameAuthenticationKey: ApiHook['user']['renameAuthenticationKey'] = (data) =>
     client
-      .post(`/user/${data.username}/authentication_key/${data.id}/rename`, {
+      .post(`/user/${data.username}/auth_key/${data.id}/rename`, {
         name: data.name,
       })
       .then(unpackRequest);
 
   const deleteAuthenticationKey: ApiHook['user']['deleteAuthenticationKey'] = (data) =>
-    client
-      .delete(`/user/${data.username}/authentication_key/${data.id}`)
-      .then(unpackRequest);
+    client.delete(`/user/${data.username}/auth_key/${data.id}`).then(unpackRequest);
 
   const renameYubikey: ApiHook['user']['renameYubikey'] = (data) =>
     client

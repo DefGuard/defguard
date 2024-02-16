@@ -93,7 +93,7 @@ export const AddAuthenticationKeyYubikey = () => {
           toaster.success(localLL.provisioning.success());
           const invalidate = [
             QueryKeys.FETCH_USERS_LIST,
-            QueryKeys.FETCH_AUTHENTICATION_KEYS,
+            QueryKeys.FETCH_AUTHENTICATION_KEYS_INFO,
             QueryKeys.FETCH_USER_PROFILE,
           ];
           invalidate.forEach((k) =>

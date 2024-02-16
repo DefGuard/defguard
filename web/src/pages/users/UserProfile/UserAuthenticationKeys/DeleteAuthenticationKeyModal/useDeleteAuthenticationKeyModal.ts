@@ -1,31 +1,34 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { AuthenticationKey } from '../../../../../shared/types';
-
 const defaultValues: StoreValues = {
   visible: false,
-  authenticationKey: undefined,
+  keyData: undefined,
 };
 
 export const useDeleteAuthenticationKeyModal = createWithEqualityFn<Store>(
   (set) => ({
     ...defaultValues,
-    setState: (values) => set((old) => ({ ...old, ...values })),
-    open: (values) => set({ ...defaultValues, ...values }),
+    open: (values) => set({ keyData: values, visible: true }),
     close: () => set({ visible: false }),
+    reset: () => set(defaultValues),
   }),
   Object.is,
 );
 
 type StoreValues = {
   visible: boolean;
-  authenticationKey?: AuthenticationKey;
+  keyData?: {
+    id: number;
+    type: 'ssh' | 'gpg' | 'yubikey';
+    name: string;
+    username: string;
+  };
 };
 
 type StoreMethods = {
-  setState: (values: Partial<StoreValues>) => void;
-  open: (values: Partial<StoreValues>) => void;
+  open: (init: StoreValues['keyData']) => void;
   close: () => void;
+  reset: () => void;
 };
 
 type Store = StoreValues & StoreMethods;

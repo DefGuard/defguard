@@ -39,7 +39,7 @@ impl AuthenticationKeyInfo {
         let q_res = query!(
             "SELECT \
             k.id as key_id, k.name, k.key_type \"key_type: AuthenticationKeyType\", \
-            k.key, k.user_id, k.yubikey_id \"yubikey_id: Option<i64>\", \
+            k.key, k.user_id, k.yubikey_id, \
             y.name \"yubikey_name: Option<String>\", y.serial \"serial: Option<String>\" \
             FROM \"authentication_key\" k \
             LEFT JOIN \"yubikey\" y ON k.yubikey_id = y.id \
@@ -160,7 +160,6 @@ pub struct AddAuthenticationKeyData {
     pub key: String,
     pub name: String,
     pub key_type: AuthenticationKeyType,
-    pub user_id: String,
 }
 
 pub async fn add_authentication_key(

@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { patternNumbersOnly } from '../../../../shared/patterns';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
 type FormFields = {
@@ -77,8 +78,9 @@ export const MFAEmail = () => {
   });
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
+    const trimmed = trimObjectStrings(data);
     verifyMutate({
-      code: Number.parseInt(data.code),
+      code: Number.parseInt(trimmed.code),
     });
   };
 

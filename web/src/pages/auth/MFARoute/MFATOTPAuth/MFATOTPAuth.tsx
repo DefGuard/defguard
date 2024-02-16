@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
 interface Inputs {
@@ -63,7 +64,8 @@ export const MFATOTPAuth = () => {
   });
 
   const handleValidSubmit: SubmitHandler<Inputs> = (values) => {
-    mutate({ code: Number(values.code) });
+    const trimmed = trimObjectStrings(values);
+    mutate({ code: Number(trimmed.code) });
   };
 
   useEffect(() => {

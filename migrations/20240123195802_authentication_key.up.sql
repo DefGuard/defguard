@@ -19,7 +19,7 @@ CREATE TABLE authentication_key (
     key_type authentication_key_type NOT NULL,
     name text NULL,
     created timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    yubikey_id bigserial,
+    yubikey_id bigint,
     FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE,
     FOREIGN KEY(yubikey_id) REFERENCES "yubikey"(id) ON DELETE CASCADE
 );

@@ -24,6 +24,7 @@ import {
   patternValidPhoneNumber,
 } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
+import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 
 interface Inputs {
@@ -150,18 +151,19 @@ export const AddUserForm = () => {
   });
 
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
-    if (reservedUserNames.current.includes(data.username)) {
+    const trimmed = trimObjectStrings(data);
+    if (reservedUserNames.current.includes(trimmed.username)) {
       trigger('username', { shouldFocus: true });
     } else {
-      usernameAvailable(data.username)
+      usernameAvailable(trimmed.username)
         .then(() => {
           setCheckingUsername(false);
-          if (data.enable_enrollment) {
-            const userData = omit(data, ['password', 'enable_enrollment']);
+          if (trimmed.enable_enrollment) {
+            const userData = omit(trimmed, ['password', 'enable_enrollment']);
             addUserMutation.mutate(userData);
           } else {
-            if (data.password) {
-              addUserMutation.mutate(omit(data, ['enable_enrollment']));
+            if (trimmed.password) {
+              addUserMutation.mutate(omit(trimmed, ['enable_enrollment']));
             } else {
               trigger('password', { shouldFocus: true });
             }
@@ -169,7 +171,7 @@ export const AddUserForm = () => {
         })
         .catch(() => {
           setCheckingUsername(false);
-          reservedUserNames.current = [...reservedUserNames.current, data.username];
+          reservedUserNames.current = [...reservedUserNames.current, trimmed.username];
           trigger('username', { shouldFocus: true });
         });
     }

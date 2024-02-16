@@ -21,7 +21,11 @@ const en: BaseTranslation = {
       save: 'Save',
       RestoreDefault: 'Restore default',
       delete: 'Delete',
+      rename: 'Rename',
+      copy: 'Copy',
     },
+    key: 'Key',
+    name: 'Name',
   },
   messages: {
     error: 'Error has occurred.',
@@ -639,27 +643,33 @@ const en: BaseTranslation = {
     authenticationKeys: {
       header: 'User Authentication Keys',
       addKey: 'Add new Key',
-      keyCard: {
-        keyLabel: 'Key',
-        copyToClipboard: 'Copy to Clipboard',
-        downloadKey: 'Download Key File',
-        deleteKey: 'Delete Key',
-        keyDeleted: 'Authentication key deleted.',
-        confirmDelete: 'Are you sure you want to delete this key?',
+      keysList: {
+        common: {
+          rename: 'Rename',
+          key: 'Key',
+          download: 'Download',
+          copy: 'Copy',
+          serialNumber: 'Serial Number',
+          delete: 'Delete',
+        },
+      },
+      deleteModal: {
+        title: 'Delete Authentication Key',
+        confirmMessage: 'Key {name: string} will be deleted permanently.',
       },
       addModal: {
         header: 'Add new Authentication Key',
         keyType: 'Key Type',
         keyForm: {
           placeholders: {
-            title: 'Key title',
+            title: 'Key Name',
             key: {
               ssh: 'Begins with ssh-rsa, ecdsa-sha2-nistp256, ...',
               gpg: 'Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----',
             },
           },
           labels: {
-            title: 'Title',
+            title: 'Name',
             key: 'Key',
           },
           submit: 'Add {name: string} key',

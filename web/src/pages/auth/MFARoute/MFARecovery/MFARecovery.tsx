@@ -18,6 +18,7 @@ import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { RecoveryLoginRequest } from '../../../../shared/types';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
 export const MFARecovery = () => {
@@ -73,7 +74,7 @@ export const MFARecovery = () => {
   }, []);
 
   const handleValidSubmit: SubmitHandler<RecoveryLoginRequest> = (values) =>
-    mutate(values);
+    mutate(trimObjectStrings(values));
 
   return (
     <>

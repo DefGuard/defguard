@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -16,7 +16,9 @@ import {
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
+import { QueryKeys } from '../../../../../../../shared/queries';
 import { AuthenticationKeyType } from '../../../../../../../shared/types';
+import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
 import { useAddAuthorizationKeyModal } from '../../useAddAuthorizationKeyModal';
 
 type FormFields = {
@@ -41,11 +43,17 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
   const toaster = useToaster();
   const localLL = LL.userPage.authenticationKeys.addModal.keyForm;
   const closeModal = useAddAuthorizationKeyModal((s) => s.close);
+  const user = useAddAuthorizationKeyModal((s) => s.user);
+  const queryClient = useQueryClient();
 
   const { mutate, isLoading } = useMutation({
     mutationFn: addAuthenticationKey,
     onSuccess: () => {
       toaster.success(LL.messages.success());
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_AUTHENTICATION_KEYS_INFO],
+      });
+      closeModal();
     },
     onError: (e) => {
       toaster.error(LL.messages.error());
@@ -76,11 +84,15 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
   });
 
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
-    mutate({
-      key: values.keyValue,
-      key_type: keyType,
-      name: values.title,
-    });
+    const trimmed = trimObjectStrings(values);
+    if (user) {
+      mutate({
+        key: trimmed.keyValue.replace(/\r?\n|\r/g, ''),
+        key_type: keyType,
+        name: trimmed.title,
+        username: user.username,
+      });
+    }
   };
 
   return (

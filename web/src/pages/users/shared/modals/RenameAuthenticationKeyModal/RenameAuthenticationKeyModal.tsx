@@ -1,9 +1,10 @@
 import './styles.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { isUndefined } from 'lodash-es';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
@@ -17,16 +18,25 @@ import {
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { QueryKeys } from '../../../../../shared/queries';
 import { useRenameAuthenticationKeyModal } from './useRenameAuthenticationKeyModal';
 
 export const RenameAuthenticationKeyModal = () => {
+  const { LL } = useI18nContext();
   const isOpen = useRenameAuthenticationKeyModal((s) => s.visible);
+  const keyName = useRenameAuthenticationKeyModal((s) => s.keyData?.name);
   const [close, reset] = useRenameAuthenticationKeyModal(
     (s) => [s.close, s.reset],
     shallow,
   );
   return (
-    <ModalWithTitle title="Rename key" isOpen={isOpen} onClose={close} afterClose={reset}>
+    <ModalWithTitle
+      title={`${LL.common.controls.rename()} ${LL.common.key().toLowerCase()} ${keyName}`}
+      isOpen={isOpen}
+      onClose={close}
+      afterClose={reset}
+    >
       <ModalContent />
     </ModalWithTitle>
   );
@@ -43,6 +53,7 @@ const ModalContent = () => {
   const closeModal = useRenameAuthenticationKeyModal((s) => s.close, shallow);
   const keyData = useRenameAuthenticationKeyModal((s) => s.keyData);
   const { LL } = useI18nContext();
+  const toaster = useToaster();
 
   const schema = useMemo(
     () =>
@@ -55,11 +66,28 @@ const ModalContent = () => {
     [LL.form.error],
   );
 
+  const queryClient = useQueryClient();
+
+  const onSuccess = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: [QueryKeys.FETCH_AUTHENTICATION_KEYS_INFO],
+    });
+    toaster.success(LL.messages.success());
+    closeModal();
+  }, [LL.messages, closeModal, queryClient, toaster]);
+
+  const onError = useCallback(
+    (e: AxiosError) => {
+      toaster.error(LL.messages.error());
+      console.error(e);
+    },
+    [LL.messages, toaster],
+  );
+
   const { mutate: renameYubiKeyMutation, isLoading: isLoadingYubikey } = useMutation({
     mutationFn: renameYubikey,
-    onSuccess: () => {
-      closeModal();
-    },
+    onSuccess,
+    onError,
   });
 
   const {
@@ -67,15 +95,15 @@ const ModalContent = () => {
     isLoading: isLoadingAuthenticationKey,
   } = useMutation({
     mutationFn: renameAuthenticationKey,
-    onSuccess: () => {
-      closeModal();
-    },
+    onSuccess,
+    onError,
   });
 
   const {
     handleSubmit,
     control,
     formState: { isValidating },
+    setError,
   } = useForm({
     defaultValues: {
       name: keyData?.name ?? '',
@@ -85,18 +113,31 @@ const ModalContent = () => {
   });
 
   const submitValid: SubmitHandler<FormFields> = (values) => {
+    const name = values.name.trim();
+    if (name === keyData?.name) {
+      setError(
+        'name',
+        {
+          message: LL.form.error.invalid(),
+        },
+        {
+          shouldFocus: true,
+        },
+      );
+      return;
+    }
     if (keyData) {
       if (keyData.key_type === 'yubikey') {
-        renameAuthenticationKeyMutation({
-          id: keyData.id,
-          username: keyData.username,
-          name: values.name,
-        });
-      } else {
         renameYubiKeyMutation({
           id: keyData.id,
           username: keyData.username,
-          name: values.name,
+          name,
+        });
+      } else {
+        renameAuthenticationKeyMutation({
+          id: keyData.id,
+          username: keyData.username,
+          name,
         });
       }
     }
@@ -104,13 +145,14 @@ const ModalContent = () => {
 
   return (
     <form onSubmit={handleSubmit(submitValid)} id="rename-authentication-key-form">
-      <FormInput controller={{ control, name: 'name' }} />
+      <FormInput controller={{ control, name: 'name' }} label={`${LL.common.name()}`} />
       <div className="controls">
         <Button
           className="cancel"
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           onClick={() => closeModal()}
+          text={LL.common.controls.cancel()}
         />
         <Button
           className="submit"
@@ -119,6 +161,7 @@ const ModalContent = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           disabled={isValidating || isUndefined(keyData)}
           loading={isLoadingAuthenticationKey || isLoadingYubikey}
+          text={LL.common.controls.submit()}
         />
       </div>
     </form>
