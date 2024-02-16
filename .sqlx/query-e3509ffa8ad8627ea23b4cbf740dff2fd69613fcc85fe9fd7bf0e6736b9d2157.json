@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id \"id?\", user_id, yubikey_id \"yubikey_id?\", key, name, key_type \"key_type: AuthenticationKeyType\", created FROM \"authentication_key\"\n                    WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "yubikey_id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "key_type: AuthenticationKeyType",
+        "type_info": {
+          "Custom": {
+            "name": "authentication_key_type",
+            "kind": {
+              "Enum": [
+                "ssh",
+                "gpg"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "e3509ffa8ad8627ea23b4cbf740dff2fd69613fcc85fe9fd7bf0e6736b9d2157"
+}

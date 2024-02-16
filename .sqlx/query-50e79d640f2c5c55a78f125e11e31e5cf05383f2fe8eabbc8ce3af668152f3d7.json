@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"ssh_key\",\"pgp_key\",\"pgp_cert_id\",\"mfa_enabled\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1",
+  "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes FROM \"user\" WHERE username = $1",
   "describe": {
     "columns": [
       {
@@ -40,46 +40,31 @@
       },
       {
         "ordinal": 7,
-        "name": "ssh_key",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 8,
-        "name": "pgp_key",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 9,
-        "name": "pgp_cert_id",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 10,
         "name": "mfa_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 8,
         "name": "totp_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 12,
+        "ordinal": 9,
         "name": "email_mfa_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 13,
+        "ordinal": 10,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 14,
+        "ordinal": 11,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 15,
+        "ordinal": 12,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -97,14 +82,14 @@
         }
       },
       {
-        "ordinal": 16,
-        "name": "recovery_codes: _",
+        "ordinal": 13,
+        "name": "recovery_codes",
         "type_info": "TextArray"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -115,9 +100,6 @@
       false,
       false,
       true,
-      true,
-      true,
-      true,
       false,
       false,
       false,
@@ -127,5 +109,5 @@
       false
     ]
   },
-  "hash": "cda660d3b42da87929d205cced3864c5246fc446d22b8323757057215445722b"
+  "hash": "50e79d640f2c5c55a78f125e11e31e5cf05383f2fe8eabbc8ce3af668152f3d7"
 }

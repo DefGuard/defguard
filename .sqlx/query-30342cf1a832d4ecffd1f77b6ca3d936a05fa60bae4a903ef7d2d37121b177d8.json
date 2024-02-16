@@ -1,14 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"ssh_key\" = $8,\"pgp_key\" = $9,\"pgp_cert_id\" = $10,\"mfa_enabled\" = $11,\"totp_enabled\" = $12,\"email_mfa_enabled\" = $13,\"totp_secret\" = $14,\"email_mfa_secret\" = $15,\"mfa_method\" = $16,\"recovery_codes\" = $17 WHERE id = $1",
+  "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"mfa_enabled\" = $8,\"totp_enabled\" = $9,\"email_mfa_enabled\" = $10,\"totp_secret\" = $11,\"email_mfa_secret\" = $12,\"mfa_method\" = $13,\"recovery_codes\" = $14 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
         "Int8",
-        "Text",
-        "Text",
-        "Text",
         "Text",
         "Text",
         "Text",
@@ -39,5 +36,5 @@
     },
     "nullable": []
   },
-  "hash": "b7c5258b7765255b4231a761d300a98018d0fbc0c06754bca48a7bbd2bc44dba"
+  "hash": "30342cf1a832d4ecffd1f77b6ca3d936a05fa60bae4a903ef7d2d37121b177d8"
 }

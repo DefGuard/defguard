@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"yubikey\" SET name = $1, serial = $2, user_id = $3 WHERE id = $4;\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fb5c4f5858607f64542e7c5ee591a3289c5a2d0afba73a47f03a66b9848869f3"
+}

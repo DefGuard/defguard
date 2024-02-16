@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes FROM \"user\" WHERE id = ANY($1)",
+  "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\"",
   "describe": {
     "columns": [
       {
@@ -40,46 +40,31 @@
       },
       {
         "ordinal": 7,
-        "name": "ssh_key",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 8,
-        "name": "pgp_key",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 9,
-        "name": "pgp_cert_id",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 10,
         "name": "mfa_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 8,
         "name": "totp_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 12,
+        "ordinal": 9,
         "name": "email_mfa_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 13,
+        "ordinal": 10,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 14,
+        "ordinal": 11,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 15,
+        "ordinal": 12,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -97,15 +82,13 @@
         }
       },
       {
-        "ordinal": 16,
-        "name": "recovery_codes",
+        "ordinal": 13,
+        "name": "recovery_codes: _",
         "type_info": "TextArray"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8Array"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -114,9 +97,6 @@
       false,
       false,
       false,
-      true,
-      true,
-      true,
       true,
       false,
       false,
@@ -127,5 +107,5 @@
       false
     ]
   },
-  "hash": "47be1dd4082d7d783db28ef08c1e384c2d5dcfe9d303822e4dd09a069c83cda8"
+  "hash": "f7ca16ebd3aae0812c44eca690638f235ad660495ec529dd79d97c38f3336174"
 }

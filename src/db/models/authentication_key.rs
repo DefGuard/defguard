@@ -150,7 +150,7 @@ impl AuthenticationKey {
     where
         E: PgExecutor<'e>,
     {
-        Ok(query_as!(
+        query_as!(
             Self,
             "SELECT id, user_id, yubikey_id, key, name, \
             key_type \"key_type: _\", created FROM \"authentication_key\" \
@@ -158,7 +158,7 @@ impl AuthenticationKey {
             id
         )
         .fetch_optional(executor)
-        .await?)
+        .await
     }
 
     pub async fn delete_by_id<'e, E>(executor: E, id: i64) -> Result<(), SqlxError>
