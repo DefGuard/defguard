@@ -44,9 +44,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
       - name: Pull images
-        run: docker-compose --file './docker-compose.e2e.yaml' pull
+        run: docker compose --file './docker-compose.e2e.yaml' pull
       - name: Start compose
-        run: docker-compose --file './docker-compose.e2e.yaml' up -d
+        run: docker compose --file './docker-compose.e2e.yaml' up -d
       - name: Install E2E dependencies
         working-directory: ./e2e
         run: pnpm install --frozen-lockfile
@@ -58,7 +58,7 @@ jobs:
         run: pnpm test
       - name: Stop compose
         if: always()
-        run: docker-compose --file './docker-compose.e2e.yaml' down
+        run: docker compose --file './docker-compose.e2e.yaml' down
       - uses: actions/upload-artifact@v3
         if: failure()
         with:

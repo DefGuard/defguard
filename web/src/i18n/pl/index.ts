@@ -54,7 +54,7 @@ const pl: Translation = {
       },
       infoMessage: `
       <p>
-        Aby zakończyć konfigurację, wpisz kod, który został wysłany na email: <strong>{email}</strong> 
+        Aby zakończyć konfigurację, wpisz kod, który został wysłany na email: <strong>{email}</strong>
       </p>
       `,
       messages: {
@@ -782,6 +782,9 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       allowedIps: 'Tylko poprawne adresy IP oraz domeny.',
       startFromNumber: 'Nie może zaczynać się od liczby.',
       repeat: 'Wartości się nie pokrywają.',
+      maximumValue: 'Maksymalna wartość {value} przekroczona.',
+      minimumValue: 'Minimalna wartość {value} nie osiągnięta.',
+      number: 'Wartość musi być liczbą.',
     },
     floatingErrors: {
       title: 'Popraw następujące błędy:',

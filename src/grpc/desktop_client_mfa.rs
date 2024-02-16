@@ -11,11 +11,12 @@ use crate::{
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
+use chrono::Utc;
 use std::collections::HashMap;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 
-const SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
+const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
 
 struct ClientLoginSession {
     method: MfaMethod,
@@ -50,7 +51,7 @@ impl ClientMfaServer {
             ClaimsType::DesktopClient,
             String::new(),
             pubkey.into(),
-            SESSION_TIMEOUT,
+            CLIENT_SESSION_TIMEOUT,
         )
         .to_jwt()
         .map_err(|err| {
@@ -232,6 +233,7 @@ impl ClientMfaServer {
 
         // authorize device for given location
         network_device.is_authorized = true;
+        network_device.authorized_at = Some(Utc::now().naive_utc());
 
         // save updated network config
         network_device

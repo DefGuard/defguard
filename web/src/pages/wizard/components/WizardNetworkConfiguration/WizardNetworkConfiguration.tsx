@@ -105,7 +105,7 @@ export const WizardNetworkConfiguration = () => {
         endpoint: z.string().min(1, LL.form.error.required()),
         port: z
           .number({
-            required_error: LL.form.error.required(),
+            invalid_type_error: LL.form.error.invalid(),
           })
           .max(65535, LL.form.error.portMax())
           .nonnegative(),
@@ -131,14 +131,14 @@ export const WizardNetworkConfiguration = () => {
         mfa_enabled: z.boolean(),
         keepalive_interval: z
           .number({
-            required_error: LL.form.error.required(),
+            invalid_type_error: LL.form.error.invalid(),
           })
           .positive(),
         peer_disconnect_threshold: z
           .number({
-            required_error: LL.form.error.required(),
+            invalid_type_error: LL.form.error.invalid(),
           })
-          .refine((v) => v >= 120, LL.form.error.invalid()),
+          .refine((v) => v >= 120, LL.form.error.minimumLength()),
       }),
     [LL.form.error],
   );
@@ -196,6 +196,7 @@ export const WizardNetworkConfiguration = () => {
         <FormInput
           controller={{ control, name: 'port' }}
           label={LL.networkConfiguration.form.fields.port.label()}
+          type="number"
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedIps()}</p>
@@ -234,10 +235,12 @@ export const WizardNetworkConfiguration = () => {
         <FormInput
           controller={{ control, name: 'keepalive_interval' }}
           label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
+          type="number"
         />
         <FormInput
           controller={{ control, name: 'peer_disconnect_threshold' }}
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
+          type="number"
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

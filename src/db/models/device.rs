@@ -15,6 +15,7 @@ use super::{
     wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE_MINUTES},
     DbPool,
 };
+use crate::KEY_LENGTH;
 
 #[derive(Serialize)]
 pub struct DeviceConfig {
@@ -171,6 +172,7 @@ pub struct WireguardNetworkDevice {
     pub device_id: i64,
     pub preshared_key: Option<String>,
     pub is_authorized: bool,
+    pub authorized_at: Option<NaiveDateTime>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -194,6 +196,7 @@ impl WireguardNetworkDevice {
             device_id,
             preshared_key: None,
             is_authorized: false,
+            authorized_at: None,
         }
     }
 
@@ -203,14 +206,16 @@ impl WireguardNetworkDevice {
     {
         query!(
             "INSERT INTO wireguard_network_device \
-                (device_id, wireguard_network_id, wireguard_ip, is_authorized) \
-                VALUES ($1, $2, $3, $4) \
+                (device_id, wireguard_network_id, wireguard_ip, is_authorized, authorized_at, preshared_key) \
+                VALUES ($1, $2, $3, $4, $5, $6) \
                 ON CONFLICT ON CONSTRAINT device_network \
                 DO UPDATE SET wireguard_ip = $3, is_authorized = $4",
             self.device_id,
             self.wireguard_network_id,
             IpNetwork::from(self.wireguard_ip.clone()),
             self.is_authorized,
+            self.authorized_at,
+            self.preshared_key
         )
         .execute(executor)
         .await?;
@@ -223,12 +228,14 @@ impl WireguardNetworkDevice {
     {
         query!(
             "UPDATE wireguard_network_device \
-            SET wireguard_ip = $3, is_authorized = $4 \
+            SET wireguard_ip = $3, is_authorized = $4, authorized_at = $5, preshared_key = $6 \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             self.device_id,
             self.wireguard_network_id,
             IpNetwork::from(self.wireguard_ip.clone()),
             self.is_authorized,
+            self.authorized_at,
+            self.preshared_key,
         )
         .execute(executor)
         .await?;
@@ -260,7 +267,7 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", preshared_key, is_authorized \
+            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             device_id,
@@ -277,7 +284,7 @@ impl WireguardNetworkDevice {
     ) -> Result<Option<Vec<Self>>, SqlxError> {
         let result = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", preshared_key, is_authorized \
+            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device WHERE device_id = $1",
             device_id
         )
@@ -298,7 +305,7 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", preshared_key, is_authorized \
+            "SELECT device_id, wireguard_network_id, wireguard_ip as \"wireguard_ip: IpAddr\", preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1",
             network_id
@@ -312,7 +319,7 @@ impl WireguardNetworkDevice {
 #[derive(Error, Debug)]
 pub enum DeviceError {
     #[error("Device {0} pubkey is the same as gateway pubkey for network {1}")]
-    PubkeyConflict(Device, Box<WireguardNetwork>),
+    PubkeyConflict(Device, String),
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
     #[error("Model error")]
@@ -357,7 +364,7 @@ impl Device {
                     format!("DNS = {dns}")
                 }
             }
-            &None => String::new(),
+            None => String::new(),
         };
         let allowed_ips = network
             .allowed_ips
@@ -369,19 +376,14 @@ impl Device {
             "[Interface]\n\
             PrivateKey = YOUR_PRIVATE_KEY\n\
             Address = {}\n\
-            {}\n\
+            {dns}\n\
             \n\
             [Peer]\n\
             PublicKey = {}\n\
-            AllowedIPs = {}\n\
+            AllowedIPs = {allowed_ips}\n\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
-            wireguard_network_device.wireguard_ip,
-            dns,
-            network.pubkey,
-            allowed_ips,
-            network.endpoint,
-            network.port,
+            wireguard_network_device.wireguard_ip, network.pubkey, network.endpoint, network.port,
         )
     }
 
@@ -500,12 +502,12 @@ impl Device {
         let mut network_info = Vec::new();
         for network in networks {
             debug!(
-                "Assigning IP for device {} (user {}) in network {}",
-                self.name, self.user_id, network
+                "Assigning IP for device {} (user {}) in network {network}",
+                self.name, self.user_id
             );
             // check for pubkey conflicts with networks
             if network.pubkey == self.wireguard_pubkey {
-                return Err(DeviceError::PubkeyConflict(self.clone(), Box::new(network)));
+                return Err(DeviceError::PubkeyConflict(self.clone(), network.name));
             }
 
             let Some(network_id) = network.id else {
@@ -520,10 +522,7 @@ impl Device {
             .await?
             .is_some()
             {
-                debug!(
-                    "Device {} already has an IP within network {}. Skipping...",
-                    self, network
-                );
+                debug!("Device {self} already has an IP within network {network}. Skipping...",);
                 continue;
             }
 
@@ -532,8 +531,8 @@ impl Device {
                 .await
             {
                 debug!(
-                    "Assigned IP {} for device {} (user {}) in network {}",
-                    wireguard_network_device.wireguard_ip, self.name, self.user_id, network
+                    "Assigned IP {} for device {} (user {}) in network {network}",
+                    wireguard_network_device.wireguard_ip, self.name, self.user_id
                 );
                 let device_network_info = DeviceNetworkInfo {
                     network_id,
@@ -601,7 +600,7 @@ impl Device {
 
     pub fn validate_pubkey(pubkey: &str) -> Result<(), String> {
         if let Ok(key) = BASE64_STANDARD.decode(pubkey) {
-            if key.len() == 32 {
+            if key.len() == KEY_LENGTH {
                 return Ok(());
             }
         }

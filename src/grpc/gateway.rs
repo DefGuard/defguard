@@ -154,9 +154,9 @@ impl WireguardPeerStats {
             endpoint,
             device_id: -1,
             collected_at: Utc::now().naive_utc(),
-            upload: stats.upload,
-            download: stats.download,
-            latest_handshake: NaiveDateTime::from_timestamp_opt(stats.latest_handshake, 0)
+            upload: stats.upload as i64,
+            download: stats.download as i64,
+            latest_handshake: NaiveDateTime::from_timestamp_opt(stats.latest_handshake as i64, 0)
                 .unwrap_or_default(),
             allowed_ips: Some(stats.allowed_ips),
         }
@@ -199,7 +199,7 @@ impl GatewayUpdatesHandler {
             self.gateway_hostname, self.network
         );
         while let Ok(update) = self.events_rx.recv().await {
-            debug!("Received wireguard update: {update:?}");
+            debug!("Received WireGuard update: {update:?}");
             let result = match update {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if network_id == self.network_id {
@@ -261,6 +261,10 @@ impl GatewayUpdatesHandler {
                         .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
+                            if self.network.mfa_enabled && !network_info.is_authorized {
+                                debug!("Modified WireGuard device is not authorized to connect to MFA enabled location");
+                                continue;
+                            };
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
@@ -467,11 +471,15 @@ impl gateway_service_server::GatewayService for GatewayServer {
     /// Retrieve stats from gateway and save it to database
     async fn stats(
         &self,
-        request: Request<tonic::Streaming<PeerStats>>,
+        request: Request<tonic::Streaming<StatsUpdate>>,
     ) -> Result<Response<()>, Status> {
         let network_id = Self::get_network_id(request.metadata())?;
         let mut stream = request.into_inner();
-        while let Some(peer_stats) = stream.message().await? {
+        while let Some(stats_update) = stream.message().await? {
+            let Some(stats_update::Payload::PeerStats(peer_stats)) = stats_update.payload else {
+                debug!("Received empty stats message");
+                continue;
+            };
             let public_key = peer_stats.public_key.clone();
             let mut stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id);
             // Get device by public key and fill in stats.device_id

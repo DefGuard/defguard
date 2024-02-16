@@ -166,7 +166,11 @@ export const NetworkEditForm = () => {
           .string()
           .min(1, LL.form.error.required())
           .refine((val) => validateIpOrDomain(val), LL.form.error.endpoint()),
-        port: z.number().max(65535, LL.form.error.portMax()),
+        port: z
+          .number({
+            invalid_type_error: LL.form.error.required(),
+          })
+          .max(65535, LL.form.error.portMax()),
         allowed_ips: z
           .string()
           .optional()
@@ -185,11 +189,17 @@ export const NetworkEditForm = () => {
             }
             return validateIpOrDomainList(val, ',', true);
           }, LL.form.error.allowedIps()),
+        allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
         mfa_enabled: z.boolean(),
-        keepalive_interval: z.number().nonnegative().min(1, LL.form.error.required()),
+        keepalive_interval: z
+          .number({
+            invalid_type_error: LL.form.error.required(),
+          })
+          .nonnegative()
+          .min(1, LL.form.error.required()),
         peer_disconnect_threshold: z
           .number({
-            required_error: LL.form.error.required(),
+            invalid_type_error: LL.form.error.required(),
           })
           .min(120, LL.form.error.invalid()),
       }),
@@ -252,6 +262,7 @@ export const NetworkEditForm = () => {
         <FormInput
           controller={{ control, name: 'port' }}
           label={LL.networkConfiguration.form.fields.port.label()}
+          type="number"
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedIps()}</p>
@@ -295,10 +306,12 @@ export const NetworkEditForm = () => {
         <FormInput
           controller={{ control, name: 'keepalive_interval' }}
           label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
+          type="number"
         />
         <FormInput
           controller={{ control, name: 'peer_disconnect_threshold' }}
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
+          type="number"
         />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>

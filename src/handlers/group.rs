@@ -74,8 +74,8 @@ pub(crate) async fn bulk_assign_to_groups(
     }
 
     let mut transaction = appstate.pool.begin().await?;
-    for group in groups.iter() {
-        for user in users.iter() {
+    for group in &groups {
+        for user in &users {
             user.add_to_group(&mut *transaction, group).await?;
         }
     }
