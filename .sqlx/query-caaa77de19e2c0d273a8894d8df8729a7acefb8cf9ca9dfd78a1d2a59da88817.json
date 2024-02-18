@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"yubikey\" (name, serial, user_id) VALUES ($1,$2,$3) RETURNING id;",
+  "query": "INSERT INTO \"yubikey\" (\"name\",\"serial\",\"user_id\") VALUES ($1,$2,$3) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -20,5 +20,5 @@
       false
     ]
   },
-  "hash": "addbdffd591209139c791403da43078796365de9abfe7b7124f5ab47f5deff85"
+  "hash": "caaa77de19e2c0d273a8894d8df8729a7acefb8cf9ca9dfd78a1d2a59da88817"
 }

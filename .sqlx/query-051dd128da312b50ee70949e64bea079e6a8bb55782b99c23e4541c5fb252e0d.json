@@ -1,10 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"authentication_key\" SET yubikey_id = $1, name = $2, user_id = $3, key = $4, key_type = $5, created = $6 WHERE id = $7;\n                ",
+  "query": "UPDATE \"authentication_key\" SET \"yubikey_id\" = $2,\"name\" = $3,\"user_id\" = $4,\"key\" = $5,\"key_type\" = $6,\"created\" = $7 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8",
         "Text",
         "Int8",
@@ -20,11 +21,10 @@
             }
           }
         },
-        "Timestamp",
-        "Int8"
+        "Timestamp"
       ]
     },
     "nullable": []
   },
-  "hash": "f2abbdcf90228d8c34322059e505ad3a039c1724524ac05cbab8faf49fd28ff0"
+  "hash": "051dd128da312b50ee70949e64bea079e6a8bb55782b99c23e4541c5fb252e0d"
 }

@@ -1,31 +1,31 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, yubikey_id, key, name, key_type \"key_type: _\", created FROM \"authentication_key\" WHERE id = $1",
+  "query": "SELECT id \"id?\", \"yubikey_id\",\"name\",\"user_id\",\"key\",\"key_type\" \"key_type: _\",\"created\" FROM \"authentication_key\"",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id?",
         "type_info": "Int8"
       },
       {
         "ordinal": 1,
-        "name": "user_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 2,
         "name": "yubikey_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 3,
-        "name": "key",
+        "ordinal": 2,
+        "name": "name",
         "type_info": "Text"
       },
       {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
         "ordinal": 4,
-        "name": "name",
+        "name": "key",
         "type_info": "Text"
       },
       {
@@ -50,19 +50,17 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
-      false,
+      true,
       true,
       false,
-      true,
+      false,
       false,
       false
     ]
   },
-  "hash": "a128a4b4836af64bae17485d1a491f7613975cd7c088840bdab6f75c23840604"
+  "hash": "295c972a0104773da634054f0772cbe8899b6bc2d605300a9d7232c34b6a2deb"
 }
