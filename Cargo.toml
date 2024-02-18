@@ -65,7 +65,9 @@ sqlx = { version = "0.7", features = [
     "postgres",
     "uuid",
 ] }
+ssh-key = "0.6"
 struct-patch = "0.4"
+strum = { version = "0.26", features = ["derive"]}
 tera = "1.19"
 thiserror = "1.0"
 # match axum-extra -> cookies
@@ -92,8 +94,6 @@ webauthn-rs = { version = "0.4", features = [
 ] }
 webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-ssh-key = "0.6.4"
-strum = { version = "0.26.1", features = ["derive"]}
 
 [dev-dependencies]
 bytes = "1.5"

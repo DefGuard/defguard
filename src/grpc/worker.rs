@@ -266,9 +266,10 @@ impl worker_service_server::WorkerService for WorkerServer {
                             .fetch_one(&self.pool)
                             .await
                             .map_err(|_| Status::internal("Failed to count keys"))?;
+                            // FIXME: names may collide
                             let name = match yubi_count_res.count {
                                 Some(count) => {
-                                    let name = format!("YubiKey {0}", count + 1);
+                                    let name = format!("YubiKey {}", count + 1);
                                     name
                                 }
                                 None => "YubiKey".to_string(),
@@ -306,8 +307,8 @@ impl worker_service_server::WorkerService for WorkerServer {
                             return Err(Status::internal("User has no ID"));
                         }
                     }
-                    Ok(None) => info!("User {} not found", username),
-                    Err(err) => error!("Error {}", err),
+                    Ok(None) => info!("User {username} not found"),
+                    Err(err) => error!("Error {err}"),
                 }
             }
         }

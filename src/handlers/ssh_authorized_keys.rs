@@ -1,13 +1,3 @@
-use crate::{
-    appstate::AppState,
-    auth::SessionInfo,
-    db::{
-        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-        DbPool, Group, User,
-    },
-    error::WebError,
-    handlers::user_for_admin_or_self,
-};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -17,18 +7,27 @@ use serde_json::json;
 use sqlx::{query, Error as SqlxError, PgExecutor};
 use ssh_key::PublicKey;
 
-use super::{ApiResponse, ApiResult};
+use super::{user_for_admin_or_self, ApiResponse, ApiResult};
+use crate::{
+    appstate::AppState,
+    auth::SessionInfo,
+    db::{
+        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
+        DbPool, Group, User,
+    },
+    error::WebError,
+};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub(crate) struct AuthenticationKeyInfo {
-    pub id: i64,
-    pub name: Option<String>,
-    pub key_type: AuthenticationKeyType,
-    pub key: String,
-    pub user_id: i64,
-    pub yubikey_serial: Option<String>,
-    pub yubikey_id: Option<i64>,
-    pub yubikey_name: Option<String>,
+    id: i64,
+    name: Option<String>,
+    key_type: AuthenticationKeyType,
+    key: String,
+    user_id: i64,
+    yubikey_serial: Option<String>,
+    yubikey_id: Option<i64>,
+    yubikey_name: Option<String>,
 }
 
 impl AuthenticationKeyInfo {
@@ -37,8 +36,7 @@ impl AuthenticationKeyInfo {
         E: PgExecutor<'e>,
     {
         let q_res = query!(
-            "SELECT \
-            k.id as key_id, k.name, k.key_type \"key_type: AuthenticationKeyType\", \
+            "SELECT k.id as key_id, k.name, k.key_type \"key_type: AuthenticationKeyType\", \
             k.key, k.user_id, k.yubikey_id, \
             y.name \"yubikey_name: Option<String>\", y.serial \"serial: Option<String>\" \
             FROM \"authentication_key\" k \
@@ -48,12 +46,12 @@ impl AuthenticationKeyInfo {
         )
         .fetch_all(executor)
         .await?;
-        let res: Vec<Self> = q_res
+        let res = q_res
             .iter()
             .map(|q| Self {
                 id: q.key_id,
                 key: q.key.clone(),
-                key_type: q.key_type,
+                key_type: q.key_type.clone(),
                 user_id: q.user_id,
                 name: q.name.clone(),
                 yubikey_id: q.yubikey_id,
@@ -81,7 +79,7 @@ async fn add_user_ssh_keys_to_list(pool: &DbPool, user: &User, ssh_keys: &mut Ve
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 pub struct SshKeysRequestParams {
     username: Option<String>,
     group: Option<String>,
@@ -155,11 +153,11 @@ pub async fn get_authorized_keys(
     Ok(ssh_keys.join("\n"))
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize)]
 pub struct AddAuthenticationKeyData {
-    pub key: String,
-    pub name: String,
-    pub key_type: AuthenticationKeyType,
+    key: String,
+    name: String,
+    key_type: AuthenticationKeyType,
 }
 
 pub async fn add_authentication_key(
@@ -169,16 +167,14 @@ pub async fn add_authentication_key(
     Json(data): Json<AddAuthenticationKeyData>,
 ) -> ApiResult {
     debug!(
-        "Adding authentication key of type {} for user {}",
-        data.key_type.as_ref(),
-        username
+        "Adding authentication key of type {:?} for user {username}",
+        data.key_type,
     );
 
     // authorize request
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    let user_id = match user.id {
-        Some(id) => id,
-        None => return Err(WebError::ModelError("Model returned without ID".into())),
+    let Some(user_id) = user.id else {
+        return Err(WebError::ModelError("Model returned without ID".into()));
     };
 
     let trimmed_key = data.key.trim_end_matches(|c| c == '\n' || c == '\r');
@@ -227,13 +223,10 @@ pub async fn fetch_authentication_keys(
     session: SessionInfo,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    let user_id = match user.id {
-        Some(id) => id,
-        None => {
-            return Err(WebError::ModelError(
-                "Model returned user without ID".into(),
-            ))
-        }
+    let Some(user_id) = user.id else {
+        return Err(WebError::ModelError(
+            "Model returned user without ID".into(),
+        ));
     };
 
     let keys_info = AuthenticationKeyInfo::find_by_user_id(&appstate.pool, user_id).await?;
@@ -255,7 +248,7 @@ pub async fn delete_authentication_key(
         .ok_or(WebError::DbError("Returned user had no ID".into()))?;
     if let Some(key) = AuthenticationKey::find_by_id(&appstate.pool, key_id).await? {
         if !session.is_admin && user_id != key.user_id {
-            return Err(WebError::Forbidden("".into()));
+            return Err(WebError::Forbidden(String::new()));
         }
         key.delete(&appstate.pool).await?;
     } else {
@@ -287,12 +280,12 @@ pub async fn rename_authentication_key(
             return Err(WebError::BadRequest("Rename yubikey instead.".into()));
         }
         if !session.is_admin && user_id != key.user_id {
-            return Err(WebError::Forbidden("".into()));
+            return Err(WebError::Forbidden(String::new()));
         }
         key.name = Some(data.name);
         key.save(&appstate.pool).await?;
     } else {
-        return Err(WebError::ObjectNotFound("".into()));
+        return Err(WebError::ObjectNotFound(String::new()));
     }
 
     Ok(ApiResponse {
