@@ -1,7 +1,7 @@
 {#
 Requires context:
 gateway_name ->  name of gateway
-gateway_ip -> gateway adress 
+gateway_ip -> gateway adress
 network_name ->  name of network
 #}
 {% extends "base.tera" %}
@@ -12,4 +12,3 @@ macros::paragraph(content="Your gateway: " ~ gateway_name ~ " (IP: " ~ gateway_i
 macros::paragraph(content="Please login to your gateway server and see the logs.")] %}
 {{ macros::text_section(content_array=section_content) }}
 {% endblock %}
-
