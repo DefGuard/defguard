@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"authentication_key\" (\"yubikey_id\",\"name\",\"user_id\",\"key\",\"key_type\") VALUES ($1,$2,$3,$4,$5) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8",
+        "Text",
+        {
+          "Custom": {
+            "name": "authentication_key_type",
+            "kind": {
+              "Enum": [
+                "ssh",
+                "gpg"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a17667dc1fb306916ed774303bca8be1953b76181e929f4c22f453303593efd0"
+}

@@ -21,6 +21,7 @@ import { MutationKeys } from '../../../../shared/mutations';
 import { patternValidWireguardKey } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 import { generateWGKeys } from '../../../../shared/utils/generateWGKeys';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 import { AddDeviceSetupMethod } from '../../types';
 
@@ -128,6 +129,7 @@ export const AddDeviceSetupStep = () => {
 
   const validSubmitHandler: SubmitHandler<FormValues> = async (values) => {
     if (!userData) return;
+    values = trimObjectStrings(values);
     if (values.choice === AddDeviceSetupMethod.AUTO) {
       const keys = generateWGKeys();
       addDeviceMutation({

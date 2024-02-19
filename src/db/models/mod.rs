@@ -1,5 +1,6 @@
 #[cfg(feature = "openid")]
 pub mod auth_code;
+pub mod authentication_key;
 pub mod device;
 pub mod device_login;
 pub mod enrollment;
@@ -18,6 +19,7 @@ pub mod wallet;
 pub mod webauthn;
 pub mod webhook;
 pub mod wireguard;
+pub mod yubikey;
 
 use sqlx::{query_as, Error as SqlxError, PgConnection};
 
@@ -67,9 +69,6 @@ pub struct UserInfo {
     pub first_name: String,
     pub email: String,
     pub phone: Option<String>,
-    pub ssh_key: Option<String>,
-    pub pgp_key: Option<String>,
-    pub pgp_cert_id: Option<String>,
     pub mfa_enabled: bool,
     pub totp_enabled: bool,
     pub email_mfa_enabled: bool,
@@ -91,9 +90,6 @@ impl UserInfo {
             first_name: user.first_name.clone(),
             email: user.email.clone(),
             phone: user.phone.clone(),
-            ssh_key: user.ssh_key.clone(),
-            pgp_key: user.pgp_key.clone(),
-            pgp_cert_id: user.pgp_cert_id.clone(),
             mfa_enabled: user.mfa_enabled,
             totp_enabled: user.totp_enabled,
             email_mfa_enabled: user.email_mfa_enabled,
@@ -148,22 +144,13 @@ impl UserInfo {
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
     pub fn into_user_safe_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
-        user.ssh_key = self.ssh_key;
-        user.pgp_key = self.pgp_key;
-        user.pgp_cert_id = self.pgp_cert_id;
         user.mfa_method = self.mfa_method;
-
         Ok(())
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
     pub fn into_user_all_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
-        user.ssh_key = self.ssh_key;
-        user.pgp_key = self.pgp_key;
-        user.pgp_cert_id = self.pgp_cert_id;
-        user.mfa_method = self.mfa_method;
-
         user.username = self.username;
         user.last_name = self.last_name;
         user.first_name = self.first_name;

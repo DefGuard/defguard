@@ -74,7 +74,27 @@ type RootTranslation = {
 			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
 			 */
 			RestoreDefault: string
+			/**
+			 * D​e​l​e​t​e
+			 */
+			'delete': string
+			/**
+			 * R​e​n​a​m​e
+			 */
+			rename: string
+			/**
+			 * C​o​p​y
+			 */
+			copy: string
 		}
+		/**
+		 * K​e​y
+		 */
+		key: string
+		/**
+		 * N​a​m​e
+		 */
+		name: string
 	}
 	messages: {
 		/**
@@ -1438,6 +1458,158 @@ type RootTranslation = {
 				line2: string
 			}
 		}
+		authenticationKeys: {
+			/**
+			 * U​s​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y​s
+			 */
+			header: string
+			/**
+			 * A​d​d​ ​n​e​w​ ​K​e​y
+			 */
+			addKey: string
+			keysList: {
+				common: {
+					/**
+					 * R​e​n​a​m​e
+					 */
+					rename: string
+					/**
+					 * K​e​y
+					 */
+					key: string
+					/**
+					 * D​o​w​n​l​o​a​d
+					 */
+					download: string
+					/**
+					 * C​o​p​y
+					 */
+					copy: string
+					/**
+					 * S​e​r​i​a​l​ ​N​u​m​b​e​r
+					 */
+					serialNumber: string
+					/**
+					 * D​e​l​e​t​e
+					 */
+					'delete': string
+				}
+			}
+			deleteModal: {
+				/**
+				 * D​e​l​e​t​e​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
+				 */
+				title: string
+				/**
+				 * K​e​y​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
+				 * @param {string} name
+				 */
+				confirmMessage: RequiredParams<'name'>
+			}
+			addModal: {
+				/**
+				 * A​d​d​ ​n​e​w​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
+				 */
+				header: string
+				/**
+				 * K​e​y​ ​T​y​p​e
+				 */
+				keyType: string
+				keyForm: {
+					placeholders: {
+						/**
+						 * K​e​y​ ​t​i​t​l​e
+						 */
+						title: string
+						key: {
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​s​s​h​-​r​s​a​,​ ​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​,​ ​.​.​.
+							 */
+							ssh: string
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​-​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-
+							 */
+							gpg: string
+						}
+					}
+					labels: {
+						/**
+						 * T​i​t​l​e
+						 */
+						title: string
+						/**
+						 * K​e​y
+						 */
+						key: string
+					}
+					/**
+					 * A​d​d​ ​{​n​a​m​e​}​ ​k​e​y
+					 * @param {string} name
+					 */
+					submit: RequiredParams<'name'>
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​i​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​Y​u​b​i​K​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
+						 */
+						info: string
+						/**
+						 * S​e​l​e​c​t​ ​o​n​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
+						 */
+						selectLabel: string
+						/**
+						 * N​o​ ​w​o​r​k​e​r​s​ ​a​r​e​ ​r​e​g​i​s​t​e​r​e​d​ ​r​i​g​h​t​ ​n​o​w​.
+						 */
+						noData: string
+						/**
+						 * A​v​a​i​l​a​b​l​e
+						 */
+						available: string
+						/**
+						 * U​n​a​v​a​i​l​a​b​l​e
+						 */
+						unavailable: string
+					}
+					provisioning: {
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​i​n​ ​p​r​o​g​r​e​s​s​,​ ​p​l​e​a​s​e​ ​w​a​i​t​.
+						 */
+						inProgress: string
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​f​a​i​l​e​d​ ​!
+						 */
+						error: string
+						/**
+						 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
+						 */
+						success: string
+					}
+					/**
+					 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​k​e​y
+					 */
+					submit: string
+				}
+				messages: {
+					/**
+					 * K​e​y​ ​a​d​d​e​d​.
+					 */
+					keyAdded: string
+					/**
+					 * K​e​y​ ​h​a​s​ ​a​l​r​e​a​d​y​ ​b​e​e​n​ ​a​d​d​e​d​.
+					 */
+					keyExists: string
+					/**
+					 * U​n​s​u​p​p​o​r​t​e​d​ ​k​e​y​ ​f​o​r​m​a​t​.
+					 */
+					unsupportedKeyFormat: string
+					/**
+					 * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​t​h​e​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
+					 */
+					genericError: string
+				}
+			}
+		}
 	}
 	usersOverview: {
 		/**
@@ -1501,9 +1673,17 @@ type RootTranslation = {
 				 */
 				edit: string
 				/**
-				 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​K​e​y
+				 * A​d​d​ ​Y​u​b​i​K​e​y
 				 */
-				provision: string
+				addYubikey: string
+				/**
+				 * A​d​d​ ​S​H​H​ ​K​e​y
+				 */
+				addSSH: string
+				/**
+				 * A​d​d​ ​G​P​G​ ​K​e​y
+				 */
+				addGPG: string
 				/**
 				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
 				 */
@@ -3657,7 +3837,27 @@ export type TranslationFunctions = {
 			 * Restore default
 			 */
 			RestoreDefault: () => LocalizedString
+			/**
+			 * Delete
+			 */
+			'delete': () => LocalizedString
+			/**
+			 * Rename
+			 */
+			rename: () => LocalizedString
+			/**
+			 * Copy
+			 */
+			copy: () => LocalizedString
 		}
+		/**
+		 * Key
+		 */
+		key: () => LocalizedString
+		/**
+		 * Name
+		 */
+		name: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -5012,6 +5212,156 @@ export type TranslationFunctions = {
 				line2: () => LocalizedString
 			}
 		}
+		authenticationKeys: {
+			/**
+			 * User Authentication Keys
+			 */
+			header: () => LocalizedString
+			/**
+			 * Add new Key
+			 */
+			addKey: () => LocalizedString
+			keysList: {
+				common: {
+					/**
+					 * Rename
+					 */
+					rename: () => LocalizedString
+					/**
+					 * Key
+					 */
+					key: () => LocalizedString
+					/**
+					 * Download
+					 */
+					download: () => LocalizedString
+					/**
+					 * Copy
+					 */
+					copy: () => LocalizedString
+					/**
+					 * Serial Number
+					 */
+					serialNumber: () => LocalizedString
+					/**
+					 * Delete
+					 */
+					'delete': () => LocalizedString
+				}
+			}
+			deleteModal: {
+				/**
+				 * Delete Authentication Key
+				 */
+				title: () => LocalizedString
+				/**
+				 * Key {name} will be deleted permanently.
+				 */
+				confirmMessage: (arg: { name: string }) => LocalizedString
+			}
+			addModal: {
+				/**
+				 * Add new Authentication Key
+				 */
+				header: () => LocalizedString
+				/**
+				 * Key Type
+				 */
+				keyType: () => LocalizedString
+				keyForm: {
+					placeholders: {
+						/**
+						 * Key title
+						 */
+						title: () => LocalizedString
+						key: {
+							/**
+							 * Begins with ssh-rsa, ecdsa-sha2-nistp256, ...
+							 */
+							ssh: () => LocalizedString
+							/**
+							 * Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----
+							 */
+							gpg: () => LocalizedString
+						}
+					}
+					labels: {
+						/**
+						 * Title
+						 */
+						title: () => LocalizedString
+						/**
+						 * Key
+						 */
+						key: () => LocalizedString
+					}
+					/**
+					 * Add {name} key
+					 */
+					submit: (arg: { name: string }) => LocalizedString
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.
+						 */
+						info: () => LocalizedString
+						/**
+						 * Select on of the following provisioners to provision a YubiKey
+						 */
+						selectLabel: () => LocalizedString
+						/**
+						 * No workers are registered right now.
+						 */
+						noData: () => LocalizedString
+						/**
+						 * Available
+						 */
+						available: () => LocalizedString
+						/**
+						 * Unavailable
+						 */
+						unavailable: () => LocalizedString
+					}
+					provisioning: {
+						/**
+						 * Provisioning in progress, please wait.
+						 */
+						inProgress: () => LocalizedString
+						/**
+						 * Provisioning failed !
+						 */
+						error: () => LocalizedString
+						/**
+						 * Yubikey provisioned successfully
+						 */
+						success: () => LocalizedString
+					}
+					/**
+					 * Provision Yubikey
+					 */
+					submit: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Key added.
+					 */
+					keyAdded: () => LocalizedString
+					/**
+					 * Key has already been added.
+					 */
+					keyExists: () => LocalizedString
+					/**
+					 * Unsupported key format.
+					 */
+					unsupportedKeyFormat: () => LocalizedString
+					/**
+					 * Could not add the key. Please try again later.
+					 */
+					genericError: () => LocalizedString
+				}
+			}
+		}
 	}
 	usersOverview: {
 		/**
@@ -5075,9 +5425,17 @@ export type TranslationFunctions = {
 				 */
 				edit: () => LocalizedString
 				/**
-				 * Provision YubiKey
+				 * Add YubiKey
 				 */
-				provision: () => LocalizedString
+				addYubikey: () => LocalizedString
+				/**
+				 * Add SHH Key
+				 */
+				addSSH: () => LocalizedString
+				/**
+				 * Add GPG Key
+				 */
+				addGPG: () => LocalizedString
 				/**
 				 * Delete account
 				 */

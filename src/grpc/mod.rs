@@ -563,9 +563,7 @@ pub struct Job {
 #[derive(Serialize)]
 pub struct JobResponse {
     pub success: bool,
-    pgp_key: String,
-    pgp_cert_id: String,
-    ssh_key: String,
+    pub serial: String,
     pub error: String,
     #[serde(skip)]
     pub username: String,

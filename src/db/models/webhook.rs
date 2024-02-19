@@ -18,7 +18,7 @@ pub struct HWKeyUserData {
     pub email: String,
     pub ssh_key: String,
     pub pgp_key: String,
-    pub pgp_cert_id: String,
+    pub serial: String,
 }
 
 impl AppEvent {

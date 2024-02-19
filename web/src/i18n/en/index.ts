@@ -20,7 +20,12 @@ const en: BaseTranslation = {
       saveChanges: 'Save changes',
       save: 'Save',
       RestoreDefault: 'Restore default',
+      delete: 'Delete',
+      rename: 'Rename',
+      copy: 'Copy',
     },
+    key: 'Key',
+    name: 'Name',
   },
   messages: {
     error: 'Error has occurred.',
@@ -635,6 +640,63 @@ const en: BaseTranslation = {
         line2: 'management and provisioning.',
       },
     },
+    authenticationKeys: {
+      header: 'User Authentication Keys',
+      addKey: 'Add new Key',
+      keysList: {
+        common: {
+          rename: 'Rename',
+          key: 'Key',
+          download: 'Download',
+          copy: 'Copy',
+          serialNumber: 'Serial Number',
+          delete: 'Delete',
+        },
+      },
+      deleteModal: {
+        title: 'Delete Authentication Key',
+        confirmMessage: 'Key {name: string} will be deleted permanently.',
+      },
+      addModal: {
+        header: 'Add new Authentication Key',
+        keyType: 'Key Type',
+        keyForm: {
+          placeholders: {
+            title: 'Key Name',
+            key: {
+              ssh: 'Begins with ssh-rsa, ecdsa-sha2-nistp256, ...',
+              gpg: 'Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----',
+            },
+          },
+          labels: {
+            title: 'Name',
+            key: 'Key',
+          },
+          submit: 'Add {name: string} key',
+        },
+        yubikeyForm: {
+          selectWorker: {
+            info: 'Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.',
+            selectLabel: 'Select on of the following provisioners to provision a YubiKey',
+            noData: 'No workers are registered right now.',
+            available: 'Available',
+            unavailable: 'Unavailable',
+          },
+          provisioning: {
+            inProgress: 'Provisioning in progress, please wait.',
+            error: 'Provisioning failed !',
+            success: 'Yubikey provisioned successfully',
+          },
+          submit: 'Provision Yubikey',
+        },
+        messages: {
+          keyAdded: 'Key added.',
+          keyExists: 'Key has already been added.',
+          unsupportedKeyFormat: 'Unsupported key format.',
+          genericError: 'Could not add the key. Please try again later.',
+        },
+      },
+    },
   },
   usersOverview: {
     pageTitle: 'Users',
@@ -658,7 +720,9 @@ const en: BaseTranslation = {
       editButton: {
         changePassword: 'Change password',
         edit: 'Edit account',
-        provision: 'Provision YubiKey',
+        addYubikey: 'Add YubiKey',
+        addSSH: 'Add SHH Key',
+        addGPG: 'Add GPG Key',
         delete: 'Delete account',
         startEnrollment: 'Start enrollment',
         activateDesktop: 'Remote desktop activation',

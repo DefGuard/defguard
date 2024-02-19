@@ -1,0 +1,14 @@
+#add-authentication-key-modal-form {
+  .controls {
+    display: flex;
+    flex-flow: row;
+    column-gap: 10px;
+
+    .btn {
+      height: 40px;
+      min-width: 100px;
+      max-width: 150px;
+      width: unset;
+    }
+  }
+}

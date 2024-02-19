@@ -28,6 +28,7 @@ import { useClipboard } from '../../../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
+import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
 
 export const RegisterTOTPModal = () => {
   const modalState = useModalStore((state) => state.registerTOTP);
@@ -158,6 +159,7 @@ const TOTPRegisterForm = () => {
     },
   });
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
+    values = trimObjectStrings(values);
     mutate({
       code: Number(values.code),
     });

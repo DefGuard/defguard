@@ -19,6 +19,7 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
 import { ModifyNetworkRequest } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
 import {
   validateIp,
   validateIpList,
@@ -153,9 +154,10 @@ export const WizardNetworkConfiguration = () => {
   });
 
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
+    const trimmed = trimObjectStrings(values);
     if (!isLoading) {
       setWizardState({ loading: true });
-      addNetworkMutation(values);
+      addNetworkMutation(trimmed);
     }
   };
 

@@ -46,7 +46,7 @@ impl ClientMfaServer {
             sessions: HashMap::new(),
         }
     }
-    fn generate_token(&self, pubkey: &str) -> Result<String, Status> {
+    fn generate_token(pubkey: &str) -> Result<String, Status> {
         Claims::new(
             ClaimsType::DesktopClient,
             String::new(),
@@ -157,7 +157,7 @@ impl ClientMfaServer {
         };
 
         // generate auth token
-        let token = self.generate_token(&request.pubkey)?;
+        let token = Self::generate_token(&request.pubkey)?;
 
         // store login session
         self.sessions.insert(

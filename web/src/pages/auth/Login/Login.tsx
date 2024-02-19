@@ -19,6 +19,7 @@ import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternSafeUsernameCharacters } from '../../../shared/patterns';
 import { LoginData } from '../../../shared/types';
+import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 
 type Inputs = {
   username: string;
@@ -76,7 +77,7 @@ export const Login = () => {
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
     if (!loginMutation.isLoading) {
-      loginMutation.mutate(data);
+      loginMutation.mutate(trimObjectStrings(data));
     }
   };
 

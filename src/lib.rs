@@ -12,7 +12,14 @@ use axum::{
     serve, Extension, Router,
 };
 
-use handlers::group::{bulk_assign_to_groups, list_groups_info};
+use handlers::ssh_authorized_keys::{
+    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+};
+use handlers::{
+    group::{bulk_assign_to_groups, list_groups_info},
+    ssh_authorized_keys::rename_authentication_key,
+    yubikey::{delete_yubikey, rename_yubikey},
+};
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
 use tokio::{
@@ -200,6 +207,23 @@ pub fn build_webapp(
             .route("/user/:username/password", put(change_password))
             .route("/user/:username/reset_password", post(reset_password))
             .route("/user/:username/challenge", get(wallet_challenge))
+            // auth keys
+            .route("/user/:username/auth_key", get(fetch_authentication_keys))
+            .route("/user/:username/auth_key", post(add_authentication_key))
+            .route(
+                "/user/:username/auth_key/:key_id",
+                delete(delete_authentication_key),
+            )
+            .route(
+                "/user/:username/auth_key/:key_id/rename",
+                post(rename_authentication_key),
+            )
+            // yubi keys
+            .route("/user/:username/yubikey/:key_id", delete(delete_yubikey))
+            .route(
+                "/user/:username/yubikey/:key_id/rename",
+                post(rename_yubikey),
+            )
             .route("/user/:username/wallet", put(set_wallet))
             .route("/user/:username/wallet/:address", put(update_wallet))
             .route("/user/:username/wallet/:address", delete(delete_wallet))

@@ -14,6 +14,7 @@ import {
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
+import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
 import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useChangeSelfPasswordModal } from '../hooks/useChangeSelfPasswordModal';
 
@@ -68,6 +69,7 @@ export const ChangeSelfPasswordForm = () => {
   });
 
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
+    values = trimObjectStrings(values);
     mutate(pick(values, ['old_password', 'new_password']));
   };
 

@@ -1,5 +1,9 @@
 use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
-use crate::db::{AppEvent, DbPool, HWKeyUserData, User};
+use crate::db::{
+    models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
+    AppEvent, DbPool, HWKeyUserData, User, YubiKey,
+};
+use sqlx::query;
 use std::{
     collections::hash_map::{Entry, HashMap},
     env,
@@ -159,9 +163,7 @@ impl WorkerState {
             status.job_id,
             JobResponse {
                 success: status.success,
-                pgp_key: status.public_key,
-                pgp_cert_id: status.fingerprint,
-                ssh_key: status.ssh_key,
+                serial: status.yubikey_serial,
                 error: status.error,
                 username,
             },
@@ -239,7 +241,7 @@ impl worker_service_server::WorkerService for WorkerServer {
                             email: job_done.email.clone(),
                             ssh_key: message.ssh_key.clone(),
                             pgp_key: message.public_key.clone(),
-                            pgp_cert_id: message.fingerprint.clone(),
+                            serial: message.yubikey_serial.clone(),
                         }))
                         .expect("Failed to send event.");
                 }
@@ -252,16 +254,61 @@ impl worker_service_server::WorkerService for WorkerServer {
         if let Some(username) = username {
             if message.success {
                 match User::find_by_username(&self.pool, &username).await {
-                    Ok(Some(mut user)) => {
-                        user.ssh_key = Some(message.ssh_key);
-                        user.pgp_key = Some(message.public_key);
-                        user.pgp_cert_id = Some(message.fingerprint);
-                        user.save(&self.pool)
+                    // TODO: Create respectable Authentication KEYS and Add yubikey entry to DB table "yubikey"
+                    Ok(Some(user)) => {
+                        // create yubikey
+                        // FIXME: pass name from user input this is temporary solution
+                        if let Some(user_id) = user.id {
+                            let yubi_count_res = query!(
+                                "SELECT COUNT(*) FROM \"yubikey\" WHERE user_id = $1",
+                                user.id
+                            )
+                            .fetch_one(&self.pool)
                             .await
-                            .map_err(|_| Status::internal("database error"))?;
+                            .map_err(|_| Status::internal("Failed to count keys"))?;
+                            // FIXME: names may collide
+                            let name = match yubi_count_res.count {
+                                Some(count) => {
+                                    let name = format!("YubiKey {}", count + 1);
+                                    name
+                                }
+                                None => "YubiKey".to_string(),
+                            };
+                            let mut new_yubi = YubiKey::new(name, message.yubikey_serial, user_id);
+                            new_yubi
+                                .save(&self.pool)
+                                .await
+                                .map_err(|_| Status::internal("Failed to save yubikey"))?;
+                            if let Some(key_id) = new_yubi.id {
+                                let mut ssh = AuthenticationKey::new(
+                                    user_id,
+                                    message.ssh_key,
+                                    None,
+                                    AuthenticationKeyType::SSH,
+                                    Some(key_id),
+                                );
+                                let mut gpg = AuthenticationKey::new(
+                                    user_id,
+                                    message.public_key,
+                                    None,
+                                    AuthenticationKeyType::GPG,
+                                    Some(key_id),
+                                );
+                                ssh.save(&self.pool)
+                                    .await
+                                    .map_err(|_| Status::internal("Failed to save auth key"))?;
+                                gpg.save(&self.pool)
+                                    .await
+                                    .map_err(|_| Status::internal("Failed to save auth key"))?;
+                            } else {
+                                return Err(Status::internal("Yubikey did not get an id"));
+                            }
+                        } else {
+                            return Err(Status::internal("User has no ID"));
+                        }
                     }
-                    Ok(None) => info!("User {} not found", username),
-                    Err(err) => error!("Error {}", err),
+                    Ok(None) => info!("User {username} not found"),
+                    Err(err) => error!("Error {err}"),
                 }
             }
         }
