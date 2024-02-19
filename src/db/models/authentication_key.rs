@@ -1,30 +1,24 @@
-use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{query, query_as, Error as SqlxError, PgExecutor, Type};
-use strum::EnumString;
+use sqlx::{query_as, Error as SqlxError, PgExecutor, Type};
 
-use super::User;
-
-#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Type, EnumString)]
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
 #[sqlx(type_name = "authentication_key_type", rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
-pub enum AuthenticationKeyType {
+pub(crate) enum AuthenticationKeyType {
     SSH,
     GPG,
 }
 
 #[derive(Deserialize, Model, Serialize)]
 #[table(authentication_key)]
-pub struct AuthenticationKey {
+pub(crate) struct AuthenticationKey {
     id: Option<i64>,
     pub yubikey_id: Option<i64>,
     pub name: Option<String>,
     pub user_id: i64,
     pub key: String,
     #[model(enum)]
-    pub key_type: AuthenticationKeyType,
-    pub created: NaiveDateTime,
+    key_type: AuthenticationKeyType,
 }
 
 impl AuthenticationKey {
@@ -43,7 +37,6 @@ impl AuthenticationKey {
             key,
             name,
             key_type,
-            created: Utc::now().naive_utc(),
         }
     }
 
@@ -60,7 +53,7 @@ impl AuthenticationKey {
                 query_as!(
                     Self,
                     "SELECT id \"id?\", user_id, yubikey_id \"yubikey_id?\", key, \
-                    name, key_type \"key_type: AuthenticationKeyType\", created \
+                    name, key_type \"key_type: AuthenticationKeyType\" \
                     FROM authentication_key WHERE user_id = $1 AND key_type = $2",
                     user_id,
                     &key_type as &AuthenticationKeyType
@@ -72,7 +65,7 @@ impl AuthenticationKey {
                 query_as!(
                     Self,
                     "SELECT id \"id?\", user_id, yubikey_id \"yubikey_id?\", key, \
-                    name, key_type \"key_type: AuthenticationKeyType\", created \
+                    name, key_type \"key_type: AuthenticationKeyType\" \
                     FROM authentication_key WHERE user_id = $1",
                     user_id
                 )
@@ -80,29 +73,5 @@ impl AuthenticationKey {
                 .await
             }
         }
-    }
-
-    pub async fn find_by_user<'e, E>(
-        executor: E,
-        user: User,
-        key_type: Option<AuthenticationKeyType>,
-    ) -> Result<Vec<Self>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        match user.id {
-            Some(user_id) => Self::find_by_user_id(executor, user_id, key_type).await,
-            None => Err(SqlxError::RowNotFound),
-        }
-    }
-
-    pub async fn delete_by_id<'e, E>(executor: E, id: i64) -> Result<(), SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query!("DELETE FROM \"authentication_key\" WHERE id = $1", id)
-            .execute(executor)
-            .await?;
-        Ok(())
     }
 }
