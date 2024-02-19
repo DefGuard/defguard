@@ -71,6 +71,7 @@ export const WizardNetworkImport = () => {
           .refine((val) => validateIpOrDomain(val), LL.form.error.endpoint()),
         fileName: z.string().min(1, LL.form.error.required()),
         config: z.string().min(1, LL.form.error.required()),
+        allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
       }),
     [LL.form.error],
   );

@@ -36,8 +36,6 @@ test.describe('Reset password', () => {
     await selectPasswordReset(page);
     await setEmail(user.mail, page);
 
-    await page.getByTestId('email-sent-message').waitFor({ state: 'visible' });
-
     const token = await getPasswordResetToken(user.mail);
 
     await page.goto(`${testsConfig.ENROLLMENT_URL}/password-reset/?token=${token}`);

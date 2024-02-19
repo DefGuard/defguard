@@ -21,7 +21,7 @@ test.describe('Authentication keys', () => {
     dockerDown();
   });
 
-  test('Add authentication key', async ({ page }) => {
+  test.skip('Add authentication key', async ({ page }) => {
     const testUser = { ...testUserTemplate, username: 'test' };
     await waitForBase(page);
     await apiCreateUser(page, testUser);

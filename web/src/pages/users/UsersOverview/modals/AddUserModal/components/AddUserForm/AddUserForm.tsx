@@ -20,7 +20,6 @@ import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import {
   patternSafeUsernameCharacters,
-  patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
@@ -61,37 +60,29 @@ export const AddUserForm = () => {
           email: z.string().min(1, LL.form.error.required()),
           last_name: z.string().min(1, LL.form.error.required()),
           first_name: z.string().min(1, LL.form.error.required()),
-          phone: z
-            .string()
-            .optional()
-            .refine((val) => {
-              if (val && val.length) {
-                return patternValidPhoneNumber.test(val);
-              }
-              return true;
-            }, LL.form.error.invalid()),
+          phone: z.string(),
           enable_enrollment: z.boolean(),
         })
         .superRefine((val, ctx) => {
           if (val.phone && val.phone.length) {
             const phoneRes = z
               .string()
-              .regex(patternValidEmail, LL.form.error.invalid())
+              .regex(patternValidPhoneNumber)
               .safeParse(val.phone);
             if (!phoneRes.success) {
               ctx.addIssue({
                 code: 'custom',
                 path: ['phone'],
-                message: phoneRes.error.message,
+                message: LL.form.error.invalid(),
               });
             }
-            if (reservedUserNames.current.includes(val.username)) {
-              ctx.addIssue({
-                code: 'custom',
-                path: ['username'],
-                message: LL.form.error.usernameTaken(),
-              });
-            }
+          }
+          if (reservedUserNames.current.includes(val.username)) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['username'],
+              message: LL.form.error.usernameTaken(),
+            });
           }
         }),
     [LL.form.error],
