@@ -1518,7 +1518,7 @@ type RootTranslation = {
 				keyForm: {
 					placeholders: {
 						/**
-						 * K​e​y​ ​t​i​t​l​e
+						 * K​e​y​ ​N​a​m​e
 						 */
 						title: string
 						key: {
@@ -1534,7 +1534,7 @@ type RootTranslation = {
 					}
 					labels: {
 						/**
-						 * T​i​t​l​e
+						 * N​a​m​e
 						 */
 						title: string
 						/**
@@ -5271,7 +5271,7 @@ export type TranslationFunctions = {
 				keyForm: {
 					placeholders: {
 						/**
-						 * Key title
+						 * Key Name
 						 */
 						title: () => LocalizedString
 						key: {
@@ -5287,7 +5287,7 @@ export type TranslationFunctions = {
 					}
 					labels: {
 						/**
-						 * Title
+						 * Name
 						 */
 						title: () => LocalizedString
 						/**

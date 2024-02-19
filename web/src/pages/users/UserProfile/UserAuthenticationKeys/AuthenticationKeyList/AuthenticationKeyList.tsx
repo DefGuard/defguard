@@ -89,6 +89,8 @@ export const AuthenticationKeyList = () => {
     return [];
   }, [authenticationKeysInfo]);
 
+  if (items.length === 0 || !items) return null;
+
   return (
     <div className="authentication-key-list">
       {items.map((item, index) => (
