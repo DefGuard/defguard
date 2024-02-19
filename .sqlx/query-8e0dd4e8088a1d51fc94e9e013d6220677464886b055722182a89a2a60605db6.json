@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", user_id, yubikey_id \"yubikey_id?\", key, name, key_type \"key_type: AuthenticationKeyType\", created FROM authentication_key WHERE user_id = $1 AND key_type = $2",
+  "query": "SELECT id \"id?\", user_id, yubikey_id \"yubikey_id?\", key, name, key_type \"key_type: AuthenticationKeyType\" FROM authentication_key WHERE user_id = $1 AND key_type = $2",
   "describe": {
     "columns": [
       {
@@ -42,11 +42,6 @@
             }
           }
         }
-      },
-      {
-        "ordinal": 6,
-        "name": "created",
-        "type_info": "Timestamp"
       }
     ],
     "parameters": {
@@ -71,9 +66,8 @@
       true,
       false,
       true,
-      false,
       false
     ]
   },
-  "hash": "7ef347b3f6297f159465b82b2bde2646e5dfbf57b006158834b83da51df97c8e"
+  "hash": "8e0dd4e8088a1d51fc94e9e013d6220677464886b055722182a89a2a60605db6"
 }

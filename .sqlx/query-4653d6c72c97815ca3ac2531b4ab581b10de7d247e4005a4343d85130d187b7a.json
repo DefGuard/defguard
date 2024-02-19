@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"authentication_key\" SET \"yubikey_id\" = $2,\"name\" = $3,\"user_id\" = $4,\"key\" = $5,\"key_type\" = $6,\"created\" = $7 WHERE id = $1",
+  "query": "UPDATE \"authentication_key\" SET \"yubikey_id\" = $2,\"name\" = $3,\"user_id\" = $4,\"key\" = $5,\"key_type\" = $6 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -20,11 +20,10 @@
               ]
             }
           }
-        },
-        "Timestamp"
+        }
       ]
     },
     "nullable": []
   },
-  "hash": "051dd128da312b50ee70949e64bea079e6a8bb55782b99c23e4541c5fb252e0d"
+  "hash": "4653d6c72c97815ca3ac2531b4ab581b10de7d247e4005a4343d85130d187b7a"
 }

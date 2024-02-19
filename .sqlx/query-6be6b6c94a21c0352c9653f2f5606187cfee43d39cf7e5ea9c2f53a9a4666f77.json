@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"yubikey_id\",\"name\",\"user_id\",\"key\",\"key_type\" \"key_type: _\",\"created\" FROM \"authentication_key\"",
+  "query": "SELECT id \"id?\", \"yubikey_id\",\"name\",\"user_id\",\"key\",\"key_type\" \"key_type: _\" FROM \"authentication_key\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -42,15 +42,12 @@
             }
           }
         }
-      },
-      {
-        "ordinal": 6,
-        "name": "created",
-        "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -58,9 +55,8 @@
       true,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "295c972a0104773da634054f0772cbe8899b6bc2d605300a9d7232c34b6a2deb"
+  "hash": "6be6b6c94a21c0352c9653f2f5606187cfee43d39cf7e5ea9c2f53a9a4666f77"
 }
