@@ -1,10 +1,7 @@
 version: "3.9"
 services:
   core:
-    # image: ghcr.io/defguard/defguard:current
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/defguard/defguard:current
     environment:
       DEFGUARD_DEFAULT_ADMIN_PASSWORD: pass123
       DEFGUARD_COOKIE_INSECURE: true
@@ -23,9 +20,7 @@ services:
       DEFGUARD_PROXY_URL: http://proxy:50051
       RUST_BACKTRACE: 1
     ports:
-      # REST API
       - "8000:8000"
-      # gRPC
       - "50055:50055"
     depends_on:
       - db
@@ -40,11 +35,9 @@ services:
       - "5432:5432"
 
   proxy:
-    image: ghcr.io/defguard/defguard-proxy:dev
+    image: ghcr.io/defguard/defguard-proxy:current
     ports:
-      # REST API
       - "8080:8080"
-      # gRPC
       - "50051:50051"
     environment:
       RUST_BACKTRACE: 1
