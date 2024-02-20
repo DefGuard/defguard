@@ -52,13 +52,6 @@ export const MFAEmail = () => {
     refetchOnWindowFocus: false,
   });
 
-  const { mutate: verifyMutate, isLoading: verifyLoading } = useMutation({
-    mutationFn: verify,
-    onSuccess: (data) => {
-      loginSubject.next(data);
-    },
-  });
-
   const schema = useMemo(
     () =>
       z.object({
@@ -71,10 +64,29 @@ export const MFAEmail = () => {
     [LL.form.error],
   );
 
-  const { control, handleSubmit } = useForm<FormFields>({
+  const { control, handleSubmit, setError, resetField } = useForm<FormFields>({
     defaultValues,
     resolver: zodResolver(schema),
     mode: 'all',
+  });
+
+  const { mutate: verifyMutate, isLoading: verifyLoading } = useMutation({
+    mutationFn: verify,
+    onSuccess: (data) => {
+      loginSubject.next(data);
+    },
+    onError: (e) => {
+      resetField('code', {
+        defaultValue: '',
+        keepDirty: true,
+        keepError: true,
+        keepTouched: true,
+      });
+      setError('code', {
+        message: LL.form.error.invalidCode(),
+      });
+      console.error(e);
+    },
   });
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
