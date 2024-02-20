@@ -52,7 +52,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install playwright chromium
         working-directory: ./e2e
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: run tests
         working-directory: ./e2e
         run: pnpm test
