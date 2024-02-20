@@ -17,12 +17,14 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import {
   patternSafeUsernameCharacters,
+  patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
 import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
+import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
 
 interface Inputs {
@@ -82,6 +84,10 @@ export const ProfileDetailsForm = () => {
             }
             return true;
           }, LL.form.error.invalid()),
+        email: z
+          .string()
+          .min(1, LL.form.error.required())
+          .regex(patternValidEmail, LL.form.error.invalid()),
         groups: z.array(z.string().min(1, LL.form.error.required())),
         authorized_apps: z.array(
           z.object({
@@ -150,6 +156,7 @@ export const ProfileDetailsForm = () => {
   }, [availableGroups, groupsLoading]);
 
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
+    values = trimObjectStrings(values);
     if (userProfile && userProfile.user) {
       setUserProfile({ loading: true });
       mutate({

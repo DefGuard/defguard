@@ -111,6 +111,7 @@ export const SmtpSettingsForm = () => {
           })
           .max(65535, LL.form.error.portMax()),
         smtp_password: z.string().min(1, LL.form.error.required()),
+        smtp_user: z.string().min(1, LL.form.error.required()),
         smtp_sender: z
           .string()
           .min(1, LL.form.error.required())
