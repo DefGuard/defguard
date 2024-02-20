@@ -45,14 +45,12 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Pull images
         run: docker compose --file './docker-compose.e2e.yaml' pull
-      - name: Start compose
-        run: docker compose --file './docker-compose.e2e.yaml' up -d
       - name: Install E2E dependencies
         working-directory: ./e2e
         run: pnpm install --frozen-lockfile
       - name: Install playwright chromium
         working-directory: ./e2e
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: run tests
         working-directory: ./e2e
         run: pnpm test
