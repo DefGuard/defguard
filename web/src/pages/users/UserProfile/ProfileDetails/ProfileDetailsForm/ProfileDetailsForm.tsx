@@ -157,7 +157,6 @@ export const ProfileDetailsForm = () => {
 
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
     values = trimObjectStrings(values);
-    console.log(values);
     if (userProfile && userProfile.user) {
       setUserProfile({ loading: true });
       mutate({
