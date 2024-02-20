@@ -6,7 +6,6 @@ on:
 jobs:
   test:
     runs-on: [self-hosted, Linux]
-    container: ubuntu:22.04
     steps:
       - uses: actions/checkout@v3
       - name: Set up Docker Buildx
