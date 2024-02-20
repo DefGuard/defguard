@@ -40,7 +40,7 @@ export const MFATOTPAuth = () => {
     onError: (err) => {
       console.error(err);
       setValue('code', '');
-      setError('code', { message: 'Enter a valid code' });
+      setError('code', { message: LL.form.error.invalidCode() });
     },
   });
 

@@ -11,6 +11,7 @@ import { Button } from '../../../../../shared/defguard-ui/components/Layout/Butt
 import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { AuthenticationKeyType } from '../../../../../shared/types';
 import { AddAuthenticationKeyForm } from './components/AddAuthenticationKeyForm/AddAuthenticationKeyForm';
 import { AddAuthenticationKeyYubikey } from './components/AddAuthenticationKeyYubikey/AddAuthenticationKeyYubikey';
@@ -47,6 +48,7 @@ const ModalContent = () => {
   const initSelection = useAddAuthorizationKeyModal((s) => s.selectedMode);
   const [selectedType, setSelectedType] =
     useState<AuthenticationKeyModalKeyType>(initSelection);
+  const appSettings = useAppStore((s) => s.settings);
 
   const mappedFormKeyType = useMemo(() => {
     switch (selectedType) {
@@ -94,21 +96,23 @@ const ModalContent = () => {
               active: selectedType === 'gpg',
             })}
           />
-          <Button
-            text="YubiKey"
-            icon={<SvgIconNavYubikey />}
-            styleVariant={
-              selectedType === 'yubikey'
-                ? ButtonStyleVariant.PRIMARY
-                : ButtonStyleVariant.LINK
-            }
-            onClick={() => {
-              setSelectedType('yubikey');
-            }}
-            className={classNames({
-              active: selectedType === 'yubikey',
-            })}
-          />
+          {appSettings?.worker_enabled && (
+            <Button
+              text="YubiKey"
+              icon={<SvgIconNavYubikey />}
+              styleVariant={
+                selectedType === 'yubikey'
+                  ? ButtonStyleVariant.PRIMARY
+                  : ButtonStyleVariant.LINK
+              }
+              onClick={() => {
+                setSelectedType('yubikey');
+              }}
+              className={classNames({
+                active: selectedType === 'yubikey',
+              })}
+            />
+          )}
         </div>
       </div>
       {mappedFormKeyType && <AddAuthenticationKeyForm keyType={mappedFormKeyType} />}

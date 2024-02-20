@@ -27,6 +27,8 @@ export const UserEditButton = ({ user }: Props) => {
   const openAddAuthorizationKeyModal = useAddAuthorizationKeyModal((s) => s.open);
   const currentUser = useAuthStore((state) => state.user);
   const networkPresent = useAppStore((state) => state.appInfo?.network_present);
+  const appSettings = useAppStore((s) => s.settings);
+
   return (
     <EditButton>
       {user.username !== currentUser?.username && (
@@ -65,16 +67,18 @@ export const UserEditButton = ({ user }: Props) => {
           })
         }
       />
-      <EditButtonOption
-        key="add-authorization-yubikey"
-        text={LL.usersOverview.list.editButton.addYubikey()}
-        onClick={() =>
-          openAddAuthorizationKeyModal({
-            user,
-            selectedMode: 'yubikey',
-          })
-        }
-      />
+      {appSettings?.worker_enabled && (
+        <EditButtonOption
+          key="add-authorization-yubikey"
+          text={LL.usersOverview.list.editButton.addYubikey()}
+          onClick={() =>
+            openAddAuthorizationKeyModal({
+              user,
+              selectedMode: 'yubikey',
+            })
+          }
+        />
+      )}
       {user.is_active === true && (
         <EditButtonOption
           disabled={!networkPresent}

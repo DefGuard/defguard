@@ -188,7 +188,7 @@ type RootTranslation = {
 				 */
 				success: string
 				/**
-				 * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n​ ​s​t​a​r​t​e​d
+				 * D​e​s​k​t​o​p​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​s​t​a​r​t​e​d
 				 */
 				successDesktop: string
 				/**
@@ -914,7 +914,7 @@ type RootTranslation = {
 			setupMethod: {
 				remote: {
 					/**
-					 * R​e​m​o​t​e​ ​D​e​s​k​t​o​p​ ​A​c​t​i​v​a​t​i​o​n
+					 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
 					 */
 					title: string
 					/**
@@ -1693,7 +1693,7 @@ type RootTranslation = {
 				 */
 				startEnrollment: string
 				/**
-				 * R​e​m​o​t​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
 				 */
 				activateDesktop: string
 				/**
@@ -1877,6 +1877,10 @@ type RootTranslation = {
 			 * F​i​e​l​d​ ​i​s​ ​r​e​q​u​i​r​e​d​.
 			 */
 			required: string
+			/**
+			 * S​u​b​m​i​t​t​e​d​ ​c​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d​.
+			 */
+			invalidCode: string
 			/**
 			 * M​a​x​i​m​u​m​ ​l​e​n​g​t​h​ ​e​x​c​e​e​d​e​d​.
 			 */
@@ -3951,7 +3955,7 @@ export type TranslationFunctions = {
 				 */
 				success: () => LocalizedString
 				/**
-				 * Desktop activation started
+				 * Desktop configuration started
 				 */
 				successDesktop: () => LocalizedString
 				/**
@@ -4669,7 +4673,7 @@ export type TranslationFunctions = {
 			setupMethod: {
 				remote: {
 					/**
-					 * Remote Desktop Activation
+					 * Configure Desktop Client
 					 */
 					title: () => LocalizedString
 					/**
@@ -5445,7 +5449,7 @@ export type TranslationFunctions = {
 				 */
 				startEnrollment: () => LocalizedString
 				/**
-				 * Remote desktop activation
+				 * Configure Desktop Client
 				 */
 				activateDesktop: () => LocalizedString
 				/**
@@ -5627,6 +5631,10 @@ export type TranslationFunctions = {
 			 * Field is required.
 			 */
 			required: () => LocalizedString
+			/**
+			 * Submitted code is invalid.
+			 */
+			invalidCode: () => LocalizedString
 			/**
 			 * Maximum length exceeded.
 			 */

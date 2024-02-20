@@ -35,8 +35,9 @@ export const AuthenticationKeyItem = ({ keyData: key }: Props) => {
   );
 
   const downloadKey = useCallback(() => {
+    const data = new Blob([key.key], { type: 'text/plain;charset=utf-8' });
     saveAs(
-      key.key,
+      data,
       `${key.name.replace(' ', '').toLocaleLowerCase()}_${key.key_type.valueOf().toLowerCase()}.pub`,
     );
   }, [key.key, key.key_type, key.name]);

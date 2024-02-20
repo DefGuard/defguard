@@ -85,11 +85,11 @@ const pl: Translation = {
     },
     startEnrollment: {
       title: 'Rozpocznij rejestrację',
-      desktopTitle: 'Aktywacja klienta desktop',
+      desktopTitle: 'Konfiguracja klienta desktop',
       messages: {
         success: 'Rejestracja użytkownika rozpoczęta',
-        successDesktop: 'Aktywacja klienta rozpoczęta',
-        errorDesktop: 'Błąd aktywacji klienta desktop',
+        successDesktop: 'Konfiguracja klienta rozpoczęta',
+        errorDesktop: 'Błąd konfiguracji klienta desktop',
         error: 'Błąd rejestracji użytkownika',
       },
       form: {
@@ -762,6 +762,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       username: 'Nazwa użytkownika',
     },
     error: {
+      invalidCode: 'Podany kod jest niewłaściwy.',
       forbiddenCharacter: 'Pole zawiera niedozwolone znaki.',
       usernameTaken: 'Nazwa użytkownika jest już w użyciu.',
       invalidKey: 'Klucz jest nieprawidłowy.',

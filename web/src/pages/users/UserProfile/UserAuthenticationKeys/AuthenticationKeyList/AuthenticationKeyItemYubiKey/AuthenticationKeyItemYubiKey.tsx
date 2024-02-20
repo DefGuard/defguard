@@ -54,8 +54,9 @@ export const AuthenticationKeyItemYubikey = ({ yubikey, keys }: Props) => {
     (keyType: AuthenticationKeyType) => {
       const key = keys.find((k) => k.key_type === keyType);
       if (key) {
+        const data = new Blob([key.key], { type: 'text/plain;charset=utf-8' });
         saveAs(
-          key.key,
+          data,
           `${yubikey.yubikey_name.replace(' ', '').toLocaleLowerCase()}_${keyType.valueOf().toLowerCase()}.pub`,
         );
       }
