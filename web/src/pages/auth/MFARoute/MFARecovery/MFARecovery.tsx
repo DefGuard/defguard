@@ -15,14 +15,12 @@ import {
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { RecoveryLoginRequest } from '../../../../shared/types';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
 export const MFARecovery = () => {
-  const toaster = useToaster();
   const navigate = useNavigate();
   const [totpAvailable, web3Available, webauthnAvailable, emailAvailable] = useMFAStore(
     (state) => [
@@ -42,14 +40,6 @@ export const MFARecovery = () => {
 
   const { LL } = useI18nContext();
 
-  const { mutate, isLoading } = useMutation([MutationKeys.RECOVERY_LOGIN], recovery, {
-    onSuccess: (data) => loginSubject.next(data),
-    onError: (err) => {
-      console.error(err);
-      toaster.error('Recovery code invalid.');
-    },
-  });
-
   const zodSchema = useMemo(
     () =>
       z.object({
@@ -58,12 +48,28 @@ export const MFARecovery = () => {
     [LL.form.error],
   );
 
-  const { handleSubmit, control } = useForm<RecoveryLoginRequest>({
+  const { handleSubmit, control, setError, resetField } = useForm<RecoveryLoginRequest>({
     resolver: zodResolver(zodSchema),
     defaultValues: {
       code: '',
     },
     mode: 'all',
+  });
+
+  const { mutate, isLoading } = useMutation([MutationKeys.RECOVERY_LOGIN], recovery, {
+    onSuccess: (data) => loginSubject.next(data),
+    onError: (err) => {
+      resetField('code', {
+        defaultValue: '',
+        keepDirty: true,
+        keepError: true,
+        keepTouched: true,
+      });
+      setError('code', {
+        message: LL.form.error.invalidCode(),
+      });
+      console.error(err);
+    },
   });
 
   useEffect(() => {

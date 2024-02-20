@@ -24,6 +24,7 @@ import {
 } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
+import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 
 interface Inputs {
@@ -56,7 +57,8 @@ export const AddUserForm = () => {
             .min(3, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
             .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
-          password: z.string().optional(),
+          // check in refine
+          password: z.string(),
           email: z.string().min(1, LL.form.error.required()),
           last_name: z.string().min(1, LL.form.error.required()),
           first_name: z.string().min(1, LL.form.error.required()),
@@ -64,6 +66,19 @@ export const AddUserForm = () => {
           enable_enrollment: z.boolean(),
         })
         .superRefine((val, ctx) => {
+          // check password
+          if (!val.enable_enrollment) {
+            const passResult = passwordValidator(LL).safeParse(val.password);
+            if (!passResult.success) {
+              passResult.error.issues.forEach((i) => {
+                ctx.addIssue({
+                  path: ['password'],
+                  code: 'custom',
+                  message: i.message,
+                });
+              });
+            }
+          }
           if (val.phone && val.phone.length) {
             const phoneRes = z
               .string()
@@ -85,7 +100,7 @@ export const AddUserForm = () => {
             });
           }
         }),
-    [LL.form.error],
+    [LL],
   );
 
   const {
@@ -153,11 +168,7 @@ export const AddUserForm = () => {
             const userData = omit(trimmed, ['password', 'enable_enrollment']);
             addUserMutation.mutate(userData);
           } else {
-            if (trimmed.password) {
-              addUserMutation.mutate(omit(trimmed, ['enable_enrollment']));
-            } else {
-              trigger('password', { shouldFocus: true });
-            }
+            addUserMutation.mutate(omit(trimmed, ['enable_enrollment']));
           }
         })
         .catch(() => {

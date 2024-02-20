@@ -64,7 +64,7 @@ const en: BaseTranslation = {
       desktopTitle: 'Desktop activation',
       messages: {
         success: 'User enrollment started',
-        successDesktop: 'Desktop activation started',
+        successDesktop: 'Desktop configuration started',
         error: 'Failed to start user enrollment',
         errorDesktop: 'Failed to start desktop activation',
       },
@@ -405,7 +405,7 @@ const en: BaseTranslation = {
     steps: {
       setupMethod: {
         remote: {
-          title: 'Remote Desktop Activation',
+          title: 'Configure Desktop Client',
           subTitle:
             'A breeze to set up with just a single token. Download the client and enjoy straightforward security.',
           link: 'Download defguard Client',
@@ -725,7 +725,7 @@ const en: BaseTranslation = {
         addGPG: 'Add GPG Key',
         delete: 'Delete account',
         startEnrollment: 'Start enrollment',
-        activateDesktop: 'Remote desktop activation',
+        activateDesktop: 'Configure Desktop Client',
         resetPassword: 'Reset password',
       },
     },
@@ -782,6 +782,7 @@ const en: BaseTranslation = {
       invalidKey: 'Key is invalid.',
       invalid: 'Field is invalid.',
       required: 'Field is required.',
+      invalidCode: 'Submitted code is invalid.',
       maximumLength: 'Maximum length exceeded.',
       minimumLength: 'Minimum length not reached.',
       noSpecialChars: 'No special characters are allowed.',
