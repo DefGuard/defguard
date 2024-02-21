@@ -86,6 +86,9 @@ dependencies:
   framer-motion:
     specifier: ^11.0.3
     version: 11.0.3(react-dom@18.2.0)(react@18.2.0)
+  get-text-width:
+    specifier: ^1.0.3
+    version: 1.0.3
   hex-rgb:
     specifier: ^5.0.0
     version: 5.0.0
@@ -5415,6 +5418,10 @@ packages:
       call-bind: 1.0.5
       get-intrinsic: 1.2.2
     dev: true
+
+  /get-text-width@1.0.3:
+    resolution: {integrity: sha512-kv1MaexPcR/qaZ4kN8sUDjG5pRp5ptHvxcDGDBTeGld1cmo7MnlCMH22jevyvs/VV7Ran203o7qAOq2+kWw9cA==}
+    dev: false
 
   /git-raw-commits@2.0.11:
     resolution: {integrity: sha512-VnctFhw+xfj8Va1xtfEqCUD2XDrbAPSJx+hSrE5K7fGdjZruW7XV+QOrN7LF/RJyvspRiD2I0asWsxFp0ya26A==}
