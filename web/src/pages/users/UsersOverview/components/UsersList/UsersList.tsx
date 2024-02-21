@@ -12,7 +12,8 @@ import {
 } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import { User } from '../../../../../shared/types';
-import { UserListRow } from './UserListRow';
+import { UserListRow } from './components/UserListRow';
+import { UserGroupsListModal } from './modals/UserGroupsListModal/UserGroupsListModal';
 
 type Props = {
   users: User[];
@@ -84,24 +85,27 @@ export const UsersList = ({
   }, []);
 
   return (
-    <VirtualizedList
-      className="users-list"
-      rowSize={70}
-      data={users}
-      headers={listHeaders}
-      headerPadding={{
-        left: 15,
-        right: 15,
-      }}
-      padding={getListPadding}
-      customRowRender={(user) => (
-        <UserListRow
-          selected={selectedUsers.includes(user.id)}
-          onSelect={onUserSelect}
-          user={user}
-          key={user.id}
-        />
-      )}
-    />
+    <>
+      <VirtualizedList
+        className="users-list"
+        rowSize={70}
+        data={users}
+        headers={listHeaders}
+        headerPadding={{
+          left: 15,
+          right: 15,
+        }}
+        padding={getListPadding}
+        customRowRender={(user) => (
+          <UserListRow
+            selected={selectedUsers.includes(user.id)}
+            onSelect={onUserSelect}
+            user={user}
+            key={user.id}
+          />
+        )}
+      />
+      <UserGroupsListModal />
+    </>
   );
 };

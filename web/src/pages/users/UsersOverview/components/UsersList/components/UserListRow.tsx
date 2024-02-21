@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router';
 
-import { CheckBox } from '../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
-import { UserInitials } from '../../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
-import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
-import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
-import { User } from '../../../../../shared/types';
-import { UserEditButton } from '../UserEditButton/UserEditButton';
+import { CheckBox } from '../../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
+import { UserInitials } from '../../../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
+import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
+import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';
+import { User } from '../../../../../../shared/types';
+import { UserEditButton } from '../../UserEditButton/UserEditButton';
+import { UsersListGroups } from './UsersListGroups';
 
 type Props = {
   user: User;
@@ -48,13 +49,7 @@ export const UserListRow = ({ user, onSelect, selected = false }: Props) => {
       <div className="user-phone-cell">
         <span>{user.phone}</span>
       </div>
-      <div className="groups-cell">
-        {user.groups.map((g) => (
-          <div className="group" key={g}>
-            <span>{g}</span>
-          </div>
-        ))}
-      </div>
+      <UsersListGroups groups={user.groups} />
       <div className="user-edit-cell">
         <UserEditButton user={user} />
       </div>

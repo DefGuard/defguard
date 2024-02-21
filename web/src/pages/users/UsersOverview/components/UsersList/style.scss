@@ -95,8 +95,12 @@
         column-gap: 10px;
         justify-content: flex-start;
         align-items: center;
+        overflow: hidden;
+        max-width: 100%;
+        cursor: default;
 
         .group {
+          user-select: none;
           display: flex;
           flex-flow: row;
           align-items: center;
@@ -108,10 +112,25 @@
           border-radius: 10px;
           background-color: var(--surface-default-modal);
           width: max-content;
+          max-width: 135px;
+          overflow: hidden;
 
-          & > span {
+          & > * {
             @include typography(app-input);
             display: block;
+            cursor: default;
+          }
+        }
+
+        &.clickable {
+          cursor: pointer;
+
+          .group {
+            cursor: pointer;
+
+            & > * {
+              cursor: pointer;
+            }
           }
         }
       }
