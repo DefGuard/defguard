@@ -27,7 +27,9 @@ export const AddAuthenticationKeyYubikey = () => {
   const { LL } = useI18nContext();
   const {
     provisioning: { getWorkers, provisionYubiKey, getJobStatus },
-  } = useApi();
+  } = useApi({
+    notifyError: true,
+  });
 
   const { data, isLoading: workersListLoading } = useQuery({
     queryKey: [QueryKeys.FETCH_WORKERS],

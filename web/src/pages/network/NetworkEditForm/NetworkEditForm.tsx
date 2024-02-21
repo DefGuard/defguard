@@ -19,9 +19,9 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import { Network } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
+import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
 import {
   validateIp,
-  validateIpList,
   validateIpOrDomain,
   validateIpOrDomainList,
 } from '../../../shared/validators';
@@ -171,15 +171,7 @@ export const NetworkEditForm = () => {
             invalid_type_error: LL.form.error.required(),
           })
           .max(65535, LL.form.error.portMax()),
-        allowed_ips: z
-          .string()
-          .optional()
-          .refine((val) => {
-            if (val === '' || !val) {
-              return true;
-            }
-            return validateIpList(val, ',', true);
-          }, LL.form.error.allowedIps()),
+        allowed_ips: z.string(),
         dns: z
           .string()
           .optional()
@@ -213,6 +205,7 @@ export const NetworkEditForm = () => {
   });
 
   const onValidSubmit: SubmitHandler<FormFields> = async (values) => {
+    values = trimObjectStrings(values);
     setStoreState({ loading: true });
     mutate({
       id: selectedNetworkId,

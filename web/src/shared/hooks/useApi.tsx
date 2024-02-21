@@ -6,6 +6,7 @@ import {
   AddOpenidClientRequest,
   AddUserRequest,
   AddWalletRequest,
+  ApiError,
   ApiHook,
   AuthorizedClient,
   ChangeOpenidClientStateRequest,
@@ -443,9 +444,14 @@ const useApi = (props?: HookProps): ApiHook => {
         }
         return res;
       },
-      (err) => {
+      (err: ApiError) => {
         if (props?.notifyError) {
-          toaster.error(LL.messages.error());
+          const responseMessage = err.response?.data.msg;
+          if (responseMessage) {
+            toaster.error(responseMessage.trim());
+          } else {
+            toaster.error(LL.messages.error());
+          }
         }
         return Promise.reject(err);
       },

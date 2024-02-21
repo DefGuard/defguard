@@ -20,11 +20,7 @@ import { QueryKeys } from '../../../../shared/queries';
 import { ModifyNetworkRequest } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
-import {
-  validateIp,
-  validateIpList,
-  validateIpOrDomainList,
-} from '../../../../shared/validators';
+import { validateIp, validateIpOrDomainList } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 type FormInputs = ModifyNetworkRequest['network'];
@@ -109,15 +105,7 @@ export const WizardNetworkConfiguration = () => {
           })
           .max(65535, LL.form.error.portMax())
           .nonnegative(),
-        allowed_ips: z
-          .string()
-          .optional()
-          .refine((val) => {
-            if (val === '' || !val) {
-              return true;
-            }
-            return validateIpList(val, ',', true);
-          }, LL.form.error.allowedIps()),
+        allowed_ips: z.string(),
         dns: z
           .string()
           .optional()

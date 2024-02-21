@@ -39,7 +39,9 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
   const { LL } = useI18nContext();
   const {
     user: { addAuthenticationKey },
-  } = useApi();
+  } = useApi({
+    notifyError: true,
+  });
   const toaster = useToaster();
   const localLL = LL.userPage.authenticationKeys.addModal.keyForm;
   const closeModal = useAddAuthorizationKeyModal((s) => s.close);
@@ -56,7 +58,6 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
       closeModal();
     },
     onError: (e) => {
-      toaster.error(LL.messages.error());
       console.error(e);
     },
   });

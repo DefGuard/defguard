@@ -3,7 +3,6 @@ import './style.scss';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { useAddAuthorizationKeyModal } from '../../shared/modals/AddAuthenticationKeyModal/useAddAuthorizationKeyModal';
@@ -14,7 +13,6 @@ import { DeleteAuthenticationKeyModal } from './DeleteAuthenticationKeyModal/Del
 export const UserAuthenticationKeys = () => {
   const { LL } = useI18nContext();
   const user = useUserProfileStore((state) => state.userProfile?.user);
-  const appSettings = useAppStore((s) => s.settings);
   const openAddAuthenticationKeyModal = useAddAuthorizationKeyModal(
     (s) => s.open,
     shallow,
@@ -33,7 +31,7 @@ export const UserAuthenticationKeys = () => {
             if (user) {
               openAddAuthenticationKeyModal({
                 user,
-                selectedMode: appSettings?.worker_enabled ? 'yubikey' : 'ssh',
+                selectedMode: 'ssh',
               });
             }
           }}

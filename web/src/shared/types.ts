@@ -6,6 +6,12 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
+export type ApiError = AxiosError<ApiErrorResponse>;
+
+export type ApiErrorResponse = {
+  msg?: string;
+};
+
 export enum UserStatus {
   active = 'Active',
   inactive = 'Inactive',
