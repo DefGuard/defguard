@@ -446,7 +446,7 @@ const useApi = (props?: HookProps): ApiHook => {
       },
       (err: ApiError) => {
         if (props?.notifyError) {
-          const responseMessage = err.response?.data.msg;
+          const responseMessage = err.response?.data.msg || err.response?.data.message;
           if (responseMessage) {
             toaster.error(responseMessage.trim());
           } else {

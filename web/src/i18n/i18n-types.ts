@@ -125,6 +125,28 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		addGroup: {
+			/**
+			 * A​d​d​ ​g​r​o​u​p
+			 */
+			title: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
+			 */
+			selectAll: string
+			/**
+			 * G​r​o​u​p​ ​n​a​m​e
+			 */
+			groupName: string
+			/**
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
+			 */
+			searchPlaceholder: string
+			/**
+			 * C​r​e​a​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+		}
 		deviceConfig: {
 			/**
 			 * D​e​v​i​c​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s
@@ -3892,6 +3914,28 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		addGroup: {
+			/**
+			 * Add group
+			 */
+			title: () => LocalizedString
+			/**
+			 * Select all users
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Group name
+			 */
+			groupName: () => LocalizedString
+			/**
+			 * Filter/Search
+			 */
+			searchPlaceholder: () => LocalizedString
+			/**
+			 * Create group
+			 */
+			submit: () => LocalizedString
+		}
 		deviceConfig: {
 			/**
 			 * Device VPN configurations

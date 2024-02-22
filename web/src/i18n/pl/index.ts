@@ -38,6 +38,13 @@ const pl: Translation = {
     insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
+    addGroup: {
+      groupName: 'Nazwa grupy',
+      searchPlaceholder: 'Szukaj',
+      selectAll: 'Zaznacz wszystkich',
+      submit: 'Stwórz grupę',
+      title: 'Dodaj grupę',
+    },
     registerEmailMFA: {
       title: 'Skonfiguruj e-mail MFA',
       form: {

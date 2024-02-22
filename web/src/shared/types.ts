@@ -10,6 +10,7 @@ export type ApiError = AxiosError<ApiErrorResponse>;
 
 export type ApiErrorResponse = {
   msg?: string;
+  message?: string;
 };
 
 export enum UserStatus {

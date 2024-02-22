@@ -38,6 +38,13 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    addGroup: {
+      title: 'Add group',
+      selectAll: 'Select all users',
+      groupName: 'Group name',
+      searchPlaceholder: 'Filter/Search',
+      submit: 'Create group',
+    },
     deviceConfig: {
       title: 'Device VPN configurations',
     },

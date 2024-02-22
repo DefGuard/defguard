@@ -10,6 +10,11 @@
   & > .content {
     padding: 0 0 40px 0;
 
+    .controls {
+      padding-top: 40px;
+      margin: 0;
+    }
+
     & > form {
       & > .divider {
         margin-bottom: 10px;
@@ -27,6 +32,21 @@
       cursor: pointer;
       height: 60px;
       margin-bottom: 10px;
+    }
+
+    .search-wrapper {
+      padding-bottom: 10px;
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-end;
+      width: 100%;
+
+      .search {
+        width: 100%;
+        max-width: 330px;
+        height: 40px;
+      }
     }
 
     .users {

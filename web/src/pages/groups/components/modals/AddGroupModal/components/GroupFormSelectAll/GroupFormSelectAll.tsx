@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Control, useController, useWatch } from 'react-hook-form';
 
+import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import { SelectRow } from '../../../../../../../shared/defguard-ui/components/Layout/SelectRow/SelectRow';
 import { User } from '../../../../../../../shared/types';
 import { ModifyGroupFormFields } from '../../AddGroupModal';
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export const GroupFormSelectAll = ({ users, control }: Props) => {
+  const { LL } = useI18nContext();
   const {
     field: { value, onChange },
   } = useController({ control, name: 'members' });
@@ -32,7 +34,7 @@ export const GroupFormSelectAll = ({ users, control }: Props) => {
       className="select-all"
       onClick={() => handleSelect()}
     >
-      <p>Select all users</p>
+      <p>{LL.modals.addGroup.selectAll()}</p>
     </SelectRow>
   );
 };

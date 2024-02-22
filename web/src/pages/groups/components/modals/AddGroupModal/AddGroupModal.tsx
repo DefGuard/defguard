@@ -8,7 +8,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -21,6 +21,7 @@ import {
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Divider } from '../../../../../shared/defguard-ui/components/Layout/Divider/Divider';
 import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
+import { Search } from '../../../../../shared/defguard-ui/components/Layout/Search/Search';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
@@ -32,11 +33,12 @@ import { useAddGroupModal } from './useAddGroupModal';
 export const AddGroupModal = () => {
   const isOpen = useAddGroupModal((s) => s.visible);
   const close = useAddGroupModal((s) => s.close);
+  const { LL } = useI18nContext();
 
   return (
     <ModalWithTitle
       id="modify-group-modal"
-      title="Add group"
+      title={LL.modals.addGroup.title()}
       isOpen={isOpen}
       onClose={close}
     >
@@ -64,9 +66,11 @@ const ModalContent = () => {
   } = useApi();
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
+  const localLL = LL.modals.addGroup;
   const groupInfo = useAddGroupModal((s) => s.groupInfo);
   const closeModal = useAddGroupModal((s) => s.close);
   const toaster = useToaster();
+  const [searchValue, setSearch] = useState('');
 
   const { data: groups } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
@@ -95,6 +99,19 @@ const ModalContent = () => {
       closeModal();
     },
   });
+
+  const filteredUsers = useMemo(() => {
+    if (users) {
+      const loweredSearch = searchValue.toLocaleLowerCase();
+      return users.filter(
+        (u) =>
+          u.username.toLocaleLowerCase().includes(loweredSearch) ||
+          u.first_name.toLowerCase().includes(loweredSearch) ||
+          u.last_name.toLowerCase().includes(loweredSearch),
+      );
+    }
+    return [];
+  }, [searchValue, users]);
 
   const schema = useMemo(
     () =>
@@ -154,17 +171,22 @@ const ModalContent = () => {
 
   return (
     <form onSubmit={handleSubmit(handleValidSubmit)}>
-      <FormInput controller={{ control, name: 'name' }} label="Group name" />
+      <FormInput controller={{ control, name: 'name' }} label={localLL.groupName()} />
       <Divider />
       {users && <GroupFormSelectAll users={users} control={control} />}
       <Divider />
+      <div className="search-wrapper">
+        <Search
+          placeholder={localLL.searchPlaceholder()}
+          debounceTiming={500}
+          onDebounce={(val) => setSearch(val ?? '')}
+        />
+      </div>
       <div className="users">
         <div className="scroll-wrapper">
-          {users &&
-            users.length > 0 &&
-            users.map((user) => (
-              <UserSelect user={user} key={user.id} control={control} />
-            ))}
+          {filteredUsers.map((user) => (
+            <UserSelect user={user} key={user.id} control={control} />
+          ))}
         </div>
       </div>
       <div className="controls">
@@ -178,7 +200,7 @@ const ModalContent = () => {
           size={ButtonSize.LARGE}
           disabled={isUndefined(groups)}
           loading={isCreating || isEditing || isValidating || isSubmitting}
-          text={LL.common.controls.submit()}
+          text={localLL.submit()}
           styleVariant={ButtonStyleVariant.PRIMARY}
           type="submit"
         />

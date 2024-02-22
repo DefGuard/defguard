@@ -1,6 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { isUndefined } from 'lodash-es';
 import { useEffect, useState } from 'react';
 import { Subject } from 'rxjs';
@@ -26,10 +27,14 @@ import { ProvisionerRow } from './components/ProvisionerRow';
 export const AddAuthenticationKeyYubikey = () => {
   const { LL } = useI18nContext();
   const {
-    provisioning: { getWorkers, provisionYubiKey, getJobStatus },
+    provisioning: { getWorkers, provisionYubiKey },
   } = useApi({
     notifyError: true,
   });
+
+  const {
+    provisioning: { getJobStatus },
+  } = useApi({ notifyError: false });
 
   const { data, isLoading: workersListLoading } = useQuery({
     queryKey: [QueryKeys.FETCH_WORKERS],
@@ -53,7 +58,7 @@ export const AddAuthenticationKeyYubikey = () => {
 
   const [statusSubject] = useState(new Subject<WorkerJobStatus | null>());
 
-  const { data: workerJobStatus } = useQuery({
+  const { data: workerJobStatus, error: workerError } = useQuery({
     queryFn: () => getJobStatus(workerJobId as number),
     queryKey: [QueryKeys.FETCH_WORKER_JOB_STATUS, workerJobId],
     enabled: !isUndefined(workerJobId) && isProvisioning,
@@ -86,6 +91,17 @@ export const AddAuthenticationKeyYubikey = () => {
       statusSubject.next(workerJobStatus);
     }
   }, [statusSubject, workerJobStatus]);
+
+  useEffect(() => {
+    if (workerError) {
+      const message: string | undefined = (
+        workerError as AxiosError<{ message?: string }>
+      )?.response?.data.message;
+      toaster.error(message ?? LL.messages.error());
+      setModalState({ provisioningInProgress: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workerError]);
 
   // handle last known status
   useEffect(() => {
