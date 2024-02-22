@@ -39,8 +39,11 @@ export const UsersListGroups = ({ groups }: Props) => {
     for (const g of groups.sort((a, b) => a.localeCompare(b))) {
       let textWidth = 0;
       const estimatedTextWidth = getTextWidth(g);
+      // if any group name will get cropped enable modal regardless if rest will fit
       if (estimatedTextWidth > maxTextWidth) {
         textWidth = maxTextWidth;
+        enable = true;
+        totalWidth += dotsBox;
       } else {
         textWidth = estimatedTextWidth;
       }
@@ -55,7 +58,7 @@ export const UsersListGroups = ({ groups }: Props) => {
         toDisplay.push(g);
       } else {
         // check if last element should be popped
-        if (totalWidth - estimatedElWidth + dotsBox > targetWidth) {
+        if (totalWidth - estimatedElWidth + (enable ? 0 : dotsBox) > targetWidth) {
           setDisplayGroups(toDisplay.slice(0, -1));
         } else {
           setDisplayGroups(toDisplay);
