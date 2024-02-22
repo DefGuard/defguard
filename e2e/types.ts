@@ -17,6 +17,21 @@ export type ApiDevice = {
   networks: DeviceNetworkInfo[];
 };
 
+export enum AuthenticationKeyType {
+  SSH = 'ssh',
+  GPG = 'gpg',
+}
+
+export type ApiUserAuthKey = {
+  id: number;
+  name?: string;
+  key_type: AuthenticationKeyType;
+  key: string;
+  yubikey_serial?: string;
+  yubikey_id?: number;
+  yubikey_name?: string;
+};
+
 export type ApiUser = {
   username: string;
   first_name: string;
