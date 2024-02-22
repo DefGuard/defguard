@@ -1,7 +1,7 @@
 import { Page } from '@playwright/test';
 
 import { testsConfig } from '../../config';
-import { ApiUser, ApiUserProfile, User } from '../../types';
+import { ApiUser, ApiUserAuthKey, ApiUserProfile, User } from '../../types';
 
 export const apiGetUsers = async (page: Page): Promise<ApiUser[]> => {
   const url = testsConfig.CORE_BASE_URL + '/user';
@@ -28,6 +28,19 @@ export const apiGetUserProfile = async (
 
 export const apiGetMe = async (page: Page): Promise<ApiUser> => {
   const url = testsConfig.CORE_BASE_URL + '/me';
+  const userData = await page.evaluate(async (url) => {
+    return await fetch(url, {
+      method: 'GET',
+    }).then((res) => res.json());
+  }, url);
+  return userData;
+};
+
+export const apiGetUserAuthKeys = async (
+  page: Page,
+  username: string
+): Promise<ApiUserAuthKey[]> => {
+  const url = testsConfig.CORE_BASE_URL + `/user/${username}/auth_key`;
   const userData = await page.evaluate(async (url) => {
     return await fetch(url, {
       method: 'GET',
