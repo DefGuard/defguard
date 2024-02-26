@@ -75,7 +75,6 @@ export const UsersListGroups = ({ groups }: Props) => {
     }
   }, [groups]);
 
-  if (groups.length === 0 || !groups) return null;
   return (
     <div
       className={classNames('groups-cell', {

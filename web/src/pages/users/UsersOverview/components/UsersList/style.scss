@@ -74,6 +74,10 @@
         }
       }
 
+      [class*='-cell'] {
+        min-width: 100px;
+      }
+
       .name-cell {
         display: flex;
         flex-flow: row;
