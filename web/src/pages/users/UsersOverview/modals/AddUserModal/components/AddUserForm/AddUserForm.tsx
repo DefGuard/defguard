@@ -59,7 +59,10 @@ export const AddUserForm = () => {
             .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
           // check in refine
           password: z.string(),
-          email: z.string().min(1, LL.form.error.required()),
+          email: z
+            .string()
+            .min(1, LL.form.error.required())
+            .email(LL.form.error.invalid()),
           last_name: z.string().min(1, LL.form.error.required()),
           first_name: z.string().min(1, LL.form.error.required()),
           phone: z.string(),
