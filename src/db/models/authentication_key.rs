@@ -5,8 +5,8 @@ use sqlx::{query_as, Error as SqlxError, PgExecutor, Type};
 #[sqlx(type_name = "authentication_key_type", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum AuthenticationKeyType {
-    SSH,
-    GPG,
+    Ssh,
+    Gpg,
 }
 
 #[derive(Deserialize, Model, Serialize)]

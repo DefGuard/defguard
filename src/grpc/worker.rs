@@ -284,14 +284,14 @@ impl worker_service_server::WorkerService for WorkerServer {
                                     user_id,
                                     message.ssh_key,
                                     None,
-                                    AuthenticationKeyType::SSH,
+                                    AuthenticationKeyType::Ssh,
                                     Some(key_id),
                                 );
                                 let mut gpg = AuthenticationKey::new(
                                     user_id,
                                     message.public_key,
                                     None,
-                                    AuthenticationKeyType::GPG,
+                                    AuthenticationKeyType::Gpg,
                                     Some(key_id),
                                 );
                                 ssh.save(&self.pool)
