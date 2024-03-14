@@ -22,7 +22,7 @@ use super::{
 use crate::{
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
-    server_config, SERVER_CONFIG,
+    server_config,
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
@@ -504,7 +504,7 @@ impl User {
         match &self.email_mfa_secret {
             Some(email_mfa_secret) => {
                 let auth = TOTP::from_bytes(email_mfa_secret);
-                let timeout = &SERVER_CONFIG.get().unwrap().mfa_code_timeout;
+                let timeout = &server_config().mfa_code_timeout;
                 let timestamp = SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap()
@@ -524,7 +524,7 @@ impl User {
     pub fn verify_email_mfa_code(&self, code: u32) -> bool {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
             let totp = TOTP::from_bytes(email_mfa_secret);
-            let timeout = &SERVER_CONFIG.get().unwrap().mfa_code_timeout;
+            let timeout = &server_config().mfa_code_timeout;
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
                 return totp.verify(code, timeout.as_secs(), timestamp.as_secs());
             }

@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::{
     db::{MFAMethod, Session, User},
-    SERVER_CONFIG, VERSION,
+    server_config, VERSION,
 };
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
@@ -94,10 +94,7 @@ pub fn enrollment_start_mail(
 
     // add required context
     context.insert("enrollment_url", &enrollment_service_url.to_string());
-    context.insert(
-        "defguard_url",
-        &SERVER_CONFIG.get().expect("Server config not found").url,
-    );
+    context.insert("defguard_url", &server_config().url);
     context.insert("token", enrollment_token);
 
     // prepare enrollment service URL
@@ -230,7 +227,7 @@ pub fn new_device_ocid_login_mail(
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
     tera.add_raw_template("mail_base", MAIL_BASE)?;
 
-    let url = format!("{}me", SERVER_CONFIG.get().unwrap().url);
+    let url = format!("{}me", server_config().url);
 
     context.insert("oauth2client_name", &oauth2client_name);
     context.insert("profile_url", &url);
@@ -254,7 +251,7 @@ pub fn gateway_disconnected_mail(
 
 pub fn email_mfa_activation_mail(code: u32, session: &Session) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
-    let timeout = SERVER_CONFIG.get().unwrap().mfa_code_timeout;
+    let timeout = server_config().mfa_code_timeout;
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));
     context.insert("timeout", &timeout.to_string());
@@ -265,7 +262,7 @@ pub fn email_mfa_activation_mail(code: u32, session: &Session) -> Result<String,
 
 pub fn email_mfa_code_mail(code: u32, session: Option<&Session>) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
-    let timeout = SERVER_CONFIG.get().unwrap().mfa_code_timeout;
+    let timeout = server_config().mfa_code_timeout;
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));
     context.insert("timeout", &timeout.to_string());
@@ -283,10 +280,7 @@ pub fn email_password_reset_mail(
     let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
 
     context.insert("enrollment_url", &service_url.to_string());
-    context.insert(
-        "defguard_url",
-        &SERVER_CONFIG.get().expect("Server config not found").url,
-    );
+    context.insert("defguard_url", &server_config().url);
     context.insert("token", password_reset_token);
 
     service_url.set_path("/password-reset");
@@ -314,7 +308,7 @@ pub fn email_password_reset_success_mail(
 
 #[cfg(test)]
 mod test {
-    use crate::config::DefGuardConfig;
+    use crate::{config::DefGuardConfig, SERVER_CONFIG};
     use claims::assert_ok;
 
     use super::*;

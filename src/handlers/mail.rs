@@ -21,9 +21,10 @@ use crate::{
     db::{models::enrollment::TokenError, MFAMethod, Session, User},
     error::WebError,
     mail::{Attachment, Mail},
+    server_config,
     support::dump_config,
     templates::{self, support_data_mail, TemplateError, TemplateLocation},
-    DbPool, SERVER_CONFIG,
+    DbPool,
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -216,11 +217,7 @@ pub async fn send_gateway_disconnected_email(
     pool: &DbPool,
 ) -> Result<(), WebError> {
     debug!("Sending gateway disconnected mail to all admin users");
-    let admin_group_name = &SERVER_CONFIG
-        .get()
-        .ok_or(WebError::ServerConfigMissing)?
-        .admin_groupname;
-    let admin_users = User::find_by_group_name(pool, admin_group_name).await?;
+    let admin_users = User::find_by_group_name(pool, &server_config().admin_groupname).await?;
     let gateway_name = gateway_name.unwrap_or_default();
     for user in admin_users {
         let mail = Mail {

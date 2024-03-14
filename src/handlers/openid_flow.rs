@@ -44,7 +44,7 @@ use crate::{
     },
     error::WebError,
     handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
-    server_config, SERVER_CONFIG,
+    server_config,
 };
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
@@ -338,8 +338,8 @@ async fn login_redirect(
     data: &AuthenticationRequest,
     private_cookies: PrivateCookieJar,
 ) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
-    let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
-    let base_url = server_config.url.join("api/v1/oauth/authorize").unwrap();
+    let config = server_config();
+    let base_url = config.url.join("api/v1/oauth/authorize").unwrap();
     let cookie = Cookie::build((
         SIGN_IN_COOKIE_NAME,
         format!(
@@ -348,13 +348,13 @@ async fn login_redirect(
         ),
     ))
     .domain(
-        server_config
+        config
             .cookie_domain
             .clone()
             .expect("Cookie domain not found"),
     )
     .path("/")
-    .secure(!server_config.cookie_insecure)
+    .secure(!config.cookie_insecure)
     .same_site(SameSite::Lax)
     .http_only(true)
     .max_age(Duration::minutes(10));
