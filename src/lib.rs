@@ -133,7 +133,6 @@ extern crate tracing;
 extern crate serde;
 
 pub static VERSION: &str = env!("CARGO_PKG_VERSION");
-// TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
 pub(crate) fn server_config() -> &'static DefGuardConfig {

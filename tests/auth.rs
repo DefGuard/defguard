@@ -5,11 +5,11 @@ use std::{str::FromStr, time::SystemTime};
 use chrono::NaiveDateTime;
 use claims::assert_err;
 use defguard::{
+    auth::TOTP_CODE_VALIDITY_PERIOD,
     db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, Settings, UserDetails, Wallet},
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, WalletChallenge},
     hex::to_lower_hex,
     secret::SecretString,
-    SERVER_CONFIG,
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use otpauth::TOTP;
@@ -150,10 +150,7 @@ fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    AuthCode::new(auth.generate(
-        SERVER_CONFIG.get().unwrap().totp_code_timeout.as_secs(),
-        timestamp,
-    ))
+    AuthCode::new(auth.generate(TOTP_CODE_VALIDITY_PERIOD, timestamp))
 }
 
 #[tokio::test]
