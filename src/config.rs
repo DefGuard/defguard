@@ -111,6 +111,14 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub mfa_code_timeout: Duration,
 
+    #[arg(long, env = "DEFGUARD_TOTP_CODE_TIMEOUT", default_value = "30s")]
+    #[serde(skip_serializing)]
+    pub totp_code_timeout: Duration,
+
+    #[arg(long, env = "DEFGUARD_SESSION_TIMEOUT", default_value = "7d")]
+    #[serde(skip_serializing)]
+    pub session_timeout: Duration,
+
     #[arg(
         long,
         env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT",

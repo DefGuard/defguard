@@ -136,6 +136,12 @@ pub static VERSION: &str = env!("CARGO_PKG_VERSION");
 // TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
+pub(crate) fn server_config() -> &'static DefGuardConfig {
+    SERVER_CONFIG
+        .get()
+        .expect("Server configuration not set yet")
+}
+
 // WireGuard key length in bytes.
 pub(crate) const KEY_LENGTH: usize = 32;
 

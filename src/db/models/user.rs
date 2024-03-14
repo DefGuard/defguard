@@ -20,10 +20,9 @@ use super::{
     DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
 use crate::{
-    auth::TOTP_CODE_VALIDITY_PERIOD,
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
-    SERVER_CONFIG,
+    server_config, SERVER_CONFIG,
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
@@ -493,8 +492,9 @@ impl User {
     pub fn verify_totp_code(&self, code: u32) -> bool {
         if let Some(totp_secret) = &self.totp_secret {
             let totp = TOTP::from_bytes(totp_secret);
+            let timeout = server_config().totp_code_timeout;
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                return totp.verify(code, TOTP_CODE_VALIDITY_PERIOD, timestamp.as_secs());
+                return totp.verify(code, timeout.as_secs(), timestamp.as_secs());
             }
         }
         false

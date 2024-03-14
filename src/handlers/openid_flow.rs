@@ -37,14 +37,14 @@ use time::Duration;
 use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
-    auth::{AccessUserInfo, SessionInfo, SESSION_TIMEOUT},
+    auth::{AccessUserInfo, SessionInfo},
     db::{
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
         DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, User,
     },
     error::WebError,
     handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
-    SERVER_CONFIG,
+    server_config, SERVER_CONFIG,
 };
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
@@ -656,7 +656,8 @@ impl TokenRequest {
                 debug!("Scope contains openid, issuing JWT ID token");
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
-                let expiration = issue_time + chrono::Duration::seconds(SESSION_TIMEOUT as i64);
+                let timeout = server_config().session_timeout;
+                let expiration = issue_time + chrono::Duration::seconds(timeout.as_secs() as i64);
                 let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],
