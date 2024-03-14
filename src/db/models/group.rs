@@ -3,7 +3,7 @@ use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgEx
 
 use crate::{
     db::{models::error::ModelError, User, WireguardNetwork},
-    SERVER_CONFIG,
+    server_config,
 };
 
 #[derive(Model, Debug)]
@@ -102,10 +102,7 @@ impl WireguardNetwork {
         transaction: &mut PgConnection,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
-        let admin_group_name = &SERVER_CONFIG
-            .get()
-            .expect("defguard config not found")
-            .admin_groupname;
+        let admin_group_name = &server_config().admin_groupname;
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
 

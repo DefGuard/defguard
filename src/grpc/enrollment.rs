@@ -13,8 +13,8 @@ use crate::{
     headers::get_device_info,
     ldap::utils::ldap_add_user,
     mail::Mail,
+    server_config,
     templates::{self, TemplateLocation},
-    SERVER_CONFIG,
 };
 use ipnetwork::IpNetwork;
 use reqwest::Url;
@@ -47,7 +47,7 @@ struct InstanceInfo {
 
 impl InstanceInfo {
     pub fn new<S: Into<String>>(settings: Settings, username: S) -> Self {
-        let config = SERVER_CONFIG.get().expect("defguard config not found");
+        let config = server_config();
         InstanceInfo {
             id: settings.uuid,
             name: settings.instance_name,
@@ -98,9 +98,7 @@ impl EnrollmentServer {
         debug!("Validating enrollment session token: {token}");
 
         let enrollment = Token::find_by_id(&self.pool, token).await?;
-        let config = SERVER_CONFIG.get().expect("defguard config not found");
-
-        if enrollment.is_session_valid(config.enrollment_session_timeout.as_secs()) {
+        if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
             Ok(enrollment)
         } else {
             error!("Enrollment session expired");
@@ -119,7 +117,6 @@ impl EnrollmentServer {
         &self,
         request: EnrollmentStartRequest,
     ) -> Result<EnrollmentStartResponse, Status> {
-        let config = SERVER_CONFIG.get().expect("defguard config not found");
         // fetch enrollment token
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
@@ -142,7 +139,7 @@ impl EnrollmentServer {
             let session_deadline = enrollment
                 .start_session(
                     &mut transaction,
-                    config.enrollment_session_timeout.as_secs(),
+                    server_config().enrollment_session_timeout.as_secs(),
                 )
                 .await?;
 

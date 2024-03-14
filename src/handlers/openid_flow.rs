@@ -37,14 +37,14 @@ use time::Duration;
 use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
-    auth::{AccessUserInfo, SessionInfo, SESSION_TIMEOUT},
+    auth::{AccessUserInfo, SessionInfo},
     db::{
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
         DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, User,
     },
     error::WebError,
     handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
-    SERVER_CONFIG,
+    server_config,
 };
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
@@ -72,9 +72,9 @@ impl From<&User> for StandardClaims<CoreGenderClaim> {
     }
 }
 
-pub async fn discovery_keys(State(appstate): State<AppState>) -> ApiResult {
+pub async fn discovery_keys() -> ApiResult {
     let mut keys = Vec::new();
-    if let Some(openid_key) = appstate.config.openid_key() {
+    if let Some(openid_key) = server_config().openid_key() {
         keys.push(openid_key.as_verification_key());
     };
 
@@ -338,8 +338,8 @@ async fn login_redirect(
     data: &AuthenticationRequest,
     private_cookies: PrivateCookieJar,
 ) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
-    let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
-    let base_url = server_config.url.join("api/v1/oauth/authorize").unwrap();
+    let config = server_config();
+    let base_url = config.url.join("api/v1/oauth/authorize").unwrap();
     let cookie = Cookie::build((
         SIGN_IN_COOKIE_NAME,
         format!(
@@ -348,13 +348,13 @@ async fn login_redirect(
         ),
     ))
     .domain(
-        server_config
+        config
             .cookie_domain
             .clone()
             .expect("Cookie domain not found"),
     )
     .path("/")
-    .secure(!server_config.cookie_insecure)
+    .secure(!config.cookie_insecure)
     .same_site(SameSite::Lax)
     .http_only(true)
     .max_age(Duration::minutes(10));
@@ -656,7 +656,8 @@ impl TokenRequest {
                 debug!("Scope contains openid, issuing JWT ID token");
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
-                let expiration = issue_time + chrono::Duration::seconds(SESSION_TIMEOUT as i64);
+                let timeout = server_config().session_timeout;
+                let expiration = issue_time + chrono::Duration::seconds(timeout.as_secs() as i64);
                 let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],
@@ -799,13 +800,14 @@ pub async fn token(
                                 } else {
                                     GroupClaims { groups: None }
                                 };
+                                let config = server_config();
                                 match form.authorization_code_flow(
                                     &auth_code,
                                     &token,
                                     (&user).into(),
-                                    &appstate.config.url,
+                                    &config.url,
                                     client.client_secret,
-                                    appstate.config.openid_key(),
+                                    config.openid_key(),
                                     group_claims,
                                 ) {
                                     Ok(response) => {
@@ -885,17 +887,12 @@ pub async fn userinfo(user_info: AccessUserInfo) -> ApiResult {
 }
 
 // Must be served under /.well-known/openid-configuration
-pub async fn openid_configuration(State(appstate): State<AppState>) -> ApiResult {
+pub async fn openid_configuration() -> ApiResult {
+    let config = server_config();
     let provider_metadata = CoreProviderMetadata::new(
-        IssuerUrl::from_url(appstate.config.url.clone()),
-        AuthUrl::from_url(appstate.config.url.join("api/v1/oauth/authorize").unwrap()),
-        JsonWebKeySetUrl::from_url(
-            appstate
-                .config
-                .url
-                .join("api/v1/oauth/discovery/keys")
-                .unwrap(),
-        ),
+        IssuerUrl::from_url(config.url.clone()),
+        AuthUrl::from_url(config.url.join("api/v1/oauth/authorize").unwrap()),
+        JsonWebKeySetUrl::from_url(config.url.join("api/v1/oauth/discovery/keys").unwrap()),
         vec![ResponseTypes::new(vec![CoreResponseType::Code])],
         vec![CoreSubjectIdentifierType::Public],
         vec![
@@ -905,7 +902,7 @@ pub async fn openid_configuration(State(appstate): State<AppState>) -> ApiResult
         EmptyAdditionalProviderMetadata {},
     )
     .set_token_endpoint(Some(TokenUrl::from_url(
-        appstate.config.url.join("api/v1/oauth/token").unwrap(),
+        config.url.join("api/v1/oauth/token").unwrap(),
     )))
     .set_scopes_supported(Some(vec![
         Scope::new("openid".into()),
@@ -932,7 +929,7 @@ pub async fn openid_configuration(State(appstate): State<AppState>) -> ApiResult
         CoreGrantType::RefreshToken,
     ]))
     .set_userinfo_endpoint(Some(UserInfoUrl::from_url(
-        appstate.config.url.join("api/v1/oauth/userinfo").unwrap(),
+        config.url.join("api/v1/oauth/userinfo").unwrap(),
     )));
 
     Ok(ApiResponse {

@@ -20,8 +20,10 @@ use tokio::{
     time::sleep,
 };
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
-use tonic::transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig};
-use tonic::Status;
+use tonic::{
+    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
+    Status,
+};
 use uaparser::UserAgentParser;
 use uuid::Uuid;
 
@@ -40,8 +42,8 @@ use self::{
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
 use crate::{
-    auth::failed_login::FailedLoginMap, config::DefGuardConfig, db::AppEvent,
-    handlers::mail::send_gateway_disconnected_email, mail::Mail, SERVER_CONFIG,
+    auth::failed_login::FailedLoginMap, db::AppEvent,
+    handlers::mail::send_gateway_disconnected_email, mail::Mail, server_config,
 };
 #[cfg(feature = "worker")]
 use crate::{
@@ -286,10 +288,7 @@ impl GatewayState {
         let send_email = if let Some(last_notification_time) = self.last_email_notification {
             Utc::now().naive_utc() - last_notification_time
                 > ChronoDuration::from_std(
-                    *SERVER_CONFIG
-                        .get()
-                        .ok_or(GatewayMapError::ConfigError)?
-                        .gateway_disconnection_notification_timeout,
+                    *server_config().gateway_disconnection_notification_timeout,
                 )
                 .expect("Failed to parse duration")
         } else {
@@ -336,7 +335,7 @@ pub async fn run_grpc_bidi_stream(
     mail_tx: UnboundedSender<Mail>,
     user_agent_parser: Arc<UserAgentParser>,
 ) -> Result<(), anyhow::Error> {
-    let config = SERVER_CONFIG.get().unwrap();
+    let config = server_config();
 
     // TODO: merge the two
     let enrollment_server = EnrollmentServer::new(
@@ -507,7 +506,6 @@ pub async fn run_grpc_bidi_stream(
 
 /// Runs gRPC server with core services.
 pub async fn run_grpc_server(
-    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: DbPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
@@ -530,7 +528,7 @@ pub async fn run_grpc_server(
         JwtInterceptor::new(ClaimsType::Gateway),
     );
     // Run gRPC server
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.grpc_port);
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().grpc_port);
     info!("Starting gRPC services");
     let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
         let identity = Identity::from_pem(cert, key);

@@ -66,7 +66,7 @@ impl AuthenticationKeyInfo {
 async fn add_user_ssh_keys_to_list(pool: &DbPool, user: &User, ssh_keys: &mut Vec<String>) {
     if let Some(user_id) = user.id {
         let keys_result =
-            AuthenticationKey::find_by_user_id(pool, user_id, Some(AuthenticationKeyType::SSH))
+            AuthenticationKey::find_by_user_id(pool, user_id, Some(AuthenticationKeyType::Ssh))
                 .await;
 
         if let Ok(authentication_keys) = keys_result {
@@ -181,14 +181,14 @@ pub async fn add_authentication_key(
 
     // verify key
     match data.key_type {
-        AuthenticationKeyType::SSH => {
+        AuthenticationKeyType::Ssh => {
             let parsed = trimmed_key.parse::<PublicKey>();
             if parsed.is_err() {
                 return Err(WebError::BadRequest("SSH key failed verification.".into()));
             }
         }
         // FIXME: verify GPG key
-        AuthenticationKeyType::GPG => {}
+        AuthenticationKeyType::Gpg => {}
     }
 
     // check if exists

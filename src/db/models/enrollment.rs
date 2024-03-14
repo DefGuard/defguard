@@ -10,8 +10,9 @@ use super::{settings::Settings, DbPool, User};
 use crate::{
     mail::Mail,
     random::gen_alphanumeric,
+    server_config,
     templates::{self, TemplateError},
-    SERVER_CONFIG, VERSION,
+    VERSION,
 };
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
@@ -303,7 +304,7 @@ impl Token {
         context.insert("first_name", &user.first_name);
         context.insert("last_name", &user.last_name);
         context.insert("username", &user.username);
-        context.insert("defguard_url", &SERVER_CONFIG.get().unwrap().url);
+        context.insert("defguard_url", &server_config().url);
         context.insert("defguard_version", &VERSION);
 
         if let Some(admin) = admin {

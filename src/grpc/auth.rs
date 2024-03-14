@@ -6,9 +6,10 @@ use tonic::{Request, Response, Status};
 use crate::{
     auth::{
         failed_login::{check_username, log_failed_login_attempt, FailedLoginMap},
-        Claims, ClaimsType, SESSION_TIMEOUT,
+        Claims, ClaimsType,
     },
     db::{DbPool, User},
+    server_config,
 };
 
 tonic::include_proto!("auth");
@@ -29,7 +30,14 @@ impl AuthServer {
 
     /// Creates JWT token for specified user
     fn create_jwt(uid: &str) -> Result<String, JWTError> {
-        Claims::new(ClaimsType::Auth, uid.into(), String::new(), SESSION_TIMEOUT).to_jwt()
+        let timeout = server_config().session_timeout;
+        Claims::new(
+            ClaimsType::Auth,
+            uid.into(),
+            String::new(),
+            timeout.as_secs(),
+        )
+        .to_jwt()
     }
 }
 
