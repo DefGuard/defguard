@@ -107,6 +107,10 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub enrollment_token_timeout: Duration,
 
+    #[arg(long, env = "DEFGUARD_MFA_CODE_LIFETIME", default_value = "60s")]
+    #[serde(skip_serializing)]
+    pub mfa_code_timeout: Duration,
+
     #[arg(
         long,
         env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT",

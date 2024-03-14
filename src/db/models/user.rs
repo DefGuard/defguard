@@ -11,6 +11,7 @@ use axum::http::StatusCode;
 use model_derive::Model;
 use otpauth::TOTP;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, Type};
+use std::time::Duration;
 
 use super::{
     device::{Device, UserDevice},
@@ -20,9 +21,10 @@ use super::{
     DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
 use crate::{
-    auth::{EMAIL_CODE_VALIDITY_PERIOD, TOTP_CODE_VALIDITY_PERIOD},
+    auth::TOTP_CODE_VALIDITY_PERIOD,
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
+    SERVER_CONFIG,
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
@@ -499,7 +501,7 @@ impl User {
         false
     }
 
-    pub fn generate_email_mfa_code(&self) -> Result<u32, WebError> {
+    pub fn generate_email_mfa_code(&self, timeout: &Duration) -> Result<u32, WebError> {
         match &self.email_mfa_secret {
             Some(email_mfa_secret) => {
                 let auth = TOTP::from_bytes(email_mfa_secret);
@@ -507,7 +509,7 @@ impl User {
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap()
                     .as_secs();
-                let code = auth.generate(EMAIL_CODE_VALIDITY_PERIOD, timestamp);
+                let code = auth.generate(timeout.as_secs(), timestamp);
                 Ok(code)
             }
             None => Err(WebError::EmailMfa(format!(
@@ -522,8 +524,9 @@ impl User {
     pub fn verify_email_mfa_code(&self, code: u32) -> bool {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
             let totp = TOTP::from_bytes(email_mfa_secret);
+            let timeout = &SERVER_CONFIG.get().unwrap().mfa_code_timeout;
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                return totp.verify(code, EMAIL_CODE_VALIDITY_PERIOD, timestamp.as_secs());
+                return totp.verify(code, timeout.as_secs(), timestamp.as_secs());
             }
         }
         false
