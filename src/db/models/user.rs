@@ -11,7 +11,6 @@ use axum::http::StatusCode;
 use model_derive::Model;
 use otpauth::TOTP;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, Type};
-use std::time::Duration;
 
 use super::{
     device::{Device, UserDevice},
@@ -501,10 +500,11 @@ impl User {
         false
     }
 
-    pub fn generate_email_mfa_code(&self, timeout: &Duration) -> Result<u32, WebError> {
+    pub fn generate_email_mfa_code(&self) -> Result<u32, WebError> {
         match &self.email_mfa_secret {
             Some(email_mfa_secret) => {
                 let auth = TOTP::from_bytes(email_mfa_secret);
+                let timeout = &SERVER_CONFIG.get().unwrap().mfa_code_timeout;
                 let timestamp = SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap()

@@ -355,8 +355,7 @@ pub fn send_email_mfa_activation_email(
     debug!("Sending email MFA activation mail to {}", user.email);
 
     // generate a verification code
-    let timeout = &SERVER_CONFIG.get().unwrap().mfa_code_timeout;
-    let code = user.generate_email_mfa_code(timeout).map_err(|err| {
+    let code = user.generate_email_mfa_code().map_err(|err| {
         error!("Failed to generate email MFA code: {err}");
         TemplateError::MfaError
     })?;
@@ -391,8 +390,7 @@ pub fn send_email_mfa_code_email(
     debug!("Sending email MFA code mail to {}", user.email);
 
     // generate a verification code
-    let timeout = &SERVER_CONFIG.get().unwrap().mfa_code_timeout;
-    let code = user.generate_email_mfa_code(timeout).map_err(|err| {
+    let code = user.generate_email_mfa_code().map_err(|err| {
         error!("Failed to generate email MFA code: {err}");
         TemplateError::MfaError
     })?;
@@ -400,7 +398,7 @@ pub fn send_email_mfa_code_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_code_mail(code, timeout.as_secs(), session)?,
+        content: templates::email_mfa_code_mail(code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
