@@ -42,7 +42,7 @@ use self::{
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
 use crate::{
-    auth::failed_login::FailedLoginMap, config::DefGuardConfig, db::AppEvent,
+    auth::failed_login::FailedLoginMap, db::AppEvent,
     handlers::mail::send_gateway_disconnected_email, mail::Mail, server_config,
 };
 #[cfg(feature = "worker")]
@@ -506,7 +506,6 @@ pub async fn run_grpc_bidi_stream(
 
 /// Runs gRPC server with core services.
 pub async fn run_grpc_server(
-    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: DbPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
@@ -529,7 +528,7 @@ pub async fn run_grpc_server(
         JwtInterceptor::new(ClaimsType::Gateway),
     );
     // Run gRPC server
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.grpc_port);
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().grpc_port);
     info!("Starting gRPC services");
     let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
         let identity = Identity::from_pem(cert, key);

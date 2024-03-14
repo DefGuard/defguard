@@ -21,6 +21,7 @@ use crate::{
     db::{Group, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
+    server_config,
 };
 
 pub static JWT_ISSUER: &str = "DefGuard";
@@ -190,12 +191,11 @@ where
             let Ok(groups) = user.member_of(&appstate.pool).await else {
                 return Err(WebError::DbError("cannot fetch groups".into()));
             };
+            let groupname = server_config().admin_groupname.clone();
             Ok(SessionInfo {
                 session,
                 user,
-                is_admin: groups
-                    .iter()
-                    .any(|group| group.name == appstate.config.admin_groupname),
+                is_admin: groups.iter().any(|group| group.name == groupname),
                 groups,
             })
         } else {
@@ -221,10 +221,9 @@ macro_rules! role {
                 parts: &mut Parts,
                 state: &S,
             ) -> Result<Self, Self::Rejection> {
-                let appstate = AppState::from_ref(state);
                 let session_info = SessionInfo::from_request_parts(parts, state).await?;
                 $(
-                if session_info.contains_group(&appstate.config.$config_field) {
+                if session_info.contains_group(&server_config().$config_field) {
                     return Ok(Self {});
                 }
                 )*

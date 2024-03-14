@@ -155,7 +155,6 @@ async fn handle_404() -> (StatusCode, &'static str) {
 }
 
 pub fn build_webapp(
-    config: DefGuardConfig,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
@@ -348,7 +347,6 @@ pub fn build_webapp(
         .nest_service("/svg", serve_images)
         .nest_service("/", serve_web_dir)
         .with_state(AppState::new(
-            config,
             pool,
             webhook_tx,
             webhook_rx,
@@ -372,7 +370,6 @@ pub fn build_webapp(
 
 /// Runs core web server exposing REST API.
 pub async fn run_web_server(
-    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
@@ -384,7 +381,6 @@ pub async fn run_web_server(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
-        config.clone(),
         webhook_tx,
         webhook_rx,
         wireguard_tx,
@@ -396,7 +392,7 @@ pub async fn run_web_server(
         failed_logins,
     );
     info!("Started web services");
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);
     let listener = TcpListener::bind(&addr).await?;
     serve(
         listener,

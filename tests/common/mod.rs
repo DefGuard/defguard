@@ -145,7 +145,6 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
     //     .init();
 
     let webapp = build_webapp(
-        config,
         tx,
         rx,
         wg_tx,

@@ -17,7 +17,6 @@ use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    config::DefGuardConfig,
     db::{models::enrollment::TokenError, MFAMethod, Session, User},
     error::WebError,
     mail::{Attachment, Mail},
@@ -101,8 +100,8 @@ pub async fn test_mail(
     }
 }
 
-async fn read_logs(config: &DefGuardConfig) -> String {
-    let Some(path) = &config.log_file else {
+async fn read_logs() -> String {
+    let Some(path) = &server_config().log_file else {
         return "Log file not configured".to_string();
     };
 
@@ -124,7 +123,7 @@ pub async fn send_support_data(
         "User {} sending support mail to {SUPPORT_EMAIL_ADDRESS}",
         session.user.username
     );
-    let config = dump_config(&appstate.pool, &appstate.config).await;
+    let config = dump_config(&appstate.pool).await;
     let config =
         serde_json::to_string_pretty(&config).unwrap_or("Json formatting error".to_string());
     let config = Attachment {
@@ -132,7 +131,7 @@ pub async fn send_support_data(
         content: config.into(),
         content_type: ContentType::TEXT_PLAIN,
     };
-    let logs = read_logs(&appstate.config).await;
+    let logs = read_logs().await;
     let logs = Attachment {
         filename: format!("defguard-logs-{}.txt", Utc::now()),
         content: logs.into(),

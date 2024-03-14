@@ -100,7 +100,7 @@ pub async fn authenticate(
     );
     session.save(&appstate.pool).await?;
 
-    let max_age = match &appstate.config.session_auth_lifetime {
+    let max_age = match &server_config().session_auth_lifetime {
         Some(seconds) => Duration::seconds(*seconds),
         None => Duration::days(7),
     };

@@ -72,9 +72,9 @@ impl From<&User> for StandardClaims<CoreGenderClaim> {
     }
 }
 
-pub async fn discovery_keys(State(appstate): State<AppState>) -> ApiResult {
+pub async fn discovery_keys() -> ApiResult {
     let mut keys = Vec::new();
-    if let Some(openid_key) = appstate.config.openid_key() {
+    if let Some(openid_key) = server_config().openid_key() {
         keys.push(openid_key.as_verification_key());
     };
 
@@ -800,13 +800,14 @@ pub async fn token(
                                 } else {
                                     GroupClaims { groups: None }
                                 };
+                                let config = server_config();
                                 match form.authorization_code_flow(
                                     &auth_code,
                                     &token,
                                     (&user).into(),
-                                    &appstate.config.url,
+                                    &config.url,
                                     client.client_secret,
-                                    appstate.config.openid_key(),
+                                    config.openid_key(),
                                     group_claims,
                                 ) {
                                     Ok(response) => {
@@ -886,17 +887,12 @@ pub async fn userinfo(user_info: AccessUserInfo) -> ApiResult {
 }
 
 // Must be served under /.well-known/openid-configuration
-pub async fn openid_configuration(State(appstate): State<AppState>) -> ApiResult {
+pub async fn openid_configuration() -> ApiResult {
+    let config = server_config();
     let provider_metadata = CoreProviderMetadata::new(
-        IssuerUrl::from_url(appstate.config.url.clone()),
-        AuthUrl::from_url(appstate.config.url.join("api/v1/oauth/authorize").unwrap()),
-        JsonWebKeySetUrl::from_url(
-            appstate
-                .config
-                .url
-                .join("api/v1/oauth/discovery/keys")
-                .unwrap(),
-        ),
+        IssuerUrl::from_url(config.url.clone()),
+        AuthUrl::from_url(config.url.join("api/v1/oauth/authorize").unwrap()),
+        JsonWebKeySetUrl::from_url(config.url.join("api/v1/oauth/discovery/keys").unwrap()),
         vec![ResponseTypes::new(vec![CoreResponseType::Code])],
         vec![CoreSubjectIdentifierType::Public],
         vec![
@@ -906,7 +902,7 @@ pub async fn openid_configuration(State(appstate): State<AppState>) -> ApiResult
         EmptyAdditionalProviderMetadata {},
     )
     .set_token_endpoint(Some(TokenUrl::from_url(
-        appstate.config.url.join("api/v1/oauth/token").unwrap(),
+        config.url.join("api/v1/oauth/token").unwrap(),
     )))
     .set_scopes_supported(Some(vec![
         Scope::new("openid".into()),
@@ -933,7 +929,7 @@ pub async fn openid_configuration(State(appstate): State<AppState>) -> ApiResult
         CoreGrantType::RefreshToken,
     ]))
     .set_userinfo_endpoint(Some(UserInfoUrl::from_url(
-        appstate.config.url.join("api/v1/oauth/userinfo").unwrap(),
+        config.url.join("api/v1/oauth/userinfo").unwrap(),
     )));
 
     Ok(ApiResponse {

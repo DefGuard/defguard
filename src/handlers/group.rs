@@ -11,6 +11,7 @@ use crate::{
     auth::{SessionInfo, UserAdminRole},
     db::{Group, User, WireguardNetwork},
     error::WebError,
+    server_config,
     // ldap::utils::{ldap_add_user_to_group, ldap_modify_group, ldap_remove_user_from_group},
 };
 
@@ -260,7 +261,7 @@ pub(crate) async fn delete_group(
     debug!("Deleting group {name}");
     // Administrative group must not be removed.
     // Note: Group names are unique, so this condition should be sufficient.
-    if name == appstate.config.admin_groupname {
+    if name == server_config().admin_groupname {
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
