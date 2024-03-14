@@ -261,10 +261,15 @@ pub fn email_mfa_activation_mail(code: u32, session: &Session) -> Result<String,
     Ok(tera.render("mail_email_mfa_activation", &context)?)
 }
 
-pub fn email_mfa_code_mail(code: u32, session: Option<&Session>) -> Result<String, TemplateError> {
+pub fn email_mfa_code_mail(
+    code: u32,
+    timeout: u64,
+    session: Option<&Session>,
+) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));
+    context.insert("timeout", &timeout.to_string());
     tera.add_raw_template("mail_email_mfa_code", MAIL_EMAIL_MFA_CODE)?;
 
     Ok(tera.render("mail_email_mfa_code", &context)?)

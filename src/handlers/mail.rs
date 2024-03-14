@@ -400,7 +400,7 @@ pub fn send_email_mfa_code_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_code_mail(code, session)?,
+        content: templates::email_mfa_code_mail(code, timeout.as_secs(), session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
