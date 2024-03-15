@@ -4,6 +4,7 @@ Please include a summary of the changes and the related issue. Please also inclu
 
 # Dev Branch Merge Checklist:
 
+- [ ] If testing requires changes in the environment or deployment please update the documentation first and attach the link to the documentation section in this pool request
 - [ ] I have prepared end-to-end tests for all new functionalities
 - [ ] I have performed end-to-end tests manually and they work
 - [ ] New and existing unit tests pass locally with my changes
