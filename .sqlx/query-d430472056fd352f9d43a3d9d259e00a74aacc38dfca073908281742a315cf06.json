@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT COUNT(*) FROM \"authentication_key\" WHERE key = $1",
+  "query": "SELECT COUNT(1) FROM \"authentication_key\" WHERE user_id = $1 AND key = $2",
   "describe": {
     "columns": [
       {
@@ -11,6 +11,7 @@
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Text"
       ]
     },
@@ -18,5 +19,5 @@
       null
     ]
   },
-  "hash": "59f427b570394e491e95d03c13802d5183039776c67cde0b72f464d159fbf14b"
+  "hash": "d430472056fd352f9d43a3d9d259e00a74aacc38dfca073908281742a315cf06"
 }
