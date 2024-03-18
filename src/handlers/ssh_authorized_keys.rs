@@ -153,7 +153,7 @@ pub async fn get_authorized_keys(
     Ok(ssh_keys.join("\n"))
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct AddAuthenticationKeyData {
     key: String,
     name: String,
@@ -193,23 +193,26 @@ pub async fn add_authentication_key(
 
     // check if exists
     let exists_res = query!(
-        "SELECT COUNT(*) FROM \"authentication_key\" WHERE key = $1",
-        trimmed_key
+        "SELECT COUNT(1) FROM \"authentication_key\" WHERE user_id = $1 AND key = $2",
+        user_id,
+        trimmed_key,
     )
     .fetch_one(&appstate.pool)
     .await?;
-    if exists_res.count.is_some_and(|res| res > 0) {
+    if exists_res.count == Some(1) {
+        error!("User {username} tried to insert existing key: {data:?}");
         return Err(WebError::BadRequest("Key already exists.".into()));
     }
     let mut new_key = AuthenticationKey::new(
         user_id,
         trimmed_key.to_string(),
-        Some(data.name),
-        data.key_type,
+        Some(data.name.clone()),
+        data.key_type.clone(),
         None,
     );
     new_key.save(&appstate.pool).await?;
 
+    info!("Added new key \"{}\" of type {:?} for user {username}", data.name, data.key_type);
     Ok(ApiResponse {
         json: json!({}),
         status: StatusCode::CREATED,
