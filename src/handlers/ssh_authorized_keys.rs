@@ -212,7 +212,10 @@ pub async fn add_authentication_key(
     );
     new_key.save(&appstate.pool).await?;
 
-    info!("Added new key \"{}\" of type {:?} for user {username}", data.name, data.key_type);
+    info!(
+        "Added new key \"{}\" of type {:?} for user {username}",
+        data.name, data.key_type
+    );
     Ok(ApiResponse {
         json: json!({}),
         status: StatusCode::CREATED,
