@@ -66,6 +66,10 @@ Just follow [this tutorial](http://bit.ly/defguard-setup)
 
 [A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5).
 
+### ⛑️ Want to help? ⛑️ 
+
+Here is a [dedicated view for **good first bugs**](https://github.com/orgs/DefGuard/projects/5/views/5)
+
 ## Why?
 
 The story and motivation behind defguard [can be found here: https://teonite.com/blog/defguard/](https://teonite.com/blog/defguard/)
