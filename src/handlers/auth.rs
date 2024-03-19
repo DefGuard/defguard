@@ -100,11 +100,7 @@ pub async fn authenticate(
     );
     session.save(&appstate.pool).await?;
 
-    let max_age = match &server_config().session_auth_lifetime {
-        Some(seconds) => Duration::seconds(*seconds),
-        None => Duration::days(7),
-    };
-
+    let max_age = Duration::seconds(server_config().auth_cookie_timeout.as_secs() as i64);
     let config = server_config();
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .domain(

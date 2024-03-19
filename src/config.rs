@@ -17,11 +17,13 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,
 
+    // TODO: restore file logging, seems to have vanished during the switch to tracing
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
 
-    #[arg(long, env = "DEFGUARD_AUTH_SESSION_LIFETIME")]
-    pub session_auth_lifetime: Option<i64>,
+    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT", default_value = "7d")]
+    #[serde(skip_serializing)]
+    pub auth_cookie_timeout: Duration,
 
     #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     #[serde(skip_serializing)]
