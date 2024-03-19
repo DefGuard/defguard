@@ -15,6 +15,7 @@ use super::{
     wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE_MINUTES},
     DbPool,
 };
+use crate::KEY_LENGTH;
 
 #[derive(Serialize)]
 pub struct DeviceConfig {
@@ -318,7 +319,7 @@ impl WireguardNetworkDevice {
 #[derive(Error, Debug)]
 pub enum DeviceError {
     #[error("Device {0} pubkey is the same as gateway pubkey for network {1}")]
-    PubkeyConflict(Device, Box<WireguardNetwork>),
+    PubkeyConflict(Device, String),
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
     #[error("Model error")]
@@ -363,7 +364,7 @@ impl Device {
                     format!("DNS = {dns}")
                 }
             }
-            &None => String::new(),
+            None => String::new(),
         };
         let allowed_ips = network
             .allowed_ips
@@ -375,19 +376,14 @@ impl Device {
             "[Interface]\n\
             PrivateKey = YOUR_PRIVATE_KEY\n\
             Address = {}\n\
-            {}\n\
+            {dns}\n\
             \n\
             [Peer]\n\
             PublicKey = {}\n\
-            AllowedIPs = {}\n\
+            AllowedIPs = {allowed_ips}\n\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
-            wireguard_network_device.wireguard_ip,
-            dns,
-            network.pubkey,
-            allowed_ips,
-            network.endpoint,
-            network.port,
+            wireguard_network_device.wireguard_ip, network.pubkey, network.endpoint, network.port,
         )
     }
 
@@ -506,12 +502,12 @@ impl Device {
         let mut network_info = Vec::new();
         for network in networks {
             debug!(
-                "Assigning IP for device {} (user {}) in network {}",
-                self.name, self.user_id, network
+                "Assigning IP for device {} (user {}) in network {network}",
+                self.name, self.user_id
             );
             // check for pubkey conflicts with networks
             if network.pubkey == self.wireguard_pubkey {
-                return Err(DeviceError::PubkeyConflict(self.clone(), Box::new(network)));
+                return Err(DeviceError::PubkeyConflict(self.clone(), network.name));
             }
 
             let Some(network_id) = network.id else {
@@ -526,10 +522,7 @@ impl Device {
             .await?
             .is_some()
             {
-                debug!(
-                    "Device {} already has an IP within network {}. Skipping...",
-                    self, network
-                );
+                debug!("Device {self} already has an IP within network {network}. Skipping...",);
                 continue;
             }
 
@@ -538,8 +531,8 @@ impl Device {
                 .await
             {
                 debug!(
-                    "Assigned IP {} for device {} (user {}) in network {}",
-                    wireguard_network_device.wireguard_ip, self.name, self.user_id, network
+                    "Assigned IP {} for device {} (user {}) in network {network}",
+                    wireguard_network_device.wireguard_ip, self.name, self.user_id
                 );
                 let device_network_info = DeviceNetworkInfo {
                     network_id,
@@ -607,7 +600,7 @@ impl Device {
 
     pub fn validate_pubkey(pubkey: &str) -> Result<(), String> {
         if let Ok(key) = BASE64_STANDARD.decode(pubkey) {
-            if key.len() == 32 {
+            if key.len() == KEY_LENGTH {
                 return Ok(());
             }
         }

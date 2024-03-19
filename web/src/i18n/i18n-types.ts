@@ -74,7 +74,27 @@ type RootTranslation = {
 			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
 			 */
 			RestoreDefault: string
+			/**
+			 * D​e​l​e​t​e
+			 */
+			'delete': string
+			/**
+			 * R​e​n​a​m​e
+			 */
+			rename: string
+			/**
+			 * C​o​p​y
+			 */
+			copy: string
 		}
+		/**
+		 * K​e​y
+		 */
+		key: string
+		/**
+		 * N​a​m​e
+		 */
+		name: string
 	}
 	messages: {
 		/**
@@ -105,6 +125,28 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		addGroup: {
+			/**
+			 * A​d​d​ ​g​r​o​u​p
+			 */
+			title: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
+			 */
+			selectAll: string
+			/**
+			 * G​r​o​u​p​ ​n​a​m​e
+			 */
+			groupName: string
+			/**
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
+			 */
+			searchPlaceholder: string
+			/**
+			 * C​r​e​a​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+		}
 		deviceConfig: {
 			/**
 			 * D​e​v​i​c​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s
@@ -168,7 +210,7 @@ type RootTranslation = {
 				 */
 				success: string
 				/**
-				 * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n​ ​s​t​a​r​t​e​d
+				 * D​e​s​k​t​o​p​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​s​t​a​r​t​e​d
 				 */
 				successDesktop: string
 				/**
@@ -894,7 +936,7 @@ type RootTranslation = {
 			setupMethod: {
 				remote: {
 					/**
-					 * R​e​m​o​t​e​ ​D​e​s​k​t​o​p​ ​A​c​t​i​v​a​t​i​o​n
+					 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
 					 */
 					title: string
 					/**
@@ -1438,6 +1480,158 @@ type RootTranslation = {
 				line2: string
 			}
 		}
+		authenticationKeys: {
+			/**
+			 * U​s​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y​s
+			 */
+			header: string
+			/**
+			 * A​d​d​ ​n​e​w​ ​K​e​y
+			 */
+			addKey: string
+			keysList: {
+				common: {
+					/**
+					 * R​e​n​a​m​e
+					 */
+					rename: string
+					/**
+					 * K​e​y
+					 */
+					key: string
+					/**
+					 * D​o​w​n​l​o​a​d
+					 */
+					download: string
+					/**
+					 * C​o​p​y
+					 */
+					copy: string
+					/**
+					 * S​e​r​i​a​l​ ​N​u​m​b​e​r
+					 */
+					serialNumber: string
+					/**
+					 * D​e​l​e​t​e
+					 */
+					'delete': string
+				}
+			}
+			deleteModal: {
+				/**
+				 * D​e​l​e​t​e​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
+				 */
+				title: string
+				/**
+				 * K​e​y​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
+				 * @param {string} name
+				 */
+				confirmMessage: RequiredParams<'name'>
+			}
+			addModal: {
+				/**
+				 * A​d​d​ ​n​e​w​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
+				 */
+				header: string
+				/**
+				 * K​e​y​ ​T​y​p​e
+				 */
+				keyType: string
+				keyForm: {
+					placeholders: {
+						/**
+						 * K​e​y​ ​N​a​m​e
+						 */
+						title: string
+						key: {
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​s​s​h​-​r​s​a​,​ ​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​,​ ​.​.​.
+							 */
+							ssh: string
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​-​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-
+							 */
+							gpg: string
+						}
+					}
+					labels: {
+						/**
+						 * N​a​m​e
+						 */
+						title: string
+						/**
+						 * K​e​y
+						 */
+						key: string
+					}
+					/**
+					 * A​d​d​ ​{​n​a​m​e​}​ ​k​e​y
+					 * @param {string} name
+					 */
+					submit: RequiredParams<'name'>
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​i​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​Y​u​b​i​K​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
+						 */
+						info: string
+						/**
+						 * S​e​l​e​c​t​ ​o​n​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
+						 */
+						selectLabel: string
+						/**
+						 * N​o​ ​w​o​r​k​e​r​s​ ​a​r​e​ ​r​e​g​i​s​t​e​r​e​d​ ​r​i​g​h​t​ ​n​o​w​.
+						 */
+						noData: string
+						/**
+						 * A​v​a​i​l​a​b​l​e
+						 */
+						available: string
+						/**
+						 * U​n​a​v​a​i​l​a​b​l​e
+						 */
+						unavailable: string
+					}
+					provisioning: {
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​i​n​ ​p​r​o​g​r​e​s​s​,​ ​p​l​e​a​s​e​ ​w​a​i​t​.
+						 */
+						inProgress: string
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​f​a​i​l​e​d​ ​!
+						 */
+						error: string
+						/**
+						 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
+						 */
+						success: string
+					}
+					/**
+					 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​k​e​y
+					 */
+					submit: string
+				}
+				messages: {
+					/**
+					 * K​e​y​ ​a​d​d​e​d​.
+					 */
+					keyAdded: string
+					/**
+					 * K​e​y​ ​h​a​s​ ​a​l​r​e​a​d​y​ ​b​e​e​n​ ​a​d​d​e​d​.
+					 */
+					keyExists: string
+					/**
+					 * U​n​s​u​p​p​o​r​t​e​d​ ​k​e​y​ ​f​o​r​m​a​t​.
+					 */
+					unsupportedKeyFormat: string
+					/**
+					 * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​t​h​e​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
+					 */
+					genericError: string
+				}
+			}
+		}
 	}
 	usersOverview: {
 		/**
@@ -1501,9 +1695,17 @@ type RootTranslation = {
 				 */
 				edit: string
 				/**
-				 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​K​e​y
+				 * A​d​d​ ​Y​u​b​i​K​e​y
 				 */
-				provision: string
+				addYubikey: string
+				/**
+				 * A​d​d​ ​S​H​H​ ​K​e​y
+				 */
+				addSSH: string
+				/**
+				 * A​d​d​ ​G​P​G​ ​K​e​y
+				 */
+				addGPG: string
 				/**
 				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
 				 */
@@ -1513,7 +1715,7 @@ type RootTranslation = {
 				 */
 				startEnrollment: string
 				/**
-				 * R​e​m​o​t​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
 				 */
 				activateDesktop: string
 				/**
@@ -1565,8 +1767,16 @@ type RootTranslation = {
 			 * S​u​p​p​o​r​t
 			 */
 			support: string
+			/**
+			 * G​r​o​u​p​s
+			 */
+			groups: string
 		}
 		mobileTitles: {
+			/**
+			 * G​r​o​u​p​s
+			 */
+			groups: string
 			/**
 			 * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
 			 */
@@ -1690,6 +1900,10 @@ type RootTranslation = {
 			 */
 			required: string
 			/**
+			 * S​u​b​m​i​t​t​e​d​ ​c​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d​.
+			 */
+			invalidCode: string
+			/**
 			 * M​a​x​i​m​u​m​ ​l​e​n​g​t​h​ ​e​x​c​e​e​d​e​d​.
 			 */
 			maximumLength: string
@@ -1749,6 +1963,20 @@ type RootTranslation = {
 			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h​.
 			 */
 			repeat: string
+			/**
+			 * E​x​p​e​c​t​e​d​ ​a​ ​v​a​l​i​d​ ​n​u​m​b​e​r​.
+			 */
+			number: string
+			/**
+			 * M​i​n​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
+			 * @param {number} value
+			 */
+			minimumValue: RequiredParams<'value'>
+			/**
+			 * M​a​x​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​e​x​c​e​e​d​e​d​.
+			 * @param {number} value
+			 */
+			maximumValue: RequiredParams<'value'>
 		}
 		floatingErrors: {
 			/**
@@ -2523,6 +2751,12 @@ type RootTranslation = {
 							 */
 							label: string
 						}
+						groups: {
+							/**
+							 * G​r​o​u​p​s
+							 */
+							label: string
+						}
 					}
 					controls: {
 						/**
@@ -2761,6 +2995,10 @@ type RootTranslation = {
 			 * K​n​o​w​ ​y​o​u​r​ ​p​h​o​n​e​ ​n​u​m​b​e​r​.
 			 */
 			phone: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​g​r​o​u​p​s​ ​m​e​m​b​e​r​s​h​i​p​.
+			 */
+			groups: string
 		}
 		controls: {
 			/**
@@ -3625,7 +3863,27 @@ export type TranslationFunctions = {
 			 * Restore default
 			 */
 			RestoreDefault: () => LocalizedString
+			/**
+			 * Delete
+			 */
+			'delete': () => LocalizedString
+			/**
+			 * Rename
+			 */
+			rename: () => LocalizedString
+			/**
+			 * Copy
+			 */
+			copy: () => LocalizedString
 		}
+		/**
+		 * Key
+		 */
+		key: () => LocalizedString
+		/**
+		 * Name
+		 */
+		name: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -3656,6 +3914,28 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		addGroup: {
+			/**
+			 * Add group
+			 */
+			title: () => LocalizedString
+			/**
+			 * Select all users
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Group name
+			 */
+			groupName: () => LocalizedString
+			/**
+			 * Filter/Search
+			 */
+			searchPlaceholder: () => LocalizedString
+			/**
+			 * Create group
+			 */
+			submit: () => LocalizedString
+		}
 		deviceConfig: {
 			/**
 			 * Device VPN configurations
@@ -3719,7 +3999,7 @@ export type TranslationFunctions = {
 				 */
 				success: () => LocalizedString
 				/**
-				 * Desktop activation started
+				 * Desktop configuration started
 				 */
 				successDesktop: () => LocalizedString
 				/**
@@ -4437,7 +4717,7 @@ export type TranslationFunctions = {
 			setupMethod: {
 				remote: {
 					/**
-					 * Remote Desktop Activation
+					 * Configure Desktop Client
 					 */
 					title: () => LocalizedString
 					/**
@@ -4980,6 +5260,156 @@ export type TranslationFunctions = {
 				line2: () => LocalizedString
 			}
 		}
+		authenticationKeys: {
+			/**
+			 * User Authentication Keys
+			 */
+			header: () => LocalizedString
+			/**
+			 * Add new Key
+			 */
+			addKey: () => LocalizedString
+			keysList: {
+				common: {
+					/**
+					 * Rename
+					 */
+					rename: () => LocalizedString
+					/**
+					 * Key
+					 */
+					key: () => LocalizedString
+					/**
+					 * Download
+					 */
+					download: () => LocalizedString
+					/**
+					 * Copy
+					 */
+					copy: () => LocalizedString
+					/**
+					 * Serial Number
+					 */
+					serialNumber: () => LocalizedString
+					/**
+					 * Delete
+					 */
+					'delete': () => LocalizedString
+				}
+			}
+			deleteModal: {
+				/**
+				 * Delete Authentication Key
+				 */
+				title: () => LocalizedString
+				/**
+				 * Key {name} will be deleted permanently.
+				 */
+				confirmMessage: (arg: { name: string }) => LocalizedString
+			}
+			addModal: {
+				/**
+				 * Add new Authentication Key
+				 */
+				header: () => LocalizedString
+				/**
+				 * Key Type
+				 */
+				keyType: () => LocalizedString
+				keyForm: {
+					placeholders: {
+						/**
+						 * Key Name
+						 */
+						title: () => LocalizedString
+						key: {
+							/**
+							 * Begins with ssh-rsa, ecdsa-sha2-nistp256, ...
+							 */
+							ssh: () => LocalizedString
+							/**
+							 * Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----
+							 */
+							gpg: () => LocalizedString
+						}
+					}
+					labels: {
+						/**
+						 * Name
+						 */
+						title: () => LocalizedString
+						/**
+						 * Key
+						 */
+						key: () => LocalizedString
+					}
+					/**
+					 * Add {name} key
+					 */
+					submit: (arg: { name: string }) => LocalizedString
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.
+						 */
+						info: () => LocalizedString
+						/**
+						 * Select on of the following provisioners to provision a YubiKey
+						 */
+						selectLabel: () => LocalizedString
+						/**
+						 * No workers are registered right now.
+						 */
+						noData: () => LocalizedString
+						/**
+						 * Available
+						 */
+						available: () => LocalizedString
+						/**
+						 * Unavailable
+						 */
+						unavailable: () => LocalizedString
+					}
+					provisioning: {
+						/**
+						 * Provisioning in progress, please wait.
+						 */
+						inProgress: () => LocalizedString
+						/**
+						 * Provisioning failed !
+						 */
+						error: () => LocalizedString
+						/**
+						 * Yubikey provisioned successfully
+						 */
+						success: () => LocalizedString
+					}
+					/**
+					 * Provision Yubikey
+					 */
+					submit: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Key added.
+					 */
+					keyAdded: () => LocalizedString
+					/**
+					 * Key has already been added.
+					 */
+					keyExists: () => LocalizedString
+					/**
+					 * Unsupported key format.
+					 */
+					unsupportedKeyFormat: () => LocalizedString
+					/**
+					 * Could not add the key. Please try again later.
+					 */
+					genericError: () => LocalizedString
+				}
+			}
+		}
 	}
 	usersOverview: {
 		/**
@@ -5043,9 +5473,17 @@ export type TranslationFunctions = {
 				 */
 				edit: () => LocalizedString
 				/**
-				 * Provision YubiKey
+				 * Add YubiKey
 				 */
-				provision: () => LocalizedString
+				addYubikey: () => LocalizedString
+				/**
+				 * Add SHH Key
+				 */
+				addSSH: () => LocalizedString
+				/**
+				 * Add GPG Key
+				 */
+				addGPG: () => LocalizedString
 				/**
 				 * Delete account
 				 */
@@ -5055,7 +5493,7 @@ export type TranslationFunctions = {
 				 */
 				startEnrollment: () => LocalizedString
 				/**
-				 * Remote desktop activation
+				 * Configure Desktop Client
 				 */
 				activateDesktop: () => LocalizedString
 				/**
@@ -5107,8 +5545,16 @@ export type TranslationFunctions = {
 			 * Support
 			 */
 			support: () => LocalizedString
+			/**
+			 * Groups
+			 */
+			groups: () => LocalizedString
 		}
 		mobileTitles: {
+			/**
+			 * Groups
+			 */
+			groups: () => LocalizedString
 			/**
 			 * Create location
 			 */
@@ -5230,6 +5676,10 @@ export type TranslationFunctions = {
 			 */
 			required: () => LocalizedString
 			/**
+			 * Submitted code is invalid.
+			 */
+			invalidCode: () => LocalizedString
+			/**
 			 * Maximum length exceeded.
 			 */
 			maximumLength: () => LocalizedString
@@ -5289,6 +5739,18 @@ export type TranslationFunctions = {
 			 * Fields don't match.
 			 */
 			repeat: () => LocalizedString
+			/**
+			 * Expected a valid number.
+			 */
+			number: () => LocalizedString
+			/**
+			 * Minimum value of {value} not reached.
+			 */
+			minimumValue: (arg: { value: number }) => LocalizedString
+			/**
+			 * Maximum value of {value} exceeded.
+			 */
+			maximumValue: (arg: { value: number }) => LocalizedString
 		}
 		floatingErrors: {
 			/**
@@ -6057,6 +6519,12 @@ export type TranslationFunctions = {
 							 */
 							label: () => LocalizedString
 						}
+						groups: {
+							/**
+							 * Groups
+							 */
+							label: () => LocalizedString
+						}
 					}
 					controls: {
 						/**
@@ -6294,6 +6762,10 @@ export type TranslationFunctions = {
 			 * Know your phone number.
 			 */
 			phone: () => LocalizedString
+			/**
+			 * Know your groups membership.
+			 */
+			groups: () => LocalizedString
 		}
 		controls: {
 			/**

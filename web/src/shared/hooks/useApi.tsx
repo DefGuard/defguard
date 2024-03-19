@@ -6,6 +6,7 @@ import {
   AddOpenidClientRequest,
   AddUserRequest,
   AddWalletRequest,
+  ApiError,
   ApiHook,
   AuthorizedClient,
   ChangeOpenidClientStateRequest,
@@ -203,6 +204,12 @@ const useApi = (props?: HookProps): ApiHook => {
   const removeFromGroup = ({ group, username }: UserGroupRequest) =>
     client.delete(`/group/${group}/user/${username}`);
 
+  const createGroup: ApiHook['groups']['createGroup'] = async (data) =>
+    client.post(`/group`, data).then(unpackRequest);
+
+  const editGroup: ApiHook['groups']['editGroup'] = async ({ originalName, ...rest }) =>
+    client.put(`/group/${originalName}`, rest).then(unpackRequest);
+
   const deleteWorker = (id: string) =>
     client.delete<EmptyApiResponse>(`/worker/${id}`).then((res) => res.data);
 
@@ -383,6 +390,33 @@ const useApi = (props?: HookProps): ApiHook => {
   const startDesktopActivation: ApiHook['user']['startDesktopActivation'] = (data) =>
     client.post(`/user/${data.username}/start_desktop`, data).then(unpackRequest);
 
+  const getAuthenticationKeysInfo: ApiHook['user']['getAuthenticationKeysInfo'] = (
+    data,
+  ) => client.get(`/user/${data.username}/auth_key`).then(unpackRequest);
+
+  const addAuthenticationKey: ApiHook['user']['addAuthenticationKey'] = (data) =>
+    client.post(`/user/${data.username}/auth_key`, data).then(unpackRequest);
+
+  const renameAuthenticationKey: ApiHook['user']['renameAuthenticationKey'] = (data) =>
+    client
+      .post(`/user/${data.username}/auth_key/${data.id}/rename`, {
+        name: data.name,
+      })
+      .then(unpackRequest);
+
+  const deleteAuthenticationKey: ApiHook['user']['deleteAuthenticationKey'] = (data) =>
+    client.delete(`/user/${data.username}/auth_key/${data.id}`).then(unpackRequest);
+
+  const renameYubikey: ApiHook['user']['renameYubikey'] = (data) =>
+    client
+      .post(`/user/${data.username}/yubikey/${data.id}/rename`, {
+        name: data.name,
+      })
+      .then(unpackRequest);
+
+  const deleteYubiKey: ApiHook['user']['deleteYubiKey'] = (data) =>
+    client.delete(`/user/${data.username}/yubikey/${data.id}`).then(unpackRequest);
+
   const patchSettings: ApiHook['settings']['patchSettings'] = (data) =>
     client.patch('/settings', data).then(unpackRequest);
 
@@ -391,6 +425,15 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const testLdapSettings: ApiHook['settings']['testLdapSettings'] = () =>
     client.get('/ldap/test').then(unpackRequest);
+
+  const getGroupsInfo: ApiHook['groups']['getGroupsInfo'] = () =>
+    client.get('/group-info').then(unpackRequest);
+
+  const deleteGroup: ApiHook['groups']['deleteGroup'] = (group) =>
+    client.delete(`/group/${group}`);
+
+  const addUsersToGroups: ApiHook['groups']['addUsersToGroups'] = (data) =>
+    client.post('/groups-assign', data).then(unpackRequest);
 
   useEffect(() => {
     client.interceptors.response.use(
@@ -401,9 +444,14 @@ const useApi = (props?: HookProps): ApiHook => {
         }
         return res;
       },
-      (err) => {
+      (err: ApiError) => {
         if (props?.notifyError) {
-          toaster.error(LL.messages.error());
+          const responseMessage = err.response?.data.msg || err.response?.data.message;
+          if (responseMessage) {
+            toaster.error(responseMessage.trim());
+          } else {
+            toaster.error(LL.messages.error());
+          }
         }
         return Promise.reject(err);
       },
@@ -420,7 +468,12 @@ const useApi = (props?: HookProps): ApiHook => {
       consent: oAuthConsent,
     },
     groups: {
+      deleteGroup,
+      getGroupsInfo,
       getGroups,
+      createGroup,
+      editGroup,
+      addUsersToGroups,
     },
     user: {
       getMe,
@@ -439,6 +492,12 @@ const useApi = (props?: HookProps): ApiHook => {
       removeFromGroup,
       startEnrollment,
       startDesktopActivation,
+      getAuthenticationKeysInfo: getAuthenticationKeysInfo,
+      addAuthenticationKey,
+      deleteAuthenticationKey,
+      renameAuthenticationKey,
+      deleteYubiKey,
+      renameYubikey,
     },
     device: {
       addDevice: addDevice,

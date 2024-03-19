@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.name as name, COALESCE(ARRAY_AGG(u.username) FILTER (WHERE u.username IS NOT NULL), '{}') as members FROM \"group\" g LEFT JOIN \"group_user\" gu ON gu.group_id = g.id LEFT JOIN \"user\" u ON u.id = gu.user_id GROUP BY g.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "members",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "d89f6eae4627862933a8f148f54f9eb916a2b11c62fb06b735b22324cd35f6eb"
+}

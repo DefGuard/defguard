@@ -12,8 +12,8 @@ const SvgIconCheckmarkWhiteBig = (props: SVGProps<SVGSVGElement>) => (
         <path
           d="M0 0h36v36H0z"
           style={{
-            opacity: 0,
             fill: '#fff',
+            opacity: 0,
           }}
           transform="translate(.203 .203)"
         />

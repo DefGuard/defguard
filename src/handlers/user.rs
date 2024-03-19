@@ -21,7 +21,7 @@ use crate::{
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     mail::Mail,
-    templates,
+    server_config, templates,
 };
 
 /// Verify the given username
@@ -202,13 +202,14 @@ pub async fn start_enrollment(
 
     let mut transaction = appstate.pool.begin().await?;
 
+    let config = server_config();
     let enrollment_token = user
         .start_enrollment(
             &mut transaction,
             &session.user,
             data.email,
-            appstate.config.enrollment_token_timeout.as_secs(),
-            appstate.config.enrollment_url.clone(),
+            config.enrollment_token_timeout.as_secs(),
+            config.enrollment_url.clone(),
             data.send_enrollment_notification,
             appstate.mail_tx.clone(),
         )
@@ -217,7 +218,7 @@ pub async fn start_enrollment(
     transaction.commit().await?;
 
     Ok(ApiResponse {
-        json: json!({"enrollment_token": enrollment_token, "enrollment_url":  appstate.config.enrollment_url.to_string()}),
+        json: json!({"enrollment_token": enrollment_token, "enrollment_url":  config.enrollment_url.to_string()}),
         status: StatusCode::CREATED,
     })
 }
@@ -243,13 +244,14 @@ pub async fn start_remote_desktop_configuration(
 
     let mut transaction = appstate.pool.begin().await?;
 
+    let config = server_config();
     let enrollment_token = user
         .start_remote_desktop_configuration(
             &mut transaction,
             &session.user,
             Some(email),
-            appstate.config.enrollment_token_timeout.as_secs(),
-            appstate.config.enrollment_url.clone(),
+            config.enrollment_token_timeout.as_secs(),
+            config.enrollment_url.clone(),
             data.send_enrollment_notification,
             appstate.mail_tx.clone(),
         )
@@ -258,7 +260,7 @@ pub async fn start_remote_desktop_configuration(
     transaction.commit().await?;
 
     Ok(ApiResponse {
-        json: json!({"enrollment_token": enrollment_token, "enrollment_url":  appstate.config.enrollment_url.to_string()}),
+        json: json!({"enrollment_token": enrollment_token, "enrollment_url":  config.enrollment_url.to_string()}),
         status: StatusCode::CREATED,
     })
 }
@@ -493,11 +495,12 @@ pub async fn reset_password(
         )
         .await?;
 
+        let config = server_config();
         let enrollment = Token::new(
             user.id.expect("Missing user ID"),
             Some(session.user.id.expect("Missing admin ID")),
             Some(user.email.clone()),
-            appstate.config.password_reset_token_timeout.as_secs(),
+            config.password_reset_token_timeout.as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut transaction).await?;
@@ -506,7 +509,7 @@ pub async fn reset_password(
             to: user.email.clone(),
             subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
             content: templates::email_password_reset_mail(
-                appstate.config.enrollment_url.clone(),
+                config.enrollment_url.clone(),
                 enrollment.id.clone().as_str(),
                 None,
                 None,

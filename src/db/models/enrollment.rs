@@ -10,8 +10,9 @@ use super::{settings::Settings, DbPool, User};
 use crate::{
     mail::Mail,
     random::gen_alphanumeric,
+    server_config,
     templates::{self, TemplateError},
-    SERVER_CONFIG, VERSION,
+    VERSION,
 };
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
@@ -160,17 +161,24 @@ impl Token {
         if self.is_expired() {
             return Err(TokenError::TokenExpired);
         }
-        if self.is_used() {
-            return Err(TokenError::TokenUsed);
+        match self.used_at {
+            // session started but still valid
+            Some(used_at) if self.is_session_valid(session_timeout_seconds) => {
+                Ok(used_at + Duration::seconds(session_timeout_seconds as i64))
+            }
+            // session expired
+            Some(_) => Err(TokenError::TokenUsed),
+            // session not yet started
+            None => {
+                let now = Utc::now().naive_utc();
+                query!("UPDATE token SET used_at = $1 WHERE id = $2", now, self.id)
+                    .execute(transaction)
+                    .await?;
+                self.used_at = Some(now);
+
+                Ok(now + Duration::seconds(session_timeout_seconds as i64))
+            }
         }
-
-        let now = Utc::now().naive_utc();
-        query!("UPDATE token SET used_at = $1 WHERE id = $2", now, self.id)
-            .execute(transaction)
-            .await?;
-        self.used_at = Some(now);
-
-        Ok(now + Duration::seconds(session_timeout_seconds as i64))
     }
 
     pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, TokenError> {
@@ -222,6 +230,7 @@ impl Token {
 
         let admin_id = self.admin_id.unwrap();
         let user = User::find_by_id(executor, admin_id).await?;
+        info!("Fetched admin id {} for enrollment", admin_id);
         Ok(user)
     }
 
@@ -238,7 +247,7 @@ impl Token {
         )
         .execute(transaction)
         .await?;
-        debug!(
+        info!(
             "Deleted {} unused enrollment tokens for user {user_id}",
             result.rows_affected()
         );
@@ -295,7 +304,7 @@ impl Token {
         context.insert("first_name", &user.first_name);
         context.insert("last_name", &user.last_name);
         context.insert("username", &user.username);
-        context.insert("defguard_url", &SERVER_CONFIG.get().unwrap().url);
+        context.insert("defguard_url", &server_config().url);
         context.insert("defguard_version", &VERSION);
 
         if let Some(admin) = admin {

@@ -9,6 +9,7 @@ import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { User } from '../../../../../shared/types';
+import { useAddAuthorizationKeyModal } from '../../../shared/modals/AddAuthenticationKeyModal/useAddAuthorizationKeyModal';
 import { useAddUserModal } from '../../modals/AddUserModal/hooks/useAddUserModal';
 import { ResetPasswordButton } from './ResetPasswordButton';
 
@@ -19,13 +20,15 @@ type Props = {
 export const UserEditButton = ({ user }: Props) => {
   const { LL } = useI18nContext();
   const navigate = useNavigate();
-  const setProvisionKeyModal = useModalStore((state) => state.setProvisionKeyModal);
   const setDeleteUserModal = useModalStore((state) => state.setDeleteUserModal);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const setAddUserModal = useAddUserModal((state) => state.setState);
+  const openAddAuthorizationKeyModal = useAddAuthorizationKeyModal((s) => s.open);
   const currentUser = useAuthStore((state) => state.user);
   const networkPresent = useAppStore((state) => state.appInfo?.network_present);
+  const appSettings = useAppStore((s) => s.settings);
+
   return (
     <EditButton>
       {user.username !== currentUser?.username && (
@@ -45,10 +48,37 @@ export const UserEditButton = ({ user }: Props) => {
         }}
       />
       <EditButtonOption
-        key="provision-yubi-key"
-        text={LL.usersOverview.list.editButton.provision()}
-        onClick={() => setProvisionKeyModal({ visible: true, user })}
+        key="add-authorization-ssh"
+        text={LL.usersOverview.list.editButton.addSSH()}
+        onClick={() =>
+          openAddAuthorizationKeyModal({
+            user,
+            selectedMode: 'ssh',
+          })
+        }
       />
+      <EditButtonOption
+        key="add-authorization-gpg"
+        text={LL.usersOverview.list.editButton.addGPG()}
+        onClick={() =>
+          openAddAuthorizationKeyModal({
+            user,
+            selectedMode: 'gpg',
+          })
+        }
+      />
+      {appSettings?.worker_enabled && (
+        <EditButtonOption
+          key="add-authorization-yubikey"
+          text={LL.usersOverview.list.editButton.addYubikey()}
+          onClick={() =>
+            openAddAuthorizationKeyModal({
+              user,
+              selectedMode: 'yubikey',
+            })
+          }
+        />
+      )}
       {user.is_active === true && (
         <EditButtonOption
           disabled={!networkPresent}

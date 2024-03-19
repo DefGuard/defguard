@@ -1,9 +1,9 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../../shared/mutations';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useMFAStore } from '../../shared/hooks/useMFAStore';
 
 interface Inputs {
@@ -39,22 +40,23 @@ export const MFATOTPAuth = () => {
     onError: (err) => {
       console.error(err);
       setValue('code', '');
-      setError('code', { message: 'Enter a valid code' });
+      setError('code', { message: LL.form.error.invalidCode() });
     },
   });
-  const schema = yup
-    .object()
-    .shape({
-      code: yup
-        .string()
-        .required(LL.form.error.required())
-        .min(6, LL.form.error.validCode())
-        .max(6, LL.form.error.validCode()),
-    })
-    .required();
+
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        code: z
+          .string()
+          .min(6, LL.form.error.validCode())
+          .max(6, LL.form.error.validCode()),
+      }),
+    [LL.form.error],
+  );
 
   const { handleSubmit, control, setError, setValue } = useForm<Inputs>({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     defaultValues: {
       code: '',
@@ -62,7 +64,8 @@ export const MFATOTPAuth = () => {
   });
 
   const handleValidSubmit: SubmitHandler<Inputs> = (values) => {
-    mutate({ code: Number(values.code) });
+    const trimmed = trimObjectStrings(values);
+    mutate({ code: Number(trimmed.code) });
   };
 
   useEffect(() => {

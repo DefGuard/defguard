@@ -29,6 +29,7 @@ use crate::{
     },
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
+    server_config,
     templates::TemplateLocation,
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
@@ -703,7 +704,7 @@ pub async fn create_network_token(
         ))
     })?;
     Ok(ApiResponse {
-        json: json!({"token": token, "grpc_url": appstate.config.grpc_url.to_string()}),
+        json: json!({"token": token, "grpc_url": server_config().grpc_url.to_string()}),
         status: StatusCode::OK,
     })
 }

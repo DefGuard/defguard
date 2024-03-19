@@ -29,13 +29,15 @@ use crate::{
     },
     db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::WebError,
-    handlers::mail::{
-        send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
+    handlers::{
+        mail::{
+            send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
+        },
+        SIGN_IN_COOKIE_NAME,
     },
-    handlers::SIGN_IN_COOKIE_NAME,
     headers::{check_new_device_login, get_user_agent_device, parse_user_agent},
     ldap::utils::user_from_ldap,
-    SERVER_CONFIG,
+    server_config,
 };
 
 /// For successful login, return:
@@ -98,22 +100,18 @@ pub async fn authenticate(
     );
     session.save(&appstate.pool).await?;
 
-    let max_age = match &appstate.config.session_auth_lifetime {
-        Some(seconds) => Duration::seconds(*seconds),
-        None => Duration::days(7),
-    };
-
-    let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
+    let max_age = Duration::seconds(server_config().auth_cookie_timeout.as_secs() as i64);
+    let config = server_config();
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .domain(
-            server_config
+            config
                 .cookie_domain
                 .clone()
                 .expect("Cookie domain not found"),
         )
         .path("/")
         .http_only(true)
-        .secure(!server_config.cookie_insecure)
+        .secure(!config.cookie_insecure)
         .same_site(SameSite::Lax)
         .max_age(max_age);
     let cookies = cookies.add(auth_cookie);

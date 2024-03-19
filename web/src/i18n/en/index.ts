@@ -20,7 +20,12 @@ const en: BaseTranslation = {
       saveChanges: 'Save changes',
       save: 'Save',
       RestoreDefault: 'Restore default',
+      delete: 'Delete',
+      rename: 'Rename',
+      copy: 'Copy',
     },
+    key: 'Key',
+    name: 'Name',
   },
   messages: {
     error: 'Error has occurred.',
@@ -33,6 +38,13 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    addGroup: {
+      title: 'Add group',
+      selectAll: 'Select all users',
+      groupName: 'Group name',
+      searchPlaceholder: 'Filter/Search',
+      submit: 'Create group',
+    },
     deviceConfig: {
       title: 'Device VPN configurations',
     },
@@ -59,7 +71,7 @@ const en: BaseTranslation = {
       desktopTitle: 'Desktop activation',
       messages: {
         success: 'User enrollment started',
-        successDesktop: 'Desktop activation started',
+        successDesktop: 'Desktop configuration started',
         error: 'Failed to start user enrollment',
         errorDesktop: 'Failed to start desktop activation',
       },
@@ -400,7 +412,7 @@ const en: BaseTranslation = {
     steps: {
       setupMethod: {
         remote: {
-          title: 'Remote Desktop Activation',
+          title: 'Configure Desktop Client',
           subTitle:
             'A breeze to set up with just a single token. Download the client and enjoy straightforward security.',
           link: 'Download defguard Client',
@@ -635,6 +647,63 @@ const en: BaseTranslation = {
         line2: 'management and provisioning.',
       },
     },
+    authenticationKeys: {
+      header: 'User Authentication Keys',
+      addKey: 'Add new Key',
+      keysList: {
+        common: {
+          rename: 'Rename',
+          key: 'Key',
+          download: 'Download',
+          copy: 'Copy',
+          serialNumber: 'Serial Number',
+          delete: 'Delete',
+        },
+      },
+      deleteModal: {
+        title: 'Delete Authentication Key',
+        confirmMessage: 'Key {name: string} will be deleted permanently.',
+      },
+      addModal: {
+        header: 'Add new Authentication Key',
+        keyType: 'Key Type',
+        keyForm: {
+          placeholders: {
+            title: 'Key Name',
+            key: {
+              ssh: 'Begins with ssh-rsa, ecdsa-sha2-nistp256, ...',
+              gpg: 'Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----',
+            },
+          },
+          labels: {
+            title: 'Name',
+            key: 'Key',
+          },
+          submit: 'Add {name: string} key',
+        },
+        yubikeyForm: {
+          selectWorker: {
+            info: 'Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.',
+            selectLabel: 'Select on of the following provisioners to provision a YubiKey',
+            noData: 'No workers are registered right now.',
+            available: 'Available',
+            unavailable: 'Unavailable',
+          },
+          provisioning: {
+            inProgress: 'Provisioning in progress, please wait.',
+            error: 'Provisioning failed !',
+            success: 'Yubikey provisioned successfully',
+          },
+          submit: 'Provision Yubikey',
+        },
+        messages: {
+          keyAdded: 'Key added.',
+          keyExists: 'Key has already been added.',
+          unsupportedKeyFormat: 'Unsupported key format.',
+          genericError: 'Could not add the key. Please try again later.',
+        },
+      },
+    },
   },
   usersOverview: {
     pageTitle: 'Users',
@@ -658,10 +727,12 @@ const en: BaseTranslation = {
       editButton: {
         changePassword: 'Change password',
         edit: 'Edit account',
-        provision: 'Provision YubiKey',
+        addYubikey: 'Add YubiKey',
+        addSSH: 'Add SHH Key',
+        addGPG: 'Add GPG Key',
         delete: 'Delete account',
         startEnrollment: 'Start enrollment',
-        activateDesktop: 'Remote desktop activation',
+        activateDesktop: 'Configure Desktop Client',
         resetPassword: 'Reset password',
       },
     },
@@ -678,8 +749,10 @@ const en: BaseTranslation = {
       logOut: 'Log out',
       enrollment: 'Enrollment',
       support: 'Support',
+      groups: 'Groups',
     },
     mobileTitles: {
+      groups: 'Groups',
       wizard: 'Create location',
       users: 'Users',
       settings: 'Settings',
@@ -716,6 +789,7 @@ const en: BaseTranslation = {
       invalidKey: 'Key is invalid.',
       invalid: 'Field is invalid.',
       required: 'Field is required.',
+      invalidCode: 'Submitted code is invalid.',
       maximumLength: 'Maximum length exceeded.',
       minimumLength: 'Minimum length not reached.',
       noSpecialChars: 'No special characters are allowed.',
@@ -731,6 +805,9 @@ const en: BaseTranslation = {
       allowedIps: 'Only valid IP or domain is allowed.',
       startFromNumber: 'Cannot start from number.',
       repeat: `Fields don't match.`,
+      number: 'Expected a valid number.',
+      minimumValue: `Minimum value of {value: number} not reached.`,
+      maximumValue: 'Maximum value of {value: number} exceeded.',
     },
     floatingErrors: {
       title: 'Please correct the following:',
@@ -1086,6 +1163,9 @@ const en: BaseTranslation = {
             phone: {
               label: 'Phone',
             },
+            groups: {
+              label: 'Groups',
+            },
           },
           controls: {
             addUrl: 'Add URL',
@@ -1182,6 +1262,7 @@ const en: BaseTranslation = {
       profile: 'Know basic information from your profile like name, profile picture etc.',
       email: 'Know your email address.',
       phone: 'Know your phone number.',
+      groups: 'Know your groups membership.',
     },
     controls: {
       accept: 'Accept',

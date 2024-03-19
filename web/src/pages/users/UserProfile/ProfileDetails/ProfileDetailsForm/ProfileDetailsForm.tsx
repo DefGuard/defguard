@@ -1,10 +1,10 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { pick } from 'lodash-es';
+import { pick, values } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -24,6 +24,7 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
+import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
 
 interface Inputs {
@@ -63,52 +64,50 @@ export const ProfileDetailsForm = () => {
   const { username: paramsUsername } = useParams();
   const navigate = useNavigate();
 
-  const schema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object({
-          username: yup
-            .string()
-            .required(LL.form.error.required())
-            .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
-            .min(3, LL.form.error.minimumLength())
-            .max(64, LL.form.error.maximumLength()),
-          first_name: yup.string().required(LL.form.error.required()),
-          last_name: yup.string().required(LL.form.error.required()),
-          phone: yup
-            .string()
-            .optional()
-            .test('is-valid', LL.form.error.invalid(), (value) => {
-              if (value && value.length) {
-                return patternValidPhoneNumber.test(value);
-              }
-              return true;
-            }),
-          email: yup
-            .string()
-            .required(LL.form.error.required())
-            .matches(patternValidEmail, LL.form.error.invalid()),
-          groups: yup.array(),
-          authorized_apps: yup.array().of(
-            yup.object().shape({
-              oauth2client_id: yup.number().required(),
-              oauth2client_name: yup.string().required(),
-              user_id: yup.number().required(),
-            }),
-          ),
-        })
-        .required(),
+      z.object({
+        username: z
+          .string()
+          .min(1, LL.form.error.required())
+          .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
+          .min(3, LL.form.error.minimumLength())
+          .max(64, LL.form.error.maximumLength()),
+        first_name: z.string().min(1, LL.form.error.required()),
+        last_name: z.string().min(1, LL.form.error.required()),
+        phone: z
+          .string()
+          .optional()
+          .refine((val) => {
+            if (val && values.length > 0) {
+              return patternValidPhoneNumber.test(val);
+            }
+            return true;
+          }, LL.form.error.invalid()),
+        email: z
+          .string()
+          .min(1, LL.form.error.required())
+          .regex(patternValidEmail, LL.form.error.invalid()),
+        groups: z.array(z.string().min(1, LL.form.error.required())),
+        authorized_apps: z.array(
+          z.object({
+            oauth2client_id: z.number().min(1, LL.form.error.required()),
+            oauth2client_name: z.string().min(1, LL.form.error.required()),
+            user_id: z.number().min(1, LL.form.error.required()),
+          }),
+        ),
+      }),
     [LL.form.error],
   );
 
   const formDefaultValues = useMemo((): Inputs => {
-    const ommited = pick(omitNull(userProfile?.user), Object.keys(defaultValues));
-    const res = { ...defaultValues, ...ommited };
+    const omitted = pick(omitNull(userProfile?.user), Object.keys(defaultValues));
+    const res = { ...defaultValues, ...omitted };
     return res as Inputs;
   }, [userProfile]);
 
   const { control, handleSubmit, setValue, getValues } = useForm<Inputs>({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     defaultValues: formDefaultValues,
   });
@@ -157,6 +156,7 @@ export const ProfileDetailsForm = () => {
   }, [availableGroups, groupsLoading]);
 
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
+    values = trimObjectStrings(values);
     if (userProfile && userProfile.user) {
       setUserProfile({ loading: true });
       mutate({

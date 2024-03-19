@@ -12,7 +12,7 @@ use crate::{
     },
     ldap::utils::ldap_change_password,
     mail::Mail,
-    SERVER_CONFIG,
+    server_config,
 };
 
 use super::proto::{
@@ -40,7 +40,6 @@ impl PasswordResetServer {
 
     // check if token provided with request corresponds to a valid enrollment session
     async fn validate_session(&self, token: Option<&str>) -> Result<Token, Status> {
-        let config = SERVER_CONFIG.get().expect("defguard config not found");
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
@@ -49,7 +48,7 @@ impl PasswordResetServer {
         debug!("Validating enrollment session token: {token}");
         let enrollment = Token::find_by_id(&self.pool, token).await?;
 
-        if enrollment.is_session_valid(config.enrollment_session_timeout.as_secs()) {
+        if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
             Ok(enrollment)
         } else {
             error!("Enrollment session expired");
@@ -62,7 +61,7 @@ impl PasswordResetServer {
         request: PasswordResetInitializeRequest,
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<(), Status> {
-        let config = SERVER_CONFIG.get().expect("defguard config not found");
+        let config = server_config();
         debug!("Starting password reset request");
 
         let ip_address;
@@ -135,7 +134,6 @@ impl PasswordResetServer {
         &self,
         request: PasswordResetStartRequest,
     ) -> Result<PasswordResetStartResponse, Status> {
-        let config = SERVER_CONFIG.get().expect("defguard config not found");
         debug!("Starting password reset session: {request:?}");
 
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
@@ -158,7 +156,7 @@ impl PasswordResetServer {
         let session_deadline = enrollment
             .start_session(
                 &mut transaction,
-                config.password_reset_session_timeout.as_secs(),
+                server_config().password_reset_session_timeout.as_secs(),
             )
             .await?;
 

@@ -99,6 +99,7 @@ export const OpenidAllowPage = () => {
     profile: LL.openidAllow.scopes.profile(),
     email: LL.openidAllow.scopes.email(),
     phone: LL.openidAllow.scopes.phone(),
+    groups: LL.openidAllow.scopes.groups(),
   };
 
   if (loadingInfo) return <LoaderPage />;

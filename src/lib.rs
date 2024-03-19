@@ -12,6 +12,14 @@ use axum::{
     serve, Extension, Router,
 };
 
+use handlers::ssh_authorized_keys::{
+    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+};
+use handlers::{
+    group::{bulk_assign_to_groups, list_groups_info},
+    ssh_authorized_keys::rename_authentication_key,
+    yubikey::{delete_yubikey, rename_yubikey},
+};
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
 use tokio::{
@@ -125,8 +133,16 @@ extern crate tracing;
 extern crate serde;
 
 pub static VERSION: &str = env!("CARGO_PKG_VERSION");
-// TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
+
+pub(crate) fn server_config() -> &'static DefGuardConfig {
+    SERVER_CONFIG
+        .get()
+        .expect("Server configuration not set yet")
+}
+
+// WireGuard key length in bytes.
+pub(crate) const KEY_LENGTH: usize = 32;
 
 /// Simple health-check.
 async fn health_check() -> &'static str {
@@ -138,7 +154,6 @@ async fn handle_404() -> (StatusCode, &'static str) {
 }
 
 pub fn build_webapp(
-    config: DefGuardConfig,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
@@ -196,6 +211,23 @@ pub fn build_webapp(
             .route("/user/:username/password", put(change_password))
             .route("/user/:username/reset_password", post(reset_password))
             .route("/user/:username/challenge", get(wallet_challenge))
+            // auth keys
+            .route("/user/:username/auth_key", get(fetch_authentication_keys))
+            .route("/user/:username/auth_key", post(add_authentication_key))
+            .route(
+                "/user/:username/auth_key/:key_id",
+                delete(delete_authentication_key),
+            )
+            .route(
+                "/user/:username/auth_key/:key_id/rename",
+                post(rename_authentication_key),
+            )
+            // yubi keys
+            .route("/user/:username/yubikey/:key_id", delete(delete_yubikey))
+            .route(
+                "/user/:username/yubikey/:key_id/rename",
+                post(rename_yubikey),
+            )
             .route("/user/:username/wallet", put(set_wallet))
             .route("/user/:username/wallet/:address", put(update_wallet))
             .route("/user/:username/wallet/:address", delete(delete_wallet))
@@ -212,12 +244,14 @@ pub fn build_webapp(
             .route("/forward_auth", get(forward_auth))
             // group
             .route("/group", get(list_groups))
-            .route("/group/:name", get(get_group))
             .route("/group", post(create_group))
+            .route("/group/:name", get(get_group))
             .route("/group/:name", put(modify_group))
             .route("/group/:name", delete(delete_group))
             .route("/group/:name", post(add_group_member))
             .route("/group/:name/user/:username", delete(remove_group_member))
+            .route("/group-info", get(list_groups_info))
+            .route("/groups-assign", post(bulk_assign_to_groups))
             // mail
             .route("/mail/test", post(test_mail))
             .route("/mail/support", post(send_support_data))
@@ -312,7 +346,6 @@ pub fn build_webapp(
         .nest_service("/svg", serve_images)
         .nest_service("/", serve_web_dir)
         .with_state(AppState::new(
-            config,
             pool,
             webhook_tx,
             webhook_rx,
@@ -336,7 +369,6 @@ pub fn build_webapp(
 
 /// Runs core web server exposing REST API.
 pub async fn run_web_server(
-    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
@@ -348,7 +380,6 @@ pub async fn run_web_server(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
-        config.clone(),
         webhook_tx,
         webhook_rx,
         wireguard_tx,
@@ -360,7 +391,7 @@ pub async fn run_web_server(
         failed_logins,
     );
     info!("Started web services");
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);
     let listener = TcpListener::bind(&addr).await?;
     serve(
         listener,

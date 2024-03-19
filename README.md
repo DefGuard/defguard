@@ -28,6 +28,17 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 
 ### Desktop Client with Multi-Factor Authentication
 
+![defguard WireGuard MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
+
+[Desktop client](https://github.com/DefGuard/client) supports:
+- Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
+- Onboarding - displaying custom onboarding messages, with templates, links ...
+- Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
+- Live & real-time network charts
+- In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more!
+
+## Roadmap
+
 ![defguard WireGuard® MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
 
 ## Quick start
@@ -124,4 +135,3 @@ Please review the [Contributing guide](https://defguard.gitbook.io/defguard/for-
 
 # Legal
 WireGuard® is [registered trademarks](https://www.wireguard.com/trademark-policy/) of Jason A. Donenfeld.
-

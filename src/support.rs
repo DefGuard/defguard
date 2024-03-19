@@ -4,9 +4,8 @@ use serde::Serialize;
 use serde_json::{json, value::to_value, Value};
 
 use crate::{
-    config::DefGuardConfig,
     db::{models::device::WireguardNetworkDevice, DbPool, Settings, User, WireguardNetwork},
-    VERSION,
+    server_config, VERSION,
 };
 
 /// Unwraps the result returning a JSON representation of value or error
@@ -18,7 +17,7 @@ fn unwrap_json<S: Serialize, D: Display>(result: Result<S, D>) -> Value {
 }
 
 /// Dumps all data that could be used for debugging.
-pub async fn dump_config(db: &DbPool, config: &DefGuardConfig) -> Value {
+pub async fn dump_config(db: &DbPool) -> Value {
     // App settings DB records
     let settings = match Settings::find_by_id(db, 1).await {
         Ok(Some(mut settings)) => {
@@ -57,6 +56,6 @@ pub async fn dump_config(db: &DbPool, config: &DefGuardConfig) -> Value {
         "version": VERSION,
         "devices": devices,
         "users": users_diagnostic_data,
-        "config": config,
+        "config": server_config(),
     })
 }

@@ -6,6 +6,13 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
+export type ApiError = AxiosError<ApiErrorResponse>;
+
+export type ApiErrorResponse = {
+  msg?: string;
+  message?: string;
+};
+
 export enum UserStatus {
   active = 'Active',
   inactive = 'Inactive',
@@ -20,6 +27,11 @@ export enum UserMFAMethod {
   WEB3 = 'Web3',
 }
 
+export enum AuthenticationKeyType {
+  SSH = 'ssh',
+  GPG = 'gpg',
+}
+
 export type User = {
   id: number;
   username: string;
@@ -31,9 +43,6 @@ export type User = {
   email_mfa_enabled: boolean;
   email: string;
   phone?: string;
-  pgp_cert_id?: string;
-  pgp_key?: string;
-  ssh_key?: string;
   groups: string[];
   authorized_apps?: OAuth2AuthorizedApps[];
   is_active: boolean;
@@ -171,6 +180,16 @@ export interface DeleteUserModal {
 export interface ProvisionKeyModal {
   visible: boolean;
   user?: User;
+}
+
+export interface AddAuthenticationKeyModal {
+  visible: boolean;
+  user?: User;
+}
+
+export interface DeleteAuthenticationKeyModal {
+  visible: boolean;
+  authenticationKey?: AuthenticationKey;
 }
 
 export interface DeleteOpenidClientModal {
@@ -348,8 +367,55 @@ export type ChangePasswordSelfRequest = {
   new_password: string;
 };
 
-export type AuthCodeRequsest = {
+export type AuthCodeRequest = {
   code: number;
+};
+
+export type AuthenticationKeyInfo = {
+  id: number;
+  name?: string;
+  key_type: AuthenticationKeyType;
+  key: string;
+  yubikey_serial?: string;
+  yubikey_id?: number;
+  yubikey_name?: string;
+};
+
+export type AuthenticationKeyRequestBase = {
+  username: string;
+};
+
+export type RenameAuthenticationKeyRequest = {
+  id: number;
+  name: string;
+} & AuthenticationKeyRequestBase;
+
+export type AddAuthenticationKeyRequest = {
+  name: string;
+  key: string;
+  key_type: string;
+} & AuthenticationKeyRequestBase;
+
+export type ModifyGroupsRequest = {
+  name: string;
+  // array of usernames
+  members?: string[];
+};
+
+export type AddUsersToGroupsRequest = {
+  groups: string[];
+  users: number[];
+};
+
+export type EditGroupRequest = ModifyGroupsRequest & {
+  originalName: string;
+};
+
+export type AuthenticationKey = {
+  id: number;
+  name: string;
+  key_type: AuthenticationKeyType;
+  key: string;
 };
 
 export interface ApiHook {
@@ -359,7 +425,12 @@ export interface ApiHook {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
   groups: {
+    getGroupsInfo: () => Promise<GroupInfo[]>;
     getGroups: () => Promise<GroupsResponse>;
+    createGroup: (data: ModifyGroupsRequest) => Promise<EmptyApiResponse>;
+    editGroup: (data: EditGroupRequest) => Promise<EmptyApiResponse>;
+    deleteGroup: (groupName: string) => Promise<EmptyApiResponse>;
+    addUsersToGroups: (data: AddUsersToGroupsRequest) => Promise<EmptyApiResponse>;
   };
   user: {
     getMe: () => Promise<User>;
@@ -380,6 +451,22 @@ export interface ApiHook {
     startDesktopActivation: (
       data: StartEnrollmentRequest,
     ) => Promise<StartEnrollmentResponse>;
+    getAuthenticationKeysInfo: (
+      data: AuthenticationKeyRequestBase,
+    ) => Promise<AuthenticationKeyInfo[]>;
+    addAuthenticationKey: (data: AddAuthenticationKeyRequest) => EmptyApiResponse;
+    deleteAuthenticationKey: (data: { id: number; username: string }) => EmptyApiResponse;
+    renameAuthenticationKey: (data: {
+      id: number;
+      username: string;
+      name: string;
+    }) => EmptyApiResponse;
+    renameYubikey: (data: {
+      id: number;
+      username: string;
+      name: string;
+    }) => EmptyApiResponse;
+    deleteYubiKey: (data: { id: number; username: string }) => EmptyApiResponse;
   };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
@@ -414,11 +501,11 @@ export interface ApiHook {
       email: {
         register: {
           start: () => EmptyApiResponse;
-          finish: (data: AuthCodeRequsest) => MFARecoveryCodesResponse;
+          finish: (data: AuthCodeRequest) => MFARecoveryCodesResponse;
         };
         disable: () => EmptyApiResponse;
         sendCode: () => EmptyApiResponse;
-        verify: (data: AuthCodeRequsest) => Promise<MFAFinishResponse>;
+        verify: (data: AuthCodeRequest) => Promise<MFAFinishResponse>;
       };
       webauthn: {
         register: {
@@ -509,9 +596,6 @@ export interface Workers {
 }
 
 export interface WorkerJobStatus {
-  pgp_cert_id?: string;
-  pgp_key?: string;
-  ssh_key?: string;
   success?: boolean;
   errorMessage?: string;
 }
@@ -625,37 +709,55 @@ export interface UseModalStore {
   addWalletModal: StandardModalState;
   // DO NOT EXTEND THIS STORE
   keyDetailModal: KeyDetailModal;
+  // DO NOT EXTEND THIS STORE
   keyDeleteModal: KeyDeleteModal;
+  // DO NOT EXTEND THIS STORE
   deleteUserModal: DeleteUserModal;
   // DO NOT EXTEND THIS STORE
   changePasswordModal: ChangePasswordModal;
+  // DO NOT EXTEND THIS STORE
   changeWalletModal: ChangeWalletModal;
+  // DO NOT EXTEND THIS STORE
   provisionKeyModal: ProvisionKeyModal;
   // DO NOT EXTEND THIS STORE
   webhookModal: WebhookModal;
+  // DO NOT EXTEND THIS STORE
   addOpenidClientModal: StandardModalState;
   // DO NOT EXTEND THIS STORE
   deleteOpenidClientModal: DeleteOpenidClientModal;
+  // DO NOT EXTEND THIS STORE
   enableOpenidClientModal: EnableOpenidClientModal;
+  // DO NOT EXTEND THIS STORE
   manageWebAuthNKeysModal: StandardModalState;
   // DO NOT EXTEND THIS STORE
   addSecurityKeyModal: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   registerTOTP: StandardModalState;
+  // DO NOT EXTEND THIS STORE
   connectWalletModal: ConnectWalletModal;
+  // DO NOT EXTEND THIS STORE
   recoveryCodesModal: RecoveryCodesModal;
+  // DO NOT EXTEND THIS STORE
   setState: (data: Partial<UseModalStore>) => void;
+  // DO NOT EXTEND THIS STORE
   setWebhookModal: ModalSetter<WebhookModal>;
+  // DO NOT EXTEND THIS STORE
   setRecoveryCodesModal: ModalSetter<RecoveryCodesModal>;
   // DO NOT EXTEND THIS STORE
   setKeyDetailModal: ModalSetter<KeyDetailModal>;
+  // DO NOT EXTEND THIS STORE
   setKeyDeleteModal: ModalSetter<KeyDeleteModal>;
+  // DO NOT EXTEND THIS STORE
   setDeleteUserModal: ModalSetter<DeleteUserModal>;
   // DO NOT EXTEND THIS STORE
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
+  // DO NOT EXTEND THIS STORE
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
   // DO NOT EXTEND THIS STORE
   setChangeWalletModal: ModalSetter<ChangeWalletModal>;
+  // DO NOT EXTEND THIS STORE
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
+  // DO NOT EXTEND THIS STORE
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
   // DO NOT EXTEND THIS STORE
   setEnableOpenidClientModal: ModalSetter<EnableOpenidClientModal>;
@@ -873,3 +975,10 @@ export interface TestMail {
 }
 
 export type SMTPError = AxiosError<{ error: string }>;
+
+export type Group = string;
+
+export type GroupInfo = {
+  name: string;
+  members?: string[];
+};

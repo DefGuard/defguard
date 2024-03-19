@@ -1,5 +1,3 @@
-@use '../../../shared/scss/helpers' as *;
-
 #auth-container {
   #mfa {
     display: flex;
@@ -47,12 +45,11 @@
       flex-flow: column;
       align-items: center;
       justify-content: flex-start;
-      gap: 24px;
+      gap: 25px;
       min-width: 284px;
 
       & > * {
         min-width: 284px;
-        padding: 0;
         margin: 0;
       }
     }

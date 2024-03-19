@@ -1,11 +1,11 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parser from 'html-react-parser';
 import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -21,6 +21,7 @@ import { MutationKeys } from '../../../../shared/mutations';
 import { patternValidWireguardKey } from '../../../../shared/patterns';
 import { QueryKeys } from '../../../../shared/queries';
 import { generateWGKeys } from '../../../../shared/utils/generateWGKeys';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 import { AddDeviceSetupMethod } from '../../types';
 
@@ -57,36 +58,46 @@ export const AddDeviceSetupStep = () => {
     return res;
   }, [localLL.options]);
 
-  const schema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object()
-        .shape({
-          choice: yup.number().required(),
-          name: yup
+      z
+        .object({
+          choice: z.nativeEnum(AddDeviceSetupMethod),
+          name: z
             .string()
             .min(4, LL.form.error.minimumLength())
-            .required(LL.form.error.required())
-            .test(
-              'is-duplicated',
-              localLL.form.errors.name.duplicatedName(),
-              (value) => !userData?.reservedDevices?.includes(value),
-            ),
-          publicKey: yup.string().when('choice', {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            is: (choice: number | undefined) => choice === AddDeviceSetupMethod.MANUAL,
-            then: () =>
-              yup
-                .string()
-                .min(44, LL.form.error.minimumLength())
-                .max(44, LL.form.error.maximumLength())
-                .required(LL.form.error.required())
-                .matches(patternValidWireguardKey, LL.form.error.invalid()),
-            otherwise: () => yup.string().optional(),
-          }),
+            .refine((val) => !userData?.reservedDevices?.includes(val), {
+              message: localLL.form.errors.name.duplicatedName(),
+            }),
+          publicKey: z.string(),
         })
-        .required(),
-    [LL.form.error, localLL.form.errors.name, userData],
+        .superRefine((val, ctx) => {
+          const { publicKey, choice } = val;
+          if (choice === AddDeviceSetupMethod.MANUAL) {
+            const pubKeyRes = z
+              .string()
+              .min(44, LL.form.error.minimumLength())
+              .max(44, LL.form.error.maximumLength())
+              .regex(patternValidWireguardKey, LL.form.error.invalid())
+              .safeParse(publicKey);
+            if (!pubKeyRes.success) {
+              ctx.addIssue({
+                code: 'custom',
+                message: pubKeyRes.error.message,
+                path: ['publicKey'],
+              });
+            }
+          } else {
+            const pubKeyRes = z.string().safeParse(publicKey);
+            if (!pubKeyRes.success) {
+              ctx.addIssue({
+                code: 'custom',
+                path: ['publicKey'],
+              });
+            }
+          }
+        }),
+    [LL.form.error, localLL.form.errors.name, userData?.reservedDevices],
   );
 
   const { handleSubmit, control } = useForm<FormValues>({
@@ -95,7 +106,7 @@ export const AddDeviceSetupStep = () => {
       choice: AddDeviceSetupMethod.AUTO,
       publicKey: '',
     },
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
   });
 
@@ -118,6 +129,7 @@ export const AddDeviceSetupStep = () => {
 
   const validSubmitHandler: SubmitHandler<FormValues> = async (values) => {
     if (!userData) return;
+    values = trimObjectStrings(values);
     if (values.choice === AddDeviceSetupMethod.AUTO) {
       const keys = generateWGKeys();
       addDeviceMutation({

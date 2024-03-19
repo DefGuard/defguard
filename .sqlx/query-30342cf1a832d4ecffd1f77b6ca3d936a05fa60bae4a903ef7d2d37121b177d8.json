@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"mfa_enabled\" = $8,\"totp_enabled\" = $9,\"email_mfa_enabled\" = $10,\"totp_secret\" = $11,\"email_mfa_secret\" = $12,\"mfa_method\" = $13,\"recovery_codes\" = $14 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bytea",
+        "Bytea",
+        {
+          "Custom": {
+            "name": "mfa_method",
+            "kind": {
+              "Enum": [
+                "none",
+                "one_time_password",
+                "webauthn",
+                "web3",
+                "email"
+              ]
+            }
+          }
+        },
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "30342cf1a832d4ecffd1f77b6ca3d936a05fa60bae4a903ef7d2d37121b177d8"
+}

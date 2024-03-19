@@ -22,11 +22,11 @@ use tokio::sync::{
 
 use self::client::TestClient;
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_HOST: HeaderName = HeaderName::from_static("x-forwarded-host");
-#[allow(dead_code)]
+#[allow(dead_code, clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
-#[allow(dead_code)]
+#[allow(dead_code, clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri");
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
@@ -145,7 +145,6 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
     //     .init();
 
     let webapp = build_webapp(
-        config,
         tx,
         rx,
         wg_tx,

@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 
-const SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
+const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
 
 struct ClientLoginSession {
     method: MfaMethod,
@@ -46,12 +46,12 @@ impl ClientMfaServer {
             sessions: HashMap::new(),
         }
     }
-    fn generate_token(&self, pubkey: &str) -> Result<String, Status> {
+    fn generate_token(pubkey: &str) -> Result<String, Status> {
         Claims::new(
             ClaimsType::DesktopClient,
             String::new(),
             pubkey.into(),
-            SESSION_TIMEOUT,
+            CLIENT_SESSION_TIMEOUT,
         )
         .to_jwt()
         .map_err(|err| {
@@ -157,7 +157,7 @@ impl ClientMfaServer {
         };
 
         // generate auth token
-        let token = self.generate_token(&request.pubkey)?;
+        let token = Self::generate_token(&request.pubkey)?;
 
         // store login session
         self.sessions.insert(

@@ -1,11 +1,11 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { useCallback, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';
@@ -95,32 +95,30 @@ export const SmtpSettingsForm = () => {
     [encryptionOptions],
   );
 
-  const formSchema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object()
-        .shape({
-          smtp_server: yup
-            .string()
-            .required(LL.form.error.required())
-            .test(LL.form.error.endpoint(), (val: string | undefined) =>
-              !val ? true : validateIpOrDomain(val),
-            ),
-          smtp_port: yup
-            .number()
-            .required(LL.form.error.required())
-            .max(65535, LL.form.error.portMax())
-            .typeError(LL.form.error.validPort()),
-          smtp_user: yup.string().required(LL.form.error.required()),
-          smtp_password: yup.string().required(LL.form.error.required()),
-          smtp_sender: yup
-            .string()
-            .required(LL.form.error.required())
-            .matches(patternValidEmail, LL.form.error.invalid()),
-          smtp_encryption: yup.string().required(LL.form.error.required()),
-        })
-        .required(),
-    [LL.form.error],
+      z.object({
+        smtp_server: z
+          .string()
+          .min(1, LL.form.error.required())
+          .refine(
+            (val) => (!val ? true : validateIpOrDomain(val)),
+            LL.form.error.endpoint(),
+          ),
+        smtp_port: z
+          .number({
+            invalid_type_error: LL.form.error.required(),
+          })
+          .max(65535, LL.form.error.portMax()),
+        smtp_password: z.string().min(1, LL.form.error.required()),
+        smtp_user: z.string().min(1, LL.form.error.required()),
+        smtp_sender: z
+          .string()
+          .min(1, LL.form.error.required())
+          .regex(patternValidEmail, LL.form.error.invalid()),
+        smtp_encryption: z.string().min(1, LL.form.error.required()),
+      }),
+    [LL.form],
   );
 
   const defaultValues = useMemo(() => {
@@ -137,8 +135,8 @@ export const SmtpSettingsForm = () => {
 
   const { control, handleSubmit } = useForm<FormFields>({
     defaultValues,
-    resolver: yupResolver(formSchema),
     mode: 'all',
+    resolver: zodResolver(zodSchema),
   });
 
   const onSubmit: SubmitHandler<FormFields> = (data) => {
@@ -173,6 +171,7 @@ export const SmtpSettingsForm = () => {
           label={LL.settingsPage.smtp.form.fields.port.label()}
           controller={{ control, name: 'smtp_port' }}
           placeholder={LL.settingsPage.smtp.form.fields.port.placeholder()}
+          type="number"
           required
         />
         <FormInput

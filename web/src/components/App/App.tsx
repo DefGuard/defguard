@@ -7,6 +7,7 @@ import { AddDevicePage } from '../../pages/addDevice/AddDevicePage';
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
 import { EnrollmentPage } from '../../pages/enrollment/EnrollmentPage';
+import { GroupsPage } from '../../pages/groups/GroupsPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
@@ -51,6 +52,14 @@ const App = () => {
             <Route path="auth/*" element={<AuthPage />} />
             <Route path="admin/*">
               <Route index element={<Navigate to="users" />} />
+              <Route
+                path="groups/*"
+                element={
+                  <ProtectedRoute allowedGroups={['admin']}>
+                    <GroupsPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="enrollment/*"
                 element={

@@ -20,9 +20,10 @@ use super::{
     DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
 use crate::{
-    auth::{EMAIL_CODE_VALIDITY_PERIOD, TOTP_CODE_VALIDITY_PERIOD},
+    auth::TOTP_CODE_VALIDITY_PERIOD,
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
+    server_config,
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
@@ -60,7 +61,7 @@ pub struct UserDiagnostic {
     pub is_active: bool,
 }
 
-#[derive(Model, PartialEq, Serialize, Clone)]
+#[derive(Model, PartialEq, Serialize, Clone, Debug)]
 pub struct User {
     pub id: Option<i64>,
     pub username: String,
@@ -69,9 +70,6 @@ pub struct User {
     pub first_name: String,
     pub email: String,
     pub phone: Option<String>,
-    pub ssh_key: Option<String>,
-    pub pgp_key: Option<String>,
-    pub pgp_cert_id: Option<String>,
     pub mfa_enabled: bool,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
@@ -111,9 +109,6 @@ impl User {
             first_name: first_name.into(),
             email: email.into(),
             phone,
-            ssh_key: None,
-            pgp_key: None,
-            pgp_cert_id: None,
             mfa_enabled: false,
             totp_enabled: false,
             email_mfa_enabled: false,
@@ -479,7 +474,7 @@ impl User {
         let users = query_as!(
             User,
             "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, \
+            phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\"
@@ -509,11 +504,12 @@ impl User {
         match &self.email_mfa_secret {
             Some(email_mfa_secret) => {
                 let auth = TOTP::from_bytes(email_mfa_secret);
+                let timeout = &server_config().mfa_code_timeout;
                 let timestamp = SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap()
                     .as_secs();
-                let code = auth.generate(EMAIL_CODE_VALIDITY_PERIOD, timestamp);
+                let code = auth.generate(timeout.as_secs(), timestamp);
                 Ok(code)
             }
             None => Err(WebError::EmailMfa(format!(
@@ -528,8 +524,9 @@ impl User {
     pub fn verify_email_mfa_code(&self, code: u32) -> bool {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
             let totp = TOTP::from_bytes(email_mfa_secret);
+            let timeout = &server_config().mfa_code_timeout;
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                return totp.verify(code, EMAIL_CODE_VALIDITY_PERIOD, timestamp.as_secs());
+                return totp.verify(code, timeout.as_secs(), timestamp.as_secs());
             }
         }
         false
@@ -569,7 +566,7 @@ impl User {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\" WHERE username = $1",
             username
@@ -585,7 +582,7 @@ impl User {
         query_as!(
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
-            phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, email_mfa_enabled, \
+            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
             FROM \"user\" WHERE email = $1",
             email

@@ -1,11 +1,11 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { omit } from 'lodash-es';
 import { useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
@@ -20,10 +20,10 @@ import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import {
   patternSafeUsernameCharacters,
-  patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
+import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
 import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 
@@ -48,43 +48,61 @@ export const AddUserForm = () => {
 
   const [checkingUsername, setCheckingUsername] = useState(false);
 
-  const formSchema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
+      z
         .object({
-          username: yup
+          username: z
             .string()
-            .required(LL.form.error.required())
-            .matches(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
             .min(3, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
-            .test(
-              'username-available',
-              LL.form.error.usernameTaken(),
-              (value?: string) =>
-                value ? !reservedUserNames.current.includes(value) : false,
-            ),
-          password: yup
+            .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
+          // check in refine
+          password: z.string(),
+          email: z
             .string()
-            .when('enable_enrollment', { is: false, then: () => passwordValidator(LL) }),
-          email: yup
-            .string()
-            .required(LL.form.error.required())
-            .matches(patternValidEmail, LL.form.error.invalid()),
-          last_name: yup.string().required(LL.form.error.required()),
-          first_name: yup.string().required(LL.form.error.required()),
-          phone: yup
-            .string()
-            .optional()
-            .test('is-valid', LL.form.error.invalid(), (value) => {
-              if (value && value.length) {
-                return patternValidPhoneNumber.test(value);
-              }
-              return true;
-            }),
-          enable_enrollment: yup.boolean(),
+            .min(1, LL.form.error.required())
+            .email(LL.form.error.invalid()),
+          last_name: z.string().min(1, LL.form.error.required()),
+          first_name: z.string().min(1, LL.form.error.required()),
+          phone: z.string(),
+          enable_enrollment: z.boolean(),
         })
-        .required(),
+        .superRefine((val, ctx) => {
+          // check password
+          if (!val.enable_enrollment) {
+            const passResult = passwordValidator(LL).safeParse(val.password);
+            if (!passResult.success) {
+              passResult.error.issues.forEach((i) => {
+                ctx.addIssue({
+                  path: ['password'],
+                  code: 'custom',
+                  message: i.message,
+                });
+              });
+            }
+          }
+          if (val.phone && val.phone.length) {
+            const phoneRes = z
+              .string()
+              .regex(patternValidPhoneNumber)
+              .safeParse(val.phone);
+            if (!phoneRes.success) {
+              ctx.addIssue({
+                code: 'custom',
+                path: ['phone'],
+                message: LL.form.error.invalid(),
+              });
+            }
+          }
+          if (reservedUserNames.current.includes(val.username)) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['username'],
+              message: LL.form.error.usernameTaken(),
+            });
+          }
+        }),
     [LL],
   );
 
@@ -94,7 +112,7 @@ export const AddUserForm = () => {
     formState: { isValid },
     trigger,
   } = useForm<Inputs>({
-    resolver: yupResolver(formSchema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     criteriaMode: 'all',
     defaultValues: {
@@ -142,26 +160,23 @@ export const AddUserForm = () => {
   });
 
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
-    if (reservedUserNames.current.includes(data.username)) {
+    const trimmed = trimObjectStrings(data);
+    if (reservedUserNames.current.includes(trimmed.username)) {
       trigger('username', { shouldFocus: true });
     } else {
-      usernameAvailable(data.username)
+      usernameAvailable(trimmed.username)
         .then(() => {
           setCheckingUsername(false);
-          if (data.enable_enrollment) {
-            const userData = omit(data, ['password', 'enable_enrollment']);
+          if (trimmed.enable_enrollment) {
+            const userData = omit(trimmed, ['password', 'enable_enrollment']);
             addUserMutation.mutate(userData);
           } else {
-            if (data.password) {
-              addUserMutation.mutate(omit(data, ['enable_enrollment']));
-            } else {
-              trigger('password', { shouldFocus: true });
-            }
+            addUserMutation.mutate(omit(trimmed, ['enable_enrollment']));
           }
         })
         .catch(() => {
           setCheckingUsername(false);
-          reservedUserNames.current = [...reservedUserNames.current, data.username];
+          reservedUserNames.current = [...reservedUserNames.current, trimmed.username];
           trigger('username', { shouldFocus: true });
         });
     }

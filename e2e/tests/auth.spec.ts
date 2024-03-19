@@ -111,8 +111,9 @@ test.describe('Test password change', () => {
     await waitForBase(page);
     await createUser(browser, testUser);
     await loginBasic(page, defaultUserAdmin);
-    await page.goto(routes.base + routes.admin.users);
-    await page.getByText(testUser.username, { exact: true }).click();
+    const profileURL = routes.base + routes.admin.users + '/' + testUser.username;
+    await page.goto(profileURL);
+    await waitForRoute(page, profileURL);
     testUser.password = await changePasswordByAdmin(page);
     await logout(page);
     await loginBasic(page, testUser);

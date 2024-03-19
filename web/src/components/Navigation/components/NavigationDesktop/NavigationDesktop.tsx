@@ -1,5 +1,3 @@
-import './style.scss';
-
 import { useNavigationStore } from '../../hooks/useNavigationStore';
 import { NavigationItems } from '../../types';
 import { NavigationBar } from '../NavigationBar/NavigationBar';

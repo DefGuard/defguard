@@ -65,6 +65,7 @@ sqlx = { version = "0.7", features = [
     "postgres",
     "uuid",
 ] }
+ssh-key = "0.6"
 struct-patch = "0.4"
 tera = "1.19"
 thiserror = "1.0"

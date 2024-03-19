@@ -8,7 +8,7 @@ use axum_extra::extract::cookie::CookieJar;
 use reqwest::Url;
 
 use super::SESSION_COOKIE_NAME;
-use crate::{appstate::AppState, db::Session, error::WebError, SERVER_CONFIG};
+use crate::{appstate::AppState, db::Session, error::WebError, server_config};
 
 // Header names
 static FORWARDED_HOST: &str = "x-forwarded-host";
@@ -88,11 +88,7 @@ pub async fn forward_auth(
 }
 
 async fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, WebError> {
-    let server_url = &SERVER_CONFIG
-        .get()
-        .ok_or(WebError::ServerConfigMissing)?
-        .url;
-    // prepare redirect URL for login page
+    let server_url = &server_config().url; // prepare redirect URL for login page
     let mut location = server_url.join("/auth/login").map_err(|err| {
         error!("Failed to prepare redirect URL: {err}");
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
