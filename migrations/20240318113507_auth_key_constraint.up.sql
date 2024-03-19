@@ -1,2 +1,1 @@
-ALTER TABLE authentication_key
-ADD CONSTRAINT user_key_unique UNIQUE (user_id, key_type, key);
+CREATE UNIQUE INDEX user_key_unique ON authentication_key (user_id, key_type, MD5(key))
