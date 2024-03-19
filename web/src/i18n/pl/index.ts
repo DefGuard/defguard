@@ -455,6 +455,7 @@ const pl: Translation = {
         qrInfo:
           'Użyj poniższych konfiguracji aby połączyć się z wybranymi lokalizacjami.',
         helpers: {
+          warningNoNetworks: 'Nie posiadasz dostępu do żadnej sieci.',
           qrHelper: `<p>Możesz skonfigurować WireGuard na telefonie skanując QR kod używając aplikacji WireGuard.</p>`,
           warningAutoMode: `
 <p>Uwaga, Defguard nie przechowuje twojego klucza prywatnego. Gdy opuścisz obecną stronę <strong>nie będziesz mógł</strong> pobrać ponownie konfiguracji z kluczem prywatnym.</p>

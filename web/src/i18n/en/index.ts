@@ -443,6 +443,7 @@ const en: BaseTranslation = {
       Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
     </p>
 `,
+          warningNoNetworks: "You don't have access to any network.",
           qrHelper: `
       <p>
         You can setup your device faster with wireguard application by scanning this QR code.
