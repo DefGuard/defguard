@@ -4,6 +4,7 @@ import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { useAddDevicePageStore } from '../../../addDevice/hooks/useAddDevicePageStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
@@ -14,6 +15,7 @@ import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDevice
 
 export const UserDevices = () => {
   const navigate = useNavigate();
+  const appInfo = useAppStore((state) => state.appInfo);
   const { LL } = useI18nContext();
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const initAddDevice = useAddDevicePageStore((state) => state.init);
@@ -43,6 +45,7 @@ export const UserDevices = () => {
             <AddComponentBox
               data-testid="add-device"
               text={LL.userPage.devices.addDevice.web()}
+              disabled={!appInfo?.network_present}
               callback={() => {
                 initAddDevice({
                   username: userProfile.user.username,
