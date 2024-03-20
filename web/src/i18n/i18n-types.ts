@@ -995,6 +995,10 @@ type RootTranslation = {
 					 */
 					warningManualMode: string
 					/**
+					 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​n​y​ ​n​e​t​w​o​r​k​.
+					 */
+					warningNoNetworks: string
+					/**
 					 * 
 				​ ​ ​ ​ ​ ​ ​<​p​>​
 				​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
@@ -4775,6 +4779,10 @@ export type TranslationFunctions = {
 			
 					 */
 					warningManualMode: () => LocalizedString
+					/**
+					 * You don't have access to any network.
+					 */
+					warningNoNetworks: () => LocalizedString
 					/**
 					 * 
 				      <p>

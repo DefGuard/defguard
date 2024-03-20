@@ -78,14 +78,21 @@ export const AddDeviceConfigStep = () => {
       <div className="info">
         <p>{localLL.qrInfo()}</p>
       </div>
-      <DeviceConfigsCard
-        deviceId={device.id}
-        publicKey={publicKey}
-        privateKey={privateKey}
-        userId={userData.id}
-        networks={networks}
-        deviceName={device.name}
-      />
+      {networks.length > 0 && (
+        <DeviceConfigsCard
+          deviceId={device.id}
+          publicKey={publicKey}
+          privateKey={privateKey}
+          userId={userData.id}
+          networks={networks}
+          deviceName={device.name}
+        />
+      )}
+      {networks.length === 0 && (
+        <MessageBox type={MessageBoxType.WARNING}>
+          {localLL.helpers.warningNoNetworks()}
+        </MessageBox>
+      )}
     </Card>
   );
 };

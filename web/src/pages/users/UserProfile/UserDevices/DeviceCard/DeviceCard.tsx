@@ -154,6 +154,7 @@ export const DeviceCard = ({ device }: Props) => {
           <EditButtonOption
             styleVariant={EditButtonOptionStyleVariant.STANDARD}
             text={LL.userPage.devices.card.edit.showConfigurations()}
+            disabled={!device.networks?.length}
             onClick={() => {
               openDeviceConfigModal({
                 deviceName: device.name,
