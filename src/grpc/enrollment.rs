@@ -223,7 +223,7 @@ impl EnrollmentServer {
         })?;
 
         // update user
-        user.phone = Some(request.phone_number);
+        user.phone = request.phone_number;
         user.set_password(&request.password);
         user.save(&mut *transaction).await.map_err(|err| {
             error!("Failed to update user {}: {err}", user.username);
