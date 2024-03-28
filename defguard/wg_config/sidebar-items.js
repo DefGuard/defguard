@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["WireguardConfigParseError"],"fn":["parse_wireguard_config"],"struct":["ImportedDevice"]};

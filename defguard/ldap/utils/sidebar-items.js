@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["ldap_add_user","ldap_add_user_to_group","ldap_change_password","ldap_delete_user","ldap_modify_group","ldap_modify_user","ldap_remove_user_from_group","user_from_ldap"]};

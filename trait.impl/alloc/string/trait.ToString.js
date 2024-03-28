@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"defguard":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.75.0/alloc/string/trait.ToString.html\" title=\"trait alloc::string::ToString\">ToString</a> for <a class=\"enum\" href=\"defguard/db/models/user/enum.MFAMethod.html\" title=\"enum defguard::db::models::user::MFAMethod\">MFAMethod</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

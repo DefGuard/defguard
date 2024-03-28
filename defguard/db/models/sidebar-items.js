@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["auth_code","authentication_key","device","device_login","enrollment","error","group","oauth2authorizedapp","oauth2client","oauth2token","session","settings","user","wallet","webauthn","webhook","wireguard","yubikey"],"struct":["MFAInfo","NewOpenIDClient","OAuth2AuthorizedAppInfo","SecurityKey","UserDetails","UserInfo","WalletInfo"]};
