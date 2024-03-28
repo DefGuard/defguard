@@ -97,11 +97,11 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard® support with [our Rust library](https://github.com/defguard/wireguard-rs)
   - dashboard and statistics overview of connected users/devices for admins
   - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
+* SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://defguard.gitbook.io/defguard/admin-and-features/ssh-authentication)
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
 * [Email/SMTP support](https://defguard.gitbook.io/defguard/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
 * Easy support with [sending debug/support information](https://defguard.gitbook.io/defguard/help/sending-support-info)
 * Webhooks & REST API
-* Web3 wallet validation
 * Build with [Rust](https://www.rust-lang.org/) for portability, security, and speed
 * [UI Library](https://github.com/defguard/ui) - our beautiful React/TypeScript UI is a collection of React components:
   - a set of custom and beautiful components for the layout
