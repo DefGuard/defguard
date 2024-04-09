@@ -729,7 +729,7 @@ const en: BaseTranslation = {
         changePassword: 'Change password',
         edit: 'Edit account',
         addYubikey: 'Add YubiKey',
-        addSSH: 'Add SHH Key',
+        addSSH: 'Add SSH Key',
         addGPG: 'Add GPG Key',
         delete: 'Delete account',
         startEnrollment: 'Start enrollment',
