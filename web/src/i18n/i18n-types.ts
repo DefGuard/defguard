@@ -5485,7 +5485,7 @@ export type TranslationFunctions = {
 				 */
 				addYubikey: () => LocalizedString
 				/**
-				 * Add SHH Key
+				 * Add SSH Key
 				 */
 				addSSH: () => LocalizedString
 				/**
