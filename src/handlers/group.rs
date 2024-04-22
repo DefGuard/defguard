@@ -98,10 +98,13 @@ pub(crate) async fn list_groups_info(
     let q_result = query_as!(
         GroupInfo,
         "SELECT g.name as name, \
-        COALESCE(ARRAY_AGG(u.username) FILTER (WHERE u.username IS NOT NULL), '{}') as members \
+        COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') as \"members!\", \
+        COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') as \"vpn_locations!\" \
         FROM \"group\" g \
         LEFT JOIN \"group_user\" gu ON gu.group_id = g.id \
         LEFT JOIN \"user\" u ON u.id = gu.user_id \
+        LEFT JOIN \"wireguard_network_allowed_group\" wnag ON wnag.group_id = g.id \
+        LEFT JOIN \"wireguard_network\" wn ON wn.id = wnag.network_id \
         GROUP BY g.name"
     )
     .fetch_all(&appstate.pool)
@@ -139,9 +142,10 @@ pub(crate) async fn get_group(
     debug!("Retrieving group {name}");
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         let members = group.member_usernames(&appstate.pool).await?;
+        let vpn_locations = group.allowed_vpn_locations(&appstate.pool).await?;
         info!("Retrieved group {name}");
         Ok(ApiResponse {
-            json: json!(GroupInfo::new(name, Some(members))),
+            json: json!(GroupInfo::new(name, members, vpn_locations)),
             status: StatusCode::OK,
         })
     } else {
@@ -167,16 +171,14 @@ pub(crate) async fn create_group(
     group.save(&appstate.pool).await?;
     // TODO: create group in LDAP
 
-    if let Some(ref members) = group_info.members {
-        for username in members {
-            let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
-                let msg = format!("Failed to find user {username}");
-                error!(msg);
-                return Err(WebError::ObjectNotFound(msg));
-            };
-            user.add_to_group(&mut *transaction, &group).await?;
-            // let _result = ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
-        }
+    for username in &group_info.members {
+        let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
+            let msg = format!("Failed to find user {username}");
+            error!(msg);
+            return Err(WebError::ObjectNotFound(msg));
+        };
+        user.add_to_group(&mut *transaction, &group).await?;
+        // let _result = ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
     }
 
     transaction.commit().await?;
@@ -215,32 +217,30 @@ pub(crate) async fn modify_group(
     }
 
     // Modify group members.
-    if let Some(ref members) = group_info.members {
-        let mut current_members = group.members(&mut *transaction).await?;
-        for username in members {
-            if let Some(index) = current_members
-                .iter()
-                .position(|gm| &gm.username == username)
-            {
-                // This member is already in the group.
-                current_members.remove(index);
-                continue;
-            }
-
-            // Add new members to the group.
-            if let Some(user) = User::find_by_username(&mut *transaction, username).await? {
-                user.add_to_group(&mut *transaction, &group).await?;
-                // let _result =
-                //     ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
-            }
+    let mut current_members = group.members(&mut *transaction).await?;
+    for username in &group_info.members {
+        if let Some(index) = current_members
+            .iter()
+            .position(|gm| &gm.username == username)
+        {
+            // This member is already in the group.
+            current_members.remove(index);
+            continue;
         }
 
-        // Remove outstanding members.
-        for user in current_members {
-            user.remove_from_group(&mut *transaction, &group).await?;
+        // Add new members to the group.
+        if let Some(user) = User::find_by_username(&mut *transaction, username).await? {
+            user.add_to_group(&mut *transaction, &group).await?;
             // let _result =
-            //     ldap_remove_user_from_group(&mut *transaction, &user.username, &group.name).await;
+            //     ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
         }
+    }
+
+    // Remove outstanding members.
+    for user in current_members {
+        user.remove_from_group(&mut *transaction, &group).await?;
+        // let _result =
+        //     ldap_remove_user_from_group(&mut *transaction, &user.username, &group.name).await;
     }
 
     transaction.commit().await?;

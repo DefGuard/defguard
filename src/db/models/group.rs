@@ -72,6 +72,26 @@ impl Group {
             Ok(Vec::new())
         }
     }
+
+    /// Fetches a list of VPN locations where a given group is explicitly allowed.
+    /// This does not include VPN locations where all groups are implicitly allowed,
+    /// because no access control in configured.
+    pub async fn allowed_vpn_locations<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if let Some(id) = self.id {
+            query_scalar!(
+                "SELECT wn.name FROM wireguard_network wn JOIN wireguard_network_allowed_group wnag ON wn.id = wnag.network_id \
+                WHERE wnag.group_id = $1",
+                id
+            )
+                .fetch_all(executor)
+                .await
+        } else {
+            Ok(Vec::new())
+        }
+    }
 }
 
 impl WireguardNetwork {

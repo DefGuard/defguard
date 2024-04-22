@@ -980,5 +980,5 @@ export type Group = string;
 
 export type GroupInfo = {
   name: string;
-  members?: string[];
+  members: string[];
 };
