@@ -86,6 +86,10 @@ type RootTranslation = {
 			 * C​o​p​y
 			 */
 			copy: string
+			/**
+			 * E​d​i​t
+			 */
+			edit: string
 		}
 		/**
 		 * K​e​y
@@ -146,6 +150,25 @@ type RootTranslation = {
 			 * C​r​e​a​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
+		}
+		deleteGroup: {
+			/**
+			 * D​e​l​e​t​e​ ​g​r​o​u​p​ ​{​n​a​m​e​}
+			 * @param {string} name
+			 */
+			title: RequiredParams<'name'>
+			/**
+			 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​g​r​o​u​p​.
+			 */
+			subTitle: string
+			/**
+			 * D​e​l​e​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
 		}
 		deviceConfig: {
 			/**
@@ -1703,7 +1726,7 @@ type RootTranslation = {
 				 */
 				addYubikey: string
 				/**
-				 * A​d​d​ ​S​H​H​ ​K​e​y
+				 * A​d​d​ ​S​S​H​ ​K​e​y
 				 */
 				addSSH: string
 				/**
@@ -3879,6 +3902,10 @@ export type TranslationFunctions = {
 			 * Copy
 			 */
 			copy: () => LocalizedString
+			/**
+			 * Edit
+			 */
+			edit: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -3939,6 +3966,24 @@ export type TranslationFunctions = {
 			 * Create group
 			 */
 			submit: () => LocalizedString
+		}
+		deleteGroup: {
+			/**
+			 * Delete group {name}
+			 */
+			title: (arg: { name: string }) => LocalizedString
+			/**
+			 * This action will permanently delete this group.
+			 */
+			subTitle: () => LocalizedString
+			/**
+			 * Delete group
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
 		}
 		deviceConfig: {
 			/**

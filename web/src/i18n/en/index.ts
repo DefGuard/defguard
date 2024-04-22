@@ -23,6 +23,7 @@ const en: BaseTranslation = {
       delete: 'Delete',
       rename: 'Rename',
       copy: 'Copy',
+      edit: 'Edit',
     },
     key: 'Key',
     name: 'Name',
@@ -44,6 +45,12 @@ const en: BaseTranslation = {
       groupName: 'Group name',
       searchPlaceholder: 'Filter/Search',
       submit: 'Create group',
+    },
+    deleteGroup: {
+      title: 'Delete group {name:string}',
+      subTitle: 'This action will permanently delete this group.',
+      submit: 'Delete group',
+      cancel: 'Cancel',
     },
     deviceConfig: {
       title: 'Device VPN configurations',

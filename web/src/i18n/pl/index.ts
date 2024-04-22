@@ -18,6 +18,7 @@ const pl: Translation = {
       delete: 'Usuń',
       copy: 'Skopiuj',
       rename: 'Zmień nazwę',
+      edit: 'Edytuj',
     },
     conditions: {
       and: 'I',
@@ -400,6 +401,12 @@ const pl: Translation = {
       messages: {
         success: 'Webhook usunięty.',
       },
+    },
+    deleteGroup: {
+      title: 'Usuń grupę {name}',
+      subTitle: 'Grupa zostanie nieodwołalnie usunięta.',
+      submit: 'Usuń grupę',
+      cancel: 'Wróć',
     },
   },
   addDevicePage: {
