@@ -4,7 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use sqlx::{query, Error as SqlxError, PgExecutor};
 use tokio::{
     sync::{
@@ -156,8 +156,9 @@ impl WireguardPeerStats {
             collected_at: Utc::now().naive_utc(),
             upload: stats.upload as i64,
             download: stats.download as i64,
-            latest_handshake: NaiveDateTime::from_timestamp_opt(stats.latest_handshake as i64, 0)
-                .unwrap_or_default(),
+            latest_handshake: DateTime::from_timestamp(stats.latest_handshake as i64, 0)
+                .unwrap_or_default()
+                .naive_utc(),
             allowed_ips: Some(stats.allowed_ips),
         }
     }
