@@ -5,7 +5,7 @@ use axum::{
 use serde_json::json;
 use sqlx::query_as;
 
-use super::{ApiResponse, GroupInfo, Username};
+use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserAdminRole},
@@ -159,7 +159,7 @@ pub(crate) async fn get_group(
 pub(crate) async fn create_group(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
-    Json(group_info): Json<GroupInfo>,
+    Json(group_info): Json<EditGroupInfo>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Creating group {}", group_info.name);
 
@@ -197,7 +197,7 @@ pub(crate) async fn modify_group(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
-    Json(group_info): Json<GroupInfo>,
+    Json(group_info): Json<EditGroupInfo>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Modifying group {}", group_info.name);
     let Some(mut group) = Group::find_by_name(&appstate.pool, &name).await? else {

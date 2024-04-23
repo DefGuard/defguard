@@ -174,7 +174,6 @@ impl AuthCode {
 pub struct GroupInfo {
     pub name: String,
     pub members: Vec<String>,
-    #[serde(skip_deserializing)]
     pub vpn_locations: Vec<String>,
 }
 
@@ -187,6 +186,13 @@ impl GroupInfo {
             vpn_locations,
         }
     }
+}
+
+/// Dedicated `GroupInfo` variant for group modification operations.
+#[derive(Deserialize, Serialize)]
+pub struct EditGroupInfo {
+    pub name: String,
+    pub members: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize)]

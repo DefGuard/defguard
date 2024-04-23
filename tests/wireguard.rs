@@ -8,7 +8,7 @@ use defguard::{
         },
         Device, GatewayEvent, WireguardNetwork,
     },
-    handlers::{wireguard::WireguardNetworkData, Auth},
+    handlers::{wireguard::WireguardNetworkData, Auth, GroupInfo},
 };
 use matches::assert_matches;
 use reqwest::StatusCode;
@@ -53,6 +53,11 @@ async fn test_network() {
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
+    // check vpn locations for `admin` group
+    let response = client.get("/api/v1/group/admin").send().await;
+    let group_info: GroupInfo = response.json().await;
+    assert!(group_info.vpn_locations.is_empty());
+
     // modify network
     let network_data = WireguardNetworkData {
         name: "my network".into(),
@@ -61,7 +66,7 @@ async fn test_network() {
         port: 55555,
         allowed_ips: Some("10.1.1.0/24".into()),
         dns: None,
-        allowed_groups: vec![],
+        allowed_groups: vec!["admin".into()],
         mfa_enabled: false,
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -74,6 +79,12 @@ async fn test_network() {
     assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkModified(..));
+
+    // check vpn locations for `admin` group
+    let response = client.get("/api/v1/group/admin").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let group_info: GroupInfo = response.json().await;
+    assert_eq!(group_info.vpn_locations, vec!["my network"]);
 
     // list networks
     let response = client.get("/api/v1/network").send().await;

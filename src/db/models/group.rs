@@ -74,7 +74,7 @@ impl Group {
     }
 
     /// Fetches a list of VPN locations where a given group is explicitly allowed.
-    /// This does not include VPN locations where all groups are implicitly allowed,
+    /// This does not include VPN locations where all groups are implicitly allowed (admin group),
     /// because no access control in configured.
     pub async fn allowed_vpn_locations<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
     where
@@ -145,7 +145,7 @@ impl WireguardNetwork {
         transaction: &mut PgConnection,
         allowed_groups: Vec<String>,
     ) -> Result<(), ModelError> {
-        info!("Setting allowed groups for network {self}");
+        info!("Setting allowed groups for network {self} to : {allowed_groups:?}");
         if allowed_groups.is_empty() {
             return self.clear_allowed_groups(transaction).await;
         }
