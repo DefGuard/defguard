@@ -174,6 +174,7 @@ impl AuthCode {
 pub struct GroupInfo {
     pub name: String,
     pub members: Vec<String>,
+    #[serde(skip_deserializing)]
     pub vpn_locations: Vec<String>,
 }
 
