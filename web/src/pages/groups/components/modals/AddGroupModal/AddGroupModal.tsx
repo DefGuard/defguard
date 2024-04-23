@@ -33,12 +33,13 @@ import { useAddGroupModal } from './useAddGroupModal';
 export const AddGroupModal = () => {
   const isOpen = useAddGroupModal((s) => s.visible);
   const close = useAddGroupModal((s) => s.close);
+  const groupInfo = useAddGroupModal((s) => s.groupInfo);
   const { LL } = useI18nContext();
 
   return (
     <ModalWithTitle
       id="modify-group-modal"
-      title={LL.modals.addGroup.title()}
+      title={groupInfo ? LL.modals.editGroup.title() : LL.modals.addGroup.title()}
       isOpen={isOpen}
       onClose={close}
     >
@@ -66,8 +67,8 @@ const ModalContent = () => {
   } = useApi();
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
-  const localLL = LL.modals.addGroup;
   const groupInfo = useAddGroupModal((s) => s.groupInfo);
+  const localLL = groupInfo ? LL.modals.editGroup : LL.modals.addGroup;
   const closeModal = useAddGroupModal((s) => s.close);
   const toaster = useToaster();
   const [searchValue, setSearch] = useState('');

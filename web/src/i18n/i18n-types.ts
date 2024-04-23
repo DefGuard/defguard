@@ -151,6 +151,28 @@ type RootTranslation = {
 			 */
 			submit: string
 		}
+		editGroup: {
+			/**
+			 * E​d​i​t​ ​g​r​o​u​p
+			 */
+			title: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
+			 */
+			selectAll: string
+			/**
+			 * G​r​o​u​p​ ​n​a​m​e
+			 */
+			groupName: string
+			/**
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
+			 */
+			searchPlaceholder: string
+			/**
+			 * U​p​d​a​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+		}
 		deleteGroup: {
 			/**
 			 * D​e​l​e​t​e​ ​g​r​o​u​p​ ​{​n​a​m​e​}
@@ -3964,6 +3986,28 @@ export type TranslationFunctions = {
 			searchPlaceholder: () => LocalizedString
 			/**
 			 * Create group
+			 */
+			submit: () => LocalizedString
+		}
+		editGroup: {
+			/**
+			 * Edit group
+			 */
+			title: () => LocalizedString
+			/**
+			 * Select all users
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Group name
+			 */
+			groupName: () => LocalizedString
+			/**
+			 * Filter/Search
+			 */
+			searchPlaceholder: () => LocalizedString
+			/**
+			 * Update group
 			 */
 			submit: () => LocalizedString
 		}

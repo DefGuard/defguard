@@ -46,6 +46,19 @@ const pl: Translation = {
       submit: 'Stwórz grupę',
       title: 'Dodaj grupę',
     },
+    editGroup: {
+      groupName: 'Nazwa grupy',
+      searchPlaceholder: 'Szukaj',
+      selectAll: 'Zaznacz wszystkich',
+      submit: 'Zmień grupę',
+      title: 'Edytuj grupę',
+    },
+    deleteGroup: {
+      title: 'Usuń grupę {name}',
+      subTitle: 'Grupa zostanie nieodwołalnie usunięta.',
+      submit: 'Usuń grupę',
+      cancel: 'Wróć',
+    },
     registerEmailMFA: {
       title: 'Skonfiguruj e-mail MFA',
       form: {
@@ -401,12 +414,6 @@ const pl: Translation = {
       messages: {
         success: 'Webhook usunięty.',
       },
-    },
-    deleteGroup: {
-      title: 'Usuń grupę {name}',
-      subTitle: 'Grupa zostanie nieodwołalnie usunięta.',
-      submit: 'Usuń grupę',
-      cancel: 'Wróć',
     },
   },
   addDevicePage: {

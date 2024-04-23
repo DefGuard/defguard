@@ -46,6 +46,13 @@ const en: BaseTranslation = {
       searchPlaceholder: 'Filter/Search',
       submit: 'Create group',
     },
+    editGroup: {
+      title: 'Edit group',
+      selectAll: 'Select all users',
+      groupName: 'Group name',
+      searchPlaceholder: 'Filter/Search',
+      submit: 'Update group',
+    },
     deleteGroup: {
       title: 'Delete group {name:string}',
       subTitle: 'This action will permanently delete this group.',
