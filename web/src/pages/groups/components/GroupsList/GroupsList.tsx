@@ -1,6 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import parse from 'html-react-parser';
 import { orderBy } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -111,6 +112,23 @@ const CustomRow = ({ group }: RowProps) => {
     },
   });
 
+  const locationList = (locations: string[]) => (
+    <>
+      <br />
+      <div>
+        <p>{LL.modals.deleteGroup.locationListHeader()}</p>
+        <ul>
+          {locations.map((locationName) => (
+            <li key={locationName}>{locationName}</li>
+          ))}
+        </ul>
+        <br />
+        <br />
+        <p>{parse(LL.modals.deleteGroup.locationListFooter())}</p>
+      </div>
+    </>
+  );
+
   return (
     <>
       <div className="groups-list-row">
@@ -137,6 +155,7 @@ const CustomRow = ({ group }: RowProps) => {
         </EditButton>
       </div>
       <ConfirmModal
+        id="group-delete-modal"
         type={ConfirmModalType.WARNING}
         isOpen={isDeleteModalOpen}
         setIsOpen={(v) => setDeleteModalOpen(v)}
@@ -145,7 +164,12 @@ const CustomRow = ({ group }: RowProps) => {
         title={LL.modals.deleteGroup.title({
           name: group.name,
         })}
-        subTitle={LL.modals.deleteGroup.subTitle()}
+        subTitle={
+          <div>
+            <p>{LL.modals.deleteGroup.subTitle()}</p>
+            {group.vpn_locations.length > 0 && locationList(group.vpn_locations)}
+          </div>
+        }
         submitText={LL.modals.deleteGroup.submit()}
         cancelText={LL.modals.deleteGroup.cancel()}
         loading={isLoading}

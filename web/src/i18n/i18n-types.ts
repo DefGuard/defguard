@@ -184,6 +184,14 @@ type RootTranslation = {
 			 */
 			subTitle: string
 			/**
+			 * T​h​i​s​ ​g​r​o​u​p​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​a​s​s​i​g​n​e​d​ ​t​o​ ​f​o​l​l​o​w​i​n​g​ ​V​P​N​ ​L​o​c​a​t​i​o​n​s​:
+			 */
+			locationListHeader: string
+			/**
+			 * I​f​ ​t​h​i​s​ ​i​s​ ​t​h​e​ ​o​n​l​y​ ​a​l​l​o​w​e​d​ ​g​r​o​u​p​ ​f​o​r​ ​a​ ​g​i​v​e​n​ ​l​o​c​a​t​i​o​n​,​ ​t​h​e​ ​l​o​c​a​t​i​o​n​ ​w​i​l​l​ ​b​e​c​o​m​e​ ​<​b​>​a​c​c​e​s​s​i​b​l​e​ ​t​o​ ​a​l​l​ ​u​s​e​r​s​<​/​b​>​.
+			 */
+			locationListFooter: string
+			/**
 			 * D​e​l​e​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
@@ -4020,6 +4028,14 @@ export type TranslationFunctions = {
 			 * This action will permanently delete this group.
 			 */
 			subTitle: () => LocalizedString
+			/**
+			 * This group is currently assigned to following VPN Locations:
+			 */
+			locationListHeader: () => LocalizedString
+			/**
+			 * If this is the only allowed group for a given location, the location will become <b>accessible to all users</b>.
+			 */
+			locationListFooter: () => LocalizedString
 			/**
 			 * Delete group
 			 */

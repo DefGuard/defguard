@@ -56,6 +56,9 @@ const pl: Translation = {
     deleteGroup: {
       title: 'Usuń grupę {name}',
       subTitle: 'Grupa zostanie nieodwołalnie usunięta.',
+      locationListHeader:
+        'Ta grupa jest obecnie przypisana do następujących lokalizacji:',
+      locationListFooter: `Jeżeli to jedyna dozwolona grupa dla danej lokalizacji, stanie się ona <b>dostępna dla wszystkich użytkowników</b>.`,
       submit: 'Usuń grupę',
       cancel: 'Wróć',
     },
@@ -1306,7 +1309,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
   },
   networkPage: {
     pageTitle: 'Edycja lokalizacji',
-    addNetwork: '+ Dodaj lokalizacje',
+    addNetwork: '+ Dodaj lokalizację',
     controls: {
       networkSelect: {
         label: 'Wybór lokalizacji',

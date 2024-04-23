@@ -56,6 +56,8 @@ const en: BaseTranslation = {
     deleteGroup: {
       title: 'Delete group {name:string}',
       subTitle: 'This action will permanently delete this group.',
+      locationListHeader: 'This group is currently assigned to following VPN Locations:',
+      locationListFooter: `If this is the only allowed group for a given location, the location will become <b>accessible to all users</b>.`,
       submit: 'Delete group',
       cancel: 'Cancel',
     },
