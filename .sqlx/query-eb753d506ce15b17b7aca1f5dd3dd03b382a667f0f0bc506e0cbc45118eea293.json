@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.name as name, COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') as \"members!\", COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') as \"vpn_locations!\" FROM \"group\" g LEFT JOIN \"group_user\" gu ON gu.group_id = g.id LEFT JOIN \"user\" u ON u.id = gu.user_id LEFT JOIN \"wireguard_network_allowed_group\" wnag ON wnag.group_id = g.id LEFT JOIN \"wireguard_network\" wn ON wn.id = wnag.network_id GROUP BY g.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "members!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 2,
+        "name": "vpn_locations!",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "eb753d506ce15b17b7aca1f5dd3dd03b382a667f0f0bc506e0cbc45118eea293"
+}
