@@ -178,7 +178,7 @@ pub(crate) async fn create_group(
             return Err(WebError::ObjectNotFound(msg));
         };
         user.add_to_group(&mut *transaction, &group).await?;
-        // let _result = ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
+        // TODO: update LDAP
     }
 
     transaction.commit().await?;
@@ -213,7 +213,7 @@ pub(crate) async fn modify_group(
     if group.name != group_info.name {
         group.name = group_info.name;
         group.save(&mut *transaction).await?;
-        // let _result = ldap_modify_group(&mut *transaction, &group.name, &group).await;
+        // TODO: update LDAP
     }
 
     // Modify group members.
@@ -231,16 +231,14 @@ pub(crate) async fn modify_group(
         // Add new members to the group.
         if let Some(user) = User::find_by_username(&mut *transaction, username).await? {
             user.add_to_group(&mut *transaction, &group).await?;
-            // let _result =
-            //     ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
+            // TODO: update LDAP
         }
     }
 
     // Remove outstanding members.
     for user in current_members {
         user.remove_from_group(&mut *transaction, &group).await?;
-        // let _result =
-        //     ldap_remove_user_from_group(&mut *transaction, &user.username, &group.name).await;
+        // TODO: update LDAP
     }
 
     transaction.commit().await?;
@@ -325,8 +323,8 @@ pub(crate) async fn remove_group_member(
                 user.username, group.name
             );
             user.remove_from_group(&appstate.pool, &group).await?;
-            // let _result =
-            //     ldap_remove_user_from_group(&appstate.pool, &user.username, &group.name).await;
+            // TODO: update LDAP
+
             WireguardNetwork::sync_all_networks(&appstate).await?;
             info!("Removed user: {} from group: {}", user.username, group.name);
             Ok(ApiResponse {
