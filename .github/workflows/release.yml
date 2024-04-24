@@ -9,7 +9,7 @@ jobs:
     runs-on: [self-hosted, Linux]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Docker meta
@@ -28,7 +28,7 @@ jobs:
       - name: Set up Docker BuildX
         uses: docker/setup-buildx-action@v3
         with:
-          config-inline: |
+          buildkitd-config-inline: |
             [registry."docker.io"]
               mirrors = ["dockerhub-proxy.teonite.net"]
       - name: Login to GitHub container registry
@@ -94,7 +94,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -108,7 +108,7 @@ jobs:
       - name: Set up Docker BuildX
         uses: docker/setup-buildx-action@v3
         with:
-          config-inline: |
+          buildkitd-config-inline: |
             [registry."docker.io"]
               mirrors = ["dockerhub-proxy.teonite.net"]
 
