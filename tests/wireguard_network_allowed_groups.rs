@@ -577,3 +577,55 @@ async fn test_modify_user() {
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[3].wireguard_pubkey);
 }
+
+#[tokio::test]
+async fn test_delete_only_allowed_group() {
+    let (client, client_state) = make_test_client().await;
+    let (_users, devices) = setup_test_users(&client_state.pool).await;
+
+    let mut wg_rx = client_state.wireguard_rx;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create network with an allowed group
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": ["allowed group"],
+            "mfa_enabled": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 180
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let network: WireguardNetwork = response.json().await;
+    assert_eq!(network.name, "network");
+    let event = wg_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+
+    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(peers.len(), 2);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+
+    // remove an allowed group
+    let response = client.delete("/api/v1/group/allowed%20group").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // network configuration was created for all devices
+    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    assert_eq!(peers.len(), 4);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+    assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
+    assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
+}
