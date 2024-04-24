@@ -1703,7 +1703,7 @@ type RootTranslation = {
 				 */
 				addYubikey: string
 				/**
-				 * A​d​d​ ​S​H​H​ ​K​e​y
+				 * A​d​d​ ​S​S​H​ ​K​e​y
 				 */
 				addSSH: string
 				/**
