@@ -161,7 +161,7 @@ impl PasswordResetServer {
             .await?;
 
         let response = PasswordResetStartResponse {
-            deadline_timestamp: session_deadline.timestamp(),
+            deadline_timestamp: session_deadline.and_utc().timestamp(),
         };
 
         transaction.commit().await.map_err(|_| {

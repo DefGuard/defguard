@@ -165,7 +165,7 @@ impl EnrollmentServer {
             let response = super::proto::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
-                deadline_timestamp: session_deadline.timestamp(),
+                deadline_timestamp: session_deadline.and_utc().timestamp(),
                 final_page_content: enrollment
                     .get_welcome_page_content(&mut transaction)
                     .await?,
@@ -510,7 +510,7 @@ impl From<Device> for ProtoDevice {
             name: device.name,
             pubkey: device.wireguard_pubkey,
             user_id: device.user_id,
-            created_at: device.created.timestamp(),
+            created_at: device.created.and_utc().timestamp(),
         }
     }
 }

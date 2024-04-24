@@ -18,6 +18,7 @@ const pl: Translation = {
       delete: 'Usuń',
       copy: 'Skopiuj',
       rename: 'Zmień nazwę',
+      edit: 'Edytuj',
     },
     conditions: {
       and: 'I',
@@ -44,6 +45,22 @@ const pl: Translation = {
       selectAll: 'Zaznacz wszystkich',
       submit: 'Stwórz grupę',
       title: 'Dodaj grupę',
+    },
+    editGroup: {
+      groupName: 'Nazwa grupy',
+      searchPlaceholder: 'Szukaj',
+      selectAll: 'Zaznacz wszystkich',
+      submit: 'Zmień grupę',
+      title: 'Edytuj grupę',
+    },
+    deleteGroup: {
+      title: 'Usuń grupę {name}',
+      subTitle: 'Grupa zostanie nieodwołalnie usunięta.',
+      locationListHeader:
+        'Ta grupa jest obecnie przypisana do następujących lokalizacji:',
+      locationListFooter: `Jeżeli to jedyna dozwolona grupa dla danej lokalizacji, stanie się ona <b>dostępna dla wszystkich użytkowników</b>.`,
+      submit: 'Usuń grupę',
+      cancel: 'Wróć',
     },
     registerEmailMFA: {
       title: 'Skonfiguruj e-mail MFA',
@@ -1292,7 +1309,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
   },
   networkPage: {
     pageTitle: 'Edycja lokalizacji',
-    addNetwork: '+ Dodaj lokalizacje',
+    addNetwork: '+ Dodaj lokalizację',
     controls: {
       networkSelect: {
         label: 'Wybór lokalizacji',

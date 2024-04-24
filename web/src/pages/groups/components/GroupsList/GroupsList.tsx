@@ -1,13 +1,16 @@
 import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import parse from 'html-react-parser';
 import { orderBy } from 'lodash-es';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { EditButton } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { ConfirmModal } from '../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
+import { ConfirmModalType } from '../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import {
   ListHeader,
   ListSortDirection,
@@ -82,6 +85,7 @@ type RowProps = {
 
 const CustomRow = ({ group }: RowProps) => {
   const openModal = useAddGroupModal((s) => s.open);
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const {
     groups: { deleteGroup },
@@ -101,35 +105,75 @@ const CustomRow = ({ group }: RowProps) => {
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_GROUPS],
       });
+      setDeleteModalOpen(false);
     },
     onError: () => {
       toaster.error(LL.messages.error());
     },
   });
 
-  return (
-    <div className="groups-list-row">
-      <div className="group-name left">
-        <p>{titleCase(group.name)}</p>
+  const locationList = (locations: string[]) => (
+    <>
+      <br />
+      <div>
+        <p>{LL.modals.deleteGroup.locationListHeader()}</p>
+        <ul>
+          {locations.map((locationName) => (
+            <li key={locationName}>{locationName}</li>
+          ))}
+        </ul>
+        <br />
+        <br />
+        <p>{parse(LL.modals.deleteGroup.locationListFooter())}</p>
       </div>
-      <EditButton>
-        <EditButtonOption
-          text="Edit"
-          onClick={() => {
-            openModal(group);
-          }}
-        />
-        {group.name.toLowerCase() !== 'admin' && (
+    </>
+  );
+
+  return (
+    <>
+      <div className="groups-list-row">
+        <div className="group-name left">
+          <p>{titleCase(group.name)}</p>
+        </div>
+        <EditButton>
           <EditButtonOption
-            styleVariant={EditButtonOptionStyleVariant.WARNING}
-            text="Delete"
-            disabled={isLoading}
+            text={LL.common.controls.edit()}
             onClick={() => {
-              mutate(group.name);
+              openModal(group);
             }}
           />
-        )}
-      </EditButton>
-    </div>
+          {group.name.toLowerCase() !== 'admin' && (
+            <EditButtonOption
+              styleVariant={EditButtonOptionStyleVariant.WARNING}
+              text={LL.common.controls.delete()}
+              disabled={isLoading}
+              onClick={() => {
+                setDeleteModalOpen(true);
+              }}
+            />
+          )}
+        </EditButton>
+      </div>
+      <ConfirmModal
+        id="group-delete-modal"
+        type={ConfirmModalType.WARNING}
+        isOpen={isDeleteModalOpen}
+        setIsOpen={(v) => setDeleteModalOpen(v)}
+        onSubmit={() => mutate(group.name)}
+        onCancel={() => setDeleteModalOpen(false)}
+        title={LL.modals.deleteGroup.title({
+          name: group.name,
+        })}
+        subTitle={
+          <div>
+            <p>{LL.modals.deleteGroup.subTitle()}</p>
+            {group.vpn_locations.length > 0 && locationList(group.vpn_locations)}
+          </div>
+        }
+        submitText={LL.modals.deleteGroup.submit()}
+        cancelText={LL.modals.deleteGroup.cancel()}
+        loading={isLoading}
+      />
+    </>
   );
 };
