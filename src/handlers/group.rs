@@ -270,6 +270,7 @@ pub(crate) async fn delete_group(
         group.delete(&appstate.pool).await?;
         // TODO: delete group from LDAP
 
+        // sync allowed devices for all locations
         WireguardNetwork::sync_all_networks(&appstate).await?;
 
         info!("Deleted group {name}");
