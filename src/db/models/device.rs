@@ -15,7 +15,7 @@ use super::{
     wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE_MINUTES},
     DbPool,
 };
-use crate::KEY_LENGTH;
+use crate::{db::User, KEY_LENGTH};
 
 #[derive(Serialize)]
 pub struct DeviceConfig {
@@ -350,12 +350,15 @@ impl Device {
         self.wireguard_pubkey = other.wireguard_pubkey;
     }
     /// Create wireguard config for device
-    #[must_use]
-    pub fn create_config(
+    pub async fn create_config<'e, E>(
         &self,
         network: &WireguardNetwork,
         wireguard_network_device: &WireguardNetworkDevice,
-    ) -> String {
+        executor: E,
+    ) -> Result<String, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         let dns = match &network.dns {
             Some(dns) => {
                 if dns.is_empty() {
@@ -366,24 +369,39 @@ impl Device {
             }
             None => String::new(),
         };
+
+        let owner = User::find_by_id(executor, self.user_id).await?;
+        let friendly_name = match owner {
+            Some(owner) => self.friendly_name(owner),
+            None => String::new(),
+        };
+
         let allowed_ips = network
             .allowed_ips
             .iter()
             .map(IpNetwork::to_string)
             .collect::<Vec<String>>()
             .join(",");
-        format!(
+        Ok(format!(
             "[Interface]\n\
             PrivateKey = YOUR_PRIVATE_KEY\n\
             Address = {}\n\
             {dns}\n\
             \n\
             [Peer]\n\
+            {friendly_name}\
             PublicKey = {}\n\
             AllowedIPs = {allowed_ips}\n\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
             wireguard_network_device.wireguard_ip, network.pubkey, network.endpoint, network.port,
+        ))
+    }
+
+    pub fn friendly_name(&self, owner: User) -> String {
+        format!(
+            "# friendly_name = {} {} ({}): {}\n",
+            owner.first_name, owner.last_name, owner.username, self.name
         )
     }
 
@@ -542,7 +560,9 @@ impl Device {
                 };
                 network_info.push(device_network_info);
 
-                let config = self.create_config(&network, &wireguard_network_device);
+                let config = self
+                    .create_config(&network, &wireguard_network_device, &mut *transaction)
+                    .await?;
                 configs.push(DeviceConfig {
                     network_id,
                     network_name: network.name,
