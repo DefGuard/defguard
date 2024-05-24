@@ -424,8 +424,15 @@ impl EnrollmentServer {
                         .map(IpNetwork::to_string)
                         .collect::<Vec<String>>()
                         .join(",");
-                    let config = ProtoDeviceConfig {
-                        config: device.create_config(&network, &wireguard_network_device),
+                    let config = device
+                        .create_config(&network, &wireguard_network_device, &self.pool)
+                        .await
+                        .map_err(|err| {
+                            error!("Failed to create config");
+                            Status::internal(format!("unexpected error: {err}"))
+                        })?;
+                    configs.push(ProtoDeviceConfig {
+                        config,
                         network_id,
                         network_name: network.name,
                         assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
@@ -435,8 +442,7 @@ impl EnrollmentServer {
                         dns: network.dns,
                         mfa_enabled: network.mfa_enabled,
                         keepalive_interval: network.keepalive_interval,
-                    };
-                    configs.push(config);
+                    });
                 }
             }
 

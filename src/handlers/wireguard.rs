@@ -669,7 +669,10 @@ pub async fn download_config(
     let wireguard_network_device =
         WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
     if let Some(wireguard_network_device) = wireguard_network_device {
-        Ok(device.create_config(&network, &wireguard_network_device))
+        let config = device
+            .create_config(&network, &wireguard_network_device, &appstate.pool)
+            .await?;
+        Ok(config)
     } else {
         let device_id = if let Some(id) = device.id {
             id.to_string()
