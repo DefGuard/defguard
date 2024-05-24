@@ -246,6 +246,7 @@ async fn test_device() {
             DNS = 1.1.1.1\n\
             \n\
             [Peer]\n\
+            # friendly_name = DefGuard Administrator (admin): modified-device\n\
             PublicKey = {}\n\
             AllowedIPs = 10.1.1.0/24\n\
             Endpoint = 192.168.4.14:55555\n\
