@@ -367,7 +367,7 @@ impl Device {
             None => String::new(),
         };
 
-        let allowed_ips: String = if network.allowed_ips.is_empty() {
+        let allowed_ips = if network.allowed_ips.is_empty() {
             String::new()
         } else {
             format!(
