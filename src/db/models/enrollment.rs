@@ -376,7 +376,7 @@ impl User {
             "User {} starting enrollment for user {}, notification enabled: {send_user_notification}",
             admin.username, self.username
         );
-        if self.has_password() {
+        if self.is_active {
             return Err(TokenError::AlreadyActive);
         }
 

@@ -89,7 +89,7 @@ impl PasswordResetServer {
         };
 
         // Do not allow password change if user is not active
-        if !user.has_password() {
+        if !user.is_active {
             return Ok(());
         }
 
@@ -144,7 +144,7 @@ impl PasswordResetServer {
 
         let user = enrollment.fetch_user(&self.pool).await?;
 
-        if !user.has_password() {
+        if !user.is_active {
             return Err(Status::permission_denied("user inactive"));
         }
 

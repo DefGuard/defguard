@@ -96,7 +96,7 @@ impl UserInfo {
             groups,
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
-            is_active: user.has_password(),
+            is_active: user.is_active,
         })
     }
 

@@ -165,7 +165,7 @@ pub async fn add_user(
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
     info!("User {} added user {username}", session.user.username);
-    if !user.has_password() {
+    if !user.is_active {
         warn!("User {username} is not active yet. Please proceed with enrollment.");
     };
     Ok(ApiResponse {

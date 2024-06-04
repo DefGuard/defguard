@@ -212,7 +212,7 @@ impl EnrollmentServer {
         // fetch related users
         let mut user = enrollment.fetch_user(&self.pool).await?;
         info!("Activating user account for {}", user.username);
-        if user.has_password() {
+        if user.is_active {
             error!("User {} already activated", user.username);
             return Err(Status::invalid_argument("user already activated"));
         }
@@ -465,7 +465,6 @@ impl From<User> for AdminInfo {
 
 impl InitialUserInfo {
     async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
-        let is_active = user.has_password();
         let devices = user.devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
         Ok(Self {
@@ -474,7 +473,7 @@ impl InitialUserInfo {
             login: user.username,
             email: user.email,
             phone_number: user.phone,
-            is_active,
+            is_active: user.is_active,
             device_names,
         })
     }
