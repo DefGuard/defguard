@@ -59,6 +59,7 @@ use self::{
             remove_group_member,
         },
         mail::{send_support_data, test_mail},
+        openid_login::auth_callback,
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -273,7 +274,9 @@ pub fn build_webapp(
             .route("/webhook/:id", delete(delete_webhook))
             .route("/webhook/:id", post(change_enabled))
             // ldap
-            .route("/ldap/test", get(test_ldap_settings)),
+            .route("/ldap/test", get(test_ldap_settings))
+            // OIDC login
+            .route("/oidc/callback", get(auth_callback)),
     );
 
     #[cfg(feature = "openid")]

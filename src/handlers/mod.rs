@@ -24,6 +24,7 @@ pub(crate) mod mail;
 pub(crate) mod openid_clients;
 #[cfg(feature = "openid")]
 pub mod openid_flow;
+pub mod openid_login;
 pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;

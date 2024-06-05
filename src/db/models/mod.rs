@@ -10,6 +10,9 @@ pub mod group;
 pub mod oauth2authorizedapp;
 #[cfg(feature = "openid")]
 pub mod oauth2client;
+// TODO(jck): enterprise-only enabled
+// TODO(jck): #[cfg(feature = "openid")]
+pub mod oauth2service;
 #[cfg(feature = "openid")]
 pub mod oauth2token;
 pub mod session;
