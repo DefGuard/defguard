@@ -129,6 +129,11 @@ impl EnrollmentServer {
             let user = enrollment.fetch_user(&self.pool).await?;
             let admin = enrollment.fetch_admin(&self.pool).await?;
 
+            if !user.is_active {
+                debug!("User {} tried to enroll, but is disabled.", user.username);
+                return Err(Status::permission_denied("user is disabled"));
+            };
+
             let mut transaction = self.pool.begin().await.map_err(|_| {
                 error!("Failed to begin transaction");
                 Status::internal("unexpected error")
