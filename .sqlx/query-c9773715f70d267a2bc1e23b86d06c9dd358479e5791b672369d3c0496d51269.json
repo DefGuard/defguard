@@ -1,17 +1,23 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"mfa_enabled\" = $8,\"totp_enabled\" = $9,\"email_mfa_enabled\" = $10,\"totp_secret\" = $11,\"email_mfa_secret\" = $12,\"mfa_method\" = $13,\"recovery_codes\" = $14 WHERE id = $1",
+  "query": "INSERT INTO \"user\" (\"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\",\"recovery_codes\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id",
   "describe": {
-    "columns": [],
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
     "parameters": {
       "Left": [
-        "Int8",
         "Text",
         "Text",
         "Text",
         "Text",
         "Text",
         "Text",
+        "Bool",
         "Bool",
         "Bool",
         "Bool",
@@ -34,7 +40,9 @@
         "TextArray"
       ]
     },
-    "nullable": []
+    "nullable": [
+      false
+    ]
   },
-  "hash": "30342cf1a832d4ecffd1f77b6ca3d936a05fa60bae4a903ef7d2d37121b177d8"
+  "hash": "c9773715f70d267a2bc1e23b86d06c9dd358479e5791b672369d3c0496d51269"
 }
