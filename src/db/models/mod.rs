@@ -76,6 +76,7 @@ pub struct UserInfo {
     pub mfa_method: MFAMethod,
     pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
     pub is_active: bool,
+    pub enrolled: bool,
 }
 
 impl UserInfo {
@@ -97,7 +98,25 @@ impl UserInfo {
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
             is_active: user.is_active,
+            enrolled: user.has_password(),
         })
+    }
+
+    /// Copy status to [`User`]. This function should be used by administrators.
+    ///
+    /// Return `true` if status was changed, `false` otherwise.
+    pub(crate) async fn handle_status_change(
+        &self,
+        transaction: &mut PgConnection,
+        user: &mut User,
+    ) -> Result<bool, SqlxError> {
+        if self.is_active != user.is_active {
+            user.is_active = self.is_active;
+            user.save(transaction).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     /// Copy groups to [`User`]. This function should be used by administrators.

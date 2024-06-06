@@ -59,6 +59,7 @@ pub struct UserDiagnostic {
     pub email_mfa_enabled: bool,
     pub mfa_method: MFAMethod,
     pub is_active: bool,
+    pub enrolled: bool,
 }
 
 #[derive(Model, PartialEq, Serialize, Clone, Debug)]
@@ -136,6 +137,11 @@ impl User {
                 Err(HashError::Password)
             }
         }
+    }
+
+    #[must_use]
+    pub fn has_password(&self) -> bool {
+        self.password_hash.is_some()
     }
 
     #[must_use]
@@ -444,7 +450,7 @@ impl User {
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
-                mfa_method as \"mfa_method: MFAMethod\", is_active \
+                mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active \
             FROM \"user\""
         )
         .fetch_all(pool)
@@ -458,6 +464,7 @@ impl User {
                 mfa_enabled: u.mfa_enabled,
                 id: u.id,
                 is_active: u.is_active,
+                enrolled: u.password_hash.is_some(),
             })
             .collect();
         Ok(res)

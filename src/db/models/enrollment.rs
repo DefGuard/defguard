@@ -35,6 +35,8 @@ pub enum TokenError {
     TokenUsed,
     #[error("Enrollment user not found")]
     UserNotFound,
+    #[error("Enrollment user is disabled")]
+    UserDisabled,
     #[error("Enrollment admin not found")]
     AdminNotFound,
     #[error("User account is already activated")]
@@ -58,6 +60,7 @@ impl From<TokenError> for Status {
             TokenError::DbError(_)
             | TokenError::AdminNotFound
             | TokenError::UserNotFound
+            | TokenError::UserDisabled
             | TokenError::NotificationError(_)
             | TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
@@ -376,8 +379,12 @@ impl User {
             "User {} starting enrollment for user {}, notification enabled: {send_user_notification}",
             admin.username, self.username
         );
-        if self.is_active {
+        if self.has_password() {
             return Err(TokenError::AlreadyActive);
+        }
+
+        if !self.is_active {
+            return Err(TokenError::UserDisabled);
         }
 
         let user_id = self.id.expect("User without ID");

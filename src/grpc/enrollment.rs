@@ -212,9 +212,14 @@ impl EnrollmentServer {
         // fetch related users
         let mut user = enrollment.fetch_user(&self.pool).await?;
         info!("Activating user account for {}", user.username);
-        if user.is_active {
+        if user.has_password() {
             error!("User {} already activated", user.username);
             return Err(Status::invalid_argument("user already activated"));
+        }
+
+        if !user.is_active {
+            error!("User {} is disabled", user.username);
+            return Err(Status::invalid_argument("user is disabled"));
         }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
@@ -288,6 +293,13 @@ impl EnrollmentServer {
 
         // add device
         info!("Adding new device for user {}", user.username);
+
+        if !user.is_active {
+            error!("Can't create device for a disabled user {}", user.username);
+            return Err(Status::invalid_argument(
+                "can't add device to disabled user",
+            ));
+        }
 
         let ip_address;
         let device_info;
@@ -465,6 +477,7 @@ impl From<User> for AdminInfo {
 
 impl InitialUserInfo {
     async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
+        let is_enrolled = user.has_password();
         let devices = user.devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
         Ok(Self {
@@ -475,6 +488,7 @@ impl InitialUserInfo {
             phone_number: user.phone,
             is_active: user.is_active,
             device_names,
+            enrolled: is_enrolled,
         })
     }
 }
