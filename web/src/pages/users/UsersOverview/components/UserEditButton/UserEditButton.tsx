@@ -21,6 +21,7 @@ export const UserEditButton = ({ user }: Props) => {
   const { LL } = useI18nContext();
   const navigate = useNavigate();
   const setDeleteUserModal = useModalStore((state) => state.setDeleteUserModal);
+  const setToggleUserModal = useModalStore((state) => state.setToggleUserModal);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const setAddUserModal = useAddUserModal((state) => state.setState);
@@ -79,7 +80,7 @@ export const UserEditButton = ({ user }: Props) => {
           }
         />
       )}
-      {user.is_active === true && (
+      {user.enrolled === true && user.is_active && (
         <EditButtonOption
           disabled={!networkPresent}
           key="start-dekstop-activation"
@@ -94,7 +95,7 @@ export const UserEditButton = ({ user }: Props) => {
           }
         />
       )}
-      {!user.is_active && (
+      {!user.enrolled && user.is_active && (
         <EditButtonOption
           key="start-enrollment"
           text={LL.usersOverview.list.editButton.startEnrollment()}
@@ -103,6 +104,20 @@ export const UserEditButton = ({ user }: Props) => {
               visible: true,
               step: 1,
               user: user,
+            })
+          }
+        />
+      )}
+      {user.username !== currentUser?.username && (
+        <EditButtonOption
+          key="toggle-user"
+          text={
+            user.is_active ? LL.modals.disableUser.title() : LL.modals.enableUser.title()
+          }
+          onClick={() =>
+            setToggleUserModal({
+              visible: true,
+              user,
             })
           }
         />

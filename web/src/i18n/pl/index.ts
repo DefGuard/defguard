@@ -275,6 +275,26 @@ const pl: Translation = {
         success: '{username} usunięte.',
       },
     },
+    disableUser: {
+      title: 'Wyłącz użytkownika',
+      controls: {
+        submit: 'Wyłącz użytkownika',
+      },
+      message: 'Czy chcesz wyłączyć użytkownika {username}?',
+      messages: {
+        success: 'Użytkownik {username} został wyłączony.',
+      },
+    },
+    enableUser: {
+      title: 'Włącz użytkownika',
+      controls: {
+        submit: 'Włącz użytkownika',
+      },
+      message: 'Czy chcesz włączyć użytkownika {username}?',
+      messages: {
+        success: 'Użytkownik {username} został włączony.',
+      },
+    },
     deleteProvisioner: {
       title: 'Usuń provisionera',
       controls: {

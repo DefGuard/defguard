@@ -46,6 +46,7 @@ export type User = {
   groups: string[];
   authorized_apps?: OAuth2AuthorizedApps[];
   is_active: boolean;
+  enrolled: boolean;
 };
 
 export type UserProfile = {
@@ -173,6 +174,11 @@ export type LoginSubjectData = {
 };
 
 export interface DeleteUserModal {
+  visible: boolean;
+  user?: User;
+}
+
+export interface ToggleUserModal {
   visible: boolean;
   user?: User;
 }
@@ -714,6 +720,8 @@ export interface UseModalStore {
   // DO NOT EXTEND THIS STORE
   deleteUserModal: DeleteUserModal;
   // DO NOT EXTEND THIS STORE
+  toggleUserModal: ToggleUserModal;
+  // DO NOT EXTEND THIS STORE
   changePasswordModal: ChangePasswordModal;
   // DO NOT EXTEND THIS STORE
   changeWalletModal: ChangeWalletModal;
@@ -749,6 +757,8 @@ export interface UseModalStore {
   setKeyDeleteModal: ModalSetter<KeyDeleteModal>;
   // DO NOT EXTEND THIS STORE
   setDeleteUserModal: ModalSetter<DeleteUserModal>;
+  // DO NOT EXTEND THIS STORE
+  setToggleUserModal: ModalSetter<ToggleUserModal>;
   // DO NOT EXTEND THIS STORE
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   // DO NOT EXTEND THIS STORE
