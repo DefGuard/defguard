@@ -105,19 +105,18 @@ impl UserInfo {
     /// Copy status to [`User`]. This function should be used by administrators.
     ///
     /// Return `true` if status was changed, `false` otherwise.
+    /// If status was changed to inactive, all user sessions will be invalidated.
     pub(crate) async fn handle_status_change(
         &self,
         transaction: &mut PgConnection,
         user: &mut User,
     ) -> Result<bool, SqlxError> {
         if self.is_active != user.is_active {
-            user.is_active = self.is_active;
-            user.save(&mut *transaction).await?;
-
-            if !user.is_active {
+            if !self.is_active {
                 user.logout_all_sessions(&mut *transaction).await?;
             }
-
+            user.is_active = self.is_active;
+            user.save(&mut *transaction).await?;
             Ok(true)
         } else {
             Ok(false)
