@@ -556,6 +556,11 @@ const en: BaseTranslation = {
         email: {
           label: 'E-mail',
         },
+        status: {
+          label: 'Status',
+          active: 'Active',
+          disabled: 'Disabled',
+        },
         groups: {
           label: 'User groups',
           noData: 'No groups',

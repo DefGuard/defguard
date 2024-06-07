@@ -133,7 +133,6 @@ const EditModeControls = () => {
   const isMe = useUserProfileStore((state) => state.isMe);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
   const setDeleteUserModalState = useModalStore((state) => state.setDeleteUserModal);
-  const setToggleUserModalState = useModalStore((state) => state.setToggleUserModal);
   const loading = useUserProfileStore((state) => state.loading);
 
   const submitSubject = useUserProfileStore((state) => state.submitSubject);
@@ -141,12 +140,6 @@ const EditModeControls = () => {
   const handleDeleteUser = () => {
     if (userProfile) {
       setDeleteUserModalState({ visible: true, user: userProfile.user });
-    }
-  };
-
-  const handleToggleUser = () => {
-    if (userProfile) {
-      setToggleUserModalState({ visible: true, user: userProfile.user });
     }
   };
 
@@ -160,20 +153,6 @@ const EditModeControls = () => {
             styleVariant={ButtonStyleVariant.CONFIRM}
             onClick={handleDeleteUser}
           />
-          <Button
-            text={
-              userProfile?.user?.is_active
-                ? LL.modals.disableUser.title()
-                : LL.modals.enableUser.title()
-            }
-            size={ButtonSize.SMALL}
-            styleVariant={
-              userProfile?.user?.is_active
-                ? ButtonStyleVariant.CONFIRM
-                : ButtonStyleVariant.STANDARD
-            }
-            onClick={handleToggleUser}
-          />
         </div>
       ) : null}
       <div className="right">
@@ -185,21 +164,6 @@ const EditModeControls = () => {
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               disabled={!isAdmin || isMe}
               onClick={handleDeleteUser}
-            />
-            <EditButtonOption
-              data-testid="user-edit-disable-account"
-              text={
-                userProfile?.user?.is_active
-                  ? LL.modals.disableUser.title()
-                  : LL.modals.enableUser.title()
-              }
-              styleVariant={
-                userProfile?.user?.is_active
-                  ? EditButtonOptionStyleVariant.WARNING
-                  : EditButtonOptionStyleVariant.STANDARD
-              }
-              disabled={!isAdmin || isMe}
-              onClick={handleToggleUser}
             />
           </EditButton>
         )}

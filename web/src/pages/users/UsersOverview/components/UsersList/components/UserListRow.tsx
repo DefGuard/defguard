@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -33,7 +34,12 @@ export const UserListRow = ({ user, onSelect, selected = false }: Props) => {
   );
 
   return (
-    <div className="users-list-row" data-testid={`user-${user.id}`}>
+    <div
+      className={classNames('users-list-row', {
+        'user-disabled': !user.is_active,
+      })}
+      data-testid={`user-${user.id}`}
+    >
       <div className="select-cell" onClick={() => onSelect(user.id)}>
         <CheckBox value={selected} />
       </div>

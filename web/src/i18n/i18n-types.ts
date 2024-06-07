@@ -1253,6 +1253,20 @@ type RootTranslation = {
 					 */
 					label: string
 				}
+				status: {
+					/**
+					 * S​t​a​t​u​s
+					 */
+					label: string
+					/**
+					 * A​c​t​i​v​e
+					 */
+					active: string
+					/**
+					 * D​i​s​a​b​l​e​d
+					 */
+					disabled: string
+				}
 				groups: {
 					/**
 					 * U​s​e​r​ ​g​r​o​u​p​s
@@ -5132,6 +5146,20 @@ export type TranslationFunctions = {
 					 * E-mail
 					 */
 					label: () => LocalizedString
+				}
+				status: {
+					/**
+					 * Status
+					 */
+					label: () => LocalizedString
+					/**
+					 * Active
+					 */
+					active: () => LocalizedString
+					/**
+					 * Disabled
+					 */
+					disabled: () => LocalizedString
 				}
 				groups: {
 					/**

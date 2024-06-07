@@ -1,11 +1,14 @@
 @mixin list-layout {
   display: inline-grid;
   grid-template-columns: 1fr 40px;
-  justify-content: space-between;
   align-items: center;
 
   @include media-breakpoint-up(lg) {
-    grid-template-columns: 33px minmax(100px, 250px) 128px 128px 350px 40px;
+    grid-template-columns:
+      33px minmax(100px, 1fr)
+      repeat(2, minmax(128px, 1fr))
+      minmax(300px, 1fr)
+      50px;
   }
 }
 
@@ -26,7 +29,7 @@
       @include media-breakpoint-up(lg) {
         @include list-layout;
 
-        :nth-child(4) {
+        :last-child {
           justify-content: center;
         }
       }
@@ -74,8 +77,10 @@
         }
       }
 
-      [class*='-cell'] {
-        min-width: 100px;
+      &.user-disabled {
+        :not(.user-initials-box > *, .user-edit-cell > *) {
+          color: var(--text-body-tertiary);
+        }
       }
 
       .name-cell {
@@ -91,6 +96,10 @@
             @include typography(app-avatar-L);
           }
         }
+      }
+
+      .edit-button {
+        margin: 0 auto;
       }
 
       .groups-cell {

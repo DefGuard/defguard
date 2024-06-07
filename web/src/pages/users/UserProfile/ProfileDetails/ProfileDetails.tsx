@@ -106,6 +106,16 @@ const ViewMode = () => {
           <p>{user.email}</p>
         </div>
       </div>
+      <div className="row">
+        <div className="info">
+          <Label>{LL.userPage.userDetails.fields.status.label()}</Label>
+          <p>
+            {user.is_active
+              ? LL.userPage.userDetails.fields.status.active()
+              : LL.userPage.userDetails.fields.status.disabled()}
+          </p>
+        </div>
+      </div>
       <div className="row tags">
         <Label>{LL.userPage.userDetails.fields.groups.label()}</Label>
         <div className="tags">
