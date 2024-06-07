@@ -112,7 +112,12 @@ impl UserInfo {
     ) -> Result<bool, SqlxError> {
         if self.is_active != user.is_active {
             user.is_active = self.is_active;
-            user.save(transaction).await?;
+            user.save(&mut *transaction).await?;
+
+            if !user.is_active {
+                user.logout_all_sessions(&mut *transaction).await?;
+            }
+
             Ok(true)
         } else {
             Ok(false)

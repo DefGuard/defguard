@@ -21,6 +21,7 @@ use super::{
 };
 use crate::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
+    db::Session,
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
@@ -795,6 +796,19 @@ impl User {
                 .await?;
         }
 
+        Ok(())
+    }
+
+    pub async fn logout_all_sessions<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        Session::delete_all_for_user(
+            executor,
+            self.id
+                .expect("User ID must be set to log out all sessions"),
+        )
+        .await?;
         Ok(())
     }
 }
