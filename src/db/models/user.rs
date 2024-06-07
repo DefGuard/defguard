@@ -118,7 +118,7 @@ impl User {
             email_mfa_secret: None,
             mfa_method: MFAMethod::None,
             recovery_codes: Vec::new(),
-            is_active: false,
+            is_active: true,
         }
     }
 
