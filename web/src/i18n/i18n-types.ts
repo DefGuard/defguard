@@ -660,7 +660,7 @@ type RootTranslation = {
 				submit: string
 			}
 			/**
-			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
 			 * @param {string} username
 			 */
 			message: RequiredParams<'username'>
@@ -684,7 +684,7 @@ type RootTranslation = {
 				submit: string
 			}
 			/**
-			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​e​n​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​e​n​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
 			 * @param {string} username
 			 */
 			message: RequiredParams<'username'>
@@ -4548,7 +4548,7 @@ export type TranslationFunctions = {
 				submit: () => LocalizedString
 			}
 			/**
-			 * Do you want to disable {username} account ?
+			 * Do you want to disable {username} account?
 			 */
 			message: (arg: { username: string }) => LocalizedString
 			messages: {
@@ -4570,7 +4570,7 @@ export type TranslationFunctions = {
 				submit: () => LocalizedString
 			}
 			/**
-			 * Do you want to enable {username} account ?
+			 * Do you want to enable {username} account?
 			 */
 			message: (arg: { username: string }) => LocalizedString
 			messages: {
