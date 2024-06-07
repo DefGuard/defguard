@@ -339,7 +339,7 @@ impl WireguardNetwork {
             None => {
                 query_as!(
                     Device,
-                    "SELECT DISTINCT ON (d.id) d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+                    "SELECT d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     WHERE u.is_active = true \
