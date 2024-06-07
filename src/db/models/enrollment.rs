@@ -461,6 +461,10 @@ impl User {
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
 
+        if !self.is_active {
+            return Err(TokenError::UserDisabled);
+        }
+
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
