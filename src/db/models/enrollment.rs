@@ -384,6 +384,10 @@ impl User {
         }
 
         if !self.is_active {
+            warn!(
+                "Can't create enrollment token for disabled user {}",
+                self.username
+            );
             return Err(TokenError::UserDisabled);
         }
 
@@ -462,6 +466,10 @@ impl User {
         let admin_id = admin.id.expect("Admin user without ID");
 
         if !self.is_active {
+            warn!(
+                "Can't create desktop configuration enrollment token for disabled user {}",
+                self.username
+            );
             return Err(TokenError::UserDisabled);
         }
 
