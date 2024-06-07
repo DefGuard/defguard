@@ -278,7 +278,7 @@ const en: BaseTranslation = {
       controls: {
         submit: 'Disable account',
       },
-      message: 'Do you want to disable {username: string} account ?',
+      message: 'Do you want to disable {username: string} account?',
       messages: {
         success: '{username: string} disabled.',
       },
@@ -288,7 +288,7 @@ const en: BaseTranslation = {
       controls: {
         submit: 'Enable account',
       },
-      message: 'Do you want to enable {username: string} account ?',
+      message: 'Do you want to enable {username: string} account?',
       messages: {
         success: '{username: string} enabled.',
       },
