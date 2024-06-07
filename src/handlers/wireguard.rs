@@ -461,7 +461,7 @@ pub async fn add_device(
 
     // Let admins manage devices for disabled users
     if !user.is_active && !session.is_admin {
-        debug!(
+        info!(
             "User {} tried to add a device for a disabled user {username}",
             session.user.username
         );

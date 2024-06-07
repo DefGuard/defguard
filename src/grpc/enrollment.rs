@@ -130,7 +130,7 @@ impl EnrollmentServer {
             let admin = enrollment.fetch_admin(&self.pool).await?;
 
             if !user.is_active {
-                debug!("User {} tried to enroll, but is disabled.", user.username);
+                warn!("Can't start enrollment for disabled user {}", user.username);
                 return Err(Status::permission_denied("user is disabled"));
             };
 
@@ -223,7 +223,7 @@ impl EnrollmentServer {
         }
 
         if !user.is_active {
-            error!("User {} is disabled", user.username);
+            warn!("Can't finalize enrollment for disabled user {}", user.username);
             return Err(Status::invalid_argument("user is disabled"));
         }
 

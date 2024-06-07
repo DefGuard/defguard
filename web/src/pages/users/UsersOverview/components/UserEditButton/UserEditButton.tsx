@@ -80,7 +80,7 @@ export const UserEditButton = ({ user }: Props) => {
           }
         />
       )}
-      {user.enrolled === true && user.is_active && (
+      {user.enrolled && user.is_active && (
         <EditButtonOption
           disabled={!networkPresent}
           key="start-dekstop-activation"

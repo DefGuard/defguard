@@ -187,7 +187,7 @@ const EditModeControls = () => {
               onClick={handleDeleteUser}
             />
             <EditButtonOption
-              data-testid="user-edit-disable-acccount"
+              data-testid="user-edit-disable-account"
               text={
                 userProfile?.user?.is_active
                   ? LL.modals.disableUser.title()
