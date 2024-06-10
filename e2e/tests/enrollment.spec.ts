@@ -13,6 +13,7 @@ import {
   validateData,
 } from '../utils/controllers/enrollment';
 import { loginBasic } from '../utils/controllers/login';
+import { disableUser, enableUser } from '../utils/controllers/toggleUserState';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
 import { dockerDown, dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
@@ -38,6 +39,47 @@ test.describe('Create user with enrollment enabled', () => {
 
   test.afterAll(() => {
     dockerDown();
+  });
+
+  test('Try to complete enrollment with disabled user', async ({ page, browser }) => {
+    await disableUser(browser, user);
+    expect(token).toBeDefined();
+    await waitForBase(page);
+    await page.goto(testsConfig.ENROLLMENT_URL);
+    await waitForPromise(2000);
+    // Test if we can send the token
+    await selectEnrollment(page);
+    await setToken(token, page);
+    await expect(page.getByText('Field is invalid')).toBeVisible();
+    // Check if we are still on the token page
+    expect(page.url()).toBe(`${testsConfig.ENROLLMENT_URL}/token`);
+    await enableUser(browser, user);
+    await page.reload();
+    await setToken(token, page);
+    // Welcome page
+    await page.getByTestId('enrollment-next').click();
+    // Data validation
+    await validateData(user, page);
+    await page.getByTestId('enrollment-next').click();
+    await disableUser(browser, user);
+    // Set password
+    await setPassword(page);
+    // VPN
+    await page.getByTestId('enrollment-next').click();
+    const deviceCreationMessage = page.waitForEvent('console');
+    // Test if we can create a device configuration, if the admin has disabled us after the token validation
+    await createDevice(page);
+    // Creating a new device config should fail with a 400 error
+    expect((await deviceCreationMessage).text()).toBe(
+      'Failed to load resource: the server responded with a status of 400 (Bad Request)'
+    );
+    const userActivationMessage = page.waitForEvent('console');
+    // Try to finish the enrollment
+    await page.getByTestId('enrollment-next').click({ timeout: 2000 });
+    // Activating the user should fail with a 400 error
+    expect((await userActivationMessage).text()).toBe(
+      'Failed to load resource: the server responded with a status of 400 (Bad Request)'
+    );
   });
 
   test('Complete enrollment with created user', async ({ page }) => {

@@ -10,8 +10,10 @@ import { logout } from '../utils/controllers/logout';
 import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { changePassword, changePasswordByAdmin } from '../utils/controllers/profile';
+import { disableUser } from '../utils/controllers/toggleUserState';
 import { dockerDown, dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
+import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Test user authentication', () => {
@@ -83,6 +85,34 @@ test.describe('Test user authentication', () => {
     await page.getByTestId('field-code').type(code);
     await page.locator('button[type="submit"]').click();
     await waitForRoute(page, routes.me);
+  });
+
+  test('Login as disabled user', async ({ page, browser }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    await disableUser(browser, testUser);
+    await page.goto(routes.base);
+    await waitForRoute(page, routes.auth.login);
+    await page.getByTestId('login-form-username').type(testUser.username);
+    await page.getByTestId('login-form-password').type(testUser.password);
+    const responsePromise = page.waitForResponse('**/auth');
+    await page.getByTestId('login-form-submit').click();
+    const response = await responsePromise;
+    expect(response.status()).toBe(401);
+    expect(page.url()).toBe(routes.base + routes.auth.login);
+  });
+
+  test('Logout when disabled', async ({ page, browser }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    await loginBasic(page, testUser);
+    await waitForRoute(page, routes.me);
+    expect(page.url()).toBe(routes.base + routes.me);
+    await disableUser(browser, testUser);
+    // The user should be logged out when the admin disables him
+    await page.reload();
+    await waitForPromise(2000);
+    expect(page.url()).toBe(routes.base + routes.auth.login);
   });
 });
 
