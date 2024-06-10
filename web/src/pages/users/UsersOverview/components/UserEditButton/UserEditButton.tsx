@@ -39,7 +39,7 @@ export const UserEditButton = ({ user }: Props) => {
           onClick={() => setChangePasswordModal({ visible: true, user })}
         />
       )}
-      <ResetPasswordButton user={user} />
+      {user.is_active && <ResetPasswordButton user={user} />}
       <EditButtonOption
         key="edit-user"
         text={LL.usersOverview.list.editButton.edit()}
