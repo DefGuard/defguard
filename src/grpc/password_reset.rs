@@ -199,6 +199,10 @@ impl PasswordResetServer {
 
         let mut user = enrollment.fetch_user(&self.pool).await?;
 
+        if !user.is_active {
+            return Err(Status::permission_denied("user disabled"));
+        }
+
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");
             Status::internal("unexpected error")
