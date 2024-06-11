@@ -322,7 +322,16 @@ pub async fn modify_user(
             .await?;
     }
     if session.is_admin {
-        // update VPN gateway config if groups have changed
+        // prevent admin from disabling himself
+        if session.user.username == username {
+            debug!("Admin {username} attempted to disable himself");
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+
+        // update VPN gateway config if user status or groups have changed
         if user_info
             .handle_user_groups(&mut transaction, &mut user)
             .await?
