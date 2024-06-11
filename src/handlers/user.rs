@@ -323,7 +323,7 @@ pub async fn modify_user(
     }
     if session.is_admin {
         // prevent admin from disabling himself
-        if session.user.username == username {
+        if session.user.username == username && !user_info.is_active {
             debug!("Admin {username} attempted to disable himself");
             return Ok(ApiResponse {
                 json: json!({}),
