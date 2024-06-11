@@ -2543,6 +2543,7 @@ dependencies = [
  "getrandom",
  "http 0.2.12",
  "rand",
+ "reqwest",
  "serde",
  "serde_json",
  "serde_path_to_error",
