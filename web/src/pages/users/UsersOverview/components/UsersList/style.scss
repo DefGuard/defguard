@@ -98,8 +98,11 @@
         }
       }
 
-      .edit-button {
-        margin: 0 auto;
+      .user-edit-cell {
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: center;
       }
 
       .groups-cell {
