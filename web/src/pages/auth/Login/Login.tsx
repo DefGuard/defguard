@@ -85,6 +85,14 @@ export const Login = () => {
     }
   };
 
+  const msUrl =
+    'https://login.microsoftonline.com/2fc43015-5699-4d01-bd01-d6f2bd66818a/oauth2/' +
+    'v2.0/authorize?client_id=f2cef8b3-5b09-4c3f-988b-51fc3c42ecbc' +
+    '&scope=openid%20profile%20email&response_type=id_token&nonce=ala';
+  const redirect = () => {
+    window.location.replace(msUrl);
+  };
+
   return (
     <section id="login-container">
       <h1>{LL.loginPage.pageTitle()}</h1>
@@ -111,6 +119,14 @@ export const Login = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.form.login()}
           data-testid="login-form-submit"
+        />
+        <Button
+          loading={loginMutation.isLoading}
+          size={ButtonSize.LARGE}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          text="Login with OIDC"
+          data-testid="login-form-submit"
+          onClick={redirect}
         />
       </form>
     </section>
