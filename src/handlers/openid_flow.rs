@@ -406,6 +406,8 @@ pub async fn authorization(
                                         .await?
                                         .ok_or(WebError::Authorization("User not found".into()))?;
 
+                                    // Session exists even if user hasn't completed MFA verification yet,
+                                    // thus we need to check if MFA is enabled and the verification is done.
                                     if user.mfa_enabled
                                         && session.state != SessionState::MultiFactorVerified
                                     {
