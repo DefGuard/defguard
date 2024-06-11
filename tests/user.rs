@@ -707,3 +707,50 @@ async fn test_user_add_device() {
         .content
         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
 }
+
+#[tokio::test]
+async fn test_disable() {
+    let client = make_client().await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // get yourself
+    let mut user_details = fetch_user_details(&client, "admin").await;
+    user_details.user.is_active = false;
+
+    // disable yourself
+    let response = client
+        .put("/api/v1/user/admin")
+        .json(&user_details.user)
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // create user
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // get user
+    let mut user_details = fetch_user_details(&client, "adumbledore").await;
+    assert_eq!(user_details.user.first_name, "Albus");
+
+    // disable user
+    user_details.user.is_active = false;
+    let response = client
+        .put("/api/v1/user/adumbledore")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
