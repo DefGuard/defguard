@@ -351,6 +351,7 @@ pub async fn modify_user(
     }
     user.save(&mut *transaction).await?;
 
+    // TODO: Reflect user status (active/disabled) modification in ldap
     let _result = ldap_modify_user(&appstate.pool, &username, &user).await;
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));
