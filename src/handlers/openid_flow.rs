@@ -40,7 +40,7 @@ use crate::{
     auth::{AccessUserInfo, SessionInfo},
     db::{
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
-        DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, User,
+        DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
     },
     error::WebError,
     handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
@@ -402,6 +402,20 @@ pub async fn authorization(
                                     let _result = session.delete(&appstate.pool).await;
                                     login_redirect(&data, private_cookies).await
                                 } else {
+                                    let user = User::find_by_id(&appstate.pool, session.user_id)
+                                        .await?
+                                        .ok_or(WebError::Authorization("User not found".into()))?;
+
+                                    if user.mfa_enabled
+                                        && session.state != SessionState::MultiFactorVerified
+                                    {
+                                        info!(
+                                            "MFA not verified for user id {}, redirecting to login",
+                                            session.user_id
+                                        );
+                                        return login_redirect(&data, private_cookies).await;
+                                    }
+
                                     // If session is present check if app is in user authorized apps.
                                     // If yes return auth code and state else redirect to consent form.
                                     if let Some(app) =
