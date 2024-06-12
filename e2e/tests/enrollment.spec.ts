@@ -42,17 +42,20 @@ test.describe('Create user with enrollment enabled', () => {
   });
 
   test('Try to complete enrollment with disabled user', async ({ page, browser }) => {
-    await disableUser(browser, user);
     expect(token).toBeDefined();
     await waitForBase(page);
+    await disableUser(browser, user);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);
     // Test if we can send the token
     await selectEnrollment(page);
+    const startResponse = page.waitForResponse('**/start');
     await setToken(token, page);
-    await expect(page.getByText('Field is invalid')).toBeVisible();
+    expect((await startResponse).status()).toBe(403);
     // Check if we are still on the token page
     expect(page.url()).toBe(`${testsConfig.ENROLLMENT_URL}/token`);
+
+    // Test other enrollment steps
     await enableUser(browser, user);
     await page.reload();
     await setToken(token, page);
@@ -66,20 +69,16 @@ test.describe('Create user with enrollment enabled', () => {
     await setPassword(page);
     // VPN
     await page.getByTestId('enrollment-next').click();
-    const deviceCreationMessage = page.waitForEvent('console');
+
     // Test if we can create a device configuration, if the admin has disabled us after the token validation
+    const deviceResponse = page.waitForResponse('**/create_device');
     await createDevice(page);
-    // Creating a new device config should fail with a 400 error
-    expect((await deviceCreationMessage).text()).toBe(
-      'Failed to load resource: the server responded with a status of 400 (Bad Request)'
-    );
-    const userActivationMessage = page.waitForEvent('console');
-    // Try to finish the enrollment
-    await page.getByTestId('enrollment-next').click({ timeout: 2000 });
+    expect((await deviceResponse).status()).toBe(400);
+
     // Activating the user should fail with a 400 error
-    expect((await userActivationMessage).text()).toBe(
-      'Failed to load resource: the server responded with a status of 400 (Bad Request)'
-    );
+    const userResponse = page.waitForResponse('**/activate_user');
+    await page.getByTestId('enrollment-next').click({ timeout: 2000 });
+    expect((await userResponse).status()).toBe(400);
   });
 
   test('Complete enrollment with created user', async ({ page }) => {
