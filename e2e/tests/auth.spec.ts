@@ -110,9 +110,9 @@ test.describe('Test user authentication', () => {
     expect(page.url()).toBe(routes.base + routes.me);
     await disableUser(browser, testUser);
     // The user should be logged out when the admin disables him
-    const responsePromise = page.waitForResponse('**/me');
-    await page.reload();
     await waitForPromise(2000);
+    const responsePromise = page.waitForResponse('**/user/' + testUser.username);
+    await page.locator('a[href="/me"]').click();
     const response = await responsePromise;
     expect(response.status()).toBe(401);
     expect(page.url()).toBe(routes.base + routes.auth.login);
