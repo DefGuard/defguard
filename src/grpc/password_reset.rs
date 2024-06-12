@@ -146,7 +146,7 @@ impl PasswordResetServer {
 
         if !user.has_password() || !user.is_active {
             return Err(Status::permission_denied(
-                "user disabled or not enrolled yet",
+                "user disabled or not yet enrolled",
             ));
         }
 
