@@ -803,12 +803,9 @@ impl User {
     where
         E: PgExecutor<'e>,
     {
-        Session::delete_all_for_user(
-            executor,
-            self.id
-                .expect("User ID must be set to log out all sessions"),
-        )
-        .await?;
+        if let Some(id) = self.id {
+            Session::delete_all_for_user(executor, id).await?;
+        }
         Ok(())
     }
 }
