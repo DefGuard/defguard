@@ -145,6 +145,10 @@ impl PasswordResetServer {
         let user = enrollment.fetch_user(&self.pool).await?;
 
         if !user.has_password() || !user.is_active {
+            error!(
+                "Can't start password reset for a disabled or not enrolled user {}.",
+                user.username
+            );
             return Err(Status::permission_denied(
                 "user disabled or not enrolled yet",
             ));
@@ -200,6 +204,10 @@ impl PasswordResetServer {
         let mut user = enrollment.fetch_user(&self.pool).await?;
 
         if !user.is_active {
+            error!(
+                "Can't reset password for a disabled user {}.",
+                user.username
+            );
             return Err(Status::permission_denied("user disabled"));
         }
 
