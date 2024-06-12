@@ -223,7 +223,10 @@ impl EnrollmentServer {
         }
 
         if !user.is_active {
-            warn!("Can't finalize enrollment for disabled user {}", user.username);
+            warn!(
+                "Can't finalize enrollment for disabled user {}",
+                user.username
+            );
             return Err(Status::invalid_argument("user is disabled"));
         }
 
