@@ -150,7 +150,7 @@ impl PasswordResetServer {
                 user.username
             );
             return Err(Status::permission_denied(
-                "user disabled or not enrolled yet",
+                "user disabled or not yet enrolled",
             ));
         }
 
