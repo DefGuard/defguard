@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -15,10 +15,7 @@ import {
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { SettingsOpenId } from '../../../../../shared/types';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
-
-type FormFields = SettingsOpenId;
 
 export const OpenIdSettingsForm = () => {
   const { LL } = useI18nContext();
@@ -31,12 +28,24 @@ export const OpenIdSettingsForm = () => {
 
   const queryClient = useQueryClient();
 
+  const {
+    settings: { fetchOpenIdProviders },
+  } = useApi();
+  const { data: providers, isLoading } = useQuery({
+    queryFn: fetchOpenIdProviders,
+    queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+
+  console.log('providers:', providers);
+
   const toaster = useToaster();
 
-  const { isLoading, mutate } = useMutation({
+  const { isSaving, mutate } = useMutation({
     mutationFn: patchSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
   });
@@ -53,25 +62,25 @@ export const OpenIdSettingsForm = () => {
     [LL.form.error],
   );
 
-  const defaultValues = useMemo(
-    (): FormFields => ({
-      name: settings?.name ?? '',
-      document_url: settings?.document_url ?? '',
-    }),
-    [settings],
-  );
+  // const defaultValues = useMemo(
+  //   (): FormFields => ({
+  //     name: settings?.name ?? '',
+  //     document_url: settings?.document_url ?? '',
+  //   }),
+  //   [settings],
+  // );
 
-  const { handleSubmit, control } = useForm<FormFields>({
-    resolver: zodResolver(schema),
-    defaultValues,
-    mode: 'all',
-  });
+  // const { handleSubmit, control } = useForm<FormFields>({
+  //   resolver: zodResolver(schema),
+  //   defaultValues,
+  //   mode: 'all',
+  // });
 
-  const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
-    mutate(data);
-  };
+  // const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
+  //   mutate(data);
+  // };
   return (
-    <section id="oenid-settings">
+    <section id="openid-settings">
       <header>
         <h2>{localLL.title()}</h2>
         <Button
@@ -84,17 +93,17 @@ export const OpenIdSettingsForm = () => {
           onClick={() => submitRef.current?.click()}
         />
       </header>
-      <form id="openid-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
-        <FormInput
-          controller={{ control, name: 'name' }}
-          label={localLL.form.labels.name()}
-        />
-        <FormInput
-          controller={{ control, name: 'document_url' }}
-          label={localLL.form.labels.documentUrl()}
-        />
-        <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} />
-      </form>
+      {/* <form id="openid-settings-form" onSubmit={handleSubmit(handleValidSubmit)}> */}
+      {/*   <FormInput */}
+      {/*     controller={{ control, name: 'name' }} */}
+      {/*     label={localLL.form.labels.name()} */}
+      {/*   /> */}
+      {/*   <FormInput */}
+      {/*     controller={{ control, name: 'document_url' }} */}
+      {/*     label={localLL.form.labels.documentUrl()} */}
+      {/*   /> */}
+      {/*   <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} /> */}
+      {/* </form> */}
     </section>
   );
 };

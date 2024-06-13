@@ -563,6 +563,7 @@ export interface ApiHook {
     patchSettings: (data: Partial<Settings>) => EmptyApiResponse;
     getEssentialSettings: () => Promise<SettingsEssentials>;
     testLdapSettings: () => Promise<EmptyApiResponse>;
+    fetchOpenIdProviders: () => Promise<OpenIdProvider[]>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -776,8 +777,7 @@ export type Settings = SettingsModules &
   SettingsSMTP &
   SettingsEnrollment &
   SettingsBranding &
-  SettingsLDAP &
-  SettingsOpenId;
+  SettingsLDAP;
 
 // essentials for core frontend, includes only those that are required for frontend operations
 export type SettingsEssentials = SettingsModules & SettingsBranding;
@@ -826,12 +826,6 @@ export type SettingsLDAP = {
   ldap_username_attr: string;
 };
 
-export type SettingsOpenId = {
-  // TODO(jck): array
-  name?: string;
-  document_url?: string;
-};
-
 export type SettingsWeb3 = {
   challenge_template: string;
 };
@@ -856,6 +850,12 @@ export interface OpenidClient {
   redirect_uri: string[];
   scope: string[];
   enabled: boolean;
+}
+
+export interface OpenIdProvider {
+  id: string;
+  name: string;
+  document_url: string;
 }
 
 export interface EditOpenidClientRequest {

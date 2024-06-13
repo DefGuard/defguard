@@ -12,9 +12,9 @@ use axum::{
     serve, Extension, Router,
 };
 
-use handlers::ssh_authorized_keys::{
+use handlers::{openid_providers::list_openid_providers, ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-};
+}};
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     ssh_authorized_keys::rename_authentication_key,
@@ -276,7 +276,8 @@ pub fn build_webapp(
             // ldap
             .route("/ldap/test", get(test_ldap_settings))
             // OIDC login
-            .route("/oidc/callback", get(auth_callback)),
+            .route("/openid/callback", get(auth_callback))
+            .route("/openid/provider", get(list_openid_providers)),
     );
 
     #[cfg(feature = "openid")]

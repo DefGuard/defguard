@@ -23,6 +23,7 @@ import {
   NetworkToken,
   NetworkUserStats,
   OpenidClient,
+  OpenIdProvider,
   RemoveUserClientRequest,
   ResetPasswordRequest,
   Settings,
@@ -435,6 +436,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const addUsersToGroups: ApiHook['groups']['addUsersToGroups'] = (data) =>
     client.post('/groups-assign', data).then(unpackRequest);
 
+  const fetchOpenIdProviders: ApiHook['settings']['fetchOpenIdProviders'] = async () =>
+    client.get<OpenIdProvider[]>(`/openid/provider`).then((res) => res.data);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -592,6 +596,7 @@ const useApi = (props?: HookProps): ApiHook => {
       patchSettings,
       getEssentialSettings,
       testLdapSettings,
+      fetchOpenIdProviders,
     },
     support: {
       downloadSupportData,

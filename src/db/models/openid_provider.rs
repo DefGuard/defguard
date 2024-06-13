@@ -2,12 +2,13 @@ use model_derive::Model;
 
 // TODO(jck): maybe rename OpenIdProvider
 #[derive(Deserialize, Model, Serialize)]
-pub struct OAuth2Service {
+pub struct OpenIdProvider {
     pub id: Option<i64>,
-    pub client_id: String, // unique
-    // TODO(jck): maybe remove since we get the id_token in the first reponse?
-    pub client_secret: String,
-    pub auth_url: String,
+    pub name: String,
+    // pub client_id: String, // unique
+    // // TODO(jck): maybe remove since we get the id_token in the first reponse?
+    // pub client_secret: String,
+    // pub auth_url: String,
     // TODO(jck): provider image?
 
     // // TODO(jck): do we need this?
