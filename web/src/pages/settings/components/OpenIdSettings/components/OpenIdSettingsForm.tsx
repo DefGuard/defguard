@@ -1,32 +1,34 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useRef } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
-import { z } from 'zod';
+// import { zodResolver } from '@hookform/resolvers/zod';
+// import { useMemo, useRef } from 'react';
+// import { SubmitHandler, useForm } from 'react-hook-form';
+// import { z } from 'zod';
+
+import { useQuery } from '@tanstack/react-query';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
-import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+// import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
+// import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { useSettingsPage } from '../../../hooks/useSettingsPage';
+// import { useSettingsPage } from '../../../hooks/useSettingsPage';
+import { ProviderDetails } from './ProviderDetails';
 
 export const OpenIdSettingsForm = () => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
-  const submitRef = useRef<HTMLInputElement | null>(null);
-  const settings = useSettingsPage((state) => state.settings);
-  const {
-    settings: { patchSettings },
-  } = useApi();
+  // const submitRef = useRef<HTMLInputElement | null>(null);
+  // const settings = useSettingsPage((state) => state.settings);
+  // const {
+  //   settings: { patchSettings },
+  // } = useApi();
 
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
   const {
     settings: { fetchOpenIdProviders },
@@ -40,27 +42,15 @@ export const OpenIdSettingsForm = () => {
 
   console.log('providers:', providers);
 
-  const toaster = useToaster();
+  // const toaster = useToaster();
 
-  const { isSaving, mutate } = useMutation({
-    mutationFn: patchSettings,
-    onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
-      toaster.success(LL.settingsPage.messages.editSuccess());
-    },
-  });
-
-  const schema = useMemo(
-    () =>
-      z.object({
-        name: z.string().min(1, LL.form.error.required()),
-        document_url: z
-          .string()
-          .url(LL.form.error.invalid())
-          .min(1, LL.form.error.required()),
-      }),
-    [LL.form.error],
-  );
+  // const { isSaving, mutate } = useMutation({
+  //   mutationFn: patchSettings,
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
+  //     toaster.success(LL.settingsPage.messages.editSuccess());
+  //   },
+  // });
 
   // const defaultValues = useMemo(
   //   (): FormFields => ({
@@ -93,6 +83,15 @@ export const OpenIdSettingsForm = () => {
           onClick={() => submitRef.current?.click()}
         />
       </header>
+      <>
+        {providers && providers.length > 0 && (
+          <div className="devices">
+            {providers.map((provider) => (
+              <ProviderDetails key={provider.id} provider={provider} />
+            ))}
+          </div>
+        )}
+      </>
       {/* <form id="openid-settings-form" onSubmit={handleSubmit(handleValidSubmit)}> */}
       {/*   <FormInput */}
       {/*     controller={{ control, name: 'name' }} */}

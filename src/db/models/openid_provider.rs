@@ -5,6 +5,7 @@ use model_derive::Model;
 pub struct OpenIdProvider {
     pub id: Option<i64>,
     pub name: String,
+    pub document_url: String,
     // pub client_id: String, // unique
     // // TODO(jck): maybe remove since we get the id_token in the first reponse?
     // pub client_secret: String,
