@@ -776,7 +776,8 @@ export type Settings = SettingsModules &
   SettingsSMTP &
   SettingsEnrollment &
   SettingsBranding &
-  SettingsLDAP;
+  SettingsLDAP &
+  SettingsOpenId;
 
 // essentials for core frontend, includes only those that are required for frontend operations
 export type SettingsEssentials = SettingsModules & SettingsBranding;
@@ -823,6 +824,12 @@ export type SettingsLDAP = {
   ldap_user_obj_class: string;
   ldap_user_search_base: string;
   ldap_username_attr: string;
+};
+
+export type SettingsOpenId = {
+  // TODO(jck): array
+  name?: string;
+  document_url?: string;
 };
 
 export type SettingsWeb3 = {

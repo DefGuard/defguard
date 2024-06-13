@@ -2124,6 +2124,10 @@ type RootTranslation = {
 			 * L​D​A​P
 			 */
 			ldap: string
+			/**
+			 * O​p​e​n​I​D
+			 */
+			openid: string
 		}
 		messages: {
 			/**
@@ -2206,6 +2210,24 @@ type RootTranslation = {
 					 * L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​r​e​j​e​c​t​e​d
 					 */
 					error: string
+				}
+			}
+		}
+		openIdSettings: {
+			/**
+			 * O​p​e​n​I​D​ ​S​e​t​t​i​n​g​s
+			 */
+			title: string
+			form: {
+				labels: {
+					/**
+					 * N​a​m​e
+					 */
+					name: string
+					/**
+					 * O​p​e​n​I​D​ ​d​o​c​u​m​e​n​t​ ​U​R​L
+					 */
+					documentUrl: string
 				}
 			}
 		}
@@ -5954,6 +5976,10 @@ export type TranslationFunctions = {
 			 * LDAP
 			 */
 			ldap: () => LocalizedString
+			/**
+			 * OpenID
+			 */
+			openid: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -6036,6 +6062,24 @@ export type TranslationFunctions = {
 					 * LDAP connection rejected
 					 */
 					error: () => LocalizedString
+				}
+			}
+		}
+		openIdSettings: {
+			/**
+			 * OpenID Settings
+			 */
+			title: () => LocalizedString
+			form: {
+				labels: {
+					/**
+					 * Name
+					 */
+					name: () => LocalizedString
+					/**
+					 * OpenID document URL
+					 */
+					documentUrl: () => LocalizedString
 				}
 			}
 		}

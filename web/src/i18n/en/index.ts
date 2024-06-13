@@ -864,6 +864,7 @@ const en: BaseTranslation = {
       smtp: 'SMTP',
       global: 'Global settings',
       ldap: 'LDAP',
+      openid: 'OpenID',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -892,6 +893,15 @@ const en: BaseTranslation = {
         messages: {
           success: 'LDAP connected successfully',
           error: 'LDAP connection rejected',
+        },
+      },
+    },
+    openIdSettings: {
+      title: 'OpenID Settings',
+      form: {
+        labels: {
+          name: 'Name',
+          documentUrl: 'OpenID document URL',
         },
       },
     },

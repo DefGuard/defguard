@@ -850,6 +850,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       smtp: 'SMTP',
       global: 'Globalne',
       ldap: 'LDAP',
+      openid: 'OpenID',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
@@ -879,6 +880,15 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           success: 'Połączono z LDAP',
         },
         submit: 'Test',
+      },
+    },
+    openIdSettings: {
+      title: 'OpenID Settings',
+      form: {
+        labels: {
+          name: 'Nazwa',
+          documentUrl: 'OpenID document URL',
+        },
       },
     },
     modulesVisibility: {
