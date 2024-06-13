@@ -275,6 +275,26 @@ const pl: Translation = {
         success: '{username} usunięte.',
       },
     },
+    disableUser: {
+      title: 'Dezaktywuj użytkownika',
+      controls: {
+        submit: 'Dezaktywuj użytkownika',
+      },
+      message: 'Czy chcesz dezaktywować użytkownika {username}?',
+      messages: {
+        success: 'Użytkownik {username} został dezaktywowany.',
+      },
+    },
+    enableUser: {
+      title: 'Aktywuj użytkownika',
+      controls: {
+        submit: 'Aktywuj użytkownika',
+      },
+      message: 'Czy chcesz aktywować użytkownika {username}?',
+      messages: {
+        success: 'Użytkownik {username} został aktywowany.',
+      },
+    },
     deleteProvisioner: {
       title: 'Usuń provisionera',
       controls: {
@@ -521,6 +541,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
         email: {
           label: 'E-mail',
+        },
+        status: {
+          label: 'Status',
+          active: 'Aktywny',
+          disabled: 'Nieaktywny',
         },
         groups: {
           label: 'Grupy użytkowników',

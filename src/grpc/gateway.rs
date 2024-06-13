@@ -49,7 +49,9 @@ impl WireguardNetwork {
                 array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
+            JOIN \"user\" u ON d.user_id = u.id \
             WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
+            AND u.is_active = true \
             ORDER BY d.id ASC",
             self.id,
             self.mfa_enabled

@@ -165,8 +165,8 @@ pub async fn add_user(
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
     info!("User {} added user {username}", session.user.username);
-    if !user.has_password() {
-        warn!("User {username} is not active yet. Please proceed with enrollment.");
+    if !user_info.enrolled {
+        warn!("User {username} hasn't been enrolled yet. Please proceed with enrollment.");
     };
     Ok(ApiResponse {
         json: json!(&user_info),
@@ -322,10 +322,22 @@ pub async fn modify_user(
             .await?;
     }
     if session.is_admin {
-        // update VPN gateway config if groups have changed
+        // prevent admin from disabling himself
+        if session.user.username == username && !user_info.is_active {
+            debug!("Admin {username} attempted to disable himself");
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+
+        // update VPN gateway config if user status or groups have changed
         if user_info
             .handle_user_groups(&mut transaction, &mut user)
             .await?
+            || user_info
+                .handle_status_change(&mut transaction, &mut user)
+                .await?
         {
             let networks = WireguardNetwork::all(&mut *transaction).await?;
             for network in networks {
@@ -339,6 +351,7 @@ pub async fn modify_user(
     }
     user.save(&mut *transaction).await?;
 
+    // TODO: Reflect user status (active/disabled) modification in ldap
     let _result = ldap_modify_user(&appstate.pool, &username, &user).await;
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));

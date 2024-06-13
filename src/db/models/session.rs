@@ -192,4 +192,14 @@ impl Session {
             .await?;
         Ok(())
     }
+
+    pub async fn delete_all_for_user<'e, E>(executor: E, user_id: i64) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!("DELETE FROM session WHERE user_id = $1", user_id)
+            .execute(executor)
+            .await?;
+        Ok(())
+    }
 }

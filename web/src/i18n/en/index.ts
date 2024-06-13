@@ -273,6 +273,26 @@ const en: BaseTranslation = {
         success: '{username: string} deleted.',
       },
     },
+    disableUser: {
+      title: 'Disable account',
+      controls: {
+        submit: 'Disable account',
+      },
+      message: 'Do you want to disable {username: string} account?',
+      messages: {
+        success: '{username: string} disabled.',
+      },
+    },
+    enableUser: {
+      title: 'Enable account',
+      controls: {
+        submit: 'Enable account',
+      },
+      message: 'Do you want to enable {username: string} account?',
+      messages: {
+        success: '{username: string} enabled.',
+      },
+    },
     deleteProvisioner: {
       title: 'Delete provisioner',
       controls: {
@@ -535,6 +555,11 @@ const en: BaseTranslation = {
         },
         email: {
           label: 'E-mail',
+        },
+        status: {
+          label: 'Status',
+          active: 'Active',
+          disabled: 'Disabled',
         },
         groups: {
           label: 'User groups',

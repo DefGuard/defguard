@@ -59,7 +59,14 @@ pub async fn authenticate(
 
     let user = match User::find_by_username(&appstate.pool, &username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
-            Ok(()) => user,
+            Ok(()) => {
+                if user.is_active {
+                    user
+                } else {
+                    info!("Failed to authenticate user {username}: user is inactive");
+                    return Err(WebError::Authorization("user not found".into()));
+                }
+            }
             Err(err) => {
                 info!("Failed to authenticate user {username}: {err}");
                 log_failed_login_attempt(&appstate.failed_logins, &username);

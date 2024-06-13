@@ -129,6 +129,11 @@ impl EnrollmentServer {
             let user = enrollment.fetch_user(&self.pool).await?;
             let admin = enrollment.fetch_admin(&self.pool).await?;
 
+            if !user.is_active {
+                warn!("Can't start enrollment for disabled user {}", user.username);
+                return Err(Status::permission_denied("user is disabled"));
+            };
+
             let mut transaction = self.pool.begin().await.map_err(|_| {
                 error!("Failed to begin transaction");
                 Status::internal("unexpected error")
@@ -217,6 +222,14 @@ impl EnrollmentServer {
             return Err(Status::invalid_argument("user already activated"));
         }
 
+        if !user.is_active {
+            warn!(
+                "Can't finalize enrollment for disabled user {}",
+                user.username
+            );
+            return Err(Status::invalid_argument("user is disabled"));
+        }
+
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");
             Status::internal("unexpected error")
@@ -288,6 +301,13 @@ impl EnrollmentServer {
 
         // add device
         info!("Adding new device for user {}", user.username);
+
+        if !user.is_active {
+            error!("Can't create device for a disabled user {}", user.username);
+            return Err(Status::invalid_argument(
+                "can't add device to disabled user",
+            ));
+        }
 
         let ip_address;
         let device_info;
@@ -465,7 +485,7 @@ impl From<User> for AdminInfo {
 
 impl InitialUserInfo {
     async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
-        let is_active = user.has_password();
+        let is_enrolled = user.has_password();
         let devices = user.devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
         Ok(Self {
@@ -474,8 +494,9 @@ impl InitialUserInfo {
             login: user.username,
             email: user.email,
             phone_number: user.phone,
-            is_active,
+            is_active: user.is_active,
             device_names,
+            enrolled: is_enrolled,
         })
     }
 }

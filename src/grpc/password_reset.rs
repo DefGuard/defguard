@@ -88,8 +88,8 @@ impl PasswordResetServer {
             return Ok(());
         };
 
-        // Do not allow password change if user is not active
-        if !user.has_password() {
+        // Do not allow password change if user is disabled or not enrolled
+        if !user.has_password() || !user.is_active {
             return Ok(());
         }
 
@@ -144,8 +144,14 @@ impl PasswordResetServer {
 
         let user = enrollment.fetch_user(&self.pool).await?;
 
-        if !user.has_password() {
-            return Err(Status::permission_denied("user inactive"));
+        if !user.has_password() || !user.is_active {
+            error!(
+                "Can't start password reset for a disabled or not enrolled user {}.",
+                user.username
+            );
+            return Err(Status::permission_denied(
+                "user disabled or not yet enrolled",
+            ));
         }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
@@ -196,6 +202,14 @@ impl PasswordResetServer {
         }
 
         let mut user = enrollment.fetch_user(&self.pool).await?;
+
+        if !user.is_active {
+            error!(
+                "Can't reset password for a disabled user {}.",
+                user.username
+            );
+            return Err(Status::permission_denied("user disabled"));
+        }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");

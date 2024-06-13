@@ -458,6 +458,17 @@ pub async fn add_device(
     );
 
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+
+    // Let admins manage devices for disabled users
+    if !user.is_active && !session.is_admin {
+        info!(
+            "User {} tried to add a device for a disabled user {username}",
+            session.user.username
+        );
+
+        return Err(WebError::Forbidden("User is disabled.".into()));
+    }
+
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     if networks.is_empty() {
         error!("No network found, can't add device");
