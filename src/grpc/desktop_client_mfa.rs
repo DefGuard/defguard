@@ -73,7 +73,7 @@ impl ClientMfaServer {
         &mut self,
         request: ClientMfaStartRequest,
     ) -> Result<ClientMfaStartResponse, Status> {
-        info!("Starting desktop client login: {request:?}");
+        debug!("Starting desktop client login: {request:?}");
         // fetch location
         let Ok(Some(location)) =
             WireguardNetwork::find_by_id(&self.pool, request.location_id).await
@@ -117,8 +117,9 @@ impl ClientMfaServer {
                 .any(|allowed_group| user_info.groups.contains(allowed_group))
             {
                 error!(
-                    "User {} not allowed to connect to location {location}",
-                    user.username
+                    "User {} not allowed to connect to location {location} because he doesn't belong to any of the allowed groups.
+                    User groups: {:?}, allowed groups: {:?}",
+                    user.username, user_info.groups, groups
                 );
                 return Err(Status::unauthenticated("unauthorized"));
             }
@@ -126,7 +127,7 @@ impl ClientMfaServer {
 
         // check if selected method is enabled
         let method = MfaMethod::try_from(request.method).map_err(|err| {
-            error!("Invalid MFA method selected: {err}");
+            error!("Invalid MFA method selected ({}): {err}", request.method);
             Status::invalid_argument("invalid MFA method selected")
         })?;
         match method {
@@ -159,6 +160,11 @@ impl ClientMfaServer {
         // generate auth token
         let token = Self::generate_token(&request.pubkey)?;
 
+        info!(
+            "Desktop client MFA login started for {} at location {}",
+            user.username, location.name
+        );
+
         // store login session
         self.sessions.insert(
             request.pubkey,
@@ -177,7 +183,7 @@ impl ClientMfaServer {
         &mut self,
         request: ClientMfaFinishRequest,
     ) -> Result<ClientMfaFinishResponse, Status> {
-        info!("Finishing desktop client login: {request:?}");
+        debug!("Finishing desktop client login: {request:?}");
         // get pubkey from token
         let pubkey = self.parse_token(&request.token)?;
 
@@ -261,12 +267,17 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
+        info!(
+            "Desktop client login finished for {} at location {}",
+            user.username, location.name
+        );
+
         // remove login session from map
         self.sessions.remove(&pubkey);
 
         // commit transaction
         transaction.commit().await.map_err(|_| {
-            error!("Failed to commit transaction");
+            error!("Failed to commit transaction while finishing desktop client login.");
             Status::internal("unexpected error")
         })?;
 
