@@ -25,7 +25,8 @@ pub async fn delete_yubikey(
     if !session.is_admin && yubikey.user_id != user_id {
         error!(
             "User {user_id} tried to delete yubikey {key_id} of user {} without being an admin.",
-            yubikey.user_id)
+            yubikey.user_id
+        );
         return Err(WebError::Forbidden("Not allowed to delete YubiKey".into()));
     }
     yubikey.delete(&appstate.pool).await?;
