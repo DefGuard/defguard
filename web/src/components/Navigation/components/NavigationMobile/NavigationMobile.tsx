@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useLocation } from 'react-router';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import SvgDefguadNavLogoCollapsed from '../../../../shared/components/svg/DefguadNavLogoCollapsed';
+import SvgDefguardNavLogoCollapsed from '../../../../shared/components/svg/DefguardNavLogoCollapsed';
 import SvgIconNavHamburger from '../../../../shared/components/svg/IconNavHamburger';
 import { useNavigationStore } from '../../hooks/useNavigationStore';
 import { NavigationItems } from '../../types';
@@ -82,7 +82,7 @@ export const NavigationMobile = ({ navItems, onLogout }: Props) => {
   return (
     <>
       <nav className="nav-mobile">
-        <SvgDefguadNavLogoCollapsed />
+        <SvgDefguardNavLogoCollapsed />
         <p className="page-title">{getPageTitle}</p>
         <button className="hamburger" onClick={() => setStore({ isOpen: true })}>
           <SvgIconNavHamburger />
