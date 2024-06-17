@@ -23,7 +23,7 @@ pub async fn delete_yubikey(
         return Err(WebError::ObjectNotFound("YubiKey not found".into()));
     };
     if !session.is_admin && yubikey.user_id != user_id {
-        error!(
+        warn!(
             "User {user_id} tried to delete yubikey {key_id} of user {} without being an admin.",
             yubikey.user_id
         );
@@ -58,7 +58,7 @@ pub async fn rename_yubikey(
         return Err(WebError::ObjectNotFound("YubiKey not found".into()));
     };
     if !session.is_admin && yubikey.user_id != user_id {
-        error!(
+        warn!(
             "User {user_id}, tried to rename yubikey {key_id} of user {} without being an admin.",
             yubikey.user_id
         );

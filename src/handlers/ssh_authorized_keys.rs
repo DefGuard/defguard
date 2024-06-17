@@ -287,14 +287,14 @@ pub async fn rename_authentication_key(
         .ok_or(WebError::DbError("Returned user had no ID".into()))?;
     if let Some(mut key) = AuthenticationKey::find_by_id(&appstate.pool, key_id).await? {
         if key.yubikey_id.is_some() {
-            error!(
+            warn!(
                 "User {} tried to rename authentication key instead of yubikey",
                 username
             );
             return Err(WebError::BadRequest("Rename yubikey instead.".into()));
         }
         if !session.is_admin && user_id != key.user_id {
-            error!(
+            warn!(
                 "User {} tried to rename key ({}) of another user with id {}",
                 username, key_id, key.user_id
             );

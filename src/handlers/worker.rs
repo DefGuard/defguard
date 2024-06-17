@@ -46,7 +46,7 @@ pub async fn create_job(
         Some(user) => {
             // only admins should be able to create jobs for other users
             if user != session.user && !session.is_admin {
-                error!(
+                warn!(
                     "User {} cannot schedule jobs for other users",
                     session.user.username
                 );
@@ -146,7 +146,7 @@ pub async fn job_status(
     if let Some(response) = job_response {
         // prevent non-admin users from accessing other users' jobs status
         if !session.is_admin && response.username != session.user.username {
-            error!(
+            warn!(
                 "User {} cannot fetch job status for other users' jobs",
                 session.user.username
             );

@@ -469,7 +469,7 @@ pub async fn change_password(
     }
 
     if let Err(err) = check_password_strength(&data.new_password) {
-        debug!("Pasword for user {username} not strong enough: {err}");
+        debug!("Password for user {username} not strong enough: {err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -565,7 +565,7 @@ pub async fn reset_password(
             }
             Err(err) => {
                 error!(
-                    "Failed to send password reset email for {username} to {to} with error:\n{err}"
+                    "Failed to send password reset email for {username} to {to} with error: {err}"
                 );
                 Err(WebError::Serialization(format!(
                     "Could not send password reset email to user {username}"

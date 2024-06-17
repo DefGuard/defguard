@@ -675,7 +675,7 @@ pub async fn list_user_devices(
 ) -> ApiResult {
     // only allow for admin or user themselves
     if !session.is_admin && session.user.username != username {
-        error!(
+        warn!(
             "User {} tried to list devices for user {username}, but is not an admin",
             session.user.username
         );

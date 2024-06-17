@@ -118,7 +118,7 @@ impl EnrollmentServer {
         &self,
         request: EnrollmentStartRequest,
     ) -> Result<EnrollmentStartResponse, Status> {
-        debug!("Starting enrollment session, request: {:?}", request);
+        debug!("Starting enrollment session, request: {request:?}");
         // fetch enrollment token
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
