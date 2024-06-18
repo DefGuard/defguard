@@ -63,7 +63,7 @@ pub async fn authenticate(
                 if user.is_active {
                     user
                 } else {
-                    info!("Failed to authenticate user {username}: user is inactive");
+                    info!("Failed to authenticate user {username}: user is disabled");
                     return Err(WebError::Authorization("user not found".into()));
                 }
             }
@@ -98,7 +98,11 @@ pub async fn authenticate(
     let agent = parse_user_agent(&appstate.user_agent_parser, &user_agent_string);
     let device_info = agent.clone().map(|v| get_user_agent_device(&v));
 
+    debug!("Cleaning up expired sessions...");
     Session::delete_expired(&appstate.pool).await?;
+    debug!("Expired sessions cleaned up");
+
+    debug!("Creating new session for user {username}");
     let session = Session::new(
         user.id.unwrap(),
         SessionState::PasswordVerified,
@@ -106,6 +110,7 @@ pub async fn authenticate(
         device_info,
     );
     session.save(&appstate.pool).await?;
+    debug!("New session created for user {username}");
 
     let max_age = Duration::seconds(server_config().auth_cookie_timeout.as_secs() as i64);
     let config = server_config();
@@ -147,6 +152,7 @@ pub async fn authenticate(
                 },
             ))
         } else {
+            error!("Couldn't fetch MFA info for user {username} with MFA enabled");
             Err(WebError::DbError("MFA info read error".into()))
         }
     } else {

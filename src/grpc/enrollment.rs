@@ -99,6 +99,7 @@ impl EnrollmentServer {
 
         let enrollment = Token::find_by_id(&self.pool, token).await?;
         if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
+            info!("Enrollment session validated");
             Ok(enrollment)
         } else {
             error!("Enrollment session expired");
@@ -117,11 +118,13 @@ impl EnrollmentServer {
         &self,
         request: EnrollmentStartRequest,
     ) -> Result<EnrollmentStartResponse, Status> {
+        debug!("Starting enrollment session, request: {request:?}");
         // fetch enrollment token
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
         if let Some(token_type) = &enrollment.token_type {
             if token_type != ENROLLMENT_TOKEN_TYPE {
+                error!("Invalid token type used while trying to start enrollment: {token_type}");
                 return Err(Status::permission_denied("invalid token"));
             }
 
@@ -140,13 +143,14 @@ impl EnrollmentServer {
             })?;
 
             // validate token & start session
-            info!("Starting enrollment session for user {}", user.username);
+            debug!("Starting enrollment session for user {}", user.username);
             let session_deadline = enrollment
                 .start_session(
                     &mut transaction,
                     server_config().enrollment_session_timeout.as_secs(),
                 )
                 .await?;
+            info!("Enrollment session started for user {}", user.username);
 
             let settings = Settings::get_settings(&mut *transaction)
                 .await
@@ -216,7 +220,6 @@ impl EnrollmentServer {
 
         // fetch related users
         let mut user = enrollment.fetch_user(&self.pool).await?;
-        info!("Activating user account for {}", user.username);
         if user.has_password() {
             error!("User {} already activated", user.username);
             return Err(Status::invalid_argument("user already activated"));
@@ -285,6 +288,8 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
+        info!("User {} activated", user.username);
+
         Ok(())
     }
 
@@ -300,8 +305,6 @@ impl EnrollmentServer {
         let user = enrollment.fetch_user(&self.pool).await?;
 
         // add device
-        info!("Adding new device for user {}", user.username);
-
         if !user.is_active {
             error!("Can't create device for a disabled user {}", user.username);
             return Err(Status::invalid_argument(
@@ -382,6 +385,12 @@ impl EnrollmentServer {
             device_info.as_deref(),
         )
         .map_err(|_| Status::internal("Failed to render new device added template"))?;
+
+        info!(
+            "Device {} assigned to user {} and added to all networks.",
+            device.name, user.username
+        );
+
         let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
@@ -397,6 +406,7 @@ impl EnrollmentServer {
         &self,
         request: ExistingDevice,
     ) -> Result<DeviceConfigResponse, Status> {
+        debug!("Getting network info for device: {:?}", request.pubkey);
         let enrollment = self.validate_session(request.token.as_deref()).await?;
 
         // get enrollment user
@@ -410,7 +420,7 @@ impl EnrollmentServer {
         let device = Device::find_by_pubkey(&self.pool, &request.pubkey)
             .await
             .map_err(|_| {
-                error!("Failed to get device");
+                error!("Failed to get device by its pubkey: {}", request.pubkey);
                 Status::internal("unexpected error")
             })?;
 
@@ -420,7 +430,7 @@ impl EnrollmentServer {
         })?;
 
         let networks = WireguardNetwork::all(&self.pool).await.map_err(|err| {
-            error!("Invalid failed to get networks {err}");
+            error!("Failed to fetch all networks: {err}");
             Status::internal(format!("unexpected error: {err}"))
         })?;
 
@@ -434,7 +444,7 @@ impl EnrollmentServer {
                     WireguardNetworkDevice::find(&self.pool, device_id, network_id)
                         .await
                         .map_err(|err| {
-                            error!("Invalid failed to get networks {err}");
+                            error!("Failed to fetch wireguard network device for device {} and network {}: {err}", device_id, network_id);
                             Status::internal(format!("unexpected error: {err}"))
                         })?;
                 if let Some(wireguard_network_device) = wireguard_network_device {
@@ -459,6 +469,8 @@ impl EnrollmentServer {
                     configs.push(config);
                 }
             }
+
+            info!("Device {} configs fetched", device.name);
 
             let response = DeviceConfigResponse {
                 device: Some(device.into()),

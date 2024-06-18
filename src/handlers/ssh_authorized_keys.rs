@@ -174,6 +174,7 @@ pub async fn add_authentication_key(
     // authorize request
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let Some(user_id) = user.id else {
+        error!("Model returned user ({}) without ID", user.username);
         return Err(WebError::ModelError("Model returned without ID".into()));
     };
 
@@ -184,6 +185,7 @@ pub async fn add_authentication_key(
         AuthenticationKeyType::Ssh => {
             let parsed = trimmed_key.parse::<PublicKey>();
             if parsed.is_err() {
+                error!("User {username} tried to insert invalid SSH key: {data:?}");
                 return Err(WebError::BadRequest("SSH key failed verification.".into()));
             }
         }
@@ -230,6 +232,7 @@ pub async fn fetch_authentication_keys(
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let Some(user_id) = user.id else {
+        error!("Model returned user ({}) without ID", user.username);
         return Err(WebError::ModelError(
             "Model returned user without ID".into(),
         ));
@@ -258,6 +261,7 @@ pub async fn delete_authentication_key(
         }
         key.delete(&appstate.pool).await?;
     } else {
+        error!("Key with id {} not found", key_id);
         return Err(WebError::BadRequest("Key not found".into()));
     }
     Ok(ApiResponse {
@@ -283,14 +287,26 @@ pub async fn rename_authentication_key(
         .ok_or(WebError::DbError("Returned user had no ID".into()))?;
     if let Some(mut key) = AuthenticationKey::find_by_id(&appstate.pool, key_id).await? {
         if key.yubikey_id.is_some() {
+            warn!(
+                "User {} tried to rename authentication key instead of yubikey",
+                username
+            );
             return Err(WebError::BadRequest("Rename yubikey instead.".into()));
         }
         if !session.is_admin && user_id != key.user_id {
+            warn!(
+                "User {} tried to rename key ({}) of another user with id {}",
+                username, key_id, key.user_id
+            );
             return Err(WebError::Forbidden(String::new()));
         }
         key.name = Some(data.name);
         key.save(&appstate.pool).await?;
     } else {
+        error!(
+            "User {} tried to rename non-existing key with id {}",
+            username, key_id
+        );
         return Err(WebError::ObjectNotFound(String::new()));
     }
 
