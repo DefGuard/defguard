@@ -216,7 +216,7 @@ pub async fn logout(
 /// Enable MFA
 pub async fn mfa_enable(
     cookies: CookieJar,
-    session: Session,
+    _session: Session,
     session_info: SessionInfo,
     State(appstate): State<AppState>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
@@ -226,9 +226,9 @@ pub async fn mfa_enable(
     if user.mfa_enabled {
         info!("Enabled MFA for user {}", user.username);
         let cookies = cookies.remove(Cookie::from("defguard_sesssion"));
-        session.delete(&appstate.pool).await?;
+        user.logout_all_sessions(&appstate.pool).await?;
         debug!(
-            "Removed auth session for user {} after enabling MFA",
+            "Removed auth sessions for user {} after enabling MFA",
             user.username
         );
         Ok((cookies, ApiResponse::default()))
