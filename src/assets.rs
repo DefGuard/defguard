@@ -4,18 +4,29 @@ use axum::{
 };
 use rust_embed::Embed;
 
-pub async fn static_file(uri: Uri) -> impl IntoResponse {
-    let path = uri.path().trim_start_matches('/').to_string();
+pub async fn web_asset(uri: Uri) -> impl IntoResponse {
+    let mut path = uri.path().trim_start_matches('/').to_string();
+    // Rewrite the path to match the structure of the embedded files
+    path.insert_str(0, "dist/");
     StaticFile(path)
 }
 
 pub async fn index() -> impl IntoResponse {
-    static_file(Uri::from_static("/index.html")).await
+    web_asset(Uri::from_static("/index.html")).await
+}
+
+pub async fn svg(uri: Uri) -> impl IntoResponse {
+    let mut path = uri.path().trim_start_matches('/').to_string();
+    // Rewrite the path to match the structure of the embedded files
+    path.insert_str(0, "src/shared/images/");
+    StaticFile(path)
 }
 
 #[derive(Embed)]
-#[folder = "web/dist/"]
-struct Asset;
+#[folder = "web/"]
+#[include = "dist/*"]
+#[include = "src/shared/images/*"]
+struct WebAsset;
 
 pub struct StaticFile<T>(pub T);
 
@@ -26,7 +37,7 @@ where
     fn into_response(self) -> Response {
         let path = self.0.into();
 
-        match Asset::get(path.as_str()) {
+        match WebAsset::get(path.as_str()) {
             Some(content) => {
                 let mime = mime_guess::from_path(path).first_or_octet_stream();
                 ([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()

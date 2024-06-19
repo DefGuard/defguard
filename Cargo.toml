@@ -69,6 +69,8 @@ ssh-key = "0.6"
 struct-patch = "0.4"
 tera = "1.19"
 thiserror = "1.0"
+rust-embed = { version = "8.4.0", features = ["include-exclude"] }
+mime_guess = "2.0.4"
 # match axum-extra -> cookies
 time = { version = "0.3", default-features = false }
 tiny-keccak = { version = "2.0", features = ["keccak"] }
@@ -93,8 +95,6 @@ webauthn-rs = { version = "0.4", features = [
 ] }
 webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-rust-embed = "8.4.0"
-mime_guess = "2.0.4"
 
 [dev-dependencies]
 bytes = "1.5"

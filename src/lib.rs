@@ -11,6 +11,7 @@ use axum::{
     serve, Extension, Router,
 };
 
+use assets::{index, svg, web_asset};
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
@@ -32,7 +33,6 @@ use tokio::{
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use uaparser::UserAgentParser;
-use web::{index, static_file};
 
 use self::{
     appstate::AppState,
@@ -105,6 +105,7 @@ use self::{
 };
 
 pub mod appstate;
+pub mod assets;
 pub mod auth;
 pub mod config;
 pub mod db;
@@ -119,7 +120,6 @@ pub(crate) mod random;
 pub mod secret;
 pub mod support;
 pub mod templates;
-mod web;
 pub mod wg_config;
 pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;
@@ -165,8 +165,9 @@ pub fn build_webapp(
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
         .route("/*path", get(index))
-        .route("/fonts/*path", get(static_file))
-        .route("/assets/*path", get(static_file))
+        .route("/fonts/*path", get(web_asset))
+        .route("/assets/*path", get(web_asset))
+        .route("/svg/*path", get(svg))
         .fallback_service(get(handle_404));
 
     let webapp = webapp.nest(
