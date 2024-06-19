@@ -93,6 +93,8 @@ webauthn-rs = { version = "0.4", features = [
 ] }
 webauthn-rs-proto = "0.4"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+rust-embed = "8.4.0"
+mime_guess = "2.0.4"
 
 [dev-dependencies]
 bytes = "1.5"
