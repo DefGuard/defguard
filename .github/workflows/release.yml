@@ -119,11 +119,12 @@ jobs:
         with:
           version: 9
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 20
           cache: 'pnpm'
+          cache-dependency-path: web/pnpm-lock.json
 
       - name: Install frontend dependencies
         run: pnpm install
