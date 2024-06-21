@@ -113,6 +113,25 @@ jobs:
             [registry."docker.io"]
               mirrors = ["dockerhub-proxy.teonite.net"]
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install frontend dependencies
+        run: pnpm install
+        working-directory: web
+
+      - name: Build frontend
+        run: pnpm build
+        working-directory: web
+
       - name: Build release binary
         uses: actions-rs/cargo@v1
         with:
