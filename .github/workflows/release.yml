@@ -86,7 +86,6 @@ jobs:
           # - build: freebsd
           #   os: Linux
           #   target: x86_64-unknown-freebsd
-        node-version: [20]
     steps:
       # Store the version, stripping any v-prefix
       - name: Write release version
