@@ -145,7 +145,7 @@ jobs:
         if: matrix.build == 'linux'
         uses: bpicode/github-action-fpm@master
         with:
-          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env=/etc/defguard/core.env"
+          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env=/etc/defguard/core.conf"
           fpm_opts: "--debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
 
       - name: Upload DEB
