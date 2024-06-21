@@ -1,5 +1,5 @@
 -s dir
---name defguard-core
+--name defguard
 --architecture x86_64
 --description "defguard core service"
 --url "https://defguard.net/"
