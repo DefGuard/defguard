@@ -69,10 +69,7 @@ ssh-key = "0.6"
 struct-patch = "0.4"
 tera = "1.19"
 thiserror = "1.0"
-rust-embed = { version = "8.4.0", features = [
-    "include-exclude",
-    "interpolate-folder-path",
-] }
+rust-embed = { version = "8.4.0", features = ["include-exclude"] }
 mime_guess = "2.0.4"
 # match axum-extra -> cookies
 time = { version = "0.3", default-features = false }
