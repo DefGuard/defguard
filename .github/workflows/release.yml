@@ -178,3 +178,21 @@ jobs:
           asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
           asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
           asset_content_type: application/octet-stream
+
+      - name: Build RPM package
+        if: matrix.build == 'linux'
+        uses: bpicode/github-action-fpm@master
+        with:
+          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env=/etc/defguard/core.conf"
+          fpm_opts: "--debug --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm"
+
+      - name: Upload RPM
+        if: matrix.build == 'linux'
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
+          asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
+          asset_content_type: application/octet-stream
