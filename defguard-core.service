@@ -1,0 +1,23 @@
+[Unit]
+Description=defguard core service
+Documentation=https://defguard.gitbook.io/defguard/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+DynamicUser=yes
+User=defguard
+ExecReload=/bin/kill -HUP $MAINPID
+EnvironmentFile=/etc/defguard/core.env
+ExecStart=/usr/bin/defguard-core
+KillMode=process
+KillSignal=SIGINT
+LimitNOFILE=65536
+LimitNPROC=infinity
+Restart=on-failure
+RestartSec=2
+TasksMax=infinity
+OOMScoreAdjust=-1000
+
+[Install]
+WantedBy=multi-user.target
