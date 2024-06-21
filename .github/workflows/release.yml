@@ -123,7 +123,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-          cache-dependency-path: web/pnpm-lock.json
+          cache-dependency-path: ./web/pnpm-lock.yaml
 
       - name: Install frontend dependencies
         run: pnpm install
