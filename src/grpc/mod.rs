@@ -121,7 +121,7 @@ impl GatewayMap {
 
     // remove gateway from map
     pub fn remove_gateway(&mut self, network_id: i64, uid: Uuid) -> Result<(), GatewayMapError> {
-        info!("Removing gateway from network {network_id}");
+        debug!("Removing gateway from network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             // find gateway by uuid
             let hostname = match network_gateway_map
@@ -134,6 +134,7 @@ impl GatewayMap {
                 }
                 Some((hostname, state)) => {
                     if state.connected {
+                        error!("Cannot remove. Gateway with UID {uid} is still active");
                         return Err(GatewayMapError::RemoveActive(uid));
                     }
                     hostname.clone()
@@ -146,6 +147,7 @@ impl GatewayMap {
             error!("Network {network_id} not found in gateway map");
             return Err(GatewayMapError::NetworkNotFound(network_id));
         };
+        info!("Gateway with UID {uid} removed from network {network_id}");
         Ok(())
     }
 
@@ -156,12 +158,16 @@ impl GatewayMap {
         network_id: i64,
         hostname: &str,
     ) -> Result<(), GatewayMapError> {
-        info!("Connecting gateway {hostname} in network {network_id}");
+        debug!("Connecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(hostname) {
                 state.connected = true;
                 state.disconnected_at = None;
                 state.connected_at = Some(Utc::now().naive_utc());
+                debug!(
+                    "Gateway {hostname} found in gateway map, current state: {:#?}",
+                    state
+                );
             } else {
                 error!("Gateway {hostname} not found in gateway map for network {network_id}");
                 return Err(GatewayMapError::NotFound(network_id, hostname.into()));
@@ -171,6 +177,7 @@ impl GatewayMap {
             error!("Network {network_id} not found in gateway map");
             return Err(GatewayMapError::NetworkNotFound(network_id));
         };
+        info!("Gateway {hostname} connected in network {network_id}");
         Ok(())
     }
 
@@ -181,12 +188,17 @@ impl GatewayMap {
         hostname: String,
         pool: &DbPool,
     ) -> Result<(), GatewayMapError> {
-        info!("Disconnecting gateway {hostname} in network {network_id}");
+        debug!("Disconnecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
                 state.send_disconnect_notification(pool)?;
+                debug!(
+                    "Gateway {hostname} found in gateway map, current state: {:#?}",
+                    state
+                );
+                info!("Gateway {hostname} disconnected in network {network_id}");
                 return Ok(());
             };
         };
@@ -279,6 +291,7 @@ impl GatewayState {
     /// Send gateway disconnected notification
     /// Sends notification only if last notification time is bigger than specified in config
     fn send_disconnect_notification(&mut self, pool: &DbPool) -> Result<(), GatewayMapError> {
+        debug!("Sending gateway disconnect email notification");
         // Clone here because self doesn't live long enough
         let name = self.name.clone();
         let mail_tx = self.mail_tx.clone();
@@ -304,10 +317,12 @@ impl GatewayState {
                         .await
                 {
                     error!("Failed to send gateway disconnect notification: {e}");
+                } else {
+                    info!("Gateway {hostname} disconnected. Email notification sent",);
                 }
             });
         } else {
-            debug!(
+            info!(
                 "Gateway {hostname} disconnected. Email notification not sent. Last notification was at {:?}",
                 self.last_email_notification
             );
@@ -361,17 +376,18 @@ pub async fn run_grpc_bidi_stream(
     };
 
     loop {
-        info!("Connecting to proxy");
+        debug!("Connecting to proxy at {}", endpoint.uri());
         let mut client = ProxyClient::new(endpoint.connect_lazy());
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-            info!("Failed to connect to proxy, retrying in 10s");
+            error!("Failed to connect to proxy, retrying in 10s");
             sleep(TEN_SECS).await;
             continue;
         };
+        info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();
         while let Some(received) = resp_stream.next().await {
-            info!("received message");
+            info!("Received message from proxy");
             match received {
                 Ok(received) => {
                     let payload = match received.payload {
@@ -529,7 +545,7 @@ pub async fn run_grpc_server(
     );
     // Run gRPC server
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().grpc_port);
-    info!("Starting gRPC services");
+    debug!("Starting gRPC services");
     let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
         let identity = Identity::from_pem(cert, key);
         Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
@@ -545,6 +561,7 @@ pub async fn run_grpc_server(
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
     router.serve(addr).await?;
+    info!("gRPC server started on {addr}");
     Ok(())
 }
 
