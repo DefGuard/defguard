@@ -71,21 +71,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # build: [ linux, linux-arm, linux-arm64, freebsd ]
-        build: [ linux ]
+        build: [ linux, linux-arm, linux-arm64, freebsd ]
         include:
           - build: linux
             os: Linux
             target: x86_64-unknown-linux-gnu
-          # - build: linux-arm
-          #   os: Linux
-          #   target: armv7-unknown-linux-gnueabihf
-          # - build: linux-arm64
-          #   os: Linux
-          #   target: aarch64-unknown-linux-gnu
-          # - build: freebsd
-          #   os: Linux
-          #   target: x86_64-unknown-freebsd
+          - build: linux-arm
+            os: Linux
+            target: armv7-unknown-linux-gnueabihf
+          - build: linux-arm64
+            os: Linux
+            target: aarch64-unknown-linux-gnu
+          - build: freebsd
+            os: Linux
+            target: x86_64-unknown-freebsd
     steps:
       # Store the version, stripping any v-prefix
       - name: Write release version
