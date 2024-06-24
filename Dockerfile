@@ -1,9 +1,7 @@
-FROM node:20.5-alpine3.17 as web
+FROM node:20-alpine as web
 
 WORKDIR /app
-COPY web/package.json .
-COPY web/pnpm-lock.yaml .
-COPY web/.npmrc .
+COPY web/package.json web/pnpm-lock.yaml web/.npmrc .
 RUN npm i -g pnpm
 RUN pnpm install --ignore-scripts --frozen-lockfile
 COPY web/ .
