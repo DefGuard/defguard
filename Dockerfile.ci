@@ -13,6 +13,5 @@ RUN apt-get update -y && \
     apt-get install --no-install-recommends -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 COPY build/bin/defguard .
-COPY --from=web /app/dist ./web
 USER 1000
 ENTRYPOINT ["./defguard"]

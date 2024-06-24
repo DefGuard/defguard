@@ -1,5 +1,5 @@
 [build.env]
-passthrough = ["SQLX_OFFLINE=true", "CARGO_MANIFEST_DIR"]
+passthrough = ["SQLX_OFFLINE=true"]
 
 [target.x86_64-unknown-linux-gnu]
 image = "ghcr.io/defguard/cross:x86_64-unknown-linux-gnu"
