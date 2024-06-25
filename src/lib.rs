@@ -6,12 +6,12 @@ use std::{
 
 use anyhow::anyhow;
 use axum::{
-    handler::HandlerWithoutStateExt,
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
     serve, Extension, Router,
 };
 
+use assets::{index, svg, web_asset};
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
@@ -30,10 +30,7 @@ use tokio::{
         OnceCell,
     },
 };
-use tower_http::{
-    services::{ServeDir, ServeFile},
-    trace::{DefaultOnResponse, TraceLayer},
-};
+use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use uaparser::UserAgentParser;
 
@@ -108,6 +105,7 @@ use self::{
 };
 
 pub mod appstate;
+pub mod assets;
 pub mod auth;
 pub mod config;
 pub mod db;
@@ -164,10 +162,15 @@ pub fn build_webapp(
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Router {
-    let serve_web_dir = ServeDir::new("web/dist").fallback(ServeFile::new("web/dist/index.html"));
-    let serve_images =
-        ServeDir::new("web/src/shared/images/svg").not_found_service(handle_404.into_service());
-    let webapp = Router::new().nest(
+    let webapp: Router<AppState> = Router::new()
+        .route("/", get(index))
+        .route("/*path", get(index))
+        .route("/fonts/*path", get(web_asset))
+        .route("/assets/*path", get(web_asset))
+        .route("/svg/*path", get(svg))
+        .fallback_service(get(handle_404));
+
+    let webapp = webapp.nest(
         "/api/v1",
         Router::new()
             .route("/health", get(health_check))
@@ -343,8 +346,6 @@ pub fn build_webapp(
     );
 
     webapp
-        .nest_service("/svg", serve_images)
-        .nest_service("/", serve_web_dir)
         .with_state(AppState::new(
             pool,
             webhook_tx,
