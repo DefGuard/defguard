@@ -5,7 +5,7 @@ use axum::{
 use serde_json::json;
 use sqlx::query_as;
 
-use super::{ApiResponse, GroupInfo, Username};
+use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserAdminRole},
@@ -47,7 +47,7 @@ pub(crate) async fn bulk_assign_to_groups(
         User,
         "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active \
             FROM \"user\" WHERE id = ANY($1)",
         &data.users
     )
@@ -98,10 +98,13 @@ pub(crate) async fn list_groups_info(
     let q_result = query_as!(
         GroupInfo,
         "SELECT g.name as name, \
-        COALESCE(ARRAY_AGG(u.username) FILTER (WHERE u.username IS NOT NULL), '{}') as members \
+        COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') as \"members!\", \
+        COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') as \"vpn_locations!\" \
         FROM \"group\" g \
         LEFT JOIN \"group_user\" gu ON gu.group_id = g.id \
         LEFT JOIN \"user\" u ON u.id = gu.user_id \
+        LEFT JOIN \"wireguard_network_allowed_group\" wnag ON wnag.group_id = g.id \
+        LEFT JOIN \"wireguard_network\" wn ON wn.id = wnag.network_id \
         GROUP BY g.name"
     )
     .fetch_all(&appstate.pool)
@@ -139,9 +142,10 @@ pub(crate) async fn get_group(
     debug!("Retrieving group {name}");
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         let members = group.member_usernames(&appstate.pool).await?;
+        let vpn_locations = group.allowed_vpn_locations(&appstate.pool).await?;
         info!("Retrieved group {name}");
         Ok(ApiResponse {
-            json: json!(GroupInfo::new(name, Some(members))),
+            json: json!(GroupInfo::new(name, members, vpn_locations)),
             status: StatusCode::OK,
         })
     } else {
@@ -155,7 +159,7 @@ pub(crate) async fn get_group(
 pub(crate) async fn create_group(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
-    Json(group_info): Json<GroupInfo>,
+    Json(group_info): Json<EditGroupInfo>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Creating group {}", group_info.name);
 
@@ -167,16 +171,14 @@ pub(crate) async fn create_group(
     group.save(&appstate.pool).await?;
     // TODO: create group in LDAP
 
-    if let Some(ref members) = group_info.members {
-        for username in members {
-            let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
-                let msg = format!("Failed to find user {username}");
-                error!(msg);
-                return Err(WebError::ObjectNotFound(msg));
-            };
-            user.add_to_group(&mut *transaction, &group).await?;
-            // let _result = ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
-        }
+    for username in &group_info.members {
+        let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
+            let msg = format!("Failed to find user {username}");
+            error!(msg);
+            return Err(WebError::ObjectNotFound(msg));
+        };
+        user.add_to_group(&mut *transaction, &group).await?;
+        // TODO: update LDAP
     }
 
     transaction.commit().await?;
@@ -195,7 +197,7 @@ pub(crate) async fn modify_group(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
-    Json(group_info): Json<GroupInfo>,
+    Json(group_info): Json<EditGroupInfo>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Modifying group {}", group_info.name);
     let Some(mut group) = Group::find_by_name(&appstate.pool, &name).await? else {
@@ -211,36 +213,32 @@ pub(crate) async fn modify_group(
     if group.name != group_info.name {
         group.name = group_info.name;
         group.save(&mut *transaction).await?;
-        // let _result = ldap_modify_group(&mut *transaction, &group.name, &group).await;
+        // TODO: update LDAP
     }
 
     // Modify group members.
-    if let Some(ref members) = group_info.members {
-        let mut current_members = group.members(&mut *transaction).await?;
-        for username in members {
-            if let Some(index) = current_members
-                .iter()
-                .position(|gm| &gm.username == username)
-            {
-                // This member is already in the group.
-                current_members.remove(index);
-                continue;
-            }
-
-            // Add new members to the group.
-            if let Some(user) = User::find_by_username(&mut *transaction, username).await? {
-                user.add_to_group(&mut *transaction, &group).await?;
-                // let _result =
-                //     ldap_add_user_to_group(&mut *transaction, username, &group.name).await;
-            }
+    let mut current_members = group.members(&mut *transaction).await?;
+    for username in &group_info.members {
+        if let Some(index) = current_members
+            .iter()
+            .position(|gm| &gm.username == username)
+        {
+            // This member is already in the group.
+            current_members.remove(index);
+            continue;
         }
 
-        // Remove outstanding members.
-        for user in current_members {
-            user.remove_from_group(&mut *transaction, &group).await?;
-            // let _result =
-            //     ldap_remove_user_from_group(&mut *transaction, &user.username, &group.name).await;
+        // Add new members to the group.
+        if let Some(user) = User::find_by_username(&mut *transaction, username).await? {
+            user.add_to_group(&mut *transaction, &group).await?;
+            // TODO: update LDAP
         }
+    }
+
+    // Remove outstanding members.
+    for user in current_members {
+        user.remove_from_group(&mut *transaction, &group).await?;
+        // TODO: update LDAP
     }
 
     transaction.commit().await?;
@@ -272,6 +270,7 @@ pub(crate) async fn delete_group(
         group.delete(&appstate.pool).await?;
         // TODO: delete group from LDAP
 
+        // sync allowed devices for all locations
         WireguardNetwork::sync_all_networks(&appstate).await?;
 
         info!("Deleted group {name}");
@@ -325,8 +324,8 @@ pub(crate) async fn remove_group_member(
                 user.username, group.name
             );
             user.remove_from_group(&appstate.pool, &group).await?;
-            // let _result =
-            //     ldap_remove_user_from_group(&appstate.pool, &user.username, &group.name).await;
+            // TODO: update LDAP
+
             WireguardNetwork::sync_all_networks(&appstate).await?;
             info!("Removed user: {} from group: {}", user.username, group.name);
             Ok(ApiResponse {

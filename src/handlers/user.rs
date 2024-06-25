@@ -126,7 +126,7 @@ pub async fn add_user(
 
     // check username
     if let Err(err) = check_username(&username) {
-        debug!("{err}");
+        debug!("Username {username} rejected: {err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -165,8 +165,8 @@ pub async fn add_user(
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
     info!("User {} added user {username}", session.user.username);
-    if !user.has_password() {
-        warn!("User {username} is not active yet. Please proceed with enrollment.");
+    if !user_info.enrolled {
+        warn!("User {username} hasn't been enrolled yet. Please proceed with enrollment.");
     };
     Ok(ApiResponse {
         json: json!(&user_info),
@@ -189,12 +189,17 @@ pub async fn start_enrollment(
 
     // validate request
     if data.send_enrollment_notification && data.email.is_none() {
+        error!(
+            "Email notification is enabled for user {}, but email was not provided",
+            session.user.username
+        );
         return Err(WebError::BadRequest(
             "Email notification is enabled, but email was not provided".into(),
         ));
     }
 
     let Some(user) = User::find_by_username(&appstate.pool, &username).await? else {
+        error!("User {username} couldn't be found, enrollment aborted");
         return Err(WebError::ObjectNotFound(format!(
             "user {username} not found"
         )));
@@ -216,6 +221,11 @@ pub async fn start_enrollment(
         .await?;
 
     transaction.commit().await?;
+
+    info!(
+        "User {} started enrollment for user {username}",
+        session.user.username
+    );
 
     Ok(ApiResponse {
         json: json!({"enrollment_token": enrollment_token, "enrollment_url":  config.enrollment_url.to_string()}),
@@ -259,6 +269,11 @@ pub async fn start_remote_desktop_configuration(
 
     transaction.commit().await?;
 
+    info!(
+        "User {} started enrollment for user {username}",
+        session.user.username
+    );
+
     Ok(ApiResponse {
         json: json!({"enrollment_token": enrollment_token, "enrollment_url":  config.enrollment_url.to_string()}),
         status: StatusCode::CREATED,
@@ -271,14 +286,17 @@ pub async fn username_available(
     Json(data): Json<Username>,
 ) -> ApiResult {
     if let Err(err) = check_username(&data.username) {
-        debug!("{err}");
+        debug!("Username {} rejected: {err}", data.username);
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
         });
     };
     let status = match User::find_by_username(&appstate.pool, &data.username).await? {
-        Some(_) => StatusCode::BAD_REQUEST,
+        Some(_) => {
+            debug!("Username {} is not available", data.username);
+            StatusCode::BAD_REQUEST
+        }
         None => StatusCode::OK,
     };
     Ok(ApiResponse {
@@ -296,7 +314,7 @@ pub async fn modify_user(
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Err(err) = check_username(&user_info.username) {
-        debug!("Failed to check username {} {err}", user_info.username);
+        debug!("Username {} rejected: {err}", user_info.username);
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -322,16 +340,33 @@ pub async fn modify_user(
             .await?;
     }
     if session.is_admin {
-        // update VPN gateway config if groups have changed
+        // prevent admin from disabling himself
+        if session.user.username == username && !user_info.is_active {
+            debug!("Admin {username} attempted to disable himself");
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+
+        // update VPN gateway config if user status or groups have changed
         if user_info
             .handle_user_groups(&mut transaction, &mut user)
             .await?
+            || user_info
+                .handle_status_change(&mut transaction, &mut user)
+                .await?
         {
+            debug!(
+                "User {} changed {username} groups or status, syncing allowed network devices",
+                session.user.username
+            );
             let networks = WireguardNetwork::all(&mut *transaction).await?;
             for network in networks {
                 let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
                 appstate.send_multiple_wireguard_events(gateway_events);
             }
+            info!("Allowed network devices of {username} synced");
         };
         user_info.into_user_all_fields(&mut user)?;
     } else {
@@ -339,6 +374,7 @@ pub async fn modify_user(
     }
     user.save(&mut *transaction).await?;
 
+    // TODO: Reflect user status (active/disabled) modification in ldap
     let _result = ldap_modify_user(&appstate.pool, &username, &user).await;
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));
@@ -382,6 +418,7 @@ pub async fn change_self_password(
     State(appstate): State<AppState>,
     Json(data): Json<PasswordChangeSelf>,
 ) -> ApiResult {
+    debug!("User {} is changing his password.", session.user.username);
     let mut user = session.user;
     if user.verify_password(&data.old_password).is_err() {
         return Ok(ApiResponse {
@@ -390,7 +427,8 @@ pub async fn change_self_password(
         });
     }
 
-    if check_password_strength(&data.new_password).is_err() {
+    if let Err(err) = check_password_strength(&data.new_password) {
+        debug!("User {} password change failed: {err}", user.username);
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -402,7 +440,7 @@ pub async fn change_self_password(
 
     let _ = ldap_change_password(&appstate.pool, &user.username, &data.new_password).await;
 
-    info!("User {} changed password.", &user.username);
+    info!("User {} changed his password.", &user.username);
 
     Ok(ApiResponse {
         json: json!({}),
@@ -423,7 +461,7 @@ pub async fn change_password(
     );
 
     if session.user.username == username {
-        debug!("Cannot change own password with this endpoint.");
+        debug!("Cannot change own ({username}) password with this endpoint.");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -431,14 +469,14 @@ pub async fn change_password(
     }
 
     if let Err(err) = check_password_strength(&data.new_password) {
-        debug!("Pasword not strong enough: {err}");
+        debug!("Password for user {username} not strong enough: {err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
         });
     }
     if let Err(err) = check_username(&username) {
-        debug!("Invalid Username: {err}");
+        debug!("Invalid username ({username}): {err}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -457,7 +495,7 @@ pub async fn change_password(
         );
         Ok(ApiResponse::default())
     } else {
-        debug!("User not found");
+        debug!("Can't change password for user {username}, user not found");
         Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::NOT_FOUND,
@@ -472,12 +510,12 @@ pub async fn reset_password(
     Path(username): Path<String>,
 ) -> ApiResult {
     debug!(
-        "Admin {} changing password for user {username}",
+        "Admin {} resetting password for user {username}",
         session.user.username,
     );
 
     if session.user.username == username {
-        debug!("Cannot change own password with this endpoint.");
+        debug!("Cannot reset own ({username}) password with this endpoint.");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -522,11 +560,13 @@ pub async fn reset_password(
 
         match &appstate.mail_tx.send(mail) {
             Ok(()) => {
-                info!("Password reset email sent to {to}");
+                info!("Password reset email for {username} sent to {to}");
                 Ok(())
             }
             Err(err) => {
-                error!("Failed to send password reset email to {to} with error:\n{err}");
+                error!(
+                    "Failed to send password reset email for {username} to {to} with error: {err}"
+                );
                 Err(WebError::Serialization(format!(
                     "Could not send password reset email to user {username}"
                 )))
@@ -536,12 +576,12 @@ pub async fn reset_password(
         transaction.commit().await?;
 
         info!(
-            "Admin {} changed password for user {username}",
+            "Admin {} reset password for user {username}",
             session.user.username
         );
         Ok(ApiResponse::default())
     } else {
-        debug!("User not found");
+        debug!("Can't reset password for user {username}, user not found");
         Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::NOT_FOUND,
@@ -575,6 +615,10 @@ pub async fn wallet_challenge(
             .await?
     {
         if wallet.validation_timestamp.is_some() {
+            error!(
+                "Can't generate wallet challange for user {username}, the wallet {} is already validated", 
+                wallet_info.address
+                );
             return Err(WebError::ObjectNotFound("wrong address".into()));
         }
         wallet
@@ -583,6 +627,7 @@ pub async fn wallet_challenge(
             if let Some(settings) = Settings::find_by_id(&appstate.pool, 1).await? {
                 Wallet::format_challenge(&wallet_info.address, &settings.challenge_template)
             } else {
+                error!("Cannot retrieve settings");
                 return Err(WebError::DbError("cannot retrieve settings".into()));
             };
         let mut wallet = Wallet::new_for_user(
@@ -634,9 +679,17 @@ pub async fn set_wallet(
             );
             Ok(ApiResponse::default())
         } else {
+            error!(
+                "User {} failed to set wallet signature for user {username}, wallet ({}) signature {} is invalid",
+                session.user.username, wallet_info.address, wallet_info.signature
+            );
             Err(WebError::ObjectNotFound("wrong address".into()))
         }
     } else {
+        error!(
+            "User {} failed to set wallet signature for user {username}, address {} not found",
+            session.user.username, wallet_info.address
+        );
         Err(WebError::ObjectNotFound("wallet not found".into()))
     }
 }
@@ -695,9 +748,17 @@ pub async fn update_wallet(
             );
             Ok(ApiResponse::default())
         } else {
+            error!(
+                "User {} failed to update wallet {address} for user {username} (id: {:?}), the owner id is {}",
+                session.user.username, user.id, wallet.user_id
+            );
             Err(WebError::ObjectNotFound("wrong wallet".into()))
         }
     } else {
+        error!(
+            "User {} failed to update wallet {address} for user {username}, wallet not found",
+            session.user.username
+        );
         Err(WebError::ObjectNotFound("wallet not found".into()))
     }
 }
@@ -725,9 +786,17 @@ pub async fn delete_wallet(
             );
             Ok(ApiResponse::default())
         } else {
+            error!(
+                "User {} failed to delete wallet {address} for user {username} (id: {:?}), the owner id is {}",
+                session.user.username, user.id, wallet.user_id
+            );
             Err(WebError::ObjectNotFound("wrong wallet".into()))
         }
     } else {
+        error!(
+            "User {} failed to delete wallet {address} for user {username}, wallet not found",
+            session.user.username
+        );
         Err(WebError::ObjectNotFound("wallet not found".into()))
     }
 }
@@ -752,9 +821,17 @@ pub async fn delete_security_key(
             );
             Ok(ApiResponse::default())
         } else {
+            error!(
+                "User {} failed to delete security key {id} for user {username} (id: {:?}), the owner id is {}",
+                session.user.username, user.id, webauthn.user_id
+            );
             Err(WebError::ObjectNotFound("wrong security key".into()))
         }
     } else {
+        error!(
+            "User {} failed to delete security key {id} for user {username}, security key not found",
+            session.user.username
+        );
         Err(WebError::ObjectNotFound("security key not found".into()))
     }
 }
@@ -793,9 +870,17 @@ pub async fn delete_authorized_app(
             );
             Ok(ApiResponse::default())
         } else {
+            error!(
+                "User {} failed to delete OAuth2 client {oauth2client_id} for user {username} (id: {:?}), the app owner id is {}",
+                session.user.username, user.id, app.user_id
+            );
             Err(WebError::ObjectNotFound("Wrong app".into()))
         }
     } else {
+        error!(
+            "User {} failed to delete OAuth2 client {oauth2client_id} for user {username}, authorized app not found",
+            session.user.username
+        );
         Err(WebError::ObjectNotFound("Authorized app not found".into()))
     }
 }

@@ -86,6 +86,10 @@ type RootTranslation = {
 			 * C​o​p​y
 			 */
 			copy: string
+			/**
+			 * E​d​i​t
+			 */
+			edit: string
 		}
 		/**
 		 * K​e​y
@@ -146,6 +150,55 @@ type RootTranslation = {
 			 * C​r​e​a​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
+		}
+		editGroup: {
+			/**
+			 * E​d​i​t​ ​g​r​o​u​p
+			 */
+			title: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
+			 */
+			selectAll: string
+			/**
+			 * G​r​o​u​p​ ​n​a​m​e
+			 */
+			groupName: string
+			/**
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
+			 */
+			searchPlaceholder: string
+			/**
+			 * U​p​d​a​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+		}
+		deleteGroup: {
+			/**
+			 * D​e​l​e​t​e​ ​g​r​o​u​p​ ​{​n​a​m​e​}
+			 * @param {string} name
+			 */
+			title: RequiredParams<'name'>
+			/**
+			 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​g​r​o​u​p​.
+			 */
+			subTitle: string
+			/**
+			 * T​h​i​s​ ​g​r​o​u​p​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​a​s​s​i​g​n​e​d​ ​t​o​ ​f​o​l​l​o​w​i​n​g​ ​V​P​N​ ​L​o​c​a​t​i​o​n​s​:
+			 */
+			locationListHeader: string
+			/**
+			 * I​f​ ​t​h​i​s​ ​i​s​ ​t​h​e​ ​o​n​l​y​ ​a​l​l​o​w​e​d​ ​g​r​o​u​p​ ​f​o​r​ ​a​ ​g​i​v​e​n​ ​l​o​c​a​t​i​o​n​,​ ​t​h​e​ ​l​o​c​a​t​i​o​n​ ​w​i​l​l​ ​b​e​c​o​m​e​ ​<​b​>​a​c​c​e​s​s​i​b​l​e​ ​t​o​ ​a​l​l​ ​u​s​e​r​s​<​/​b​>​.
+			 */
+			locationListFooter: string
+			/**
+			 * D​e​l​e​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
 		}
 		deviceConfig: {
 			/**
@@ -590,6 +643,54 @@ type RootTranslation = {
 			messages: {
 				/**
 				 * {​u​s​e​r​n​a​m​e​}​ ​d​e​l​e​t​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
+		disableUser: {
+			/**
+			 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​d​i​s​a​b​l​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
+		enableUser: {
+			/**
+			 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​e​n​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​e​n​a​b​l​e​d​.
 				 * @param {string} username
 				 */
 				success: RequiredParams<'username'>
@@ -1152,6 +1253,20 @@ type RootTranslation = {
 					 */
 					label: string
 				}
+				status: {
+					/**
+					 * S​t​a​t​u​s
+					 */
+					label: string
+					/**
+					 * A​c​t​i​v​e
+					 */
+					active: string
+					/**
+					 * D​i​s​a​b​l​e​d
+					 */
+					disabled: string
+				}
 				groups: {
 					/**
 					 * U​s​e​r​ ​g​r​o​u​p​s
@@ -1703,7 +1818,7 @@ type RootTranslation = {
 				 */
 				addYubikey: string
 				/**
-				 * A​d​d​ ​S​H​H​ ​K​e​y
+				 * A​d​d​ ​S​S​H​ ​K​e​y
 				 */
 				addSSH: string
 				/**
@@ -3879,6 +3994,10 @@ export type TranslationFunctions = {
 			 * Copy
 			 */
 			copy: () => LocalizedString
+			/**
+			 * Edit
+			 */
+			edit: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -3939,6 +4058,54 @@ export type TranslationFunctions = {
 			 * Create group
 			 */
 			submit: () => LocalizedString
+		}
+		editGroup: {
+			/**
+			 * Edit group
+			 */
+			title: () => LocalizedString
+			/**
+			 * Select all users
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Group name
+			 */
+			groupName: () => LocalizedString
+			/**
+			 * Filter/Search
+			 */
+			searchPlaceholder: () => LocalizedString
+			/**
+			 * Update group
+			 */
+			submit: () => LocalizedString
+		}
+		deleteGroup: {
+			/**
+			 * Delete group {name}
+			 */
+			title: (arg: { name: string }) => LocalizedString
+			/**
+			 * This action will permanently delete this group.
+			 */
+			subTitle: () => LocalizedString
+			/**
+			 * This group is currently assigned to following VPN Locations:
+			 */
+			locationListHeader: () => LocalizedString
+			/**
+			 * If this is the only allowed group for a given location, the location will become <b>accessible to all users</b>.
+			 */
+			locationListFooter: () => LocalizedString
+			/**
+			 * Delete group
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
 		}
 		deviceConfig: {
 			/**
@@ -4379,6 +4546,50 @@ export type TranslationFunctions = {
 			messages: {
 				/**
 				 * {username} deleted.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
+		disableUser: {
+			/**
+			 * Disable account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Disable account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to disable {username} account?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} disabled.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
+		enableUser: {
+			/**
+			 * Enable account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Enable account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to enable {username} account?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} enabled.
 				 */
 				success: (arg: { username: string }) => LocalizedString
 			}
@@ -4935,6 +5146,20 @@ export type TranslationFunctions = {
 					 * E-mail
 					 */
 					label: () => LocalizedString
+				}
+				status: {
+					/**
+					 * Status
+					 */
+					label: () => LocalizedString
+					/**
+					 * Active
+					 */
+					active: () => LocalizedString
+					/**
+					 * Disabled
+					 */
+					disabled: () => LocalizedString
 				}
 				groups: {
 					/**

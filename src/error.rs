@@ -134,9 +134,10 @@ impl From<TokenError> for WebError {
             TokenError::NotFound | TokenError::UserNotFound | TokenError::AdminNotFound => {
                 WebError::ObjectNotFound(err.to_string())
             }
-            TokenError::TokenExpired | TokenError::SessionExpired | TokenError::TokenUsed => {
-                WebError::Authorization(err.to_string())
-            }
+            TokenError::TokenExpired
+            | TokenError::SessionExpired
+            | TokenError::TokenUsed
+            | TokenError::UserDisabled => WebError::Authorization(err.to_string()),
             TokenError::AlreadyActive => WebError::BadRequest(err.to_string()),
             TokenError::NotificationError(_)
             | TokenError::WelcomeMsgNotConfigured

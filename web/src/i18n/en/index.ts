@@ -23,6 +23,7 @@ const en: BaseTranslation = {
       delete: 'Delete',
       rename: 'Rename',
       copy: 'Copy',
+      edit: 'Edit',
     },
     key: 'Key',
     name: 'Name',
@@ -44,6 +45,21 @@ const en: BaseTranslation = {
       groupName: 'Group name',
       searchPlaceholder: 'Filter/Search',
       submit: 'Create group',
+    },
+    editGroup: {
+      title: 'Edit group',
+      selectAll: 'Select all users',
+      groupName: 'Group name',
+      searchPlaceholder: 'Filter/Search',
+      submit: 'Update group',
+    },
+    deleteGroup: {
+      title: 'Delete group {name:string}',
+      subTitle: 'This action will permanently delete this group.',
+      locationListHeader: 'This group is currently assigned to following VPN Locations:',
+      locationListFooter: `If this is the only allowed group for a given location, the location will become <b>accessible to all users</b>.`,
+      submit: 'Delete group',
+      cancel: 'Cancel',
     },
     deviceConfig: {
       title: 'Device VPN configurations',
@@ -255,6 +271,26 @@ const en: BaseTranslation = {
       message: 'Do you want to delete {username: string} account permanently ?',
       messages: {
         success: '{username: string} deleted.',
+      },
+    },
+    disableUser: {
+      title: 'Disable account',
+      controls: {
+        submit: 'Disable account',
+      },
+      message: 'Do you want to disable {username: string} account?',
+      messages: {
+        success: '{username: string} disabled.',
+      },
+    },
+    enableUser: {
+      title: 'Enable account',
+      controls: {
+        submit: 'Enable account',
+      },
+      message: 'Do you want to enable {username: string} account?',
+      messages: {
+        success: '{username: string} enabled.',
       },
     },
     deleteProvisioner: {
@@ -519,6 +555,11 @@ const en: BaseTranslation = {
         },
         email: {
           label: 'E-mail',
+        },
+        status: {
+          label: 'Status',
+          active: 'Active',
+          disabled: 'Disabled',
         },
         groups: {
           label: 'User groups',

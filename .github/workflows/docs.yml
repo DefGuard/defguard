@@ -16,7 +16,7 @@ env:
 jobs:
   rustdoc:
     runs-on: [self-hosted, Linux]
-    container: rust:1.75
+    container: rust:1.77
     services:
       postgres:
         image: postgres:15-alpine
@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 

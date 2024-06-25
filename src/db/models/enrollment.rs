@@ -35,6 +35,8 @@ pub enum TokenError {
     TokenUsed,
     #[error("Enrollment user not found")]
     UserNotFound,
+    #[error("Enrollment user is disabled")]
+    UserDisabled,
     #[error("Enrollment admin not found")]
     AdminNotFound,
     #[error("User account is already activated")]
@@ -58,6 +60,7 @@ impl From<TokenError> for Status {
             TokenError::DbError(_)
             | TokenError::AdminNotFound
             | TokenError::UserNotFound
+            | TokenError::UserDisabled
             | TokenError::NotificationError(_)
             | TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
@@ -380,6 +383,14 @@ impl User {
             return Err(TokenError::AlreadyActive);
         }
 
+        if !self.is_active {
+            warn!(
+                "Can't create enrollment token for disabled user {}",
+                self.username
+            );
+            return Err(TokenError::UserDisabled);
+        }
+
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
 
@@ -453,6 +464,14 @@ impl User {
 
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
+
+        if !self.is_active {
+            warn!(
+                "Can't create desktop configuration enrollment token for disabled user {}",
+                self.username
+            );
+            return Err(TokenError::UserDisabled);
+        }
 
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;

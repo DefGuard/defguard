@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { useMemo } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import SvgDefguadNavLogoCollapsed from '../../../../shared/components/svg/DefguadNavLogoCollapsed';
+import SvgDefguardNavLogoCollapsed from '../../../../shared/components/svg/DefguardNavLogoCollapsed';
 import SvgIconNavLogout from '../../../../shared/components/svg/IconNavLogout';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { NavigationItems } from '../../types';
@@ -33,7 +33,7 @@ export const NavigationBar = ({ navItems, onLogout, isOpen }: Props) => {
     <nav className={cn}>
       <div className="logo-container">
         {isOpen && <img src={settings?.nav_logo_url} />}
-        {!isOpen && <SvgDefguadNavLogoCollapsed />}
+        {!isOpen && <SvgDefguardNavLogoCollapsed />}
       </div>
       <div
         className="links"

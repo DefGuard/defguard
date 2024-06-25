@@ -18,6 +18,7 @@ const pl: Translation = {
       delete: 'Usuń',
       copy: 'Skopiuj',
       rename: 'Zmień nazwę',
+      edit: 'Edytuj',
     },
     conditions: {
       and: 'I',
@@ -44,6 +45,22 @@ const pl: Translation = {
       selectAll: 'Zaznacz wszystkich',
       submit: 'Stwórz grupę',
       title: 'Dodaj grupę',
+    },
+    editGroup: {
+      groupName: 'Nazwa grupy',
+      searchPlaceholder: 'Szukaj',
+      selectAll: 'Zaznacz wszystkich',
+      submit: 'Zmień grupę',
+      title: 'Edytuj grupę',
+    },
+    deleteGroup: {
+      title: 'Usuń grupę {name}',
+      subTitle: 'Grupa zostanie nieodwołalnie usunięta.',
+      locationListHeader:
+        'Ta grupa jest obecnie przypisana do następujących lokalizacji:',
+      locationListFooter: `Jeżeli to jedyna dozwolona grupa dla danej lokalizacji, stanie się ona <b>dostępna dla wszystkich użytkowników</b>.`,
+      submit: 'Usuń grupę',
+      cancel: 'Wróć',
     },
     registerEmailMFA: {
       title: 'Skonfiguruj e-mail MFA',
@@ -256,6 +273,26 @@ const pl: Translation = {
       message: 'Czy chcesz trwale usunąć konto {username} ?',
       messages: {
         success: '{username} usunięte.',
+      },
+    },
+    disableUser: {
+      title: 'Dezaktywuj użytkownika',
+      controls: {
+        submit: 'Dezaktywuj użytkownika',
+      },
+      message: 'Czy chcesz dezaktywować użytkownika {username}?',
+      messages: {
+        success: 'Użytkownik {username} został dezaktywowany.',
+      },
+    },
+    enableUser: {
+      title: 'Aktywuj użytkownika',
+      controls: {
+        submit: 'Aktywuj użytkownika',
+      },
+      message: 'Czy chcesz aktywować użytkownika {username}?',
+      messages: {
+        success: 'Użytkownik {username} został aktywowany.',
       },
     },
     deleteProvisioner: {
@@ -504,6 +541,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
         email: {
           label: 'E-mail',
+        },
+        status: {
+          label: 'Status',
+          active: 'Aktywny',
+          disabled: 'Nieaktywny',
         },
         groups: {
           label: 'Grupy użytkowników',
@@ -1292,7 +1334,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
   },
   networkPage: {
     pageTitle: 'Edycja lokalizacji',
-    addNetwork: '+ Dodaj lokalizacje',
+    addNetwork: '+ Dodaj lokalizację',
     controls: {
       networkSelect: {
         label: 'Wybór lokalizacji',

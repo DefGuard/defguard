@@ -9,7 +9,7 @@ jobs:
     runs-on: [self-hosted, Linux]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Docker meta
@@ -28,7 +28,7 @@ jobs:
       - name: Set up Docker BuildX
         uses: docker/setup-buildx-action@v3
         with:
-          config-inline: |
+          buildkitd-config-inline: |
             [registry."docker.io"]
               mirrors = ["dockerhub-proxy.teonite.net"]
       - name: Login to GitHub container registry
@@ -94,7 +94,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -108,9 +108,29 @@ jobs:
       - name: Set up Docker BuildX
         uses: docker/setup-buildx-action@v3
         with:
-          config-inline: |
+          buildkitd-config-inline: |
             [registry."docker.io"]
               mirrors = ["dockerhub-proxy.teonite.net"]
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: ./web/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install --ignore-scripts --frozen-lockfile
+        working-directory: web
+
+      - name: Build frontend
+        run: pnpm build
+        working-directory: web
 
       - name: Build release binary
         uses: actions-rs/cargo@v1
@@ -138,4 +158,40 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
           asset_name: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+          asset_content_type: application/octet-stream
+
+      - name: Build DEB package
+        if: matrix.build == 'linux'
+        uses: bpicode/github-action-fpm@master
+        with:
+          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env=/etc/defguard/core.conf"
+          fpm_opts: "--debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
+
+      - name: Upload DEB
+        if: matrix.build == 'linux'
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
+          asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
+          asset_content_type: application/octet-stream
+
+      - name: Build RPM package
+        if: matrix.build == 'linux'
+        uses: bpicode/github-action-fpm@master
+        with:
+          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env=/etc/defguard/core.conf"
+          fpm_opts: "--debug --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm"
+
+      - name: Upload RPM
+        if: matrix.build == 'linux'
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
+          asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
           asset_content_type: application/octet-stream

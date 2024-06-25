@@ -21,6 +21,7 @@ use super::{
 };
 use crate::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
+    db::Session,
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
@@ -59,6 +60,7 @@ pub struct UserDiagnostic {
     pub email_mfa_enabled: bool,
     pub mfa_method: MFAMethod,
     pub is_active: bool,
+    pub enrolled: bool,
 }
 
 #[derive(Model, PartialEq, Serialize, Clone, Debug)]
@@ -71,6 +73,7 @@ pub struct User {
     pub email: String,
     pub phone: Option<String>,
     pub mfa_enabled: bool,
+    pub is_active: bool,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
     pub(crate) email_mfa_enabled: bool,
@@ -116,6 +119,7 @@ impl User {
             email_mfa_secret: None,
             mfa_method: MFAMethod::None,
             recovery_codes: Vec::new(),
+            is_active: true,
         }
     }
 
@@ -447,7 +451,7 @@ impl User {
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
-                mfa_method as \"mfa_method: MFAMethod\", password_hash \
+                mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active \
             FROM \"user\""
         )
         .fetch_all(pool)
@@ -460,7 +464,8 @@ impl User {
                 email_mfa_enabled: u.email_mfa_enabled,
                 mfa_enabled: u.mfa_enabled,
                 id: u.id,
-                is_active: u.password_hash.is_some(),
+                is_active: u.is_active,
+                enrolled: u.password_hash.is_some(),
             })
             .collect();
         Ok(res)
@@ -476,7 +481,7 @@ impl User {
             "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active \
             FROM \"user\"
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id
@@ -567,7 +572,7 @@ impl User {
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -583,7 +588,7 @@ impl User {
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active \
             FROM \"user\" WHERE email = $1",
             email
         )
@@ -791,6 +796,16 @@ impl User {
                 .await?;
         }
 
+        Ok(())
+    }
+
+    pub async fn logout_all_sessions<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if let Some(id) = self.id {
+            Session::delete_all_for_user(executor, id).await?;
+        }
         Ok(())
     }
 }
