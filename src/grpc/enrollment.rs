@@ -327,6 +327,25 @@ impl EnrollmentServer {
             error!("Invalid pubkey {}", request.pubkey);
             Status::invalid_argument("invalid pubkey")
         })?;
+
+        // Make sure there is no device with the same pubkey, such state may lead to unexpected issues
+        if let Some(device) = Device::find_by_pubkey(&self.pool, &request.pubkey)
+            .await
+            .map_err(|_| {
+                error!("Failed to get device by its pubkey: {}", request.pubkey);
+                Status::internal("unexpected error")
+            })?
+        {
+            warn!(
+                "User {} failed to add device {}, identical pubkey ({}) already exists for device {}",
+                user.username,
+                request.name,
+                request.pubkey,
+                device.name
+            );
+            return Err(Status::invalid_argument("invalid key"));
+        };
+
         let mut device = Device::new(request.name, request.pubkey, enrollment.user_id);
 
         let mut transaction = self.pool.begin().await.map_err(|_| {

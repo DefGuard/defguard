@@ -490,6 +490,23 @@ pub async fn add_device(
 
     Device::validate_pubkey(&add_device.wireguard_pubkey).map_err(WebError::PubkeyValidation)?;
 
+    // Make sure there is no device with the same pubkey, such state may lead to unexpected issues
+    if let Some(device) =
+        Device::find_by_pubkey(&appstate.pool, &add_device.wireguard_pubkey).await?
+    {
+        debug!(
+            "User {} failed to add device {device_name}, identical pubkey ({}) already exists for device {} ({:?})",
+            session.user.username,
+            add_device.wireguard_pubkey,
+            device.name,
+            device.id
+        );
+        return Err(WebError::PubkeyExists(format!(
+            "Failed to add device {device_name}, identical pubkey ({}) already exists",
+            add_device.wireguard_pubkey
+        )));
+    }
+
     // save device
     let Some(user_id) = user.id else {
         error!(
