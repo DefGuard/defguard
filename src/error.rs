@@ -40,6 +40,8 @@ pub enum WebError {
     ModelError(String),
     #[error("Public key invalid {0}")]
     PubkeyValidation(String),
+    #[error("Public key already exists {0}")]
+    PubkeyExists(String),
     #[error("HTTP error: {0}")]
     Http(StatusCode),
     #[error(transparent)]
