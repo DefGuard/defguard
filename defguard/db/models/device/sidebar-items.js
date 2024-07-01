@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DeviceError"],"struct":["AddDevice","Device","DeviceConfig","DeviceInfo","DeviceNetworkInfo","ModifyDevice","UserDevice","UserDeviceNetworkInfo","WireguardNetworkDevice"]};

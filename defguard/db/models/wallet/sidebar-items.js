@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Web3Error"],"fn":["hash_message","keccak256"],"struct":["Wallet"]};

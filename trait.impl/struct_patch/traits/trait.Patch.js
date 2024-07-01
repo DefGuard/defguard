@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"defguard":[["impl Patch&lt;<a class=\"struct\" href=\"defguard/db/models/settings/struct.SettingsPatch.html\" title=\"struct defguard::db::models::settings::SettingsPatch\">SettingsPatch</a>&gt; for <a class=\"struct\" href=\"defguard/db/models/settings/struct.Settings.html\" title=\"struct defguard::db::models::settings::Settings\">Settings</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
