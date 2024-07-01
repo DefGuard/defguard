@@ -631,7 +631,7 @@ async fn test_user_add_device() {
     // add device for themselves
     let device_data = AddDevice {
         name: "TestDevice2".into(),
-        wireguard_pubkey: "mgVXE8WcfStoD8mRatHcX5aaQ0DlcpjvPXibHEOr9y8=".into(),
+        wireguard_pubkey: "hNuapt7lOxF93KUqZGUY00oKJxH8LYwwsUVB1uUa0y4=".into(),
     };
     let response = client
         .post("/api/v1/device/admin")
@@ -676,10 +676,19 @@ async fn test_user_add_device() {
         .content
         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
 
+    // a device with duplicate pubkey cannot be added
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .header(USER_AGENT, user_agent_header)
+        .json(&device_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
     // normal user cannot add a device for other users
     let device_data = AddDevice {
         name: "TestDevice3".into(),
-        wireguard_pubkey: "mgVXE8WcfStoD8mRatHcX5aaQ0DlcpjvPXibHEOr9y8=".into(),
+        wireguard_pubkey: "fF9K0tgatZTEJRvzpNUswr0h8HqCIi+v39B45+QZZzE=".into(),
     };
     let response = client
         .post("/api/v1/device/admin")

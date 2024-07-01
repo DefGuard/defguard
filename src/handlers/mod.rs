@@ -94,7 +94,7 @@ impl From<WebError> for ApiResponse {
             | WebError::PubkeyValidation(msg)
             | WebError::PubkeyExists(msg)
             | WebError::BadRequest(msg) => {
-                warn!(msg);
+                error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
             }
             WebError::TemplateError(err) => {
