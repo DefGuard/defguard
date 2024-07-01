@@ -92,6 +92,7 @@ impl From<WebError> for ApiResponse {
             ),
             WebError::IncorrectUsername(msg)
             | WebError::PubkeyValidation(msg)
+            | WebError::PubkeyExists(msg)
             | WebError::BadRequest(msg) => {
                 error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
