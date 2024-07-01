@@ -420,32 +420,29 @@ pub async fn add_user_devices(
         });
     }
 
-    match WireguardNetwork::find_by_id(&appstate.pool, network_id).await? {
-        Some(network) => {
-            // wrap loop in transaction to abort if a device is invalid
-            let mut transaction = appstate.pool.begin().await?;
-            let events = network
-                .handle_mapped_devices(&mut transaction, mapped_devices)
-                .await?;
-            appstate.send_multiple_wireguard_events(events);
-            transaction.commit().await?;
+    if let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? {
+        // wrap loop in transaction to abort if a device is invalid
+        let mut transaction = appstate.pool.begin().await?;
+        let events = network
+            .handle_mapped_devices(&mut transaction, mapped_devices)
+            .await?;
+        appstate.send_multiple_wireguard_events(events);
+        transaction.commit().await?;
 
-            info!(
-                "User {} mapped {device_count} devices for {network_id} network",
-                user.username,
-            );
+        info!(
+            "User {} mapped {device_count} devices for {network_id} network",
+            user.username,
+        );
 
-            Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::CREATED,
-            })
-        }
-        None => {
-            error!("Failed to map devices, network {network_id} not found");
-            Err(WebError::ObjectNotFound(format!(
-                "Network {network_id} not found"
-            )))
-        }
+        Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::CREATED,
+        })
+    } else {
+        error!("Failed to map devices, network {network_id} not found");
+        Err(WebError::ObjectNotFound(format!(
+            "Network {network_id} not found"
+        )))
     }
 }
 

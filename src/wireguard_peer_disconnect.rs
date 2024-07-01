@@ -74,7 +74,7 @@ pub async fn run_periodic_peer_disconnect(
             (wnd.authorized_at IS NULL OR (NOW() - wnd.authorized_at) > $2 * interval '1 second') AND \
             (stats.latest_handshake IS NULL OR (NOW() - stats.latest_handshake) > $2 * interval '1 second')",
             location_id,
-                location.peer_disconnect_threshold as f64
+                f64::from(location.peer_disconnect_threshold)
         )
                 .fetch_all(&pool)
                 .await?;
