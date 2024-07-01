@@ -64,11 +64,6 @@ pub struct MappedDevices {
     pub devices: Vec<MappedDevice>,
 }
 
-#[derive(Serialize)]
-struct ConnectionInfo {
-    connected: bool,
-}
-
 #[derive(Deserialize)]
 pub struct ImportNetworkData {
     pub name: String,
