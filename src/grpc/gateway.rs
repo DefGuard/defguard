@@ -561,7 +561,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             .ok_or_else(|| {
                 Status::new(
                     Code::Internal,
-                    format!("Network with id {} not found", network_id),
+                    format!("Network with id {network_id} not found"),
                 )
             })?;
 

@@ -243,16 +243,16 @@ impl DefGuardConfig {
 
     fn validate_secret_key(&self) {
         let secret_key = self.secret_key.expose_secret();
-        if secret_key.trim().len() != secret_key.len() {
-            panic!("SECRET_KEY cannot have leading and trailing space",);
-        }
+        assert!(
+            secret_key.trim().len() == secret_key.len(),
+            "SECRET_KEY cannot have leading and trailing space",
+        );
 
-        if secret_key.len() < 64 {
-            panic!(
-                "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
-                secret_key.len()
-            );
-        }
+        assert!(
+            secret_key.len() >= 64,
+            "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
+            secret_key.len()
+        );
     }
 
     /// Try PKCS#1 and PKCS#8 PEM formats.

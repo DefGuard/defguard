@@ -42,44 +42,41 @@ pub async fn create_job(
         "User {} creating a worker job for worker {worker} and user {username}",
         session.user.username,
     );
-    match User::find_by_username(&appstate.pool, &job_data.username).await? {
-        Some(user) => {
-            // only admins should be able to create jobs for other users
-            if user != session.user && !session.is_admin {
-                warn!(
-                    "User {} cannot schedule jobs for other users",
-                    session.user.username
-                );
-                return Err(WebError::Forbidden(
-                    "Cannot schedule jobs for other users.".into(),
-                ));
-            };
+    if let Some(user) = User::find_by_username(&appstate.pool, &job_data.username).await? {
+        // only admins should be able to create jobs for other users
+        if user != session.user && !session.is_admin {
+            warn!(
+                "User {} cannot schedule jobs for other users",
+                session.user.username
+            );
+            return Err(WebError::Forbidden(
+                "Cannot schedule jobs for other users.".into(),
+            ));
+        };
 
-            let mut state = worker_state.lock().unwrap();
-            debug!("Creating job");
-            let id = state.create_job(
-                &job_data.worker,
-                user.first_name.clone(),
-                user.last_name.clone(),
-                user.email,
-                job_data.username,
-            );
-            info!(
-                "User {} created a worker job (ID {id}) for worker {worker} and user {username}",
-                session.user.username,
-            );
-            Ok(ApiResponse {
-                json: json!(Jobid { id }),
-                status: StatusCode::CREATED,
-            })
-        }
-        None => {
-            error!("Failed to create job, user {} not found", job_data.username);
-            Err(WebError::ObjectNotFound(format!(
-                "user {} not found",
-                job_data.username
-            )))
-        }
+        let mut state = worker_state.lock().unwrap();
+        debug!("Creating job");
+        let id = state.create_job(
+            &job_data.worker,
+            user.first_name.clone(),
+            user.last_name.clone(),
+            user.email,
+            job_data.username,
+        );
+        info!(
+            "User {} created a worker job (ID {id}) for worker {worker} and user {username}",
+            session.user.username,
+        );
+        Ok(ApiResponse {
+            json: json!(Jobid { id }),
+            status: StatusCode::CREATED,
+        })
+    } else {
+        error!("Failed to create job, user {} not found", job_data.username);
+        Err(WebError::ObjectNotFound(format!(
+            "user {} not found",
+            job_data.username
+        )))
     }
 }
 

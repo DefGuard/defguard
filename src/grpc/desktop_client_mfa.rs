@@ -61,7 +61,7 @@ impl ClientMfaServer {
     }
 
     /// Validate JWT and extract client pubkey
-    fn parse_token(&self, token: &str) -> Result<String, Status> {
+    fn parse_token(token: &str) -> Result<String, Status> {
         let claims = Claims::from_jwt(ClaimsType::DesktopClient, token).map_err(|err| {
             error!("Failed to parse JWT token: {err:?}");
             Status::invalid_argument("invalid token")
@@ -185,7 +185,7 @@ impl ClientMfaServer {
     ) -> Result<ClientMfaFinishResponse, Status> {
         debug!("Finishing desktop client login: {request:?}");
         // get pubkey from token
-        let pubkey = self.parse_token(&request.token)?;
+        let pubkey = Self::parse_token(&request.token)?;
 
         // fetch login session
         let Some(session) = self.sessions.get(&pubkey) else {

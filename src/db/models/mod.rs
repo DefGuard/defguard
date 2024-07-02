@@ -111,15 +111,15 @@ impl UserInfo {
         transaction: &mut PgConnection,
         user: &mut User,
     ) -> Result<bool, SqlxError> {
-        if self.is_active != user.is_active {
+        if self.is_active == user.is_active {
+            Ok(false)
+        } else {
             if !self.is_active {
                 user.logout_all_sessions(&mut *transaction).await?;
             }
             user.is_active = self.is_active;
             user.save(&mut *transaction).await?;
             Ok(true)
-        } else {
-            Ok(false)
         }
     }
 

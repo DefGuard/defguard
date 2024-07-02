@@ -84,10 +84,10 @@ pub async fn forward_auth(
     }
     // If no session cookie provided redirect to login
     info!("Valid session not found, redirecting to login page");
-    login_redirect(headers).await
+    login_redirect(headers)
 }
 
-async fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, WebError> {
+fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, WebError> {
     let server_url = &server_config().url; // prepare redirect URL for login page
     let mut location = server_url.join("/auth/login").map_err(|err| {
         error!("Failed to prepare redirect URL: {err}");
