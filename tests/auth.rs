@@ -458,7 +458,7 @@ async fn test_email_mfa() {
 async fn test_webauthn() {
     let (client, pool) = make_client_with_db().await;
 
-    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new());
+    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
     let origin = Url::parse("http://localhost:8000").unwrap();
 
     // login
@@ -570,7 +570,7 @@ async fn test_cannot_skip_otp_by_adding_yubikey() {
 async fn test_cannot_skip_security_key_by_adding_yubikey() {
     let client = make_client().await;
 
-    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new());
+    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
     let origin = Url::parse("http://localhost:8000").unwrap();
 
     // login
@@ -648,7 +648,7 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // WebAuthn registration
-    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new());
+    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
     let origin = Url::parse("http://localhost:8000").unwrap();
 
     let response = client.post("/api/v1/auth/webauthn/init").send().await;

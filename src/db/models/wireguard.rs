@@ -388,10 +388,7 @@ impl WireguardNetwork {
             Ok(wireguard_network_device)
         } else {
             error!("Device {device} not allowed in network {self}");
-            Err(WireguardNetworkError::DeviceNotAllowed(format!(
-                "{}",
-                device
-            )))
+            Err(WireguardNetworkError::DeviceNotAllowed(format!("{device}")))
         }
     }
 

@@ -334,10 +334,10 @@ fn redirect_to<T: AsRef<str>>(
 
 /// Helper function to redirect unauthorized user to login page
 /// and store information about OpenID authorize url in cookie to redirect later
-async fn login_redirect(
+fn login_redirect(
     data: &AuthenticationRequest,
     private_cookies: PrivateCookieJar,
-) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
+) -> (StatusCode, HeaderMap, PrivateCookieJar) {
     let config = server_config();
     let base_url = config.url.join("api/v1/oauth/authorize").unwrap();
     let cookie = Cookie::build((
@@ -358,7 +358,7 @@ async fn login_redirect(
     .same_site(SameSite::Lax)
     .http_only(true)
     .max_age(Duration::minutes(10));
-    Ok(redirect_to("/login", private_cookies.add(cookie)))
+    redirect_to("/login", private_cookies.add(cookie))
 }
 
 /// Authorization Endpoint
@@ -400,7 +400,7 @@ pub async fn authorization(
                                 if session.expired() {
                                     info!("Session {} for user id {} has expired, redirecting to login", session.id, session.user_id);
                                     let _result = session.delete(&appstate.pool).await;
-                                    login_redirect(&data, private_cookies).await
+                                    Ok(login_redirect(&data, private_cookies))
                                 } else {
                                     let user = User::find_by_id(&appstate.pool, session.user_id)
                                         .await?
@@ -415,7 +415,7 @@ pub async fn authorization(
                                             "MFA not verified for user id {}, redirecting to login",
                                             session.user_id
                                         );
-                                        return login_redirect(&data, private_cookies).await;
+                                        return Ok(login_redirect(&data, private_cookies));
                                     }
 
                                     // If session is present check if app is in user authorized apps.
@@ -462,13 +462,13 @@ pub async fn authorization(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
                                 );
-                                login_redirect(&data, private_cookies).await
+                                Ok(login_redirect(&data, private_cookies))
                             }
 
                         // If no session cookie provided redirect to login
                         } else {
                             info!("Session cookie not provided, redirecting to login page");
-                            login_redirect(&data, private_cookies).await
+                            Ok(login_redirect(&data, private_cookies))
                         };
                     }
                 }
