@@ -82,10 +82,9 @@ impl Claims {
 
     fn get_secret(claims_type: ClaimsType) -> String {
         let env_var = match claims_type {
-            ClaimsType::Auth => AUTH_SECRET_ENV,
+            ClaimsType::Auth | ClaimsType::DesktopClient => AUTH_SECRET_ENV,
             ClaimsType::Gateway => GATEWAY_SECRET_ENV,
             ClaimsType::YubiBridge => YUBIBRIDGE_SECRET_ENV,
-            ClaimsType::DesktopClient => AUTH_SECRET_ENV,
         };
         env::var(env_var).unwrap_or_default()
     }
