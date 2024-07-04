@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
+use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
@@ -14,7 +15,7 @@ use crate::{
 };
 
 /// Represents kinds of error that occurred
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),

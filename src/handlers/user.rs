@@ -90,6 +90,14 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
     Ok(())
 }
 
+#[utoipa::path(
+    get,
+    path = "/user",
+    responses(
+        (status = 200, description = "List of all users", body = [UserInfo]),
+        (status = 403, description = "Forbidden error: ...")
+    )
+)]
 pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) -> ApiResult {
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());

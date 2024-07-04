@@ -12,6 +12,7 @@ use axum::{
 };
 
 use assets::{index, svg, web_asset};
+use db::UserInfo;
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
@@ -33,6 +34,12 @@ use tokio::{
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use uaparser::UserAgentParser;
+
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    Modify, OpenApi,
+};
+use utoipa_swagger_ui::SwaggerUi;
 
 use self::{
     appstate::AppState,
@@ -162,6 +169,35 @@ pub fn build_webapp(
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Router {
+    #[derive(OpenApi)]
+    #[openapi(
+        modifiers(&SecurityAddon),
+        paths(
+            crate::handlers::user::list_users,
+        ),
+        components(
+            schemas(
+                UserInfo,
+            )
+        )
+    )]
+    struct ApiDoc;
+
+    struct SecurityAddon;
+
+    impl Modify for SecurityAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                // TODO: add appropriate security schema
+                components.add_security_scheme(
+                    "api_key",
+                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
+
+                )
+            }
+        }
+    }
+
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
         .route("/*path", get(index))
@@ -344,6 +380,9 @@ pub fn build_webapp(
             .route("/:id", get(job_status))
             .layer(Extension(worker_state)),
     );
+
+    let webapp = webapp
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     webapp
         .with_state(AppState::new(
