@@ -92,7 +92,7 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
 
 #[utoipa::path(
     get,
-    path = "/user",
+    path = "/api/v1/user",
     responses(
         (status = 200, description = "List of all users", body = [UserInfo]),
         (status = 403, description = "Forbidden error: ...")

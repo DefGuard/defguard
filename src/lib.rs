@@ -209,6 +209,7 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
+            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
@@ -380,9 +381,6 @@ pub fn build_webapp(
             .route("/:id", get(job_status))
             .layer(Extension(worker_state)),
     );
-
-    let webapp = webapp
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     webapp
         .with_state(AppState::new(
