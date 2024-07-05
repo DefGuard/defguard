@@ -6,13 +6,12 @@ use std::{
 
 use anyhow::anyhow;
 use axum::{
-    http::{Request, StatusCode},
-    routing::{delete, get, patch, post, put},
-    serve, Extension, Router,
+    http::{Request, StatusCode}, routing::{delete, get, patch, post, put}, serve, Extension, Json, Router
 };
 
 use assets::{index, svg, web_asset};
-use db::UserInfo;
+use db::{UserDetails, UserInfo};
+use error::WebError;
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
@@ -149,6 +148,36 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 // WireGuard key length in bytes.
 pub(crate) const KEY_LENGTH: usize = 32;
 
+#[derive(OpenApi)]
+#[openapi(
+    modifiers(&SecurityAddon),
+    paths(
+        handlers::user::list_users,
+        handlers::user::get_user,
+    ),
+    components(
+        schemas(
+            UserInfo, WebError, UserDetails
+        ),
+    ),
+)]
+struct ApiDoc;
+
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            // TODO: add appropriate security schema
+            components.add_security_scheme(
+                "api_key",
+                SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
+
+            )
+        }
+    }
+}
+
 /// Simple health-check.
 async fn health_check() -> &'static str {
     "alive"
@@ -169,35 +198,6 @@ pub fn build_webapp(
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Router {
-    #[derive(OpenApi)]
-    #[openapi(
-        modifiers(&SecurityAddon),
-        paths(
-            crate::handlers::user::list_users,
-        ),
-        components(
-            schemas(
-                UserInfo,
-            )
-        )
-    )]
-    struct ApiDoc;
-
-    struct SecurityAddon;
-
-    impl Modify for SecurityAddon {
-        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-            if let Some(components) = openapi.components.as_mut() {
-                // TODO: add appropriate security schema
-                components.add_security_scheme(
-                    "api_key",
-                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
-
-                )
-            }
-        }
-    }
-
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
         .route("/*path", get(index))

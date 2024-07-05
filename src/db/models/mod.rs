@@ -185,7 +185,7 @@ impl UserInfo {
 }
 
 // Full user info with related objects
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 pub struct UserDetails {
     pub user: UserInfo,
     #[serde(default)]

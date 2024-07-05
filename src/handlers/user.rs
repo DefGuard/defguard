@@ -110,6 +110,14 @@ pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) 
     })
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/:username",
+    request_body = String,
+    responses(
+        (status = 201, description = "Add a new user!", body = UserDetails)
+    )
+)]
 pub async fn get_user(
     session: SessionInfo,
     State(appstate): State<AppState>,
