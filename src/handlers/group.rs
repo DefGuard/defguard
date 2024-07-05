@@ -4,6 +4,7 @@ use axum::{
 };
 use serde_json::json;
 use sqlx::query_as;
+use utoipa::ToSchema;
 
 use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
 use crate::{
@@ -15,7 +16,7 @@ use crate::{
     // ldap::utils::{ldap_add_user_to_group, ldap_modify_group, ldap_remove_user_from_group},
 };
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub(crate) struct Groups {
     groups: Vec<String>,
 }
@@ -116,6 +117,14 @@ pub(crate) async fn list_groups_info(
 }
 
 /// GET: Retrieve all groups.
+#[utoipa::path(
+    get,
+    path = "/api/v1/group",
+    responses(
+        (status = 200, description = "Retrieve all groups.", body = Groups),
+        (status = 403, description = "Forbidden error: ...")
+    )
+)]
 pub(crate) async fn list_groups(
     _session: SessionInfo,
     State(appstate): State<AppState>,

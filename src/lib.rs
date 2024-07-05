@@ -10,11 +10,11 @@ use axum::{
 };
 
 use assets::{index, svg, web_asset};
-use db::{UserDetails, UserInfo};
+use db::{models::device::UserDevice, UserDetails, UserInfo};
 use error::WebError;
-use handlers::ssh_authorized_keys::{
+use handlers::{group::Groups, ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-};
+}};
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     ssh_authorized_keys::rename_authentication_key,
@@ -154,10 +154,11 @@ pub(crate) const KEY_LENGTH: usize = 32;
     paths(
         handlers::user::list_users,
         handlers::user::get_user,
+        handlers::group::list_groups,
     ),
     components(
         schemas(
-            UserInfo, WebError, UserDetails
+            UserInfo, WebError, UserDetails, UserDevice, Groups
         ),
     ),
 )]
