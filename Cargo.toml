@@ -97,7 +97,7 @@ webauthn-rs = { version = "0.5", features = [
 ] }
 webauthn-rs-proto = "0.5"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-# Swagger
+# openapi
 utoipa = { version = "4", features = ["axum_extras"] }
 
 [dev-dependencies]
