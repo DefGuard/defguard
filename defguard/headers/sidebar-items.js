@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check_new_device_login","create_user_agent_parser","get_device_info","get_device_login_event","get_device_type","get_user_agent_device","get_user_agent_device_login_data","parse_user_agent"]};
