@@ -212,7 +212,7 @@ pub struct AddUserData {
     pub password: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct StartEnrollmentRequest {
     #[serde(default)]
     pub send_enrollment_notification: bool,

@@ -25,12 +25,6 @@ use crate::{
     server_config, templates,
 };
 
-#[derive(Serialize, ToSchema)]
-pub struct EnrollmentUser {
-    pub enrollment_token: String,
-    pub enrollment_url: String,
-}
-
 /// Verify the given username
 ///
 /// To enable LDAP sync usernames need to avoid reserved characters.
@@ -102,7 +96,8 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
     path = "/api/v1/user",
     responses(
         (status = 200, description = "List of all users", body = [UserInfo]),
-        (status = 403, description = "Forbidden error: ...")
+        (status = 401, description = "Unauthorized to list all users", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to list all users", body = Json, example = json!({"msg": "access denied"}))
     )
 )]
 pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) -> ApiResult {
@@ -125,7 +120,9 @@ pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) 
     ),
     request_body = String,
     responses(
-        (status = 200, description = "Return a new user", body = UserDetails)
+        (status = 200, description = "Return details about user", body = UserDetails),
+        (status = 401, description = "Unauthorized to return details about user", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to return details about user", body = Json, example = json!({"msg": "access denied"}))
     )
 )]
 pub async fn get_user(
@@ -147,7 +144,9 @@ pub async fn get_user(
     request_body = AddUserData,
     responses(
         (status = 201, description = "Add a new user", body = UserInfo),
-        (status = 400, description = "Bad request", body = Json)
+        (status = 400, description = "Bad request, invalid user data", body = Json),
+        (status = 401, description = "Unauthorized to create a user", body = Json),
+        (status = 403, description = "You don't have permission to create a user", body = Json)
     )
 )]
 pub async fn add_user(
@@ -212,11 +211,14 @@ pub async fn add_user(
 // Trigger enrollment process manually
 #[utoipa::path(
     post,
-    path = "/user/:username/start_enrollment",
+    path = "/api/v1/user/:username/start_enrollment",
     request_body = StartEnrollmentRequest,
     responses(
-        (status = 201, body = Json<EnrollmentUser>),
-        (status = 405, description = "ObjectNotFound")
+        (status = 201, description = "Trigger enrollment process manually", body = Json),
+        (status = 400, description = "Bad request, invalid enrollment request", body = Json, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
+        (status = 401, description = "Unauthorized to start enrollment", body = Json),
+        (status = 403, description = "You don't have permission to start enrollment", body = Json),
+        (status = 404, description = "Provided user does not exist", body = Json, example = json!({"msg": "user <username> not found"}))
     )
 )]
 pub async fn start_enrollment(
@@ -272,14 +274,22 @@ pub async fn start_enrollment(
     );
 
     Ok(ApiResponse {
-        json: json!(EnrollmentUser {
-            enrollment_token,
-            enrollment_url: config.enrollment_url.to_string()
-        }),
+        json: json!({"enrollment_token": enrollment_token, "enrollment_url": config.enrollment_url.to_string()}),
         status: StatusCode::CREATED,
     })
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/:username/start_desktop",
+    request_body = StartEnrollmentRequest,
+    responses(
+        (status = 201, description = "Trigger enrollment process manually", body = Json, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
+        (status = 400, description = "Bad request, invalid enrollment request", body = Json, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
+        (status = 401, description = "Unauthorized to start remote desktop configuration", body = Json, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
+        (status = 404, description = "Provided user does not exist", body = Json, example = json!({"msg": "user <username> not found"}))
+    )
+)]
 pub async fn start_remote_desktop_configuration(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -332,8 +342,9 @@ pub async fn start_remote_desktop_configuration(
     path = "/api/v1/user/available",
     request_body = Json<Username>,
     responses(
-        (status = 200, body = Json),
-        (status = 400, body = Json)
+        (status = 200, description = "Provided username is available", body = Json),
+        (status = 400, description = "Bad request, provided username is not available or username is invalid", body = Json, example = json!({})),
+        (status = 401, description = "Unauthorized to start enrollment", body = Json),
     )
 )]
 pub async fn username_available(

@@ -17,7 +17,7 @@ use error::WebError;
 use handlers::{
     group::Groups, ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-    }, user::EnrollmentUser, Username
+    }, StartEnrollmentRequest, Username
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
@@ -159,17 +159,15 @@ pub(crate) const KEY_LENGTH: usize = 32;
         handlers::user::get_user,
         handlers::user::add_user,
         handlers::user::start_enrollment,
+        handlers::user::start_remote_desktop_configuration,
         handlers::user::username_available,
         handlers::group::list_groups,
     ),
     components(
         schemas(
-            UserInfo, WebError, UserDetails, UserDevice, Groups, Username, EnrollmentUser
+            UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest
         ),
     ),
-    tags(
-        (name = "user", description)
-    )
 )]
 struct ApiDoc;
 
