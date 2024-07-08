@@ -170,7 +170,7 @@ pub(crate) const KEY_LENGTH: usize = 32;
         handlers::user::set_wallet,
         handlers::user::update_wallet,
         handlers::user::delete_wallet,
-        handlers::delete_security_key,
+        handlers::user::delete_security_key,
         handlers::user::me,
         handlers::user::delete_authorized_app,
         handlers::group::list_groups,
