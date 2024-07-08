@@ -99,7 +99,6 @@ webauthn-rs-proto = "0.5"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 # Swagger
 utoipa = { version = "4", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "7", features = ["axum"] }
 
 [dev-dependencies]
 bytes = "1.6"

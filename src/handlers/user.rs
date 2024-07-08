@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
 };
 use serde_json::json;
+use utoipa::ToSchema;
 
 use super::{
     mail::{send_mfa_configured_email, EMAIL_PASSOWRD_RESET_START_SUBJECT},
@@ -23,6 +24,12 @@ use crate::{
     mail::Mail,
     server_config, templates,
 };
+
+#[derive(Serialize, ToSchema)]
+pub struct EnrollmentUser {
+    pub enrollment_token: String,
+    pub enrollment_url: String,
+}
 
 /// Verify the given username
 ///
@@ -111,11 +118,14 @@ pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) 
 }
 
 #[utoipa::path(
-    post,
+    get,
     path = "/api/v1/user/:username",
+    params(
+        ("username" = String, description = "name of a user"),
+    ),
     request_body = String,
     responses(
-        (status = 201, description = "Add a new user!", body = UserDetails)
+        (status = 200, description = "Return a new user", body = UserDetails)
     )
 )]
 pub async fn get_user(
@@ -131,6 +141,15 @@ pub async fn get_user(
     })
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/user",
+    request_body = AddUserData,
+    responses(
+        (status = 201, description = "Add a new user", body = UserInfo),
+        (status = 400, description = "Bad request", body = Json)
+    )
+)]
 pub async fn add_user(
     _role: UserAdminRole,
     session: SessionInfo,
@@ -191,6 +210,15 @@ pub async fn add_user(
 }
 
 // Trigger enrollment process manually
+#[utoipa::path(
+    post,
+    path = "/user/:username/start_enrollment",
+    request_body = StartEnrollmentRequest,
+    responses(
+        (status = 201, body = Json<EnrollmentUser>),
+        (status = 405, description = "ObjectNotFound")
+    )
+)]
 pub async fn start_enrollment(
     _role: UserAdminRole,
     session: SessionInfo,
@@ -244,7 +272,10 @@ pub async fn start_enrollment(
     );
 
     Ok(ApiResponse {
-        json: json!({"enrollment_token": enrollment_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        json: json!(EnrollmentUser {
+            enrollment_token,
+            enrollment_url: config.enrollment_url.to_string()
+        }),
         status: StatusCode::CREATED,
     })
 }
@@ -296,6 +327,15 @@ pub async fn start_remote_desktop_configuration(
     })
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/available",
+    request_body = Json<Username>,
+    responses(
+        (status = 200, body = Json),
+        (status = 400, body = Json)
+    )
+)]
 pub async fn username_available(
     _role: UserAdminRole,
     State(appstate): State<AppState>,

@@ -6,15 +6,19 @@ use std::{
 
 use anyhow::anyhow;
 use axum::{
-    http::{Request, StatusCode}, routing::{delete, get, patch, post, put}, serve, Extension, Json, Router
+    http::{Request, StatusCode},
+    routing::{delete, get, patch, post, put},
+    serve, Extension, Json, Router,
 };
 
 use assets::{index, svg, web_asset};
 use db::{models::device::UserDevice, UserDetails, UserInfo};
 use error::WebError;
-use handlers::{group::Groups, ssh_authorized_keys::{
-    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-}};
+use handlers::{
+    group::Groups, ssh_authorized_keys::{
+        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+    }, user::EnrollmentUser, Username
+};
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     ssh_authorized_keys::rename_authentication_key,
@@ -38,7 +42,6 @@ use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
 };
-use utoipa_swagger_ui::SwaggerUi;
 
 use self::{
     appstate::AppState,
@@ -154,13 +157,19 @@ pub(crate) const KEY_LENGTH: usize = 32;
     paths(
         handlers::user::list_users,
         handlers::user::get_user,
+        handlers::user::add_user,
+        handlers::user::start_enrollment,
+        handlers::user::username_available,
         handlers::group::list_groups,
     ),
     components(
         schemas(
-            UserInfo, WebError, UserDetails, UserDevice, Groups
+            UserInfo, WebError, UserDetails, UserDevice, Groups, Username, EnrollmentUser
         ),
     ),
+    tags(
+        (name = "user", description)
+    )
 )]
 struct ApiDoc;
 
@@ -173,7 +182,6 @@ impl Modify for SecurityAddon {
             components.add_security_scheme(
                 "api_key",
                 SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
-
             )
         }
     }
@@ -186,6 +194,10 @@ async fn health_check() -> &'static str {
 
 async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
+}
+
+async fn openapi() -> Json<utoipa::openapi::OpenApi> {
+    Json(ApiDoc::openapi())
 }
 
 pub fn build_webapp(
@@ -210,10 +222,10 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
-            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
+            .route("/api-docs", get(openapi))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
