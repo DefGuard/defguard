@@ -17,7 +17,7 @@ use error::WebError;
 use handlers::{
     group::Groups, ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-    }, StartEnrollmentRequest, Username
+    }, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
@@ -161,11 +161,16 @@ pub(crate) const KEY_LENGTH: usize = 32;
         handlers::user::start_enrollment,
         handlers::user::start_remote_desktop_configuration,
         handlers::user::username_available,
+        handlers::user::modify_user,
+        handlers::user::delete_user,
+        handlers::user::change_self_password,
+        handlers::user::change_password,
+        handlers::user::reset_password,
         handlers::group::list_groups,
     ),
     components(
         schemas(
-            UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest
+            UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange
         ),
     ),
 )]
@@ -176,7 +181,7 @@ struct SecurityAddon;
 impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         if let Some(components) = openapi.components.as_mut() {
-            // TODO: add appropriate security schema
+            // TODO: add an appropriate security schema
             components.add_security_scheme(
                 "api_key",
                 SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),

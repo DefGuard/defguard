@@ -219,13 +219,13 @@ pub struct StartEnrollmentRequest {
     pub email: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct PasswordChangeSelf {
     pub old_password: String,
     pub new_password: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct PasswordChange {
     pub new_password: String,
 }

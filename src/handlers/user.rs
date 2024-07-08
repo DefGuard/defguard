@@ -508,6 +508,16 @@ pub async fn delete_user(
     }
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/v1/user/change_password",
+    request_body = Json<PasswordChangeSelf>,
+    responses(
+        (status = 200, description = "Pasword has been changed.", body = Json),
+        (status = 400, description = "Bad request, provided passwords are not same or new password does not satisfy requirements.", body = Json, example = json!({})),
+        (status = 401, description = "Unauthorized to change password.", body = Json, example = json!({"msg": "Session is required"})),
+    )
+)]
 pub async fn change_self_password(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -543,6 +553,18 @@ pub async fn change_self_password(
     })
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/v1/user/:username/password",
+    request_body = Json<PasswordChange>,
+    responses(
+        (status = 200, description = "Pasword has been changed."),
+        (status = 400, description = "Bad request, password does not satisfy requirements. This endpoint does not change your own password.", body = Json, example = json!({})),
+        (status = 401, description = "Unauthorized to change password.", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to change user password.", body = Json),
+        (status = 404, description = "Cannot change user password that does not exist.", body = Json)
+    )
+)]
 pub async fn change_password(
     _role: UserAdminRole,
     session: SessionInfo,
@@ -598,6 +620,18 @@ pub async fn change_password(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/:username/reset_password",
+    request_body = Json<PasswordChange>,
+    responses(
+        (status = 200, description = "Successfully reset user password."),
+        (status = 400, description = "Bad request: 1) this endpoint does not change your own password 2) failed to send password reset to a user email.", body = Json, example = json!({})),
+        (status = 401, description = "Unauthorized to change password.", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to change user password.", body = Json),
+        (status = 404, description = "Cannot reset user password that does not exist.", body = Json)
+    )
+)]
 pub async fn reset_password(
     _role: UserAdminRole,
     session: SessionInfo,
