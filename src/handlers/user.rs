@@ -997,6 +997,21 @@ pub async fn delete_wallet(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/v1/user/:username/security_key/:id",
+    params(
+        ("username" = String, description = "name of a user"),
+        ("id" = i64, description = "id of security key that could point to passkey")
+    ),
+    responses(
+        (status = 200, description = "Successfully deleted security key."),
+        (status = 401, description = "Unauthorized to delete security key.", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to delete security key.", body = Json, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Incorrect authorized app, not found.", body = Json, example = json!({"msg": "security key not found"})),
+        (status = 500, description = "Cannot delete authorized app.", body = Json, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub async fn delete_security_key(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -1032,6 +1047,15 @@ pub async fn delete_security_key(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/me",
+    responses(
+        (status = 200, description = "Returns own user data."),
+        (status = 401, description = "Unauthorized return own user data.", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Cannot retrive own user data.", body = Json, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let user_info = UserInfo::from_user(&appstate.pool, &session.user).await?;
     Ok(ApiResponse {
@@ -1041,6 +1065,21 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
 }
 
 /// Delete Oauth token.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/user/:username/oauth_app/:oauth2client_id",
+    params(
+        ("username" = String, description = "name of a user"),
+        ("oauth2client_id" = i64, description = "id of OAuth2 client")
+    ),
+    responses(
+        (status = 200, description = "Successfully deleted authorized app."),
+        (status = 401, description = "Unauthorized to delete authorized app.", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to delete authorized app.", body = Json, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Incorrect authorized app, not found.", body = Json, example = json!({"msg": "Authorized app not found"})),
+        (status = 500, description = "Cannot delete authorized app.", body = Json, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub async fn delete_authorized_app(
     session: SessionInfo,
     State(appstate): State<AppState>,

@@ -242,7 +242,7 @@ pub struct WalletChallenge {
     pub message: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct WalletChange {
     pub use_for_mfa: bool,
 }
