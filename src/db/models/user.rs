@@ -1,4 +1,4 @@
-use std::{string::ToString, time::SystemTime};
+use std::{fmt, time::SystemTime};
 
 use argon2::{
     password_hash::{
@@ -39,15 +39,19 @@ pub enum MFAMethod {
     Email,
 }
 
-impl ToString for MFAMethod {
-    fn to_string(&self) -> String {
-        match self {
-            MFAMethod::None => "None".into(),
-            MFAMethod::OneTimePassword => "TOTP".into(),
-            MFAMethod::Web3 => "Web3".into(),
-            MFAMethod::Webauthn => "WebAuthn".into(),
-            MFAMethod::Email => "Email".into(),
-        }
+impl fmt::Display for MFAMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                MFAMethod::None => "None",
+                MFAMethod::OneTimePassword => "TOTP",
+                MFAMethod::Web3 => "Web3",
+                MFAMethod::Webauthn => "WebAuthn",
+                MFAMethod::Email => "Email",
+            }
+        )
     }
 }
 

@@ -370,7 +370,7 @@ async fn test_email_mfa() {
     assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
     assert_eq!(
         mail.subject,
-        "MFA method Email was activated on your account"
+        "MFA method Email has been activated on your account"
     );
 
     // check recovery codes
@@ -1017,7 +1017,7 @@ async fn test_mfa_method_totp_enabled_mail() {
     assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
     assert_eq!(
         mail.subject,
-        "MFA method TOTP was activated on your account"
+        "MFA method TOTP has been activated on your account"
     );
     assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
     assert!(mail
