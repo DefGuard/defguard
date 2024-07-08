@@ -230,13 +230,13 @@ pub struct PasswordChange {
     pub new_password: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct WalletSignature {
     pub address: String,
     pub signature: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct WalletChallenge {
     pub id: i64,
     pub message: String,

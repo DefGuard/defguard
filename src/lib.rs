@@ -15,9 +15,12 @@ use assets::{index, svg, web_asset};
 use db::{models::device::UserDevice, UserDetails, UserInfo};
 use error::WebError;
 use handlers::{
-    group::Groups, ssh_authorized_keys::{
+    group::Groups,
+    ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-    }, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username
+    },
+    user::WalletInfoShort,
+    PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletSignature,
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
@@ -166,11 +169,14 @@ pub(crate) const KEY_LENGTH: usize = 32;
         handlers::user::change_self_password,
         handlers::user::change_password,
         handlers::user::reset_password,
+        handlers::user::wallet_challenge,
+        handlers::user::set_wallet,
         handlers::group::list_groups,
     ),
     components(
         schemas(
-            UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange
+            UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, 
+            WalletInfoShort, WalletSignature
         ),
     ),
 )]
