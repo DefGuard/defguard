@@ -1,6 +1,6 @@
 [package]
 name = "defguard"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://defguard.net/"
@@ -9,7 +9,6 @@ repository = "https://github.com/DefGuard/defguard"
 [workspace]
 
 [dependencies]
-model_derive = { path = "model-derive" }
 anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
 axum = { version = "0.7" }
@@ -35,16 +34,21 @@ jsonwebtoken = "9.2"
 ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
 lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 md4 = "0.10"
+mime_guess = "2.0"
+model_derive = { path = "model-derive" }
+openidconnect = { version = "3.4", default-features = false, optional = true, features = [
+    "reqwest",
+] }
 otpauth = "0.4"
-openidconnect = { version = "3.4", default-features = false, optional = true, features = ["reqwest"] }
-pulldown-cmark = "0.9"
 prost = "0.12"
+pulldown-cmark = "0.9"
 rand = "0.8"
 rand_core = { version = "0.6", default-features = false, features = [
     "getrandom",
 ] }
 reqwest = { version = "0.11", features = ["json"] }
 rsa = { version = "0.9", features = ["pem"] }
+rust-embed = { version = "8.4", features = ["include-exclude"] }
 rust-ini = "0.20"
 secp256k1 = { version = "0.28", features = [
     "recovery",
@@ -58,7 +62,13 @@ serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
 serde_json = "1.0"
 serde_urlencoded = "0.7"
 sha-1 = "0.10"
-sqlx = { version = "0.7", features = ["chrono", "ipnetwork", "runtime-tokio-native-tls", "postgres", "uuid"] }
+sqlx = { version = "0.7", features = [
+    "chrono",
+    "ipnetwork",
+    "runtime-tokio-native-tls",
+    "postgres",
+    "uuid",
+] }
 ssh-key = "0.6"
 struct-patch = "0.4"
 tera = "1.19"

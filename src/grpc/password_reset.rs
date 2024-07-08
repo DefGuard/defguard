@@ -40,6 +40,7 @@ impl PasswordResetServer {
 
     // check if token provided with request corresponds to a valid enrollment session
     async fn validate_session(&self, token: Option<&str>) -> Result<Token, Status> {
+        debug!("Validating enrollment session");
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
@@ -49,6 +50,10 @@ impl PasswordResetServer {
         let enrollment = Token::find_by_id(&self.pool, token).await?;
 
         if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
+            info!(
+                "Enrollment session validated for user {}.",
+                enrollment.user_id
+            );
             Ok(enrollment)
         } else {
             error!("Enrollment session expired");
@@ -79,17 +84,22 @@ impl PasswordResetServer {
         let user = User::find_by_email(&self.pool, email.to_string().as_str())
             .await
             .map_err(|_| {
-                error!("Failed to fetch user by email");
+                error!("Failed to fetch user by email: {email}");
                 Status::internal("unexpected error")
             })?;
 
         let Some(user) = user else {
             // Do not return information whether user exists
+            debug!("Password reset skipped for non-existing user {email}");
             return Ok(());
         };
 
-        // Do not allow password change if user is not active
-        if !user.has_password() {
+        // Do not allow password change if user is disabled or not enrolled
+        if !user.has_password() || !user.is_active {
+            debug!(
+                "Password reset skipped for disabled or not enrolled user {} ({email})",
+                user.username
+            );
             return Ok(());
         }
 
@@ -127,6 +137,11 @@ impl PasswordResetServer {
             Some(&user_agent),
         )?;
 
+        info!(
+            "Finished processing password reset request for user {}.",
+            user.username
+        );
+
         Ok(())
     }
 
@@ -139,13 +154,23 @@ impl PasswordResetServer {
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
         if enrollment.token_type != Some("PASSWORD_RESET".to_string()) {
+            error!(
+                "Invalid token type ({:?}) for password reset session",
+                enrollment.token_type
+            );
             return Err(Status::permission_denied("invalid token"));
         }
 
         let user = enrollment.fetch_user(&self.pool).await?;
 
-        if !user.has_password() {
-            return Err(Status::permission_denied("user inactive"));
+        if !user.has_password() || !user.is_active {
+            error!(
+                "Can't start password reset for a disabled or not enrolled user {}.",
+                user.username
+            );
+            return Err(Status::permission_denied(
+                "user disabled or not yet enrolled",
+            ));
         }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
@@ -168,6 +193,11 @@ impl PasswordResetServer {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
+
+        info!(
+            "Finished processing password reset session for user {}.",
+            user.username
+        );
 
         Ok(response)
     }
@@ -196,6 +226,14 @@ impl PasswordResetServer {
         }
 
         let mut user = enrollment.fetch_user(&self.pool).await?;
+
+        if !user.is_active {
+            error!(
+                "Can't reset password for a disabled user {}.",
+                user.username
+            );
+            return Err(Status::permission_denied("user disabled"));
+        }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");

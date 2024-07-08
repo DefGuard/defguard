@@ -4,9 +4,12 @@ use std::{str::FromStr, time::SystemTime};
 
 use chrono::NaiveDateTime;
 use claims::assert_err;
+use common::fetch_user_details;
 use defguard::{
     auth::TOTP_CODE_VALIDITY_PERIOD,
-    db::{models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, Settings, UserDetails, Wallet},
+    db::{
+        models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, Settings, User, UserDetails, Wallet,
+    },
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, WalletChallenge},
     hex::to_lower_hex,
     secret::SecretString,
@@ -129,6 +132,46 @@ async fn test_login_bruteforce() {
             assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
         }
     }
+}
+
+#[tokio::test]
+async fn test_login_disabled() {
+    let client = make_client().await;
+
+    let user_auth = Auth::new("hpotter", "pass123");
+    let admin_auth = Auth::new("admin", "pass123");
+
+    let response = client.post("/api/v1/auth").json(&admin_auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mut user_details = fetch_user_details(&client, "hpotter").await;
+    user_details.user.is_active = false;
+    let response = client
+        .put("/api/v1/user/hpotter")
+        .json(&user_details.user)
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.post("/api/v1/auth").json(&user_auth).send().await;
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    client.post("/api/v1/auth").json(&admin_auth).send().await;
+    let mut user_details = fetch_user_details(&client, "hpotter").await;
+    user_details.user.is_active = true;
+    let response = client
+        .put("/api/v1/user/hpotter")
+        .json(&user_details.user)
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.post("/api/v1/auth").json(&user_auth).send().await;
+
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 #[tokio::test]
@@ -1096,6 +1139,29 @@ async fn test_session_cookie() {
     .execute(&pool)
     .await
     .unwrap();
+
+    let response = client.get("/api/v1/me").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    let auth_cookie = response.cookies().find(|c| c.name() == SESSION_COOKIE_NAME);
+    assert!(auth_cookie.is_none());
+}
+
+#[tokio::test]
+async fn test_all_session_logout() {
+    let (client, pool) = make_client_with_db().await;
+
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Disable the user, effectively logging them out
+    let user = User::find_by_username(&pool, "hpotter")
+        .await
+        .unwrap()
+        .unwrap();
+
+    user.logout_all_sessions(&pool).await.unwrap();
 
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);

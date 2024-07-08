@@ -19,9 +19,14 @@ pub async fn delete_yubikey(
         .id
         .ok_or(WebError::DbError("Returned user had no ID".into()))?;
     let Some(yubikey) = YubiKey::find_by_id(&appstate.pool, key_id).await? else {
+        error!("Yubikey with id {key_id} not found");
         return Err(WebError::ObjectNotFound("YubiKey not found".into()));
     };
     if !session.is_admin && yubikey.user_id != user_id {
+        warn!(
+            "User {user_id} tried to delete yubikey {key_id} of user {} without being an admin.",
+            yubikey.user_id
+        );
         return Err(WebError::Forbidden("Not allowed to delete YubiKey".into()));
     }
     yubikey.delete(&appstate.pool).await?;
@@ -49,10 +54,11 @@ pub async fn rename_yubikey(
         .ok_or(WebError::DbError("Returned user had no ID".into()))?;
     debug!("User {} attempts to rename yubikey {}", user_id, key_id);
     let Some(mut yubikey) = YubiKey::find_by_id(&appstate.pool, key_id).await? else {
+        error!("Yubikey with id {key_id} not found");
         return Err(WebError::ObjectNotFound("YubiKey not found".into()));
     };
     if !session.is_admin && yubikey.user_id != user_id {
-        info!(
+        warn!(
             "User {user_id}, tried to rename yubikey {key_id} of user {} without being an admin.",
             yubikey.user_id
         );

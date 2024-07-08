@@ -47,6 +47,11 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
       user: undefined,
     },
     // DO NOT EXTEND THIS STORE
+    toggleUserModal: {
+      visible: false,
+      user: undefined,
+    },
+    // DO NOT EXTEND THIS STORE
     changePasswordModal: {
       visible: false,
       user: undefined,
@@ -129,6 +134,11 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
     setDeleteUserModal: (data) =>
       set((state) => ({
         deleteUserModal: { ...state.deleteUserModal, ...data },
+      })),
+    // DO NOT EXTEND THIS STORE
+    setToggleUserModal: (data) =>
+      set((state) => ({
+        toggleUserModal: { ...state.toggleUserModal, ...data },
       })),
     // DO NOT EXTEND THIS STORE
     setProvisionKeyModal: (data) =>

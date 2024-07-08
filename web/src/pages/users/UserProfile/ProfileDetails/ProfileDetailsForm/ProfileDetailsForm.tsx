@@ -35,6 +35,7 @@ interface Inputs {
   email: string;
   groups: string[];
   authorized_apps: OAuth2AuthorizedApps[];
+  is_active: boolean;
 }
 
 const defaultValues: Inputs = {
@@ -45,6 +46,7 @@ const defaultValues: Inputs = {
   email: '',
   groups: [],
   authorized_apps: [],
+  is_active: true,
 };
 
 export const ProfileDetailsForm = () => {
@@ -56,6 +58,7 @@ export const ProfileDetailsForm = () => {
   const submitButton = useRef<HTMLButtonElement | null>(null);
   const queryClient = useQueryClient();
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isMe = useUserProfileStore((state) => state.isMe);
   const [fetchGroups, setFetchGroups] = useState(false);
   const {
     user: { editUser },
@@ -96,6 +99,7 @@ export const ProfileDetailsForm = () => {
             user_id: z.number().min(1, LL.form.error.required()),
           }),
         ),
+        is_active: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -154,6 +158,21 @@ export const ProfileDetailsForm = () => {
     }
     return [];
   }, [availableGroups, groupsLoading]);
+
+  const statusOptions = useMemo(() => {
+    return [
+      {
+        key: 'active',
+        value: true,
+        label: LL.userPage.userDetails.fields.status.active(),
+      },
+      {
+        key: 'inactive',
+        value: false,
+        label: LL.userPage.userDetails.fields.status.disabled(),
+      },
+    ];
+  }, [LL.userPage.userDetails.fields.status]);
 
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
     values = trimObjectStrings(values);
@@ -246,6 +265,25 @@ export const ProfileDetailsForm = () => {
           />
         </div>
       </div>
+      {isAdmin && !isMe && (
+        <div className="row">
+          <div className="item">
+            <FormSelect
+              data-testid="status-select"
+              options={statusOptions}
+              controller={{ control, name: 'is_active' }}
+              label={LL.userPage.userDetails.fields.status.label()}
+              disabled={userEditLoading || !isAdmin}
+              renderSelected={(val) => ({
+                key: val ? 'active' : 'inactive',
+                displayValue: val
+                  ? LL.userPage.userDetails.fields.status.active()
+                  : LL.userPage.userDetails.fields.status.disabled(),
+              })}
+            />
+          </div>
+        </div>
+      )}
       <div className="row">
         <div className="item">
           <FormSelect

@@ -648,6 +648,54 @@ type RootTranslation = {
 				success: RequiredParams<'username'>
 			}
 		}
+		disableUser: {
+			/**
+			 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​d​i​s​a​b​l​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
+		enableUser: {
+			/**
+			 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​e​n​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​e​n​a​b​l​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
 		deleteProvisioner: {
 			/**
 			 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
@@ -1204,6 +1252,20 @@ type RootTranslation = {
 					 * E​-​m​a​i​l
 					 */
 					label: string
+				}
+				status: {
+					/**
+					 * S​t​a​t​u​s
+					 */
+					label: string
+					/**
+					 * A​c​t​i​v​e
+					 */
+					active: string
+					/**
+					 * D​i​s​a​b​l​e​d
+					 */
+					disabled: string
 				}
 				groups: {
 					/**
@@ -4510,6 +4572,50 @@ export type TranslationFunctions = {
 				success: (arg: { username: string }) => LocalizedString
 			}
 		}
+		disableUser: {
+			/**
+			 * Disable account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Disable account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to disable {username} account?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} disabled.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
+		enableUser: {
+			/**
+			 * Enable account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Enable account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to enable {username} account?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} enabled.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
 		deleteProvisioner: {
 			/**
 			 * Delete provisioner
@@ -5062,6 +5168,20 @@ export type TranslationFunctions = {
 					 * E-mail
 					 */
 					label: () => LocalizedString
+				}
+				status: {
+					/**
+					 * Status
+					 */
+					label: () => LocalizedString
+					/**
+					 * Active
+					 */
+					active: () => LocalizedString
+					/**
+					 * Disabled
+					 */
+					disabled: () => LocalizedString
 				}
 				groups: {
 					/**

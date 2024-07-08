@@ -366,12 +366,21 @@ impl Device {
             }
             None => String::new(),
         };
-        let allowed_ips = network
-            .allowed_ips
-            .iter()
-            .map(IpNetwork::to_string)
-            .collect::<Vec<String>>()
-            .join(",");
+
+        let allowed_ips = if network.allowed_ips.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "AllowedIPs = {}\n",
+                network
+                    .allowed_ips
+                    .iter()
+                    .map(IpNetwork::to_string)
+                    .collect::<Vec<String>>()
+                    .join(",")
+            )
+        };
+
         format!(
             "[Interface]\n\
             PrivateKey = YOUR_PRIVATE_KEY\n\
@@ -380,7 +389,7 @@ impl Device {
             \n\
             [Peer]\n\
             PublicKey = {}\n\
-            AllowedIPs = {allowed_ips}\n\
+            {allowed_ips}\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
             wireguard_network_device.wireguard_ip, network.pubkey, network.endpoint, network.port,

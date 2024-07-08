@@ -328,15 +328,23 @@ impl WireguardNetwork {
                     JOIN group_user gu ON u.id = gu.user_id \
                     JOIN \"group\" g ON gu.group_id = g.id \
                     WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[]))
+                    AND u.is_active = true
                     ORDER BY d.id ASC",
                     &allowed_groups
                 )
                 .fetch_all(&mut *transaction)
                 .await?
             },
-            // all devices are allowed
+            // all devices of enabled users are allowed
             None => {
-                Device::all(&mut *transaction).await?
+                query_as!(
+                    Device,
+                    "SELECT d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+                    FROM device d \
+                    JOIN \"user\" u ON d.user_id = u.id \
+                    WHERE u.is_active = true \
+                    ORDER BY d.id ASC"
+                ).fetch_all(&mut *transaction).await?
             }
         };
 
