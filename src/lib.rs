@@ -160,7 +160,7 @@ mod openapi {
     use super::*;
     use utoipa::OpenApi;
 
-    use crate::handlers::{group, user, wireguard};
+    use handlers::{group, user, wireguard, ApiResponse};
 
     #[derive(OpenApi)]
     #[openapi(
@@ -192,14 +192,20 @@ mod openapi {
         ),
         components(
             schemas(
-                UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, WireguardNetwork, WireguardNetworkData
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, WireguardNetwork, WireguardNetworkData
             ),
         ),
         tags(
-            (name = "user", description = "add description to user endpoints!!\n
-add description to user endpoints!! add description to user endpoints!!\n
-add description to user endpoints!! \n\n
-hello world"),
+            (name = "user", description = "
+Endpoints that allow to control user data.
+
+Available actions:  
+- list all users
+- CRUD mechanism for user
+- operation on user wallet
+- operation on security key and authorized app
+- change user password.
+            "),
             (name = "wireguard", description = "awesome description, hurray!!"),
             (name = "group", description = "another description")
         )

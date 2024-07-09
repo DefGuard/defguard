@@ -91,14 +91,40 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
     Ok(())
 }
 
+/// List of all users
+///
+/// Retrives list of users.
+///
+/// # Returns
+/// Returns list of `UserInfo` objects or `WebError` if error occurs.
 #[utoipa::path(
     get,
     path = "/api/v1/user",
     responses(
-        (status = 200, description = "List of all users.", body = [UserInfo]),
-        (status = 401, description = "Unauthorized to list all users.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to list all users.", body = Json, example = json!({"msg": "access denied"})),
-        (status = 500, description = "Unable return list of users.", body = Json, example = json!({"msg": "Internal error"}))
+        (status = 200, description = "List of all users.", body = [UserInfo], example = json!(
+        [
+            {
+                "authorized_apps": [],
+                "email": "name@email.com",
+                "email_mfa_enabled": false,
+                "enrolled": true,
+                "first_name": "first_name",
+                "groups": [
+                    "admin"
+                ],
+                "id": 1,
+                "is_active": true,
+                "last_name": "last_name",
+                "mfa_enabled": false,
+                "mfa_method": "None",
+                "phone": null,
+                "totp_enabled": false,
+                "username": "username"
+            }
+        ])),
+        (status = 401, description = "Unauthorized to list all users.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to list all users.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable return list of users.", body = ApiResponse, example = json!({"msg": "Internal error"}))
     )
 )]
 pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) -> ApiResult {
@@ -113,6 +139,12 @@ pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) 
     })
 }
 
+/// Get user
+///
+/// Return a user based on provided username parameter.
+///
+/// # Returns
+/// Returns `UserDetails` object or `WebError` if error occurs.
 #[utoipa::path(
     get,
     path = "/api/v1/user/:username",
@@ -121,10 +153,54 @@ pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) 
     ),
     request_body = String,
     responses(
-        (status = 200, description = "Return details about user.", body = UserDetails),
-        (status = 401, description = "Unauthorized to return details about user.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to return details about user.", body = Json, example = json!({"msg": "access denied"})),
-        (status = 500, description = "Unable to return user details.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "Return details about user.", body = UserDetails, example = json!(
+            {
+                "devices": [
+                    {
+                        "created": "date",
+                        "id": 1,
+                        "name": "name",
+                        "networks": [
+                            {
+                                "device_wireguard_ip": "1.1.1.1",
+                                "is_active": false,
+                                "last_connected_at": null,
+                                "last_connected_ip": null,
+                                "last_connected_location": null,
+                                "network_gateway_ip": "0.0.0.0",
+                                "network_id": 1,
+                                "network_name": "TestNet"
+                            }
+                        ],
+                        "user_id": 1,
+                        "wireguard_pubkey": "wireguard_pubkey"
+                    }
+                ],
+                "security_keys": [],
+                "user": {
+                    "authorized_apps": [],
+                    "email": "name@email.com",
+                    "email_mfa_enabled": false,
+                    "enrolled": true,
+                    "first_name": "first_name",
+                    "groups": [
+                        "group"
+                    ],
+                    "id": 1,
+                    "is_active": true,
+                    "last_name": "last_name",
+                    "mfa_enabled": false,
+                    "mfa_method": "None",
+                    "phone": null,
+                    "totp_enabled": false,
+                    "username": "username"
+                },
+                "wallets": []
+            }
+        )),
+        (status = 401, description = "Unauthorized to return details about user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to return details about user.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to return user details.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn get_user(
@@ -140,16 +216,41 @@ pub async fn get_user(
     })
 }
 
+/// Add user
+///
+/// Add a new user based on `AddUserData` object.
+///
+/// # Returns
+/// Returns `UserInfo` object or `WebError` if error occurs.
 #[utoipa::path(
     post,
     path = "/api/v1/user",
     request_body = AddUserData,
     responses(
-        (status = 201, description = "Add a new user.", body = UserInfo),
-        (status = 400, description = "Bad request, invalid user data.", body = Json),
-        (status = 401, description = "Unauthorized to create a user.", body = Json),
-        (status = 403, description = "You don't have permission to create a user.", body = Json),
-        (status = 500, description = "Unable to create a user.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 201, description = "Add a new user.", body = UserInfo, example = json!(
+            {
+                "authorized_apps": [],
+                "email": "name@email.com",
+                "email_mfa_enabled": false,
+                "enrolled": true,
+                "first_name": "first_name",
+                "groups": [
+                    "admin"
+                ],
+                "id": 1,
+                "is_active": true,
+                "last_name": "last_name",
+                "mfa_enabled": false,
+                "mfa_method": "None",
+                "phone": null,
+                "totp_enabled": false,
+                "username": "username"
+            }
+        )),
+        (status = 400, description = "Bad request, invalid user data.", body = ApiResponse, example = json!({})),
+        (status = 401, description = "Unauthorized to create a user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to create a user.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to create a user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn add_user(
@@ -211,16 +312,26 @@ pub async fn add_user(
     })
 }
 
-// Trigger enrollment process manually
+/// Trigger enrollment process manually
+///
+/// Allows admin to start new enrollment for user that is provided as a parameter in endpoint.
+///
+/// Thanks to this endpoint you are able to trigger manually enrollment process, where after finishing you receive an enrollment token.
+///
+/// `Enrollment token` enables process for gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`. On the other hand, `enrollment url enables to redirect into enrollment process form.`
+///
+/// Optionally this endpoint can send to a user email notification about enrollment.
+/// # Returns
+/// Returns json with `enrollment token` and `enrollment url` or `WebError` if error occurs.
 #[utoipa::path(
     post,
     path = "/api/v1/user/:username/start_enrollment",
     request_body = StartEnrollmentRequest,
     responses(
-        (status = 201, description = "Trigger enrollment process manually.", body = Json),
-        (status = 400, description = "Bad request, invalid enrollment request.", body = Json, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
-        (status = 401, description = "Unauthorized to start enrollment.", body = Json),
-        (status = 403, description = "You don't have permission to start enrollment.", body = Json),
+        (status = 201, description = "Trigger enrollment process manually.", body = ApiResponse, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
+        (status = 400, description = "Bad request, invalid enrollment request.", body = ApiResponse, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
+        (status = 401, description = "Unauthorized to start enrollment.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to start enrollment.", body = Json, example = json!({"msg": "access denied"})),
         (status = 404, description = "Provided user does not exist.", body = Json, example = json!({"msg": "user <username> not found"})),
         (status = 500, description = "Unable to start enrollment.", body = Json, example = json!({"msg": "unexpected error"}))
     )
@@ -283,6 +394,17 @@ pub async fn start_enrollment(
     })
 }
 
+/// Start remote desktop configuration
+///
+/// Allows admin to start new remote desktop configuration for user that is provided as a parameter in endpoint.
+///
+/// Thanks to this endpoint you are able to receive a new desktop configuration for users which they can use their devices for conecting to the company infrastructure.
+///
+/// `Enrollment token` enables process for gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`. On the other hand, `enrollment url enables to redirect into enrollment process form.`
+///
+/// Optionally this endpoint can send to a user email notification about enrollment.
+/// # Returns
+/// Returns json with `enrollment token` and `enrollment url` or `WebError` if error occurs.
 #[utoipa::path(
     post,
     path = "/api/v1/user/:username/start_desktop",
@@ -342,16 +464,25 @@ pub async fn start_remote_desktop_configuration(
     })
 }
 
+/// Verify is user available
+///
+/// Check is user available by provided `Username` object.
+/// Username is unique so database returns only single user or nothing.
+///
+/// # Returns
+/// Returns only status code 200 if user is available or `WebError` if error occurs.
+/// 
+/// `Please take notice that if user exists in database, endpoint will return status code 400.`
 #[utoipa::path(
     post,
     path = "/api/v1/user/available",
     request_body = Json<Username>,
     responses(
-        (status = 200, description = "Provided username is available.", body = Json),
-        (status = 400, description = "Bad request, provided username is not available or username is invalid.", body = Json, example = json!({})),
-        (status = 401, description = "Unauthorized to check is username available.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to check is username available.", body = Json,  example = json!({"msg": "access denied"})),
-        (status = 500, description = "Unable to check is username available.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "Provided username is available to use.", body = ApiResponse, example = json!({})),
+        (status = 400, description = "Bad request, provided username is not available or username is invalid.", body = ApiResponse, example = json!({})),
+        (status = 401, description = "Unauthorized to check is username available.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to check is username available.", body = ApiResponse,  example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to check is username available.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn username_available(
@@ -379,6 +510,13 @@ pub async fn username_available(
     })
 }
 
+/// Modify user
+/// 
+/// Update users data, it can remove authorized apps and active/deactivate ldap status if needed.
+/// Endpoint is able to disable a user, but `admin cannot disable himself`.
+/// 
+/// # Returns
+/// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     put,
     path = "/api/v1/user/:username",
@@ -388,9 +526,9 @@ pub async fn username_available(
     request_body = Json<UserInfo>,
     responses(
         (status = 200, description = "User has been updated."),
-        (status = 400, description = "Bad request, unable to change user data. Verify user data that you want to update.", body = Json, example = json!({})),
-        (status = 401, description = "Unauthorized to modify user.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 500, description = "Unable to modify user.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 400, description = "Bad request, unable to change user data. Verify user data that you want to update.", body = ApiResponse, example = json!({})),
+        (status = 401, description = "Unauthorized to modify user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to modify user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn modify_user(
@@ -473,6 +611,12 @@ pub async fn modify_user(
     Ok(ApiResponse::default())
 }
 
+/// Delete user
+/// 
+/// Endpoint helps you delete a user, but `you can't delete yourself as a administrator`.
+/// 
+/// # Returns
+/// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/:username",
@@ -481,11 +625,11 @@ pub async fn modify_user(
     ),
     responses(
         (status = 200, description = "User has been deleted."),
-        (status = 400, description = "Bad request, unable to delete user.", body = Json, example = json!({})),
-        (status = 401, description = "Unauthorized to delete user.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to delete user.", body = Json, example = json!({"msg": "access denied"})),
-        (status = 404, description = "User does not exist with username: <username>", body = Json, example = json!({"msg": "User <username> not found"})),
-        (status = 500, description = "Unable to delete user.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 400, description = "Bad request, unable to delete user.", body = ApiResponse, example = json!({})),
+        (status = 401, description = "Unauthorized to delete user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to delete user.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "User does not exist with username: <username>", body = ApiResponse, example = json!({"msg": "User <username> not found"})),
+        (status = 500, description = "Unable to delete user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn delete_user(
@@ -516,15 +660,21 @@ pub async fn delete_user(
     }
 }
 
+/// Change your own password
+/// 
+/// Change your own passwor, it returns error if password is not strong enough.
+/// 
+/// # Returns
+/// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     put,
     path = "/api/v1/user/change_password",
     request_body = Json<PasswordChangeSelf>,
     responses(
-        (status = 200, description = "Pasword has been changed.", body = Json),
-        (status = 400, description = "Bad request, provided passwords are not same or new password does not satisfy requirements.", body = Json, example = json!({})),
-        (status = 401, description = "Unauthorized to change password.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 500, description = "Unable to change your password", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
+        (status = 400, description = "Bad request, provided passwords are not same or new password does not satisfy requirements.", body = ApiResponse, example = json!({})),
+        (status = 401, description = "Unauthorized to change password.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to change your password", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn change_self_password(
