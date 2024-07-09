@@ -12,6 +12,7 @@ use axum::{
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
@@ -34,7 +35,7 @@ use crate::{
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
     pub address: IpNetwork,
@@ -78,6 +79,17 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/network",
+    request_body = WireguardNetworkData,
+    responses(
+        (status = 201, description = "Successfully created network.", body = WireguardNetwork),
+        (status = 401, description = "Unauthorized to create network.", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to return details about user.", body = Json, body = Json, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to create network.", body = Json, example = json!({"msg": "Invalid network address"}))
+    )
+)]
 pub async fn create_network(
     _role: VpnRole,
     State(appstate): State<AppState>,

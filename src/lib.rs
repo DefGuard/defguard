@@ -20,6 +20,7 @@ use handlers::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
     },
     user::WalletInfoShort,
+    wireguard::WireguardNetworkData,
     PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletChange,
     WalletSignature,
 };
@@ -155,48 +156,67 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 // WireGuard key length in bytes.
 pub(crate) const KEY_LENGTH: usize = 32;
 
-#[derive(OpenApi)]
-#[openapi(
-    modifiers(&SecurityAddon),
-    paths(
-        handlers::user::list_users,
-        handlers::user::get_user,
-        handlers::user::add_user,
-        handlers::user::start_enrollment,
-        handlers::user::start_remote_desktop_configuration,
-        handlers::user::username_available,
-        handlers::user::modify_user,
-        handlers::user::delete_user,
-        handlers::user::change_self_password,
-        handlers::user::change_password,
-        handlers::user::reset_password,
-        handlers::user::wallet_challenge,
-        handlers::user::set_wallet,
-        handlers::user::update_wallet,
-        handlers::user::delete_wallet,
-        handlers::user::delete_security_key,
-        handlers::user::me,
-        handlers::user::delete_authorized_app,
-        handlers::group::list_groups,
-    ),
-    components(
-        schemas(
-            UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange
+mod openapi {
+    use super::*;
+    use utoipa::OpenApi;
+
+    use crate::handlers::{group, user, wireguard};
+
+    #[derive(OpenApi)]
+    #[openapi(
+        modifiers(&SecurityAddon),
+        paths(
+            // /user
+            user::list_users,
+            user::get_user,
+            user::add_user,
+            user::start_enrollment,
+            user::start_remote_desktop_configuration,
+            user::username_available,
+            user::modify_user,
+            user::delete_user,
+            user::change_self_password,
+            user::change_password,
+            user::reset_password,
+            user::wallet_challenge,
+            user::set_wallet,
+            user::update_wallet,
+            user::delete_wallet,
+            user::delete_security_key,
+            user::me,
+            user::delete_authorized_app,
+            // /device
+            wireguard::create_network,
+            // /group
+            group::list_groups,
         ),
-    ),
-)]
-struct ApiDoc;
+        components(
+            schemas(
+                UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, WireguardNetwork, WireguardNetworkData
+            ),
+        ),
+        tags(
+            (name = "user", description = "add description to user endpoints!!\n
+add description to user endpoints!! add description to user endpoints!!\n
+add description to user endpoints!! \n\n
+hello world"),
+            (name = "wireguard", description = "awesome description, hurray!!"),
+            (name = "group", description = "another description")
+        )
+    )]
+    pub struct ApiDoc;
 
-struct SecurityAddon;
+    struct SecurityAddon;
 
-impl Modify for SecurityAddon {
-    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-        if let Some(components) = openapi.components.as_mut() {
-            // TODO: add an appropriate security schema
-            components.add_security_scheme(
-                "api_key",
-                SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
-            )
+    impl Modify for SecurityAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                // TODO: add an appropriate security schema
+                components.add_security_scheme(
+                    "api_key",
+                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
+                )
+            }
         }
     }
 }
@@ -211,7 +231,7 @@ async fn handle_404() -> (StatusCode, &'static str) {
 }
 
 async fn openapi() -> Json<utoipa::openapi::OpenApi> {
-    Json(ApiDoc::openapi())
+    Json(openapi::ApiDoc::openapi())
 }
 
 pub fn build_webapp(
@@ -369,6 +389,7 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
+            // FIXME: change /device/:device_id to /device/:username
             .route("/device/:device_id", post(add_device))
             .route("/device/:device_id", put(modify_device))
             .route("/device/:device_id", get(get_device))
