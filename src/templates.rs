@@ -198,7 +198,7 @@ pub fn mfa_configured_mail(
     method: &MFAMethod,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
-    context.insert("mfa_method", &method.to_string());
+    context.insert("mfa_method", &method);
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
 

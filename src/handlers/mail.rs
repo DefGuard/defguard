@@ -316,10 +316,7 @@ pub fn send_mfa_configured_email(
 ) -> Result<(), TemplateError> {
     debug!("Sending MFA configured mail to {}", user.email);
 
-    let subject = format!(
-        "MFA method {} was activated on your account",
-        mfa_method.to_string()
-    );
+    let subject = format!("MFA method {mfa_method} has been activated on your account");
 
     let mail = Mail {
         to: user.email.clone(),
