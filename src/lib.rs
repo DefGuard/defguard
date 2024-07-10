@@ -160,7 +160,7 @@ mod openapi {
     use super::*;
     use utoipa::OpenApi;
 
-    use handlers::{group, user, wireguard, ApiResponse};
+    use handlers::{group, user, ApiResponse};
 
     #[derive(OpenApi)]
     #[openapi(
@@ -186,13 +186,12 @@ mod openapi {
             user::me,
             user::delete_authorized_app,
             // /device
-            wireguard::create_network,
             // /group
             group::list_groups,
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, WireguardNetwork, WireguardNetworkData
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange
             ),
         ),
         tags(

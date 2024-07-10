@@ -662,7 +662,7 @@ pub async fn delete_user(
 
 /// Change your own password
 /// 
-/// Change your own passwor, it returns error if password is not strong enough.
+/// Change your own passwor, it could return error if password is not strong enough.
 /// 
 /// # Returns
 /// If erorr occurs, endpoint will return `WebError` object.
@@ -712,6 +712,14 @@ pub async fn change_self_password(
     })
 }
 
+/// Change user password
+/// 
+/// Change user password, it could return error if password is not strong enough.
+/// 
+/// `This endpoint can't allow your to change your own password. Go to: /api/v1/user/change_password.`
+/// 
+/// # Returns
+/// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     put,
     path = "/api/v1/user/:username/password",
@@ -720,12 +728,12 @@ pub async fn change_self_password(
     ),
     request_body = Json<PasswordChange>,
     responses(
-        (status = 200, description = "Pasword has been changed."),
-        (status = 400, description = "Bad request, password does not satisfy requirements. This endpoint does not change your own password.", body = Json, example = json!({})),
+        (status = 200, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
+        (status = 400, description = "Bad request, password does not satisfy requirements. This endpoint does not change your own password.", body = ApiResponse, example = json!({})),
         (status = 401, description = "Unauthorized to change password.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to change user password.", body = Json, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Cannot change user password that does not exist.", body = Json, example = json!({})),
-        (status = 500, description = "Unable to change user password", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 403, description = "You don't have permission to change user password.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Cannot change user password that does not exist.", body = ApiResponse, example = json!({})),
+        (status = 500, description = "Unable to change user password", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn change_password(
@@ -783,20 +791,27 @@ pub async fn change_password(
     }
 }
 
+/// Reset user password
+/// 
+/// Reset user password, it will send new enrollment to user to his/her email.
+/// 
+/// `This endpoint don't allow you to reset your own password.`
+/// 
+/// # Returns
+/// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     post,
     path = "/api/v1/user/:username/reset_password",
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = Json<PasswordChange>,
     responses(
         (status = 200, description = "Successfully reset user password."),
-        (status = 400, description = "Bad request, this endpoint does not change your own password.", body = Json, example = json!({})),
-        (status = 401, description = "Unauthorized to change password.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to change user password.", body = Json),
-        (status = 404, description = "Cannot reset user password that does not exist.", body = Json, example = json!({"msg": ""})),
-        (status = 500, description = "Unable to send reset password to email", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 400, description = "Bad request, this endpoint does not change your own password.", body = ApiResponse, example = json!({})),
+        (status = 401, description = "Unauthorized to change password.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to change user password.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Cannot reset user password that does not exist.", body = ApiResponse, example = json!({})),
+        (status = 500, description = "Unable to send reset password to email", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn reset_password(
@@ -893,6 +908,12 @@ pub struct WalletInfoShort {
     pub chain_id: i64,
 }
 
+/// Wallet challenge
+/// 
+/// Endpoint allows user to get encrypted message from user wallet to communicate with others securly.
+/// 
+/// # Returns
+/// Returns `WalletChallenge` object or `WebError` object if error occurs.
 #[utoipa::path(
     get,
     path = "/api/v1/user/:username/challenge",
@@ -901,10 +922,15 @@ pub struct WalletInfoShort {
     ),
     request_body = Json<WalletInfoShort>,
     responses(
-        (status = 200, description = "Successfully returned wallet challenge details.", body = WalletChallenge),
-        (status = 401, description = "Unauthorized to return wallet challenge.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 404, description = "Wrong address or wallet challenge is alredy validated.", body = Json, example = json!({"msg": "wrong address"})),
-        (status = 500, description = "Cannot retrive settings.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "Return successfully wallet challenge details.", body = WalletChallenge, example = json!(
+            {
+                "id": 1,
+                "message": "message"
+            }
+        )),
+        (status = 401, description = "Unauthorized to return wallet challenge.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Wrong address or wallet challenge is alredy validated.", body = ApiResponse, example = json!({"msg": "wrong address"})),
+        (status = 500, description = "Cannot retrive settings.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn wallet_challenge(
@@ -964,6 +990,12 @@ pub async fn wallet_challenge(
     })
 }
 
+/// Set wallet
+/// 
+/// Set a new signature to user wallet by providing `WalletSignature` object.
+/// 
+/// # Returns
+/// It returns `WebError` object if error occurs.
 #[utoipa::path(
     get,
     path = "/api/v1/user/:username/wallet",
@@ -1020,7 +1052,12 @@ pub async fn set_wallet(
 }
 
 /// Change wallet.
+/// 
+/// Updates user wallet.
 /// Currently only `use_for_mfa` flag can be set or unset.
+/// 
+/// # Returns
+/// Returns `RecoveryCodes` object or `WebError` object if error occurs.
 #[utoipa::path(
     put,
     path = "/api/v1/user/:username/wallet/:address",
@@ -1031,10 +1068,10 @@ pub async fn set_wallet(
     request_body = Json<WalletChange>,
     responses(
         (status = 200, description = "Successfully updated user's wallet.", body = RecoveryCodes, example = json!({"codes": "[]"})),
-        (status = 401, description = "Unauthorized to udpate user wallet.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to update user wallet.", body = Json, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Incorrect wallet, can't update user wallet.", body = Json, example = json!({"msg": "wallet not found"})),
-        (status = 500, description = "Cannot udpate user wallet.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to udpate user wallet.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to update user wallet.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Incorrect wallet, can't update user wallet.", body = ApiResponse, example = json!({"msg": "wallet not found"})),
+        (status = 500, description = "Cannot udpate user wallet.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn update_wallet(
@@ -1105,6 +1142,11 @@ pub async fn update_wallet(
 }
 
 /// Delete wallet.
+/// 
+/// Endpoint helps you to delete user wallet.
+/// 
+/// # Returns
+/// Returns `WebError` object if error occurs.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/:username/wallet/:address",
@@ -1114,10 +1156,10 @@ pub async fn update_wallet(
     ),
     responses(
         (status = 200, description = "Successfully deleted user's wallet."),
-        (status = 401, description = "Unauthorized to delete user wallet.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to delete user wallet.", body = Json, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Incorrect wallet, can't delete user wallet.", body = Json, example = json!({"msg": "wallet not found"})),
-        (status = 500, description = "Cannot delete user wallet.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to delete user wallet.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to delete user wallet.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Incorrect wallet, can't delete user wallet.", body = ApiResponse, example = json!({"msg": "wallet not found"})),
+        (status = 500, description = "Cannot delete user wallet.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn delete_wallet(
@@ -1157,6 +1199,12 @@ pub async fn delete_wallet(
     }
 }
 
+/// Delete security key
+/// 
+/// Delete security key that helps user to authenticate himself/herself with the company infrastructure.
+/// 
+/// # Returns
+/// Returns `WebError` object if error occurs.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/:username/security_key/:id",
@@ -1166,10 +1214,10 @@ pub async fn delete_wallet(
     ),
     responses(
         (status = 200, description = "Successfully deleted security key."),
-        (status = 401, description = "Unauthorized to delete security key.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to delete security key.", body = Json, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Incorrect authorized app, not found.", body = Json, example = json!({"msg": "security key not found"})),
-        (status = 500, description = "Cannot delete authorized app.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to delete security key.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to delete security key.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Incorrect authorized app, not found.", body = ApiResponse, example = json!({"msg": "security key not found"})),
+        (status = 500, description = "Cannot delete authorized app.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn delete_security_key(
@@ -1207,13 +1255,19 @@ pub async fn delete_security_key(
     }
 }
 
+/// Returns your data
+/// 
+/// Endpoint returns your own data that is essential to have access to your company infrastructure.
+/// 
+/// # Returns
+/// Returns `UserInfo` object or `WebError` object if error occurs.
 #[utoipa::path(
     get,
     path = "/api/v1/me",
     responses(
-        (status = 200, description = "Returns own user data."),
-        (status = 401, description = "Unauthorized return own user data.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 500, description = "Cannot retrive own user data.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "Returns your own data."),
+        (status = 401, description = "Unauthorized return own user data.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Cannot retrive own user data.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
@@ -1225,6 +1279,11 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
 }
 
 /// Delete Oauth token.
+/// 
+/// Endpoint helps your to delete authorized application by `OAuth2` id.
+/// 
+/// # Returns
+/// Returns `WebError` object if error occurs.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/:username/oauth_app/:oauth2client_id",
@@ -1234,10 +1293,10 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
     ),
     responses(
         (status = 200, description = "Successfully deleted authorized app."),
-        (status = 401, description = "Unauthorized to delete authorized app.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to delete authorized app.", body = Json, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Incorrect authorized app, not found.", body = Json, example = json!({"msg": "Authorized app not found"})),
-        (status = 500, description = "Cannot delete authorized app.", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to delete authorized app.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to delete authorized app.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Incorrect authorized app, not found.", body = ApiResponse, example = json!({"msg": "Authorized app not found"})),
+        (status = 500, description = "Cannot delete authorized app.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub async fn delete_authorized_app(
