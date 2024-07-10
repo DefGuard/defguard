@@ -12,17 +12,11 @@ use axum::{
 };
 
 use assets::{index, svg, web_asset};
-use db::{models::device::UserDevice, UserDetails, UserInfo};
-use error::WebError;
-use handlers::{
-    group::Groups,
+use handlers::
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-    },
-    user::WalletInfoShort,
-    PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletChange,
-    WalletSignature,
-};
+    }
+;
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     ssh_authorized_keys::rename_authentication_key,
@@ -157,9 +151,11 @@ pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
     use super::*;
+    use db::{models::device::{ModifyDevice, UserDevice}, AddDevice, UserDetails, UserInfo};
+    use error::WebError;
     use utoipa::OpenApi;
 
-    use handlers::{group, user, ApiResponse};
+    use handlers::{group::{self, Groups}, user::{self, WalletInfoShort}, wireguard::{self, AddDeviceResult}, ApiResponse, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletChange, WalletSignature};
 
     #[derive(OpenApi)]
     #[openapi(
@@ -185,12 +181,18 @@ mod openapi {
             user::me,
             user::delete_authorized_app,
             // /device
+            wireguard::add_device,
+            wireguard::modify_device,
+            wireguard::get_device,
+            wireguard::delete_device,
+            wireguard::list_devices,
+            wireguard::list_user_devices,
             // /group
             group::list_groups,
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, AddDevice, AddDeviceResult, Device, ModifyDevice
             ),
         ),
         tags(

@@ -110,7 +110,7 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
                 "enrolled": true,
                 "first_name": "first_name",
                 "groups": [
-                    "admin"
+                    "group"
                 ],
                 "id": 1,
                 "is_active": true,
@@ -1265,7 +1265,26 @@ pub async fn delete_security_key(
     get,
     path = "/api/v1/me",
     responses(
-        (status = 200, description = "Returns your own data."),
+        (status = 200, description = "Returns your own data.", body = UserInfo, example = json!(
+            {
+                "authorized_apps": [],
+                "email": "name@email.com",
+                "email_mfa_enabled": false,
+                "enrolled": true,
+                "first_name": "first_name",
+                "groups": [
+                    "group"
+                ],
+                "id": 1,
+                "is_active": true,
+                "last_name": "last_name",
+                "mfa_enabled": false,
+                "mfa_method": "None",
+                "phone": null,
+                "totp_enabled": false,
+                "username": "username"
+            }
+        )),
         (status = 401, description = "Unauthorized return own user data.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Cannot retrive own user data.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )

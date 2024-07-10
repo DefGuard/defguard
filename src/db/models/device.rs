@@ -32,7 +32,7 @@ pub struct DeviceConfig {
     pub(crate) keepalive_interval: i32,
 }
 
-#[derive(Clone, Deserialize, Model, Serialize, Debug)]
+#[derive(Clone, Deserialize, Model, Serialize, Debug, ToSchema)]
 pub struct Device {
     pub id: Option<i64>,
     pub name: String,
@@ -176,13 +176,13 @@ pub struct WireguardNetworkDevice {
     pub authorized_at: Option<NaiveDateTime>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct AddDevice {
     pub name: String,
     pub wireguard_pubkey: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, ToSchema)]
 pub struct ModifyDevice {
     pub name: String,
     pub wireguard_pubkey: String,
