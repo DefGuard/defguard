@@ -20,7 +20,6 @@ use handlers::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
     },
     user::WalletInfoShort,
-    wireguard::WireguardNetworkData,
     PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletChange,
     WalletSignature,
 };
@@ -205,8 +204,8 @@ Available actions:
 - operation on security key and authorized app
 - change user password.
             "),
-            (name = "wireguard", description = "awesome description, hurray!!"),
-            (name = "group", description = "another description")
+            (name = "wireguard", description = "description"),
+            (name = "group", description = "description")
         )
     )]
     pub struct ApiDoc;

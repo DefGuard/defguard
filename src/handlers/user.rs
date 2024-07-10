@@ -471,7 +471,7 @@ pub async fn start_remote_desktop_configuration(
 ///
 /// # Returns
 /// Returns only status code 200 if user is available or `WebError` if error occurs.
-/// 
+///
 /// `Please take notice that if user exists in database, endpoint will return status code 400.`
 #[utoipa::path(
     post,
@@ -511,10 +511,10 @@ pub async fn username_available(
 }
 
 /// Modify user
-/// 
+///
 /// Update users data, it can remove authorized apps and active/deactivate ldap status if needed.
 /// Endpoint is able to disable a user, but `admin cannot disable himself`.
-/// 
+///
 /// # Returns
 /// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
@@ -612,9 +612,9 @@ pub async fn modify_user(
 }
 
 /// Delete user
-/// 
+///
 /// Endpoint helps you delete a user, but `you can't delete yourself as a administrator`.
-/// 
+///
 /// # Returns
 /// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
@@ -661,9 +661,9 @@ pub async fn delete_user(
 }
 
 /// Change your own password
-/// 
+///
 /// Change your own passwor, it could return error if password is not strong enough.
-/// 
+///
 /// # Returns
 /// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
@@ -713,11 +713,11 @@ pub async fn change_self_password(
 }
 
 /// Change user password
-/// 
+///
 /// Change user password, it could return error if password is not strong enough.
-/// 
+///
 /// `This endpoint can't allow your to change your own password. Go to: /api/v1/user/change_password.`
-/// 
+///
 /// # Returns
 /// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
@@ -792,11 +792,11 @@ pub async fn change_password(
 }
 
 /// Reset user password
-/// 
+///
 /// Reset user password, it will send new enrollment to user to his/her email.
-/// 
+///
 /// `This endpoint don't allow you to reset your own password.`
-/// 
+///
 /// # Returns
 /// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
@@ -909,9 +909,9 @@ pub struct WalletInfoShort {
 }
 
 /// Wallet challenge
-/// 
+///
 /// Endpoint allows user to get encrypted message from user wallet to communicate with others securly.
-/// 
+///
 /// # Returns
 /// Returns `WalletChallenge` object or `WebError` object if error occurs.
 #[utoipa::path(
@@ -991,9 +991,9 @@ pub async fn wallet_challenge(
 }
 
 /// Set wallet
-/// 
+///
 /// Set a new signature to user wallet by providing `WalletSignature` object.
-/// 
+///
 /// # Returns
 /// It returns `WebError` object if error occurs.
 #[utoipa::path(
@@ -1052,10 +1052,10 @@ pub async fn set_wallet(
 }
 
 /// Change wallet.
-/// 
+///
 /// Updates user wallet.
 /// Currently only `use_for_mfa` flag can be set or unset.
-/// 
+///
 /// # Returns
 /// Returns `RecoveryCodes` object or `WebError` object if error occurs.
 #[utoipa::path(
@@ -1142,9 +1142,9 @@ pub async fn update_wallet(
 }
 
 /// Delete wallet.
-/// 
+///
 /// Endpoint helps you to delete user wallet.
-/// 
+///
 /// # Returns
 /// Returns `WebError` object if error occurs.
 #[utoipa::path(
@@ -1200,9 +1200,9 @@ pub async fn delete_wallet(
 }
 
 /// Delete security key
-/// 
+///
 /// Delete security key that helps user to authenticate himself/herself with the company infrastructure.
-/// 
+///
 /// # Returns
 /// Returns `WebError` object if error occurs.
 #[utoipa::path(
@@ -1256,9 +1256,9 @@ pub async fn delete_security_key(
 }
 
 /// Returns your data
-/// 
+///
 /// Endpoint returns your own data that is essential to have access to your company infrastructure.
-/// 
+///
 /// # Returns
 /// Returns `UserInfo` object or `WebError` object if error occurs.
 #[utoipa::path(
@@ -1279,9 +1279,9 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
 }
 
 /// Delete Oauth token.
-/// 
+///
 /// Endpoint helps your to delete authorized application by `OAuth2` id.
-/// 
+///
 /// # Returns
 /// Returns `WebError` object if error occurs.
 #[utoipa::path(
