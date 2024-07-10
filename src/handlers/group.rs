@@ -28,7 +28,7 @@ impl Groups {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, ToSchema)]
 pub(crate) struct BulkAssignToGroupsRequest {
     // groups by name
     groups: Vec<String>,
@@ -36,8 +36,24 @@ pub(crate) struct BulkAssignToGroupsRequest {
     users: Vec<i64>,
 }
 
-// POST bulk assign users to one group for users overview
-// assign many users to many groups at once
+/// Bulk assign users to groups
+///
+/// Bulk assign users to one group for users overview
+/// assign many users to many groups at once.
+///
+/// # Returns
+/// If error occurs, it returns `WebError` object.
+#[utoipa::path(
+    post,
+    path = "/api/v1/groups-assign",
+    responses(
+        (status = 200, description = "Successfully assign users to groups."),
+        (status = 400, description = "Bad request. Request contains users or groups that don't exist in db.", body = ApiResponse, example = json!({"msg": "Request contained users that doesn't exists in db."})),
+        (status = 401, description = "Unauthorized to assign users to groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to assign users to groups.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Cannot assign users to groups.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub(crate) async fn bulk_assign_to_groups(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
@@ -90,7 +106,31 @@ pub(crate) async fn bulk_assign_to_groups(
     })
 }
 
-/// GET: Retrieve all groups info
+/// Retrieve all groups info
+///
+/// Endpoint retrives for each `GroupInfo` objects: group name, a list of users' name and list of vpn_location.
+///
+/// `There is another endpoint "/api/v1/group" that retrives only name of each groups if you don't want all information.`
+///
+/// # Returns
+/// Returns a list of `GroupInfo` objects or `WebError` if error occurs.
+#[utoipa::path(
+    get,
+    path = "/api/v1/group-info",
+    responses(
+        (status = 200, description = "Successfully listed groups info.", body = [GroupInfo], example = json!([
+            {
+                "name": "name",
+                "members": ["user"],
+                "vpn_locations": ["location"]
+            }
+        ])),
+        (status = 401, description = "Unauthorized to list groups info.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 401, description = "Unauthorized to assign users to groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to list groups info.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Cannot list groups info.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub(crate) async fn list_groups_info(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
@@ -116,13 +156,17 @@ pub(crate) async fn list_groups_info(
     })
 }
 
-/// GET: Retrieve all groups.
+/// Retrieve all groups.
+///
+/// # Returns
+/// Returns a `Groups` object or `WebError` if error occurs.
 #[utoipa::path(
     get,
     path = "/api/v1/group",
     responses(
-        (status = 200, description = "Retrieve all groups.", body = Groups),
-        (status = 403, description = "Forbidden error: ...")
+        (status = 200, description = "Retrieve all groups.", body = Groups, example = json!({"groups": ["admin"]})),
+        (status = 401, description = "Unauthorized to retrive all groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Cannot retrive all groups.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub(crate) async fn list_groups(
@@ -142,7 +186,29 @@ pub(crate) async fn list_groups(
     })
 }
 
-/// GET: Retrieve group with `name`.
+/// Retrieve group with `name`.
+///
+/// # Returns
+/// Returns a `GroupInfo` object or `WebError` if error occurs.
+#[utoipa::path(
+    get,
+    path = "/api/v1/group/:name",
+    params(
+        ("name" = String, description = "Group name")
+    ),
+    responses(
+        (status = 200, description = "Retrieve a group.", body = GroupInfo, example = json!(
+            {
+                "name": "name",
+                "members": ["user"],
+                "vpn_locations": ["location"]
+            }
+        )),
+        (status = 401, description = "Unauthorized to retrive a group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Incorrect name of the group.", body = ApiResponse, example = json!({"msg": "Group <name> not found"})),
+        (status = 500, description = "Cannot retrive a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub(crate) async fn get_group(
     _session: SessionInfo,
     State(appstate): State<AppState>,
@@ -164,7 +230,29 @@ pub(crate) async fn get_group(
     }
 }
 
-/// POST: Create group with a given name and member list.
+/// Create group
+///
+/// Create group with a given name and member list.
+///
+/// # Returns
+/// Returns a `GroupsInfo` object or `WebError` if error occurs.
+#[utoipa::path(
+    post,
+    path = "/api/v1/group",
+    request_body = EditGroupInfo,
+    responses(
+        (status = 201, description = "Successfully created a group and added users.", body = EditGroupInfo, example = json!(
+            {
+                "name": "name",
+                "members": ["user"]
+            }
+        )),
+        (status = 401, description = "Unauthorized to retrive a group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to list groups info.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Cannot create group: user don't exist.", body = ApiResponse, example = json!({"msg": "Failed to find user <username>"})),
+        (status = 500, description = "Cannot retrive a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub(crate) async fn create_group(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
@@ -201,7 +289,24 @@ pub(crate) async fn create_group(
     })
 }
 
-/// PUT: Rename group and/or change group members.
+/// Modify group
+///
+/// Rename group and/or change group members.
+///
+/// # Returns
+/// Returns a `GroupsInfo` object or `WebError` if error occurs.
+#[utoipa::path(
+    put,
+    path = "/api/v1/group/:name",
+    request_body = EditGroupInfo,
+    responses(
+        (status = 201, description = "Successfully updated group."),
+        (status = 401, description = "Unauthorized to update user group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to update user group.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Cannot update group: user or group don't exist.", body = ApiResponse, example = json!({"msg": "Group <group_name> not found"})),
+        (status = 500, description = "Cannot update a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub(crate) async fn modify_group(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
@@ -258,10 +363,28 @@ pub(crate) async fn modify_group(
     Ok(ApiResponse::default())
 }
 
-/// DELETE: Remove group with `name`.
+/// Remove group with `name`.
+///
+/// Delete group and group members.
+///
+/// # Returns
+/// If error occurs it returns `WebError` object.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/group/:name",
+    params(
+        ("name" = String, description = "Group name")
+    ),
+    responses(
+        (status = 200, description = "Successfully deleted a group."),
+        (status = 400, description = "Cannot delete admin group.", body = ApiResponse, example = json!({})),
+        (status = 401, description = "Unauthorized to delete group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Cannot delete group: user or group don't exist.", body = ApiResponse, example = json!({"msg": "Failed to find group <group_name>"})),
+        (status = 500, description = "Cannot delete a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub(crate) async fn delete_group(
     _session: SessionInfo,
-
     State(appstate): State<AppState>,
     Path(name): Path<String>,
 ) -> Result<ApiResponse, WebError> {
@@ -291,7 +414,27 @@ pub(crate) async fn delete_group(
     }
 }
 
-/// POST: Find a group with `name` and add `username` as a member.
+/// Add a group member
+///
+/// Find a group with `name` and add `username` as a member.
+///
+/// # Returns
+/// If error occurs it returns `WebError` object.
+#[utoipa::path(
+    post,
+    path = "/api/v1/group/:name",
+    params(
+        ("name" = String, description = "Group name")
+    ),
+    request_body = Username,
+    responses(
+        (status = 200, description = "Successfully add a new member to group."),
+        (status = 401, description = "Unauthorized to add a new group member.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to add a new group member.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Cannot add a new group member: user or group don't exist.", body = ApiResponse, example = json!({"msg": "Failed to find group <group_name>"})),
+        (status = 500, description = "Cannot add a new group memmber.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub(crate) async fn add_group_member(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
@@ -320,7 +463,27 @@ pub(crate) async fn add_group_member(
     }
 }
 
-/// DELETE: Remove `username` from group with `name`.
+/// Remove `username` from group with `name`.
+///
+/// Find a group with `name` and remove `username` as a member.
+///
+/// # Returns
+/// If error occurs it returns `WebError` object.
+#[utoipa::path(
+    delete,
+    path = "/group/:name/user/:username",
+    params(
+        ("name" = String, description = "Name of the group that you want to delete a user."),
+        ("username" = String, description = "Name of the user that you want to delete.")
+    ),
+    responses(
+        (status = 200, description = "Successfully remove a member from group.", body = ApiResponse, example = json!({})),
+        (status = 401, description = "Unauthorized to remove a group member.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to remove a group member.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Cannot remove a  group member: user or group don't exist.", body = ApiResponse, example = json!({"msg": "Failed to find group <group_name>"})),
+        (status = 500, description = "Cannot remove a group member.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub(crate) async fn remove_group_member(
     _role: UserAdminRole,
     State(appstate): State<AppState>,

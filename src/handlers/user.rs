@@ -1007,7 +1007,7 @@ pub async fn wallet_challenge(
         (status = 200, description = "Successfully set wallet signature."),
         (status = 401, description = "Unauthorized to set a new signature.", body = Json, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to set new signature to wallet.", body = Json, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Incorrect wallet signature or address, can't set new signature for user.", body = Json, example = json!({"msg": "wallet not found"})),
+        (status = 404, description = "Incorrect wallet signature or address, can't set new signature for user.", body = ApiResponse, example = json!({"msg": "wallet not found"})),
         (status = 500, description = "Cannot set a new wallet signature", body = Json, example = json!({"msg": "Internal server error"}))
     )
 )]

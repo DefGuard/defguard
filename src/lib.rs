@@ -157,11 +157,11 @@ mod openapi {
     use utoipa::OpenApi;
 
     use handlers::{
-        group::{self, Groups},
+        group::{self, BulkAssignToGroupsRequest, Groups},
         user::{self, WalletInfoShort},
         wireguard::{self, AddDeviceResult},
-        ApiResponse, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username,
-        WalletChange, WalletSignature,
+        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        StartEnrollmentRequest, Username, WalletChange, WalletSignature,
     };
 
     #[derive(OpenApi)]
@@ -195,11 +195,19 @@ mod openapi {
             wireguard::list_devices,
             wireguard::list_user_devices,
             // /group
+            group::bulk_assign_to_groups,
+            group::list_groups_info,
             group::list_groups,
+            group::get_group,
+            group::create_group,
+            group::modify_group,
+            group::delete_group,
+            group::add_group_member,
+            group::remove_group_member,
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, AddDevice, AddDeviceResult, Device, ModifyDevice
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
             ),
         ),
         tags(
@@ -214,13 +222,20 @@ Available actions:
 - change user password.
             "),
             (name = "wireguard", description = "
-Endpoints that allo to control devices in your network.
+Endpoints that allow to control devices in your network.
 
 Available actions:
 - list all devices or user devices
 - CRUD mechanism for handling devices.
             "),
-            (name = "group", description = "description")
+            (name = "group", description = "
+Endpoints that allow to control groups in your network.
+
+Available actions:
+- list all groups
+- CRUD mechanism for handling groups
+- add or delete a group member.
+            ")
         )
     )]
     pub struct ApiDoc;

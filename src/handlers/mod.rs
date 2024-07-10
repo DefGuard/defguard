@@ -172,7 +172,7 @@ impl AuthCode {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct GroupInfo {
     pub name: String,
     pub members: Vec<String>,
@@ -191,7 +191,7 @@ impl GroupInfo {
 }
 
 /// Dedicated `GroupInfo` variant for group modification operations.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct EditGroupInfo {
     pub name: String,
     pub members: Vec<String>,
