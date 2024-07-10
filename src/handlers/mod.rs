@@ -4,7 +4,6 @@ use axum::{
     Json,
 };
 use serde_json::{json, Value};
-use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 #[cfg(feature = "wireguard")]
@@ -39,7 +38,7 @@ pub(crate) mod yubikey;
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
-#[derive(Default, ToSchema)]
+#[derive(Default)]
 pub struct ApiResponse {
     pub json: Value,
     pub status: StatusCode,
@@ -197,7 +196,7 @@ pub struct EditGroupInfo {
     pub members: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
 pub struct Username {
     pub username: String,
 }
@@ -212,37 +211,37 @@ pub struct AddUserData {
     pub password: Option<String>,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
 pub struct StartEnrollmentRequest {
     #[serde(default)]
     pub send_enrollment_notification: bool,
     pub email: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
 pub struct PasswordChangeSelf {
     pub old_password: String,
     pub new_password: String,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
 pub struct PasswordChange {
     pub new_password: String,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
 pub struct WalletSignature {
     pub address: String,
     pub signature: String,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
 pub struct WalletChallenge {
     pub id: i64,
     pub message: String,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
 pub struct WalletChange {
     pub use_for_mfa: bool,
 }

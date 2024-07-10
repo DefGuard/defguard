@@ -9,7 +9,6 @@ use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{query, query_as, Error as SqlxError, FromRow, PgConnection, PgExecutor};
 use thiserror::Error;
-use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
@@ -93,7 +92,7 @@ impl DeviceInfo {
 
 // helper struct which includes full device info
 // including network activity metadata
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserDevice {
     #[serde(flatten)]
     pub device: Device,

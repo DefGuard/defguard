@@ -22,7 +22,6 @@ pub mod wireguard;
 pub mod yubikey;
 
 use sqlx::{query_as, Error as SqlxError, PgConnection};
-use utoipa::ToSchema;
 
 use self::{
     device::UserDevice,
@@ -62,7 +61,7 @@ pub struct SecurityKey {
 }
 
 // Basic user info used in user list, etc.
-#[derive(Deserialize, Serialize, Debug, Clone, ToSchema)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct UserInfo {
     pub id: Option<i64>,
     pub username: String,
@@ -185,7 +184,7 @@ impl UserInfo {
 }
 
 // Full user info with related objects
-#[derive(Deserialize, Serialize, Debug, ToSchema)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct UserDetails {
     pub user: UserInfo,
     #[serde(default)]
