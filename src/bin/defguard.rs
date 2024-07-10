@@ -18,7 +18,7 @@ use defguard::{
     run_web_server,
     wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
-    SERVER_CONFIG,
+    SERVER_CONFIG, VERSION,
 };
 
 #[macro_use]
@@ -40,7 +40,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    info!("Starting defguard");
+    info!("Starting ... version v{} (commit: )", VERSION);
     debug!("Using config: {config:?}");
 
     let pool = init_db(
